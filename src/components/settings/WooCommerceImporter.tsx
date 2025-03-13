@@ -18,7 +18,9 @@ import {
   RefreshCw,
   ExternalLink,
   LinkIcon,
-  Tag
+  Tag,
+  DownloadCloud,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +36,8 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
-  getWooCommerceProducts, 
+  getWooCommerceProducts,
+  fetchAllWooCommerceProducts,
   testWooCommerceConnection, 
   importWooCommerceProducts,
   getWooCommerceConfig,
@@ -58,10 +61,12 @@ const WooCommerceImporter = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isFetchingAll, setIsFetchingAll] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [productsList, setProductsList] = useState<WooCommerceProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<WooCommerceProduct[]>([]);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -69,9 +74,11 @@ const WooCommerceImporter = () => {
   const [configLoaded, setConfigLoaded] = useState(false);
   const [connectionError, setConnectionError] = useState("");
   const [showSecret, setShowSecret] = useState(false);
+  const [importStage, setImportStage] = useState("");
   const [importOptions, setImportOptions] = useState({
     includeImages: true,
     includeDescriptions: true,
+    includeVariations: true,
     overwriteExisting: false
   });
 
@@ -196,7 +203,44 @@ const WooCommerceImporter = () => {
     }
   };
 
-  // Récupérer les produits WooCommerce
+  // Récupérer tous les produits WooCommerce
+  const fetchAllProducts = async (values: z.infer<typeof formSchema>) => {
+    if (!isConnected) {
+      toast.error("Veuillez d'abord tester la connexion");
+      return;
+    }
+    
+    setIsFetchingAll(true);
+    setImportStage("Récupération de tous les produits...");
+    
+    try {
+      console.log("Récupération de tous les produits WooCommerce");
+      const products = await fetchAllWooCommerceProducts(
+        values.siteUrl,
+        values.consumerKey,
+        values.consumerSecret
+      );
+      
+      console.log(`${products.length} produits récupérés au total`);
+      setAllProducts(products);
+      
+      // Mettre à jour la liste actuelle avec la première page
+      setProductsList(products.slice(0, 10));
+      setCurrentPage(1);
+      setTotalPages(Math.max(1, Math.ceil(products.length / 10)));
+      
+      toast.success(`${products.length} produits récupérés`);
+    } catch (error) {
+      console.error("Error fetching all products:", error);
+      toast.error("Erreur lors de la récupération des produits");
+      setConnectionError("Erreur lors de la récupération des produits. Vérifiez vos identifiants et la connectivité de votre boutique.");
+    } finally {
+      setIsFetchingAll(false);
+      setImportStage("");
+    }
+  };
+
+  // Récupérer les produits WooCommerce par page
   const fetchProducts = async (values: z.infer<typeof formSchema>, page: number) => {
     setIsFetchingProducts(true);
     
@@ -213,7 +257,15 @@ const WooCommerceImporter = () => {
       console.log(`${products.length} produits récupérés`);
       setProductsList(products);
       setCurrentPage(page);
-      setTotalPages(Math.max(1, Math.ceil(products.length / 10))); // Estimation basique
+      
+      // Si nous avons déjà tous les produits, utiliser cette longueur pour le total de pages
+      if (allProducts.length > 0) {
+        setTotalPages(Math.max(1, Math.ceil(allProducts.length / 10)));
+      } else {
+        // Estimation basique du nombre total de pages
+        // Note: Ceci est une estimation, car l'API WooCommerce ne renvoie pas toujours le total
+        setTotalPages(products.length === 10 ? page + 1 : page);
+      }
     } catch (error) {
       console.error("Error fetching products:", error);
       toast.error("Erreur lors de la récupération des produits");
@@ -223,31 +275,56 @@ const WooCommerceImporter = () => {
     }
   };
 
+  // Naviguer dans les produits quand on a déjà récupéré tous les produits
+  const navigatePages = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    
+    if (allProducts.length > 0) {
+      // Utiliser les produits déjà récupérés
+      const startIndex = (page - 1) * 10;
+      const endIndex = Math.min(startIndex + 10, allProducts.length);
+      setProductsList(allProducts.slice(startIndex, endIndex));
+      setCurrentPage(page);
+    } else {
+      // Récupérer la page depuis l'API
+      fetchProducts(form.getValues(), page);
+    }
+  };
+
   // Importer les produits vers Supabase
   const handleImportProducts = async () => {
-    if (productsList.length === 0) {
+    const productsToImport = allProducts.length > 0 ? allProducts : productsList;
+    
+    if (productsToImport.length === 0) {
       setErrors(["Aucun produit à importer"]);
       return;
     }
     
     setIsImporting(true);
     setImportProgress(0);
+    setImportStage("Préparation de l'importation...");
     setImportResult(null);
     
     try {
       // Simuler une progression pour l'UI
       const progressInterval = setInterval(() => {
         setImportProgress((prev) => {
-          const newProgress = prev + Math.random() * 10;
+          const newProgress = prev + Math.random() * 5;
           return newProgress >= 95 ? 95 : newProgress;
         });
-      }, 300);
+      }, 500);
       
-      const result = await importWooCommerceProducts(productsList);
+      setImportStage(`Importation de ${productsToImport.length} produits...`);
+      const result = await importWooCommerceProducts(
+        productsToImport,
+        importOptions.includeVariations,
+        importOptions.overwriteExisting
+      );
       
       clearInterval(progressInterval);
       setImportProgress(100);
       setImportResult(result);
+      setImportStage("Importation terminée");
       
       if (result.success) {
         toast.success(`Importation réussie de ${result.totalImported} produits`);
@@ -258,20 +335,21 @@ const WooCommerceImporter = () => {
       console.error("Error importing products:", error);
       toast.error("Erreur lors de l'importation des produits");
       setImportProgress(0);
+      setImportStage("Erreur lors de l'importation");
     } finally {
       setIsImporting(false);
     }
   };
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    fetchProducts(form.getValues(), newPage);
+    navigatePages(newPage);
   };
 
   const resetConnection = () => {
     setIsConnected(false);
     setConnectionError("");
     setProductsList([]);
+    setAllProducts([]);
   };
 
   // Gérer les erreurs d'importation
@@ -301,7 +379,7 @@ const WooCommerceImporter = () => {
       <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
         <div className="flex">
           <div className="flex-shrink-0">
-            <AlertCircle className="h-5 w-5 text-blue-400" />
+            <Info className="h-5 w-5 text-blue-400" />
           </div>
           <div className="ml-3">
             <p className="text-sm text-blue-700">
@@ -489,27 +567,45 @@ const WooCommerceImporter = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => fetchProducts(form.getValues(), currentPage)}
-                disabled={isFetchingProducts}
+                disabled={isFetchingProducts || isFetchingAll}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isFetchingProducts ? 'animate-spin' : ''}`} />
                 Actualiser
               </Button>
+              
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => fetchAllProducts(form.getValues())}
+                disabled={isFetchingProducts || isFetchingAll}
+              >
+                <DownloadCloud className={`h-4 w-4 mr-2 ${isFetchingAll ? 'animate-spin' : ''}`} />
+                {isFetchingAll ? 'Récupération...' : 'Tout récupérer'}
+              </Button>
+              
               <Button 
                 onClick={() => setImportDialogOpen(true)}
                 disabled={productsList.length === 0 || isImporting}
                 size="sm"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Importer les produits
+                Importer
               </Button>
             </div>
           </CardHeader>
           
           <CardContent className="pt-2">
+            {/* Affichage étape en cours */}
+            {importStage && (
+              <div className="bg-blue-50 p-3 rounded-md mb-4 text-sm text-blue-800">
+                {importStage}
+              </div>
+            )}
+          
             {/* Options d'importation */}
             <div className="border-b pb-4 mb-4">
               <h4 className="text-sm font-medium mb-3">Options d'importation</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="includeImages" 
@@ -542,6 +638,21 @@ const WooCommerceImporter = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
+                    id="includeVariations" 
+                    checked={importOptions.includeVariations}
+                    onCheckedChange={(checked) => 
+                      setImportOptions({...importOptions, includeVariations: checked === true})
+                    }
+                  />
+                  <label
+                    htmlFor="includeVariations"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Importer les variations
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
                     id="overwriteExisting" 
                     checked={importOptions.overwriteExisting}
                     onCheckedChange={(checked) => 
@@ -558,7 +669,7 @@ const WooCommerceImporter = () => {
               </div>
             </div>
             
-            {isFetchingProducts ? (
+            {isFetchingProducts || isFetchingAll ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
@@ -628,18 +739,19 @@ const WooCommerceImporter = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage <= 1 || isFetchingProducts}
+                    disabled={currentPage <= 1 || isFetchingProducts || isFetchingAll}
                   >
                     Précédent
                   </Button>
                   <span className="text-sm text-muted-foreground">
                     Page {currentPage} sur {totalPages}
+                    {allProducts.length > 0 && ` (${allProducts.length} produits au total)`}
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage >= totalPages || isFetchingProducts}
+                    disabled={currentPage >= totalPages || isFetchingProducts || isFetchingAll}
                   >
                     Suivant
                   </Button>
@@ -659,7 +771,9 @@ const WooCommerceImporter = () => {
             </DialogTitle>
             <DialogDescription>
               {!importResult ? (
-                `Vous êtes sur le point d'importer ${productsList.length} produits dans votre catalogue.`
+                allProducts.length > 0 
+                  ? `Vous êtes sur le point d'importer ${allProducts.length} produits dans votre catalogue.`
+                  : `Vous êtes sur le point d'importer ${productsList.length} produits dans votre catalogue.`
               ) : (
                 importResult.success ? (
                   `Importation terminée avec succès!`
@@ -676,7 +790,7 @@ const WooCommerceImporter = () => {
                 <div className="py-4">
                   <Progress value={importProgress} className="mb-2" />
                   <p className="text-sm text-muted-foreground text-center">
-                    Importation en cours... {Math.round(importProgress)}%
+                    {importStage || "Importation en cours..."} {Math.round(importProgress)}%
                   </p>
                 </div>
               )}
