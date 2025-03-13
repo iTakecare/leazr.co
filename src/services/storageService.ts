@@ -59,6 +59,7 @@ async function createPublicPolicy(bucketName: string): Promise<void> {
   console.log(`Ensuring public access policy for bucket: ${bucketName}`);
 }
 
+// Make sure we export both the individual function and a default export
 export default {
   ensureStorageBucket
 };

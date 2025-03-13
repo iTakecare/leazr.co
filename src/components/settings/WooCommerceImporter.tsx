@@ -47,7 +47,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { import as importStorageService } from "@/services/storageService";
+import { ensureStorageBucket } from "@/services/storageService";
 
 const formSchema = z.object({
   siteUrl: z.string().url({ message: "Veuillez entrer une URL valide" }),
