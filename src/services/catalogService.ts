@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductVariant } from "@/types/catalog";
 import { products as mockProducts } from "@/data/products";
@@ -204,7 +203,8 @@ export const updateProduct = async (id: string, productData: Partial<Product>): 
       variants_ids: productData.variants_ids,
       is_parent: productData.is_parent,
       variation_attributes: productData.variation_attributes,
-      is_variation: productData.is_variation
+      is_variation: productData.is_variation,
+      parent_id: productData.parent_id
     };
     
     // Supprimer les propriétés qui n'existent pas dans la base de données

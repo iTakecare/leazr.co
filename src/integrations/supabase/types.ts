@@ -122,11 +122,16 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_parent: boolean | null
+          is_variation: boolean | null
           monthly_price: number | null
           name: string
+          parent_id: string | null
           price: number
           specifications: Json | null
           updated_at: string | null
+          variants_ids: string[] | null
+          variation_attributes: Json | null
         }
         Insert: {
           active?: boolean | null
@@ -136,11 +141,16 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_parent?: boolean | null
+          is_variation?: boolean | null
           monthly_price?: number | null
           name: string
+          parent_id?: string | null
           price?: number
           specifications?: Json | null
           updated_at?: string | null
+          variants_ids?: string[] | null
+          variation_attributes?: Json | null
         }
         Update: {
           active?: boolean | null
@@ -150,11 +160,16 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_parent?: boolean | null
+          is_variation?: boolean | null
           monthly_price?: number | null
           name?: string
+          parent_id?: string | null
           price?: number
           specifications?: Json | null
           updated_at?: string | null
+          variants_ids?: string[] | null
+          variation_attributes?: Json | null
         }
         Relationships: []
       }
