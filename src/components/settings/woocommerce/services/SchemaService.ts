@@ -47,7 +47,7 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
     console.log('Starting schema update process...');
     
     // Add category column
-    const categoryResult = await adminSupabase.rpc(
+    const categoryResponse = await adminSupabase.rpc(
       'add_column_if_not_exists',
       {
         table_name: 'products',
@@ -57,13 +57,13 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
       }
     );
     
-    if (categoryResult.error) {
-      console.error('Erreur lors de l\'ajout de la colonne category:', categoryResult.error);
-      return { success: false, error: categoryResult.error.message };
+    if (categoryResponse.error) {
+      console.error('Erreur lors de l\'ajout de la colonne category:', categoryResponse.error);
+      return { success: false, error: categoryResponse.error.message };
     }
     
     // Add description column
-    const descriptionResult = await adminSupabase.rpc(
+    const descriptionResponse = await adminSupabase.rpc(
       'add_column_if_not_exists',
       {
         table_name: 'products',
@@ -73,9 +73,9 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
       }
     );
     
-    if (descriptionResult.error) {
-      console.error('Erreur lors de l\'ajout de la colonne description:', descriptionResult.error);
-      return { success: false, error: descriptionResult.error.message };
+    if (descriptionResponse.error) {
+      console.error('Erreur lors de l\'ajout de la colonne description:', descriptionResponse.error);
+      return { success: false, error: descriptionResponse.error.message };
     }
     
     console.log('Schema update completed successfully');

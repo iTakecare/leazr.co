@@ -37,15 +37,26 @@ const Sidebar = () => {
 
   const handleSignOut = async () => {
     try {
-      const result = await signOut();
-      console.log("Déconnexion réussie:", result);
+      console.log("Logout button clicked, initiating logout process...");
+      toast.info("Déconnexion en cours...");
+      
+      // Call signOut from auth context
+      await signOut();
+      
+      console.log("Auth context signOut completed, preparing for navigation");
       toast.success("Déconnexion réussie");
-      // Forcer un délai pour s'assurer que la déconnexion est bien effectuée
+      
+      // Clear any cached data
+      localStorage.removeItem("supabase.auth.token");
+      
+      // Use a more reliable approach with window.location
+      console.log("Redirecting to login page...");
+      
+      // Give a short delay to allow toast to be seen
       setTimeout(() => {
-        navigate("/login");
-        // Forcer le rechargement de la page pour s'assurer que toutes les données de session sont effacées
-        window.location.reload();
-      }, 500);
+        // Force navigation to login page
+        window.location.href = "/login";
+      }, 800);
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
       toast.error("Erreur lors de la déconnexion");
