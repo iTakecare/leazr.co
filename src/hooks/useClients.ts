@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 export const useClients = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -50,9 +51,17 @@ export const useClients = () => {
   };
 
   const filteredClients = clients.filter((client) => {
-    return client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-           (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase()));
+    // Filtre par terme de recherche
+    const matchesSearch = 
+      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (client.vat_number && client.vat_number.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // Filtre par statut
+    const matchesStatus = statusFilter === "all" || client.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
   });
 
   return {
@@ -62,6 +71,8 @@ export const useClients = () => {
     loadingError,
     searchTerm,
     setSearchTerm,
+    statusFilter,
+    setStatusFilter,
     fetchClients,
     handleDeleteClient
   };

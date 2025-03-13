@@ -1,71 +1,66 @@
 
-import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
-import './App.css';
-import { Toaster } from "sonner";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { AuthProvider } from "@/context/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import Sidebar from "@/components/layout/Sidebar";
-import PageTransition from "@/components/layout/PageTransition";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
+
+import Index from "@/pages/Index";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
+import Settings from "@/pages/Settings";
+import NotFound from "@/pages/NotFound";
 import Offers from "@/pages/Offers";
 import CreateOffer from "@/pages/CreateOffer";
 import Catalog from "@/pages/Catalog";
 import ProductDetail from "@/pages/ProductDetail";
-import Settings from "@/pages/Settings";
-import NotFound from "@/pages/NotFound";
-import Index from "@/pages/Index";
-import Login from "@/pages/Login";
-import Signup from "@/pages/Signup";
+import Clients from "@/pages/Clients";
+import ClientForm from "@/pages/ClientForm";
+import ClientDetail from "@/pages/ClientDetail";
 import CreateTestUsers from "@/pages/CreateTestUsers";
-import { AuthProvider } from "@/context/AuthContext";
 
-// Création d'un nouveau QueryClient
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-function Layout() {
-  return (
-    <div className="flex h-screen w-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6 pl-24">
-        <PageTransition>
-          <Outlet />
-        </PageTransition>
-      </main>
-    </div>
-  );
-}
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <Router>
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/create-test-users" element={<CreateTestUsers />} />
-            <Route element={<Layout />}>
+          <Router>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/settings" element={<Settings />} />
+
+              {/* Clients */}
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/clients/create" element={<ClientForm />} />
+              <Route path="/clients/edit/:id" element={<ClientForm />} />
+              <Route path="/clients/:id" element={<ClientDetail />} />
+
+              {/* Offers */}
               <Route path="/offers" element={<Offers />} />
               <Route path="/create-offer" element={<CreateOffer />} />
+
+              {/* Catalog */}
               <Route path="/catalog" element={<Catalog />} />
-              <Route path="/catalog/:productId" element={<ProductDetail />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/products/:id" element={<ProductDetail />} />
+
+              {/* Dev Tools */}
+              <Route path="/create-test-users" element={<CreateTestUsers />} />
+
               <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-          <Toaster richColors position="top-right" />
+            </Routes>
+          </Router>
+          <Toaster />
+          <SonnerToaster position="top-right" />
         </AuthProvider>
       </QueryClientProvider>
-    </Router>
+    </ThemeProvider>
   );
 }
 

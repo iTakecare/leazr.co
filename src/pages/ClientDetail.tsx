@@ -1,102 +1,117 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { getClientById } from "@/services/clientService";
-import { Client } from "@/types/client";
+import { getClientById, removeCollaborator } from "@/services/clientService";
+import { Client, Collaborator } from "@/types/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { 
-  ArrowLeft, 
-  User, 
-  Building2, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  StickyNote, 
-  Calendar, 
-  Pencil,
-  Calculator 
-} from "lucide-react";
+import { toast } from "sonner";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  ArrowLeft,
+  Building2,
+  Mail,
+  Phone,
+  MapPin,
+  User,
+  Edit,
+  Trash,
+  Plus,
+  FileText,
+  Tag,
+  Clock,
+  Users
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import CollaboratorForm from "@/components/clients/CollaboratorForm";
+import ClientEditDialog from "@/components/clients/ClientEditDialog";
 
 const ClientDetail = () => {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
-    const fetchClient = async () => {
-      if (!id) {
-        setError("ID client manquant");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const clientData = await getClientById(id);
-        if (clientData) {
-          setClient(clientData);
-        } else {
-          setError("Client introuvable");
-        }
-      } catch (err) {
-        console.error("Erreur lors du chargement du client:", err);
-        setError("Impossible de charger les données du client");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchClient();
+    if (id) {
+      fetchClient(id);
+    }
   }, [id]);
+
+  const fetchClient = async (clientId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await getClientById(clientId);
+      if (data) {
+        setClient(data);
+      } else {
+        setError("Client introuvable");
+      }
+    } catch (err) {
+      console.error("Error fetching client:", err);
+      setError("Erreur lors du chargement du client");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCollaborator = async (collaboratorId: string) => {
+    if (!client || !id) return;
+    
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce collaborateur ?")) {
+      const success = await removeCollaborator(id, collaboratorId);
+      if (success) {
+        toast.success("Collaborateur supprimé avec succès");
+        // Mettre à jour l'interface utilisateur
+        setClient({
+          ...client,
+          collaborators: client.collaborators?.filter(c => c.id !== collaboratorId) || []
+        });
+      } else {
+        toast.error("Erreur lors de la suppression du collaborateur");
+      }
+    }
+  };
+
+  const handleClientUpdated = (updatedClient: Client) => {
+    setClient(updatedClient);
+    setIsEditDialogOpen(false);
+    toast.success("Client mis à jour avec succès");
+  };
 
   const formatDate = (date: Date) => {
     try {
-      return format(date, "dd MMMM yyyy à HH:mm", { locale: fr });
+      return format(date, "dd/MM/yyyy", { locale: fr });
     } catch (error) {
       return "Date incorrecte";
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <PageTransition>
         <Container>
           <div className="py-6">
-            <div className="mb-6 flex items-center gap-2">
-              <Skeleton className="h-10 w-10" />
-              <Skeleton className="h-8 w-64" />
+            <div className="animate-pulse">
+              <div className="h-8 w-64 bg-gray-200 rounded mb-4"></div>
+              <div className="h-64 bg-gray-100 rounded-lg"></div>
             </div>
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-48 mb-2" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {Array(6).fill(null).map((_, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <Skeleton className="h-5 w-5 mt-1" />
-                      <div className="space-y-1 flex-1">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-6 w-full" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </Container>
       </PageTransition>
@@ -110,8 +125,8 @@ const ClientDetail = () => {
           <div className="py-6">
             <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
               <p className="text-red-600">{error || "Client introuvable"}</p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => navigate("/clients")}
                 className="mt-2"
               >
@@ -128,139 +143,207 @@ const ClientDetail = () => {
     <PageTransition>
       <Container>
         <div className="py-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => navigate("/clients")}
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <h1 className="text-2xl font-bold">Détails du client</h1>
             </div>
-            <div className="flex gap-2">
-              <Button 
+            <div className="flex items-center gap-2">
+              <Badge variant={client.status === 'active' ? 'default' : client.status === 'inactive' ? 'secondary' : 'outline'}>
+                {client.status === 'active' ? 'Client actif' : client.status === 'inactive' ? 'Client inactif' : 'Prospect'}
+              </Badge>
+              <Button
                 variant="outline"
-                onClick={() => navigate(`/clients/edit/${client.id}`)}
-                className="gap-2"
+                size="icon"
+                onClick={() => setIsEditDialogOpen(true)}
               >
-                <Pencil className="h-4 w-4" />
-                Modifier
-              </Button>
-              <Button 
-                onClick={() => navigate(`/create-offer?client=${client.id}`)}
-                className="gap-2"
-              >
-                <Calculator className="h-4 w-4" />
-                Créer une offre
+                <Edit className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          <Tabs defaultValue="info">
-            <TabsList className="mb-6">
-              <TabsTrigger value="info">Informations</TabsTrigger>
-              <TabsTrigger value="offers">Offres</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="info">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <User className="h-5 w-5 text-primary" />
-                    <CardTitle>Informations du client</CardTitle>
+                    <CardTitle>{client.name}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-6">
-                      <div className="flex items-start gap-3">
-                        <User className="h-5 w-5 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Nom</p>
-                          <p className="text-lg font-medium">{client.name}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      {client.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span>{client.email}</span>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <Building2 className="h-5 w-5 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Société</p>
-                          <p className="text-lg">{client.company || "-"}</p>
+                      )}
+                      {client.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span>{client.phone}</span>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <Mail className="h-5 w-5 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Email</p>
-                          <p className="text-lg">{client.email || "-"}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {client.company && (
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span>{client.company}</span>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <Calendar className="h-5 w-5 text-muted-foreground mt-1" />
+                      )}
+                      {client.vat_number && (
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-muted-foreground" />
+                          <span>{client.vat_number}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {client.address && (
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-sm text-muted-foreground">Date de création</p>
-                          <p className="text-lg">{formatDate(client.created_at)}</p>
+                          <p>{client.address}</p>
+                          {client.city && client.postal_code && (
+                            <p>
+                              {client.postal_code} {client.city}
+                              {client.country && `, ${client.country}`}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="space-y-6">
-                      <div className="flex items-start gap-3">
-                        <Phone className="h-5 w-5 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Téléphone</p>
-                          <p className="text-lg">{client.phone || "-"}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Adresse</p>
-                          <p className="text-lg">{client.address || "-"}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <StickyNote className="h-5 w-5 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Notes</p>
-                          <p className="text-lg whitespace-pre-line">{client.notes || "-"}</p>
-                        </div>
-                      </div>
+                  )}
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        Client créé le {formatDate(client.created_at)}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-            
-            <TabsContent value="offers">
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    <CardTitle>Collaborateurs</CardTitle>
+                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="gap-1">
+                        <Plus className="h-4 w-4" />
+                        Ajouter un collaborateur
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Ajouter un collaborateur</DialogTitle>
+                        <DialogDescription>
+                          Ajoutez les informations du collaborateur pour ce client.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <CollaboratorForm 
+                        clientId={id!} 
+                        onSuccess={(newCollaborator) => {
+                          if (client && newCollaborator) {
+                            setClient({
+                              ...client,
+                              collaborators: [...(client.collaborators || []), newCollaborator]
+                            });
+                          }
+                        }} 
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  {(!client.collaborators || client.collaborators.length === 0) ? (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <p>Aucun collaborateur n'a été ajouté.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {client.collaborators.map(collaborator => (
+                        <div key={collaborator.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium">{collaborator.name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {collaborator.role} {collaborator.department && `- ${collaborator.department}`}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteCollaborator(collaborator.id)}
+                            >
+                              <Trash className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                          <div className="mt-2 space-y-1">
+                            {collaborator.email && (
+                              <div className="flex items-center gap-2">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">{collaborator.email}</span>
+                              </div>
+                            )}
+                            {collaborator.phone && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">{collaborator.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Offres liées à ce client</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <CardTitle>Notes</CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground text-center py-8">
-                    Aucune offre associée à ce client pour le moment
-                  </p>
-                  <div className="flex justify-center">
-                    <Button 
-                      onClick={() => navigate(`/create-offer?client=${client.id}`)}
-                      className="gap-2"
-                    >
-                      <Calculator className="h-4 w-4" />
-                      Créer une offre
-                    </Button>
-                  </div>
+                  {client.notes ? (
+                    <p className="whitespace-pre-line">{client.notes}</p>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <p>Aucune note n'a été ajoutée.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
         </div>
+
+        {/* Modal d'édition */}
+        <ClientEditDialog 
+          client={client} 
+          isOpen={isEditDialogOpen} 
+          onClose={() => setIsEditDialogOpen(false)}
+          onClientUpdated={handleClientUpdated}
+        />
       </Container>
     </PageTransition>
   );

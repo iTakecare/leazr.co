@@ -1,201 +1,174 @@
-import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { LayoutDashboard, PlusCircle, ListOrdered, Folders, Settings, LogOut, User } from "lucide-react";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/context/AuthContext";
-import { Button } from "../ui/button";
-import { toast } from "sonner";
 
-const Sidebar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { user, signOut } = useAuth();
-  
-  // Get initials from user's name for avatar fallback
-  const getInitials = () => {
-    if (!user) return "U";
-    return `${user.first_name?.charAt(0) || ""}${user.last_name?.charAt(0) || ""}`.toUpperCase() || "U";
-  };
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { motion } from 'framer-motion';
+import { useMobile } from '@/hooks/use-mobile';
+import { LucideIcon, LayoutDashboard, Settings, PlusCircle, Calculator, ShoppingCart, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
-  const handleSignOut = async () => {
-    try {
-      console.log("Logout button clicked, initiating logout process...");
-      toast.info("Déconnexion en cours...");
-      
-      // Call signOut from auth context
-      await signOut();
-      
-      console.log("Auth context signOut completed, preparing for navigation");
-      toast.success("Déconnexion réussie");
-      
-      // Clear any cached data
-      localStorage.removeItem("supabase.auth.token");
-      
-      // Use a more reliable approach with window.location
-      console.log("Redirecting to login page...");
-      
-      // Give a short delay to allow toast to be seen
-      setTimeout(() => {
-        // Force navigation to login page
-        window.location.href = "/login";
-      }, 800);
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
-      toast.error("Erreur lors de la déconnexion");
-    }
-  };
+interface NavItemProps {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  onClick?: () => void;
+}
 
-  const sidebarItems = [
-    { 
-      path: "/dashboard", 
-      label: "Tableau de bord", 
-      icon: <LayoutDashboard className="h-5 w-5" /> 
-    },
-    { 
-      path: "/create-offer", 
-      label: "Créer une offre", 
-      icon: <PlusCircle className="h-5 w-5" /> 
-    },
-    { 
-      path: "/offers", 
-      label: "Mes offres", 
-      icon: <ListOrdered className="h-5 w-5" /> 
-    },
-    { 
-      path: "/catalog", 
-      label: "Catalogue", 
-      icon: <Folders className="h-5 w-5" /> 
-    },
-    { 
-      path: "/settings", 
-      label: "Paramètres", 
-      icon: <Settings className="h-5 w-5" /> 
-    },
-  ];
-
-  // Initial entrance animation variants
-  const containerVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { 
-      opacity: 1, 
-      x: 0,
-      transition: { 
-        staggerChildren: 0.1,
-        when: "beforeChildren" 
-      } 
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0 }
-  };
-
+const NavItem = ({ to, label, icon: Icon, onClick }: NavItemProps) => {
   return (
-    <motion.div 
-      className="fixed left-0 top-0 bottom-0 z-40 w-16 bg-background/80 backdrop-blur-lg border-r border-border/40 flex flex-col items-center py-6"
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+          isActive
+            ? 'bg-accent text-accent-foreground'
+            : 'transparent hover:bg-accent/50'
+        }`
+      }
+      onClick={onClick}
     >
-      {/* Avatar remplace le lien vers l'index */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link to="/settings" className="mb-8">
-              <Avatar>
-                <AvatarImage src={user?.avatar_url || ""} alt={user?.first_name || "User"} />
-                <AvatarFallback>{getInitials()}</AvatarFallback>
-              </Avatar>
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>{user?.first_name} {user?.last_name}</p>
-            <p className="text-xs text-muted-foreground">{user?.role === 'admin' ? 'Administrateur' : 
-                     user?.role === 'partner' ? 'Partenaire' : 'Client'}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      <div className="flex flex-col items-center space-y-6 flex-1">
-        {sidebarItems.map((item) => (
-          <motion.div key={item.path} variants={itemVariants}>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to={item.path}
-                    className={`p-2 rounded-md transition-colors flex items-center justify-center ${
-                      location.pathname === item.path
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
-                  >
-                    {item.icon}
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>{item.label}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </motion.div>
-        ))}
-      </div>
-
-      <AlertDialog>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <AlertDialogTrigger asChild>
-                <button
-                  className="p-2 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors mt-auto"
-                >
-                  <LogOut className="h-5 w-5" />
-                </button>
-              </AlertDialogTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>Déconnexion</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Déconnexion</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir vous déconnecter de l'application ?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSignOut} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Déconnexion
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </motion.div>
+      <Icon className="mr-2 h-4 w-4" />
+      <span>{label}</span>
+    </NavLink>
   );
 };
 
-export default Sidebar;
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { isAuthenticated, user } = useAuth();
+  const isMobile = useMobile();
+
+  // Animation variants
+  const sidebarVariants = {
+    open: { x: 0, opacity: 1 },
+    closed: { x: '-100%', opacity: 0 },
+  };
+
+  const overlayVariants = {
+    open: { opacity: 1 },
+    closed: { opacity: 0 },
+  };
+
+  return (
+    <>
+      {/* Overlay for mobile */}
+      {isMobile && isOpen && (
+        <motion.div
+          className="fixed inset-0 bg-black/50 z-40"
+          initial="closed"
+          animate={isOpen ? 'open' : 'closed'}
+          variants={overlayVariants}
+          onClick={onClose}
+        />
+      )}
+
+      {/* Sidebar */}
+      <motion.div
+        className={`fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r p-4 overflow-y-auto ${
+          isMobile ? '' : 'lg:z-30'
+        }`}
+        initial="closed"
+        animate={isOpen ? 'open' : 'closed'}
+        variants={sidebarVariants}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      >
+        <div className="flex flex-col h-full">
+          <div className="py-2">
+            <h2 className="text-xl font-bold mb-2">LeasingTools</h2>
+            <p className="text-muted-foreground text-sm">
+              Calculez et gérez vos offres de leasing
+            </p>
+          </div>
+
+          <Separator className="my-4" />
+
+          {isAuthenticated ? (
+            <>
+              <div className="space-y-1">
+                <NavItem
+                  to="/dashboard"
+                  label="Tableau de bord"
+                  icon={LayoutDashboard}
+                  onClick={isMobile ? onClose : undefined}
+                />
+                
+                <NavItem
+                  to="/clients"
+                  label="Gestion des clients"
+                  icon={Users}
+                  onClick={isMobile ? onClose : undefined}
+                />
+
+                <NavItem
+                  to="/create-offer"
+                  label="Nouvelle offre"
+                  icon={PlusCircle}
+                  onClick={isMobile ? onClose : undefined}
+                />
+
+                <NavItem
+                  to="/offers"
+                  label="Mes offres"
+                  icon={Calculator}
+                  onClick={isMobile ? onClose : undefined}
+                />
+
+                <NavItem
+                  to="/catalog"
+                  label="Catalogue produits"
+                  icon={ShoppingCart}
+                  onClick={isMobile ? onClose : undefined}
+                />
+
+                <NavItem
+                  to="/settings"
+                  label="Paramètres"
+                  icon={Settings}
+                  onClick={isMobile ? onClose : undefined}
+                />
+              </div>
+
+              <div className="mt-auto pt-4">
+                {!isMobile && (
+                  <div className="rounded-lg border p-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                      <div className="truncate">
+                        <p className="text-sm font-medium">{user?.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2 mt-auto">
+              <Button
+                className="w-full"
+                asChild
+                onClick={isMobile ? onClose : undefined}
+              >
+                <NavLink to="/login">Se connecter</NavLink>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                asChild
+                onClick={isMobile ? onClose : undefined}
+              >
+                <NavLink to="/signup">Créer un compte</NavLink>
+              </Button>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </>
+  );
+}

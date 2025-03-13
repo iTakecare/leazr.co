@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Client, CreateClientData } from "@/types/client";
+import { Client, CreateClientData, Collaborator } from "@/types/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
@@ -8,10 +8,34 @@ import { toast } from "sonner";
 const mockClients = [
   {
     id: "1",
-    name: "Jean Dupont",
-    email: "jean.dupont@example.com",
-    company: "Dupont SA",
-    phone: "06 12 34 56 78",
+    name: "Jean Saisrien",
+    email: "jsr@acmebelgium.be",
+    company: "ACME BELGIUM SA",
+    phone: "0123456789",
+    vat_number: "BE0123456789",
+    address: "Rue de la Loi 1",
+    city: "Bruxelles",
+    postal_code: "1000",
+    country: "BE",
+    status: "active",
+    collaborators: [
+      {
+        id: "c1",
+        name: "Annie Versaire",
+        role: "CFO",
+        email: "av@acmebelgium.be",
+        phone: "0123456789",
+        department: "Finances"
+      },
+      {
+        id: "c2",
+        name: "Alain Dien",
+        role: "CMO",
+        email: "ad@acmecorp.be",
+        phone: "0987654321",
+        department: "Marketing"
+      }
+    ],
     created_at: "2023-01-15T10:00:00Z",
     updated_at: "2023-01-15T10:00:00Z"
   },
@@ -45,6 +69,12 @@ const mapDbClientToClient = (record: any): Client => {
     phone: record.phone,
     address: record.address,
     notes: record.notes,
+    status: record.status || 'active',
+    vat_number: record.vat_number,
+    city: record.city,
+    postal_code: record.postal_code,
+    country: record.country,
+    collaborators: record.collaborators || [],
     created_at: record.created_at ? new Date(record.created_at) : new Date(),
     updated_at: record.updated_at ? new Date(record.updated_at) : new Date()
   };
@@ -165,6 +195,85 @@ export const deleteClient = async (id: string): Promise<boolean> => {
   } catch (error) {
     console.error("Error deleting client:", error);
     toast.error("Erreur lors de la suppression du client");
+    return false;
+  }
+};
+
+// Service pour vérifier un numéro de TVA via un mock de l'API VIES
+export const verifyVatNumber = async (vatNumber: string): Promise<{ valid: boolean, companyName?: string, address?: string }> => {
+  // Simulation d'un appel API avec un délai
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  // Pour la démo, on considère que BE0123456789 est valide
+  if (vatNumber === "BE0123456789") {
+    return {
+      valid: true,
+      companyName: "ACME BELGIUM SA",
+      address: "Rue de la Loi 1, 1000 Bruxelles, Belgique"
+    };
+  }
+  
+  // Les autres numéros sont considérés comme invalides
+  return { valid: false };
+};
+
+// Service pour gérer les collaborateurs
+export const addCollaborator = async (clientId: string, collaborator: Omit<Collaborator, 'id'>): Promise<Collaborator | null> => {
+  try {
+    // Récupérer le client actuel pour obtenir ses collaborateurs
+    const client = await getClientById(clientId);
+    if (!client) {
+      toast.error("Client introuvable");
+      return null;
+    }
+    
+    // Créer un nouvel ID pour le collaborateur
+    const newCollaborator: Collaborator = {
+      ...collaborator,
+      id: crypto.randomUUID()
+    };
+    
+    // Ajouter le collaborateur à la liste existante
+    const updatedCollaborators = [...(client.collaborators || []), newCollaborator];
+    
+    // Mettre à jour le client
+    const updated = await updateClient(clientId, { collaborators: updatedCollaborators });
+    
+    if (!updated) {
+      throw new Error("Échec de la mise à jour du client");
+    }
+    
+    return newCollaborator;
+  } catch (error) {
+    console.error("Error adding collaborator:", error);
+    toast.error("Erreur lors de l'ajout du collaborateur");
+    return null;
+  }
+};
+
+export const removeCollaborator = async (clientId: string, collaboratorId: string): Promise<boolean> => {
+  try {
+    // Récupérer le client actuel pour obtenir ses collaborateurs
+    const client = await getClientById(clientId);
+    if (!client || !client.collaborators) {
+      toast.error("Client ou collaborateurs introuvables");
+      return false;
+    }
+    
+    // Filtrer pour retirer le collaborateur
+    const updatedCollaborators = client.collaborators.filter(c => c.id !== collaboratorId);
+    
+    // Mettre à jour le client
+    const updated = await updateClient(clientId, { collaborators: updatedCollaborators });
+    
+    if (!updated) {
+      throw new Error("Échec de la mise à jour du client");
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error removing collaborator:", error);
+    toast.error("Erreur lors de la suppression du collaborateur");
     return false;
   }
 };

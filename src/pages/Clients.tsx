@@ -75,7 +75,7 @@ const Clients = () => {
               <div>
                 <h1 className="text-2xl font-bold mb-1">Gestion des clients</h1>
                 <p className="text-muted-foreground">
-                  Gérez votre base de clients et attribuez-leur des offres
+                  {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} au total
                 </p>
               </div>
               <Button onClick={() => navigate('/clients/create')} className="gap-2">
