@@ -11,14 +11,14 @@ import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@test.com");
+  const [password, setPassword] = useState("admintest123");
   const [loginAttempted, setLoginAttempted] = useState(false);
   const { signIn, isLoading, session } = useAuth();
   const navigate = useNavigate();
 
-  // Rediriger si déjà connecté
   useEffect(() => {
+    console.log("Login page - session state:", !!session);
     if (session) {
       navigate('/dashboard');
     }
@@ -32,6 +32,7 @@ const Login = () => {
       return;
     }
     
+    console.log("Attempting login with:", { email });
     setLoginAttempted(true);
     await signIn(email, password);
   };
@@ -110,8 +111,9 @@ const Login = () => {
             </Button>
             
             <div className="text-xs text-center">
-              Les identifiants de test sont:<br />
-              <strong>admin@test.com / admintest123</strong>
+              Les identifiants de test sont déjà saisis:<br />
+              <strong>admin@test.com / admintest123</strong><br />
+              Cliquez simplement sur Se connecter
             </div>
             
             <div className="text-center text-sm">
