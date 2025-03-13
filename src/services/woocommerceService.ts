@@ -870,7 +870,7 @@ const mapDbProductToProduct = (record: any): Product => {
     price: Number(record.price),
     description: record.description || "",
     imageUrl: record.image_url || "",
-    image_urls: record.image_urls || null,
+    imageUrls: record.image_urls || [], // Changed from image_urls to imageUrls
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
