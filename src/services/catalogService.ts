@@ -90,7 +90,7 @@ const getPublicImageUrl = (path) => {
   
   // Otherwise, construct the Supabase storage URL
   try {
-    const { data } = supabase.storage.from('products').getPublicUrl(path);
+    const { data } = supabase.storage.from('product-images').getPublicUrl(path);
     return data?.publicUrl || '/placeholder.svg';
   } catch (error) {
     console.error("Error getting public URL for image:", error);
@@ -127,7 +127,12 @@ export const getProducts = async (): Promise<Product[]> => {
         createdAt: new Date(item.created_at),
         updatedAt: new Date(item.updated_at),
         sku: item.sku,
-        monthly_price: item.monthly_price ? Number(item.monthly_price) : undefined
+        monthly_price: item.monthly_price ? Number(item.monthly_price) : undefined,
+        is_variation: item.is_variation,
+        parent_id: item.parent_id,
+        variation_attributes: item.variation_attributes,
+        is_parent: item.is_parent,
+        variants_ids: item.variants_ids
       }));
     } else {
       console.log("No products found in database, using mock products");
@@ -245,8 +250,22 @@ export const uploadProductImage = async (file: File, productId: string): Promise
     const fileExt = file.name.split('.').pop();
     const filePath = `${productId}/${Date.now()}.${fileExt}`;
     
+    // Check if bucket exists and create it if it doesn't
+    try {
+      const { data: buckets } = await supabase.storage.listBuckets();
+      
+      if (!buckets || !buckets.find(b => b.name === 'product-images')) {
+        console.log("Creating product-images bucket");
+        await supabase.storage.createBucket('product-images', {
+          public: true
+        });
+      }
+    } catch (bucketError) {
+      console.error("Error checking/creating bucket:", bucketError);
+    }
+    
     const { error: uploadError } = await supabase.storage
-      .from('products')
+      .from('product-images')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: true
@@ -257,7 +276,12 @@ export const uploadProductImage = async (file: File, productId: string): Promise
       return URL.createObjectURL(file); // Fallback to local URL
     }
 
-    return filePath; // Return the path for storage in the database
+    // Get the public URL
+    const { data } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+      
+    return data?.publicUrl || URL.createObjectURL(file);
   } catch (error) {
     console.error('Exception during file upload:', error);
     return URL.createObjectURL(file); // Fallback to local URL

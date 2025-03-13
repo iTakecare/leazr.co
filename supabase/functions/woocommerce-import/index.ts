@@ -142,15 +142,84 @@ serve(async (req) => {
             };
           } else {
             const products = await response.json();
+            
+            // Add credentials to products for later use
+            const productsWithCredentials = products.map(product => ({
+              ...product,
+              siteUrl: url,
+              consumerKey,
+              consumerSecret
+            }));
+            
             console.log(`Retrieved ${products?.length || 0} products`);
             result = {
-              products: products || [],
+              products: productsWithCredentials || [],
             };
           }
         } catch (error) {
           console.error("Error fetching products:", error);
           result = {
             products: [],
+            error: error.message || "Unknown error"
+          };
+        }
+        break;
+        
+      case "getVariations":
+        // Fetch variations for a specific product
+        try {
+          const { productId } = requestData;
+          if (!productId) {
+            return new Response(
+              JSON.stringify({ error: "Missing productId parameter" }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+          const apiUrl = `${baseUrl}/wp-json/wc/v3/products/${productId}/variations?per_page=100`;
+          
+          // Add Basic authentication
+          const credentials = btoa(`${consumerKey}:${consumerSecret}`);
+          const headers = new Headers();
+          headers.append("Authorization", `Basic ${credentials}`);
+          
+          // Make the request
+          console.log(`Making request to: ${apiUrl}`);
+          const response = await fetch(apiUrl, {
+            method: "GET",
+            headers,
+          });
+          
+          if (!response.ok) {
+            console.error(`API error: ${response.status} ${response.statusText}`);
+            const responseText = await response.text();
+            console.error("Response body:", responseText);
+            result = {
+              variations: [],
+              error: `API error: ${response.status} ${response.statusText}`
+            };
+          } else {
+            const variations = await response.json();
+            
+            // Add credentials and parent ID to variations for later use
+            const variationsWithCredentials = variations.map(variation => ({
+              ...variation,
+              siteUrl: url,
+              consumerKey,
+              consumerSecret,
+              parent_id: productId
+            }));
+            
+            console.log(`Retrieved ${variations?.length || 0} variations for product ${productId}`);
+            result = {
+              variations: variationsWithCredentials || [],
+            };
+          }
+        } catch (error) {
+          console.error("Error fetching variations:", error);
+          result = {
+            variations: [],
             error: error.message || "Unknown error"
           };
         }

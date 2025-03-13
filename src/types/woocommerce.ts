@@ -33,6 +33,10 @@ export interface WooCommerceProduct {
     src: string;
     alt: string;
   };
+  // Added fields for credentials passing
+  siteUrl?: string;
+  consumerKey?: string;
+  consumerSecret?: string;
 }
 
 export interface ImportResult {

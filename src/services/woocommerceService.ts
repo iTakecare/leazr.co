@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
 import { Product } from "@/types/catalog";
@@ -294,177 +293,179 @@ export async function importWooCommerceProducts(
     
     console.log(`Found ${existingNameSet.size} existing products by name, ${existingSkuSet.size} by SKU`);
 
-    // Regrouper les produits par leurs variations
-    const productGroups = new Map<string, WooCommerceProduct[]>();
-    const standaloneProducts: WooCommerceProduct[] = [];
-
-    // D'abord, identifier les produits parents
+    // Separate parent products (with variations) from simple products
+    const parentProducts: WooCommerceProduct[] = [];
+    const simpleProducts: WooCommerceProduct[] = [];
+    
+    // First pass: identify parent products
     for (const product of products) {
-      // Si le produit a des variations, il est un parent
       if (product.variations && product.variations.length > 0) {
-        // Utiliser le nom du produit comme clé
-        const key = product.name.toLowerCase();
-        productGroups.set(key, [product]);
+        parentProducts.push(product);
       } else {
-        standaloneProducts.push(product);
+        simpleProducts.push(product);
       }
     }
-
-    // Traiter les produits avec leurs variations
-    for (const [parentName, productGroup] of productGroups) {
-      const parentProduct = productGroup[0];
-      console.log(`Processing product group: ${parentProduct.name} with variations`);
-
+    
+    console.log(`Identified ${parentProducts.length} parent products and ${simpleProducts.length} simple products`);
+    
+    // Process parent products first
+    for (const parentProduct of parentProducts) {
       try {
-        // Importer le produit parent
-        const parentProductData = await createProductFromWooCommerceData(
+        // Import the parent product
+        console.log(`Processing parent product: ${parentProduct.name}`);
+        
+        // Create the parent product
+        const parentData = await createProductFromWooCommerceData(
           parentProduct,
           existingNameSet,
           existingSkuSet,
           existingIdByName,
           existingIdBySku,
-          overwriteExisting
+          overwriteExisting,
+          false, // Not a variation
+          null,  // No parent ID
+          true   // Is a parent product
         );
-
-        if (parentProductData) {
-          console.log(`Imported parent product: ${parentProductData.name}`);
-          imported++;
-
-          // Mettre à jour les collections d'existants
-          const nameLower = parentProduct.name.toLowerCase();
-          existingNameSet.add(nameLower);
-          existingIdByName.set(nameLower, parentProductData.id);
+        
+        if (!parentData) {
+          console.log(`Skipped parent product: ${parentProduct.name}`);
+          skipped++;
+          continue;
+        }
+        
+        console.log(`Imported parent product: ${parentData.name} with ID: ${parentData.id}`);
+        imported++;
+        
+        // Add to existing product sets
+        existingNameSet.add(parentProduct.name.toLowerCase());
+        existingIdByName.set(parentProduct.name.toLowerCase(), parentData.id);
+        if (parentProduct.sku) {
+          existingSkuSet.add(parentProduct.sku.toLowerCase());
+          existingIdBySku.set(parentProduct.sku.toLowerCase(), parentData.id);
+        }
+        
+        // Process variations if needed
+        if (includeVariations && parentProduct.variations && parentProduct.variations.length > 0) {
+          console.log(`Fetching ${parentProduct.variations.length} variations for parent product: ${parentProduct.name}`);
           
-          if (parentProduct.sku) {
-            const skuLower = parentProduct.sku.toLowerCase();
-            existingSkuSet.add(skuLower);
-            existingIdBySku.set(skuLower, parentProductData.id);
+          // Get variations for this parent product
+          const variations = await getProductVariations(
+            parentProduct.siteUrl || "https://www.itakecare.be",
+            parentProduct.consumerKey || "ck_09a895603eb75cc364669e8e3317fe13e607ace0",
+            parentProduct.consumerSecret || "cs_52c6e6aa2332f0d7e1b395ab32c32f75a8ce4ccc",
+            parentProduct.id
+          );
+          
+          if (variations.length === 0) {
+            console.log(`No variations found for parent product: ${parentProduct.name}`);
+            continue;
           }
-
-          // Si on doit inclure les variations et que le produit en a
-          if (includeVariations && parentProduct.variations && parentProduct.variations.length > 0) {
-            console.log(`Fetching ${parentProduct.variations.length} variations for ${parentProduct.name}`);
-            
-            // Récupérer toutes les variations
+          
+          console.log(`Processing ${variations.length} variations for parent product: ${parentProduct.name}`);
+          
+          // Store variation IDs to update parent later
+          const variationIds: string[] = [];
+          
+          // Import each variation
+          for (const variation of variations) {
             try {
-              const variations = await getProductVariations(
-                // Ces valeurs seraient normalement passées comme paramètres
-                "https://www.itakecare.be",
-                "ck_09a895603eb75cc364669e8e3317fe13e607ace0",
-                "cs_52c6e6aa2332f0d7e1b395ab32c32f75a8ce4ccc",
-                parentProduct.id
-              );
-
-              if (variations.length > 0) {
-                console.log(`Processing ${variations.length} variations for product ${parentProduct.name}`);
-                const variantIds: string[] = [];
-                
-                for (const variation of variations) {
-                  try {
-                    // Construire un nom pour la variation en fonction des attributs
-                    let variationName = parentProduct.name;
-                    const variationAttributes: Record<string, string> = {};
-                    
-                    if (variation.attributes && variation.attributes.length > 0) {
-                      const attributeNames = variation.attributes
-                        .map(attr => {
-                          // Stocker chaque attribut pour référence ultérieure
-                          if (attr.name && attr.option) {
-                            variationAttributes[attr.name] = attr.option;
-                            return `${attr.name}: ${attr.option}`;
-                          }
-                          return null;
-                        })
-                        .filter(Boolean)
-                        .join(' - ');
-                        
-                      if (attributeNames) {
-                        variationName += ` - ${attributeNames}`;
-                      }
-                    }
-                    
-                    if (!variation.name) {
-                      variation.name = variationName;
-                    }
-                    
-                    // Créer la variation comme un produit lié au parent
-                    const variationProduct = {
-                      ...await createProductFromWooCommerceData(
-                        variation,
-                        existingNameSet,
-                        existingSkuSet,
-                        existingIdByName,
-                        existingIdBySku,
-                        overwriteExisting,
-                        true, // C'est une variation
-                        parentProductData.id // ID du produit parent
-                      ),
-                      variation_attributes: variationAttributes
-                    };
-                    
-                    if (variationProduct) {
-                      variationsImported++;
-                      variantIds.push(variationProduct.id);
-                      console.log(`Imported variation: ${variationProduct.name}`);
-                      
-                      // Mettre à jour les collections d'existants
-                      const nameLower = variation.name.toLowerCase();
-                      existingNameSet.add(nameLower);
-                      existingIdByName.set(nameLower, variationProduct.id);
-                      
-                      if (variation.sku) {
-                        const skuLower = variation.sku.toLowerCase();
-                        existingSkuSet.add(skuLower);
-                        existingIdBySku.set(skuLower, variationProduct.id);
-                      }
-                    } else {
-                      variationsSkipped++;
-                    }
-                  } catch (variationError) {
-                    console.error(`Error processing variation for ${parentProduct.name}:`, variationError);
-                    errors.push(`Error with variation of ${parentProduct.name}: ${
-                      variationError instanceof Error ? variationError.message : 'Unknown error'
-                    }`);
+              // Build variation attributes
+              const variationAttributes: Record<string, string> = {};
+              
+              // Extract attributes from the variation
+              if (variation.attributes && variation.attributes.length > 0) {
+                variation.attributes.forEach(attr => {
+                  if (attr.name && attr.option) {
+                    variationAttributes[attr.name] = attr.option;
                   }
-                }
-                
-                // Mettre à jour le produit parent avec les références aux variations
-                if (variantIds.length > 0) {
-                  // Create an update object that matches the database schema
-                  const updateData = {
-                    is_parent: true,
-                    variants_ids: variantIds
-                  } as any; // Use type assertion to avoid type errors
-                  
-                  const { error: updateError } = await supabase
-                    .from("products")
-                    .update(updateData)
-                    .eq("id", parentProductData.id);
-                    
-                  if (updateError) {
-                    console.error(`Failed to update parent with variations: ${updateError.message}`);
-                  }
-                }
+                });
               }
-            } catch (variationsError) {
-              console.error(`Error fetching variations for ${parentProduct.name}:`, variationsError);
-              errors.push(`Error fetching variations for ${parentProduct.name}: ${
-                variationsError instanceof Error ? variationsError.message : 'Unknown error'
+              
+              // Build a descriptive name for the variation based on attributes
+              let variationName = parentProduct.name;
+              const attributeTexts: string[] = [];
+              
+              for (const [name, value] of Object.entries(variationAttributes)) {
+                attributeTexts.push(`${name}: ${value}`);
+              }
+              
+              if (attributeTexts.length > 0) {
+                variationName = `${parentProduct.name} - ${attributeTexts.join(', ')}`;
+              }
+              
+              // Set the name for display
+              variation.name = variationName;
+              
+              // Import the variation as a product with reference to the parent
+              const variationData = await createProductFromWooCommerceData(
+                variation,
+                existingNameSet,
+                existingSkuSet,
+                existingIdByName,
+                existingIdBySku,
+                overwriteExisting,
+                true, // Is a variation
+                parentData.id, // Parent ID
+                false, // Not a parent product
+                variationAttributes // Variation attributes
+              );
+              
+              if (!variationData) {
+                console.log(`Skipped variation: ${variationName}`);
+                variationsSkipped++;
+                continue;
+              }
+              
+              console.log(`Imported variation: ${variationData.name} with ID: ${variationData.id}`);
+              variationIds.push(variationData.id);
+              variationsImported++;
+              
+              // Add to existing product sets
+              existingNameSet.add(variationName.toLowerCase());
+              existingIdByName.set(variationName.toLowerCase(), variationData.id);
+              if (variation.sku) {
+                existingSkuSet.add(variation.sku.toLowerCase());
+                existingIdBySku.set(variation.sku.toLowerCase(), variationData.id);
+              }
+            } catch (variationError) {
+              console.error(`Error processing variation for ${parentProduct.name}:`, variationError);
+              errors.push(`Error with variation of ${parentProduct.name}: ${
+                variationError instanceof Error ? variationError.message : 'Unknown error'
               }`);
             }
           }
-        } else {
-          skipped++;
+          
+          // Update parent product with variation IDs
+          if (variationIds.length > 0) {
+            console.log(`Updating parent product ${parentData.name} with ${variationIds.length} variations`);
+            
+            const { error: updateError } = await supabase
+              .from("products")
+              .update({
+                is_parent: true,
+                variants_ids: variationIds
+              })
+              .eq("id", parentData.id);
+              
+            if (updateError) {
+              console.error(`Error updating parent product with variations: ${updateError.message}`);
+              errors.push(`Error updating parent ${parentProduct.name} with variations: ${updateError.message}`);
+            } else {
+              console.log(`Successfully updated parent product ${parentData.name} with ${variationIds.length} variations`);
+            }
+          }
         }
-      } catch (error) {
-        console.error(`Error processing product group ${parentProduct.name}:`, error);
-        errors.push(`Failed to import ${parentProduct.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } catch (parentError) {
+        console.error(`Error processing parent product ${parentProduct.name}:`, parentError);
+        errors.push(`Error with parent product ${parentProduct.name}: ${
+          parentError instanceof Error ? parentError.message : 'Unknown error'
+        }`);
         skipped++;
       }
     }
-
-    // Traiter les produits individuels
-    for (const product of standaloneProducts) {
+    
+    // Process simple products
+    for (const product of simpleProducts) {
       try {
         const productData = await createProductFromWooCommerceData(
           product,
@@ -475,31 +476,34 @@ export async function importWooCommerceProducts(
           overwriteExisting
         );
         
-        if (productData) {
-          imported++;
-          console.log(`Imported standalone product: ${productData.name}`);
-          
-          // Mettre à jour les collections d'existants
-          const nameLower = product.name.toLowerCase();
-          existingNameSet.add(nameLower);
-          existingIdByName.set(nameLower, productData.id);
-          
-          if (product.sku) {
-            const skuLower = product.sku.toLowerCase();
-            existingSkuSet.add(skuLower);
-            existingIdBySku.set(skuLower, productData.id);
-          }
-        } else {
+        if (!productData) {
+          console.log(`Skipped simple product: ${product.name}`);
           skipped++;
+          continue;
         }
-      } catch (error) {
-        console.error(`Error importing standalone product ${product.name}:`, error);
-        errors.push(`Failed to import ${product.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        
+        console.log(`Imported simple product: ${productData.name}`);
+        imported++;
+        
+        // Add to existing product sets
+        existingNameSet.add(product.name.toLowerCase());
+        existingIdByName.set(product.name.toLowerCase(), productData.id);
+        if (product.sku) {
+          existingSkuSet.add(product.sku.toLowerCase());
+          existingIdBySku.set(product.sku.toLowerCase(), productData.id);
+        }
+      } catch (productError) {
+        console.error(`Error processing simple product ${product.name}:`, productError);
+        errors.push(`Error with simple product ${product.name}: ${
+          productError instanceof Error ? productError.message : 'Unknown error'
+        }`);
         skipped++;
       }
     }
 
-    console.log(`Import completed: ${imported} products and ${variationsImported} variations imported, ${skipped} products and ${variationsSkipped} variations skipped`);
+    console.log(`Import completed: ${imported} products imported, ${skipped} skipped`);
+    console.log(`${variationsImported} variations imported, ${variationsSkipped} skipped`);
+    
     return {
       success: errors.length === 0,
       totalImported: imported + variationsImported,
@@ -522,7 +526,9 @@ async function createProductFromWooCommerceData(
   existingIdsBySku: Map<string, string>,
   overwriteExisting: boolean,
   isVariation: boolean = false,
-  parentId?: string
+  parentId?: string | null,
+  isParent: boolean = false,
+  variationAttributes?: Record<string, string>
 ): Promise<Product | null> {
   if (!wooProduct.name) {
     console.error(`Product ID ${wooProduct.id} has no name and was skipped`);
@@ -540,44 +546,54 @@ async function createProductFromWooCommerceData(
   console.log(`Processing product: ${wooProduct.name} (SKU: ${wooProduct.sku || 'None'})`);
   console.log(`Product exists by name: ${productExistsByName}, by SKU: ${productExistsBySku}, Overwrite existing: ${overwriteExisting}`);
 
-  // Vérifier si le produit existe déjà et si on ne doit pas écraser
+  // Check if product exists and we shouldn't overwrite
   if (productExists && !overwriteExisting) {
     console.log(`Product "${wooProduct.name}" already exists and was skipped (overwriteExisting: ${overwriteExisting})`);
     return null;
   }
 
-  // Extraire la marque et le nom (si possible)
+  // Extract brand and name (if possible)
   let brand = 'Generic';
   let name = wooProduct.name;
   
-  // Essayer d'extraire la marque du début du nom
+  // Try to extract brand from the beginning of name
   const brandMatch = name.match(/^([\w\s]+)\s+(.+)$/);
   if (brandMatch) {
     brand = brandMatch[1].trim();
     name = brandMatch[2].trim();
   }
 
-  // Gérer l'image
+  // Handle image - improved to better handle variations with image
   let imageUrl = '';
-  if (wooProduct.images && wooProduct.images.length > 0) {
-    // Préférer l'image spécifique à la variation si disponible
-    imageUrl = wooProduct.image?.src || wooProduct.images[0].src;
-    
-    // Tenter de télécharger l'image vers notre bucket de stockage
+  
+  if (isVariation && wooProduct.image && wooProduct.image.src) {
+    // Get variation-specific image if available
+    imageUrl = wooProduct.image.src;
+  } else if (wooProduct.images && wooProduct.images.length > 0) {
+    // Otherwise get first available image
+    imageUrl = wooProduct.images[0].src;
+  }
+  
+  // Download and upload image to our storage
+  if (imageUrl) {
     try {
-      const uploadedUrl = await downloadAndUploadImage(imageUrl, wooProduct.id.toString());
+      console.log(`Downloading and uploading image from: ${imageUrl}`);
+      const uploadedUrl = await downloadAndUploadImage(imageUrl, `woo_${wooProduct.id}`);
       if (uploadedUrl) {
+        console.log(`Image successfully uploaded to: ${uploadedUrl}`);
         imageUrl = uploadedUrl;
+      } else {
+        console.log(`Failed to upload image, keeping original URL: ${imageUrl}`);
       }
     } catch (imageError) {
       console.warn(`Could not upload image for ${wooProduct.name}, using original URL:`, imageError);
     }
   }
 
-  // Calculer les prix
+  // Calculate prices
   const price = parseFloat(wooProduct.price || wooProduct.regular_price || "0");
 
-  // Créer un objet de spécifications à partir des attributs
+  // Create specifications from attributes
   const specifications = wooProduct.attributes?.reduce((acc, attr) => {
     if (attr.name) {
       acc[attr.name] = Array.isArray(attr.options) 
@@ -587,7 +603,7 @@ async function createProductFromWooCommerceData(
     return acc;
   }, {} as Record<string, string>) || {};
 
-  // Préparer les données du produit pour la base de données
+  // Prepare product data for database
   const productData = {
     name: wooProduct.name,
     description: wooProduct.short_description || wooProduct.description || '',
@@ -598,13 +614,15 @@ async function createProductFromWooCommerceData(
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
+    is_parent: isParent,
     sku: wooProduct.sku || null,
     parent_id: isVariation && parentId ? parentId : null,
+    variation_attributes: variationAttributes || null,
   };
 
   console.log(`Preparing to ${productExists ? 'update' : 'insert'} product: ${wooProduct.name}`);
 
-  // Déterminer l'ID existant si le produit existe déjà
+  // Determine existing ID if product exists
   let existingId: string | undefined;
   
   if (productExistsByName) {
@@ -613,7 +631,7 @@ async function createProductFromWooCommerceData(
     existingId = existingIdsBySku.get(productSkuLower);
   }
   
-  // Si on écrase les existants, on tente d'abord de mettre à jour
+  // If product exists and we should overwrite, update it
   if (productExists && overwriteExisting && existingId) {
     console.log(`Updating existing product: ${wooProduct.name} with ID: ${existingId}`);
     const { data, error } = await supabase
@@ -630,7 +648,7 @@ async function createProductFromWooCommerceData(
     console.log(`Successfully updated product: ${wooProduct.name}`);
     return mapDbProductToProduct(data[0]);
   } else {
-    // Insertion d'un nouveau produit
+    // Insert a new product
     console.log(`Inserting new product: ${wooProduct.name}`);
     const { data, error } = await supabase
       .from("products")
@@ -730,41 +748,45 @@ async function ensureStorageBucketExists() {
   }
 }
 
-// Fonction pour télécharger et upload une image
+// Improved function to download and upload an image
 async function downloadAndUploadImage(imageUrl: string, productId: string): Promise<string | null> {
   try {
     console.log(`Downloading image from: ${imageUrl}`);
     
-    // Télécharger l'image
+    // Download the image
     const response = await fetch(imageUrl);
     if (!response.ok) {
       throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
     }
     
-    // Convertir en blob
+    // Convert to blob
     const imageBlob = await response.blob();
     
-    // Déterminer le type de fichier
+    // Determine file type
     const fileExtension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
     const fileName = `product-${productId}-${Date.now()}.${fileExtension}`;
     
-    // Upload vers Supabase Storage
+    // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from('product-images')
-      .upload(fileName, imageBlob);
+      .upload(fileName, imageBlob, {
+        cacheControl: '3600',
+        upsert: true
+      });
       
     if (error) {
-      throw error;
+      console.error("Error uploading image to storage:", error);
+      return null;
     }
     
-    // Obtenir l'URL publique
+    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from('product-images')
       .getPublicUrl(fileName);
       
-    console.log(`Uploaded image to: ${publicUrlData.publicUrl}`);
+    console.log(`Uploaded image to: ${publicUrlData?.publicUrl}`);
     
-    return publicUrlData.publicUrl;
+    return publicUrlData?.publicUrl || null;
   } catch (error) {
     console.error("Error downloading and uploading image:", error);
     return null;
