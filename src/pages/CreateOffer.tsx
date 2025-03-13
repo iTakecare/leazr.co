@@ -14,7 +14,6 @@ import { createOffer } from "@/services/offerService";
 import { getLeasers } from "@/services/leaserService";
 import { defaultLeasers } from "@/data/leasers";
 
-// Import the components
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import MarginCalculator from "@/components/offer/MarginCalculator";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -27,7 +26,6 @@ const CreateOffer = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Initialize with default leaser immediately to avoid loading state
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
   const [clientName, setClientName] = useState('');
@@ -43,7 +41,6 @@ const CreateOffer = () => {
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Use the equipment calculator hook - always initialized with a valid leaser
   const {
     equipment,
     setEquipment,
@@ -66,7 +63,6 @@ const CreateOffer = () => {
     findCoefficient
   } = useEquipmentCalculator(selectedLeaser);
 
-  // Fetch leasers but don't block rendering
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
@@ -180,13 +176,11 @@ const CreateOffer = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <div className="grid gap-6">
-                  {/* Leaser selector button */}
                   <LeaserButton 
                     selectedLeaser={selectedLeaser} 
                     onOpen={() => setIsLeaserSelectorOpen(true)} 
                   />
                   
-                  {/* Equipment form */}
                   <EquipmentForm
                     equipment={equipment}
                     setEquipment={setEquipment}
@@ -199,7 +193,6 @@ const CreateOffer = () => {
                     monthlyPayment={monthlyPayment}
                   />
 
-                  {/* Margin calculator */}
                   <MarginCalculator
                     targetMonthlyPayment={targetMonthlyPayment}
                     setTargetMonthlyPayment={setTargetMonthlyPayment}
@@ -210,7 +203,6 @@ const CreateOffer = () => {
               </div>
 
               <div className="bg-white rounded-2xl shadow-xl p-8">
-                {/* Equipment list */}
                 <EquipmentList
                   equipmentList={equipmentList}
                   editingId={editingId}
@@ -220,22 +212,6 @@ const CreateOffer = () => {
                   totalMonthlyPayment={totalMonthlyPayment}
                   globalMarginAdjustment={globalMarginAdjustment}
                 />
-
-                {equipmentList.length > 0 && (
-                  <ClientInfo
-                    clientId={clientId}
-                    clientName={clientName}
-                    clientEmail={clientEmail}
-                    clientCompany={clientCompany}
-                    remarks={remarks}
-                    setRemarks={setRemarks}
-                    onOpenClientSelector={() => setIsClientSelectorOpen(true)}
-                    handleSaveOffer={handleSaveOffer}
-                    isSubmitting={isSubmitting}
-                    selectedLeaser={selectedLeaser}
-                    equipmentList={equipmentList}
-                  />
-                )}
               </div>
             </div>
           </div>
@@ -257,7 +233,7 @@ const CreateOffer = () => {
           isOpen={isLeaserSelectorOpen}
           onClose={() => setIsLeaserSelectorOpen(false)}
           onSelect={handleLeaserSelect}
-          currentLeaserId={selectedLeaser?.id}
+          selectedLeaser={selectedLeaser}
         />
       </Container>
     </PageTransition>

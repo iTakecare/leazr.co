@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Image as ImageIcon, Loader2, X, Plus, Trash2 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Range {
@@ -95,11 +95,11 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
       
       // 2. Utiliser fetch au lieu de l'API supabase directe pour un meilleur contrôle
       const uploadResponse = await fetch(
-        `${supabase.storageUrl}/object/leaser-logos/${filePath}`,
+        `${STORAGE_URL}/object/leaser-logos/${filePath}`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${supabase.supabaseKey}`,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
             // Ne pas définir Content-Type ici pour que fetch définisse la bonne frontière multipart
           },
           body: formData
