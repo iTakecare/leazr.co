@@ -86,7 +86,7 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
   }
 }
 
-export async function uploadProductImage(file: File, productId: string): Promise<string> {
+export async function uploadProductImage(file: File, productId: string, isMainImage: boolean = true): Promise<string> {
   try {
     const supabase = getSupabaseClient();
 
@@ -96,7 +96,7 @@ export async function uploadProductImage(file: File, productId: string): Promise
     }
 
     const timestamp = new Date().getTime();
-    const imageName = `${productId}_${timestamp}.${file.name.split('.').pop()}`;
+    const imageName = `${productId}_${timestamp}_${isMainImage ? 'main' : Date.now()}.${file.name.split('.').pop()}`;
 
     const { data, error } = await supabase.storage
       .from('product-images')
@@ -114,11 +114,61 @@ export async function uploadProductImage(file: File, productId: string): Promise
     const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${data.path}`;
     
     // Update the product with the image URL
-    await updateProduct(productId, { imageUrl });
+    const product = await getProductById(productId);
+    if (product) {
+      if (isMainImage) {
+        await updateProduct(productId, { imageUrl });
+      } else {
+        // Get existing additional images or initialize an empty array
+        const imageUrls = product.imageUrls || [];
+        
+        // Limit to 4 additional images (5 total with main image)
+        if (imageUrls.length >= 4) {
+          imageUrls.pop(); // Remove the oldest additional image
+        }
+        
+        // Add the new image at the beginning
+        imageUrls.unshift(imageUrl);
+        
+        await updateProduct(productId, { imageUrls });
+      }
+    }
 
     return imageUrl;
   } catch (error) {
     console.error("Error in uploadProductImage:", error);
+    throw error;
+  }
+}
+
+export async function uploadMultipleProductImages(files: File[], productId: string): Promise<string[]> {
+  try {
+    // Get the current product
+    const product = await getProductById(productId);
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    const uploadedUrls: string[] = [];
+    
+    // Upload main image first if provided
+    if (files.length > 0) {
+      const mainImage = files[0];
+      const mainImageUrl = await uploadProductImage(mainImage, productId, true);
+      uploadedUrls.push(mainImageUrl);
+    }
+    
+    // Upload additional images (up to 4 more)
+    const additionalImages = files.slice(1, 5); // Limit to 4 additional images
+    
+    for (const file of additionalImages) {
+      const imageUrl = await uploadProductImage(file, productId, false);
+      uploadedUrls.push(imageUrl);
+    }
+    
+    return uploadedUrls;
+  } catch (error) {
+    console.error("Error in uploadMultipleProductImages:", error);
     throw error;
   }
 }

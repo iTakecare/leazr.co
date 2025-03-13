@@ -1,10 +1,10 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { motion } from "framer-motion";
-import { Plus, ImageIcon } from "lucide-react";
+import { Plus, ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -19,11 +19,33 @@ const ProductCard = ({
   isSelected = false,
   className,
 }: ProductCardProps) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Get all available images (main image + additional images)
+  const images = product.imageUrls?.length 
+    ? [product.imageUrl, ...product.imageUrls]
+    : [product.imageUrl];
+  
+  // Filter out any undefined or empty image URLs
+  const validImages = images.filter(img => img);
+  
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
     console.log("Image failed to load:", target.src);
     target.onerror = null; // Prevent infinite loop
     target.src = "/placeholder.svg";
+  };
+  
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (validImages.length <= 1) return;
+    setCurrentImageIndex((prev) => (prev + 1) % validImages.length);
+  };
+  
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (validImages.length <= 1) return;
+    setCurrentImageIndex((prev) => (prev === 0 ? validImages.length - 1 : prev - 1));
   };
 
   return (
@@ -41,15 +63,49 @@ const ProductCard = ({
       )}
       onClick={() => onSelect(product)}
     >
-      <div className="aspect-square w-full overflow-hidden bg-muted">
-        {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
-            loading="lazy"
-            onError={handleImageError}
-          />
+      <div className="aspect-square w-full overflow-hidden bg-muted relative">
+        {validImages.length > 0 ? (
+          <>
+            <img
+              src={validImages[currentImageIndex]}
+              alt={product.name}
+              className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
+              loading="lazy"
+              onError={handleImageError}
+            />
+            
+            {validImages.length > 1 && (
+              <>
+                <button 
+                  onClick={prevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                
+                {/* Image indicators */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {validImages.map((_, index) => (
+                    <div 
+                      key={index} 
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full", 
+                        currentImageIndex === index 
+                          ? "bg-white" 
+                          : "bg-white/50"
+                      )}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <ImageIcon className="h-10 w-10 text-muted-foreground" />
@@ -63,9 +119,9 @@ const ProductCard = ({
         </p>
         <div className="mt-2 flex items-center justify-between">
           <div>
-            <p className="font-semibold">Prix d'achat: {product.monthly_price ? formatCurrency(product.monthly_price) : "-"}</p>
+            <p className="font-semibold">Mensualité: {product.monthly_price ? formatCurrency(product.monthly_price) + "/mois" : "-"}</p>
             <p className="text-sm text-muted-foreground">
-              Mensualité: {product.price ? formatCurrency(product.price) + "/mois" : "-"}
+              Prix d'achat: {product.price ? formatCurrency(product.price) : "-"}
             </p>
           </div>
           <button

@@ -6,6 +6,7 @@ export interface ProductVariant {
   price: number;
   attributes: Record<string, string | number | boolean>;
   imageUrl?: string;
+  imageUrls?: string[];
 }
 
 export interface Product {
@@ -16,6 +17,7 @@ export interface Product {
   price: number;
   description: string;
   imageUrl: string;
+  imageUrls?: string[];
   sku?: string;
   specifications: Record<string, string | number | boolean>;
   variants?: ProductVariant[];
