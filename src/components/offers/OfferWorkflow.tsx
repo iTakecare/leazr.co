@@ -176,6 +176,8 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
   const [stepDialogOpen, setStepDialogOpen] = useState(false);
   
   const handleStepClick = (stepId: string) => {
+    console.log("Step clicked:", stepId);
+    console.log("Current status:", currentStatus);
     // Si c'est l'étape actuelle, ouvrir la boîte de dialogue pour changer le statut
     if (stepId === currentStatus) {
       const nextOptions = getNextStepOptions(currentStatus);
@@ -200,39 +202,6 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
     }
   };
 
-  // Map colors to Tailwind classes
-  const getColorClasses = (stepId: string, isActive: boolean) => {
-    const step = workflowSteps.find(s => s.id === stepId);
-    if (!step) return {};
-    
-    // Map color names to Tailwind classes
-    const colorMap: Record<string, { bg: string, border: string, text: string }> = {
-      blue: { bg: "bg-blue-100", border: "border-blue-500", text: "text-blue-600" },
-      green: { bg: "bg-green-100", border: "border-green-500", text: "text-green-600" },
-      red: { bg: "bg-red-100", border: "border-red-500", text: "text-red-600" },
-      yellow: { bg: "bg-yellow-100", border: "border-yellow-500", text: "text-yellow-600" },
-      purple: { bg: "bg-purple-100", border: "border-purple-500", text: "text-purple-600" },
-      orange: { bg: "bg-orange-100", border: "border-orange-500", text: "text-orange-600" },
-      gray: { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-600" },
-    };
-    
-    const colorClass = colorMap[step.color] || colorMap.gray;
-    
-    if (isActive) {
-      return {
-        bgColor: colorClass.bg,
-        borderColor: colorClass.border,
-        textColor: colorClass.text
-      };
-    }
-    
-    return {
-      bgColor: "bg-gray-50",
-      borderColor: "border-gray-200",
-      textColor: "text-gray-400"
-    };
-  };
-
   return (
     <div className="mt-6">
       <h3 className="text-sm font-medium mb-4">Étapes du workflow</h3>
@@ -240,8 +209,52 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
         {workflowSteps.map((step, index) => {
           const Icon = step.icon;
           const isActive = step.id === currentStatus;
-          const isPassed = false; // À implémenter si besoin
-          const { bgColor, borderColor, textColor } = getColorClasses(step.id, isActive);
+          const isClickable = isActive;
+          
+          // Custom colors based on the step's color property
+          let bgColor = "bg-gray-50";
+          let borderColor = "border-gray-200";
+          let textColor = "text-gray-400";
+          
+          if (isActive) {
+            switch (step.color) {
+              case "blue":
+                bgColor = "bg-blue-100";
+                borderColor = "border-blue-500";
+                textColor = "text-blue-600";
+                break;
+              case "green":
+                bgColor = "bg-green-100";
+                borderColor = "border-green-500";
+                textColor = "text-green-600";
+                break;
+              case "red":
+                bgColor = "bg-red-100";
+                borderColor = "border-red-500";
+                textColor = "text-red-600";
+                break;
+              case "yellow":
+                bgColor = "bg-yellow-100";
+                borderColor = "border-yellow-500";
+                textColor = "text-yellow-600";
+                break;
+              case "purple":
+                bgColor = "bg-purple-100";
+                borderColor = "border-purple-500";
+                textColor = "text-purple-600";
+                break;
+              case "orange":
+                bgColor = "bg-orange-100";
+                borderColor = "border-orange-500";
+                textColor = "text-orange-600";
+                break;
+              default:
+                bgColor = "bg-gray-100";
+                borderColor = "border-gray-300";
+                textColor = "text-gray-600";
+                break;
+            }
+          }
 
           return (
             <React.Fragment key={`step-${step.id}`}>
@@ -252,8 +265,8 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                 type="button"
                 onClick={() => handleStepClick(step.id)}
                 className={cn(
-                  "relative flex flex-col items-center group",
-                  isActive ? "cursor-pointer" : "cursor-default"
+                  "relative flex flex-col items-center",
+                  isClickable ? "cursor-pointer" : "cursor-default"
                 )}
               >
                 <div 
