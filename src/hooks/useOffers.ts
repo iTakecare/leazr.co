@@ -108,8 +108,12 @@ export const useOffers = () => {
   const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string, reason?: string) => {
     setIsUpdatingStatus(true);
     try {
+      // Obtenir le statut actuel pour pouvoir l'enregistrer dans l'historique
+      const currentOffer = offers.find(offer => offer.id === offerId);
+      const currentStatus = currentOffer?.workflow_status || 'draft';
+      
       // Appeler l'API pour mettre à jour le statut
-      const success = await updateOfferStatus(offerId, newStatus, reason);
+      const success = await updateOfferStatus(offerId, newStatus, currentStatus, reason);
       
       if (success) {
         // Mettre à jour localement

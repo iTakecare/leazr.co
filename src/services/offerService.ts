@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
-// Données mockées pour avoir un affichage immédiat en cas de timeout
 const mockOffers = [
   {
     id: "1",
@@ -57,19 +57,17 @@ export interface EquipmentItem {
 export interface OfferData {
   client_name: string;
   client_email: string;
-  client_id?: string; // Ajout du client_id
+  client_id?: string;
   equipment_description: string;
   amount: number;
   coefficient: number;
   monthly_payment: number;
   commission: number;
-  user_id: string; // User ID field required by the database
+  user_id: string;
 }
 
 export const createOffer = async (offerData: OfferData): Promise<string | null> => {
   try {
-    // Convert non-UUID string to a valid UUID for Supabase
-    // This is a workaround for demo purposes - in production, you'd use real UUIDs from auth
     const validData = {
       ...offerData,
       user_id: offerData.user_id === 'user-123' ? 
@@ -92,7 +90,6 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
 
 export const getOffers = async (): Promise<any[]> => {
   try {
-    // Réduire le timeout à 5 secondes pour ne pas bloquer l'interface utilisateur
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => {
         console.log("Timeout atteint, utilisation des données mockées");
@@ -105,7 +102,6 @@ export const getOffers = async (): Promise<any[]> => {
       .select('*, clients(name, email, company)')
       .order('created_at', { ascending: false });
     
-    // Utiliser Promise.race pour résoudre avec la première promesse qui se termine
     const { data, error } = await Promise.race([
       fetchPromise,
       timeoutPromise,
@@ -113,11 +109,9 @@ export const getOffers = async (): Promise<any[]> => {
     
     if (error) throw error;
     
-    // Si aucune donnée n'est récupérée, renvoyer un tableau vide plutôt que null
     return data || [];
   } catch (error) {
     console.error("Error fetching offers:", error);
-    // En cas d'erreur ou de timeout, retourner les données mockées
     return mockOffers;
   }
 };
@@ -159,25 +153,60 @@ export const deleteOffer = async (offerId: string): Promise<boolean> => {
 export const updateOfferStatus = async (
   offerId: string, 
   newStatus: string, 
+  previousStatus: string,
   reason?: string
 ): Promise<boolean> => {
   try {
-    // Dans un environnement de production, nous ferions un appel à l'API
-    // Pour cette démonstration, nous simulons un succès
-    console.log(`Updating offer ${offerId} to status ${newStatus} with reason: ${reason || 'Aucune'}`);
+    console.log(`Updating offer ${offerId} from ${previousStatus} to ${newStatus} with reason: ${reason || 'Aucune'}`);
 
-    // Enregistrer également le commentaire/raison si fourni
-    if (reason) {
-      // Ici, nous aurions une table de commentaires dans une application réelle
-      console.log(`Adding comment for offer ${offerId}: ${reason}`);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error("Utilisateur non authentifié");
     }
 
-    // Simuler un délai réseau
+    const { error: logError } = await supabase
+      .from('offer_workflow_logs')
+      .insert({
+        offer_id: offerId,
+        user_id: user.id,
+        previous_status: previousStatus,
+        new_status: newStatus,
+        reason: reason || null
+      });
+
+    if (logError) {
+      console.error("Erreur lors de l'enregistrement du log :", logError);
+    }
+
     await new Promise(resolve => setTimeout(resolve, 500));
     
     return true;
   } catch (error) {
     console.error("Error updating offer status:", error);
     return false;
+  }
+};
+
+export const getWorkflowLogs = async (offerId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('offer_workflow_logs')
+      .select(`
+        *,
+        profiles:user_id (first_name, last_name, email, avatar_url)
+      `)
+      .eq('offer_id', offerId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching workflow logs:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching workflow logs:", error);
+    return [];
   }
 };

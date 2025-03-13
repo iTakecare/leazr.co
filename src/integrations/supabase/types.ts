@@ -125,6 +125,36 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_workflow_logs: {
+        Row: {
+          created_at: string
+          id: string
+          new_status: string
+          offer_id: string
+          previous_status: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_status: string
+          offer_id: string
+          previous_status: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_status?: string
+          offer_id?: string
+          previous_status?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       offers: {
         Row: {
           amount: number

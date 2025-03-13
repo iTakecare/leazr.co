@@ -1,9 +1,8 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
   File, Clock, CheckCircle, XCircle, UserCog, MessagesSquare, 
-  SendToBack, RefreshCw, ChevronDown
+  SendToBack, RefreshCw, ChevronDown, History
 } from "lucide-react";
 import { workflowStatuses } from "@/hooks/useOffers";
 import {
@@ -30,6 +29,18 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { format } from "date-fns";
+import { getWorkflowLogs } from "@/services/offerService";
+import { fr } from "date-fns/locale";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const workflowSteps = [
   { 
@@ -167,17 +178,22 @@ interface OfferWorkflowProps {
   currentStatus: string;
   onStatusChange: (status: string, reason?: string) => Promise<void>;
   isUpdating: boolean;
+  offerId: string;
 }
 
 const OfferWorkflow: React.FC<OfferWorkflowProps> = ({ 
   currentStatus, 
   onStatusChange,
-  isUpdating 
+  isUpdating,
+  offerId
 }) => {
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'visual' | 'simple'>('simple');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
   const currentStepInfo = workflowSteps.find(step => step.id === currentStatus);
   const nextStepOptions = getNextStepOptions(currentStatus);
@@ -196,7 +212,26 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
     }
   };
 
-  // Map workflow status to color classes
+  const loadWorkflowHistory = async () => {
+    if (!offerId) return;
+    
+    setIsLoadingLogs(true);
+    try {
+      const logs = await getWorkflowLogs(offerId);
+      setWorkflowLogs(logs);
+    } catch (error) {
+      console.error("Error loading workflow history:", error);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (historyOpen) {
+      loadWorkflowHistory();
+    }
+  }, [historyOpen, offerId]);
+
   const getStatusColor = (status: string) => {
     const step = workflowSteps.find(s => s.id === status);
     if (!step) return "bg-gray-100 border-gray-300 text-gray-600";
@@ -214,7 +249,18 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
 
   return (
     <div className="mt-6">
-      <h3 className="text-sm font-medium mb-4">Gestion du workflow</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-sm font-medium">Gestion du workflow</h3>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setHistoryOpen(true)}
+          className="flex items-center gap-1"
+        >
+          <History className="h-4 w-4" />
+          <span>Historique</span>
+        </Button>
+      </div>
       
       <Tabs defaultValue="simple" onValueChange={(value) => setViewMode(value as 'visual' | 'simple')}>
         <TabsList className="mb-4">
@@ -335,6 +381,88 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Historique des changements</DialogTitle>
+            <DialogDescription>
+              Tous les changements de statut pour cette offre
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {isLoadingLogs ? (
+              <div className="py-12 flex justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Chargement...</span>
+              </div>
+            ) : workflowLogs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Aucun historique disponible
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {workflowLogs.map((log) => {
+                  const fromStep = workflowSteps.find(s => s.id === log.previous_status);
+                  const toStep = workflowSteps.find(s => s.id === log.new_status);
+                  const FromIcon = fromStep?.icon || File;
+                  const ToIcon = toStep?.icon || File;
+                  const date = new Date(log.created_at);
+                  const profile = log.profiles || {};
+                  const userName = profile.first_name && profile.last_name 
+                    ? `${profile.first_name} ${profile.last_name}`
+                    : profile.email || "Utilisateur inconnu";
+                  
+                  return (
+                    <div key={log.id} className="border rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={profile.avatar_url} />
+                          <AvatarFallback>{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-medium">{userName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(date, "dd MMMM yyyy à HH:mm", { locale: fr })}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 my-2">
+                        <div className={cn(
+                          "flex items-center px-2 py-1 rounded text-xs",
+                          getStatusColor(log.previous_status)
+                        )}>
+                          <FromIcon className="h-3 w-3 mr-1" />
+                          <span>{fromStep?.label || log.previous_status}</span>
+                        </div>
+                        <span className="text-muted-foreground">→</span>
+                        <div className={cn(
+                          "flex items-center px-2 py-1 rounded text-xs",
+                          getStatusColor(log.new_status)
+                        )}>
+                          <ToIcon className="h-3 w-3 mr-1" />
+                          <span>{toStep?.label || log.new_status}</span>
+                        </div>
+                      </div>
+                      
+                      {log.reason && (
+                        <div className="mt-2 text-sm bg-muted p-3 rounded-md">
+                          {log.reason}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>

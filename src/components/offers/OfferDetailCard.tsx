@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -43,7 +42,6 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 
   const handleAddComment = () => {
     if (comment.trim()) {
-      // Ici, on pourrait ajouter le commentaire
       console.log("Commentaire ajouté:", comment);
       setComment("");
     }
@@ -110,6 +108,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
             currentStatus={offer.workflow_status || "draft"} 
             onStatusChange={handleStatusChange}
             isUpdating={isUpdatingStatus}
+            offerId={offer.id}
           />
           
           <div className="mt-6">
