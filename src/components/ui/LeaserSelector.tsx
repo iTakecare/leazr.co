@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   Sheet, 
   SheetContent, 
@@ -27,21 +27,11 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
   const [searchTerm, setSearchTerm] = useState("");
   const [leasers, setLeasers] = useState<Leaser[]>(defaultLeasers);
   const [loading, setLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   
-  // Charger les leasers dès que le composant est monté, sans attendre l'ouverture
-  useEffect(() => {
-    fetchLeasers();
-  }, []);
-  
-  // Recharger les leasers quand le sélecteur est ouvert
-  useEffect(() => {
-    if (isOpen && !loading && leasers.length === defaultLeasers.length) {
-      fetchLeasers();
-    }
-  }, [isOpen]);
-  
-  const fetchLeasers = async () => {
-    if (loading) return; // Évitez les appels multiples
+  // Memoize fetchLeasers to prevent recreating this function on every render
+  const fetchLeasers = useCallback(async (forceRefresh = false) => {
+    if (loading) return; // Éviter les appels multiples
     
     setLoading(true);
     try {
@@ -52,13 +42,29 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
       } else {
         setLeasers(defaultLeasers);
       }
+      setIsInitialized(true);
     } catch (error) {
       console.error("Error fetching leasers:", error);
       toast.error("Impossible de charger les leasers, utilisation des valeurs par défaut");
+      setLeasers(defaultLeasers);
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading]);
+  
+  // Charger les leasers dès que le composant est monté, sans attendre l'ouverture
+  useEffect(() => {
+    if (!isInitialized) {
+      fetchLeasers();
+    }
+  }, [fetchLeasers, isInitialized]);
+  
+  // Recharger les leasers quand le sélecteur est ouvert
+  useEffect(() => {
+    if (isOpen && isInitialized) {
+      fetchLeasers(true);
+    }
+  }, [isOpen, fetchLeasers, isInitialized]);
   
   const filteredLeasers = leasers.filter(leaser => 
     leaser.name.toLowerCase().includes(searchTerm.toLowerCase())

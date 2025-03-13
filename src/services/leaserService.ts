@@ -8,7 +8,7 @@ import { defaultLeasers } from "@/data/leasers";
 let leasersCache: Leaser[] | null = null;
 let lastFetchTime = 0;
 const CACHE_EXPIRY = 1000 * 60 * 5; // 5 minutes
-const FETCH_TIMEOUT = 6000; // Augmenter le timeout à 6 secondes
+const FETCH_TIMEOUT = 10000; // Augmenter le timeout à 10 secondes
 
 /**
  * Récupère tous les leasers de la base de données avec gestion de cache
@@ -33,28 +33,20 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     });
     
     const result = await Promise.race([leasersPromise, timeoutPromise]);
-    // Si on arrive ici, c'est que la promesse leasers a été résolue avant le timeout
     const { data: leasers, error } = result as any;
     
     if (error) throw error;
 
-    // Pour chaque leaser, récupérer ses tranches
+    // Pour chaque leaser, récupérer ses tranches de manière parallèle
     const leasersWithRanges = await Promise.all(
       leasers.map(async (leaser: any) => {
         try {
-          const rangesPromise = supabase
+          // Requête pour récupérer les ranges
+          const { data: ranges, error: rangesError } = await supabase
             .from("leaser_ranges")
             .select("*")
             .eq("leaser_id", leaser.id)
             .order("min");
-          
-          const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error(`Fetch ranges for ${leaser.name} timed out after ${FETCH_TIMEOUT}ms`)), FETCH_TIMEOUT);
-          });
-          
-          const result = await Promise.race([rangesPromise, timeoutPromise]);
-          // Si on arrive ici, c'est que la promesse ranges a été résolue avant le timeout
-          const { data: ranges, error: rangesError } = result as any;
           
           if (rangesError) throw rangesError;
 
