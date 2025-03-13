@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Table, 
@@ -100,7 +101,12 @@ const LeaserManager = () => {
   
   const handleRangeChange = (index: number, field: keyof Range, value: number) => {
     const newRanges = [...tempRanges];
-    newRanges[index][field] = value;
+    
+    // Utiliser une assertion de type pour s'assurer que le compilateur reconnaît que field est une clé valide
+    if (field === 'min' || field === 'max' || field === 'coefficient') {
+      newRanges[index][field] = value;
+    }
+    
     setTempRanges(newRanges);
   };
   
@@ -196,8 +202,9 @@ const LeaserManager = () => {
       };
       
       if (isEditMode && currentLeaser) {
-        if (!currentLeaser.id || typeof currentLeaser.id !== 'string') {
-          throw new Error("ID du leaser invalide ou manquant");
+        // S'assurer que l'ID du leaser est bien un UUID valide
+        if (!currentLeaser.id) {
+          throw new Error("ID du leaser manquant");
         }
         
         console.log("Updating leaser with ID:", currentLeaser.id);
@@ -214,9 +221,9 @@ const LeaserManager = () => {
           handleCloseSheet();
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving leaser:", error);
-      toast.error("Une erreur est survenue lors de l'enregistrement du leaser");
+      toast.error(`Erreur: ${error.message}`);
     } finally {
       setIsSaving(false);
     }

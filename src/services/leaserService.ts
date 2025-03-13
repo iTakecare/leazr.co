@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Leaser } from "@/types/equipment";
 import { toast } from "sonner";
@@ -153,10 +152,8 @@ export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | nu
  */
 export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise<boolean> => {
   try {
-    // Vérifier que l'ID est un UUID valide
-    if (typeof id !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)) {
-      throw new Error(`ID invalide: ${id} - doit être un UUID valide`);
-    }
+    // Log de débogage
+    console.log("Mise à jour du leaser avec ID:", id);
     
     // Préparer les données à mettre à jour
     const updateData: any = {};
