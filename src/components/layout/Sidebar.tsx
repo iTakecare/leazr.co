@@ -55,7 +55,7 @@ interface SidebarProps {
 const Sidebar = ({ className }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
 
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
@@ -134,15 +134,15 @@ const Sidebar = ({ className }: SidebarProps) => {
         />
       </div>
 
-      {!collapsed && currentUser && (
+      {!collapsed && user && (
         <div className="p-3 border-t">
           <div className="flex items-center">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-              {currentUser.email?.charAt(0).toUpperCase() || "U"}
+              {user.email?.charAt(0).toUpperCase() || "U"}
             </div>
             <div className="ml-2 overflow-hidden">
               <p className="text-sm font-medium truncate">
-                {currentUser.email}
+                {user.email}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 Administrateur
@@ -152,10 +152,10 @@ const Sidebar = ({ className }: SidebarProps) => {
         </div>
       )}
 
-      {collapsed && currentUser && (
+      {collapsed && user && (
         <div className="p-3 border-t flex justify-center">
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-            {currentUser.email?.charAt(0).toUpperCase() || "U"}
+            {user.email?.charAt(0).toUpperCase() || "U"}
           </div>
         </div>
       )}

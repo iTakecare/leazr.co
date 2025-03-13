@@ -63,6 +63,116 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_workflow_logs: {
+        Row: {
+          contract_id: string
+          created_at: string
+          id: string
+          new_status: string
+          previous_status: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          id?: string
+          new_status: string
+          previous_status: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          id?: string
+          new_status?: string
+          previous_status?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_workflow_logs_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          created_at: string
+          delivery_carrier: string | null
+          delivery_status: string | null
+          equipment_description: string | null
+          estimated_delivery: string | null
+          id: string
+          leaser_logo: string | null
+          leaser_name: string
+          monthly_payment: number
+          offer_id: string
+          status: string
+          tracking_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          delivery_carrier?: string | null
+          delivery_status?: string | null
+          equipment_description?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          leaser_logo?: string | null
+          leaser_name: string
+          monthly_payment?: number
+          offer_id: string
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          delivery_carrier?: string | null
+          delivery_status?: string | null
+          equipment_description?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          leaser_logo?: string | null
+          leaser_name?: string
+          monthly_payment?: number
+          offer_id?: string
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leaser_ranges: {
         Row: {
           coefficient: number
@@ -163,6 +273,7 @@ export type Database = {
           client_name: string
           coefficient: number
           commission: number | null
+          converted_to_contract: boolean | null
           created_at: string | null
           equipment_description: string | null
           id: string
@@ -177,6 +288,7 @@ export type Database = {
           client_name: string
           coefficient?: number
           commission?: number | null
+          converted_to_contract?: boolean | null
           created_at?: string | null
           equipment_description?: string | null
           id?: string
@@ -191,6 +303,7 @@ export type Database = {
           client_name?: string
           coefficient?: number
           commission?: number | null
+          converted_to_contract?: boolean | null
           created_at?: string | null
           equipment_description?: string | null
           id?: string

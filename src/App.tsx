@@ -16,7 +16,7 @@ import Offers from "./pages/Offers";
 import Contracts from "./pages/Contracts";
 import CreateTestUsers from "./pages/CreateTestUsers";
 
-import Layout from "./components/layout/Layout";
+import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
 import { Toaster } from "./components/ui/toaster";
 import { AuthProvider } from "./context/AuthContext";
