@@ -9,12 +9,14 @@ export interface ProductVariant {
 export interface Product {
   id: string;
   name: string;
+  brand?: string;
   category: string;
   price: number;
   description: string;
   imageUrl: string;
   specifications: Record<string, string | number | boolean>;
   variants?: ProductVariant[];
+  active?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
