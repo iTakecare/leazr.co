@@ -455,8 +455,8 @@ export async function importWooCommerceProducts(
               variationsImported++;
               
               // Add to existing product sets
-              existingNameSet.add(variationName.toLowerCase());
-              existingIdByName.set(variationName.toLowerCase(), variationData.id);
+              existingNameSet.add((variation.name || '').toLowerCase());
+              existingIdByName.set((variation.name || '').toLowerCase(), variationData.id);
               if (variation.sku) {
                 existingSkuSet.add(variation.sku.toLowerCase());
                 existingIdBySku.set(variation.sku.toLowerCase(), variationData.id);
@@ -687,9 +687,10 @@ async function createProductFromWooCommerceData(
     price,
     brand,
     category: determineCategory(wooProduct.categories),
+    imageUrl: imageUrl, 
     image_url: imageUrl,
-    // Use image_urls instead of imageUrls to match database schema
-    image_urls: additionalImages.length > 0 ? additionalImages : null,
+    imageUrls: additionalImages.length > 0 ? additionalImages : undefined,
+    image_urls: additionalImages.length > 0 ? additionalImages : undefined,
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
@@ -822,13 +823,13 @@ const mapDbProductToProduct = (record: any): Product => {
     category: record.category || "other",
     price: Number(record.price),
     description: record.description || "",
-    imageUrl: record.image_url || "",
-    // Support both naming conventions - map database field to both properties
-    imageUrls: record.image_urls || [],
-    image_urls: record.image_urls || [],
-    // Add imageAlt and imageAlts if they exist in the record
-    imageAlt: record.image_alt || undefined,
-    imageAlts: record.image_alts || undefined,
+    imageUrl: record.image_url || record.imageUrl || "",
+    imageUrls: record.imageUrls || record.image_urls || [],
+    image_urls: record.image_urls || record.imageUrls || [],
+    imageAlt: record.imageAlt || record.image_alt || undefined,
+    imageAlts: record.imageAlts || record.image_alts || undefined,
+    image_alt: record.image_alt || record.imageAlt || undefined,
+    image_alts: record.image_alts || record.imageAlts || undefined,
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
@@ -838,4 +839,3 @@ const mapDbProductToProduct = (record: any): Product => {
     updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
   };
 };
-

@@ -6,8 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// This function is no longer needed as we're making direct API calls from the client
-// It's kept for backward compatibility
+// Handle WooCommerce API calls
 async function callWooCommerceAPI(url: string, endpoint: string, consumerKey: string, consumerSecret: string, queryParams: Record<string, string> = {}) {
   try {
     // Format the base URL

@@ -22,19 +22,21 @@ const ProductCard = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   // Handle image array access based on what's available
-  // Support both imageUrls (type definition) and image_urls (database schema)
-  const images = (product.image_urls && product.image_urls.length) 
-    ? [product.imageUrl, ...product.image_urls]
-    : (product.imageUrls && product.imageUrls.length)
-      ? [product.imageUrl, ...product.imageUrls]
-      : [product.imageUrl];
-  
-  // Filter out any undefined or empty image URLs
-  const validImages = images.filter(img => img);
+  // Support both imageUrls and image_urls
+  const images = (() => {
+    // Use array spread to filter out undefined/null values
+    const mainImage = product.imageUrl || product.image_url || '';
+    const additionalImages = product.imageUrls || product.image_urls || [];
+    return [mainImage, ...additionalImages].filter(Boolean);
+  })();
   
   // Get current alt text or fallback to product name if not available
   const getCurrentAltText = () => {
-    return `${product.name} - ${product.category || 'product'}`;
+    // Support both naming conventions
+    const altTexts = product.imageAlts || product.image_alts || [];
+    return currentImageIndex < altTexts.length 
+      ? altTexts[currentImageIndex] 
+      : `${product.name} - ${product.category || 'product'}`;
   };
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -46,14 +48,14 @@ const ProductCard = ({
   
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (validImages.length <= 1) return;
-    setCurrentImageIndex((prev) => (prev + 1) % validImages.length);
+    if (images.length <= 1) return;
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
   
   const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (validImages.length <= 1) return;
-    setCurrentImageIndex((prev) => (prev === 0 ? validImages.length - 1 : prev - 1));
+    if (images.length <= 1) return;
+    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
 
   return (
@@ -72,17 +74,17 @@ const ProductCard = ({
       onClick={() => onSelect(product)}
     >
       <div className="aspect-square w-full overflow-hidden bg-muted relative">
-        {validImages.length > 0 ? (
+        {images.length > 0 ? (
           <>
             <img
-              src={validImages[currentImageIndex]}
+              src={images[currentImageIndex]}
               alt={getCurrentAltText()}
               className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
               loading="lazy"
               onError={handleImageError}
             />
             
-            {validImages.length > 1 && (
+            {images.length > 1 && (
               <>
                 <button 
                   onClick={prevImage}
@@ -101,7 +103,7 @@ const ProductCard = ({
                 
                 {/* Image indicators */}
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-                  {validImages.map((_, index) => (
+                  {images.map((_, index) => (
                     <div 
                       key={index} 
                       className={cn(

@@ -18,12 +18,14 @@ export interface Product {
   description: string;
   imageUrl: string;
   imageUrls?: string[];
-  // Add new properties for database schema compatibility
+  // Database schema compatibility fields
   image_url?: string;
   image_urls?: string[];
-  // Add new properties for SEO optimization
+  // SEO optimization fields
   imageAlt?: string;
   imageAlts?: string[];
+  image_alt?: string;
+  image_alts?: string[];
   sku?: string;
   specifications: Record<string, string | number | boolean>;
   variants?: ProductVariant[];
