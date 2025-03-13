@@ -26,8 +26,23 @@ const ProductCard = ({
     ? [product.imageUrl, ...product.imageUrls]
     : [product.imageUrl];
   
+  // Get all available alt texts (main alt + additional alts)
+  const altTexts = product.imageAlts?.length && product.imageAlt
+    ? [product.imageAlt, ...product.imageAlts]
+    : product.imageAlt 
+      ? [product.imageAlt]
+      : [];
+  
   // Filter out any undefined or empty image URLs
   const validImages = images.filter(img => img);
+  
+  // Get current alt text or fallback to product name if not available
+  const getCurrentAltText = () => {
+    if (altTexts[currentImageIndex]) {
+      return altTexts[currentImageIndex];
+    }
+    return `${product.name} - ${product.category || 'product'}`;
+  };
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
@@ -68,7 +83,7 @@ const ProductCard = ({
           <>
             <img
               src={validImages[currentImageIndex]}
-              alt={product.name}
+              alt={getCurrentAltText()}
               className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
               loading="lazy"
               onError={handleImageError}
@@ -79,12 +94,14 @@ const ProductCard = ({
                 <button 
                   onClick={prevImage}
                   className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Previous image"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   onClick={nextImage}
                   className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Next image"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
@@ -34,6 +35,14 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
     target.onerror = null; // Prevent infinite loop
   };
 
+  // Function to get alt text or generate fallback
+  const getImageAlt = (product: Product): string => {
+    if (product.imageAlt) {
+      return product.imageAlt;
+    }
+    return `${product.name} - ${product.category || 'product'}`;
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       {products.map((product) => (
@@ -46,7 +55,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
               {product.imageUrl ? (
                 <img
                   src={product.imageUrl}
-                  alt={product.name}
+                  alt={getImageAlt(product)}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   onError={handleImageError}
                   loading="lazy"

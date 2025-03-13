@@ -1,3 +1,4 @@
+
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -87,7 +88,11 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 
 export async function uploadProductImage(file: File, productId: string, isMainImage: boolean = true): Promise<string> {
   try {
-    // Utiliser notre nouveau service d'image
+    // Obtenir le nom du produit pour les alt textes optimisés pour le SEO
+    const product = await getProductById(productId);
+    const productName = product?.name || '';
+    
+    // Utiliser notre service d'image
     const { uploadImage } = await import("@/services/imageService");
     
     // Générer un chemin unique pour l'image
@@ -95,35 +100,43 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
     const extension = file.name.split('.').pop() || 'jpg';
     const path = `${productId}/${isMainImage ? 'main' : `additional_${timestamp}`}_${timestamp}.${extension}`;
     
-    // Uploader l'image
-    const imageUrl = await uploadImage(file, path, 'product-images');
+    // Uploader l'image avec préservation du nom d'origine pour le SEO
+    const result = await uploadImage(file, path, 'product-images', true);
     
-    if (!imageUrl) {
+    if (!result || !result.url) {
       throw new Error("Failed to upload image");
     }
     
-    // Update the product with the image URL
-    const product = await getProductById(productId);
+    // Update the product with the image URL and alt text
     if (product) {
       if (isMainImage) {
-        await updateProduct(productId, { imageUrl });
+        await updateProduct(productId, { 
+          imageUrl: result.url,
+          imageAlt: result.altText
+        });
       } else {
         // Get existing additional images or initialize an empty array
         const imageUrls = product.imageUrls || [];
+        const imageAlts = product.imageAlts || [];
         
         // Limit to 4 additional images (5 total with main image)
         if (imageUrls.length >= 4) {
           imageUrls.pop(); // Remove the oldest additional image
+          imageAlts.pop(); // Remove corresponding alt text
         }
         
         // Add the new image at the beginning
-        imageUrls.unshift(imageUrl);
+        imageUrls.unshift(result.url);
+        imageAlts.unshift(result.altText);
         
-        await updateProduct(productId, { imageUrls });
+        await updateProduct(productId, { 
+          imageUrls,
+          imageAlts
+        });
       }
     }
 
-    return imageUrl;
+    return result.url;
   } catch (error) {
     console.error("Error in uploadProductImage:", error);
     throw error;
@@ -132,18 +145,25 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
 
 export async function uploadMultipleProductImages(files: File[], productId: string): Promise<string[]> {
   try {
-    // Utiliser notre nouveau service d'image
+    // Obtenir le nom du produit pour les alt textes optimisés pour le SEO
+    const product = await getProductById(productId);
+    const productName = product?.name || '';
+    
+    // Utiliser notre service d'image
     const { uploadProductImages } = await import("@/services/imageService");
     
     // Upload all images
-    const uploadedUrls = await uploadProductImages(files, productId);
+    const uploadedImages = await uploadProductImages(files, productId, productName);
     
-    if (uploadedUrls.length === 0) {
+    if (uploadedImages.length === 0) {
       throw new Error("No images were uploaded successfully");
     }
     
+    // Extract URLs and alt texts
+    const uploadedUrls = uploadedImages.map(img => img.url);
+    const uploadedAlts = uploadedImages.map(img => img.altText);
+    
     // Get the current product
-    const product = await getProductById(productId);
     if (!product) {
       throw new Error('Product not found');
     }
@@ -152,7 +172,9 @@ export async function uploadMultipleProductImages(files: File[], productId: stri
     if (uploadedUrls.length > 0) {
       await updateProduct(productId, { 
         imageUrl: uploadedUrls[0],
-        imageUrls: uploadedUrls.slice(1, 5) // Max 4 additional images
+        imageAlt: uploadedAlts[0],
+        imageUrls: uploadedUrls.slice(1, 5), // Max 4 additional images
+        imageAlts: uploadedAlts.slice(1, 5)  // Their corresponding alt texts
       });
     }
     
