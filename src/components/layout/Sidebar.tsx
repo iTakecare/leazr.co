@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { LayoutDashboard, PlusCircle, ListOrdered, Folders, Settings, LogOut, User } from "lucide-react";
 import { 
@@ -9,17 +9,35 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
+import { Button } from "../ui/button";
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   
   // Get initials from user's name for avatar fallback
   const getInitials = () => {
     if (!user) return "U";
     return `${user.first_name?.charAt(0) || ""}${user.last_name?.charAt(0) || ""}`.toUpperCase() || "U";
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
   };
 
   const sidebarItems = [
@@ -120,21 +138,39 @@ const Sidebar = () => {
         ))}
       </div>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={signOut}
-              className="p-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors mt-auto"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>Déconnexion</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <AlertDialog>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <AlertDialogTrigger asChild>
+                <button
+                  className="p-2 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors mt-auto"
+                >
+                  <LogOut className="h-5 w-5" />
+                </button>
+              </AlertDialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Déconnexion</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Déconnexion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir vous déconnecter de l'application ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSignOut} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Déconnexion
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

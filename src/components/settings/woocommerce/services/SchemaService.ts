@@ -47,7 +47,7 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
     console.log('Starting schema update process...');
     
     // Add category column
-    const { error: categoryError } = await adminSupabase.rpc(
+    const { data: categoryData, error: categoryError } = await adminSupabase.rpc(
       'add_column_if_not_exists',
       {
         table_name: 'products',
@@ -63,7 +63,7 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
     }
     
     // Add description column
-    const { error: descriptionError } = await adminSupabase.rpc(
+    const { data: descriptionData, error: descriptionError } = await adminSupabase.rpc(
       'add_column_if_not_exists',
       {
         table_name: 'products',
