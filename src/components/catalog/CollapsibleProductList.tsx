@@ -143,10 +143,10 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
                   </div>
                 </div>
                 <div>
-                  {formatCurrency(product.price)}
+                  {product.monthly_price ? "-" : "-"}
                 </div>
                 <div>
-                  {product.monthly_price ? `${formatCurrency(product.monthly_price)}/mois` : "-"}
+                  {product.price ? `${formatCurrency(product.price)}/mois` : "-"}
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <Button
@@ -235,10 +235,10 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
                         </div>
                       </div>
                       <div>
-                        {formatCurrency(variation.price)}
+                        {variation.monthly_price ? "-" : "-"}
                       </div>
                       <div>
-                        {variation.monthly_price ? `${formatCurrency(variation.monthly_price)}/mois` : "-"}
+                        {variation.price ? `${formatCurrency(variation.price)}/mois` : "-"}
                       </div>
                       <div className="flex items-center justify-end gap-2">
                         <Button

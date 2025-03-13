@@ -49,12 +49,10 @@ const ProductCard = ({
         </p>
         <div className="mt-2 flex items-center justify-between">
           <div>
-            <p className="font-semibold">Prix d'achat: {formatCurrency(product.price)}</p>
-            {product.monthly_price && (
-              <p className="text-sm text-muted-foreground">
-                {formatCurrency(product.monthly_price)}/mois
-              </p>
-            )}
+            <p className="font-semibold">Prix d'achat: {product.monthly_price ? formatCurrency(product.monthly_price) : "-"}</p>
+            <p className="text-sm text-muted-foreground">
+              Mensualité: {product.price ? formatCurrency(product.price) + "/mois" : "-"}
+            </p>
           </div>
           <button
             className={cn(
