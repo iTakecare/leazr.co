@@ -66,6 +66,7 @@ const WooCommerceImporter = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [productsList, setProductsList] = useState<WooCommerceProduct[]>([]);
   const [allProducts, setAllProducts] = useState<WooCommerceProduct[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Record<number, boolean>>({});
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -80,6 +81,7 @@ const WooCommerceImporter = () => {
     includeVariations: true,
     overwriteExisting: false
   });
+  const [selectAll, setSelectAll] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -263,6 +265,29 @@ const WooCommerceImporter = () => {
     }
   };
 
+  useEffect(() => {
+    const productsToCheck = allProducts.length > 0 ? allProducts : productsList;
+    if (productsToCheck.length === 0) return;
+    
+    const allSelected = productsToCheck.every(product => selectedProducts[product.id]);
+    setSelectAll(allSelected);
+  }, [selectedProducts, productsList, allProducts]);
+
+  useEffect(() => {
+    const productsToSelect = allProducts.length > 0 ? allProducts : productsList;
+    if (productsToSelect.length === 0) return;
+    
+    const newSelectedProducts = { ...selectedProducts };
+    
+    productsToSelect.forEach(product => {
+      if (newSelectedProducts[product.id] === undefined) {
+        newSelectedProducts[product.id] = true;
+      }
+    });
+    
+    setSelectedProducts(newSelectedProducts);
+  }, [productsList, allProducts]);
+
   const navigatePages = (page: number) => {
     if (page < 1 || page > totalPages) return;
     
@@ -277,10 +302,11 @@ const WooCommerceImporter = () => {
   };
 
   const handleImportProducts = async () => {
-    const productsToImport = allProducts.length > 0 ? allProducts : productsList;
+    const productsToImportList = allProducts.length > 0 ? allProducts : productsList;
+    const selectedProductsToImport = productsToImportList.filter(p => selectedProducts[p.id]);
     
-    if (productsToImport.length === 0) {
-      setErrors(["Aucun produit à importer"]);
+    if (selectedProductsToImport.length === 0) {
+      setErrors(["Aucun produit sélectionné pour l'importation"]);
       return;
     }
     
@@ -293,7 +319,7 @@ const WooCommerceImporter = () => {
     try {
       const startTime = Date.now();
       
-      const totalExpectedTime = productsToImport.length * 500;
+      const totalExpectedTime = selectedProductsToImport.length * 500;
       
       const updateProgressInterval = setInterval(() => {
         const elapsedTime = Date.now() - startTime;
@@ -301,7 +327,7 @@ const WooCommerceImporter = () => {
         setImportProgress(calculatedProgress);
         
         const stageSuffix = ".".repeat(Math.floor((elapsedTime / 1000) % 4) + 1);
-        setImportStage(`Importation de ${productsToImport.length} produits${stageSuffix}`);
+        setImportStage(`Importation de ${selectedProductsToImport.length} produits${stageSuffix}`);
       }, 200);
       
       console.log(`Starting import with overwriteExisting: ${importOptions.overwriteExisting}`);
@@ -309,7 +335,7 @@ const WooCommerceImporter = () => {
       await ensureStorageBucket('product-images');
       
       const result = await importWooCommerceProducts(
-        productsToImport,
+        selectedProductsToImport,
         importOptions.includeVariations,
         importOptions.overwriteExisting
       );
@@ -348,6 +374,32 @@ const WooCommerceImporter = () => {
     setConnectionError("");
     setProductsList([]);
     setAllProducts([]);
+    setSelectedProducts({});
+  };
+
+  const handleSelectAllChange = (checked: boolean) => {
+    setSelectAll(checked);
+    
+    const productsToUpdate = allProducts.length > 0 ? allProducts : productsList;
+    const newSelectedProducts = { ...selectedProducts };
+    
+    productsToUpdate.forEach(product => {
+      newSelectedProducts[product.id] = checked;
+    });
+    
+    setSelectedProducts(newSelectedProducts);
+  };
+
+  const toggleProductSelection = (productId: number) => {
+    setSelectedProducts(prev => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
+  };
+
+  const getSelectedProductsCount = () => {
+    const productsToCount = allProducts.length > 0 ? allProducts : productsList;
+    return productsToCount.filter(p => selectedProducts[p.id]).length;
   };
 
   const [errors, setErrors] = useState<string[]>([]);
@@ -582,11 +634,11 @@ const WooCommerceImporter = () => {
               
               <Button 
                 onClick={() => setImportDialogOpen(true)}
-                disabled={productsList.length === 0 || isImporting}
+                disabled={productsList.length === 0 || isImporting || getSelectedProductsCount() === 0}
                 size="sm"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Importer
+                Importer ({getSelectedProductsCount()})
               </Button>
             </div>
           </CardHeader>
@@ -683,15 +735,42 @@ const WooCommerceImporter = () => {
               </div>
             ) : (
               <div className="space-y-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="selectAll" 
+                      checked={selectAll}
+                      onCheckedChange={(checked) => handleSelectAllChange(checked === true)}
+                    />
+                    <label
+                      htmlFor="selectAll"
+                      className="text-sm font-medium leading-none"
+                    >
+                      {selectAll ? "Tout désélectionner" : "Tout sélectionner"}
+                    </label>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {getSelectedProductsCount()} produits sélectionnés sur {(allProducts.length > 0 ? allProducts : productsList).length}
+                  </div>
+                </div>
+                
                 <div className="rounded-md border">
-                  <div className="grid grid-cols-12 gap-2 p-3 bg-muted text-sm font-medium">
+                  <div className="grid grid-cols-13 gap-2 p-3 bg-muted text-sm font-medium">
+                    <div className="col-span-1"></div>
                     <div className="col-span-6">Nom</div>
                     <div className="col-span-2">Prix</div>
                     <div className="col-span-4">Catégorie</div>
                   </div>
                   <div className="divide-y">
                     {productsList.map((product) => (
-                      <div key={product.id} className="grid grid-cols-12 gap-2 p-3 text-sm items-center">
+                      <div key={product.id} className="grid grid-cols-13 gap-2 p-3 text-sm items-center">
+                        <div className="col-span-1">
+                          <Checkbox 
+                            checked={!!selectedProducts[product.id]} 
+                            onCheckedChange={() => toggleProductSelection(product.id)}
+                            className="h-4 w-4"
+                          />
+                        </div>
                         <div className="col-span-6 flex items-center gap-2">
                           {product.images.length > 0 ? (
                             <img 
@@ -766,9 +845,7 @@ const WooCommerceImporter = () => {
             </DialogTitle>
             <DialogDescription>
               {!importResult ? (
-                allProducts.length > 0 
-                  ? `Vous êtes sur le point d'importer ${allProducts.length} produits dans votre catalogue.`
-                  : `Vous êtes sur le point d'importer ${productsList.length} produits dans votre catalogue.`
+                `Vous êtes sur le point d'importer ${getSelectedProductsCount()} produits sélectionnés dans votre catalogue.`
               ) : (
                 importResult.success ? (
                   `Importation terminée avec succès!`
@@ -822,7 +899,7 @@ const WooCommerceImporter = () => {
                 </Button>
                 <Button 
                   onClick={handleImportProducts}
-                  disabled={isImporting}
+                  disabled={isImporting || getSelectedProductsCount() === 0}
                 >
                   {isImporting ? (
                     <>

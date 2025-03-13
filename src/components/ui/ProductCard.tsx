@@ -26,21 +26,11 @@ const ProductCard = ({
     ? [product.imageUrl, ...product.imageUrls]
     : [product.imageUrl];
   
-  // Get all available alt texts (main alt + additional alts)
-  const altTexts = product.imageAlts?.length && product.imageAlt
-    ? [product.imageAlt, ...product.imageAlts]
-    : product.imageAlt 
-      ? [product.imageAlt]
-      : [];
-  
   // Filter out any undefined or empty image URLs
   const validImages = images.filter(img => img);
   
   // Get current alt text or fallback to product name if not available
   const getCurrentAltText = () => {
-    if (altTexts[currentImageIndex]) {
-      return altTexts[currentImageIndex];
-    }
     return `${product.name} - ${product.category || 'product'}`;
   };
   
