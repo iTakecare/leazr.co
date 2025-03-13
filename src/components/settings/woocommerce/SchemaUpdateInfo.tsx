@@ -20,7 +20,7 @@ const SchemaUpdateInfo: React.FC<SchemaUpdateInfoProps> = ({
   updatingSchema,
   updateSuccess
 }) => {
-  // Si le schéma est complet, ne rien afficher
+  // If the schema is complete, don't display anything
   if (schemaHasCategory && schemaHasDescription) return null;
   
   return (

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { ShoppingBag, Info } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,7 +19,8 @@ import {
   importProductsToSupabase,
   checkDatabaseSchema,
   updateDatabaseSchema,
-  checkRLSPermissions
+  checkRLSPermissions,
+  SchemaCheckResult
 } from './woocommerce/ImportService';
 import { 
   WooCommerceProduct, 

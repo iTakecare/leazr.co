@@ -10,8 +10,9 @@ import {
   checkDatabaseSchema,
   updateDatabaseSchema,
   checkRLSPermissions,
+  SchemaCheckResult,
   SchemaUpdateResult
-} from './services/SchemaService';
+} from './services/DatabaseUtils';
 
 export {
   fetchProductsFromWooCommerce,
@@ -20,5 +21,6 @@ export {
   updateDatabaseSchema,
   checkRLSPermissions,
   type ImportProgressCallbacks,
+  type SchemaCheckResult,
   type SchemaUpdateResult
 };
