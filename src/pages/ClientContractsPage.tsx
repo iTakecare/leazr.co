@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useClientContracts, ClientContract } from "@/hooks/useClientContracts";
-import { ClientsError } from "@/components/clients/ClientsError";
+import ClientsError from "@/components/clients/ClientsError";
 import ContractDetailCard from "@/components/contracts/ContractDetailCard";
 import { formatCurrency } from "@/utils/formatters";
 
@@ -23,6 +23,13 @@ const ClientContractsPage = () => {
   if (error) {
     return <ClientsError errorMessage={error} onRetry={refresh} />;
   }
+
+  // Mock function for onStatusChange that returns a Promise
+  const handleStatusChange = async (contractId: string, status: string, reason?: string) => {
+    console.log("Status change requested:", { contractId, status, reason });
+    // In a real implementation, this would call an API
+    return Promise.resolve();
+  };
 
   return (
     <div className="w-full">
@@ -45,7 +52,7 @@ const ClientContractsPage = () => {
             <ContractDetailCard
               key={contract.id}
               contract={contract}
-              onStatusChange={() => {}}
+              onStatusChange={handleStatusChange}
               isUpdatingStatus={false}
             />
           ))}

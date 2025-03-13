@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useClientOffers, ClientOffer } from "@/hooks/useClientOffers";
-import { ClientsError } from "@/components/clients/ClientsError";
+import ClientsError from "@/components/clients/ClientsError";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
