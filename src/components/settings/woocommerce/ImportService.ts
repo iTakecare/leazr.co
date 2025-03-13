@@ -283,7 +283,6 @@ interface SchemaUpdateResult {
   error?: string;
 }
 
-// Fix for the RPC call TypeScript errors
 export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
   try {
     // Utilisation du client admin qui permet de contourner les restrictions RLS
@@ -292,32 +291,36 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
     // Adding console.log for debugging
     console.log('Starting schema update process...');
     
-    // Fix: Use type assertion to help TypeScript understand the parameter structure
-    const categoryResult = await adminSupabase
-      .rpc('add_column_if_not_exists', {
+    // Fix: Use fully typed parameters and avoid type assertions
+    const { data: categoryData, error: categoryError } = await adminSupabase.rpc(
+      'add_column_if_not_exists',
+      {
         table_name: 'products',
         column_name: 'category',
         column_type: 'text',
         column_default: "'other'"
-      } as any);
+      }
+    );
     
-    if (categoryResult.error) {
-      console.error('Erreur lors de l\'ajout de la colonne category:', categoryResult.error);
-      return { success: false, error: categoryResult.error.message };
+    if (categoryError) {
+      console.error('Erreur lors de l\'ajout de la colonne category:', categoryError);
+      return { success: false, error: categoryError.message };
     }
     
-    // Fix: Use type assertion to help TypeScript understand the parameter structure
-    const descriptionResult = await adminSupabase
-      .rpc('add_column_if_not_exists', {
+    // Fix: Use fully typed parameters and avoid type assertions
+    const { data: descriptionData, error: descriptionError } = await adminSupabase.rpc(
+      'add_column_if_not_exists',
+      {
         table_name: 'products',
         column_name: 'description',
         column_type: 'text',
         column_default: 'NULL'
-      } as any);
+      }
+    );
     
-    if (descriptionResult.error) {
-      console.error('Erreur lors de l\'ajout de la colonne description:', descriptionResult.error);
-      return { success: false, error: descriptionResult.error.message };
+    if (descriptionError) {
+      console.error('Erreur lors de l\'ajout de la colonne description:', descriptionError);
+      return { success: false, error: descriptionError.message };
     }
     
     console.log('Schema update completed successfully');
