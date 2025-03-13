@@ -13,6 +13,9 @@ if (mockProducts.length === 0) {
       price: 299.99,
       description: "High efficiency monocrystalline solar panel, perfect for residential installations.",
       imageUrl: "/placeholder.svg",
+      specifications: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     {
       id: uuidv4(),
@@ -21,6 +24,9 @@ if (mockProducts.length === 0) {
       price: 1299.99,
       description: "Small-scale wind turbine for residential power generation.",
       imageUrl: "/placeholder.svg",
+      specifications: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     {
       id: uuidv4(),
@@ -30,6 +36,9 @@ if (mockProducts.length === 0) {
       description: "Home battery system that stores your solar energy to power your home at night.",
       imageUrl: "/placeholder.svg",
       brand: "Tesla",
+      specifications: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     {
       id: uuidv4(),
@@ -38,6 +47,9 @@ if (mockProducts.length === 0) {
       price: 4200,
       description: "Energy-efficient heating and cooling system for residential use.",
       imageUrl: "/placeholder.svg",
+      specifications: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     {
       id: uuidv4(),
@@ -47,6 +59,9 @@ if (mockProducts.length === 0) {
       description: "Wi-Fi enabled thermostat that learns your habits and optimizes energy usage.",
       imageUrl: "/placeholder.svg",
       brand: "Nest",
+      specifications: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     {
       id: uuidv4(),
@@ -55,6 +70,9 @@ if (mockProducts.length === 0) {
       price: 149.99,
       description: "Complete home LED lighting conversion kit to reduce energy usage.",
       imageUrl: "/placeholder.svg",
+      specifications: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   ];
 
@@ -78,9 +96,12 @@ export const getProductById = async (id: string): Promise<Product | null> => {
 
 // Create a new product
 export const createProduct = async (product: Omit<Product, 'id'>): Promise<Product> => {
-  const newProduct = {
+  const newProduct: Product = {
     ...product,
     id: uuidv4(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    specifications: product.specifications || {},
   };
   mockProducts.push(newProduct);
   return newProduct;
@@ -93,9 +114,10 @@ export const updateProduct = async (id: string, productData: Omit<Product, 'id'>
     throw new Error('Product not found');
   }
   
-  const updatedProduct = {
+  const updatedProduct: Product = {
     ...productData,
     id,
+    updatedAt: new Date(),
   };
   
   mockProducts[index] = updatedProduct;

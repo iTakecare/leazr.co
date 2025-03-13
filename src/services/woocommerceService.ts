@@ -518,17 +518,20 @@ async function createProductFromWooCommerceData(
   }, {} as Record<string, string>) || {};
 
   // Préparer les données du produit
-  const productData: any = {
+  const productData: Product = {
+    id: '', // Will be set by DB or during update
     name: wooProduct.name,
     description: wooProduct.short_description || wooProduct.description || '',
     price,
     brand,
     category: determineCategory(wooProduct.categories),
-    image_url: imageUrl,
-    specifications,
+    imageUrl: imageUrl,
+    specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
     sku: wooProduct.sku || '',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   // Ajouter le parent_id si c'est une variation

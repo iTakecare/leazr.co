@@ -16,6 +16,7 @@ export interface Product {
   price: number;
   description: string;
   imageUrl: string;
+  sku?: string;
   specifications: Record<string, string | number | boolean>;
   variants?: ProductVariant[];
   parent_id?: string; // For variations, reference to parent product
