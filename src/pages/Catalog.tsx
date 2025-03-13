@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,6 @@ const Catalog = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   
-  // Using React Query to load products with improved error handling
   const { 
     data: products = [], 
     isLoading, 
@@ -49,11 +47,10 @@ const Catalog = () => {
     }
   });
 
-  // Mutation to delete all products
   const deleteAllProductsMutation = useMutation({
     mutationFn: deleteAllProducts,
     onSuccess: () => {
-      refetch(); // Refresh the product list
+      refetch();
       toast.success("All products have been deleted");
     },
     onError: (err: Error) => {
@@ -62,7 +59,6 @@ const Catalog = () => {
     }
   });
 
-  // Filter products
   const filteredProducts = products.filter((product: Product) => {
     const matchesSearch = 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -73,12 +69,10 @@ const Catalog = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Extract unique categories
   const categories = Array.from(
     new Set(products.map((product: Product) => product.category))
   ).filter(Boolean);
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -238,7 +232,7 @@ const Catalog = () => {
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Link to={`/catalog/${product.id}`}>
+                          <Link to={`/products/${product.id}`}>
                             <Button variant="outline" size="sm">Edit</Button>
                           </Link>
                         </div>

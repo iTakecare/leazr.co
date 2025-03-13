@@ -41,7 +41,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
       {products.map((product) => (
         <motion.div key={product.id} variants={itemVariants}>
           <Link
-            to={`/catalog/${product.id}`}
+            to={`/products/${product.id}`}
             className="group block border rounded-md overflow-hidden transition-all hover:shadow-md h-full flex flex-col"
           >
             <div className="aspect-square bg-muted overflow-hidden relative">
