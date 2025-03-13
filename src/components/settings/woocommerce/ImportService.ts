@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -277,7 +278,12 @@ export const checkDatabaseSchema = async (): Promise<{ hasCategory: boolean; has
   }
 };
 
-export const updateDatabaseSchema = async (): Promise<{ success: boolean; error?: string }> => {
+interface SchemaUpdateResult {
+  success: boolean; 
+  error?: string;
+}
+
+export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
   try {
     // Utilisation du client admin qui permet de contourner les restrictions RLS
     // pour les opérations DDL (modification de schéma)

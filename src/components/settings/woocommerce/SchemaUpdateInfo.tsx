@@ -3,6 +3,7 @@ import React from 'react';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 
 interface SchemaUpdateInfoProps {
   schemaHasCategory: boolean;
@@ -47,6 +48,10 @@ const SchemaUpdateInfo: React.FC<SchemaUpdateInfoProps> = ({
               <CheckCircle2 className="h-4 w-4 mr-1" />
               Mise à jour réussie
             </div>
+          )}
+          
+          {updatingSchema && (
+            <Progress value={50} className="w-24 h-2" />
           )}
           
           <Button 

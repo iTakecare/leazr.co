@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ShoppingBag, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -57,27 +57,34 @@ const WooCommerceImporter = () => {
   const [updatingSchema, setUpdatingSchema] = useState(false);
   const [schemaUpdateSuccess, setSchemaUpdateSuccess] = useState(false);
   const [hasRLSPermissions, setHasRLSPermissions] = useState(false);
-
+  
   // Vérifier si le schéma a les colonnes nécessaires au chargement
-  useEffect(() => {
-    const initializeComponent = async () => {
+  const checkSchema = useCallback(async () => {
+    try {
       // Vérifier le schéma de la base de données
       const { hasCategory, hasDescription } = await checkDatabaseSchema();
+      console.log('Résultat vérification schéma:', { hasCategory, hasDescription });
       setSchemaHasCategory(hasCategory);
       setSchemaHasDescription(hasDescription);
       
       // Vérifier les permissions RLS
       const hasPermissions = await checkRLSPermissions();
+      console.log('A les permissions RLS:', hasPermissions);
       setHasRLSPermissions(hasPermissions);
       
       // Si pas de permissions RLS, activer automatiquement l'option de bypass
       if (!hasPermissions) {
         setFetchingOptions(prev => ({ ...prev, bypassRLS: true }));
       }
-    };
-    
-    initializeComponent();
+    } catch (error) {
+      console.error('Erreur lors de la vérification du schéma:', error);
+      toast.error("Erreur lors de la vérification du schéma");
+    }
   }, []);
+
+  useEffect(() => {
+    checkSchema();
+  }, [checkSchema]);
   
   // Mettre à jour le schéma de la base de données
   const handleUpdateSchema = async () => {
@@ -88,11 +95,12 @@ const WooCommerceImporter = () => {
     
     setUpdatingSchema(true);
     setErrors([]);
+    setImportStage("Mise à jour du schéma de la base de données...");
     
     try {
-      setImportStage("Mise à jour du schéma de la base de données...");
-      
+      console.log('Début de la mise à jour du schéma...');
       const result = await updateDatabaseSchema();
+      console.log('Résultat mise à jour schéma:', result);
       
       if (result.success) {
         setSchemaHasCategory(true);
@@ -100,8 +108,8 @@ const WooCommerceImporter = () => {
         setSchemaUpdateSuccess(true);
         toast.success("Schéma de la base de données mis à jour avec succès");
       } else {
-        setErrors(prev => [...prev, `Erreur lors de la mise à jour du schéma: ${result.error}`]);
-        toast.error(`Erreur lors de la mise à jour du schéma: ${result.error}`);
+        setErrors(prev => [...prev, `Erreur lors de la mise à jour du schéma: ${result.error || 'Erreur inconnue'}`]);
+        toast.error(`Erreur lors de la mise à jour du schéma: ${result.error || 'Erreur inconnue'}`);
       }
     } catch (error) {
       console.error('Error updating database schema:', error);
@@ -110,6 +118,11 @@ const WooCommerceImporter = () => {
     } finally {
       setUpdatingSchema(false);
       setImportStage('');
+      
+      // Vérifier à nouveau le schéma après la mise à jour
+      setTimeout(() => {
+        checkSchema();
+      }, 1000);
     }
   };
   
