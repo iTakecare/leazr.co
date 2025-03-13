@@ -20,6 +20,7 @@ const Login = () => {
   // Rediriger si déjà connecté
   useEffect(() => {
     if (session) {
+      console.log("User already logged in, redirecting to dashboard");
       navigate('/dashboard');
     }
   }, [session, navigate]);
@@ -33,7 +34,14 @@ const Login = () => {
     }
     
     setLoginAttempted(true);
-    await signIn(email, password);
+    console.log("Login attempt with email:", email);
+    
+    try {
+      await signIn(email, password);
+    } catch (error) {
+      console.error("Login form error:", error);
+      // L'erreur est déjà gérée dans le contexte Auth
+    }
   };
 
   return (

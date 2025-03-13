@@ -1,6 +1,7 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
-import { supabase, adminSupabase } from "@/integrations/supabase/client";
+import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -31,37 +32,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  
+  // Utiliser les clients supabase singleton
+  const supabase = getSupabaseClient();
+  const adminSupabase = getAdminSupabaseClient();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchUserProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        if (session) {
-          await fetchUserProfile(session.user.id);
+    const initAuth = async () => {
+      setIsLoading(true);
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        setSession(currentSession);
+        
+        if (currentSession) {
+          await fetchUserProfile(currentSession.user.id);
         } else {
-          setUser(null);
           setIsLoading(false);
         }
+        
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (_event, newSession) => {
+            console.log("Auth state change:", _event, newSession ? "session exists" : "no session");
+            setSession(newSession);
+            
+            if (newSession) {
+              await fetchUserProfile(newSession.user.id);
+            } else {
+              setUser(null);
+              setIsLoading(false);
+            }
+          }
+        );
+        
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+        setIsLoading(false);
       }
-    );
-
-    return () => {
-      subscription.unsubscribe();
     };
+    
+    initAuth();
   }, []);
 
   async function fetchUserProfile(userId: string) {
     try {
       setIsLoading(true);
+      console.log("Fetching user profile for ID:", userId);
       
       let profileData = null;
       
@@ -72,11 +91,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', userId)
           .single();
           
-        if (!error) {
+        if (error) {
+          console.error("Admin fetch error:", error);
+        } else if (data) {
+          console.log("Profile data retrieved via admin client:", data);
           profileData = data;
         }
       } catch (adminError) {
-        console.log('Admin fetch failed:', adminError);
+        console.error('Admin fetch failed:', adminError);
       }
       
       if (!profileData) {
@@ -87,25 +109,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', userId)
             .single();
           
-          if (!error) {
+          if (error) {
+            console.error("Standard fetch error:", error);
+          } else if (data) {
+            console.log("Profile data retrieved via standard client:", data);
             profileData = data;
           }
         } catch (standardError) {
-          console.log('Standard fetch failed:', standardError);
+          console.error('Standard fetch failed:', standardError);
         }
       }
       
-      if (!profileData) {
-        if (session) {
-          profileData = {
-            id: userId,
-            first_name: null,
-            last_name: null,
-            role: 'client' as const,
-            company: null,
-            avatar_url: null
-          };
-        }
+      if (!profileData && session) {
+        console.log("No profile found, creating default profile");
+        profileData = {
+          id: userId,
+          first_name: null,
+          last_name: null,
+          role: 'client' as const,
+          company: null,
+          avatar_url: null
+        };
       }
       
       if (profileData) {
@@ -114,7 +138,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: session?.user?.email || null,
         };
         
+        console.log("Setting user profile:", userWithEmail);
         setUser(userWithEmail as UserProfile);
+      } else {
+        console.log("No profile data available");
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -127,24 +154,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signIn(email: string, password: string) {
     try {
       setIsLoading(true);
+      console.log("Attempting signin with email:", email);
 
-      const signInPromise = supabase.auth.signInWithPassword({ email, password });
-      
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Délai de connexion dépassé')), 10000);
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
       });
-      
-      const { error } = await Promise.race([
-        signInPromise,
-        timeoutPromise
-      ]) as { data: { session: Session | null; user: any } | null; error: Error | null };
 
       if (error) {
+        console.error("Sign in error:", error);
         throw error;
       }
 
-      navigate('/dashboard');
-      toast.success('Connexion réussie');
+      if (data.session) {
+        console.log("Sign in successful, session established");
+        navigate('/dashboard');
+        toast.success('Connexion réussie');
+      } else {
+        console.error("No session returned after signin");
+        toast.error('Erreur de connexion: aucune session retournée');
+      }
     } catch (error: any) {
       console.error('Error signing in:', error);
       const errorMessage = error.message === 'Invalid login credentials' 
