@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -12,6 +11,7 @@ const mockOffers = [
     monthly_payment: 720,
     commission: 1250,
     status: "accepted",
+    workflow_status: "client_approved",
     created_at: "2025-03-01T09:30:00Z"
   },
   {
@@ -21,6 +21,7 @@ const mockOffers = [
     monthly_payment: 540,
     commission: 925,
     status: "pending",
+    workflow_status: "client_waiting",
     created_at: "2025-03-05T14:15:00Z"
   },
   {
@@ -30,6 +31,7 @@ const mockOffers = [
     monthly_payment: 910,
     commission: 1600,
     status: "rejected",
+    workflow_status: "client_no_response",
     created_at: "2025-02-22T11:20:00Z"
   },
   {
@@ -39,6 +41,7 @@ const mockOffers = [
     monthly_payment: 1250,
     commission: 2250,
     status: "accepted",
+    workflow_status: "leaser_approved",
     created_at: "2025-02-15T10:00:00Z"
   }
 ];
@@ -149,6 +152,32 @@ export const deleteOffer = async (offerId: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Error deleting offer:", error);
+    return false;
+  }
+};
+
+export const updateOfferStatus = async (
+  offerId: string, 
+  newStatus: string, 
+  reason?: string
+): Promise<boolean> => {
+  try {
+    // Dans un environnement de production, nous ferions un appel à l'API
+    // Pour cette démonstration, nous simulons un succès
+    console.log(`Updating offer ${offerId} to status ${newStatus} with reason: ${reason || 'Aucune'}`);
+
+    // Enregistrer également le commentaire/raison si fourni
+    if (reason) {
+      // Ici, nous aurions une table de commentaires dans une application réelle
+      console.log(`Adding comment for offer ${offerId}: ${reason}`);
+    }
+
+    // Simuler un délai réseau
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return true;
+  } catch (error) {
+    console.error("Error updating offer status:", error);
     return false;
   }
 };

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { formatCurrency } from "@/utils/formatters";
@@ -14,12 +14,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// Import refactored components
+// Import des composants
 import OffersHeader from "@/components/offers/OffersHeader";
 import OffersSearch from "@/components/offers/OffersSearch";
 import OffersFilter from "@/components/offers/OffersFilter";
 import OffersLoading from "@/components/offers/OffersLoading";
 import OffersError from "@/components/offers/OffersError";
+import OfferDetailCard from "@/components/offers/OfferDetailCard";
 
 const Offers = () => {
   const {
@@ -30,11 +31,15 @@ const Offers = () => {
     setSearchTerm,
     activeTab,
     setActiveTab,
+    isUpdatingStatus,
     fetchOffers,
     handleDeleteOffer,
     handleResendOffer,
-    handleDownloadPdf
+    handleDownloadPdf,
+    handleUpdateWorkflowStatus
   } = useOffers();
+
+  const [displayMode, setDisplayMode] = useState<'list' | 'card'>('card');
 
   // Animation variants
   const containerVariants = {
@@ -93,14 +98,64 @@ const Offers = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <OffersFilter 
-                  activeTab={activeTab}
-                  setActiveTab={setActiveTab}
-                  filteredOffers={filteredOffers}
-                  onDeleteOffer={handleDeleteOffer}
-                  onResendOffer={handleResendOffer}
-                  onDownloadPdf={handleDownloadPdf}
-                />
+                {displayMode === 'list' ? (
+                  <OffersFilter 
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    filteredOffers={filteredOffers}
+                    onDeleteOffer={handleDeleteOffer}
+                    onResendOffer={handleResendOffer}
+                    onDownloadPdf={handleDownloadPdf}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex space-x-2">
+                        <button
+                          className={`px-3 py-1 text-sm rounded-md ${activeTab === 'all' ? 'bg-primary text-white' : 'bg-muted'}`}
+                          onClick={() => setActiveTab('all')}
+                        >
+                          Toutes
+                        </button>
+                        <button
+                          className={`px-3 py-1 text-sm rounded-md ${activeTab === 'accepted' ? 'bg-primary text-white' : 'bg-muted'}`}
+                          onClick={() => setActiveTab('accepted')}
+                        >
+                          Acceptées
+                        </button>
+                        <button
+                          className={`px-3 py-1 text-sm rounded-md ${activeTab === 'pending' ? 'bg-primary text-white' : 'bg-muted'}`}
+                          onClick={() => setActiveTab('pending')}
+                        >
+                          En attente
+                        </button>
+                        <button
+                          className={`px-3 py-1 text-sm rounded-md ${activeTab === 'rejected' ? 'bg-primary text-white' : 'bg-muted'}`}
+                          onClick={() => setActiveTab('rejected')}
+                        >
+                          Refusées
+                        </button>
+                      </div>
+                      <div>
+                        <button
+                          className={`px-3 py-1 text-sm rounded-md bg-muted`}
+                          onClick={() => setDisplayMode(displayMode === 'card' ? 'list' : 'card')}
+                        >
+                          {displayMode === 'card' ? 'Vue tableau' : 'Vue cartes'}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {filteredOffers.map(offer => (
+                      <OfferDetailCard 
+                        key={offer.id} 
+                        offer={offer} 
+                        onStatusChange={handleUpdateWorkflowStatus}
+                        isUpdatingStatus={isUpdatingStatus}
+                      />
+                    ))}
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="flex justify-between">
                 <p className="text-sm text-muted-foreground">
