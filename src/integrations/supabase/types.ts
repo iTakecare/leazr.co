@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      clients: {
+        Row: {
+          address: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leaser_ranges: {
         Row: {
           coefficient: number
@@ -75,6 +114,7 @@ export type Database = {
         Row: {
           amount: number
           client_email: string | null
+          client_id: string | null
           client_name: string
           coefficient: number
           commission: number | null
@@ -88,6 +128,7 @@ export type Database = {
         Insert: {
           amount?: number
           client_email?: string | null
+          client_id?: string | null
           client_name: string
           coefficient?: number
           commission?: number | null
@@ -101,6 +142,7 @@ export type Database = {
         Update: {
           amount?: number
           client_email?: string | null
+          client_id?: string | null
           client_name?: string
           coefficient?: number
           commission?: number | null
@@ -111,7 +153,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "offers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {

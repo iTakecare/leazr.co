@@ -11,12 +11,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, Mail, MoreHorizontal, X } from "lucide-react";
+import { Download, Mail, MoreHorizontal, X, User, Eye } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
+import { useNavigate } from "react-router-dom";
 
 interface Offer {
   id: string;
   client_name: string;
+  client_id?: string;
+  clients?: {
+    name: string;
+    email: string;
+    company: string;
+  } | null;
   amount: number;
   monthly_payment: number;
   commission: number;
@@ -32,6 +39,8 @@ interface OfferTableRowProps {
 }
 
 const OfferTableRow = ({ offer, onDelete, onResend, onDownload }: OfferTableRowProps) => {
+  const navigate = useNavigate();
+  
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd/MM/yyyy", { locale: fr });
@@ -40,9 +49,26 @@ const OfferTableRow = ({ offer, onDelete, onResend, onDownload }: OfferTableRowP
     }
   };
 
+  const displayClientInfo = () => {
+    if (offer.clients) {
+      return (
+        <div>
+          <div className="font-medium">{offer.clients.name}</div>
+          {offer.clients.company && (
+            <div className="text-xs text-muted-foreground">{offer.clients.company}</div>
+          )}
+        </div>
+      );
+    }
+    
+    return <div className="font-medium">{offer.client_name}</div>;
+  };
+
   return (
     <TableRow>
-      <TableCell className="font-medium">{offer.client_name}</TableCell>
+      <TableCell>
+        {displayClientInfo()}
+      </TableCell>
       <TableCell>{formatCurrency(offer.amount)}</TableCell>
       <TableCell>{formatCurrency(offer.monthly_payment)}</TableCell>
       <TableCell>{formatCurrency(offer.commission)}</TableCell>
@@ -66,6 +92,12 @@ const OfferTableRow = ({ offer, onDelete, onResend, onDownload }: OfferTableRowP
               <Mail className="mr-2 h-4 w-4" />
               Renvoyer
             </DropdownMenuItem>
+            {offer.client_id && (
+              <DropdownMenuItem onClick={() => navigate(`/clients/${offer.client_id}`)}>
+                <User className="mr-2 h-4 w-4" />
+                Voir le client
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => onDelete(offer.id)} className="text-red-600">
               <X className="mr-2 h-4 w-4" />
               Supprimer

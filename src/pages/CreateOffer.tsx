@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
@@ -12,6 +13,7 @@ import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { createOffer } from "@/services/offerService";
 import { getLeasers } from "@/services/leaserService";
+import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
 
 import EquipmentForm from "@/components/offer/EquipmentForm";
@@ -21,10 +23,16 @@ import ClientInfo from "@/components/offer/ClientInfo";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 
+function useQuery() {
+  return new URLSearchParams(useLocation().search);
+}
+
 const CreateOffer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const query = useQuery();
+  const clientIdParam = query.get("client");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -80,6 +88,30 @@ const CreateOffer = () => {
     fetchLeasers();
   }, []);
 
+  // Charger le client à partir de l'URL si un ID est fourni
+  useEffect(() => {
+    const loadClientFromParam = async () => {
+      if (clientIdParam) {
+        try {
+          setLoading(true);
+          const client = await getClientById(clientIdParam);
+          if (client) {
+            setClientId(client.id);
+            setClientName(client.name);
+            setClientEmail(client.email || "");
+            setClientCompany(client.company || "");
+          }
+        } catch (error) {
+          console.error("Error loading client:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadClientFromParam();
+  }, [clientIdParam]);
+
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
     
@@ -128,6 +160,7 @@ const CreateOffer = () => {
         user_id: user.id,
         client_name: clientName,
         client_email: clientEmail,
+        client_id: clientId, // Ajout de l'ID du client
         equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
@@ -211,6 +244,20 @@ const CreateOffer = () => {
                   updateQuantity={updateQuantity}
                   totalMonthlyPayment={totalMonthlyPayment}
                   globalMarginAdjustment={globalMarginAdjustment}
+                />
+                
+                <ClientInfo
+                  clientId={clientId}
+                  clientName={clientName}
+                  clientEmail={clientEmail}
+                  clientCompany={clientCompany}
+                  remarks={remarks}
+                  setRemarks={setRemarks}
+                  onOpenClientSelector={() => setIsClientSelectorOpen(true)}
+                  handleSaveOffer={handleSaveOffer}
+                  isSubmitting={isSubmitting}
+                  selectedLeaser={selectedLeaser}
+                  equipmentList={equipmentList}
                 />
               </div>
             </div>

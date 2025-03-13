@@ -45,6 +45,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                 value={clientName}
                 placeholder="Sélectionnez un client..."
                 readOnly
+                className={!clientId ? "border-orange-300" : ""}
               />
               <Button
                 variant="outline"
@@ -55,6 +56,11 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                 <Users className="h-5 w-5" />
               </Button>
             </div>
+            {!clientId && (
+              <p className="text-orange-500 text-sm mt-1">
+                Veuillez sélectionner un client
+              </p>
+            )}
           </div>
         </div>
         {clientId && (
@@ -91,7 +97,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
         <Button
           onClick={handleSaveOffer}
           className="mt-4 flex items-center justify-center gap-2"
-          disabled={!clientName || !clientEmail || equipmentList.length === 0 || isSubmitting || !selectedLeaser}
+          disabled={!clientId || !clientEmail || equipmentList.length === 0 || isSubmitting || !selectedLeaser}
           variant="default"
         >
           <Save className="h-5 w-5" />

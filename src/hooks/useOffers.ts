@@ -6,6 +6,12 @@ import { toast } from "sonner";
 interface Offer {
   id: string;
   client_name: string;
+  client_id?: string;
+  clients?: {
+    name: string;
+    email: string;
+    company: string;
+  } | null;
   amount: number;
   monthly_payment: number;
   commission: number;
@@ -68,8 +74,16 @@ export const useOffers = () => {
   };
 
   const filteredOffers = offers.filter((offer) => {
-    const matchesSearch = offer.client_name.toLowerCase().includes(searchTerm.toLowerCase());
+    // Rechercher dans le nom du client ou le nom de la société du client s'il est lié
+    const clientName = offer.client_name.toLowerCase();
+    const clientCompany = offer.clients?.company?.toLowerCase() || '';
+    
+    const matchesSearch = 
+      clientName.includes(searchTerm.toLowerCase()) ||
+      clientCompany.includes(searchTerm.toLowerCase());
+    
     const matchesTab = activeTab === "all" || offer.status === activeTab;
+    
     return matchesSearch && matchesTab;
   });
 

@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
+import { toast } from "sonner";
 
 // Données mockées pour avoir un affichage immédiat en cas de timeout
 const mockOffers = [
@@ -53,6 +54,7 @@ export interface EquipmentItem {
 export interface OfferData {
   client_name: string;
   client_email: string;
+  client_id?: string; // Ajout du client_id
   equipment_description: string;
   amount: number;
   coefficient: number;
@@ -97,7 +99,7 @@ export const getOffers = async (): Promise<any[]> => {
     
     const fetchPromise = supabase
       .from('offers')
-      .select('*')
+      .select('*, clients(name, email, company)')
       .order('created_at', { ascending: false });
     
     // Utiliser Promise.race pour résoudre avec la première promesse qui se termine
@@ -114,6 +116,24 @@ export const getOffers = async (): Promise<any[]> => {
     console.error("Error fetching offers:", error);
     // En cas d'erreur ou de timeout, retourner les données mockées
     return mockOffers;
+  }
+};
+
+export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('offers')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching offers by client ID:", error);
+    toast.error("Erreur lors de la récupération des offres du client");
+    return [];
   }
 };
 
