@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Table, 
   TableBody, 
@@ -32,11 +32,13 @@ import {
   Trash2, 
   Image as ImageIcon, 
   Tag,
-  Loader2
+  Loader2,
+  X
 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
 import { defaultLeasers } from "@/data/leasers";
 import { getLeasers, addLeaser, updateLeaser, deleteLeaser } from "@/services/leaserService";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Range {
@@ -54,6 +56,9 @@ const LeaserManager = () => {
   const [tempRanges, setTempRanges] = useState<Range[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Charger les leasers au montage du composant
   useEffect(() => {
@@ -79,10 +84,12 @@ const LeaserManager = () => {
       setCurrentLeaser(leaser);
       setTempRanges([...leaser.ranges]);
       setIsEditMode(true);
+      setPreviewUrl(leaser.logo_url || null);
     } else {
       setCurrentLeaser(null);
       setTempRanges([{ id: crypto.randomUUID(), min: 0, max: 0, coefficient: 0 }]);
       setIsEditMode(false);
+      setPreviewUrl(null);
     }
     setIsOpen(true);
   };
@@ -91,6 +98,7 @@ const LeaserManager = () => {
     setIsOpen(false);
     setCurrentLeaser(null);
     setTempRanges([]);
+    setPreviewUrl(null);
   };
   
   const handleRangeChange = (index: number, field: keyof Range, value: number) => {
@@ -122,6 +130,66 @@ const LeaserManager = () => {
       setTempRanges(newRanges);
     }
   };
+
+  const handleLogoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Vérifier le type de fichier
+    if (!file.type.startsWith('image/')) {
+      toast.error("Veuillez sélectionner une image valide");
+      return;
+    }
+
+    // Vérifier la taille du fichier (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("L'image est trop volumineuse. Maximum 2MB autorisé");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      
+      // Générer un nom de fichier unique
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `${fileName}`;
+      
+      // Télécharger le fichier vers Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('leaser-logos')
+        .upload(filePath, file);
+      
+      if (error) throw error;
+      
+      // Obtenir l'URL publique du logo
+      const { data: { publicUrl } } = supabase.storage
+        .from('leaser-logos')
+        .getPublicUrl(filePath);
+      
+      // Mettre à jour la prévisualisation
+      setPreviewUrl(publicUrl);
+      
+      toast.success("Logo téléchargé avec succès");
+    } catch (error: any) {
+      console.error("Erreur lors du téléchargement du logo:", error);
+      toast.error(`Erreur lors du téléchargement: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+      // Réinitialiser l'input pour permettre de sélectionner le même fichier à nouveau
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setPreviewUrl(null);
+  };
   
   const handleSaveLeaser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,7 +202,7 @@ const LeaserManager = () => {
       
       const newLeaser: Omit<Leaser, "id"> = {
         name: formData.get("name") as string,
-        logo_url: formData.get("logo_url") as string || null,
+        logo_url: previewUrl,
         ranges: tempRanges
       };
       
@@ -299,21 +367,45 @@ const LeaserManager = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="logo_url">URL du logo (optionnel)</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    id="logo_url" 
-                    name="logo_url" 
-                    defaultValue={currentLeaser?.logo_url || ""}
+                <Label htmlFor="logo_url">Logo du leaser</Label>
+                <div className="mt-2">
+                  {previewUrl ? (
+                    <div className="relative w-full h-32 border rounded-md overflow-hidden mb-2">
+                      <img 
+                        src={previewUrl} 
+                        alt="Logo preview" 
+                        className="w-full h-full object-contain"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8"
+                        onClick={handleRemoveLogo}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-md p-4 cursor-pointer hover:border-primary transition-colors"
+                         onClick={handleLogoClick}>
+                      {isUploading ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                      ) : (
+                        <ImageIcon className="h-10 w-10 text-gray-400 mb-2" />
+                      )}
+                      <p className="text-sm text-gray-500">
+                        {isUploading ? "Téléchargement en cours..." : "Cliquez pour télécharger un logo"}
+                      </p>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
                   />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon"
-                    className="flex-shrink-0"
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
               
@@ -389,11 +481,11 @@ const LeaserManager = () => {
                 type="button" 
                 variant="outline" 
                 onClick={handleCloseSheet}
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isSaving}>
+              <Button type="submit" disabled={isSaving || isUploading}>
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

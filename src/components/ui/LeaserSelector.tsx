@@ -87,7 +87,7 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <ScrollArea className="max-h-[60vh]">
+            <ScrollArea className="h-[60vh]">
               <div className="space-y-2 pr-3">
                 {filteredLeasers.map((leaser) => (
                   <div
