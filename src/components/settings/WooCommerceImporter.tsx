@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -49,7 +48,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 
-// Schéma de validation du formulaire
 const formSchema = z.object({
   siteUrl: z.string().url({ message: "Veuillez entrer une URL valide" }),
   consumerKey: z.string().min(1, { message: "Clé client requise" }),
@@ -82,7 +80,6 @@ const WooCommerceImporter = () => {
     overwriteExisting: false
   });
 
-  // Initialiser le formulaire avec les valeurs par défaut
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -92,7 +89,6 @@ const WooCommerceImporter = () => {
     },
   });
 
-  // Charger la configuration WooCommerce sauvegardée
   useEffect(() => {
     const loadSavedConfig = async () => {
       if (!user) return;
@@ -123,7 +119,6 @@ const WooCommerceImporter = () => {
     loadSavedConfig();
   }, [user, form]);
 
-  // Sauvegarder la configuration WooCommerce
   const handleSaveConfig = async (values: z.infer<typeof formSchema>) => {
     if (!user) {
       toast.error("Vous devez être connecté pour sauvegarder la configuration");
@@ -159,7 +154,6 @@ const WooCommerceImporter = () => {
     }
   };
 
-  // Tester la connexion à WooCommerce avec appel direct à l'API
   const handleTestConnection = async (values: z.infer<typeof formSchema>) => {
     setIsConnecting(true);
     setIsConnected(false);
@@ -183,7 +177,6 @@ const WooCommerceImporter = () => {
         setIsConnected(true);
         fetchProducts(values, 1);
         
-        // Sauvegarder automatiquement si la connexion a réussi et pas encore de config sauvegardée
         if (!configLoaded && user) {
           await handleSaveConfig(values);
           setConfigLoaded(true);
@@ -203,7 +196,6 @@ const WooCommerceImporter = () => {
     }
   };
 
-  // Récupérer tous les produits WooCommerce
   const fetchAllProducts = async (values: z.infer<typeof formSchema>) => {
     if (!isConnected) {
       toast.error("Veuillez d'abord tester la connexion");
@@ -224,7 +216,6 @@ const WooCommerceImporter = () => {
       console.log(`${products.length} produits récupérés au total`);
       setAllProducts(products);
       
-      // Mettre à jour la liste actuelle avec la première page
       setProductsList(products.slice(0, 10));
       setCurrentPage(1);
       setTotalPages(Math.max(1, Math.ceil(products.length / 10)));
@@ -240,7 +231,6 @@ const WooCommerceImporter = () => {
     }
   };
 
-  // Récupérer les produits WooCommerce par page
   const fetchProducts = async (values: z.infer<typeof formSchema>, page: number) => {
     setIsFetchingProducts(true);
     
@@ -251,19 +241,16 @@ const WooCommerceImporter = () => {
         values.consumerKey,
         values.consumerSecret,
         page,
-        10 // nombre de produits par page
+        10
       );
       
       console.log(`${products.length} produits récupérés`);
       setProductsList(products);
       setCurrentPage(page);
       
-      // Si nous avons déjà tous les produits, utiliser cette longueur pour le total de pages
       if (allProducts.length > 0) {
         setTotalPages(Math.max(1, Math.ceil(allProducts.length / 10)));
       } else {
-        // Estimation basique du nombre total de pages
-        // Note: Ceci est une estimation, car l'API WooCommerce ne renvoie pas toujours le total
         setTotalPages(products.length === 10 ? page + 1 : page);
       }
     } catch (error) {
@@ -275,23 +262,19 @@ const WooCommerceImporter = () => {
     }
   };
 
-  // Naviguer dans les produits quand on a déjà récupéré tous les produits
   const navigatePages = (page: number) => {
     if (page < 1 || page > totalPages) return;
     
     if (allProducts.length > 0) {
-      // Utiliser les produits déjà récupérés
       const startIndex = (page - 1) * 10;
       const endIndex = Math.min(startIndex + 10, allProducts.length);
       setProductsList(allProducts.slice(startIndex, endIndex));
       setCurrentPage(page);
     } else {
-      // Récupérer la page depuis l'API
       fetchProducts(form.getValues(), page);
     }
   };
 
-  // Importer les produits vers Supabase
   const handleImportProducts = async () => {
     const productsToImport = allProducts.length > 0 ? allProducts : productsList;
     
@@ -304,9 +287,9 @@ const WooCommerceImporter = () => {
     setImportProgress(0);
     setImportStage("Préparation de l'importation...");
     setImportResult(null);
+    setErrors([]);
     
     try {
-      // Simuler une progression pour l'UI
       const progressInterval = setInterval(() => {
         setImportProgress((prev) => {
           const newProgress = prev + Math.random() * 5;
@@ -315,6 +298,8 @@ const WooCommerceImporter = () => {
       }, 500);
       
       setImportStage(`Importation de ${productsToImport.length} produits...`);
+      console.log(`Starting import with overwriteExisting: ${importOptions.overwriteExisting}`);
+      
       const result = await importWooCommerceProducts(
         productsToImport,
         importOptions.includeVariations,
@@ -324,18 +309,23 @@ const WooCommerceImporter = () => {
       clearInterval(progressInterval);
       setImportProgress(100);
       setImportResult(result);
-      setImportStage("Importation terminée");
       
       if (result.success) {
+        setImportStage(`Importation terminée: ${result.totalImported} produits importés, ${result.skipped} ignorés`);
         toast.success(`Importation réussie de ${result.totalImported} produits`);
       } else {
+        setImportStage(`Importation terminée avec ${result.errors?.length || 0} erreurs`);
         toast.error(`Importation terminée avec des erreurs (${result.errors?.length} erreurs)`);
+        if (result.errors && result.errors.length > 0) {
+          setErrors(result.errors);
+        }
       }
     } catch (error) {
       console.error("Error importing products:", error);
       toast.error("Erreur lors de l'importation des produits");
       setImportProgress(0);
       setImportStage("Erreur lors de l'importation");
+      setErrors([error instanceof Error ? error.message : "Unknown error"]);
     } finally {
       setIsImporting(false);
     }
@@ -352,7 +342,6 @@ const WooCommerceImporter = () => {
     setAllProducts([]);
   };
 
-  // Gérer les erreurs d'importation
   const [errors, setErrors] = useState<string[]>([]);
 
   return (
@@ -595,14 +584,12 @@ const WooCommerceImporter = () => {
           </CardHeader>
           
           <CardContent className="pt-2">
-            {/* Affichage étape en cours */}
             {importStage && (
               <div className="bg-blue-50 p-3 rounded-md mb-4 text-sm text-blue-800">
                 {importStage}
               </div>
             )}
           
-            {/* Options d'importation */}
             <div className="border-b pb-4 mb-4">
               <h4 className="text-sm font-medium mb-3">Options d'importation</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

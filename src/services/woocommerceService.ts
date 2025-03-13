@@ -307,6 +307,10 @@ export async function importWooCommerceProducts(
           console.log(`Imported parent product: ${parentProductData.name}`);
           imported++;
 
+          // Add the product name to the existing names set to prevent duplicates
+          existingNames.add(parentProduct.name.toLowerCase());
+          existingIds.set(parentProduct.name.toLowerCase(), parentProductData.id);
+
           // Si on doit inclure les variations et que le produit en a
           if (includeVariations && parentProduct.variations && parentProduct.variations.length > 0) {
             console.log(`Fetching ${parentProduct.variations.length} variations for ${parentProduct.name}`);
@@ -373,6 +377,7 @@ export async function importWooCommerceProducts(
                       
                       // Ajouter le nom à la liste des existants
                       existingNames.add(variation.name.toLowerCase());
+                      existingIds.set(variation.name.toLowerCase(), variationProduct.id);
                     } else {
                       variationsSkipped++;
                     }
@@ -432,6 +437,9 @@ export async function importWooCommerceProducts(
         if (productData) {
           imported++;
           console.log(`Imported standalone product: ${productData.name}`);
+          // Add the product name to the existing names set
+          existingNames.add(product.name.toLowerCase());
+          existingIds.set(product.name.toLowerCase(), productData.id);
         } else {
           skipped++;
         }
@@ -470,9 +478,16 @@ async function createProductFromWooCommerceData(
     return null;
   }
 
-  // Vérifier si le produit existe déjà
-  if (!overwriteExisting && existingNames.has(wooProduct.name.toLowerCase())) {
-    console.log(`Product "${wooProduct.name}" already exists and was skipped`);
+  const productNameLower = wooProduct.name.toLowerCase();
+  const productExists = existingNames.has(productNameLower);
+  
+  // Debug logs to understand the state
+  console.log(`Processing product: ${wooProduct.name}`);
+  console.log(`Product exists: ${productExists}, Overwrite existing: ${overwriteExisting}`);
+
+  // Vérifier si le produit existe déjà et si on ne doit pas écraser
+  if (productExists && !overwriteExisting) {
+    console.log(`Product "${wooProduct.name}" already exists and was skipped (overwriteExisting: ${overwriteExisting})`);
     return null;
   }
 
@@ -524,7 +539,7 @@ async function createProductFromWooCommerceData(
     price,
     brand,
     category: determineCategory(wooProduct.categories),
-    image_url: imageUrl,  // Utilisez image_url au lieu de imageUrl
+    image_url: imageUrl,
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
@@ -532,10 +547,13 @@ async function createProductFromWooCommerceData(
     parent_id: isVariation && parentId ? parentId : null,
   };
 
+  console.log(`Preparing to ${productExists ? 'update' : 'insert'} product: ${wooProduct.name}`);
+
   // Si on écrase les existants, on tente d'abord de mettre à jour
-  const existingId = existingIds.get(wooProduct.name.toLowerCase());
+  const existingId = existingIds.get(productNameLower);
   
-  if (overwriteExisting && existingId) {
+  if (productExists && overwriteExisting && existingId) {
+    console.log(`Updating existing product: ${wooProduct.name} with ID: ${existingId}`);
     const { data, error } = await supabase
       .from("products")
       .update(productData)
@@ -544,12 +562,14 @@ async function createProductFromWooCommerceData(
 
     if (error) {
       console.error(`Failed to update ${wooProduct.name}: ${error.message}`);
-      return null;
+      throw error;
     }
     
+    console.log(`Successfully updated product: ${wooProduct.name}`);
     return mapDbProductToProduct(data[0]);
   } else {
     // Insertion d'un nouveau produit
+    console.log(`Inserting new product: ${wooProduct.name}`);
     const { data, error } = await supabase
       .from("products")
       .insert(productData)
@@ -557,9 +577,10 @@ async function createProductFromWooCommerceData(
 
     if (error) {
       console.error(`Failed to import ${wooProduct.name}: ${error.message}`);
-      return null;
+      throw error;
     }
     
+    console.log(`Successfully inserted product: ${wooProduct.name}`);
     return mapDbProductToProduct(data[0]);
   }
 }
@@ -697,14 +718,14 @@ const mapDbProductToProduct = (record: any): Product => {
     category: record.category || "other",
     price: Number(record.price),
     description: record.description || "",
-    imageUrl: record.image_url || "",  // Convertir image_url en imageUrl
+    imageUrl: record.image_url || "",
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
     variation_attributes: record.variation_attributes || {},
     active: record.active !== false,
-    createdAt: record.created_at ? new Date(record.created_at) : new Date(),  // Convertir created_at en createdAt
-    updatedAt: record.updated_at ? new Date(record.updated_at) : new Date(),  // Convertir updated_at en updatedAt
+    createdAt: record.created_at ? new Date(record.created_at) : new Date(),
+    updatedAt: record.updated_at ? new Date(record.updated_at) : new Date(),
     is_parent: record.is_parent || false,
     variants_ids: record.variants_ids || [],
     monthly_price: record.monthly_price,
