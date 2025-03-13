@@ -193,6 +193,7 @@ export type Database = {
           name: string
           parent_id: string | null
           price: number
+          sku: string | null
           specifications: Json | null
           updated_at: string | null
           variants_ids: string[] | null
@@ -212,6 +213,7 @@ export type Database = {
           name: string
           parent_id?: string | null
           price?: number
+          sku?: string | null
           specifications?: Json | null
           updated_at?: string | null
           variants_ids?: string[] | null
@@ -231,6 +233,7 @@ export type Database = {
           name?: string
           parent_id?: string | null
           price?: number
+          sku?: string | null
           specifications?: Json | null
           updated_at?: string | null
           variants_ids?: string[] | null

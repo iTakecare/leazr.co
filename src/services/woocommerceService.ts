@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
 import { Product } from "@/types/catalog";
@@ -254,7 +255,7 @@ export async function importWooCommerceProducts(
   overwriteExisting: boolean = false
 ): Promise<ImportResult> {
   try {
-    console.log(`Starting import of ${products.length} products`);
+    console.log(`Starting import of ${products.length} products with overwriteExisting=${overwriteExisting}`);
     const errors: string[] = [];
     let imported = 0;
     let skipped = 0;
@@ -264,14 +265,34 @@ export async function importWooCommerceProducts(
     // Vérifier si le bucket de stockage existe, sinon le créer
     await ensureStorageBucketExists();
 
-    // Vérifier les produits existants
-    const { data: existingProducts } = await supabase
+    // Récupérer tous les produits existants pour vérification
+    const { data: existingProducts, error: fetchError } = await supabase
       .from("products")
-      .select("name, id");
+      .select("id, name, sku");
     
-    const existingNames = new Set<string>(existingProducts?.map(p => p.name.toLowerCase()) || []);
-    const existingIds = new Map<string, string>(existingProducts?.map(p => [p.name.toLowerCase(), p.id]) || []);
-    console.log(`Found ${existingNames.size} existing products`);
+    if (fetchError) {
+      console.error("Error fetching existing products:", fetchError);
+      throw fetchError;
+    }
+
+    // Créer des ensembles pour une recherche efficace
+    const existingNameSet = new Set<string>();
+    const existingSkuSet = new Set<string>();
+    const existingIdByName = new Map<string, string>();
+    const existingIdBySku = new Map<string, string>();
+    
+    existingProducts?.forEach(product => {
+      const nameLower = product.name.toLowerCase();
+      existingNameSet.add(nameLower);
+      existingIdByName.set(nameLower, product.id);
+      
+      if (product.sku) {
+        existingSkuSet.add(product.sku.toLowerCase());
+        existingIdBySku.set(product.sku.toLowerCase(), product.id);
+      }
+    });
+    
+    console.log(`Found ${existingNameSet.size} existing products by name, ${existingSkuSet.size} by SKU`);
 
     // Regrouper les produits par leurs variations
     const productGroups = new Map<string, WooCommerceProduct[]>();
@@ -298,8 +319,10 @@ export async function importWooCommerceProducts(
         // Importer le produit parent
         const parentProductData = await createProductFromWooCommerceData(
           parentProduct,
-          existingNames,
-          existingIds,
+          existingNameSet,
+          existingSkuSet,
+          existingIdByName,
+          existingIdBySku,
           overwriteExisting
         );
 
@@ -307,9 +330,16 @@ export async function importWooCommerceProducts(
           console.log(`Imported parent product: ${parentProductData.name}`);
           imported++;
 
-          // Add the product name to the existing names set to prevent duplicates
-          existingNames.add(parentProduct.name.toLowerCase());
-          existingIds.set(parentProduct.name.toLowerCase(), parentProductData.id);
+          // Mettre à jour les collections d'existants
+          const nameLower = parentProduct.name.toLowerCase();
+          existingNameSet.add(nameLower);
+          existingIdByName.set(nameLower, parentProductData.id);
+          
+          if (parentProduct.sku) {
+            const skuLower = parentProduct.sku.toLowerCase();
+            existingSkuSet.add(skuLower);
+            existingIdBySku.set(skuLower, parentProductData.id);
+          }
 
           // Si on doit inclure les variations et que le produit en a
           if (includeVariations && parentProduct.variations && parentProduct.variations.length > 0) {
@@ -361,8 +391,10 @@ export async function importWooCommerceProducts(
                     const variationProduct = {
                       ...await createProductFromWooCommerceData(
                         variation,
-                        existingNames,
-                        existingIds,
+                        existingNameSet,
+                        existingSkuSet,
+                        existingIdByName,
+                        existingIdBySku,
                         overwriteExisting,
                         true, // C'est une variation
                         parentProductData.id // ID du produit parent
@@ -375,9 +407,16 @@ export async function importWooCommerceProducts(
                       variantIds.push(variationProduct.id);
                       console.log(`Imported variation: ${variationProduct.name}`);
                       
-                      // Ajouter le nom à la liste des existants
-                      existingNames.add(variation.name.toLowerCase());
-                      existingIds.set(variation.name.toLowerCase(), variationProduct.id);
+                      // Mettre à jour les collections d'existants
+                      const nameLower = variation.name.toLowerCase();
+                      existingNameSet.add(nameLower);
+                      existingIdByName.set(nameLower, variationProduct.id);
+                      
+                      if (variation.sku) {
+                        const skuLower = variation.sku.toLowerCase();
+                        existingSkuSet.add(skuLower);
+                        existingIdBySku.set(skuLower, variationProduct.id);
+                      }
                     } else {
                       variationsSkipped++;
                     }
@@ -429,17 +468,27 @@ export async function importWooCommerceProducts(
       try {
         const productData = await createProductFromWooCommerceData(
           product,
-          existingNames,
-          existingIds,
+          existingNameSet,
+          existingSkuSet,
+          existingIdByName,
+          existingIdBySku,
           overwriteExisting
         );
         
         if (productData) {
           imported++;
           console.log(`Imported standalone product: ${productData.name}`);
-          // Add the product name to the existing names set
-          existingNames.add(product.name.toLowerCase());
-          existingIds.set(product.name.toLowerCase(), productData.id);
+          
+          // Mettre à jour les collections d'existants
+          const nameLower = product.name.toLowerCase();
+          existingNameSet.add(nameLower);
+          existingIdByName.set(nameLower, productData.id);
+          
+          if (product.sku) {
+            const skuLower = product.sku.toLowerCase();
+            existingSkuSet.add(skuLower);
+            existingIdBySku.set(skuLower, productData.id);
+          }
         } else {
           skipped++;
         }
@@ -468,7 +517,9 @@ export async function importWooCommerceProducts(
 async function createProductFromWooCommerceData(
   wooProduct: WooCommerceProduct,
   existingNames: Set<string>,
-  existingIds: Map<string, string>,
+  existingSkus: Set<string>,
+  existingIdsByName: Map<string, string>,
+  existingIdsBySku: Map<string, string>,
   overwriteExisting: boolean,
   isVariation: boolean = false,
   parentId?: string
@@ -479,11 +530,15 @@ async function createProductFromWooCommerceData(
   }
 
   const productNameLower = wooProduct.name.toLowerCase();
-  const productExists = existingNames.has(productNameLower);
+  const productSkuLower = wooProduct.sku ? wooProduct.sku.toLowerCase() : '';
+  
+  const productExistsByName = existingNames.has(productNameLower);
+  const productExistsBySku = productSkuLower && existingSkus.has(productSkuLower);
+  const productExists = productExistsByName || productExistsBySku;
   
   // Debug logs to understand the state
-  console.log(`Processing product: ${wooProduct.name}`);
-  console.log(`Product exists: ${productExists}, Overwrite existing: ${overwriteExisting}`);
+  console.log(`Processing product: ${wooProduct.name} (SKU: ${wooProduct.sku || 'None'})`);
+  console.log(`Product exists by name: ${productExistsByName}, by SKU: ${productExistsBySku}, Overwrite existing: ${overwriteExisting}`);
 
   // Vérifier si le produit existe déjà et si on ne doit pas écraser
   if (productExists && !overwriteExisting) {
@@ -543,15 +598,22 @@ async function createProductFromWooCommerceData(
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
-    sku: wooProduct.sku || '',
+    sku: wooProduct.sku || null,
     parent_id: isVariation && parentId ? parentId : null,
   };
 
   console.log(`Preparing to ${productExists ? 'update' : 'insert'} product: ${wooProduct.name}`);
 
-  // Si on écrase les existants, on tente d'abord de mettre à jour
-  const existingId = existingIds.get(productNameLower);
+  // Déterminer l'ID existant si le produit existe déjà
+  let existingId: string | undefined;
   
+  if (productExistsByName) {
+    existingId = existingIdsByName.get(productNameLower);
+  } else if (productExistsBySku) {
+    existingId = existingIdsBySku.get(productSkuLower);
+  }
+  
+  // Si on écrase les existants, on tente d'abord de mettre à jour
   if (productExists && overwriteExisting && existingId) {
     console.log(`Updating existing product: ${wooProduct.name} with ID: ${existingId}`);
     const { data, error } = await supabase
