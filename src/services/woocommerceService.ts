@@ -529,14 +529,10 @@ async function createProductFromWooCommerceData(
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
     sku: wooProduct.sku || '',
+    parent_id: isVariation && parentId ? parentId : null,  // Ensure parent_id is included in the initial object
     // Utiliser les noms de colonnes corrects pour la base de données
     // created_at et updated_at au lieu de createdAt et updatedAt
   };
-
-  // Ajouter le parent_id si c'est une variation
-  if (isVariation && parentId) {
-    productData.parent_id = parentId;
-  }
 
   // Si on écrase les existants, on tente d'abord de mettre à jour
   const existingId = existingIds.get(wooProduct.name.toLowerCase());
@@ -717,4 +713,3 @@ const mapDbProductToProduct = (record: any): Product => {
     sku: record.sku || ""
   };
 };
-
