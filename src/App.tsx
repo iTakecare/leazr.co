@@ -22,9 +22,9 @@ function Layout() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <Sidebar />
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-col flex-1 pl-16 overflow-hidden">
         <Navbar />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-4">
           <PageTransition>
             <Outlet />
           </PageTransition>

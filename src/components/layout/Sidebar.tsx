@@ -61,8 +61,6 @@ const Sidebar = () => {
     visible: { opacity: 1, x: 0 }
   };
 
-  if (!user) return null;
-
   return (
     <motion.div 
       className="fixed left-0 top-0 bottom-0 z-40 w-16 bg-background/80 backdrop-blur-lg border-r border-border/40 flex flex-col items-center py-6"

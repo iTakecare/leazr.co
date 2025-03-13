@@ -11,7 +11,7 @@ const PageTransition = ({ children, className }: PageTransitionProps) => {
   return (
     <div
       className={cn(
-        "animate-fade-in w-full min-h-[calc(100vh-80px)]", 
+        "animate-fade-in w-full h-full", 
         className
       )}
     >
