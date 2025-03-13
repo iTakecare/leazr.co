@@ -13,6 +13,7 @@ import {
 import { MoreHorizontal, Pencil, Eye, Trash, Calculator } from "lucide-react";
 import { Client } from "@/types/client";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 interface ClientTableRowProps {
   client: Client;
@@ -32,12 +33,26 @@ const ClientTableRow = ({ client, onDelete, onEdit, onView }: ClientTableRowProp
     }
   };
 
+  const getStatusBadge = (status?: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Actif</Badge>;
+      case 'inactive':
+        return <Badge variant="secondary">Inactif</Badge>;
+      case 'lead':
+        return <Badge variant="outline">Prospect</Badge>;
+      default:
+        return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Actif</Badge>;
+    }
+  };
+
   return (
     <TableRow>
       <TableCell className="font-medium">{client.name}</TableCell>
       <TableCell>{client.company || "-"}</TableCell>
       <TableCell>{client.email || "-"}</TableCell>
       <TableCell>{client.phone || "-"}</TableCell>
+      <TableCell>{getStatusBadge(client.status)}</TableCell>
       <TableCell>{formatDate(client.created_at)}</TableCell>
       <TableCell>
         <DropdownMenu>

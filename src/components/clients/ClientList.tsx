@@ -11,6 +11,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ClientTableRow from "./ClientTableRow";
 import ClientsEmptyState from "./ClientsEmptyState";
+import { Badge } from "@/components/ui/badge";
 
 interface ClientListProps {
   clients: Client[];
@@ -25,8 +26,26 @@ const ClientList = ({
   onEditClient,
   onViewClient
 }: ClientListProps) => {
+  // Count clients by status
+  const activeClients = clients.filter(client => client.status === 'active').length;
+  const inactiveClients = clients.filter(client => client.status === 'inactive').length;
+  const leadClients = clients.filter(client => client.status === 'lead').length;
+
   return (
     <div className="rounded-md border">
+      {clients.length > 0 && (
+        <div className="flex items-center gap-2 p-2 border-b">
+          <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+            {activeClients} actifs
+          </Badge>
+          <Badge variant="secondary">
+            {inactiveClients} inactifs
+          </Badge>
+          <Badge variant="outline">
+            {leadClients} prospects
+          </Badge>
+        </div>
+      )}
       <ScrollArea className="h-[calc(100vh-320px)]">
         <Table>
           <TableHeader>
@@ -35,6 +54,7 @@ const ClientList = ({
               <TableHead>Société</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Téléphone</TableHead>
+              <TableHead>Statut</TableHead>
               <TableHead>Date de création</TableHead>
               <TableHead></TableHead>
             </TableRow>

@@ -5,7 +5,7 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Plus, UserSearch, Building2, Phone, Mail } from "lucide-react";
+import { Plus, UserSearch, Building2, Phone, Mail, Filter } from "lucide-react";
 import { motion } from "framer-motion";
 import { useClients } from "@/hooks/useClients";
 import {
@@ -21,6 +21,16 @@ import { Input } from "@/components/ui/input";
 import ClientList from "@/components/clients/ClientList";
 import ClientsLoading from "@/components/clients/ClientsLoading";
 import ClientsError from "@/components/clients/ClientsError";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -30,6 +40,8 @@ const Clients = () => {
     loadingError,
     searchTerm,
     setSearchTerm,
+    statusFilter,
+    setStatusFilter,
     fetchClients,
     handleDeleteClient
   } = useClients();
@@ -49,6 +61,16 @@ const Clients = () => {
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+  };
+
+  // Get status filter label
+  const getStatusFilterLabel = () => {
+    switch(statusFilter) {
+      case 'active': return 'Clients actifs';
+      case 'inactive': return 'Clients inactifs';
+      case 'lead': return 'Prospects';
+      default: return 'Tous les clients';
+    }
   };
 
   // Display loading state
@@ -96,6 +118,35 @@ const Clients = () => {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="gap-2">
+                          <Filter className="h-4 w-4" />
+                          {getStatusFilterLabel()}
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            {statusFilter === 'all' ? filteredClients.length : filteredClients.length}
+                          </Badge>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56">
+                        <DropdownMenuLabel>Filtrer par statut</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                            Tous les clients
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setStatusFilter('active')}>
+                            Clients actifs
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
+                            Clients inactifs
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setStatusFilter('lead')}>
+                            Prospects
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <div className="relative">
                       <UserSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
