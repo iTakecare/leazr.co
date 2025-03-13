@@ -206,8 +206,6 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
     return step.color;
   };
 
-  const nextStepOptions = selectedStep ? getNextStepOptions(selectedStep) : [];
-
   return (
     <div className="mt-6">
       <h3 className="text-sm font-medium mb-4">Étapes du workflow</h3>
@@ -218,9 +216,9 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
           const isPassed = false; // À implémenter si besoin
 
           return (
-            <React.Fragment key={step.id}>
+            <React.Fragment key={`step-${step.id}`}>
               {index > 0 && (
-                <div className="h-px w-5 bg-gray-200" />
+                <div className="h-px w-5 bg-gray-200" key={`divider-${step.id}`} />
               )}
               <button
                 type="button"
@@ -229,15 +227,16 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                   "relative flex flex-col items-center group",
                   isActive && "cursor-pointer"
                 )}
+                key={`button-${step.id}`}
               >
                 <div 
                   className={cn(
                     "w-12 h-12 rounded-full flex items-center justify-center border-2",
                     isActive 
-                      ? `text-${getStepColor(step.id)}-700 bg-${getStepColor(step.id)}-100 border-${getStepColor(step.id)}-500` 
+                      ? `bg-${getStepColor(step.id)}-100 border-${getStepColor(step.id)}-500` 
                       : isPassed 
-                        ? "text-green-700 bg-green-50 border-green-200" 
-                        : "text-gray-400 bg-gray-50 border-gray-200",
+                        ? "bg-green-50 border-green-200" 
+                        : "bg-gray-50 border-gray-200",
                     isActive && "ring-2 ring-offset-2 ring-primary/30"
                   )}
                 >
