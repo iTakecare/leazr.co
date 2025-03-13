@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductVariant } from "@/types/catalog";
 import { products as mockProducts } from "@/data/products";
@@ -122,7 +123,7 @@ export const getProductById = async (id: string): Promise<Product | null> => {
           id: v.id,
           name: v.name,
           price: Number(v.price),
-          attributes: v.variation_attributes || {},
+          attributes: v.variation_attributes as Record<string, string | number | boolean> || {},
           imageUrl: v.image_url
         }));
       }

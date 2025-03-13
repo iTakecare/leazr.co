@@ -79,7 +79,7 @@ const ProductDetail = () => {
               id: item.id,
               name: item.name,
               price: Number(item.price),
-              attributes: item.variation_attributes || {}
+              attributes: (item.variation_attributes as Record<string, string | number | boolean>) || {}
             })));
           }
         }

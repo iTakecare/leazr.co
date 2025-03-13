@@ -390,7 +390,7 @@ export async function importWooCommerceProducts(
                   const updateData = {
                     is_parent: true,
                     variants_ids: variantIds
-                  } as TablesUpdate<"products">;
+                  } as any; // Use type assertion to avoid type errors
                   
                   const { error: updateError } = await supabase
                     .from("products")
