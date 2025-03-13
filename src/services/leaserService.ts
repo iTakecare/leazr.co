@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Leaser } from "@/types/equipment";
 import { toast } from "sonner";
 import { defaultLeasers } from "@/data/leasers";
-import { validate as isUUID } from 'uuid';
+import { v4 as uuidv4, validate as isUUID } from 'uuid';
 
 // Cache pour les leasers
 let leasersCache: Leaser[] | null = null;
@@ -38,7 +38,12 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     
     if (error) throw error;
 
-    // Pour chaque leaser, récupérer ses tranches de manière parallèle
+    if (!leasers || leasers.length === 0) {
+      console.log("Aucun leaser trouvé dans la base de données, utilisation des leasers par défaut");
+      return defaultLeasers;
+    }
+
+    // Pour chaque leaser, récupérer ses tranches
     const leasersWithRanges = await Promise.all(
       leasers.map(async (leaser: any) => {
         try {
@@ -100,14 +105,94 @@ export const clearLeasersCache = () => {
 };
 
 /**
+ * Convertit les leasers par défaut en leasers avec des UUIDs valides
+ */
+const convertDefaultLeasersToUuid = () => {
+  return defaultLeasers.map(leaser => ({
+    ...leaser,
+    id: isUUID(leaser.id) ? leaser.id : uuidv4(),
+    ranges: leaser.ranges.map(range => ({
+      ...range,
+      id: isUUID(range.id) ? range.id : uuidv4()
+    }))
+  }));
+};
+
+/**
+ * Insère les leasers par défaut dans la base de données s'ils n'existent pas
+ */
+export const insertDefaultLeasers = async (): Promise<boolean> => {
+  try {
+    const { data: existingLeasers, error: checkError } = await supabase
+      .from("leasers")
+      .select("id")
+      .limit(1);
+    
+    if (checkError) throw checkError;
+    
+    // Si des leasers existent déjà, ne rien faire
+    if (existingLeasers && existingLeasers.length > 0) {
+      return true;
+    }
+    
+    // Convertir les leasers par défaut avec des UUIDs valides
+    const leasersWithUuid = convertDefaultLeasersToUuid();
+    
+    // Insérer les leasers
+    for (const leaser of leasersWithUuid) {
+      // Insérer le leaser principal
+      const { data: newLeaser, error: leaserError } = await supabase
+        .from("leasers")
+        .insert({
+          id: leaser.id,
+          name: leaser.name,
+          logo_url: leaser.logo_url
+        })
+        .select();
+      
+      if (leaserError) throw leaserError;
+      
+      // Insérer les tranches
+      if (leaser.ranges && leaser.ranges.length > 0) {
+        const rangesToInsert = leaser.ranges.map(range => ({
+          id: range.id,
+          leaser_id: leaser.id,
+          min: range.min,
+          max: range.max,
+          coefficient: range.coefficient
+        }));
+
+        const { error: rangesError } = await supabase
+          .from("leaser_ranges")
+          .insert(rangesToInsert);
+
+        if (rangesError) throw rangesError;
+      }
+    }
+    
+    // Vider le cache pour forcer un rechargement
+    clearLeasersCache();
+    
+    return true;
+  } catch (error: any) {
+    console.error("Erreur lors de l'insertion des leasers par défaut:", error);
+    return false;
+  }
+};
+
+/**
  * Ajoute un nouveau leaser
  */
 export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | null> => {
   try {
+    const newId = uuidv4();
+    console.log("Création d'un nouveau leaser avec l'ID:", newId);
+
     // Insérer le leaser
     const { data: newLeaser, error } = await supabase
       .from("leasers")
       .insert({
+        id: newId,
         name: leaser.name,
         logo_url: leaser.logo_url
       })
@@ -119,7 +204,8 @@ export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | nu
     // Insérer les tranches
     if (leaser.ranges && leaser.ranges.length > 0) {
       const rangesToInsert = leaser.ranges.map(range => ({
-        leaser_id: newLeaser.id,
+        id: uuidv4(),
+        leaser_id: newId,
         min: range.min,
         max: range.max,
         coefficient: range.coefficient
@@ -139,8 +225,13 @@ export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | nu
     
     // Récupérer le leaser complet avec ses tranches
     return {
-      ...newLeaser,
-      ranges: leaser.ranges
+      id: newId,
+      name: leaser.name,
+      logo_url: leaser.logo_url,
+      ranges: leaser.ranges.map(range => ({
+        ...range,
+        id: uuidv4() // Générer des IDs pour les tranches dans la réponse
+      }))
     };
   } catch (error: any) {
     console.error("Erreur lors de l'ajout du leaser:", error);
@@ -159,9 +250,7 @@ export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise
       throw new Error(`ID invalide: ${id} - doit être un UUID valide`);
     }
     
-    // Log détaillé de la mise à jour pour débogage
-    console.log("Mise à jour du leaser avec ID (UUID validé):", id);
-    console.log("Données de mise à jour:", JSON.stringify(leaser, null, 2));
+    console.log("Mise à jour du leaser avec ID:", id);
     
     // Préparer les données à mettre à jour (uniquement le nom et le logo)
     const updateData: any = {};
@@ -191,6 +280,7 @@ export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise
       // Ajouter les nouvelles tranches
       if (leaser.ranges.length > 0) {
         const rangesToInsert = leaser.ranges.map(range => ({
+          id: isUUID(range.id) ? range.id : uuidv4(),
           leaser_id: id,
           min: range.min,
           max: range.max,

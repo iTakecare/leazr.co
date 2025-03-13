@@ -8,6 +8,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Sheet,
   SheetContent,
@@ -17,14 +18,15 @@ import {
 } from "@/components/ui/sheet";
 import { 
   Building2, 
-  Plus
+  Plus,
+  AlertCircle
 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
-import { defaultLeasers } from "@/data/leasers";
-import { getLeasers, addLeaser, updateLeaser, deleteLeaser } from "@/services/leaserService";
+import { getLeasers, addLeaser, updateLeaser, deleteLeaser, insertDefaultLeasers } from "@/services/leaserService";
 import { toast } from "sonner";
 import LeaserList from "./LeaserList";
 import LeaserForm from "./LeaserForm";
+import { v4 as uuidv4, validate as isUUID } from 'uuid';
 
 const LeaserManager = () => {
   const [leasers, setLeasers] = useState<Leaser[]>([]);
@@ -32,19 +34,42 @@ const LeaserManager = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentLeaser, setCurrentLeaser] = useState<Leaser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    fetchLeasers();
+    initializeLeasers();
   }, []);
 
-  const fetchLeasers = async () => {
+  const initializeLeasers = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
+      // Insérer les leasers par défaut si nécessaire
+      await insertDefaultLeasers();
+      
+      // Récupérer les leasers
       const fetchedLeasers = await getLeasers();
-      setLeasers(fetchedLeasers.length > 0 ? fetchedLeasers : defaultLeasers);
-    } catch (error) {
-      console.error("Error fetching leasers:", error);
-      setLeasers(defaultLeasers);
+      console.log("Leasers récupérés:", fetchedLeasers);
+      
+      // Vérifier que tous les leasers ont des IDs valides
+      const validLeasers = fetchedLeasers.map(leaser => {
+        // Si l'ID n'est pas un UUID valide, en générer un nouveau
+        if (!isUUID(leaser.id)) {
+          console.log(`ID leaser non valide détecté: ${leaser.id}, génération d'un nouveau UUID`);
+          return {
+            ...leaser,
+            id: uuidv4()
+          };
+        }
+        return leaser;
+      });
+      
+      setLeasers(validLeasers);
+    } catch (error: any) {
+      console.error("Erreur lors de l'initialisation des leasers:", error);
+      setError(`Erreur lors du chargement des leasers: ${error.message}`);
+      toast.error(`Erreur: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +77,13 @@ const LeaserManager = () => {
   
   const handleOpenSheet = (leaser?: Leaser) => {
     if (leaser) {
-      // Vérifier que l'ID est bien un UUID (pour débogage)
+      // Vérifier que l'ID est un UUID valide
+      if (!isUUID(leaser.id)) {
+        console.error(`Tentative d'éditer un leaser avec un ID non valide: ${leaser.id}`);
+        toast.error("Identifiant du leaser non valide");
+        return;
+      }
+      
       console.log(`Édition du leaser - ID: ${leaser.id}, Name: ${leaser.name}`);
       
       setCurrentLeaser(leaser);
@@ -72,29 +103,46 @@ const LeaserManager = () => {
   const handleSaveLeaser = async (leaserData: Omit<Leaser, "id">) => {
     try {
       if (isEditMode && currentLeaser) {
+        // Vérifier que l'ID du leaser est un UUID valide
+        if (!isUUID(currentLeaser.id)) {
+          throw new Error(`ID du leaser non valide: ${currentLeaser.id}`);
+        }
+        
         console.log("Mise à jour du leaser avec ID:", currentLeaser.id);
         
         const success = await updateLeaser(currentLeaser.id, leaserData);
         if (success) {
-          await fetchLeasers();
+          // Mettre à jour le leaser dans la liste locale
+          setLeasers(prevLeasers => 
+            prevLeasers.map(l => 
+              l.id === currentLeaser.id ? { ...l, ...leaserData } : l
+            )
+          );
           handleCloseSheet();
           toast.success("Leaser mis à jour avec succès");
         }
       } else {
         const addedLeaser = await addLeaser(leaserData);
         if (addedLeaser) {
-          await fetchLeasers(); // Rafraîchir toute la liste pour être sûr
+          // Ajouter le nouveau leaser à la liste locale
+          setLeasers(prevLeasers => [...prevLeasers, addedLeaser]);
           handleCloseSheet();
           toast.success("Leaser ajouté avec succès");
         }
       }
     } catch (error: any) {
-      console.error("Error saving leaser:", error);
+      console.error("Erreur lors de la sauvegarde du leaser:", error);
       toast.error(`Erreur: ${error.message}`);
     }
   };
   
   const handleDeleteLeaser = async (id: string) => {
+    // Vérifier que l'ID est un UUID valide
+    if (!isUUID(id)) {
+      toast.error(`ID du leaser non valide: ${id}`);
+      return;
+    }
+    
     if (confirm("Êtes-vous sûr de vouloir supprimer ce leaser ?")) {
       try {
         console.log("Tentative de suppression du leaser avec ID:", id);
@@ -104,7 +152,7 @@ const LeaserManager = () => {
           toast.success("Leaser supprimé avec succès");
         }
       } catch (error: any) {
-        console.error("Error deleting leaser:", error);
+        console.error("Erreur lors de la suppression du leaser:", error);
         toast.error(`Erreur: ${error.message}`);
       }
     }
@@ -129,6 +177,13 @@ const LeaserManager = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <LeaserList 
             leasers={leasers}
             isLoading={isLoading}
