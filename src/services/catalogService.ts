@@ -92,7 +92,22 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
 
     // Vérifier que le fichier est bien une image valide
     if (!file.type.startsWith('image/')) {
-      throw new Error('Le fichier doit être une image');
+      console.warn(`Le fichier n'est pas une image valide, type détecté: ${file.type}`);
+      // Déterminer le type en fonction de l'extension
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      let contentType = 'image/jpeg'; // Default type
+      
+      if (extension === 'png') contentType = 'image/png';
+      else if (extension === 'gif') contentType = 'image/gif';
+      else if (extension === 'webp') contentType = 'image/webp';
+      
+      // Créer un nouveau blob avec le type correct
+      const fileArrayBuffer = await file.arrayBuffer();
+      const correctedFile = new File([fileArrayBuffer], file.name, { type: contentType });
+      
+      // Utiliser ce nouveau fichier
+      file = correctedFile;
+      console.log(`Type de fichier corrigé: ${file.type}`);
     }
 
     const timestamp = new Date().getTime();

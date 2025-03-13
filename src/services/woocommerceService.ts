@@ -803,42 +803,52 @@ async function downloadAndUploadImage(imageUrl: string, productId: string): Prom
       throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
     }
     
-    // Convert to blob
+    // Extract content type from response headers
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.startsWith('image/')) {
+      console.warn(`Invalid content type for image: ${contentType}`);
+      // Still try to proceed, but set a valid image content type based on URL extension
+      const fileExtension = imageUrl.split('.').pop()?.split('?')[0]?.toLowerCase();
+      let imageContentType = 'image/jpeg'; // Default to JPEG
+      
+      if (fileExtension === 'png') imageContentType = 'image/png';
+      else if (fileExtension === 'gif') imageContentType = 'image/gif';
+      else if (fileExtension === 'webp') imageContentType = 'image/webp';
+    }
+    
+    // Convert to blob with proper type
     const imageBlob = await response.blob();
     
-    // Validate image content type
+    // Create a new blob with explicit image content type if needed
+    let processedBlob = imageBlob;
     if (!imageBlob.type.startsWith('image/')) {
-      console.warn(`Le fichier téléchargé n'est pas une image valide: ${imageBlob.type}`);
-      return null;
+      const fileExtension = imageUrl.split('.').pop()?.split('?')[0]?.toLowerCase();
+      let imageContentType = 'image/jpeg'; // Default to JPEG
+      
+      if (fileExtension === 'png') imageContentType = 'image/png';
+      else if (fileExtension === 'gif') imageContentType = 'image/gif';
+      else if (fileExtension === 'webp') imageContentType = 'image/webp';
+      
+      processedBlob = new Blob([await imageBlob.arrayBuffer()], { type: imageContentType });
+      console.log(`Converted blob type from ${imageBlob.type} to ${imageContentType}`);
     }
     
-    // Determine file type from content-type header
-    const contentType = response.headers.get('content-type');
-    let fileExtension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
-    
-    // Update extension based on actual content type if available
-    if (contentType) {
-      if (contentType === 'image/jpeg' || contentType === 'image/jpg') fileExtension = 'jpg';
-      else if (contentType === 'image/png') fileExtension = 'png';
-      else if (contentType === 'image/gif') fileExtension = 'gif';
-      else if (contentType === 'image/webp') fileExtension = 'webp';
-    }
-    
-    const fileName = `product-woo_${productId}-${Date.now()}.${fileExtension}`;
+    const fileName = `product-woo_${productId}-${Date.now()}.${imageUrl.split('.').pop()?.split('?')[0] || 'jpg'}`;
     
     // Make sure storage bucket exists
     await ensureStorageBucketExists();
     
-    // Import the function directly to avoid errors
-    const { supabase } = await import("@/integrations/supabase/client");
+    // Import the function directly
+    const { getSupabaseClient } = await import("@/integrations/supabase/client");
+    const supabase = getSupabaseClient();
     
     // Upload to Supabase Storage with explicit content type
     const { data, error } = await supabase.storage
       .from('product-images')
-      .upload(fileName, imageBlob, {
+      .upload(fileName, processedBlob, {
         cacheControl: '3600',
         upsert: true,
-        contentType: contentType || imageBlob.type // Set the correct content type
+        contentType: processedBlob.type
       });
       
     if (error) {
