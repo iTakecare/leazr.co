@@ -10,8 +10,23 @@ const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true, // Activer la persistance de session
+    autoRefreshToken: true, // Activer le rafraîchissement automatique du token
+    detectSessionInUrl: true, // Détecter la session dans l'URL après l'authentification
+  },
+  global: {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  },
+});
 
 // Admin client that bypasses RLS policies - use with caution!
 // Only use this in admin-specific functions or server-side contexts
-export const adminSupabase = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY);
+export const adminSupabase = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: {
+    persistSession: false, // Ne pas persister la session pour le client admin
+  },
+});
