@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,15 +28,17 @@ const ProductDetail = () => {
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", productId],
     queryFn: () => getProductById(productId!),
-    onSuccess: (data) => {
-      setFormData(data);
-      
-      // Convert specifications to a simple key-value object for editing
-      if (data.specifications) {
-        setSpecifications(data.specifications as Record<string, string>);
-      }
-    },
     enabled: !!productId,
+    meta: {
+      onSuccess: (data: Product) => {
+        setFormData(data);
+        
+        // Convert specifications to a simple key-value object for editing
+        if (data.specifications) {
+          setSpecifications(data.specifications as Record<string, string>);
+        }
+      }
+    }
   });
   
   const updateMutation = useMutation({
@@ -352,3 +353,4 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
+

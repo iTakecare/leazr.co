@@ -1,4 +1,4 @@
-importtypescript
+
 import React, { useState } from "react";
 import { 
   Cog, 
@@ -9,7 +9,8 @@ import {
   Code, 
   List, 
   Tag,
-  ShoppingBag
+  ShoppingBag,
+  Key
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,11 +70,11 @@ const Settings = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Prénom</Label>
-                  <Input id="firstName" defaultValue={user?.firstName || ""} />
+                  <Input id="firstName" defaultValue={user?.first_name || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Nom</Label>
-                  <Input id="lastName" defaultValue={user?.lastName || ""} />
+                  <Input id="lastName" defaultValue={user?.last_name || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -83,10 +84,10 @@ const Settings = () => {
                   <Label htmlFor="avatar">Avatar</Label>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                      {user?.avatarUrl ? (
+                      {user?.avatar_url ? (
                         <img 
-                          src={user.avatarUrl} 
-                          alt={`${user.firstName} ${user.lastName}`} 
+                          src={user.avatar_url} 
+                          alt={`${user.first_name} ${user.last_name}`} 
                           className="w-full h-full object-cover"
                         />
                       ) : (

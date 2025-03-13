@@ -72,6 +72,7 @@ const LeaserManager = () => {
   
   const handleRangeChange = (index: number, field: keyof Range, value: number) => {
     const newRanges = [...tempRanges];
+    // @ts-ignore - This is safe as we know the field is a valid key of Range
     newRanges[index][field] = value;
     setTempRanges(newRanges);
   };

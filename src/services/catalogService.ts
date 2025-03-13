@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductVariant } from "@/types/catalog";
 import { toast } from "sonner";
@@ -9,8 +8,10 @@ export const addProduct = async (product: Omit<Product, "id" | "createdAt" | "up
       .from("products")
       .insert({
         name: product.name,
+        brand: product.name.split(' ')[0] || 'Generic', // Default brand if not provided
         category: product.category,
         price: product.price,
+        monthly_price: product.price * 0.035, // Default monthly price calculation
         description: product.description,
         image_url: product.imageUrl,
         specifications: product.specifications,

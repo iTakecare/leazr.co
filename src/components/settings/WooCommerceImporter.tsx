@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -453,7 +452,7 @@ const WooCommerceImporter = () => {
           const monthlyPrice = calculateMonthlyPrice(price);
           
           // Préparer les données du produit
-          const productData: Record<string, any> = {
+          const productData = {
             name,
             brand,
             price,
@@ -504,7 +503,7 @@ const WooCommerceImporter = () => {
             const { error: insertError } = await supabase
               .from('products')
               .insert([productData]);
-              
+                
             error = insertError;
           }
           
@@ -528,7 +527,7 @@ const WooCommerceImporter = () => {
                 const variationName = attributeText ? `${name} - ${attributeText}` : name;
                 
                 // Préparer les données de la variation
-                const variationData: Record<string, any> = {
+                const variationData = {
                   name: variationName,
                   brand,
                   price: parsePrice(variation.price || product.price),
