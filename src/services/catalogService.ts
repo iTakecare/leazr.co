@@ -19,6 +19,8 @@ const mapDbProductToProduct = (record: any): Product => {
     parent_id: record.parent_id,
     is_variation: record.is_variation || false,
     variation_attributes: record.variation_attributes || {},
+    is_parent: record.is_parent || false,
+    variants_ids: record.variants_ids || [],
     createdAt: record.created_at ? new Date(record.created_at) : new Date(),
     updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
   };

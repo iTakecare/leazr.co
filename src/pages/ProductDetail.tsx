@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,49 +31,43 @@ const ProductDetail = () => {
   const [parentProduct, setParentProduct] = useState<Product | null>(null);
   const [showVariants, setShowVariants] = useState(true);
   
-  // Fetch product data and handle relationships
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", productId],
     queryFn: () => getProductById(productId!),
     enabled: !!productId,
-    onSuccess: (data: Product | null) => {
-      if (data) {
-        console.log("Product data loaded:", data);
-        setFormData(data);
-        
-        // Convert specifications to a simple key-value object for editing
-        if (data.specifications) {
-          setSpecifications(data.specifications as Record<string, string>);
-        }
-        
-        // Handle variations
-        if (data.variants) {
-          setIsParentProduct(true);
-          setVariants(data.variants);
-        } else {
-          setIsParentProduct(false);
-        }
-        
-        // If this is a variation, fetch the parent product
-        if (data.parent_id) {
-          fetchParentProduct(data.parent_id);
-        }
+  });
+
+  useEffect(() => {
+    if (product) {
+      console.log("Product data loaded:", product);
+      setFormData(product);
+      
+      if (product.specifications) {
+        setSpecifications(product.specifications as Record<string, string>);
+      }
+      
+      if (product.variants) {
+        setIsParentProduct(true);
+        setVariants(product.variants);
+      } else {
+        setIsParentProduct(false);
+      }
+      
+      if (product.parent_id) {
+        fetchParentProduct(product.parent_id);
       }
     }
-  });
+  }, [product]);
   
-  // Fetch parent product if this is a variation
   const fetchParentProduct = async (parentId: string) => {
     try {
       const parent = await getProductById(parentId);
       if (parent) {
         setParentProduct(parent);
         
-        // Also fetch other variations of the same parent to show them together
         if (parent.variants) {
           setVariants(parent.variants.filter(v => v.id !== productId));
         } else {
-          // If variants aren't stored on the parent, try to fetch variations by parent_id
           const { data, error } = await supabase
             .from('products')
             .select('*')
@@ -96,7 +89,6 @@ const ProductDetail = () => {
     }
   };
   
-  // Mutation hooks for product operations
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) => 
       updateProduct(id, data),
@@ -138,7 +130,6 @@ const ProductDetail = () => {
     }
   });
   
-  // Form input handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -162,7 +153,6 @@ const ProductDetail = () => {
     setSpecifications(newSpecs);
   };
   
-  // Form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -177,7 +167,6 @@ const ProductDetail = () => {
     }
   };
   
-  // Image upload handler
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && productId) {
@@ -185,19 +174,16 @@ const ProductDetail = () => {
     }
   };
   
-  // Navigate to a variant
   const navigateToVariant = (variantId: string) => {
     navigate(`/catalog/${variantId}`);
   };
   
-  // Navigation to parent product
   const navigateToParent = () => {
     if (parentProduct) {
       navigate(`/catalog/${parentProduct.id}`);
     }
   };
   
-  // Loading state
   if (isLoading) {
     return (
       <Container>
@@ -208,7 +194,6 @@ const ProductDetail = () => {
     );
   }
   
-  // Not found state
   if (!product) {
     return (
       <Container>
@@ -389,7 +374,6 @@ const ProductDetail = () => {
                     </Label>
                   </div>
                   
-                  {/* Additional fields for variations */}
                   {product.is_variation && product.variation_attributes && (
                     <div className="mt-6">
                       <h3 className="text-lg font-medium mb-3">Attributs de variation</h3>
@@ -613,3 +597,4 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
+

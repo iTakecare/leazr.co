@@ -389,8 +389,8 @@ export async function importWooCommerceProducts(
                   const { error: updateError } = await supabase
                     .from("products")
                     .update({
-                      variants_ids: variantIds, // Stocker les IDs des variations
-                      is_parent: true // Marquer comme produit parent
+                      is_parent: true, // Marquer comme produit parent
+                      variants_ids: variantIds // Stocker les IDs des variations
                     })
                     .eq("id", parentProductData.id);
                     

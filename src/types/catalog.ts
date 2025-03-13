@@ -21,6 +21,8 @@ export interface Product {
   parent_id?: string; // For variations, reference to parent product
   is_variation?: boolean; // Flag to indicate if this is a variation
   variation_attributes?: Record<string, string>; // Attributes specific to this variation
+  is_parent?: boolean; // Flag to indicate if this has variations
+  variants_ids?: string[]; // IDs of variations for parent products
   active?: boolean;
   createdAt: Date;
   updatedAt: Date;
