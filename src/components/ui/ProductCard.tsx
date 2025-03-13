@@ -1,158 +1,92 @@
 
-import React, { useState } from "react";
-import { cn } from "@/lib/utils";
+import React from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Product } from "@/types/catalog";
-import { formatCurrency } from "@/utils/formatters";
-import { motion } from "framer-motion";
-import { Plus, ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatPrice } from "@/utils/formatters";
+import { Laptop, Desktop, Smartphone, Monitor, Package } from "lucide-react";
 
-interface ProductCardProps {
+type ProductCardProps = {
   product: Product;
-  onSelect: (product: Product) => void;
-  isSelected?: boolean;
-  className?: string;
-}
-
-const ProductCard = ({
-  product,
-  onSelect,
-  isSelected = false,
-  className,
-}: ProductCardProps) => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Handle image array access based on what's available
-  // Support both imageUrls and image_urls
-  const images = (() => {
-    // Use array spread to filter out undefined/null values
-    const mainImage = product.imageUrl || product.image_url || '';
-    const additionalImages = product.imageUrls || product.image_urls || [];
-    return [mainImage, ...additionalImages].filter(Boolean);
-  })();
-  
-  // Get current alt text or fallback to product name if not available
-  const getCurrentAltText = () => {
-    // Support both naming conventions
-    const altTexts = product.imageAlts || product.image_alts || [];
-    return currentImageIndex < altTexts.length 
-      ? altTexts[currentImageIndex] 
-      : `${product.name} - ${product.category || 'product'}`;
-  };
-  
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    const target = e.target as HTMLImageElement;
-    console.log("Image failed to load:", target.src);
-    target.onerror = null; // Prevent infinite loop
-    target.src = "/placeholder.svg";
-  };
-  
-  const nextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (images.length <= 1) return;
-    setCurrentImageIndex((prev) => (prev + 1) % images.length);
-  };
-  
-  const prevImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (images.length <= 1) return;
-    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
-
-  return (
-    <motion.div
-      whileHover={{ y: -5 }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={cn(
-        "group relative overflow-hidden rounded-lg border",
-        isSelected
-          ? "border-primary bg-primary/5"
-          : "border-border bg-card hover:border-primary/50",
-        className
-      )}
-      onClick={() => onSelect(product)}
-    >
-      <div className="aspect-square w-full overflow-hidden bg-muted relative">
-        {images.length > 0 ? (
-          <>
-            <img
-              src={images[currentImageIndex]}
-              alt={getCurrentAltText()}
-              className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
-              loading="lazy"
-              onError={handleImageError}
-            />
-            
-            {images.length > 1 && (
-              <>
-                <button 
-                  onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Next image"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                
-                {/* Image indicators */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-                  {images.map((_, index) => (
-                    <div 
-                      key={index} 
-                      className={cn(
-                        "w-1.5 h-1.5 rounded-full", 
-                        currentImageIndex === index 
-                          ? "bg-white" 
-                          : "bg-white/50"
-                      )}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <ImageIcon className="h-10 w-10 text-muted-foreground" />
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <h3 className="font-medium line-clamp-1">{product.name}</h3>
-        <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
-          {product.category}
-        </p>
-        <div className="mt-2 flex items-center justify-between">
-          <div>
-            <p className="font-semibold">Mensualité: {product.monthly_price ? formatCurrency(product.monthly_price) + "/mois" : "-"}</p>
-            <p className="text-sm text-muted-foreground">
-              Prix d'achat: {product.price ? formatCurrency(product.price) : "-"}
-            </p>
-          </div>
-          <button
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-              isSelected
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground"
-            )}
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-      {isSelected && (
-        <div className="absolute top-2 right-2 h-3 w-3 rounded-full bg-primary" />
-      )}
-    </motion.div>
-  );
+  onClick?: (product: Product) => void;
 };
 
-export default ProductCard;
+// Helper function to get the appropriate icon based on category
+function getCategoryIcon(category: string) {
+  switch (category.toLowerCase()) {
+    case 'laptop':
+      return <Laptop className="h-4 w-4" />;
+    case 'desktop':
+      return <Desktop className="h-4 w-4" />;
+    case 'smartphone':
+      return <Smartphone className="h-4 w-4" />;
+    case 'display':
+      return <Monitor className="h-4 w-4" />;
+    default:
+      return <Package className="h-4 w-4" />;
+  }
+}
+
+export default function ProductCard({ product, onClick }: ProductCardProps) {
+  // Function to handle fallback if the image fails to load
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.src = '/placeholder.svg';
+  };
+
+  // Get image source, supporting both naming conventions
+  const imageSource = product.imageUrl || product.image_url || '/placeholder.svg';
+
+  // Get the alt text, supporting both naming conventions
+  const imageAlt = product.imageAlt || product.image_alt || `${product.name} image`;
+
+  return (
+    <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 border-transparent hover:border-primary/20">
+      <div className="aspect-square overflow-hidden relative">
+        <img 
+          src={imageSource}
+          alt={imageAlt}
+          onError={handleImageError}
+          className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
+        />
+        <Badge className="absolute top-2 right-2 bg-primary/80 hover:bg-primary/90">
+          {product.category}
+        </Badge>
+      </div>
+      <CardHeader className="p-4 pb-2">
+        <CardDescription className="text-xs font-medium text-primary/70">
+          {product.brand}
+        </CardDescription>
+        <CardTitle className="text-base font-semibold truncate leading-tight">
+          {product.name}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 pt-0 flex-grow">
+        <p className="text-sm text-muted-foreground line-clamp-2 h-10">
+          {product.description || "Aucune description disponible"}
+        </p>
+      </CardContent>
+      <CardFooter className="p-4 pt-0 flex justify-between items-center">
+        <div className="font-bold text-lg">
+          {formatPrice(product.price)}
+        </div>
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={() => onClick && onClick(product)}
+          className="flex items-center gap-1"
+        >
+          {getCategoryIcon(product.category)}
+          <span>Détails</span>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
