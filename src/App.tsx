@@ -15,6 +15,7 @@ import CreateOffer from "./pages/CreateOffer";
 import Offers from "./pages/Offers";
 import Catalog from "./pages/Catalog";
 import ProductDetail from "./pages/ProductDetail";
+import Settings from "./pages/Settings";
 import { motion, AnimatePresence } from "framer-motion";
 
 const queryClient = new QueryClient();
@@ -104,6 +105,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <ProductDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               }
             />

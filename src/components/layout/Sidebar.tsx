@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Layers, LayoutDashboard, PlusCircle, ListOrdered, LogOut, Folders } from "lucide-react";
+import { Layers, LayoutDashboard, PlusCircle, ListOrdered, LogOut, Folders, Settings } from "lucide-react";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -35,6 +35,11 @@ const Sidebar = () => {
       path: "/catalog", 
       label: "Catalogue", 
       icon: <Folders className="h-5 w-5" /> 
+    },
+    { 
+      path: "/settings", 
+      label: "Paramètres", 
+      icon: <Settings className="h-5 w-5" /> 
     },
   ];
 
