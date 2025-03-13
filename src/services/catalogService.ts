@@ -16,6 +16,9 @@ const mapDbProductToProduct = (record: any): Product => {
     imageUrl: record.image_url || "",
     specifications: record.specifications || {},
     active: record.active !== false,
+    parent_id: record.parent_id,
+    is_variation: record.is_variation || false,
+    variation_attributes: record.variation_attributes || {},
     createdAt: record.created_at ? new Date(record.created_at) : new Date(),
     updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
   };
@@ -39,36 +42,41 @@ const enrichMockProduct = (mockProduct: any): Product => {
  */
 export const getProducts = async (): Promise<Product[]> => {
   try {
-    // Utiliser un timeout pour éviter les blocages indéfinis
-    const timeoutPromise = new Promise<{ data: any[] }>((_, reject) =>
-      setTimeout(() => {
-        console.log("Timeout atteint, utilisation des données mockées");
-        // Retourne les produits mockés si le timeout est atteint
-        return { data: mockProducts.map(enrichMockProduct) };
-      }, 3000)
-    );
-    
-    const fetchPromise = supabase
+    // Only fetch products that are not variations, or are parent products
+    const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('*, variants:products(id, name, price, variation_attributes, image_url)')
+      .or('is_variation.is.null,is_variation.eq.false,is_parent.eq.true')
       .order('name');
-    
-    // Utiliser Promise.race pour résoudre avec la première promesse qui se termine
-    const { data, error } = await Promise.race([
-      fetchPromise,
-      timeoutPromise,
-    ]) as any;
     
     if (error) {
       console.error("Error fetching products:", error);
-      // Utiliser les données mockées en cas d'erreur
+      // Use mock data if there's an error
       return mockProducts.map(enrichMockProduct);
     }
     
-    return data ? data.map(mapDbProductToProduct) : mockProducts.map(enrichMockProduct);
+    // Process the data to include variations properly
+    const products = data.map(product => {
+      const mappedProduct = mapDbProductToProduct(product);
+      
+      // If the product has variations, map them properly
+      if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+        mappedProduct.variants = product.variants.map((variant: any) => ({
+          id: variant.id,
+          name: variant.name,
+          price: Number(variant.price),
+          attributes: variant.variation_attributes || {},
+          imageUrl: variant.image_url
+        }));
+      }
+      
+      return mappedProduct;
+    });
+    
+    return products;
   } catch (error) {
     console.error("Error in getProducts:", error);
-    // Retourner les données mockées en cas d'erreur
+    // Return mock data in case of error
     return mockProducts.map(enrichMockProduct);
   }
 };
@@ -78,24 +86,47 @@ export const getProducts = async (): Promise<Product[]> => {
  */
 export const getProductById = async (id: string): Promise<Product | null> => {
   try {
-    // D'abord essayer de charger depuis Supabase
-    const { data, error } = await supabase
+    // First try to load from Supabase with variations if it's a parent product
+    const { data: mainProduct, error: mainError } = await supabase
       .from('products')
       .select('*')
       .eq('id', id)
       .maybeSingle();
     
-    if (error) throw error;
+    if (mainError) throw mainError;
     
-    if (data) return mapDbProductToProduct(data);
+    if (!mainProduct) {
+      // Product not found in database, try mock data
+      const mockProduct = mockProducts.find(p => p.id === id);
+      return mockProduct ? enrichMockProduct(mockProduct) : null;
+    }
     
-    // Si non trouvé dans Supabase, chercher dans les données mockées
-    const mockProduct = mockProducts.find(p => p.id === id);
-    return mockProduct ? enrichMockProduct(mockProduct) : null;
+    const product = mapDbProductToProduct(mainProduct);
+    
+    // If this is a parent product or possibly has variations, fetch them
+    if (mainProduct.is_parent) {
+      // Fetch variations for this parent
+      const { data: variations, error: varError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('parent_id', id);
+      
+      if (!varError && variations && variations.length > 0) {
+        product.variants = variations.map(v => ({
+          id: v.id,
+          name: v.name,
+          price: Number(v.price),
+          attributes: v.variation_attributes || {},
+          imageUrl: v.image_url
+        }));
+      }
+    }
+    
+    return product;
   } catch (error) {
     console.error("Error fetching product by ID:", error);
     
-    // Chercher dans les données mockées
+    // Try to find in mock data
     const mockProduct = mockProducts.find(p => p.id === id);
     return mockProduct ? enrichMockProduct(mockProduct) : null;
   }
@@ -229,19 +260,14 @@ export const deleteProduct = async (id: string): Promise<void> => {
 export const uploadProductImage = async (file: File, productId: string): Promise<string> => {
   try {
     const fileExt = file.name.split('.').pop();
-    const filePath = `${productId}-${Date.now()}.${fileExt}`;
+    const fileName = `${productId}-${Date.now()}.${fileExt}`;
     
-    // Vérifier si le bucket existe, sinon utiliser un mock
-    const { data: buckets } = await supabase.storage.listBuckets();
-    
-    if (!buckets || !buckets.find(b => b.name === 'product-images')) {
-      console.log("Storage bucket not found, returning mock image URL");
-      return "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?q=80&w=2042&auto=format&fit=crop&ixlib=rb-4.0.3";
-    }
+    // Ensure the bucket exists
+    await ensureStorageBucketExists();
     
     const { data, error } = await supabase.storage
       .from('product-images')
-      .upload(filePath, file);
+      .upload(fileName, file);
 
     if (error) {
       console.error("Error uploading image:", error);
@@ -250,9 +276,9 @@ export const uploadProductImage = async (file: File, productId: string): Promise
 
     const { data: urlData } = supabase.storage
       .from('product-images')
-      .getPublicUrl(filePath);
+      .getPublicUrl(fileName);
 
-    // Mettre à jour l'URL de l'image dans le produit
+    // Update product with new image URL
     await updateProduct(productId, { imageUrl: urlData.publicUrl });
     
     return urlData.publicUrl;
@@ -262,3 +288,28 @@ export const uploadProductImage = async (file: File, productId: string): Promise
     return "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?q=80&w=2042&auto=format&fit=crop&ixlib=rb-4.0.3";
   }
 };
+
+// Helper function to ensure the storage bucket exists
+async function ensureStorageBucketExists() {
+  try {
+    // Check if the bucket exists
+    const { data: buckets } = await supabase.storage.listBuckets();
+    
+    if (!buckets || !buckets.find(b => b.name === 'product-images')) {
+      console.log("Product images bucket doesn't exist, creating it");
+      
+      // Create the bucket via Supabase API
+      const { error } = await supabase.storage.createBucket('product-images', {
+        public: true
+      });
+      
+      if (error) {
+        console.error("Error creating storage bucket:", error);
+      } else {
+        console.log("Created product-images bucket successfully");
+      }
+    }
+  } catch (error) {
+    console.error("Error checking/creating storage bucket:", error);
+  }
+}

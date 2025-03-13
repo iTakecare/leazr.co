@@ -26,6 +26,8 @@ export interface WooCommerceProduct {
   status: string;
   variations?: number[];
   stock_status?: string;
+  sku?: string;
+  parent_id?: number;
   image?: {
     id: number;
     src: string;
@@ -37,5 +39,6 @@ export interface ImportResult {
   success: boolean;
   totalImported: number;
   skipped: number;
+  variations_count?: number;
   errors?: string[];
 }
