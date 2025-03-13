@@ -1,127 +1,62 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
+import './App.css';
+import { Toaster } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import CreateOffer from "./pages/CreateOffer";
-import Offers from "./pages/Offers";
-import Catalog from "./pages/Catalog";
-import ProductDetail from "./pages/ProductDetail";
-import Settings from "./pages/Settings";
-import { motion, AnimatePresence } from "framer-motion";
+import PageTransition from "@/components/layout/PageTransition";
+import Dashboard from "@/pages/Dashboard";
+import Offers from "@/pages/Offers";
+import CreateOffer from "@/pages/CreateOffer";
+import Catalog from "@/pages/Catalog";
+import ProductDetail from "@/pages/ProductDetail";
+import Settings from "@/pages/Settings";
+import NotFound from "@/pages/NotFound";
+import Index from "@/pages/Index";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import CreateTestUsers from "@/pages/CreateTestUsers";
+import { AuthProvider } from "@/context/AuthContext";
 
-const queryClient = new QueryClient();
-
-const App = () => {
+function Layout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-};
-
-// Protected route component
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <Navbar />
+        <main className="flex-1 overflow-y-auto">
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
+        </main>
       </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
-
-// App content with routes
-const AppContent = () => {
-  const { user } = useAuth();
-  
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      {user && <Sidebar />}
-      <main className={`flex-1 ${user ? 'ml-16' : ''}`}>
-        <AnimatePresence mode="wait">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/create-offer"
-              element={
-                <ProtectedRoute>
-                  <CreateOffer />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/offers"
-              element={
-                <ProtectedRoute>
-                  <Offers />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/catalog"
-              element={
-                <ProtectedRoute>
-                  <Catalog />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/catalog/:productId"
-              element={
-                <ProtectedRoute>
-                  <ProductDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AnimatePresence>
-      </main>
     </div>
   );
-};
+}
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/create-test-users" element={<CreateTestUsers />} />
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/offers" element={<Offers />} />
+            <Route path="/create-offer" element={<CreateOffer />} />
+            <Route path="/catalog" element={<Catalog />} />
+            <Route path="/catalog/:productId" element={<ProductDetail />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+        <Toaster richColors position="top-right" />
+      </AuthProvider>
+    </Router>
+  );
+}
 
 export default App;

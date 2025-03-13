@@ -1,183 +1,102 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Layers, LogIn } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Container from "@/components/layout/Container";
-import PageTransition from "@/components/layout/PageTransition";
-import { motion } from "framer-motion";
-
-const formSchema = z.object({
-  email: z.string().email("Email invalide"),
-  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-});
+import { Mail, Lock, Loader2 } from "lucide-react";
 
 const Login = () => {
-  const { login, isLoading } = useAuth();
-  const [isPartner, setIsPartner] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { signIn, isLoading } = useAuth();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    await login(values.email, values.password);
-  };
-
-  const emailPlaceholder = isPartner 
-    ? "partenaire@exemple.com" 
-    : "admin@itakecare.com";
-
-  const variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        delay: i * 0.1,
-        duration: 0.4,
-      },
-    }),
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signIn(email, password);
   };
 
   return (
-    <PageTransition>
-      <Container className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-        <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <Layers className="h-10 w-10 text-primary mx-auto mb-4" />
-            <h1 className="text-2xl font-bold">Bienvenue sur iTakecare</h1>
-            <p className="text-muted-foreground mt-2">
-              Connectez-vous pour gérer vos offres
-            </p>
-          </div>
-
-          <Card className="glass">
-            <CardHeader>
-              <div className="flex space-x-2 mb-3">
-                <Button
-                  variant={isPartner ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setIsPartner(true)}
-                  className="flex-1"
-                >
-                  Partenaire
-                </Button>
-                <Button
-                  variant={!isPartner ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setIsPartner(false)}
-                  className="flex-1"
-                >
-                  Admin
-                </Button>
+    <Container className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold">Connexion</CardTitle>
+          <CardDescription>
+            Entrez vos identifiants pour accéder à votre compte
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="exemple@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  required
+                />
               </div>
-              <CardTitle>Connexion {isPartner ? "Partenaire" : "Admin"}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-primary hover:underline"
                 >
-                  <motion.div
-                    custom={0}
-                    initial="hidden"
-                    animate="visible"
-                    variants={variants}
-                  >
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={emailPlaceholder}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </motion.div>
-
-                  <motion.div
-                    custom={1}
-                    initial="hidden"
-                    animate="visible"
-                    variants={variants}
-                  >
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Mot de passe</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="••••••••"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </motion.div>
-
-                  <motion.div
-                    custom={2}
-                    initial="hidden"
-                    animate="visible"
-                    variants={variants}
-                  >
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <div className="animate-spin h-4 w-4 border-2 border-background border-t-transparent rounded-full mr-2"></div>
-                      ) : (
-                        <LogIn className="mr-2 h-4 w-4" />
-                      )}
-                      Se connecter
-                    </Button>
-                  </motion.div>
-                </form>
-              </Form>
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-2">
-              <div className="text-sm text-muted-foreground text-center">
-                Pour la démo, utilisez n'importe quel email valide et mot de passe.
+                  Mot de passe oublié?
+                </Link>
               </div>
-            </CardFooter>
-          </Card>
-        </div>
-      </Container>
-    </PageTransition>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connexion en cours...
+                </>
+              ) : (
+                "Se connecter"
+              )}
+            </Button>
+            <div className="text-center text-sm">
+              Pas encore de compte?{" "}
+              <Link
+                to="/signup"
+                className="text-primary hover:underline"
+              >
+                Créer un compte
+              </Link>
+            </div>
+          </CardFooter>
+        </form>
+      </Card>
+    </Container>
   );
 };
 

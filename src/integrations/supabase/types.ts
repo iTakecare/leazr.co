@@ -9,7 +9,188 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      leaser_ranges: {
+        Row: {
+          coefficient: number
+          created_at: string | null
+          id: string
+          leaser_id: string | null
+          max: number
+          min: number
+          updated_at: string | null
+        }
+        Insert: {
+          coefficient?: number
+          created_at?: string | null
+          id?: string
+          leaser_id?: string | null
+          max?: number
+          min?: number
+          updated_at?: string | null
+        }
+        Update: {
+          coefficient?: number
+          created_at?: string | null
+          id?: string
+          leaser_id?: string | null
+          max?: number
+          min?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaser_ranges_leaser_id_fkey"
+            columns: ["leaser_id"]
+            isOneToOne: false
+            referencedRelation: "leasers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leasers: {
+        Row: {
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      offers: {
+        Row: {
+          amount: number
+          client_email: string | null
+          client_name: string
+          coefficient: number
+          commission: number | null
+          created_at: string | null
+          equipment_description: string | null
+          id: string
+          monthly_payment: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          client_email?: string | null
+          client_name: string
+          coefficient?: number
+          commission?: number | null
+          created_at?: string | null
+          equipment_description?: string | null
+          id?: string
+          monthly_payment?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          client_email?: string | null
+          client_name?: string
+          coefficient?: number
+          commission?: number | null
+          created_at?: string | null
+          equipment_description?: string | null
+          id?: string
+          monthly_payment?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          active: boolean | null
+          brand: string | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          monthly_price: number | null
+          name: string
+          price: number
+          specifications: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          monthly_price?: number | null
+          name: string
+          price?: number
+          specifications?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          monthly_price?: number | null
+          name?: string
+          price?: number
+          specifications?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          company: string | null
+          created_at: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

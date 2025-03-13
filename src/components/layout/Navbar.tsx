@@ -1,51 +1,85 @@
 
-import React from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import Container from "./Container";
 import { Button } from "@/components/ui/button";
-import { Layers, ChevronRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LogOut, User, Settings } from "lucide-react";
 
 const Navbar = () => {
-  const { user } = useAuth();
+  const { user, signOut, isLoading } = useAuth();
   
-  // Animation variants
-  const logoVariants = {
-    initial: { opacity: 0, x: -20 },
-    animate: { opacity: 1, x: 0, transition: { duration: 0.5 } },
+  // Get initials from user's name
+  const getInitials = () => {
+    if (!user) return "U";
+    return `${user.first_name?.charAt(0) || ""}${user.last_name?.charAt(0) || ""}`.toUpperCase() || "U";
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 backdrop-blur-lg bg-background/80 supports-[backdrop-filter]:bg-background/60">
-      <Container>
-        <div className="flex h-16 items-center justify-between">
-          <motion.div 
-            className="flex items-center gap-2" 
-            variants={logoVariants}
-            initial="initial"
-            animate="animate"
-          >
-            <Link to="/" className="flex items-center gap-2">
-              <Layers className="h-6 w-6 text-primary" />
-              <span className="text-xl font-semibold text-foreground">
-                iTakecare
-              </span>
-            </Link>
-          </motion.div>
-          
-          <div className="flex items-center gap-2">
-            {!user && (
-              <Button asChild>
-                <Link to="/login" className="flex items-center gap-1">
-                  <span>Connexion</span>
-                  <ChevronRight className="ml-1 h-4 w-4" />
-                </Link>
+    <header className="flex items-center h-16 px-6 border-b bg-white">
+      <div className="flex-1"></div>
+
+      <div className="flex items-center gap-4">
+        {isLoading ? (
+          <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+        ) : user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar>
+                  <AvatarImage src={user.avatar_url || ""} alt={user.first_name || "User"} />
+                  <AvatarFallback>{getInitials()}</AvatarFallback>
+                </Avatar>
               </Button>
-            )}
-          </div>
-        </div>
-      </Container>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {user.first_name} {user.last_name}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user.role === 'admin' ? 'Administrateur' : 
+                     user.role === 'partner' ? 'Partenaire' : 'Client'}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/settings" className="flex w-full cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Paramètres</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/profile" className="flex w-full cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profil</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={signOut}
+                className="flex cursor-pointer focus:bg-destructive focus:text-destructive-foreground"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Se déconnecter</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Link to="/login">
+            <Button>Connexion</Button>
+          </Link>
+        )}
+      </div>
     </header>
   );
 };
