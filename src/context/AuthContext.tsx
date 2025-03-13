@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
@@ -210,11 +211,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
       
-      const { data, error } = await adminSupabase.auth.admin.createUser({
+      // Use the standard supabase client instead of admin client
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        email_confirm: true,
-        user_metadata: userData,
+        options: {
+          data: userData,
+          emailRedirectTo: `${window.location.origin}/login`
+        }
       });
       
       if (error) {
@@ -222,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
       
-      toast.success('Compte créé avec succès! Vous pouvez maintenant vous connecter.');
+      toast.success('Compte créé avec succès! Veuillez vérifier votre email pour activer votre compte.');
       navigate('/login');
     } catch (error: any) {
       console.error('Error signing up:', error);
