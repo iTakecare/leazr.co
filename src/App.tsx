@@ -27,8 +27,8 @@ function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Router>
+        <Router>
+          <AuthProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
@@ -55,10 +55,10 @@ function App() {
 
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </Router>
-          <Toaster />
-          <SonnerToaster position="top-right" />
-        </AuthProvider>
+            <Toaster />
+            <SonnerToaster position="top-right" />
+          </AuthProvider>
+        </Router>
       </QueryClientProvider>
     </ThemeProvider>
   );
