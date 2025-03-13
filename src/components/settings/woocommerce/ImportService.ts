@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -282,7 +283,7 @@ interface SchemaUpdateResult {
   error?: string;
 }
 
-// Fix for the TypeScript errors - use proper RPC calling convention
+// Fix for the RPC call TypeScript errors
 export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
   try {
     // Utilisation du client admin qui permet de contourner les restrictions RLS
@@ -291,32 +292,32 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
     // Adding console.log for debugging
     console.log('Starting schema update process...');
     
-    // Fix: Call RPC with a string for the function name and an object for params
-    const { data: categoryData, error: categoryError } = await adminSupabase
+    // Fix: Use type assertion to help TypeScript understand the parameter structure
+    const categoryResult = await adminSupabase
       .rpc('add_column_if_not_exists', {
         table_name: 'products',
         column_name: 'category',
         column_type: 'text',
         column_default: "'other'"
-      });
+      } as any);
     
-    if (categoryError) {
-      console.error('Erreur lors de l\'ajout de la colonne category:', categoryError);
-      return { success: false, error: categoryError.message };
+    if (categoryResult.error) {
+      console.error('Erreur lors de l\'ajout de la colonne category:', categoryResult.error);
+      return { success: false, error: categoryResult.error.message };
     }
     
-    // Fix: Call RPC with a string for the function name and an object for params
-    const { data: descriptionData, error: descriptionError } = await adminSupabase
+    // Fix: Use type assertion to help TypeScript understand the parameter structure
+    const descriptionResult = await adminSupabase
       .rpc('add_column_if_not_exists', {
         table_name: 'products',
         column_name: 'description',
         column_type: 'text',
         column_default: 'NULL'
-      });
+      } as any);
     
-    if (descriptionError) {
-      console.error('Erreur lors de l\'ajout de la colonne description:', descriptionError);
-      return { success: false, error: descriptionError.message };
+    if (descriptionResult.error) {
+      console.error('Erreur lors de l\'ajout de la colonne description:', descriptionResult.error);
+      return { success: false, error: descriptionResult.error.message };
     }
     
     console.log('Schema update completed successfully');
