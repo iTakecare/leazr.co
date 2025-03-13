@@ -18,6 +18,12 @@ export interface Product {
   description: string;
   imageUrl: string;
   imageUrls?: string[];
+  // Add new properties for database schema compatibility
+  image_url?: string;
+  image_urls?: string[];
+  // Add new properties for SEO optimization
+  imageAlt?: string;
+  imageAlts?: string[];
   sku?: string;
   specifications: Record<string, string | number | boolean>;
   variants?: ProductVariant[];

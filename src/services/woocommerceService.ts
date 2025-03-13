@@ -823,8 +823,12 @@ const mapDbProductToProduct = (record: any): Product => {
     price: Number(record.price),
     description: record.description || "",
     imageUrl: record.image_url || "",
-    // Fix property mapping to match database schema
-    image_urls: record.image_urls || [], 
+    // Support both naming conventions - map database field to both properties
+    imageUrls: record.image_urls || [],
+    image_urls: record.image_urls || [],
+    // Add imageAlt and imageAlts if they exist in the record
+    imageAlt: record.image_alt || undefined,
+    imageAlts: record.image_alts || undefined,
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
@@ -834,3 +838,4 @@ const mapDbProductToProduct = (record: any): Product => {
     updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
   };
 };
+

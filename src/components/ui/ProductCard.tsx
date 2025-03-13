@@ -22,9 +22,12 @@ const ProductCard = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   // Handle image array access based on what's available
-  const images = product.image_urls && product.image_urls.length 
+  // Support both imageUrls (type definition) and image_urls (database schema)
+  const images = (product.image_urls && product.image_urls.length) 
     ? [product.imageUrl, ...product.image_urls]
-    : [product.imageUrl];
+    : (product.imageUrls && product.imageUrls.length)
+      ? [product.imageUrl, ...product.imageUrls]
+      : [product.imageUrl];
   
   // Filter out any undefined or empty image URLs
   const validImages = images.filter(img => img);

@@ -88,19 +88,19 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 
 export async function uploadProductImage(file: File, productId: string, isMainImage: boolean = true): Promise<string> {
   try {
-    // Obtenir le nom du produit pour les alt textes optimisés pour le SEO
+    // Get product name for SEO-optimized alt texts
     const product = await getProductById(productId);
     const productName = product?.name || '';
     
-    // Utiliser notre service d'image
+    // Use our image service
     const { uploadImage } = await import("@/services/imageService");
     
-    // Générer un chemin unique pour l'image
+    // Generate a unique path for the image
     const timestamp = Date.now();
     const extension = file.name.split('.').pop() || 'jpg';
     const path = `${productId}/${isMainImage ? 'main' : `additional_${timestamp}`}_${timestamp}.${extension}`;
     
-    // Uploader l'image avec préservation du nom d'origine pour le SEO
+    // Upload the image with preservation of original name for SEO
     const result = await uploadImage(file, path, 'product-images', true);
     
     if (!result || !result.url) {
@@ -112,17 +112,21 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
       if (isMainImage) {
         await updateProduct(productId, { 
           imageUrl: result.url,
-          imageAlt: result.altText
+          // Use optional property
+          ...(result.altText ? { imageAlt: result.altText } : {})
         });
       } else {
         // Get existing additional images or initialize an empty array
         const imageUrls = product.imageUrls || [];
+        // Get existing alt texts or initialize an empty array
         const imageAlts = product.imageAlts || [];
         
         // Limit to 4 additional images (5 total with main image)
         if (imageUrls.length >= 4) {
           imageUrls.pop(); // Remove the oldest additional image
-          imageAlts.pop(); // Remove corresponding alt text
+          if (imageAlts.length > 0) {
+            imageAlts.pop(); // Remove corresponding alt text
+          }
         }
         
         // Add the new image at the beginning
@@ -131,7 +135,8 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
         
         await updateProduct(productId, { 
           imageUrls,
-          imageAlts
+          // Use optional property
+          ...(imageAlts.length > 0 ? { imageAlts } : {})
         });
       }
     }
@@ -145,11 +150,11 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
 
 export async function uploadMultipleProductImages(files: File[], productId: string): Promise<string[]> {
   try {
-    // Obtenir le nom du produit pour les alt textes optimisés pour le SEO
+    // Get product name for SEO-optimized alt texts
     const product = await getProductById(productId);
     const productName = product?.name || '';
     
-    // Utiliser notre service d'image
+    // Use our image service
     const { uploadProductImages } = await import("@/services/imageService");
     
     // Upload all images
@@ -172,9 +177,11 @@ export async function uploadMultipleProductImages(files: File[], productId: stri
     if (uploadedUrls.length > 0) {
       await updateProduct(productId, { 
         imageUrl: uploadedUrls[0],
-        imageAlt: uploadedAlts[0],
+        // Use optional property for imageAlt
+        ...(uploadedAlts[0] ? { imageAlt: uploadedAlts[0] } : {}),
         imageUrls: uploadedUrls.slice(1, 5), // Max 4 additional images
-        imageAlts: uploadedAlts.slice(1, 5)  // Their corresponding alt texts
+        // Use optional property for imageAlts
+        ...(uploadedAlts.length > 1 ? { imageAlts: uploadedAlts.slice(1, 5) } : {})
       });
     }
     
