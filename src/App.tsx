@@ -17,6 +17,22 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const queryClient = new QueryClient();
 
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
 // Protected route component
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { user, isLoading } = useAuth();
@@ -36,66 +52,48 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
-// App router
-const AppRouter = () => {
+// App content with routes
+const AppContent = () => {
   const { user } = useAuth();
   
   return (
-    <AnimatePresence mode="wait">
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/create-offer"
-          element={
-            <ProtectedRoute>
-              <CreateOffer />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/offers"
-          element={
-            <ProtectedRoute>
-              <Offers />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AnimatePresence>
-  );
-};
-
-const App = () => {
-  const { user } = useAuth();
-  
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <div className="min-h-screen flex flex-col">
-              <Navbar />
-              {user && <Sidebar />}
-              <main className={`flex-1 ${user ? 'ml-16' : ''}`}>
-                <AppRouter />
-              </main>
-            </div>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      {user && <Sidebar />}
+      <main className={`flex-1 ${user ? 'ml-16' : ''}`}>
+        <AnimatePresence mode="wait">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-offer"
+              element={
+                <ProtectedRoute>
+                  <CreateOffer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/offers"
+              element={
+                <ProtectedRoute>
+                  <Offers />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AnimatePresence>
+      </main>
+    </div>
   );
 };
 
