@@ -12,21 +12,33 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Mail, Trash2 } from "lucide-react";
+import { Download, Mail, Trash2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
 interface OfferCalculatorProps {
   selectedProducts: Product[];
   onRemoveProduct: (productId: string) => void;
+  onSaveOffer?: (calculatedData: { 
+    totalAmount: number;
+    monthlyPayment: number;
+    coefficient: number; 
+    commission: number;
+  }) => void;
+  clientName?: string;
+  clientEmail?: string;
+  isSubmitting?: boolean;
 }
 
 const OfferCalculator = ({
   selectedProducts,
   onRemoveProduct,
+  onSaveOffer,
+  clientName,
+  clientEmail,
+  isSubmitting = false,
 }: OfferCalculatorProps) => {
-  const [duration, setDuration] = useState<string>("36");
+  const [duration, setDuration] = useState<number>(36);
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [monthlyPayment, setMonthlyPayment] = useState<number>(0);
   const [commission, setCommission] = useState<number>(0);
@@ -56,6 +68,27 @@ const OfferCalculator = ({
 
   const handleSendEmail = () => {
     toast.success("L'offre a été envoyée par email");
+  };
+
+  const handleSaveOffer = () => {
+    if (!clientName || !clientEmail) {
+      toast.error("Veuillez remplir les informations client");
+      return;
+    }
+
+    if (selectedProducts.length === 0) {
+      toast.error("Veuillez sélectionner au moins un produit");
+      return;
+    }
+
+    if (onSaveOffer) {
+      onSaveOffer({
+        totalAmount,
+        monthlyPayment,
+        coefficient: coefficientRate,
+        commission
+      });
+    }
   };
 
   return (
@@ -115,20 +148,25 @@ const OfferCalculator = ({
             <div className="space-y-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="duration">Durée du contrat</Label>
-                <Select
-                  value={duration}
-                  onValueChange={(value) => setDuration(value)}
-                >
-                  <SelectTrigger id="duration">
-                    <SelectValue placeholder="Sélectionner la durée" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="24">24 mois</SelectItem>
-                    <SelectItem value="36">36 mois</SelectItem>
-                    <SelectItem value="48">48 mois</SelectItem>
-                    <SelectItem value="60">60 mois</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="pt-6 px-1">
+                  <Slider
+                    id="duration"
+                    defaultValue={[36]}
+                    max={60}
+                    min={24}
+                    step={12}
+                    onValueChange={(value) => setDuration(value[0])}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>24 mois</span>
+                    <span>36 mois</span>
+                    <span>48 mois</span>
+                    <span>60 mois</span>
+                  </div>
+                </div>
+                <p className="text-center text-sm mt-1">
+                  {duration} mois
+                </p>
               </div>
             </div>
 
@@ -195,12 +233,21 @@ const OfferCalculator = ({
           PDF
         </Button>
         <Button
+          variant="outline"
           size="sm"
           onClick={handleSendEmail}
           disabled={selectedProducts.length === 0}
         >
           <Mail className="mr-2 h-4 w-4" />
-          Envoyer
+          Email
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleSaveOffer}
+          disabled={selectedProducts.length === 0 || isSubmitting || !clientName || !clientEmail}
+        >
+          <Save className="mr-2 h-4 w-4" />
+          Enregistrer
         </Button>
       </CardFooter>
     </Card>

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
@@ -39,66 +39,51 @@ import {
   Check,
   Clock,
   X,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { getOffers, deleteOffer } from "@/services/offerService";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface Offer {
   id: string;
-  clientName: string;
+  client_name: string;
   amount: number;
-  monthlyPayment: number;
+  monthly_payment: number;
   commission: number;
   status: "accepted" | "pending" | "rejected";
-  date: string;
+  created_at: string;
 }
 
 const Offers = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
   
-  // Mock data for offers
-  const mockOffers: Offer[] = [
-    {
-      id: "offer-001",
-      clientName: "Société ABC",
-      amount: 15750.50,
-      monthlyPayment: 499.29,
-      commission: 2835.09,
-      status: "accepted",
-      date: "15/04/2023",
-    },
-    {
-      id: "offer-002",
-      clientName: "Cabinet Medical XYZ",
-      amount: 8350.00,
-      monthlyPayment: 265.53,
-      commission: 1503.00,
-      status: "pending",
-      date: "28/04/2023",
-    },
-    {
-      id: "offer-003",
-      clientName: "Restaurant Le Gourmet",
-      amount: 4200.00,
-      monthlyPayment: 137.76,
-      commission: 546.00,
-      status: "pending",
-      date: "02/05/2023",
-    },
-    {
-      id: "offer-004",
-      clientName: "Auto École Drive",
-      amount: 3100.00,
-      monthlyPayment: 101.68,
-      commission: 403.00,
-      status: "rejected",
-      date: "10/05/2023",
-    },
-  ];
+  useEffect(() => {
+    fetchOffers();
+  }, []);
 
-  const filteredOffers = mockOffers.filter((offer) =>
-    offer.clientName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const fetchOffers = async () => {
+    setLoading(true);
+    try {
+      const offersData = await getOffers();
+      setOffers(offersData);
+    } catch (error) {
+      console.error("Error fetching offers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const filteredOffers = offers.filter((offer) => {
+    const matchesSearch = offer.client_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab = activeTab === "all" || offer.status === activeTab;
+    return matchesSearch && matchesTab;
+  });
 
   const getStatusBadge = (status: Offer["status"]) => {
     switch (status) {
@@ -134,6 +119,24 @@ const Offers = () => {
     toast.success("Le PDF a été téléchargé");
   };
 
+  const handleDeleteOffer = async (offerId: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette offre ?")) {
+      const success = await deleteOffer(offerId);
+      if (success) {
+        toast.success("L'offre a été supprimée avec succès");
+        fetchOffers();
+      }
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy", { locale: fr });
+    } catch (error) {
+      return "Date incorrecte";
+    }
+  };
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -150,6 +153,21 @@ const Offers = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   };
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex h-[60vh] items-center justify-center">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Chargement des offres...</p>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
@@ -202,14 +220,18 @@ const Offers = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="all">
+                <Tabs 
+                  defaultValue="all" 
+                  value={activeTab} 
+                  onValueChange={setActiveTab}
+                >
                   <TabsList>
                     <TabsTrigger value="all">Toutes</TabsTrigger>
                     <TabsTrigger value="accepted">Acceptées</TabsTrigger>
                     <TabsTrigger value="pending">En attente</TabsTrigger>
                     <TabsTrigger value="rejected">Refusées</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="all">
+                  <TabsContent value={activeTab}>
                     <div className="rounded-md border">
                       <Table>
                         <TableHeader>
@@ -242,13 +264,13 @@ const Offers = () => {
                             filteredOffers.map((offer) => (
                               <TableRow key={offer.id}>
                                 <TableCell className="font-medium">
-                                  {offer.clientName}
+                                  {offer.client_name}
                                 </TableCell>
                                 <TableCell>
                                   {formatCurrency(offer.amount)}
                                 </TableCell>
                                 <TableCell>
-                                  {formatCurrency(offer.monthlyPayment)}
+                                  {formatCurrency(offer.monthly_payment)}
                                 </TableCell>
                                 <TableCell>
                                   {formatCurrency(offer.commission)}
@@ -256,7 +278,7 @@ const Offers = () => {
                                 <TableCell>
                                   {getStatusBadge(offer.status)}
                                 </TableCell>
-                                <TableCell>{offer.date}</TableCell>
+                                <TableCell>{formatDate(offer.created_at)}</TableCell>
                                 <TableCell>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -280,6 +302,13 @@ const Offers = () => {
                                         <Mail className="mr-2 h-4 w-4" />
                                         Renvoyer
                                       </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteOffer(offer.id)}
+                                        className="text-red-600"
+                                      >
+                                        <X className="mr-2 h-4 w-4" />
+                                        Supprimer
+                                      </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </TableCell>
@@ -288,24 +317,6 @@ const Offers = () => {
                           )}
                         </TableBody>
                       </Table>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="accepted">
-                    {/* Similar table for accepted offers only */}
-                    <div className="text-center py-8 text-muted-foreground">
-                      Affichage des offres acceptées
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="pending">
-                    {/* Similar table for pending offers only */}
-                    <div className="text-center py-8 text-muted-foreground">
-                      Affichage des offres en attente
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="rejected">
-                    {/* Similar table for rejected offers only */}
-                    <div className="text-center py-8 text-muted-foreground">
-                      Affichage des offres refusées
                     </div>
                   </TabsContent>
                 </Tabs>
