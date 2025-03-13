@@ -47,6 +47,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { import as importStorageService } from "@/services/storageService";
 
 const formSchema = z.object({
   siteUrl: z.string().url({ message: "Veuillez entrer une URL valide" }),
@@ -290,15 +291,23 @@ const WooCommerceImporter = () => {
     setErrors([]);
     
     try {
-      const progressInterval = setInterval(() => {
-        setImportProgress((prev) => {
-          const newProgress = prev + Math.random() * 5;
-          return newProgress >= 95 ? 95 : newProgress;
-        });
-      }, 500);
+      const startTime = Date.now();
       
-      setImportStage(`Importation de ${productsToImport.length} produits...`);
+      const totalExpectedTime = productsToImport.length * 500;
+      
+      const updateProgressInterval = setInterval(() => {
+        const elapsedTime = Date.now() - startTime;
+        const calculatedProgress = Math.min(90, (elapsedTime / totalExpectedTime) * 100);
+        setImportProgress(calculatedProgress);
+        
+        const stageSuffix = ".".repeat(Math.floor((elapsedTime / 1000) % 4) + 1);
+        setImportStage(`Importation de ${productsToImport.length} produits${stageSuffix}`);
+      }, 200);
+      
       console.log(`Starting import with overwriteExisting: ${importOptions.overwriteExisting}`);
+      
+      const { ensureStorageBucket } = await importStorageService;
+      await ensureStorageBucket('product-images');
       
       const result = await importWooCommerceProducts(
         productsToImport,
@@ -306,7 +315,7 @@ const WooCommerceImporter = () => {
         importOptions.overwriteExisting
       );
       
-      clearInterval(progressInterval);
+      clearInterval(updateProgressInterval);
       setImportProgress(100);
       setImportResult(result);
       

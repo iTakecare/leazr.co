@@ -113,6 +113,21 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
     const timestamp = new Date().getTime();
     const imageName = `${productId}_${timestamp}_${isMainImage ? 'main' : Date.now()}.${file.name.split('.').pop()}`;
 
+    // Créer d'abord le bucket s'il n'existe pas
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (!buckets || !buckets.find(b => b.name === 'product-images')) {
+      const { error: bucketError } = await supabase.storage.createBucket('product-images', {
+        public: true
+      });
+      if (bucketError) {
+        console.error("Erreur lors de la création du bucket:", bucketError);
+      }
+    }
+
+    // Vérifier une dernière fois que le type est correct
+    console.log(`Uploading image of type: ${file.type} for product: ${productId}`);
+    
+    // Uploader le fichier avec le type de contenu explicite
     const { data, error } = await supabase.storage
       .from('product-images')
       .upload(imageName, file, {

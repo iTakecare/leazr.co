@@ -247,6 +247,80 @@ export async function getProductVariations(
   }
 }
 
+// Improved function to download and upload an image
+async function downloadAndUploadImage(imageUrl: string, productId: string): Promise<string | null> {
+  try {
+    console.log(`Downloading image from: ${imageUrl}`);
+    
+    // Download the image
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+    }
+    
+    // Extract content type from response headers
+    const contentType = response.headers.get('content-type');
+    
+    // Get file extension from URL
+    const fileExtension = imageUrl.split('.').pop()?.split('?')[0]?.toLowerCase();
+    
+    // Determine the correct MIME type based on extension
+    let correctMimeType = 'image/jpeg'; // Default MIME type
+    
+    if (fileExtension === 'png') correctMimeType = 'image/png';
+    else if (fileExtension === 'gif') correctMimeType = 'image/gif';
+    else if (fileExtension === 'webp') correctMimeType = 'image/webp';
+    else if (fileExtension === 'jpg' || fileExtension === 'jpeg') correctMimeType = 'image/jpeg';
+    
+    console.log(`URL extension: ${fileExtension}, setting MIME type to: ${correctMimeType}`);
+    
+    // Get image as array buffer to create new blob with correct type
+    const imageArrayBuffer = await response.arrayBuffer();
+    
+    // Create a properly typed blob
+    const processedBlob = new Blob([imageArrayBuffer], { type: correctMimeType });
+    console.log(`Created blob with type: ${processedBlob.type}`);
+    
+    // Generate a unique filename
+    const fileName = `woo-${productId}-${Date.now()}.${fileExtension || 'jpg'}`;
+    
+    // Make sure storage bucket exists
+    await ensureStorageBucketExists();
+    
+    // Get Supabase client
+    const { getSupabaseClient } = await import("@/integrations/supabase/client");
+    const supabase = getSupabaseClient();
+    
+    console.log(`Uploading image to Supabase with content type: ${processedBlob.type}`);
+    
+    // Upload to Supabase Storage with explicit content type
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, processedBlob, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: processedBlob.type
+      });
+      
+    if (error) {
+      console.error("Error uploading image to storage:", error);
+      return null;
+    }
+    
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName);
+      
+    console.log(`Successfully uploaded image to: ${publicUrlData?.publicUrl}`);
+    
+    return publicUrlData?.publicUrl || null;
+  } catch (error) {
+    console.error("Error downloading and uploading image:", error);
+    return null;
+  }
+}
+
 // Fonction pour importer les produits dans Supabase
 export async function importWooCommerceProducts(
   products: WooCommerceProduct[],
@@ -767,106 +841,40 @@ function determineCategory(categories?: { id: number; name: string; slug: string
   return 'other';
 }
 
-// Fonction pour s'assurer que le bucket existe
+// Update the ensureStorageBucketExists function
 async function ensureStorageBucketExists() {
   try {
-    // Vérifier si le bucket existe
-    const { data: buckets } = await supabase.storage.listBuckets();
-    
-    if (!buckets || !buckets.find(b => b.name === 'product-images')) {
-      console.log("Product images bucket doesn't exist, creating it");
-      
-      // Créer le bucket via l'API Supabase
-      const { error } = await supabase.storage.createBucket('product-images', {
-        public: true
-      });
-      
-      if (error) {
-        console.error("Error creating storage bucket:", error);
-      } else {
-        console.log("Created product-images bucket successfully");
-      }
-    }
+    // Use the new storage service
+    const { default: storageService } = await import("@/services/storageService");
+    return await storageService.ensureStorageBucket('product-images');
   } catch (error) {
     console.error("Error checking/creating storage bucket:", error);
-  }
-}
-
-// Improved function to download and upload an image
-async function downloadAndUploadImage(imageUrl: string, productId: string): Promise<string | null> {
-  try {
-    console.log(`Downloading image from: ${imageUrl}`);
     
-    // Download the image
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+    // Fallback to direct creation
+    try {
+      const { getSupabaseClient } = await import("@/integrations/supabase/client");
+      const supabase = getSupabaseClient();
+      
+      // Check if bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      
+      if (!buckets || !buckets.find(b => b.name === 'product-images')) {
+        console.log("Product images bucket doesn't exist, creating it");
+        
+        // Create the bucket
+        const { error } = await supabase.storage.createBucket('product-images', {
+          public: true
+        });
+        
+        if (error) {
+          console.error("Error creating storage bucket:", error);
+        } else {
+          console.log("Created product-images bucket successfully");
+        }
+      }
+    } catch (fallbackError) {
+      console.error("Fallback bucket creation also failed:", fallbackError);
     }
-    
-    // Extract content type from response headers
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('image/')) {
-      console.warn(`Invalid content type for image: ${contentType}`);
-      // Still try to proceed, but set a valid image content type based on URL extension
-      const fileExtension = imageUrl.split('.').pop()?.split('?')[0]?.toLowerCase();
-      let imageContentType = 'image/jpeg'; // Default to JPEG
-      
-      if (fileExtension === 'png') imageContentType = 'image/png';
-      else if (fileExtension === 'gif') imageContentType = 'image/gif';
-      else if (fileExtension === 'webp') imageContentType = 'image/webp';
-    }
-    
-    // Convert to blob with proper type
-    const imageBlob = await response.blob();
-    
-    // Create a new blob with explicit image content type if needed
-    let processedBlob = imageBlob;
-    if (!imageBlob.type.startsWith('image/')) {
-      const fileExtension = imageUrl.split('.').pop()?.split('?')[0]?.toLowerCase();
-      let imageContentType = 'image/jpeg'; // Default to JPEG
-      
-      if (fileExtension === 'png') imageContentType = 'image/png';
-      else if (fileExtension === 'gif') imageContentType = 'image/gif';
-      else if (fileExtension === 'webp') imageContentType = 'image/webp';
-      
-      processedBlob = new Blob([await imageBlob.arrayBuffer()], { type: imageContentType });
-      console.log(`Converted blob type from ${imageBlob.type} to ${imageContentType}`);
-    }
-    
-    const fileName = `product-woo_${productId}-${Date.now()}.${imageUrl.split('.').pop()?.split('?')[0] || 'jpg'}`;
-    
-    // Make sure storage bucket exists
-    await ensureStorageBucketExists();
-    
-    // Import the function directly
-    const { getSupabaseClient } = await import("@/integrations/supabase/client");
-    const supabase = getSupabaseClient();
-    
-    // Upload to Supabase Storage with explicit content type
-    const { data, error } = await supabase.storage
-      .from('product-images')
-      .upload(fileName, processedBlob, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType: processedBlob.type
-      });
-      
-    if (error) {
-      console.error("Error uploading image to storage:", error);
-      return null;
-    }
-    
-    // Get public URL
-    const { data: publicUrlData } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(fileName);
-      
-    console.log(`Uploaded image to: ${publicUrlData?.publicUrl}`);
-    
-    return publicUrlData?.publicUrl || null;
-  } catch (error) {
-    console.error("Error downloading and uploading image:", error);
-    return null;
   }
 }
 
@@ -880,17 +888,11 @@ const mapDbProductToProduct = (record: any): Product => {
     price: Number(record.price),
     description: record.description || "",
     imageUrl: record.image_url || "",
-    imageUrls: record.image_urls || [], // Changed from image_urls to imageUrls
+    imageUrls: record.image_urls || [], // Correct property name
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
     variation_attributes: record.variation_attributes || {},
     active: record.active !== false,
     createdAt: record.created_at ? new Date(record.created_at) : new Date(),
-    updatedAt: record.updated_at ? new Date(record.updated_at) : new Date(),
-    is_parent: record.is_parent || false,
-    variants_ids: record.variants_ids || [],
-    monthly_price: record.monthly_price,
-    sku: record.sku || ""
-  };
-};
+    updatedAt: record.updated_
