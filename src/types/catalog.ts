@@ -7,6 +7,8 @@ export interface ProductVariant {
   attributes: Record<string, string | number | boolean>;
   imageUrl?: string;
   imageUrls?: string[];
+  image_url?: string;
+  image_urls?: string[];
 }
 
 export interface Product {
@@ -16,9 +18,9 @@ export interface Product {
   category: string;
   price: number;
   description: string;
-  imageUrl: string;
+  // Support both naming conventions for images
+  imageUrl?: string;
   imageUrls?: string[];
-  // Database schema compatibility fields
   image_url?: string;
   image_urls?: string[];
   // SEO optimization fields
