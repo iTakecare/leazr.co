@@ -95,7 +95,7 @@ export const getProductById = async (id: string): Promise<Product | null> => {
 };
 
 // Create a new product
-export const createProduct = async (product: Omit<Product, 'id'>): Promise<Product> => {
+export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
   const newProduct: Product = {
     ...product,
     id: uuidv4(),
@@ -107,14 +107,20 @@ export const createProduct = async (product: Omit<Product, 'id'>): Promise<Produ
   return newProduct;
 };
 
+// Add a product (alias for createProduct to fix the import error)
+export const addProduct = createProduct;
+
 // Update an existing product
-export const updateProduct = async (id: string, productData: Omit<Product, 'id'>): Promise<Product> => {
+export const updateProduct = async (id: string, productData: Partial<Product>): Promise<Product> => {
   const index = mockProducts.findIndex(p => p.id === id);
   if (index === -1) {
     throw new Error('Product not found');
   }
   
+  const existingProduct = mockProducts[index];
+  
   const updatedProduct: Product = {
+    ...existingProduct,
     ...productData,
     id,
     updatedAt: new Date(),
@@ -140,6 +146,16 @@ export const deleteAllProducts = async (): Promise<void> => {
   await new Promise(resolve => setTimeout(resolve, 800));
   // Clear the array
   mockProducts.length = 0;
+};
+
+// Upload product image - Mock implementation
+export const uploadProductImage = async (file: File, productId: string): Promise<string> => {
+  // In a real application, this would upload to a server or cloud storage
+  // For now, create a fake URL
+  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate upload delay
+  
+  // Create a data URL for demonstration purposes
+  return URL.createObjectURL(file);
 };
 
 // Clear mock products (for testing)

@@ -42,7 +42,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   };
 
   const addProductMutation = useMutation({
-    mutationFn: (productData: Partial<Product>) => addProduct(productData),
+    mutationFn: (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => addProduct(productData),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       

@@ -14,3 +14,6 @@ export const getProductsByCategory = (category: string): Product[] => {
 export const getProductCategories = (): string[] => {
   return [...new Set(products.map((product) => product.category))];
 };
+
+// Re-export the Product type for backward compatibility
+export { Product } from "@/types/catalog";

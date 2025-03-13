@@ -1,7 +1,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Product } from "@/data/products";
+import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";

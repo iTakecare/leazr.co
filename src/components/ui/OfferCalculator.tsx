@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Product } from "@/data/products";
+import { Product } from "@/types/catalog";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
 import {
   calculateMonthlyLeasing,
