@@ -13,6 +13,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import CreateOffer from "./pages/CreateOffer";
 import Offers from "./pages/Offers";
+import Catalog from "./pages/Catalog";
+import ProductDetail from "./pages/ProductDetail";
 import { motion, AnimatePresence } from "framer-motion";
 
 const queryClient = new QueryClient();
@@ -86,6 +88,22 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <Offers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/catalog"
+              element={
+                <ProtectedRoute>
+                  <Catalog />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/catalog/:productId"
+              element={
+                <ProtectedRoute>
+                  <ProductDetail />
                 </ProtectedRoute>
               }
             />
