@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, ImageIcon } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -19,6 +19,13 @@ const ProductCard = ({
   isSelected = false,
   className,
 }: ProductCardProps) => {
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.target as HTMLImageElement;
+    console.log("Image failed to load:", target.src);
+    target.onerror = null; // Prevent infinite loop
+    target.src = "/placeholder.svg";
+  };
+
   return (
     <motion.div
       whileHover={{ y: -5 }}
@@ -35,12 +42,19 @@ const ProductCard = ({
       onClick={() => onSelect(product)}
     >
       <div className="aspect-square w-full overflow-hidden bg-muted">
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
-          loading="lazy"
-        />
+        {product.imageUrl ? (
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
+            loading="lazy"
+            onError={handleImageError}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <ImageIcon className="h-10 w-10 text-muted-foreground" />
+          </div>
+        )}
       </div>
       <div className="p-4">
         <h3 className="font-medium line-clamp-1">{product.name}</h3>

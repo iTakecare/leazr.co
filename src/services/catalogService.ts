@@ -90,6 +90,11 @@ export async function uploadProductImage(file: File, productId: string): Promise
   try {
     const supabase = getSupabaseClient();
 
+    // Vérifier que le fichier est bien une image valide
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Le fichier doit être une image');
+    }
+
     const timestamp = new Date().getTime();
     const imageName = `${productId}_${timestamp}.${file.name.split('.').pop()}`;
 
@@ -97,13 +102,15 @@ export async function uploadProductImage(file: File, productId: string): Promise
       .from('product-images')
       .upload(imageName, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: file.type // Ajouter explicitement le type de contenu
       });
 
     if (error) {
       throw new Error(`Error uploading image: ${error.message}`);
     }
 
+    // Construire l'URL correctement
     const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${data.path}`;
     
     // Update the product with the image URL

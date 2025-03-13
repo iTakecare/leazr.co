@@ -762,16 +762,37 @@ async function downloadAndUploadImage(imageUrl: string, productId: string): Prom
     // Convert to blob
     const imageBlob = await response.blob();
     
-    // Determine file type
-    const fileExtension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
-    const fileName = `product-${productId}-${Date.now()}.${fileExtension}`;
+    // Validate image content type
+    if (!imageBlob.type.startsWith('image/')) {
+      console.warn(`Le fichier téléchargé n'est pas une image valide: ${imageBlob.type}`);
+      return null;
+    }
     
-    // Upload to Supabase Storage
+    // Determine file type from content-type header
+    const contentType = response.headers.get('content-type');
+    let fileExtension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
+    
+    // Update extension based on actual content type if available
+    if (contentType) {
+      if (contentType === 'image/jpeg' || contentType === 'image/jpg') fileExtension = 'jpg';
+      else if (contentType === 'image/png') fileExtension = 'png';
+      else if (contentType === 'image/gif') fileExtension = 'gif';
+      else if (contentType === 'image/webp') fileExtension = 'webp';
+    }
+    
+    const fileName = `product-woo_${productId}-${Date.now()}.${fileExtension}`;
+    
+    // Make sure storage bucket exists
+    await ensureStorageBucketExists();
+    
+    // Upload to Supabase Storage with explicit content type
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase.storage
       .from('product-images')
       .upload(fileName, imageBlob, {
         cacheControl: '3600',
-        upsert: true
+        upsert: true,
+        contentType: contentType || imageBlob.type // Set the correct content type
       });
       
     if (error) {
@@ -816,3 +837,4 @@ const mapDbProductToProduct = (record: any): Product => {
     sku: record.sku || ""
   };
 };
+
