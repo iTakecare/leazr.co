@@ -106,7 +106,7 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
       <div className="bg-muted px-4 py-3 flex items-center justify-between border-b">
         <div className="grid grid-cols-5 w-full text-sm font-medium text-muted-foreground">
           <div className="col-span-2">Produit</div>
-          <div>Prix</div>
+          <div>Prix d'achat</div>
           <div>Mensualité</div>
           <div className="text-right">Actions</div>
         </div>

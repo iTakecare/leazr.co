@@ -48,7 +48,7 @@ const ProductCard = ({
           {product.category}
         </p>
         <div className="mt-2 flex items-center justify-between">
-          <p className="font-semibold">{formatCurrency(product.price)}</p>
+          <p className="font-semibold">Prix: {formatCurrency(product.price)}</p>
           <button
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-full transition-colors",

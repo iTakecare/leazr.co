@@ -82,7 +82,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
               )}
               
               <div className="mt-auto pt-2 flex justify-between items-end">
-                <p className="font-bold text-primary">{formatCurrency(product.price)}</p>
+                <p className="font-bold text-primary">
+                  Prix d'achat: {formatCurrency(product.price)}
+                </p>
                 {product.monthly_price && (
                   <p className="text-sm text-muted-foreground">
                     {formatCurrency(product.monthly_price)}/mois
