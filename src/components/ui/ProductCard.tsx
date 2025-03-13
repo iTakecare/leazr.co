@@ -6,10 +6,11 @@ import { formatCurrency } from "@/utils/formatters";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 
-interface ProductCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ProductCardProps {
   product: Product;
   onSelect: (product: Product) => void;
   isSelected?: boolean;
+  className?: string;
 }
 
 const ProductCard = ({
@@ -17,7 +18,6 @@ const ProductCard = ({
   onSelect,
   isSelected = false,
   className,
-  ...props
 }: ProductCardProps) => {
   return (
     <motion.div
@@ -33,7 +33,6 @@ const ProductCard = ({
         className
       )}
       onClick={() => onSelect(product)}
-      {...props}
     >
       <div className="aspect-square w-full overflow-hidden bg-muted">
         <img
