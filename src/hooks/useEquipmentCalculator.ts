@@ -1,9 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
 
 export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
+  const leaser = selectedLeaser || defaultLeasers[0];
+  
   const [equipment, setEquipment] = useState<Equipment>({
     id: crypto.randomUUID(),
     title: '',
@@ -32,14 +33,17 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   };
 
   const findCoefficient = (amount: number) => {
-    if (!selectedLeaser || !selectedLeaser.ranges) {
+    const currentLeaser = leaser || defaultLeasers[0];
+    
+    if (!currentLeaser || !currentLeaser.ranges || currentLeaser.ranges.length === 0) {
       return defaultLeasers[0].ranges[0].coefficient;
     }
     
-    const range = selectedLeaser.ranges.find(
+    const range = currentLeaser.ranges.find(
       (r) => amount >= r.min && amount <= r.max
     );
-    return range?.coefficient || defaultLeasers[0].ranges[0].coefficient;
+    
+    return range?.coefficient || currentLeaser.ranges[0].coefficient;
   };
 
   const calculateMonthlyPayment = () => {
@@ -172,22 +176,17 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     ));
   };
 
-  // Run calculations when dependencies change
   useEffect(() => {
-    if (selectedLeaser) {
-      calculateMonthlyPayment();
-    }
-  }, [equipment, selectedLeaser]);
+    calculateMonthlyPayment();
+  }, [equipment, leaser]);
 
   useEffect(() => {
     calculateMarginFromMonthlyPayment();
-  }, [targetMonthlyPayment, equipment.purchasePrice, selectedLeaser]);
+  }, [targetMonthlyPayment, equipment.purchasePrice, leaser]);
 
   useEffect(() => {
-    if (selectedLeaser) {
-      calculateGlobalMarginAdjustment();
-    }
-  }, [equipmentList, selectedLeaser]);
+    calculateGlobalMarginAdjustment();
+  }, [equipmentList, leaser]);
 
   return {
     equipment,

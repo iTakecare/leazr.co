@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -28,6 +27,7 @@ const CreateOffer = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
+  // Initialize with default leaser immediately to avoid loading state
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
   const [clientName, setClientName] = useState('');
@@ -43,7 +43,7 @@ const CreateOffer = () => {
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Use the equipment calculator hook
+  // Use the equipment calculator hook - always initialized with a valid leaser
   const {
     equipment,
     setEquipment,
@@ -66,31 +66,22 @@ const CreateOffer = () => {
     findCoefficient
   } = useEquipmentCalculator(selectedLeaser);
 
-  // Charger les leasers au montage du composant
+  // Fetch leasers but don't block rendering
   useEffect(() => {
-    const initialize = async () => {
+    const fetchLeasers = async () => {
       try {
-        setLoading(true);
         const fetchedLeasers = await getLeasers();
         
-        // Si des leasers ont été trouvés, utiliser le premier
         if (fetchedLeasers && fetchedLeasers.length > 0) {
           setSelectedLeaser(fetchedLeasers[0]);
-        } else {
-          // Sinon, utiliser le premier leaser par défaut
-          setSelectedLeaser(defaultLeasers[0]);
         }
       } catch (error) {
-        console.error("Error initializing offer calculator:", error);
-        // En cas d'erreur, utiliser le leaser par défaut
-        setSelectedLeaser(defaultLeasers[0]);
+        console.error("Error fetching leasers:", error);
         toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
-      } finally {
-        setLoading(false);
       }
     };
     
-    initialize();
+    fetchLeasers();
   }, []);
 
   const handleProductSelect = (product: any) => {
@@ -163,17 +154,6 @@ const CreateOffer = () => {
       setIsSubmitting(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <p className="text-gray-600">Chargement du calculateur...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <PageTransition>
