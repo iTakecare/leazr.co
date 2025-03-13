@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import './App.css';
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,17 +17,38 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import CreateTestUsers from "@/pages/CreateTestUsers";
 import { AuthProvider } from "@/context/AuthContext";
+import Container from "@/components/layout/Container";
+import { useAuth } from "@/context/AuthContext";
 
 // Create a client
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Composant pour les routes protégées
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) return <div className="w-full h-screen flex items-center justify-center">Chargement...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  
+  return <>{children}</>;
+}
 
 function Layout() {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-background">
         <PageTransition>
-          <Outlet />
+          <Container className="py-6">
+            <Outlet />
+          </Container>
         </PageTransition>
       </main>
     </div>
@@ -44,7 +65,11 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/create-test-users" element={<CreateTestUsers />} />
-            <Route element={<Layout />}>
+            <Route element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/offers" element={<Offers />} />
               <Route path="/create-offer" element={<CreateOffer />} />
