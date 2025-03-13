@@ -269,8 +269,8 @@ export async function importWooCommerceProducts(
       .from("products")
       .select("name, id");
     
-    const existingNames = new Set(existingProducts?.map(p => p.name.toLowerCase()) || []);
-    const existingIds = new Map(existingProducts?.map(p => [p.name.toLowerCase(), p.id]) || []);
+    const existingNames = new Set<string>(existingProducts?.map(p => p.name.toLowerCase()) || []);
+    const existingIds = new Map<string, string>(existingProducts?.map(p => [p.name.toLowerCase(), p.id]) || []);
     console.log(`Found ${existingNames.size} existing products`);
 
     // Regrouper les produits par leurs variations
@@ -529,9 +529,7 @@ async function createProductFromWooCommerceData(
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
     sku: wooProduct.sku || '',
-    parent_id: isVariation && parentId ? parentId : null,  // Ensure parent_id is included in the initial object
-    // Utiliser les noms de colonnes corrects pour la base de données
-    // created_at et updated_at au lieu de createdAt et updatedAt
+    parent_id: isVariation && parentId ? parentId : null,
   };
 
   // Si on écrase les existants, on tente d'abord de mettre à jour
