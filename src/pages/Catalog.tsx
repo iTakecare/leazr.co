@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,33 +7,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
 import { getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Search, Plus, Filter } from "lucide-react";
+import { Search, Plus, Filter, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import ProductGrid from "@/components/catalog/ProductGrid";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "sonner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   
-  const { data: products = [], isLoading, refetch } = useQuery({
+  const { data: products = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
   });
 
   // Filtrer les produits
   const filteredProducts = products.filter((product: Product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()));
+    
     const matchesCategory = !selectedCategory || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   // Extraire les catégories uniques
-  const categories = Array.from(new Set(products.map((product: Product) => product.category)));
+  const categories = Array.from(new Set(products.map((product: Product) => product.category))).filter(Boolean);
 
   // Animation variants
   const containerVariants = {
@@ -61,6 +65,16 @@ const Catalog = () => {
             <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
           </Button>
         </div>
+
+        {isError && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>
+              Une erreur est survenue lors du chargement des produits: {error instanceof Error ? error.message : "Erreur inconnue"}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Tabs defaultValue="browse" className="mb-6">
           <TabsList>
@@ -114,7 +128,7 @@ const Catalog = () => {
                   <div key={i} className="h-64 rounded-md bg-muted animate-pulse" />
                 ))}
               </div>
-            ) : (
+            ) : filteredProducts.length > 0 ? (
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
@@ -122,6 +136,10 @@ const Catalog = () => {
               >
                 <ProductGrid products={filteredProducts} />
               </motion.div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Aucun produit trouvé. {searchTerm && "Essayez de modifier votre recherche."}</p>
+              </div>
             )}
           </TabsContent>
           
@@ -132,14 +150,18 @@ const Catalog = () => {
                 <div className="h-32 flex items-center justify-center">
                   <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
                 </div>
-              ) : (
+              ) : products.length > 0 ? (
                 <div className="space-y-4">
                   {products.map((product: Product) => (
                     <div key={product.id} className="border-b pb-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-medium">{product.name}</h3>
-                          <p className="text-sm text-muted-foreground">{product.category}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {product.brand && <span className="font-semibold">{product.brand}</span>}
+                            {product.brand && product.category && <span> • </span>}
+                            {product.category}
+                          </p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Link to={`/catalog/${product.id}`}>
@@ -149,6 +171,10 @@ const Catalog = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Aucun produit dans le catalogue. Ajoutez des produits ou importez-les depuis WooCommerce.</p>
                 </div>
               )}
             </div>

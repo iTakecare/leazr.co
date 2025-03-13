@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductVariant } from "@/types/catalog";
 import { toast } from "sonner";
@@ -8,13 +9,14 @@ export const addProduct = async (product: Omit<Product, "id" | "createdAt" | "up
       .from("products")
       .insert({
         name: product.name,
-        brand: product.name.split(' ')[0] || 'Generic', // Default brand if not provided
+        brand: product.brand || product.name.split(' ')[0] || 'Generic', // Default brand if not provided
         category: product.category,
         price: product.price,
         monthly_price: product.price * 0.035, // Default monthly price calculation
         description: product.description,
         image_url: product.imageUrl,
         specifications: product.specifications,
+        active: true,
       })
       .select()
       .single();
@@ -32,11 +34,13 @@ export const updateProduct = async (id: string, product: Partial<Product>) => {
     const updateData: any = {};
     
     if (product.name) updateData.name = product.name;
+    if (product.brand) updateData.brand = product.brand;
     if (product.category) updateData.category = product.category;
     if (product.price !== undefined) updateData.price = product.price;
     if (product.description) updateData.description = product.description;
     if (product.imageUrl) updateData.image_url = product.imageUrl;
     if (product.specifications) updateData.specifications = product.specifications;
+    if (product.active !== undefined) updateData.active = product.active;
 
     const { data, error } = await supabase
       .from("products")
@@ -77,10 +81,17 @@ export const getProducts = async () => {
 
     if (error) throw error;
     
-    // Conversion des dates
+    // Conversion des données pour les rendre compatibles avec le type Product
     return data.map(product => ({
-      ...product,
-      imageUrl: product.image_url,
+      id: product.id,
+      name: product.name,
+      brand: product.brand,
+      category: product.category || "Autre",
+      price: product.price,
+      description: product.description || "",
+      imageUrl: product.image_url || "",
+      specifications: product.specifications || {},
+      active: product.active,
       createdAt: new Date(product.created_at),
       updatedAt: new Date(product.updated_at)
     })) as Product[];
@@ -101,8 +112,15 @@ export const getProductById = async (id: string) => {
     if (error) throw error;
     
     return {
-      ...data,
-      imageUrl: data.image_url,
+      id: data.id,
+      name: data.name,
+      brand: data.brand,
+      category: data.category || "Autre",
+      price: data.price,
+      description: data.description || "",
+      imageUrl: data.image_url || "",
+      specifications: data.specifications || {},
+      active: data.active,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at)
     } as Product;
