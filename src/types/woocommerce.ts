@@ -33,6 +33,10 @@ export interface WooCommerceProduct {
     src: string;
     alt: string;
   };
+  // Fields for variations
+  variation_id?: number;
+  is_variation?: boolean;
+  variation_attributes?: Record<string, string>;
   // Added fields for credentials passing
   siteUrl?: string;
   consumerKey?: string;

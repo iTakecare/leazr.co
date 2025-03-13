@@ -6,10 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
 import { getProducts, deleteAllProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Search, Plus, Filter, AlertCircle, Trash2 } from "lucide-react";
+import { Search, Plus, Filter, AlertCircle, Trash2, Grid, List } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import ProductGrid from "@/components/catalog/ProductGrid";
+import CollapsibleProductList from "@/components/catalog/CollapsibleProductList";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -29,6 +30,7 @@ const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
   const { 
     data: products = [], 
@@ -162,6 +164,24 @@ const Catalog = () => {
                 />
               </div>
               <div className="flex items-center space-x-2">
+                <div className="flex items-center border rounded-md overflow-hidden">
+                  <Button 
+                    variant={viewMode === "grid" ? "default" : "ghost"}
+                    size="icon"
+                    onClick={() => setViewMode("grid")}
+                    className="rounded-none h-9 w-9"
+                  >
+                    <Grid className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="icon"
+                    onClick={() => setViewMode("list")}
+                    className="rounded-none h-9 w-9"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Button variant="outline" size="icon">
                   <Filter className="h-4 w-4" />
                 </Button>
@@ -202,7 +222,11 @@ const Catalog = () => {
                 initial="hidden"
                 animate="visible"
               >
-                <ProductGrid products={filteredProducts} />
+                {viewMode === "grid" ? (
+                  <ProductGrid products={filteredProducts} />
+                ) : (
+                  <CollapsibleProductList products={filteredProducts} />
+                )}
               </motion.div>
             ) : (
               <div className="text-center py-12">
