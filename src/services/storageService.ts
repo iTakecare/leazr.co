@@ -1,3 +1,4 @@
+
 import { getSupabaseClient } from "@/integrations/supabase/client";
 
 /**
@@ -29,7 +30,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         
         if (createError) {
           console.error(`Error creating bucket ${bucketName}:`, createError);
-          return true;
+          return false; // Changed to return false on error
         }
         
         // Set CORS policy for the bucket
@@ -55,14 +56,14 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         }
       } catch (e) {
         console.error(`Could not create bucket ${bucketName}:`, e);
-        return true;
+        return false; // Changed to return false on error
       }
     }
     
     return true;
   } catch (error) {
     console.error(`Unexpected error ensuring bucket ${bucketName}:`, error);
-    return true;
+    return false; // Changed to return false on error
   }
 }
 
@@ -92,7 +93,7 @@ async function createPublicPolicy(bucketName: string): Promise<void> {
  * @param imageUrl The URL of the image to download
  * @param filename A unique filename for the uploaded image
  * @param bucketName The name of the storage bucket
- * @returns The public URL of the uploaded image, or null if there was an error
+ * @returns The public URL of the uploaded image, or the original URL if there was an error
  */
 export async function downloadAndUploadImage(
   imageUrl: string, 
@@ -100,21 +101,26 @@ export async function downloadAndUploadImage(
   bucketName: string = 'product-images'
 ): Promise<string | null> {
   try {
-    // If there are permission issues with storage buckets, just return the original URL
-    // This allows imports to continue working even when storage permissions fail
-    console.log(`Downloading image from: ${imageUrl}`);
+    if (!imageUrl) {
+      console.error("No image URL provided");
+      return null;
+    }
     
-    // Early return with original URL if it's a full URL, to avoid storage errors
-    if (imageUrl.startsWith('http') && !imageUrl.includes('localhost')) {
-      console.log(`Using original remote URL as fallback: ${imageUrl}`);
+    console.log(`Processing image: ${imageUrl} for product: ${filename}`);
+    
+    // IMPORTANT: Pour les imports WooCommerce, nous retournons toujours l'URL d'origine
+    // pour éviter les problèmes d'autorisations de stockage
+    // Cela garantit que les images sont affichées correctement même si le téléchargement échoue
+    if (imageUrl.startsWith('http')) {
       return imageUrl;
     }
     
-    // Download the image with a 10 second timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
+    // Uniquement pour les images locales, nous essayons le téléchargement et l'upload
     try {
+      // Download the image with a 5 second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(imageUrl, { 
         signal: controller.signal 
       });
@@ -123,7 +129,7 @@ export async function downloadAndUploadImage(
       
       if (!response.ok) {
         console.warn(`Failed to download image: ${response.status} ${response.statusText}`);
-        return imageUrl; // Return original URL as fallback
+        return imageUrl;
       }
       
       // Extract content type and handle based on the type
@@ -155,8 +161,6 @@ export async function downloadAndUploadImage(
         default: correctMimeType = 'image/jpeg'; // Default to JPEG
       }
       
-      console.log(`File extension: ${fileExtension}, setting MIME type to: ${correctMimeType}`);
-      
       // Get image as array buffer
       const imageArrayBuffer = await response.arrayBuffer();
       
@@ -174,7 +178,7 @@ export async function downloadAndUploadImage(
       const bucketExists = await ensureStorageBucket(bucketName);
       if (!bucketExists) {
         console.warn(`Failed to ensure storage bucket ${bucketName} exists, using original URL`);
-        return imageUrl; // Return original URL as fallback
+        return imageUrl;
       }
       
       // Get Supabase client
@@ -182,10 +186,9 @@ export async function downloadAndUploadImage(
       
       // Generate a unique filename with proper extension
       const uniqueFilename = `${filename.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.${fileExtension}`;
-      console.log(`Uploading image to Supabase with filename: ${uniqueFilename}`);
       
       // Upload to Supabase Storage with explicit content type
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from(bucketName)
         .upload(uniqueFilename, imageFile, {
           cacheControl: '3600',
@@ -195,7 +198,7 @@ export async function downloadAndUploadImage(
         
       if (error) {
         console.error("Error uploading image to storage:", error);
-        return null;
+        return imageUrl;
       }
       
       // Get public URL
@@ -205,15 +208,14 @@ export async function downloadAndUploadImage(
         
       console.log(`Successfully uploaded image to: ${publicUrlData?.publicUrl}`);
       
-      return publicUrlData?.publicUrl || null;
+      return publicUrlData?.publicUrl || imageUrl;
     } catch (fetchError) {
-      clearTimeout(timeoutId);
-      console.warn("Error fetching image:", fetchError);
-      return imageUrl; // Return original URL as fallback
+      console.warn("Error fetching/processing image:", fetchError);
+      return imageUrl;
     }
   } catch (error) {
-    console.error("Error downloading and uploading image:", error);
-    return imageUrl; // Return original URL as fallback
+    console.error("Error in downloadAndUploadImage:", error);
+    return imageUrl;
   }
 }
 

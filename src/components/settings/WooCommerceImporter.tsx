@@ -82,6 +82,7 @@ const WooCommerceImporter = () => {
     overwriteExisting: false
   });
   const [selectAll, setSelectAll] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,34 +94,25 @@ const WooCommerceImporter = () => {
   });
 
   useEffect(() => {
-    const loadSavedConfig = async () => {
-      if (!user) return;
-      
-      try {
-        console.log("Chargement de la configuration WooCommerce pour l'utilisateur:", user.id);
-        const config = await getWooCommerceConfig(user.id);
+    // Nous n'utilisons plus getWooCommerceConfig car la fonction edge n'existe pas
+    // Au lieu de cela, utilisons localStorage pour stocker temporairement la configuration
+    try {
+      const savedConfig = localStorage.getItem('woocommerce_config');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        form.reset({
+          siteUrl: config.siteUrl,
+          consumerKey: config.consumerKey,
+          consumerSecret: config.consumerSecret,
+        });
         
-        if (config) {
-          console.log("Configuration WooCommerce chargée:", config);
-          form.reset({
-            siteUrl: config.site_url,
-            consumerKey: config.consumer_key,
-            consumerSecret: config.consumer_secret,
-          });
-          
-          toast.success("Configuration WooCommerce chargée");
-          setConfigLoaded(true);
-        } else {
-          console.log("Aucune configuration WooCommerce trouvée");
-        }
-      } catch (error) {
-        console.error("Error loading WooCommerce config:", error);
-        toast.error("Erreur lors du chargement de la configuration");
+        console.log("Configuration WooCommerce chargée depuis localStorage");
+        setConfigLoaded(true);
       }
-    };
-    
-    loadSavedConfig();
-  }, [user, form]);
+    } catch (error) {
+      console.error("Error loading WooCommerce config:", error);
+    }
+  }, [form]);
 
   const handleSaveConfig = async (values: z.infer<typeof formSchema>) => {
     if (!user) {
@@ -332,10 +324,24 @@ const WooCommerceImporter = () => {
       
       console.log(`Starting import with overwriteExisting: ${importOptions.overwriteExisting}`);
       
-      await ensureStorageBucket('product-images');
+      // Assurez-vous que le bucket existe avant l'importation
+      try {
+        await ensureStorageBucket('product-images');
+      } catch (storageError) {
+        console.error("Error ensuring storage bucket exists, continuing anyway:", storageError);
+        // Continuer même en cas d'erreur car nous utilisons les URL d'origine
+      }
+      
+      // Ajoutons des propriétés nécessaires aux produits avant importation
+      const enhancedProducts = selectedProductsToImport.map(product => ({
+        ...product,
+        siteUrl: form.getValues().siteUrl,
+        consumerKey: form.getValues().consumerKey,
+        consumerSecret: form.getValues().consumerSecret
+      }));
       
       const result = await importWooCommerceProducts(
-        selectedProductsToImport,
+        enhancedProducts,
         importOptions.includeVariations,
         importOptions.overwriteExisting
       );
@@ -359,7 +365,7 @@ const WooCommerceImporter = () => {
       toast.error("Erreur lors de l'importation des produits");
       setImportProgress(0);
       setImportStage("Erreur lors de l'importation");
-      setErrors([error instanceof Error ? error.message : "Unknown error"]);
+      setErrors([error instanceof Error ? error.message : "Erreur inconnue"]);
     } finally {
       setIsImporting(false);
     }
@@ -401,8 +407,6 @@ const WooCommerceImporter = () => {
     const productsToCount = allProducts.length > 0 ? allProducts : productsList;
     return productsToCount.filter(p => selectedProducts[p.id]).length;
   };
-
-  const [errors, setErrors] = useState<string[]>([]);
 
   return (
     <div className="space-y-6">
@@ -875,93 +879,4 @@ const WooCommerceImporter = () => {
                     </div>
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-red-800">
-                        {errors.length} {errors.length > 1 ? 'erreurs ont été' : 'erreur a été'} rencontrée{errors.length > 1 ? 's' : ''}
-                      </h3>
-                      <div className="mt-2 text-sm text-red-700 max-h-40 overflow-auto">
-                        <ul className="list-disc pl-5 space-y-1">
-                          {errors.map((error, index) => (
-                            <li key={index}>{error}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <DialogFooter>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setImportDialogOpen(false)}
-                  disabled={isImporting}
-                >
-                  Annuler
-                </Button>
-                <Button 
-                  onClick={handleImportProducts}
-                  disabled={isImporting || getSelectedProductsCount() === 0}
-                >
-                  {isImporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Importation...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      Démarrer l'importation
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <div className="py-4">
-                <div className={`p-4 rounded-lg ${importResult.success ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    {importResult.success ? (
-                      <PackageCheck className="h-6 w-6 text-green-600" />
-                    ) : (
-                      <AlertCircle className="h-6 w-6 text-amber-600" />
-                    )}
-                    <h3 className="font-medium">
-                      {importResult.success ? 'Importation réussie' : 'Importation partielle'}
-                    </h3>
-                  </div>
-                  <ul className="space-y-1 pl-9 text-sm">
-                    <li>Produits importés: {importResult.totalImported}</li>
-                    {importResult.skipped > 0 && (
-                      <li>Produits ignorés: {importResult.skipped}</li>
-                    )}
-                  </ul>
-                </div>
-                
-                {importResult.errors && importResult.errors.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-2">Erreurs rencontrées:</h4>
-                    <div className="max-h-40 overflow-y-auto">
-                      <ul className="list-disc pl-5 text-sm space-y-1">
-                        {importResult.errors.map((error, index) => (
-                          <li key={index} className="text-destructive text-xs">{error}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <DialogFooter>
-                <Button onClick={() => setImportDialogOpen(false)}>
-                  Fermer
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default WooCommerceImporter;
+                        {errors.length}

@@ -41,8 +41,8 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
     e.currentTarget.src = '/placeholder.svg';
   };
 
-  // Get image source, supporting both naming conventions
-  const imageSource = product.image_url || '/placeholder.svg';
+  // Get image source, supporting both naming conventions (imageUrl et image_url)
+  const imageSource = product.image_url || product.imageUrl || '/placeholder.svg';
 
   // Get the alt text, supporting both naming conventions
   const imageAlt = product.image_alt || `${product.name} image`;
