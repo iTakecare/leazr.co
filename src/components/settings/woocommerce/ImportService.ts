@@ -283,7 +283,7 @@ interface SchemaUpdateResult {
   error?: string;
 }
 
-// Fix for the TypeScript errors - update the RPC call parameters
+// Fix for the TypeScript errors - update the RPC call parameters structure
 export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
   try {
     // Utilisation du client admin qui permet de contourner les restrictions RLS
@@ -292,26 +292,32 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
     // Adding console.log for debugging
     console.log('Starting schema update process...');
     
-    // Fix: Use proper parameter structure for RPC calls
-    const { error: categoryError } = await adminSupabase.rpc('add_column_if_not_exists', {
-      p_table_name: 'products',
-      p_column_name: 'category',
-      p_column_type: 'text',
-      p_column_default: "'other'"
-    });
+    // Fix: Pass parameters as a single object without nested p_ properties
+    const { error: categoryError } = await adminSupabase.rpc(
+      'add_column_if_not_exists',
+      {
+        table_name: 'products',
+        column_name: 'category',
+        column_type: 'text',
+        column_default: "'other'"
+      }
+    );
     
     if (categoryError) {
       console.error('Erreur lors de l\'ajout de la colonne category:', categoryError);
       return { success: false, error: categoryError.message };
     }
     
-    // Fix: Use proper parameter structure for RPC calls
-    const { error: descriptionError } = await adminSupabase.rpc('add_column_if_not_exists', {
-      p_table_name: 'products',
-      p_column_name: 'description',
-      p_column_type: 'text',
-      p_column_default: 'NULL'
-    });
+    // Fix: Pass parameters as a single object without nested p_ properties
+    const { error: descriptionError } = await adminSupabase.rpc(
+      'add_column_if_not_exists',
+      {
+        table_name: 'products',
+        column_name: 'description',
+        column_type: 'text',
+        column_default: 'NULL'
+      }
+    );
     
     if (descriptionError) {
       console.error('Erreur lors de l\'ajout de la colonne description:', descriptionError);
