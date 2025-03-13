@@ -1,7 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { Product } from "@/data/products";
-import { toast } from "sonner";
+import { Equipment } from "@/types/equipment";
 
 export interface EquipmentItem {
   id: string;
@@ -25,50 +23,46 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
   try {
     const { data, error } = await supabase
       .from('offers')
-      .insert([{
-        ...offerData,
-        user_id: (await supabase.auth.getUser()).data.user?.id
-      }])
-      .select('id')
-      .single();
-
+      .insert([offerData])
+      .select();
+    
     if (error) throw error;
-    return data?.id || null;
+    
+    return data?.[0]?.id || null;
   } catch (error) {
-    console.error('Error creating offer:', error);
-    toast.error("Erreur lors de la création de l'offre");
+    console.error("Error creating offer:", error);
     return null;
   }
 };
 
-export const getOffers = async () => {
+export const getOffers = async (): Promise<any[]> => {
   try {
     const { data, error } = await supabase
       .from('offers')
       .select('*')
       .order('created_at', { ascending: false });
-
+    
     if (error) throw error;
+    
     return data || [];
   } catch (error) {
-    console.error('Error fetching offers:', error);
-    toast.error("Erreur lors de la récupération des offres");
+    console.error("Error fetching offers:", error);
     return [];
   }
 };
 
-export const deleteOffer = async (id: string): Promise<boolean> => {
+export const deleteOffer = async (offerId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('offers')
       .delete()
-      .eq('id', id);
-
+      .eq('id', offerId);
+    
     if (error) throw error;
+    
     return true;
   } catch (error) {
-    console.error('Error deleting offer:', error);
-    toast.error("Erreur lors de la suppression de l'offre");
+    console.error("Error deleting offer:", error);
     return false;
   }
 };
