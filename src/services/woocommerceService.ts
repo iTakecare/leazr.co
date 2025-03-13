@@ -895,4 +895,6 @@ const mapDbProductToProduct = (record: any): Product => {
     variation_attributes: record.variation_attributes || {},
     active: record.active !== false,
     createdAt: record.created_at ? new Date(record.created_at) : new Date(),
-    updatedAt: record.updated_
+    updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
+  };
+};
