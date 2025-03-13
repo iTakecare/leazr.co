@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -648,8 +649,8 @@ const WooCommerceImporter = () => {
           </div>
           <div className="ml-3">
             <p className="text-sm text-blue-700">
-              Cet outil permet d'importer les produits de votre boutique WooCommerce directement dans le catalogue iTakecare.
-              Les identifiants d'API sont préremplis pour faciliter l'importation.
+              Cet outil permet d&apos;importer les produits de votre boutique WooCommerce directement dans le catalogue iTakecare.
+              Les identifiants d&apos;API sont préremplis pour faciliter l&apos;importation.
             </p>
           </div>
         </div>
@@ -761,7 +762,7 @@ const WooCommerceImporter = () => {
       
       {/* Options d'importation */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-md font-medium text-gray-900 mb-4">Options d'importation</h3>
+        <h3 className="text-md font-medium text-gray-900 mb-4">Options d&apos;importation</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="flex items-center gap-2">
@@ -830,7 +831,7 @@ const WooCommerceImporter = () => {
             />
             <div>
               <span className="text-sm font-medium text-gray-700">Écraser les produits existants</span>
-              <p className="text-xs text-muted-foreground">Les produits existants seront mis à jour au lieu d'être ignorés</p>
+              <p className="text-xs text-muted-foreground">Les produits existants seront mis à jour au lieu d&apos;être ignorés</p>
             </div>
           </label>
         </div>
@@ -887,3 +888,193 @@ const WooCommerceImporter = () => {
               onClick={resetForm}
               variant="outline"
               className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              {importStatus === 'completed' || importStatus === 'error' ? 'Recommencer' : 'Annuler'}
+            </Button>
+          )}
+        </div>
+        
+        {products.length > 0 && (
+          <div className="text-sm text-gray-500">
+            {products.length} produits trouvés
+          </div>
+        )}
+      </div>
+      
+      {/* Indicateur de progression */}
+      {(importStatus === 'importing' || importStatus === 'completed') && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="mb-2 flex justify-between">
+            <h3 className="text-md font-medium text-gray-900">{importStage || "Progression de l'importation"}</h3>
+            <span className="text-sm font-medium text-gray-700">{importProgress}%</span>
+          </div>
+          
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div 
+              className={`h-2.5 rounded-full ${
+                importStatus === 'completed' ? 'bg-green-600' : 'bg-blue-600'
+              }`}
+              style={{ width: `${importProgress}%` }}
+            ></div>
+          </div>
+          
+          {(importStatus === 'importing' || importStatus === 'completed') && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+              <div className="bg-green-50 rounded-lg p-3">
+                <div className="font-medium text-green-800">{successCount}</div>
+                <div className="text-xs text-green-600">Produits importés</div>
+              </div>
+              
+              {fetchingOptions.includeImages && (
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <div className="font-medium text-blue-800">{importedImages}</div>
+                  <div className="text-xs text-blue-600">Images importées</div>
+                </div>
+              )}
+              
+              <div className={`${errorCount > 0 ? 'bg-red-50' : 'bg-gray-50'} rounded-lg p-3`}>
+                <div className={`font-medium ${errorCount > 0 ? 'text-red-800' : 'text-gray-800'}`}>
+                  {errorCount}
+                </div>
+                <div className={`text-xs ${errorCount > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                  Erreurs
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Messages d'erreur */}
+      {errors.length > 0 && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                {errors.length} {errors.length > 1 ? 'erreurs ont été' : 'erreur a été'} rencontrée{errors.length > 1 ? 's' : ''}
+              </h3>
+              <div className="mt-2 text-sm text-red-700 max-h-40 overflow-auto">
+                <ul className="list-disc pl-5 space-y-1">
+                  {errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Tableau d'aperçu des produits */}
+      {products.length > 0 && importStatus !== 'importing' && (
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
+              <LayoutGrid className="h-5 w-5 text-gray-500" />
+              Aperçu des produits ({products.length})
+            </h3>
+            <div className="text-xs text-gray-500">
+              Affichage limité à 5 produits pour performance
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Produit
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Prix
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Catégories
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Images
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Variations
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {products.slice(0, 5).map((product) => (
+                  <tr key={product.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {product.images && product.images.length > 0 ? (
+                          <img
+                            src={product.images[0].src}
+                            alt={product.name}
+                            className="h-10 w-10 rounded object-cover flex-shrink-0 mr-4"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded bg-gray-200 flex items-center justify-center flex-shrink-0 mr-4">
+                            <Package className="h-5 w-5 text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {product.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            SKU: {product.sku || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <div className="text-gray-900 font-medium">
+                        {product.price ? `${product.price} €` : 'N/A'}
+                      </div>
+                      {product.regular_price !== product.price && (
+                        <div className="text-xs text-gray-500 line-through">
+                          {product.regular_price} €
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {product.categories && product.categories.length > 0 ? (
+                          product.categories.map((category, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                            >
+                              <Tag className="h-3 w-3 mr-1" />
+                              {category.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-500">Aucune catégorie</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                        {product.images?.length || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                        {product.variations?.length || 0}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WooCommerceImporter;
