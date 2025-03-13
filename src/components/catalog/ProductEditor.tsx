@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { Upload, X } from "lucide-react";
+import { Product } from "@/types/catalog";
 
 interface ProductEditorProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   };
 
   const addProductMutation = useMutation({
-    mutationFn: addProduct,
+    mutationFn: (productData: Partial<Product>) => addProduct(productData),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       
@@ -53,7 +54,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
         handleSuccess();
       }
     },
-    onError: () => {
+    onError: (error) => {
+      toast.error("Erreur lors de l'ajout du produit");
       setIsSubmitting(false);
     }
   });

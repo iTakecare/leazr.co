@@ -30,11 +30,11 @@ const Catalog = () => {
   } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
-    // Fallback pour utiliser un tableau vide si la requête échoue
-    onError: (err) => {
-      console.error("Erreur lors du chargement des produits:", err);
-      toast.error("Impossible de charger les produits");
-      return [];
+    meta: {
+      onError: (err: Error) => {
+        console.error("Erreur lors du chargement des produits:", err);
+        toast.error("Impossible de charger les produits");
+      }
     }
   });
 

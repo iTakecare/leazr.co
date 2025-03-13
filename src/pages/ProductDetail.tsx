@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,11 +32,13 @@ const ProductDetail = () => {
     enabled: !!productId,
     meta: {
       onSuccess: (data: Product) => {
-        setFormData(data);
-        
-        // Convert specifications to a simple key-value object for editing
-        if (data.specifications) {
-          setSpecifications(data.specifications as Record<string, string>);
+        if (data) {
+          setFormData(data);
+          
+          // Convert specifications to a simple key-value object for editing
+          if (data.specifications) {
+            setSpecifications(data.specifications as Record<string, string>);
+          }
         }
       }
     }
@@ -49,6 +52,9 @@ const ProductDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Produit mis à jour avec succès");
     },
+    onError: (error) => {
+      toast.error("Erreur lors de la mise à jour du produit");
+    }
   });
   
   const deleteMutation = useMutation({
@@ -58,12 +64,15 @@ const ProductDetail = () => {
       navigate("/catalog");
       toast.success("Produit supprimé avec succès");
     },
+    onError: (error) => {
+      toast.error("Erreur lors de la suppression du produit");
+    }
   });
   
   const imageMutation = useMutation({
     mutationFn: ({ file, id }: { file: File; id: string }) => 
       uploadProductImage(file, id),
-    onSuccess: (imageUrl) => {
+    onSuccess: (imageUrl: string) => {
       setFormData(prev => ({ ...prev, imageUrl }));
       updateMutation.mutate({ 
         id: productId!, 
@@ -71,6 +80,9 @@ const ProductDetail = () => {
       });
       toast.success("Image mise à jour avec succès");
     },
+    onError: (error) => {
+      toast.error("Erreur lors de la mise à jour de l'image");
+    }
   });
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -353,4 +365,3 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
-

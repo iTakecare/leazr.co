@@ -10,11 +10,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, AlertCircle } from "lucide-react";
-import { Product, products as defaultProducts } from "@/data/products";
+import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Alert } from "@/components/ui/alert";
+import { products as defaultProducts } from "@/data/products";
 
 interface ProductCatalogProps {
   isOpen: boolean;
@@ -26,9 +27,17 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   
+  // Convert mock products to proper Product type
+  const enrichedDefaultProducts = defaultProducts.map(product => ({
+    ...product,
+    specifications: {},
+    createdAt: new Date(),
+    updatedAt: new Date()
+  })) as Product[];
+  
   // Utiliser React Query avec les produits par défaut comme fallback
   const { 
-    data: products = defaultProducts, 
+    data: products = enrichedDefaultProducts, 
     isLoading, 
     isError 
   } = useQuery({
