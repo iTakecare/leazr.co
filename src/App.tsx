@@ -17,43 +17,57 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import CreateTestUsers from "@/pages/CreateTestUsers";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import Container from "@/components/layout/Container";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 2,
+      retry: 1,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
 
-// Component for protected routes
+// Component for protected routes with timeout handling
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading, session } = useAuth();
+  const [timeoutOccurred, setTimeoutOccurred] = useState(false);
   
   useEffect(() => {
     console.log("Protected route state:", { isLoading, user: !!user, session: !!session });
+    
+    // Set a timeout to handle possible infinite loading
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        console.log("Authentication loading timeout occurred");
+        setTimeoutOccurred(true);
+      }
+    }, 5000); // 5 seconds timeout
+    
+    return () => clearTimeout(timer);
   }, [isLoading, user, session]);
   
-  if (isLoading) {
+  // If timed out or explicitly not authenticated, redirect to login
+  if (timeoutOccurred || (!isLoading && !user)) {
+    console.log("Redirecting to login: timeout =", timeoutOccurred, "no user =", !user);
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Still loading and not timed out yet
+  if (isLoading && !timeoutOccurred) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
         <p>Chargement de votre profil...</p>
+        <p className="text-sm text-muted-foreground mt-2">Si le chargement persiste, <a href="/login" className="text-primary underline">cliquez ici pour vous reconnecter</a></p>
       </div>
     );
   }
   
-  if (!user) {
-    console.log("User not authenticated, redirecting to login");
-    return <Navigate to="/login" replace />;
-  }
-  
+  // If we made it here, user is authenticated
   return <>{children}</>;
 }
 
@@ -72,6 +86,14 @@ function Layout() {
 
 // Simple app component to separate router from auth provider
 function AppRoutes() {
+  // Force rerender when route changes to help clean up auth state issues
+  const [key, setKey] = useState(0);
+  
+  useEffect(() => {
+    // Reset the router component on mount to clean any stale auth state
+    setKey(prevKey => prevKey + 1);
+  }, []);
+  
   return (
     <Routes>
       <Route path="/" element={<Index />} />

@@ -33,57 +33,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for active session on component mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchUserProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        if (session) {
-          await fetchUserProfile(session.user.id);
+    console.log("AuthProvider initialized");
+    
+    async function initializeAuth() {
+      try {
+        setIsLoading(true);
+        
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log("Current session retrieved:", !!currentSession);
+        setSession(currentSession);
+        
+        if (currentSession) {
+          await fetchUserProfile(currentSession.user.id);
         } else {
-          setUser(null);
           setIsLoading(false);
         }
+        
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (_event, newSession) => {
+            console.log("Auth state changed, event:", _event);
+            setSession(newSession);
+            
+            if (newSession) {
+              await fetchUserProfile(newSession.user.id);
+            } else {
+              setUser(null);
+              setIsLoading(false);
+            }
+          }
+        );
+        
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+        setIsLoading(false);
       }
-    );
-
-    // Clean up subscription on unmount
-    return () => {
-      subscription.unsubscribe();
-    };
+    }
+    
+    initializeAuth();
   }, []);
 
   async function fetchUserProfile(userId: string) {
     try {
-      setIsLoading(true);
+      console.log("Fetching user profile for:", userId);
       
       let profileData = null;
       
       try {
-        // Essayer d'abord avec adminSupabase pour contourner les RLS
         const { data, error } = await adminSupabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .single();
           
-        if (!error) {
+        if (error) {
+          console.error("Admin fetch error:", error);
+        } else {
+          console.log("Admin fetch successful:", data);
           profileData = data;
         }
       } catch (adminError) {
-        console.log('Admin fetch failed:', adminError);
+        console.error('Admin fetch failed:', adminError);
       }
       
-      // Si l'approche admin échoue, essayer l'approche standard
       if (!profileData) {
         try {
           const { data, error } = await supabase
@@ -92,41 +106,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', userId)
             .single();
           
-          if (!error) {
+          if (error) {
+            console.error("Standard fetch error:", error);
+          } else {
+            console.log("Standard fetch successful:", data);
             profileData = data;
           }
         } catch (standardError) {
-          console.log('Standard fetch failed:', standardError);
+          console.error('Standard fetch failed:', standardError);
         }
       }
       
-      // Si les deux approches échouent, créer un profil minimal
-      if (!profileData) {
-        if (session) {
-          profileData = {
-            id: userId,
-            first_name: null,
-            last_name: null,
-            role: 'client' as const,
-            company: null,
-            avatar_url: null
-          };
-        }
+      if (!profileData && session) {
+        console.log("Creating minimal profile");
+        profileData = {
+          id: userId,
+          first_name: session.user?.user_metadata?.first_name || "Utilisateur",
+          last_name: session.user?.user_metadata?.last_name || "",
+          role: 'client' as const,
+          company: null,
+          avatar_url: null
+        };
       }
       
-      // Ajouter l'email depuis la session au profil utilisateur
-      if (profileData) {
+      if (profileData && session) {
         const userWithEmail = {
           ...profileData,
           email: session?.user?.email || null,
         };
         
+        console.log("Setting user profile:", userWithEmail);
         setUser(userWithEmail as UserProfile);
+      } else {
+        console.error("No profile data found or created");
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
       toast.error('Erreur lors de la récupération du profil');
     } finally {
+      console.log("Fetch profile completed, setting isLoading to false");
       setIsLoading(false);
     }
   }
@@ -134,37 +152,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signIn(email: string, password: string) {
     try {
       setIsLoading(true);
+      console.log("Signing in with:", email);
 
-      // Ajouter un timeout pour éviter que la connexion reste bloquée
-      const signInPromise = supabase.auth.signInWithPassword({ email, password });
-      
-      // Créer une promesse de timeout de 10 secondes
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Délai de connexion dépassé')), 10000);
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
       });
-      
-      // Utiliser Promise.race pour résoudre avec la première promesse qui se termine
-      const { error } = await Promise.race([
-        signInPromise,
-        timeoutPromise
-      ]) as { data: { session: Session | null; user: any } | null; error: Error | null };
 
       if (error) {
         throw error;
       }
 
+      console.log("Sign in successful:", !!data.session);
       navigate('/dashboard');
       toast.success('Connexion réussie');
     } catch (error: any) {
       console.error('Error signing in:', error);
-      // Message d'erreur plus clair
+      setIsLoading(false);
+      
       const errorMessage = error.message === 'Invalid login credentials' 
         ? 'Email ou mot de passe incorrect'
         : error.message || 'Erreur lors de la connexion';
       
       toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   }
 
@@ -223,7 +233,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      // Update local user state with new values
       setUser({ ...user, ...updates });
       toast.success('Profil mis à jour avec succès');
     } catch (error: any) {
