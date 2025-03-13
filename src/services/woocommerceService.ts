@@ -1,4 +1,3 @@
-
 import { supabase, getSupabaseClient } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
 import { Product } from "@/types/catalog";
@@ -564,30 +563,73 @@ async function createProductFromWooCommerceData(
     name = brandMatch[2].trim();
   }
 
-  // Handle image - improved to better handle variations with image
+  // Handle images - improved to handle multiple images
   let imageUrl = '';
+  const additionalImages: string[] = [];
   
-  if (isVariation && wooProduct.image && wooProduct.image.src) {
-    // Get variation-specific image if available
-    imageUrl = wooProduct.image.src;
-  } else if (wooProduct.images && wooProduct.images.length > 0) {
-    // Otherwise get first available image
-    imageUrl = wooProduct.images[0].src;
-  }
-  
-  // Download and upload image to our storage
-  if (imageUrl) {
+  // Process and upload all available images
+  if (wooProduct.images && wooProduct.images.length > 0) {
+    console.log(`Product has ${wooProduct.images.length} images`);
+    
+    // Process main image (first in the array)
+    const mainImageSource = wooProduct.images[0].src;
+    if (mainImageSource) {
+      try {
+        console.log(`Downloading and uploading main image from: ${mainImageSource}`);
+        const uploadedMainUrl = await downloadAndUploadImage(mainImageSource, `woo_${wooProduct.id}_main`);
+        if (uploadedMainUrl) {
+          console.log(`Main image successfully uploaded to: ${uploadedMainUrl}`);
+          imageUrl = uploadedMainUrl;
+        } else {
+          console.log(`Failed to upload main image, keeping original URL: ${mainImageSource}`);
+          imageUrl = mainImageSource;
+        }
+      } catch (imageError) {
+        console.warn(`Could not upload main image for ${wooProduct.name}, using original URL:`, imageError);
+        imageUrl = mainImageSource;
+      }
+    }
+    
+    // Process additional images (up to 4 more images - total of 5 with main image)
+    if (wooProduct.images.length > 1) {
+      const additionalWooImages = wooProduct.images.slice(1, 5); // Limit to next 4 images
+      
+      for (let i = 0; i < additionalWooImages.length; i++) {
+        const imgSource = additionalWooImages[i].src;
+        if (imgSource) {
+          try {
+            console.log(`Downloading and uploading additional image ${i+1} from: ${imgSource}`);
+            const uploadedUrl = await downloadAndUploadImage(imgSource, `woo_${wooProduct.id}_additional_${i}`);
+            if (uploadedUrl) {
+              console.log(`Additional image ${i+1} successfully uploaded to: ${uploadedUrl}`);
+              additionalImages.push(uploadedUrl);
+            } else {
+              console.log(`Failed to upload additional image ${i+1}, keeping original URL: ${imgSource}`);
+              additionalImages.push(imgSource);
+            }
+          } catch (imageError) {
+            console.warn(`Could not upload additional image ${i+1} for ${wooProduct.name}, using original URL:`, imageError);
+            additionalImages.push(imgSource);
+          }
+        }
+      }
+    }
+  } else if (isVariation && wooProduct.image && wooProduct.image.src) {
+    // Handle variation-specific image
+    const variationImgSrc = wooProduct.image.src;
     try {
-      console.log(`Downloading and uploading image from: ${imageUrl}`);
-      const uploadedUrl = await downloadAndUploadImage(imageUrl, `woo_${wooProduct.id}`);
+      console.log(`Downloading and uploading variation image from: ${variationImgSrc}`);
+      const uploadedUrl = await downloadAndUploadImage(variationImgSrc, `woo_${wooProduct.id}_variation`);
       if (uploadedUrl) {
-        console.log(`Image successfully uploaded to: ${uploadedUrl}`);
+        console.log(`Variation image successfully uploaded to: ${uploadedUrl}`);
         imageUrl = uploadedUrl;
       } else {
-        console.log(`Failed to upload image, keeping original URL: ${imageUrl}`);
+        console.log(`Failed to upload variation image, keeping original URL: ${variationImgSrc}`);
+        imageUrl = variationImgSrc;
       }
     } catch (imageError) {
-      console.warn(`Could not upload image for ${wooProduct.name}, using original URL:`, imageError);
+      console.warn(`Could not upload variation image for ${wooProduct.name}, using original URL:`, imageError);
+      imageUrl = variationImgSrc;
     }
   }
 
@@ -612,6 +654,7 @@ async function createProductFromWooCommerceData(
     brand,
     category: determineCategory(wooProduct.categories),
     image_url: imageUrl,
+    image_urls: additionalImages.length > 0 ? additionalImages : null,
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
@@ -786,8 +829,10 @@ async function downloadAndUploadImage(imageUrl: string, productId: string): Prom
     // Make sure storage bucket exists
     await ensureStorageBucketExists();
     
+    // Import the function directly to avoid errors
+    const { supabase } = await import("@/integrations/supabase/client");
+    
     // Upload to Supabase Storage with explicit content type
-    const supabase = getSupabaseClient();
     const { data, error } = await supabase.storage
       .from('product-images')
       .upload(fileName, imageBlob, {
@@ -825,6 +870,7 @@ const mapDbProductToProduct = (record: any): Product => {
     price: Number(record.price),
     description: record.description || "",
     imageUrl: record.image_url || "",
+    image_urls: record.image_urls || null,
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
@@ -838,4 +884,3 @@ const mapDbProductToProduct = (record: any): Product => {
     sku: record.sku || ""
   };
 };
-
