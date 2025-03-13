@@ -18,4 +18,5 @@ export interface CreateClientData {
   phone?: string;
   address?: string;
   notes?: string;
+  user_id?: string; // Rendons user_id optionnel ici car il sera ajouté par le service
 }

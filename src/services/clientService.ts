@@ -103,9 +103,23 @@ export const getClientById = async (id: string): Promise<Client | null> => {
 
 export const createClient = async (clientData: CreateClientData): Promise<Client | null> => {
   try {
+    // Récupérer l'utilisateur actuel
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast.error("Vous devez être connecté pour créer un client");
+      return null;
+    }
+    
+    // Ajouter l'ID de l'utilisateur aux données du client
+    const clientWithUserId = {
+      ...clientData,
+      user_id: user.id
+    };
+    
     const { data, error } = await supabase
       .from('clients')
-      .insert(clientData)
+      .insert(clientWithUserId)
       .select()
       .single();
     

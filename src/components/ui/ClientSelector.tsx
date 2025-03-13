@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -11,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, User, Building2, Mail, Plus, Loader2 } from "lucide-react";
 import { getClients, createClient } from "@/services/clientService";
-import { Client } from "@/types/client";
+import { Client, CreateClientData } from "@/types/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -93,7 +92,13 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
   const onSubmit = async (data: QuickClientFormValues) => {
     setSubmitting(true);
     try {
-      const newClient = await createClient(data);
+      const clientData: CreateClientData = {
+        name: data.name,
+        email: data.email || undefined,
+        company: data.company || undefined
+      };
+      
+      const newClient = await createClient(clientData);
       if (newClient) {
         toast.success("Client créé avec succès");
         setClients([...clients, newClient]);
