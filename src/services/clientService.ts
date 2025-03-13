@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -304,6 +305,10 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     
     const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
     
+    // Get the actual site URL
+    const siteUrl = window.location.origin;
+    console.log("Using site URL for redirect:", siteUrl);
+    
     try {
       const { error: signupError } = await supabase.auth.signUp({
         email: client.email,
@@ -325,7 +330,7 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       }
       
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(client.email, {
-        redirectTo: `${window.location.origin}/login`
+        redirectTo: `${siteUrl}/login`
       });
       
       if (resetError) {
