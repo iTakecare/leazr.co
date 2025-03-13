@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase, adminSupabase } from '@/integrations/supabase/client';
 import { 
@@ -871,3 +872,147 @@ const WooCommerceImporter = () => {
               </span>
               <p className={`text-xs ${!schemaHasCategory ? 'text-gray-400' : 'text-muted-foreground'}`}>
                 Les catégories seront converties au format iTakecare
+              </p>
+            </div>
+          </label>
+
+          <label className="flex items-center gap-2">
+            <Switch
+              checked={fetchingOptions.overwriteExisting}
+              onCheckedChange={(checked) => setFetchingOptions({...fetchingOptions, overwriteExisting: checked})}
+              disabled={importStatus === 'fetching' || importStatus === 'importing'}
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-700">Écraser les produits existants</span>
+              <p className="text-xs text-muted-foreground">
+                Met à jour les produits avec le même nom/marque
+              </p>
+            </div>
+          </label>
+
+          <label className="flex items-center gap-2">
+            <Switch
+              checked={fetchingOptions.bypassRLS}
+              onCheckedChange={(checked) => setFetchingOptions({...fetchingOptions, bypassRLS: checked})}
+              disabled={importStatus === 'fetching' || importStatus === 'importing'}
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-700">Contourner la sécurité RLS</span>
+              <p className="text-xs text-muted-foreground">
+                Utilise un bypass de sécurité pour l&apos;importation
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* Actions et statistiques */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-md font-medium text-gray-900 mb-4">Actions et statistiques</h3>
+
+        <div className="space-y-4">
+          {/* Actions */}
+          <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={fetchProducts}
+              disabled={importStatus === 'fetching' || importStatus === 'importing'}
+              className="flex items-center gap-2"
+            >
+              <DownloadCloud className="h-4 w-4" />
+              Récupérer les produits
+            </Button>
+
+            <Button
+              onClick={importProducts}
+              disabled={products.length === 0 || importStatus === 'fetching' || importStatus === 'importing'}
+              className="flex items-center gap-2"
+            >
+              <Package className="h-4 w-4" />
+              Importer {products.length} produits
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={resetForm}
+              disabled={importStatus === 'fetching' || importStatus === 'importing'}
+              className="flex items-center gap-2"
+            >
+              <X className="h-4 w-4" />
+              Réinitialiser
+            </Button>
+          </div>
+
+          {/* Statistiques */}
+          {products.length > 0 && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-md">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-gray-500" />
+                  <span className="text-sm text-gray-700">Produits: <strong>{products.length}</strong></span>
+                </div>
+                
+                {importStatus === 'completed' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-5 w-5 text-green-500" />
+                      <span className="text-sm text-gray-700">Importés: <strong>{successCount}</strong></span>
+                    </div>
+                    
+                    {errorCount > 0 && (
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                        <span className="text-sm text-gray-700">Erreurs: <strong>{errorCount}</strong></span>
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                {fetchingOptions.includeImages && importedImages > 0 && (
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-gray-500" />
+                    <span className="text-sm text-gray-700">Images: <strong>{importedImages}</strong></span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Barre de progression */}
+          {(importStatus === 'importing' || importStatus === 'fetching') && (
+            <div className="space-y-2 mt-4">
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>{importStage}</span>
+                <span>{importProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out"
+                  style={{ width: `${importProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Liste des erreurs */}
+          {errors.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                Erreurs ({errors.length})
+              </h4>
+              <div className="max-h-60 overflow-y-auto rounded-md border border-red-100 bg-red-50 p-3">
+                <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                  {errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default WooCommerceImporter;
