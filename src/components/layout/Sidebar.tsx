@@ -2,18 +2,25 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Layers, LayoutDashboard, PlusCircle, ListOrdered, LogOut, Folders, Settings } from "lucide-react";
+import { LayoutDashboard, PlusCircle, ListOrdered, Folders, Settings, LogOut, User } from "lucide-react";
 import { 
   Tooltip, 
   TooltipContent, 
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 
 const Sidebar = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  
+  // Get initials from user's name for avatar fallback
+  const getInitials = () => {
+    if (!user) return "U";
+    return `${user.first_name?.charAt(0) || ""}${user.last_name?.charAt(0) || ""}`.toUpperCase() || "U";
+  };
 
   const sidebarItems = [
     { 
@@ -68,12 +75,27 @@ const Sidebar = () => {
       animate="visible"
       variants={containerVariants}
     >
-      <Link to="/" className="mb-8">
-        <Layers className="h-6 w-6 text-primary" />
-      </Link>
+      {/* Avatar remplace le lien vers l'index */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link to="/settings" className="mb-8">
+              <Avatar>
+                <AvatarImage src={user?.avatar_url || ""} alt={user?.first_name || "User"} />
+                <AvatarFallback>{getInitials()}</AvatarFallback>
+              </Avatar>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{user?.first_name} {user?.last_name}</p>
+            <p className="text-xs text-muted-foreground">{user?.role === 'admin' ? 'Administrateur' : 
+                     user?.role === 'partner' ? 'Partenaire' : 'Client'}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <div className="flex flex-col items-center space-y-6 flex-1">
-        {sidebarItems.map((item, index) => (
+        {sidebarItems.map((item) => (
           <motion.div key={item.path} variants={itemVariants}>
             <TooltipProvider>
               <Tooltip>

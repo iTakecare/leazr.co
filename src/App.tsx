@@ -2,7 +2,6 @@
 import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import './App.css';
 import { Toaster } from "sonner";
-import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import PageTransition from "@/components/layout/PageTransition";
 import Dashboard from "@/pages/Dashboard";
@@ -22,14 +21,11 @@ function Layout() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <Sidebar />
-      <div className="flex flex-col flex-1 pl-16 overflow-hidden">
-        <Navbar />
-        <main className="flex-1 overflow-y-auto p-4">
-          <PageTransition>
-            <Outlet />
-          </PageTransition>
-        </main>
-      </div>
+      <main className="flex-1 overflow-y-auto">
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
+      </main>
     </div>
   );
 }
