@@ -9,7 +9,12 @@ interface PageTransitionProps {
 
 const PageTransition = ({ children, className }: PageTransitionProps) => {
   return (
-    <div className={cn("w-full h-full", className)}>
+    <div
+      className={cn(
+        "animate-fade-in w-full h-full", 
+        className
+      )}
+    >
       {children}
     </div>
   );

@@ -7,19 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Container from "@/components/layout/Container";
-import { Mail, Lock, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const Login = () => {
-  const [email, setEmail] = useState("admin@test.com");
-  const [password, setPassword] = useState("admintest123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
-  const [errorCount, setErrorCount] = useState(0);
   const { signIn, isLoading, session } = useAuth();
   const navigate = useNavigate();
 
+  // Rediriger si déjà connecté
   useEffect(() => {
-    console.log("Login page - session state:", !!session);
     if (session) {
       navigate('/dashboard');
     }
@@ -33,22 +32,8 @@ const Login = () => {
       return;
     }
     
-    console.log("Attempting login with:", { email });
     setLoginAttempted(true);
     await signIn(email, password);
-    
-    // Increment error count if still on login page
-    setTimeout(() => {
-      if (window.location.pathname.includes('login')) {
-        setErrorCount(prev => prev + 1);
-      }
-    }, 1000);
-  };
-
-  const handleReset = () => {
-    sessionStorage.clear();
-    localStorage.clear();
-    window.location.href = '/login';
   };
 
   return (
@@ -65,14 +50,7 @@ const Login = () => {
             {loginAttempted && !isLoading && !session && (
               <div className="bg-destructive/15 p-3 rounded-md flex items-center text-sm text-destructive">
                 <AlertCircle className="h-4 w-4 mr-2" />
-                <span>Identifiants incorrects ou problème de connexion. Veuillez réessayer.</span>
-              </div>
-            )}
-            
-            {errorCount > 1 && (
-              <div className="bg-amber-100 p-3 rounded-md flex items-center text-sm text-amber-800">
-                <AlertCircle className="h-4 w-4 mr-2" />
-                <span>Problèmes de connexion persistants? <Button variant="link" className="p-0 h-auto text-amber-800 underline" onClick={handleReset}>Réinitialisez votre session</Button></span>
+                <span>Identifiants incorrects. Veuillez réessayer.</span>
               </div>
             )}
             
@@ -132,9 +110,8 @@ const Login = () => {
             </Button>
             
             <div className="text-xs text-center">
-              Les identifiants de test sont déjà saisis:<br />
-              <strong>admin@test.com / admintest123</strong><br />
-              Cliquez simplement sur Se connecter
+              Les identifiants de test sont:<br />
+              <strong>admin@test.com / admintest123</strong>
             </div>
             
             <div className="text-center text-sm">

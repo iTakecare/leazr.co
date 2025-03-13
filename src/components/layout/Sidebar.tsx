@@ -1,16 +1,8 @@
 
 import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
-  LayoutDashboard, 
-  PlusCircle, 
-  ListOrdered, 
-  Folders, 
-  Settings, 
-  LogOut, 
-  Calculator
-} from "lucide-react";
+import { LayoutDashboard, PlusCircle, ListOrdered, Folders, Settings, LogOut, User } from "lucide-react";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -22,22 +14,12 @@ import { useAuth } from "@/context/AuthContext";
 
 const Sidebar = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   
   // Get initials from user's name for avatar fallback
   const getInitials = () => {
     if (!user) return "U";
     return `${user.first_name?.charAt(0) || ""}${user.last_name?.charAt(0) || ""}`.toUpperCase() || "U";
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
   };
 
   const sidebarItems = [
@@ -60,11 +42,6 @@ const Sidebar = () => {
       path: "/catalog", 
       label: "Catalogue", 
       icon: <Folders className="h-5 w-5" /> 
-    },
-    {
-      path: "/calculator",
-      label: "Calculateur",
-      icon: <Calculator className="h-5 w-5" />
     },
     { 
       path: "/settings", 
@@ -93,12 +70,12 @@ const Sidebar = () => {
 
   return (
     <motion.div 
-      className="w-16 h-screen flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-border shadow-sm z-50"
+      className="fixed left-0 top-0 bottom-0 z-40 w-16 bg-background/80 backdrop-blur-lg border-r border-border/40 flex flex-col items-center py-6"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
     >
-      {/* Avatar en haut de la sidebar */}
+      {/* Avatar remplace le lien vers l'index */}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -126,7 +103,7 @@ const Sidebar = () => {
                   <Link
                     to={item.path}
                     className={`p-2 rounded-md transition-colors flex items-center justify-center ${
-                      location.pathname === item.path || (item.path !== "/dashboard" && location.pathname.startsWith(item.path))
+                      location.pathname === item.path
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
@@ -147,7 +124,7 @@ const Sidebar = () => {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={handleSignOut}
+              onClick={signOut}
               className="p-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors mt-auto"
             >
               <LogOut className="h-5 w-5" />
