@@ -1,10 +1,10 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { 
-  LucideIcon, 
   LayoutDashboard, 
   Settings, 
   PlusCircle, 
@@ -13,8 +13,7 @@ import {
   Users, 
   LogOut, 
   LogIn, 
-  UserPlus,
-  User
+  UserPlus
 } from 'lucide-react';
 import { 
   Tooltip, 
@@ -29,7 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 interface NavItemProps {
   to: string;
   label: string;
-  icon: LucideIcon;
+  icon: React.ElementType;
   onClick?: () => void;
 }
 
