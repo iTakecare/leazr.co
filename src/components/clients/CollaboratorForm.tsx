@@ -51,7 +51,16 @@ const CollaboratorForm = ({ clientId, onSuccess }: CollaboratorFormProps) => {
   const onSubmit = async (values: CollaboratorFormValues) => {
     setLoading(true);
     try {
-      const collaborator = await addCollaborator(clientId, values);
+      // Ensure name and role are required fields
+      const collaboratorData = {
+        name: values.name,  // This is now required by schema
+        role: values.role,  // This is now required by schema
+        email: values.email || undefined,
+        phone: values.phone || undefined,
+        department: values.department || undefined,
+      };
+      
+      const collaborator = await addCollaborator(clientId, collaboratorData);
       if (collaborator) {
         toast.success("Collaborateur ajouté avec succès");
         form.reset();

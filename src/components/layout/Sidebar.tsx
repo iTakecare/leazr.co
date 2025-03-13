@@ -3,7 +3,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { LucideIcon, LayoutDashboard, Settings, PlusCircle, Calculator, ShoppingCart, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -40,8 +40,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { isAuthenticated, user } = useAuth();
-  const isMobile = useMobile();
+  const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   // Animation variants
   const sidebarVariants = {
@@ -87,7 +87,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           <Separator className="my-4" />
 
-          {isAuthenticated ? (
+          {user ? (
             <>
               <div className="space-y-1">
                 <NavItem
