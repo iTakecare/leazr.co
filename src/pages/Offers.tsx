@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -39,12 +40,14 @@ import {
   Clock,
   X,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { getOffers, deleteOffer } from "@/services/offerService";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useAuth } from "@/context/AuthContext";
 
 interface Offer {
   id: string;
@@ -60,7 +63,9 @@ const Offers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
+  const { session } = useAuth();
   
   useEffect(() => {
     fetchOffers();
@@ -68,11 +73,24 @@ const Offers = () => {
 
   const fetchOffers = async () => {
     setLoading(true);
+    setLoadingError(null);
+    
     try {
+      console.log("Fetching offers...");
       const offersData = await getOffers();
-      setOffers(offersData);
+      console.log("Offers fetched:", offersData);
+      
+      if (Array.isArray(offersData)) {
+        setOffers(offersData);
+      } else {
+        // Données reçues mais de type incorrect
+        console.error("Offers data is not an array:", offersData);
+        setLoadingError("Format de données incorrect");
+      }
     } catch (error) {
       console.error("Error fetching offers:", error);
+      setLoadingError("Impossible de charger les offres");
+      toast.error("Erreur lors du chargement des offres");
     } finally {
       setLoading(false);
     }
@@ -83,6 +101,11 @@ const Offers = () => {
     const matchesTab = activeTab === "all" || offer.status === activeTab;
     return matchesSearch && matchesTab;
   });
+
+  // Gestion d'un retry en cas d'erreur
+  const handleRetry = () => {
+    fetchOffers();
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -131,6 +154,8 @@ const Offers = () => {
       if (success) {
         toast.success("L'offre a été supprimée avec succès");
         fetchOffers();
+      } else {
+        toast.error("Erreur lors de la suppression de l'offre");
       }
     }
   };
@@ -167,6 +192,25 @@ const Offers = () => {
             <div className="flex flex-col items-center space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-muted-foreground">Chargement des offres...</p>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+
+  if (loadingError) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex h-[60vh] items-center justify-center">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="rounded-full bg-red-100 p-3">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <p className="text-lg font-medium">{loadingError}</p>
+              <p className="text-muted-foreground">Impossible de charger les offres</p>
+              <Button onClick={handleRetry}>Réessayer</Button>
             </div>
           </div>
         </Container>

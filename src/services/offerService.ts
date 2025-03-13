@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
+import { toast } from "sonner";
 
 export interface EquipmentItem {
   id: string;
@@ -47,16 +48,29 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
 
 export const getOffers = async (): Promise<any[]> => {
   try {
-    const { data, error } = await supabase
+    // Utiliser un timeout pour éviter les blocages indéfinis
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout lors de la récupération des offres")), 10000)
+    );
+    
+    const fetchPromise = supabase
       .from('offers')
       .select('*')
       .order('created_at', { ascending: false });
     
+    // Utiliser Promise.race pour résoudre avec la première promesse qui se termine
+    const { data, error } = await Promise.race([
+      fetchPromise,
+      timeoutPromise,
+    ]) as any;
+    
     if (error) throw error;
     
+    // Si aucune donnée n'est récupérée, renvoyer un tableau vide plutôt que null
     return data || [];
   } catch (error) {
     console.error("Error fetching offers:", error);
+    // Retourner un tableau vide en cas d'erreur plutôt que de planter l'application
     return [];
   }
 };
