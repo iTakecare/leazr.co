@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -23,6 +22,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "../ui/button";
+import { toast } from "sonner";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -37,10 +37,18 @@ const Sidebar = () => {
 
   const handleSignOut = async () => {
     try {
-      await signOut();
-      navigate("/login");
+      const result = await signOut();
+      console.log("Déconnexion réussie:", result);
+      toast.success("Déconnexion réussie");
+      // Forcer un délai pour s'assurer que la déconnexion est bien effectuée
+      setTimeout(() => {
+        navigate("/login");
+        // Forcer le rechargement de la page pour s'assurer que toutes les données de session sont effacées
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
+      toast.error("Erreur lors de la déconnexion");
     }
   };
 
