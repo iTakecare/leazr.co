@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Product } from "@/types/catalog";
-import { formatPrice } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { Laptop, PcCase, Smartphone, Monitor, Package } from "lucide-react";
 
 type ProductCardProps = {
@@ -42,10 +42,10 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
   };
 
   // Get image source, supporting both naming conventions
-  const imageSource = product.imageUrl || product.image_url || '/placeholder.svg';
+  const imageSource = product.image_url || '/placeholder.svg';
 
   // Get the alt text, supporting both naming conventions
-  const imageAlt = product.imageAlt || product.image_alt || `${product.name} image`;
+  const imageAlt = product.image_alt || `${product.name} image`;
 
   return (
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 border-transparent hover:border-primary/20">
@@ -75,7 +75,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
         <div className="font-bold text-lg">
-          {formatPrice(product.price)}
+          {formatCurrency(product.price)}
         </div>
         <Button 
           size="sm" 

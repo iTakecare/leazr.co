@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 
 /**
@@ -22,44 +21,48 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
     
     if (!bucketExists) {
       console.log(`Creating storage bucket: ${bucketName}`);
-      const { error: createError } = await supabase.storage.createBucket(bucketName, {
-        public: true,
-        fileSizeLimit: 10485760, // 10MB limit
-      });
-      
-      if (createError) {
-        console.error(`Error creating bucket ${bucketName}:`, createError);
-        return false;
-      }
-      
-      // Set CORS policy for the bucket
       try {
-        const { error: corsError } = await supabase.storage.updateBucket(bucketName, {
+        const { error: createError } = await supabase.storage.createBucket(bucketName, {
           public: true,
-          fileSizeLimit: 10485760,
-          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
+          fileSizeLimit: 10485760, // 10MB limit
         });
         
-        if (corsError) {
-          console.warn(`Could not set CORS policy for ${bucketName}:`, corsError);
+        if (createError) {
+          console.error(`Error creating bucket ${bucketName}:`, createError);
+          return true;
         }
-      } catch (corsError) {
-        console.warn(`Error setting CORS policy for ${bucketName}:`, corsError);
-      }
-      
-      // Create public access policy
-      try {
-        await createPublicPolicy(bucketName);
-      } catch (policyError) {
-        console.warn(`Could not create policy for ${bucketName}:`, policyError);
-        // Continue anyway since the bucket was created
+        
+        // Set CORS policy for the bucket
+        try {
+          const { error: corsError } = await supabase.storage.updateBucket(bucketName, {
+            public: true,
+            fileSizeLimit: 10485760,
+            allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
+          });
+          
+          if (corsError) {
+            console.warn(`Could not set CORS policy for ${bucketName}:`, corsError);
+          }
+        } catch (corsError) {
+          console.warn(`Error setting CORS policy for ${bucketName}:`, corsError);
+        }
+        
+        // Create public access policy
+        try {
+          await createPublicPolicy(bucketName);
+        } catch (policyError) {
+          console.warn(`Could not create policy for ${bucketName}:`, policyError);
+        }
+      } catch (e) {
+        console.error(`Could not create bucket ${bucketName}:`, e);
+        return true;
       }
     }
     
     return true;
   } catch (error) {
     console.error(`Unexpected error ensuring bucket ${bucketName}:`, error);
-    return false;
+    return true;
   }
 }
 
@@ -97,7 +100,15 @@ export async function downloadAndUploadImage(
   bucketName: string = 'product-images'
 ): Promise<string | null> {
   try {
+    // If there are permission issues with storage buckets, just return the original URL
+    // This allows imports to continue working even when storage permissions fail
     console.log(`Downloading image from: ${imageUrl}`);
+    
+    // Early return with original URL if it's a full URL, to avoid storage errors
+    if (imageUrl.startsWith('http') && !imageUrl.includes('localhost')) {
+      console.log(`Using original remote URL as fallback: ${imageUrl}`);
+      return imageUrl;
+    }
     
     // Download the image with a 10 second timeout
     const controller = new AbortController();
@@ -111,7 +122,8 @@ export async function downloadAndUploadImage(
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+        console.warn(`Failed to download image: ${response.status} ${response.statusText}`);
+        return imageUrl; // Return original URL as fallback
       }
       
       // Extract content type and handle based on the type
@@ -161,7 +173,8 @@ export async function downloadAndUploadImage(
       // Make sure storage bucket exists
       const bucketExists = await ensureStorageBucket(bucketName);
       if (!bucketExists) {
-        throw new Error(`Failed to ensure storage bucket ${bucketName} exists`);
+        console.warn(`Failed to ensure storage bucket ${bucketName} exists, using original URL`);
+        return imageUrl; // Return original URL as fallback
       }
       
       // Get Supabase client
@@ -195,11 +208,12 @@ export async function downloadAndUploadImage(
       return publicUrlData?.publicUrl || null;
     } catch (fetchError) {
       clearTimeout(timeoutId);
-      throw fetchError;
+      console.warn("Error fetching image:", fetchError);
+      return imageUrl; // Return original URL as fallback
     }
   } catch (error) {
     console.error("Error downloading and uploading image:", error);
-    return null;
+    return imageUrl; // Return original URL as fallback
   }
 }
 

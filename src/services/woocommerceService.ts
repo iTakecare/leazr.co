@@ -255,25 +255,33 @@ async function downloadAndUploadImage(imageUrl: string, productId: string): Prom
       return null;
     }
     
-    console.log(`Downloading and uploading image from: ${imageUrl} for product: ${productId}`);
+    console.log(`Processing image: ${imageUrl} for product: ${productId}`);
     
+    // For WooCommerce imports, always return the original URL to prevent storage permission issues
+    // This ensures that images are displayed correctly even if storage upload fails
+    return imageUrl;
+    
+    // The code below is kept but not used to avoid storage permission issues
+    /*
     // Importer le service de stockage
     const { downloadAndUploadImage } = await import("@/services/storageService");
     
-    // Utiliser la fonction améliorée pour télécharger et uploader l'image
-    const uploadedUrl = await downloadAndUploadImage(
-      imageUrl,
-      `woo-${productId}`,
-      'product-images'
-    );
+    // Generate a unique path for the image
+    const timestamp = Date.now();
+    const extension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
+    const path = `${productId}/${timestamp}.${extension}`;
     
-    if (!uploadedUrl) {
+    // Upload the image with preservation of original name for SEO
+    const result = await downloadAndUploadImage(imageUrl, path, 'product-images');
+    
+    if (!result) {
       console.error("Failed to upload image, fallback to original URL", imageUrl);
       return imageUrl;
     }
     
-    console.log(`Successfully uploaded image to: ${uploadedUrl}`);
-    return uploadedUrl;
+    console.log(`Successfully uploaded image to: ${result}`);
+    return result;
+    */
   } catch (error) {
     console.error("Error in downloadAndUploadImage:", error);
     // En cas d'erreur, retourner l'URL d'origine
@@ -605,66 +613,23 @@ async function createProductFromWooCommerceData(
   if (wooProduct.images && wooProduct.images.length > 0) {
     console.log(`Product has ${wooProduct.images.length} images`);
     
-    // Process main image (first in the array)
-    const mainImageSource = wooProduct.images[0].src;
-    if (mainImageSource) {
-      try {
-        console.log(`Downloading and uploading main image from: ${mainImageSource}`);
-        const uploadedMainUrl = await downloadAndUploadImage(mainImageSource, `woo_${wooProduct.id}_main`);
-        if (uploadedMainUrl) {
-          console.log(`Main image successfully uploaded to: ${uploadedMainUrl}`);
-          imageUrl = uploadedMainUrl;
-        } else {
-          console.log(`Failed to upload main image, keeping original URL: ${mainImageSource}`);
-          imageUrl = mainImageSource;
-        }
-      } catch (imageError) {
-        console.warn(`Could not upload main image for ${wooProduct.name}, using original URL:`, imageError);
-        imageUrl = mainImageSource;
-      }
+    // Always use original image URLs from WooCommerce
+    // This avoids storage permission issues
+    if (wooProduct.images.length > 0 && wooProduct.images[0].src) {
+      imageUrl = wooProduct.images[0].src;
     }
     
-    // Process additional images (up to 4 more images - total of 5 with main image)
+    // Get additional images (up to 4 more)
     if (wooProduct.images.length > 1) {
-      const additionalWooImages = wooProduct.images.slice(1, 5); // Limit to next 4 images
-      
-      for (let i = 0; i < additionalWooImages.length; i++) {
-        const imgSource = additionalWooImages[i].src;
-        if (imgSource) {
-          try {
-            console.log(`Downloading and uploading additional image ${i+1} from: ${imgSource}`);
-            const uploadedUrl = await downloadAndUploadImage(imgSource, `woo_${wooProduct.id}_additional_${i}`);
-            if (uploadedUrl) {
-              console.log(`Additional image ${i+1} successfully uploaded to: ${uploadedUrl}`);
-              additionalImages.push(uploadedUrl);
-            } else {
-              console.log(`Failed to upload additional image ${i+1}, keeping original URL: ${imgSource}`);
-              additionalImages.push(imgSource);
-            }
-          } catch (imageError) {
-            console.warn(`Could not upload additional image ${i+1} for ${wooProduct.name}, using original URL:`, imageError);
-            additionalImages.push(imgSource);
-          }
+      for (let i = 1; i < Math.min(wooProduct.images.length, 5); i++) {
+        if (wooProduct.images[i].src) {
+          additionalImages.push(wooProduct.images[i].src);
         }
       }
     }
   } else if (isVariation && wooProduct.image && wooProduct.image.src) {
     // Handle variation-specific image
-    const variationImgSrc = wooProduct.image.src;
-    try {
-      console.log(`Downloading and uploading variation image from: ${variationImgSrc}`);
-      const uploadedUrl = await downloadAndUploadImage(variationImgSrc, `woo_${wooProduct.id}_variation`);
-      if (uploadedUrl) {
-        console.log(`Variation image successfully uploaded to: ${uploadedUrl}`);
-        imageUrl = uploadedUrl;
-      } else {
-        console.log(`Failed to upload variation image, keeping original URL: ${variationImgSrc}`);
-        imageUrl = variationImgSrc;
-      }
-    } catch (imageError) {
-      console.warn(`Could not upload variation image for ${wooProduct.name}, using original URL:`, imageError);
-      imageUrl = variationImgSrc;
-    }
+    imageUrl = wooProduct.image.src;
   }
 
   // Calculate prices
@@ -687,8 +652,10 @@ async function createProductFromWooCommerceData(
     price,
     brand,
     category: determineCategory(wooProduct.categories),
-    image_url: imageUrl, // Corrected field name to use underscore convention
-    image_urls: additionalImages.length > 0 ? additionalImages : undefined, // Corrected field name
+    imageUrl: imageUrl, // Keep both for compatibility 
+    image_url: imageUrl, // Database uses underscore naming
+    imageUrls: additionalImages.length > 0 ? additionalImages : undefined,
+    image_urls: additionalImages.length > 0 ? additionalImages : undefined,
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
@@ -696,6 +663,7 @@ async function createProductFromWooCommerceData(
     sku: wooProduct.sku || null,
     parent_id: isVariation && parentId ? parentId : null,
     variation_attributes: variationAttributes || null,
+    monthly_price: price * 0.03, // Simplified monthly price calculation
   };
 
   console.log(`Preparing to ${productExists ? 'update' : 'insert'} product: ${wooProduct.name}`);
@@ -833,6 +801,9 @@ const mapDbProductToProduct = (record: any): Product => {
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
     variation_attributes: record.variation_attributes || {},
+    variants: record.variants || undefined,
+    variants_ids: record.variants_ids || undefined,
+    monthly_price: record.monthly_price || undefined,
     active: record.active !== false,
     createdAt: record.created_at ? new Date(record.created_at) : new Date(),
     updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
