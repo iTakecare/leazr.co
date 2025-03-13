@@ -7,9 +7,6 @@ import {
   Globe, 
   Building2, 
   Code, 
-  List, 
-  Tag,
-  ShoppingBag,
   Key
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import WooCommerceImporter from "@/components/settings/WooCommerceImporter";
 import LeaserManager from "@/components/settings/LeaserManager";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
@@ -40,7 +36,7 @@ const Settings = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
+        <TabsList className="grid w-full grid-cols-2 mb-8">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Général</span>
@@ -48,10 +44,6 @@ const Settings = () => {
           <TabsTrigger value="leasers" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Leasers</span>
-          </TabsTrigger>
-          <TabsTrigger value="advanced" className="flex items-center gap-2">
-            <Code className="h-4 w-4" />
-            <span className="hidden sm:inline">Avancé</span>
           </TabsTrigger>
         </TabsList>
         
@@ -184,25 +176,6 @@ const Settings = () => {
         
         <TabsContent value="leasers">
           <LeaserManager />
-        </TabsContent>
-        
-        <TabsContent value="advanced">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingBag className="h-5 w-5 text-primary" />
-                  <span>Importation WooCommerce</span>
-                </CardTitle>
-                <CardDescription>
-                  Importez des produits depuis votre boutique WooCommerce.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <WooCommerceImporter />
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
       </Tabs>
     </motion.div>
