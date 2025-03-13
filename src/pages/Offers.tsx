@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -53,7 +52,7 @@ interface Offer {
   amount: number;
   monthly_payment: number;
   commission: number;
-  status: "accepted" | "pending" | "rejected";
+  status: string;
   created_at: string;
 }
 
@@ -85,7 +84,7 @@ const Offers = () => {
     return matchesSearch && matchesTab;
   });
 
-  const getStatusBadge = (status: Offer["status"]) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "accepted":
         return (
@@ -106,6 +105,13 @@ const Offers = () => {
           <div className="flex items-center gap-1 rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
             <X className="h-3 w-3" />
             <span>Refusée</span>
+          </div>
+        );
+      default:
+        return (
+          <div className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">
+            <Clock className="h-3 w-3" />
+            <span>{status || "Inconnu"}</span>
           </div>
         );
     }
@@ -137,7 +143,6 @@ const Offers = () => {
     }
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
