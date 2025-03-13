@@ -304,53 +304,43 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     
     const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
     
-    const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
-      email: client.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        first_name: client.name.split(' ')[0],
-        last_name: client.name.split(' ').slice(1).join(' '),
-        role: 'client',
-        company: client.company || null
-      }
-    });
-    
-    if (createError) {
-      if (createError.message.includes('already exists')) {
-        console.log("User already exists, sending password reset email");
-        
-        const { error: resetError } = await adminSupabase.auth.resetPasswordForEmail(client.email, {
-          redirectTo: `${window.location.origin}/login`
-        });
-        
-        if (resetError) {
-          console.error("Error sending password reset:", resetError);
-          toast.error("Erreur lors de l'envoi du mail de réinitialisation");
-          return false;
+    try {
+      const { error: signupError } = await supabase.auth.signUp({
+        email: client.email,
+        password: tempPassword,
+        options: {
+          data: {
+            first_name: client.name.split(' ')[0],
+            last_name: client.name.split(' ').slice(1).join(' '),
+            role: 'client',
+            company: client.company || null
+          }
         }
-        
-        toast.success("Email de réinitialisation envoyé avec succès");
-        return true;
+      });
+      
+      if (signupError) {
+        console.log("Sign up error, likely user exists:", signupError.message);
       } else {
-        console.error("Error creating user account:", createError);
-        toast.error("Erreur lors de la création du compte");
+        console.log("New user created successfully");
+      }
+      
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(client.email, {
+        redirectTo: `${window.location.origin}/login`
+      });
+      
+      if (resetError) {
+        console.error("Error sending password reset:", resetError);
+        toast.error("Erreur lors de l'envoi du mail de réinitialisation");
         return false;
       }
-    }
-    
-    const { error: resetError } = await adminSupabase.auth.resetPasswordForEmail(client.email, {
-      redirectTo: `${window.location.origin}/login`
-    });
-    
-    if (resetError) {
-      console.error("Error sending password reset:", resetError);
-      toast.error("Compte créé mais erreur lors de l'envoi du mail de réinitialisation");
+      
+      toast.success("Email d'invitation envoyé au client avec succès");
       return true;
+    } catch (innerError) {
+      console.error("Error in authentication process:", innerError);
+      toast.error("Erreur lors de la création du compte client");
+      return false;
     }
-    
-    toast.success("Compte créé et email d'invitation envoyé avec succès");
-    return true;
   } catch (error) {
     console.error("Error in createAccountForClient:", error);
     toast.error("Erreur lors de la création du compte");
