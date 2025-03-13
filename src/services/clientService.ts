@@ -1,5 +1,6 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
-import { Client, Collaborator } from "@/types/client";
+import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
 
 const mockClients = [
