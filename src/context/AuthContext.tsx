@@ -1,7 +1,6 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -12,7 +11,7 @@ export interface UserProfile {
   role: 'admin' | 'client' | 'partner';
   company: string | null;
   avatar_url: string | null;
-  email?: string; // Add email to UserProfile
+  email?: string;
 }
 
 interface AuthContextType {
@@ -67,54 +66,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Utiliser la service_role pour contourner les politiques RLS
-      // qui causent l'erreur de récursion infinie
-      const { data, error } = await supabase.auth.admin.getUserById(userId);
-
-      if (error) {
-        // Si l'appel admin échoue, on essaie la méthode standard
-        const { data: profileData, error: profileError } = await supabase
+      let profileData = null;
+      
+      try {
+        // Essayer d'abord avec adminSupabase pour contourner les RLS
+        const { data, error } = await adminSupabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .single();
-        
-        if (profileError) {
-          // Si tout échoue, on crée un utilisateur minimal basé sur les données de session
-          if (session) {
-            const userWithEmail = {
-              id: userId,
-              first_name: null,
-              last_name: null,
-              role: 'client' as const, // Rôle par défaut
-              company: null,
-              avatar_url: null,
-              email: session.user?.email || null,
-            };
-            setUser(userWithEmail);
-            return;
-          } else {
-            throw profileError;
-          }
+          
+        if (!error) {
+          profileData = data;
         }
-        
-        // Ajouter l'email depuis la session au profil utilisateur
+      } catch (adminError) {
+        console.log('Admin fetch failed:', adminError);
+      }
+      
+      // Si l'approche admin échoue, essayer l'approche standard
+      if (!profileData) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+          
+          if (!error) {
+            profileData = data;
+          }
+        } catch (standardError) {
+          console.log('Standard fetch failed:', standardError);
+        }
+      }
+      
+      // Si les deux approches échouent, créer un profil minimal
+      if (!profileData) {
+        if (session) {
+          profileData = {
+            id: userId,
+            first_name: null,
+            last_name: null,
+            role: 'client' as const,
+            company: null,
+            avatar_url: null
+          };
+        }
+      }
+      
+      // Ajouter l'email depuis la session au profil utilisateur
+      if (profileData) {
         const userWithEmail = {
           ...profileData,
           email: session?.user?.email || null,
-        };
-        
-        setUser(userWithEmail as UserProfile);
-      } else {
-        // Utiliser les données de l'utilisateur obtenues via l'API admin
-        const userWithEmail = {
-          id: data.user.id,
-          first_name: data.user.user_metadata?.first_name || null,
-          last_name: data.user.user_metadata?.last_name || null,
-          role: data.user.user_metadata?.role || 'client',
-          company: data.user.user_metadata?.company || null,
-          avatar_url: data.user.user_metadata?.avatar_url || null,
-          email: data.user.email || null,
         };
         
         setUser(userWithEmail as UserProfile);
@@ -130,10 +134,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signIn(email: string, password: string) {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+
+      // Ajouter un timeout pour éviter que la connexion reste bloquée
+      const signInPromise = supabase.auth.signInWithPassword({ email, password });
+      
+      // Créer une promesse de timeout de 10 secondes
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Délai de connexion dépassé')), 10000);
       });
+      
+      // Utiliser Promise.race pour résoudre avec la première promesse qui se termine
+      const { error } = await Promise.race([
+        signInPromise,
+        timeoutPromise
+      ]) as { data: { session: Session | null; user: any } | null; error: Error | null };
 
       if (error) {
         throw error;
@@ -143,7 +157,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('Connexion réussie');
     } catch (error: any) {
       console.error('Error signing in:', error);
-      toast.error(error.message || 'Erreur lors de la connexion');
+      // Message d'erreur plus clair
+      const errorMessage = error.message === 'Invalid login credentials' 
+        ? 'Email ou mot de passe incorrect'
+        : error.message || 'Erreur lors de la connexion';
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

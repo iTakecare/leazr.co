@@ -1,21 +1,38 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Container from "@/components/layout/Container";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { signIn, isLoading } = useAuth();
+  const [loginAttempted, setLoginAttempted] = useState(false);
+  const { signIn, isLoading, session } = useAuth();
+  const navigate = useNavigate();
+
+  // Rediriger si déjà connecté
+  useEffect(() => {
+    if (session) {
+      navigate('/dashboard');
+    }
+  }, [session, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error("Veuillez remplir tous les champs");
+      return;
+    }
+    
+    setLoginAttempted(true);
     await signIn(email, password);
   };
 
@@ -30,6 +47,13 @@ const Login = () => {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {loginAttempted && !isLoading && !session && (
+              <div className="bg-destructive/15 p-3 rounded-md flex items-center text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <span>Identifiants incorrects. Veuillez réessayer.</span>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -84,6 +108,12 @@ const Login = () => {
                 "Se connecter"
               )}
             </Button>
+            
+            <div className="text-xs text-center">
+              Les identifiants de test sont:<br />
+              <strong>admin@test.com / admintest123</strong>
+            </div>
+            
             <div className="text-center text-sm">
               Pas encore de compte?{" "}
               <Link
@@ -91,6 +121,15 @@ const Login = () => {
                 className="text-primary hover:underline"
               >
                 Créer un compte
+              </Link>
+            </div>
+            
+            <div className="text-center text-sm">
+              <Link
+                to="/create-test-users"
+                className="text-muted-foreground hover:underline"
+              >
+                Créer des utilisateurs de test
               </Link>
             </div>
           </CardFooter>
