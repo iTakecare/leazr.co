@@ -191,6 +191,36 @@ export type Database = {
         }
         Relationships: []
       }
+      woocommerce_configs: {
+        Row: {
+          consumer_key: string
+          consumer_secret: string
+          created_at: string | null
+          id: string
+          site_url: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          consumer_key: string
+          consumer_secret: string
+          created_at?: string | null
+          id?: string
+          site_url: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          consumer_key?: string
+          consumer_secret?: string
+          created_at?: string | null
+          id?: string
+          site_url?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
