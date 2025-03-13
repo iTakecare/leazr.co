@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { 
   File, Clock, CheckCircle, XCircle, UserCog, MessagesSquare, 
@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
 
 const workflowSteps = [
   { 
@@ -178,10 +177,11 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
   const handleStepClick = (stepId: string) => {
     console.log("Step clicked:", stepId);
     console.log("Current status:", currentStatus);
-    // Si c'est l'étape actuelle, ouvrir la boîte de dialogue pour changer le statut
+    
     if (stepId === currentStatus) {
       const nextOptions = getNextStepOptions(currentStatus);
       if (nextOptions.length > 0) {
+        console.log("Opening step dialog for:", stepId);
         setSelectedStep(stepId);
         setStepDialogOpen(true);
       }
@@ -189,6 +189,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
   };
 
   const handleNextStepSelect = (nextStepId: string) => {
+    console.log("Next step selected:", nextStepId);
     setSelectedStep(nextStepId);
     setStepDialogOpen(false);
     setStatusConfirmOpen(true);
@@ -202,6 +203,34 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
     }
   };
 
+  // Function to get color classes based on status and step color
+  const getColorClasses = (step: typeof workflowSteps[0], isActive: boolean) => {
+    if (!isActive) {
+      return {
+        bg: "bg-gray-50",
+        border: "border-gray-200",
+        text: "text-gray-400"
+      };
+    }
+    
+    switch (step.color) {
+      case "blue":
+        return { bg: "bg-blue-100", border: "border-blue-500", text: "text-blue-600" };
+      case "green":
+        return { bg: "bg-green-100", border: "border-green-500", text: "text-green-600" };
+      case "red":
+        return { bg: "bg-red-100", border: "border-red-500", text: "text-red-600" };
+      case "yellow":
+        return { bg: "bg-yellow-100", border: "border-yellow-500", text: "text-yellow-600" };
+      case "purple":
+        return { bg: "bg-purple-100", border: "border-purple-500", text: "text-purple-600" };
+      case "orange":
+        return { bg: "bg-orange-100", border: "border-orange-500", text: "text-orange-600" };
+      default:
+        return { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-600" };
+    }
+  };
+
   return (
     <div className="mt-6">
       <h3 className="text-sm font-medium mb-4">Étapes du workflow</h3>
@@ -210,56 +239,12 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
           const Icon = step.icon;
           const isActive = step.id === currentStatus;
           const isClickable = isActive;
+          const colorClasses = getColorClasses(step, isActive);
           
-          // Custom colors based on the step's color property
-          let bgColor = "bg-gray-50";
-          let borderColor = "border-gray-200";
-          let textColor = "text-gray-400";
-          
-          if (isActive) {
-            switch (step.color) {
-              case "blue":
-                bgColor = "bg-blue-100";
-                borderColor = "border-blue-500";
-                textColor = "text-blue-600";
-                break;
-              case "green":
-                bgColor = "bg-green-100";
-                borderColor = "border-green-500";
-                textColor = "text-green-600";
-                break;
-              case "red":
-                bgColor = "bg-red-100";
-                borderColor = "border-red-500";
-                textColor = "text-red-600";
-                break;
-              case "yellow":
-                bgColor = "bg-yellow-100";
-                borderColor = "border-yellow-500";
-                textColor = "text-yellow-600";
-                break;
-              case "purple":
-                bgColor = "bg-purple-100";
-                borderColor = "border-purple-500";
-                textColor = "text-purple-600";
-                break;
-              case "orange":
-                bgColor = "bg-orange-100";
-                borderColor = "border-orange-500";
-                textColor = "text-orange-600";
-                break;
-              default:
-                bgColor = "bg-gray-100";
-                borderColor = "border-gray-300";
-                textColor = "text-gray-600";
-                break;
-            }
-          }
-
           return (
             <React.Fragment key={`step-${step.id}`}>
               {index > 0 && (
-                <div className="h-px w-5 bg-gray-200" key={`divider-${index}`} />
+                <div className="h-px w-5 bg-gray-200" />
               )}
               <button
                 type="button"
@@ -272,12 +257,12 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                 <div 
                   className={cn(
                     "w-12 h-12 rounded-full flex items-center justify-center border-2",
-                    bgColor,
-                    borderColor,
+                    colorClasses.bg,
+                    colorClasses.border,
                     isActive && "ring-2 ring-offset-2 ring-primary/30"
                   )}
                 >
-                  <Icon className={cn("h-5 w-5", textColor)} />
+                  <Icon className={cn("h-5 w-5", colorClasses.text)} />
                 </div>
                 <span 
                   className={cn(
