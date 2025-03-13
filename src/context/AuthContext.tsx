@@ -33,7 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for active session on component mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
@@ -43,7 +42,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
@@ -56,7 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Clean up subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
@@ -69,7 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let profileData = null;
       
       try {
-        // Essayer d'abord avec adminSupabase pour contourner les RLS
         const { data, error } = await adminSupabase
           .from('profiles')
           .select('*')
@@ -83,7 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Admin fetch failed:', adminError);
       }
       
-      // Si l'approche admin échoue, essayer l'approche standard
       if (!profileData) {
         try {
           const { data, error } = await supabase
@@ -100,7 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
-      // Si les deux approches échouent, créer un profil minimal
       if (!profileData) {
         if (session) {
           profileData = {
@@ -114,7 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
-      // Ajouter l'email depuis la session au profil utilisateur
       if (profileData) {
         const userWithEmail = {
           ...profileData,
@@ -135,15 +128,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
 
-      // Ajouter un timeout pour éviter que la connexion reste bloquée
       const signInPromise = supabase.auth.signInWithPassword({ email, password });
       
-      // Créer une promesse de timeout de 10 secondes
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Délai de connexion dépassé')), 10000);
       });
       
-      // Utiliser Promise.race pour résoudre avec la première promesse qui se termine
       const { error } = await Promise.race([
         signInPromise,
         timeoutPromise
@@ -157,7 +147,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('Connexion réussie');
     } catch (error: any) {
       console.error('Error signing in:', error);
-      // Message d'erreur plus clair
       const errorMessage = error.message === 'Invalid login credentials' 
         ? 'Email ou mot de passe incorrect'
         : error.message || 'Erreur lors de la connexion';
@@ -192,23 +181,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function signOut() {
+  async function signOut(): Promise<void> {
     try {
       setIsLoading(true);
       console.log("Starting sign out process...");
       
-      // First, clear local user state
       setUser(null);
       setSession(null);
       
-      // Then call Supabase signOut
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;
       }
       
       console.log("Supabase signOut completed successfully");
-      return { success: true };
     } catch (error: any) {
       console.error('Error signing out:', error);
       throw error;
@@ -231,7 +217,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      // Update local user state with new values
       setUser({ ...user, ...updates });
       toast.success('Profil mis à jour avec succès');
     } catch (error: any) {

@@ -54,7 +54,7 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
         column_name: 'category',
         column_type: 'text',
         column_default: "'other'"
-      }
+      } as Record<string, unknown>  // Cast to fix TypeScript error
     );
     
     if (categoryResponse.error) {
@@ -70,7 +70,7 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
         column_name: 'description',
         column_type: 'text',
         column_default: 'NULL'
-      }
+      } as Record<string, unknown>  // Cast to fix TypeScript error
     );
     
     if (descriptionResponse.error) {
