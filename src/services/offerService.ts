@@ -18,14 +18,22 @@ export interface OfferData {
   coefficient: number;
   monthly_payment: number;
   commission: number;
-  user_id: string; // Added user_id field as it's required by the database
+  user_id: string; // User ID field required by the database
 }
 
 export const createOffer = async (offerData: OfferData): Promise<string | null> => {
   try {
+    // Convert non-UUID string to a valid UUID for Supabase
+    // This is a workaround for demo purposes - in production, you'd use real UUIDs from auth
+    const validData = {
+      ...offerData,
+      user_id: offerData.user_id === 'user-123' ? 
+        '00000000-0000-0000-0000-000000000000' : offerData.user_id
+    };
+    
     const { data, error } = await supabase
       .from('offers')
-      .insert(offerData) // Remove the array brackets as offerData is already properly typed
+      .insert(validData)
       .select();
     
     if (error) throw error;
