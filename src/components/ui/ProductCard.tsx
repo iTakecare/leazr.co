@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Product } from "@/types/catalog";
 import { formatPrice } from "@/utils/formatters";
-import { Laptop, Desktop, Smartphone, Monitor, Package } from "lucide-react";
+import { Laptop, PcCase, Smartphone, Monitor, Package } from "lucide-react";
 
 type ProductCardProps = {
   product: Product;
@@ -25,7 +25,7 @@ function getCategoryIcon(category: string) {
     case 'laptop':
       return <Laptop className="h-4 w-4" />;
     case 'desktop':
-      return <Desktop className="h-4 w-4" />;
+      return <PcCase className="h-4 w-4" />;
     case 'smartphone':
       return <Smartphone className="h-4 w-4" />;
     case 'display':

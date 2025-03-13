@@ -345,7 +345,7 @@ const ProductDetail = () => {
                   <div className="border rounded-md overflow-hidden aspect-square mb-4">
                     {formData.imageUrl ? (
                       <img
-                        src={formData.imageUrl}
+                        src={formData.imageUrl as string}
                         alt={formData.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -494,7 +494,7 @@ const ProductDetail = () => {
                                   <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center">
                                     {variant.imageUrl ? (
                                       <img 
-                                        src={variant.imageUrl} 
+                                        src={variant.imageUrl as string} 
                                         alt={variant.name} 
                                         className="w-full h-full object-cover rounded-md"
                                       />
@@ -550,7 +550,7 @@ const ProductDetail = () => {
                                     <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center">
                                       {variant.imageUrl ? (
                                         <img 
-                                          src={variant.imageUrl} 
+                                          src={variant.imageUrl as string} 
                                           alt={variant.name} 
                                           className="w-full h-full object-cover rounded-md"
                                         />

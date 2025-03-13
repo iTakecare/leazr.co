@@ -21,9 +21,20 @@ export interface Product {
   is_parent?: boolean;
   variation_attributes?: Record<string, string>;
   variants_ids?: string[];
+  variants?: ProductVariant[];
+  monthly_price?: number;
   active?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface ProductVariant {
+  id: string;
+  name: string;
+  price: number;
+  attributes?: Record<string, string | number | boolean>;
+  imageUrl?: string;
+  monthly_price?: number;
 }
 
 export interface ProductCreateInput {

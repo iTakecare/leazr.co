@@ -10,6 +10,13 @@ export const formatCurrency = (amount: number): string => {
 };
 
 /**
+ * Format price for display (same as formatCurrency but exported with a different name)
+ */
+export const formatPrice = (amount: number): string => {
+  return formatCurrency(amount);
+};
+
+/**
  * Format number as percentage
  */
 export const formatPercentage = (percentage: number): string => {

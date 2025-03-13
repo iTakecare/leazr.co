@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -104,6 +103,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       category,
       price: parseFloat(price),
       description,
+      brand: "",
       imageUrl: "",
       specifications: {}
     });
