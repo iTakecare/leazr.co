@@ -246,16 +246,15 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
           return (
             <React.Fragment key={`step-${step.id}`}>
               {index > 0 && (
-                <div className="h-px w-5 bg-gray-200" key={`divider-${step.id}`} />
+                <div className="h-px w-5 bg-gray-200" key={`divider-${index}`} />
               )}
               <button
                 type="button"
                 onClick={() => handleStepClick(step.id)}
                 className={cn(
                   "relative flex flex-col items-center group",
-                  isActive && "cursor-pointer"
+                  isActive ? "cursor-pointer" : "cursor-default"
                 )}
-                key={`button-${step.id}`}
               >
                 <div 
                   className={cn(
