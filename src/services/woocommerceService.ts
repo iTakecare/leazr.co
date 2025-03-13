@@ -517,21 +517,20 @@ async function createProductFromWooCommerceData(
     return acc;
   }, {} as Record<string, string>) || {};
 
-  // Préparer les données du produit
-  const productData: Product = {
-    id: '', // Will be set by DB or during update
+  // Préparer les données du produit pour la base de données
+  const productData = {
     name: wooProduct.name,
     description: wooProduct.short_description || wooProduct.description || '',
     price,
     brand,
     category: determineCategory(wooProduct.categories),
-    imageUrl: imageUrl,
+    image_url: imageUrl,  // Utilisez image_url au lieu de imageUrl
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
     sku: wooProduct.sku || '',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    // Utiliser les noms de colonnes corrects pour la base de données
+    // created_at et updated_at au lieu de createdAt et updatedAt
   };
 
   // Ajouter le parent_id si c'est une variation
@@ -704,16 +703,18 @@ const mapDbProductToProduct = (record: any): Product => {
     category: record.category || "other",
     price: Number(record.price),
     description: record.description || "",
-    imageUrl: record.image_url || "",
+    imageUrl: record.image_url || "",  // Convertir image_url en imageUrl
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
     variation_attributes: record.variation_attributes || {},
     active: record.active !== false,
-    createdAt: record.created_at ? new Date(record.created_at) : new Date(),
-    updatedAt: record.updated_at ? new Date(record.updated_at) : new Date(),
+    createdAt: record.created_at ? new Date(record.created_at) : new Date(),  // Convertir created_at en createdAt
+    updatedAt: record.updated_at ? new Date(record.updated_at) : new Date(),  // Convertir updated_at en updatedAt
     is_parent: record.is_parent || false,
     variants_ids: record.variants_ids || [],
-    monthly_price: record.monthly_price
+    monthly_price: record.monthly_price,
+    sku: record.sku || ""
   };
 };
+
