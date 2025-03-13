@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -879,4 +880,134 @@ const WooCommerceImporter = () => {
                     </div>
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-red-800">
-                        {errors.length}
+                        {errors.length} erreur(s) détectée(s)
+                      </h3>
+                      <div className="mt-1 text-sm text-red-700">
+                        <ul className="list-disc pl-5 space-y-1">
+                          {errors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter className="mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setImportDialogOpen(false)}
+                  disabled={isImporting}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleImportProducts}
+                  disabled={isImporting || getSelectedProductsCount() === 0}
+                >
+                  {isImporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Importation...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Importer maintenant
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <div className="py-4">
+                {importResult.success ? (
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                      <Check className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-green-700">
+                        {importResult.totalImported} produits importés
+                      </p>
+                      {importResult.skipped > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {importResult.skipped} produits ignorés
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                      <AlertCircle className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-red-700">
+                        Erreur lors de l'importation
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {importResult.totalImported || 0} produits importés, {importResult.errors?.length || 0} erreurs
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {importResult.errors && importResult.errors.length > 0 && (
+                <div className="mt-4 bg-red-50 border-l-4 border-red-400 p-4 max-h-40 overflow-y-auto">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="h-5 w-5 text-red-400" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">
+                        {importResult.errors.length} erreur(s) détectée(s)
+                      </h3>
+                      <div className="mt-1 text-sm text-red-700">
+                        <ul className="list-disc pl-5 space-y-1">
+                          {importResult.errors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter className="mt-4">
+                <Button
+                  type="button"
+                  onClick={() => setImportDialogOpen(false)}
+                >
+                  Fermer
+                </Button>
+                {importResult.success && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setImportDialogOpen(false);
+                      // Rediriger vers le catalogue
+                      window.location.href = "/catalog";
+                    }}
+                  >
+                    <PackageCheck className="h-4 w-4 mr-2" />
+                    Voir le catalogue
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default WooCommerceImporter;
