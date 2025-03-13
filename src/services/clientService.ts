@@ -1,5 +1,4 @@
-
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Client, CreateClientData, Collaborator } from "@/types/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -133,7 +132,6 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
       return null;
     }
     
-    // Log the data we're about to send to the database
     console.log("Creating client with data:", clientData);
     
     const clientWithUserId = {
@@ -293,6 +291,80 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
   } catch (error) {
     console.error("Error removing collaborator:", error);
     toast.error("Erreur lors de la suppression du collaborateur");
+    return false;
+  }
+};
+
+export const createAccountForClient = async (client: Client): Promise<boolean> => {
+  if (!client.email) {
+    console.error("Cannot create account: client has no email");
+    return false;
+  }
+
+  try {
+    const tempPassword = Math.random().toString(36).slice(-10);
+    
+    const adminSupabase = getAdminSupabaseClient();
+    
+    const { data: existingUser } = await adminSupabase.auth.admin.listUsers({
+      filter: {
+        email: client.email
+      }
+    });
+    
+    if (existingUser && existingUser.users.length > 0) {
+      console.log("User already exists with this email", client.email);
+      
+      const { error: resetError } = await adminSupabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: client.email,
+        options: {
+          redirectTo: `${window.location.origin}/login`
+        }
+      });
+      
+      if (resetError) {
+        console.error("Error sending reset link:", resetError);
+        throw resetError;
+      }
+      
+      return true;
+    }
+    
+    const { data, error } = await adminSupabase.auth.admin.createUser({
+      email: client.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        first_name: client.name.split(' ')[0],
+        last_name: client.name.split(' ').slice(1).join(' '),
+        role: 'client',
+        company: client.company || ''
+      }
+    });
+    
+    if (error) {
+      console.error("Error creating user account:", error);
+      throw error;
+    }
+    
+    const { error: resetError } = await adminSupabase.auth.admin.generateLink({
+      type: 'recovery',
+      email: client.email,
+      options: {
+        redirectTo: `${window.location.origin}/login`
+      }
+    });
+    
+    if (resetError) {
+      console.error("Error sending reset link:", resetError);
+      throw resetError;
+    }
+    
+    console.log("Account created and invitation sent to:", client.email);
+    return true;
+  } catch (error) {
+    console.error("Error in createAccountForClient:", error);
     return false;
   }
 };

@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { getClientById, removeCollaborator } from "@/services/clientService";
+import { getClientById, removeCollaborator, createAccountForClient } from "@/services/clientService";
 import { Client, Collaborator } from "@/types/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -21,7 +20,9 @@ import {
   FileText,
   Tag,
   Clock,
-  Users
+  Users,
+  UserPlus,
+  LoaderCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +46,7 @@ const ClientDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -78,7 +80,6 @@ const ClientDetail = () => {
       const success = await removeCollaborator(id, collaboratorId);
       if (success) {
         toast.success("Collaborateur supprimé avec succès");
-        // Mettre à jour l'interface utilisateur
         setClient({
           ...client,
           collaborators: client.collaborators?.filter(c => c.id !== collaboratorId) || []
@@ -93,6 +94,28 @@ const ClientDetail = () => {
     setClient(updatedClient);
     setIsEditDialogOpen(false);
     toast.success("Client mis à jour avec succès");
+  };
+
+  const handleCreateAccount = async () => {
+    if (!client || !client.email) {
+      toast.error("Le client doit avoir un email pour créer un compte");
+      return;
+    }
+
+    setCreatingAccount(true);
+    try {
+      const success = await createAccountForClient(client);
+      if (success) {
+        toast.success("Invitation envoyée à l'email du client");
+      } else {
+        toast.error("Erreur lors de la création du compte");
+      }
+    } catch (error) {
+      console.error("Error creating account:", error);
+      toast.error("Erreur lors de la création du compte");
+    } finally {
+      setCreatingAccount(false);
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -171,11 +194,27 @@ const ClientDetail = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
                     <User className="h-5 w-5 text-primary" />
                     <CardTitle>{client.name}</CardTitle>
                   </div>
+                  {client.email && (
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      onClick={handleCreateAccount}
+                      disabled={creatingAccount}
+                    >
+                      {creatingAccount ? (
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserPlus className="h-4 w-4" />
+                      )}
+                      {creatingAccount ? "Envoi en cours..." : "Créer un compte"}
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -337,7 +376,6 @@ const ClientDetail = () => {
           </div>
         </div>
 
-        {/* Modal d'édition */}
         <ClientEditDialog 
           client={client} 
           isOpen={isEditDialogOpen} 
