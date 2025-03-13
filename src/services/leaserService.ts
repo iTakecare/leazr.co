@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Leaser } from "@/types/equipment";
 import { toast } from "sonner";
@@ -8,6 +7,13 @@ import { defaultLeasers } from "@/data/leasers";
 let leasersCache: Leaser[] | null = null;
 let lastFetchTime = 0;
 const CACHE_EXPIRY = 1000 * 60 * 5; // 5 minutes
+
+// Helper function to create a timeout promise
+const createTimeoutPromise = (ms: number) => {
+  return new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms);
+  });
+};
 
 /**
  * Récupère tous les leasers de la base de données avec gestion de cache
@@ -21,47 +27,61 @@ export const getLeasers = async (): Promise<Leaser[]> => {
   }
   
   try {
-    // Récupérer tous les leasers
-    const { data: leasers, error } = await supabase
+    // Récupérer tous les leasers avec un timeout de 3 secondes
+    const leasersPromise = supabase
       .from("leasers")
       .select("*")
-      .order("name")
-      .timeout(3000); // 3 secondes maximum
+      .order("name");
+    
+    const { data: leasers, error } = await Promise.race([
+      leasersPromise,
+      createTimeoutPromise(3000).then(() => {
+        throw new Error("Fetch leasers timed out");
+      })
+    ]) as any;
 
     if (error) throw error;
 
     // Pour chaque leaser, récupérer ses tranches
     const leasersWithRanges = await Promise.all(
       leasers.map(async (leaser) => {
-        const { data: ranges, error: rangesError } = await supabase
-          .from("leaser_ranges")
-          .select("*")
-          .eq("leaser_id", leaser.id)
-          .order("min")
-          .timeout(3000);
+        try {
+          const rangesPromise = supabase
+            .from("leaser_ranges")
+            .select("*")
+            .eq("leaser_id", leaser.id)
+            .order("min");
+          
+          const { data: ranges, error: rangesError } = await Promise.race([
+            rangesPromise,
+            createTimeoutPromise(3000).then(() => {
+              throw new Error(`Fetch ranges for ${leaser.name} timed out`);
+            })
+          ]) as any;
 
-        if (rangesError) {
-          console.error(`Erreur lors de la récupération des tranches pour ${leaser.name}:`, rangesError);
+          if (rangesError) throw rangesError;
+
+          // Convertir les ranges au format attendu
+          const formattedRanges = ranges.map(range => ({
+            id: range.id,
+            min: range.min,
+            max: range.max,
+            coefficient: range.coefficient
+          }));
+
+          return {
+            id: leaser.id,
+            name: leaser.name,
+            logo_url: leaser.logo_url,
+            ranges: formattedRanges
+          };
+        } catch (error) {
+          console.error(`Error fetching ranges for ${leaser.name}:`, error);
           return {
             ...leaser,
             ranges: []
           };
         }
-
-        // Convertir les ranges au format attendu
-        const formattedRanges = ranges.map(range => ({
-          id: range.id,
-          min: range.min,
-          max: range.max,
-          coefficient: range.coefficient
-        }));
-
-        return {
-          id: leaser.id,
-          name: leaser.name,
-          logo_url: leaser.logo_url,
-          ranges: formattedRanges
-        };
       })
     );
 
