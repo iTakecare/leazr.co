@@ -1,10 +1,8 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Client, CreateClientData, Collaborator } from "@/types/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
-// Données mockées pour avoir un affichage immédiat en cas de timeout
 const mockClients = [
   {
     id: "1",
@@ -59,7 +57,6 @@ const mockClients = [
   }
 ];
 
-// Helper pour convertir les dates
 const mapDbClientToClient = (record: any): Client => {
   return {
     id: record.id,
@@ -82,7 +79,6 @@ const mapDbClientToClient = (record: any): Client => {
 
 export const getClients = async (): Promise<Client[]> => {
   try {
-    // Réduire le timeout à 5 secondes pour ne pas bloquer l'interface utilisateur
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => {
         console.log("Timeout atteint, utilisation des données mockées");
@@ -95,7 +91,6 @@ export const getClients = async (): Promise<Client[]> => {
       .select('*')
       .order('name', { ascending: true });
     
-    // Utiliser Promise.race pour résoudre avec la première promesse qui se termine
     const { data, error } = await Promise.race([
       fetchPromise,
       timeoutPromise,
@@ -103,11 +98,9 @@ export const getClients = async (): Promise<Client[]> => {
     
     if (error) throw error;
     
-    // Si aucune donnée n'est récupérée, renvoyer un tableau vide plutôt que null
     return data ? data.map(mapDbClientToClient) : [];
   } catch (error) {
     console.error("Error fetching clients:", error);
-    // En cas d'erreur ou de timeout, retourner les données mockées
     return mockClients.map(mapDbClientToClient);
   }
 };
@@ -125,7 +118,6 @@ export const getClientById = async (id: string): Promise<Client | null> => {
     return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error fetching client by ID:", error);
-    // Trouver dans les données mockées
     const mockClient = mockClients.find(c => c.id === id);
     return mockClient ? mapDbClientToClient(mockClient) : null;
   }
@@ -133,7 +125,6 @@ export const getClientById = async (id: string): Promise<Client | null> => {
 
 export const createClient = async (clientData: CreateClientData): Promise<Client | null> => {
   try {
-    // Récupérer l'utilisateur actuel
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -141,7 +132,6 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
       return null;
     }
     
-    // Ajouter l'ID de l'utilisateur aux données du client
     const clientWithUserId = {
       ...clientData,
       user_id: user.id
@@ -199,44 +189,68 @@ export const deleteClient = async (id: string): Promise<boolean> => {
   }
 };
 
-// Service pour vérifier un numéro de TVA via un mock de l'API VIES
 export const verifyVatNumber = async (vatNumber: string): Promise<{ valid: boolean, companyName?: string, address?: string }> => {
-  // Simulation d'un appel API avec un délai
   await new Promise(resolve => setTimeout(resolve, 800));
   
-  // Pour la démo, on considère que BE0123456789 est valide
-  if (vatNumber === "BE0123456789") {
-    return {
-      valid: true,
-      companyName: "ACME BELGIUM SA",
-      address: "Rue de la Loi 1, 1000 Bruxelles, Belgique"
-    };
+  const cleanVatNumber = vatNumber.replace(/\s+/g, '').toUpperCase();
+  
+  const vatRegex = /^[A-Z]{2}[0-9A-Z]{2,12}$/;
+  const isValidFormat = vatRegex.test(cleanVatNumber);
+  
+  if (isValidFormat) {
+    if (cleanVatNumber === "BE0123456789" || 
+        cleanVatNumber === "FR12345678901" || 
+        cleanVatNumber === "LU12345678" || 
+        cleanVatNumber === "DE123456789") {
+      
+      let companyData = {
+        companyName: "ACME BELGIUM SA",
+        address: "Rue de la Loi 1, 1000 Bruxelles, Belgique"
+      };
+      
+      if (cleanVatNumber.startsWith("FR")) {
+        companyData = {
+          companyName: "ACME FRANCE SAS",
+          address: "Avenue des Champs-Élysées 1, 75008 Paris, France"
+        };
+      } else if (cleanVatNumber.startsWith("DE")) {
+        companyData = {
+          companyName: "ACME DEUTSCHLAND GMBH",
+          address: "Unter den Linden 1, 10117 Berlin, Deutschland"
+        };
+      } else if (cleanVatNumber.startsWith("LU")) {
+        companyData = {
+          companyName: "ACME LUXEMBOURG SA",
+          address: "Boulevard Royal 1, 2449 Luxembourg, Luxembourg"
+        };
+      }
+      
+      return {
+        valid: true,
+        companyName: companyData.companyName,
+        address: companyData.address
+      };
+    }
   }
   
-  // Les autres numéros sont considérés comme invalides
   return { valid: false };
 };
 
-// Service pour gérer les collaborateurs
 export const addCollaborator = async (clientId: string, collaborator: Omit<Collaborator, 'id'>): Promise<Collaborator | null> => {
   try {
-    // Récupérer le client actuel pour obtenir ses collaborateurs
     const client = await getClientById(clientId);
     if (!client) {
       toast.error("Client introuvable");
       return null;
     }
     
-    // Créer un nouvel ID pour le collaborateur
     const newCollaborator: Collaborator = {
       ...collaborator,
       id: crypto.randomUUID()
     };
     
-    // Ajouter le collaborateur à la liste existante
     const updatedCollaborators = [...(client.collaborators || []), newCollaborator];
     
-    // Mettre à jour le client
     const updated = await updateClient(clientId, { collaborators: updatedCollaborators });
     
     if (!updated) {
@@ -253,17 +267,14 @@ export const addCollaborator = async (clientId: string, collaborator: Omit<Colla
 
 export const removeCollaborator = async (clientId: string, collaboratorId: string): Promise<boolean> => {
   try {
-    // Récupérer le client actuel pour obtenir ses collaborateurs
     const client = await getClientById(clientId);
     if (!client || !client.collaborators) {
       toast.error("Client ou collaborateurs introuvables");
       return false;
     }
     
-    // Filtrer pour retirer le collaborateur
     const updatedCollaborators = client.collaborators.filter(c => c.id !== collaboratorId);
     
-    // Mettre à jour le client
     const updated = await updateClient(clientId, { collaborators: updatedCollaborators });
     
     if (!updated) {

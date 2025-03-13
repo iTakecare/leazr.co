@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -30,7 +29,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Schéma de validation
 const clientFormSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
   email: z.string().email("Email invalide").optional().or(z.literal("")),
@@ -127,13 +125,11 @@ const ClientForm = () => {
       if (result.valid) {
         toast.success("Numéro de TVA valide");
         
-        // Auto-fill company name and address if available
         if (result.companyName) {
           form.setValue("company", result.companyName);
         }
         
         if (result.address) {
-          // Simple parsing of address for demo
           const addressParts = result.address.split(',');
           if (addressParts.length >= 3) {
             form.setValue("address", addressParts[0].trim());
@@ -150,7 +146,7 @@ const ClientForm = () => {
           }
         }
       } else {
-        toast.error("Numéro de TVA invalide");
+        toast.error("Numéro de TVA invalide. Assurez-vous de respecter le format (ex: BE0123456789)");
       }
     } catch (error) {
       console.error("Error verifying VAT number:", error);
@@ -165,7 +161,6 @@ const ClientForm = () => {
     
     try {
       if (isEditMode && id) {
-        // Mode édition
         const updatedClient = await updateClient(id, data as CreateClientData);
         if (updatedClient) {
           toast.success("Client mis à jour avec succès");
@@ -174,7 +169,6 @@ const ClientForm = () => {
           toast.error("Erreur lors de la mise à jour du client");
         }
       } else {
-        // Mode création
         const newClient = await createClient(data as CreateClientData);
         if (newClient) {
           toast.success("Client créé avec succès");
@@ -255,7 +249,7 @@ const ClientForm = () => {
                                 <FormControl>
                                   <div className="relative flex-1">
                                     <Input 
-                                      placeholder="Ex: BE0123456789" 
+                                      placeholder="Ex: BE0123456789, FR12345678901" 
                                       {...field} 
                                       className="pr-9"
                                     />
@@ -285,6 +279,9 @@ const ClientForm = () => {
                                   )}
                                 </Button>
                               </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Formats acceptés: BE0123456789, FR12345678901, DE123456789, LU12345678
+                              </p>
                               <FormMessage />
                             </FormItem>
                           )}
