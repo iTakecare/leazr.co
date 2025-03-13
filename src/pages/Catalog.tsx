@@ -1,19 +1,30 @@
 
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
-import { getProducts } from "@/services/catalogService";
+import { getProducts, deleteAllProducts, clearMockProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Search, Plus, Filter, AlertCircle } from "lucide-react";
+import { Search, Plus, Filter, AlertCircle, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import ProductGrid from "@/components/catalog/ProductGrid";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 
 const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,6 +46,22 @@ const Catalog = () => {
         console.error("Erreur lors du chargement des produits:", err);
         toast.error("Impossible de charger les produits");
       }
+    }
+  });
+
+  // Mutation pour supprimer tous les produits
+  const deleteAllProductsMutation = useMutation({
+    mutationFn: async () => {
+      await deleteAllProducts();
+      clearMockProducts(); // Vider aussi les produits mockés
+    },
+    onSuccess: () => {
+      refetch(); // Rafraîchir la liste des produits
+      toast.success("Tous les produits ont été supprimés");
+    },
+    onError: (err: Error) => {
+      console.error("Erreur lors de la suppression de tous les produits:", err);
+      toast.error("Impossible de supprimer tous les produits");
     }
   });
 
@@ -76,14 +103,41 @@ const Catalog = () => {
     toast.info("Tentative de rechargement des produits...");
   };
 
+  const handleDeleteAllProducts = () => {
+    deleteAllProductsMutation.mutate();
+  };
+
   return (
     <Container>
       <div className="py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Catalogue de Produits</h1>
-          <Button onClick={() => setIsAddProductOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsAddProductOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Effacer tous les produits
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir supprimer tous les produits du catalogue ? Cette action ne peut pas être annulée.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAllProducts}>
+                    Supprimer tous les produits
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
 
         {isError && (

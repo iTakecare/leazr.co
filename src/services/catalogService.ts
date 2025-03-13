@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductVariant } from "@/types/catalog";
 import { products as mockProducts } from "@/data/products";
@@ -326,3 +325,30 @@ async function ensureStorageBucketExists() {
     console.error("Error checking/creating storage bucket:", error);
   }
 }
+
+/**
+ * Supprime tous les produits du catalogue
+ */
+export const deleteAllProducts = async (): Promise<void> => {
+  try {
+    // Supprimer tous les produits de la base de données
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Clause pour supprimer tous les produits
+
+    if (error) {
+      console.error("Erreur lors de la suppression de tous les produits:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Erreur dans deleteAllProducts:", error);
+    throw error;
+  }
+};
+
+// Vide aussi le tableau de produits mockés
+export const clearMockProducts = (): void => {
+  // Vider le tableau des produits mockés
+  mockProducts.length = 0;
+};
