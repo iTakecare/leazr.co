@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 
+import { Layout } from "@/components/layout/Layout";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
@@ -33,25 +34,29 @@ function App() {
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/settings" element={<Settings />} />
+              
+              {/* Protected routes inside Layout */}
+              <Route element={<Layout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/settings" element={<Settings />} />
 
-              {/* Clients */}
-              <Route path="/clients" element={<Clients />} />
-              <Route path="/clients/create" element={<ClientForm />} />
-              <Route path="/clients/edit/:id" element={<ClientForm />} />
-              <Route path="/clients/:id" element={<ClientDetail />} />
+                {/* Clients */}
+                <Route path="/clients" element={<Clients />} />
+                <Route path="/clients/create" element={<ClientForm />} />
+                <Route path="/clients/edit/:id" element={<ClientForm />} />
+                <Route path="/clients/:id" element={<ClientDetail />} />
 
-              {/* Offers */}
-              <Route path="/offers" element={<Offers />} />
-              <Route path="/create-offer" element={<CreateOffer />} />
+                {/* Offers */}
+                <Route path="/offers" element={<Offers />} />
+                <Route path="/create-offer" element={<CreateOffer />} />
 
-              {/* Catalog */}
-              <Route path="/catalog" element={<Catalog />} />
-              <Route path="/products/:id" element={<ProductDetail />} />
+                {/* Catalog */}
+                <Route path="/catalog" element={<Catalog />} />
+                <Route path="/products/:id" element={<ProductDetail />} />
 
-              {/* Dev Tools */}
-              <Route path="/create-test-users" element={<CreateTestUsers />} />
+                {/* Dev Tools */}
+                <Route path="/create-test-users" element={<CreateTestUsers />} />
+              </Route>
 
               <Route path="*" element={<NotFound />} />
             </Routes>
