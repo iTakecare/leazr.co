@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,139 +14,139 @@ serve(async (req) => {
   }
   
   try {
-    // Get Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    // Get the request URL
+    const url = new URL(req.url);
     
-    if (!supabaseUrl || !supabaseKey) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Missing Supabase configuration" 
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Create a Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    );
     
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Parse request body
+    const requestData = await req.json();
+    const { action, userId, configData } = requestData;
     
-    // Parse request
-    const { action, userId, configData } = await req.json();
-    
-    if (!action) {
-      return new Response(
-        JSON.stringify({ error: "Missing action" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log(`Processing ${action} request`);
     
     if (!userId) {
       return new Response(
-        JSON.stringify({ error: "Missing userId" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "User ID is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
     let result;
     
+    // Handle different actions
     switch (action) {
       case "getConfig":
-        // Get config from database
-        const { data, error } = await supabase
-          .from('woocommerce_config')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
+        console.log(`Getting WooCommerce config for user: ${userId}`);
+        try {
+          const { data, error } = await supabaseClient
+            .from('woocommerce_config')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
           
-        if (error && error.code !== 'PGRST116') {
-          // PGRST116 means no rows returned, which is not an error for us
-          return new Response(
-            JSON.stringify({ error: error.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          if (error) {
+            throw error;
+          }
+          
+          result = { 
+            config: data || null
+          };
+        } catch (error) {
+          console.error("Error getting WooCommerce config:", error);
+          result = { 
+            config: null,
+            error: error.message || "Unknown error"
+          };
         }
-        
-        result = { config: data || null };
         break;
         
       case "saveConfig":
         if (!configData) {
           return new Response(
-            JSON.stringify({ error: "Missing configData" }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: "Config data is required" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
         
-        // Check if config exists
-        const { data: existingConfig, error: checkError } = await supabase
-          .from('woocommerce_config')
-          .select('id')
-          .eq('user_id', userId)
-          .single();
+        console.log(`Saving WooCommerce config for user: ${userId}`);
+        try {
+          // Check if config already exists
+          const { data: existingConfig, error: checkError } = await supabaseClient
+            .from('woocommerce_config')
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle();
           
-        if (checkError && checkError.code !== 'PGRST116') {
-          return new Response(
-            JSON.stringify({ error: checkError.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        
-        if (existingConfig) {
-          // Update existing config
-          const { error: updateError } = await supabase
-            .from('woocommerce_config')
-            .update({ 
-              site_url: configData.siteUrl,
-              consumer_key: configData.consumerKey,
-              consumer_secret: configData.consumerSecret,
-              updated_at: new Date().toISOString()
-            })
-            .eq('user_id', userId);
-            
-          if (updateError) {
-            return new Response(
-              JSON.stringify({ error: updateError.message }),
-              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
+          if (checkError) {
+            throw checkError;
           }
-        } else {
-          // Insert new config
-          const { error: insertError } = await supabase
-            .from('woocommerce_config')
-            .insert([{
-              user_id: userId,
-              site_url: configData.siteUrl,
-              consumer_key: configData.consumerKey,
-              consumer_secret: configData.consumerSecret
-            }]);
-            
-          if (insertError) {
-            return new Response(
-              JSON.stringify({ error: insertError.message }),
-              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
+          
+          let saveResult;
+          
+          if (existingConfig) {
+            // Update existing config
+            saveResult = await supabaseClient
+              .from('woocommerce_config')
+              .update({
+                site_url: configData.siteUrl,
+                consumer_key: configData.consumerKey,
+                consumer_secret: configData.consumerSecret,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingConfig.id);
+          } else {
+            // Insert new config
+            saveResult = await supabaseClient
+              .from('woocommerce_config')
+              .insert({
+                user_id: userId,
+                site_url: configData.siteUrl,
+                consumer_key: configData.consumerKey,
+                consumer_secret: configData.consumerSecret
+              });
           }
+          
+          if (saveResult.error) {
+            throw saveResult.error;
+          }
+          
+          result = { 
+            success: true
+          };
+        } catch (error) {
+          console.error("Error saving WooCommerce config:", error);
+          result = { 
+            success: false,
+            error: error.message || "Unknown error"
+          };
         }
-        
-        result = { success: true };
         break;
         
       default:
         return new Response(
           JSON.stringify({ error: `Unknown action: ${action}` }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
     }
     
+    // Return the result
     return new Response(
       JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+    
   } catch (error) {
-    console.error('Error in woocommerce-config function:', error);
+    console.error("Error in WooCommerce config function:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: error.message || "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

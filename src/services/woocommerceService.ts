@@ -303,10 +303,10 @@ export async function importWooCommerceProducts(
     let variationsImported = 0;
     let variationsSkipped = 0;
 
-    // Vérifier si le bucket de stockage existe, sinon le créer
+    // Check if storage bucket exists, otherwise create it
     await ensureStorageBucketExists();
 
-    // Récupérer tous les produits existants pour vérification
+    // Get all existing products for verification
     const { data: existingProducts, error: fetchError } = await supabase
       .from("products")
       .select("id, name, sku");
@@ -316,7 +316,7 @@ export async function importWooCommerceProducts(
       throw fetchError;
     }
 
-    // Créer des ensembles pour une recherche efficace
+    // Create sets for efficient search
     const existingNameSet = new Set<string>();
     const existingSkuSet = new Set<string>();
     const existingIdByName = new Map<string, string>();
@@ -645,16 +645,14 @@ async function createProductFromWooCommerceData(
     return acc;
   }, {} as Record<string, string>) || {};
 
-  // Prepare product data for database - ensure we set both field naming conventions
+  // Prepare product data for database - using column names that actually exist in the database
   const productData = {
     name: wooProduct.name,
     description: wooProduct.short_description || wooProduct.description || '',
     price,
     brand,
     category: determineCategory(wooProduct.categories),
-    imageUrl: imageUrl, // Keep both for compatibility 
-    image_url: imageUrl, // Database uses underscore naming
-    imageUrls: additionalImages.length > 0 ? additionalImages : undefined,
+    image_url: imageUrl, // Use image_url instead of imageUrl
     image_urls: additionalImages.length > 0 ? additionalImages : undefined,
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
