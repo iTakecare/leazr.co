@@ -34,6 +34,10 @@ const enrichMockProduct = (mockProduct: any): Product => {
     brand: mockProduct.brand || "",
     specifications: mockProduct.specifications || {},
     active: mockProduct.active !== false,
+    is_variation: mockProduct.is_variation || false,
+    variation_attributes: mockProduct.variation_attributes || {},
+    is_parent: mockProduct.is_parent || false,
+    variants_ids: mockProduct.variants_ids || [],
     createdAt: mockProduct.createdAt || new Date(),
     updatedAt: mockProduct.updatedAt || new Date()
   };
@@ -197,20 +201,25 @@ export const updateProduct = async (id: string, productData: Partial<Product>): 
     const dbData: any = {
       ...productData,
       image_url: productData.imageUrl,
+      variants_ids: productData.variants_ids,
+      is_parent: productData.is_parent,
+      variation_attributes: productData.variation_attributes,
+      is_variation: productData.is_variation
     };
     
     // Supprimer les propriétés qui n'existent pas dans la base de données
     delete dbData.imageUrl;
     delete dbData.createdAt;
     delete dbData.updatedAt;
+    delete dbData.variants;
     
     // Ajouter la date de mise à jour
     dbData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
-      .from('products')
+      .from("products")
       .update(dbData)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
