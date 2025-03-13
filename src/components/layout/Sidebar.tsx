@@ -13,7 +13,7 @@ import {
   Users, 
   LogOut, 
   LogIn, 
-  UserPlus
+  UserPlus 
 } from 'lucide-react';
 import { 
   Tooltip, 
@@ -24,41 +24,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-interface NavItemProps {
-  to: string;
-  label: string;
-  icon: React.FC<{ className?: string }>;
-  onClick?: () => void;
-}
-
-const NavItem = ({ to, label, icon: Icon, onClick }: NavItemProps) => {
-  return (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <NavLink
-            to={to}
-            className={({ isActive }) =>
-              `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
-                isActive
-                  ? 'bg-accent text-accent-foreground'
-                  : 'transparent hover:bg-accent/50'
-              }`
-            }
-            onClick={onClick}
-          >
-            <Icon className="h-5 w-5" />
-            <span className="sr-only">{label}</span>
-          </NavLink>
-        </TooltipTrigger>
-        <TooltipContent side="right">
-          <p>{label}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
 
 interface SidebarProps {
   isOpen: boolean;
@@ -142,47 +107,149 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {user ? (
             <>
               <div className="flex flex-col items-center gap-3 w-full">
-                <NavItem
-                  to="/dashboard"
-                  label="Tableau de bord"
-                  icon={LayoutDashboard}
-                  onClick={isMobile ? onClose : undefined}
-                />
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <NavLink
+                        to="/dashboard"
+                        className={({ isActive }) =>
+                          `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
+                            isActive
+                              ? 'bg-accent text-accent-foreground'
+                              : 'transparent hover:bg-accent/50'
+                          }`
+                        }
+                        onClick={isMobile ? onClose : undefined}
+                      >
+                        <LayoutDashboard className="h-5 w-5" />
+                        <span className="sr-only">Tableau de bord</span>
+                      </NavLink>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Tableau de bord</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 
-                <NavItem
-                  to="/clients"
-                  label="Gestion des clients"
-                  icon={Users}
-                  onClick={isMobile ? onClose : undefined}
-                />
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <NavLink
+                        to="/clients"
+                        className={({ isActive }) =>
+                          `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
+                            isActive
+                              ? 'bg-accent text-accent-foreground'
+                              : 'transparent hover:bg-accent/50'
+                          }`
+                        }
+                        onClick={isMobile ? onClose : undefined}
+                      >
+                        <Users className="h-5 w-5" />
+                        <span className="sr-only">Gestion des clients</span>
+                      </NavLink>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Gestion des clients</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-                <NavItem
-                  to="/create-offer"
-                  label="Nouvelle offre"
-                  icon={PlusCircle}
-                  onClick={isMobile ? onClose : undefined}
-                />
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <NavLink
+                        to="/create-offer"
+                        className={({ isActive }) =>
+                          `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
+                            isActive
+                              ? 'bg-accent text-accent-foreground'
+                              : 'transparent hover:bg-accent/50'
+                          }`
+                        }
+                        onClick={isMobile ? onClose : undefined}
+                      >
+                        <PlusCircle className="h-5 w-5" />
+                        <span className="sr-only">Nouvelle offre</span>
+                      </NavLink>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Nouvelle offre</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-                <NavItem
-                  to="/offers"
-                  label="Mes offres"
-                  icon={Calculator}
-                  onClick={isMobile ? onClose : undefined}
-                />
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <NavLink
+                        to="/offers"
+                        className={({ isActive }) =>
+                          `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
+                            isActive
+                              ? 'bg-accent text-accent-foreground'
+                              : 'transparent hover:bg-accent/50'
+                          }`
+                        }
+                        onClick={isMobile ? onClose : undefined}
+                      >
+                        <Calculator className="h-5 w-5" />
+                        <span className="sr-only">Mes offres</span>
+                      </NavLink>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Mes offres</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-                <NavItem
-                  to="/catalog"
-                  label="Catalogue produits"
-                  icon={ShoppingCart}
-                  onClick={isMobile ? onClose : undefined}
-                />
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <NavLink
+                        to="/catalog"
+                        className={({ isActive }) =>
+                          `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
+                            isActive
+                              ? 'bg-accent text-accent-foreground'
+                              : 'transparent hover:bg-accent/50'
+                          }`
+                        }
+                        onClick={isMobile ? onClose : undefined}
+                      >
+                        <ShoppingCart className="h-5 w-5" />
+                        <span className="sr-only">Catalogue produits</span>
+                      </NavLink>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Catalogue produits</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-                <NavItem
-                  to="/settings"
-                  label="Paramètres"
-                  icon={Settings}
-                  onClick={isMobile ? onClose : undefined}
-                />
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <NavLink
+                        to="/settings"
+                        className={({ isActive }) =>
+                          `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
+                            isActive
+                              ? 'bg-accent text-accent-foreground'
+                              : 'transparent hover:bg-accent/50'
+                          }`
+                        }
+                        onClick={isMobile ? onClose : undefined}
+                      >
+                        <Settings className="h-5 w-5" />
+                        <span className="sr-only">Paramètres</span>
+                      </NavLink>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Paramètres</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
               <div className="mt-auto mb-4">
@@ -208,18 +275,53 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </>
           ) : (
             <div className="mt-auto mb-4 flex flex-col gap-3">
-              <NavItem
-                to="/login"
-                label="Se connecter"
-                icon={LogIn}
-                onClick={isMobile ? onClose : undefined}
-              />
-              <NavItem
-                to="/signup"
-                label="Créer un compte"
-                icon={UserPlus}
-                onClick={isMobile ? onClose : undefined}
-              />
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <NavLink
+                      to="/login"
+                      className={({ isActive }) =>
+                        `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
+                          isActive
+                            ? 'bg-accent text-accent-foreground'
+                            : 'transparent hover:bg-accent/50'
+                        }`
+                      }
+                      onClick={isMobile ? onClose : undefined}
+                    >
+                      <LogIn className="h-5 w-5" />
+                      <span className="sr-only">Se connecter</span>
+                    </NavLink>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Se connecter</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <NavLink
+                      to="/signup"
+                      className={({ isActive }) =>
+                        `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
+                          isActive
+                            ? 'bg-accent text-accent-foreground'
+                            : 'transparent hover:bg-accent/50'
+                        }`
+                      }
+                      onClick={isMobile ? onClose : undefined}
+                    >
+                      <UserPlus className="h-5 w-5" />
+                      <span className="sr-only">Créer un compte</span>
+                    </NavLink>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Créer un compte</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
         </div>
