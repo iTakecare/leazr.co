@@ -153,6 +153,11 @@ export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | nu
  */
 export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise<boolean> => {
   try {
+    // Vérifier que l'ID est un UUID valide
+    if (typeof id !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)) {
+      throw new Error(`ID invalide: ${id} - doit être un UUID valide`);
+    }
+    
     // Préparer les données à mettre à jour
     const updateData: any = {};
     if (leaser.name !== undefined) updateData.name = leaser.name;
@@ -212,6 +217,11 @@ export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise
  */
 export const deleteLeaser = async (id: string): Promise<boolean> => {
   try {
+    // Vérifier que l'ID est un UUID valide
+    if (typeof id !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)) {
+      throw new Error(`ID invalide: ${id} - doit être un UUID valide`);
+    }
+    
     // Supprimer d'abord les tranches (contraintes de clés étrangères)
     const { error: rangesError } = await supabase
       .from("leaser_ranges")

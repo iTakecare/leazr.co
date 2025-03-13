@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Table, 
@@ -60,7 +59,6 @@ const LeaserManager = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Charger les leasers au montage du composant
   useEffect(() => {
     fetchLeasers();
   }, []);
@@ -69,7 +67,6 @@ const LeaserManager = () => {
     setIsLoading(true);
     try {
       const fetchedLeasers = await getLeasers();
-      // Si aucun leaser n'est trouvé, utiliser les leasers par défaut
       setLeasers(fetchedLeasers.length > 0 ? fetchedLeasers : defaultLeasers);
     } catch (error) {
       console.error("Error fetching leasers:", error);
@@ -103,7 +100,6 @@ const LeaserManager = () => {
   
   const handleRangeChange = (index: number, field: keyof Range, value: number) => {
     const newRanges = [...tempRanges];
-    // @ts-ignore - This is safe as we know the field is a valid key of Range
     newRanges[index][field] = value;
     setTempRanges(newRanges);
   };
@@ -139,13 +135,11 @@ const LeaserManager = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Vérifier le type de fichier
     if (!file.type.startsWith('image/')) {
       toast.error("Veuillez sélectionner une image valide");
       return;
     }
 
-    // Vérifier la taille du fichier (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error("L'image est trop volumineuse. Maximum 2MB autorisé");
       return;
@@ -154,24 +148,20 @@ const LeaserManager = () => {
     try {
       setIsUploading(true);
       
-      // Générer un nom de fichier unique
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `${fileName}`;
       
-      // Télécharger le fichier vers Supabase Storage
       const { data, error } = await supabase.storage
         .from('leaser-logos')
         .upload(filePath, file);
       
       if (error) throw error;
       
-      // Obtenir l'URL publique du logo
       const { data: { publicUrl } } = supabase.storage
         .from('leaser-logos')
         .getPublicUrl(filePath);
       
-      // Mettre à jour la prévisualisation
       setPreviewUrl(publicUrl);
       
       toast.success("Logo téléchargé avec succès");
@@ -180,7 +170,6 @@ const LeaserManager = () => {
       toast.error(`Erreur lors du téléchargement: ${error.message}`);
     } finally {
       setIsUploading(false);
-      // Réinitialiser l'input pour permettre de sélectionner le même fichier à nouveau
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -207,15 +196,18 @@ const LeaserManager = () => {
       };
       
       if (isEditMode && currentLeaser) {
-        // Mise à jour d'un leaser existant
+        if (!currentLeaser.id || typeof currentLeaser.id !== 'string') {
+          throw new Error("ID du leaser invalide ou manquant");
+        }
+        
+        console.log("Updating leaser with ID:", currentLeaser.id);
+        
         const success = await updateLeaser(currentLeaser.id, newLeaser);
         if (success) {
-          // Rafraîchir la liste des leasers
           await fetchLeasers();
           handleCloseSheet();
         }
       } else {
-        // Ajout d'un nouveau leaser
         const addedLeaser = await addLeaser(newLeaser);
         if (addedLeaser) {
           setLeasers([...leasers, addedLeaser]);
