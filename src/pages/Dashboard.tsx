@@ -46,12 +46,12 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-full">
       <motion.div
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="w-full"
+        className="w-full max-w-full"
       >
         <motion.div variants={itemVariants} className="flex justify-between items-center mb-8">
           <div>
