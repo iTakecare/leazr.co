@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
 import {
   FileText,
-  LayoutDashboard,
   Laptop,
   Clock,
   ChevronRight,
@@ -16,6 +15,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
@@ -23,50 +23,94 @@ const ClientDashboard = () => {
   const [offers, setOffers] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [clientId, setClientId] = useState(null);
 
   useEffect(() => {
+    const fetchClientId = async () => {
+      if (!user?.email) return;
+      
+      try {
+        console.log("Fetching client ID for email:", user.email);
+        const { data, error } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('email', user.email)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching client ID:", error);
+          toast.error("Erreur lors de la récupération des données client");
+          return;
+        }
+        
+        if (data) {
+          console.log("Found client ID:", data.id);
+          setClientId(data.id);
+          return data.id;
+        } else {
+          console.log("No client found for email:", user.email);
+        }
+      } catch (error) {
+        console.error("Error in fetchClientId:", error);
+      }
+      
+      return null;
+    };
+
     const fetchClientData = async () => {
       setLoading(true);
       try {
-        // Get client ID from email
-        const { data: clientData } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('email', user?.email)
-          .single();
+        // First get the client ID
+        const id = await fetchClientId();
         
-        if (clientData) {
-          const clientId = clientData.id;
-          
-          // Fetch contracts
-          const { data: contractsData } = await supabase
-            .from('contracts')
-            .select('*')
-            .eq('client_id', clientId);
-            
-          // Fetch offers/requests
-          const { data: offersData } = await supabase
-            .from('offers')
-            .select('*')
-            .eq('client_id', clientId);
-          
-          // In a real app, we'd fetch equipment data here
-          // This is a placeholder for the mock equipment data
-          
-          setContracts(contractsData || []);
-          setOffers(offersData || []);
-          setEquipment(Array(6).fill({
-            id: Math.random().toString(),
-            name: "Ordinateur fixe",
-            status: "Actif",
-            serial: "EZFDSDSFG",
-            assignedTo: "Eric Erac",
-            role: "CMO",
-            assignedDate: "09/03/2025"
-          }));
+        if (!id) {
+          setLoading(false);
+          return;
         }
+        
+        console.log("Fetching data for client ID:", id);
+        
+        // Fetch contracts
+        const { data: contractsData, error: contractsError } = await supabase
+          .from('contracts')
+          .select('*')
+          .eq('client_id', id);
+          
+        if (contractsError) {
+          console.error("Error fetching contracts:", contractsError);
+        } else {
+          console.log("Fetched contracts:", contractsData);
+          setContracts(contractsData || []);
+        }
+        
+        // Fetch offers/requests
+        const { data: offersData, error: offersError } = await supabase
+          .from('offers')
+          .select('*')
+          .eq('client_id', id)
+          .eq('converted_to_contract', false);
+        
+        if (offersError) {
+          console.error("Error fetching offers:", offersError);
+        } else {
+          console.log("Fetched offers:", offersData);
+          setOffers(offersData || []);
+        }
+        
+        // In a real app, we'd fetch equipment data from a dedicated table
+        // This is a placeholder for the mock equipment data
+        setEquipment(Array(6).fill({
+          id: Math.random().toString(),
+          name: "Ordinateur fixe",
+          status: "Actif",
+          serial: "EZFDSDSFG",
+          assignedTo: "Eric Erac",
+          role: "CMO",
+          assignedDate: "09/03/2025"
+        }));
       } catch (error) {
         console.error("Error fetching client data:", error);
+        toast.error("Erreur lors de la récupération des données");
       } finally {
         setLoading(false);
       }
@@ -94,9 +138,9 @@ const ClientDashboard = () => {
   };
 
   const getStatusBadge = (status) => {
-    if (status === "Actif" || status === "Actif") {
+    if (status === "Actif" || status === "active") {
       return <Badge className="bg-green-500">Actif</Badge>;
-    } else if (status === "En attente de validation") {
+    } else if (status === "En attente de validation" || status === "pending") {
       return <Badge className="bg-yellow-500">En attente de validation</Badge>;
     } else {
       return <Badge className="bg-gray-500">{status}</Badge>;
@@ -137,7 +181,7 @@ const ClientDashboard = () => {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{contracts.length || 2}</div>
+              <div className="text-2xl font-bold">{contracts.length || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -148,7 +192,7 @@ const ClientDashboard = () => {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{contracts.filter(c => c.status === 'active').length || 2}</div>
+              <div className="text-2xl font-bold">{contracts.filter(c => c.status === 'active').length || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -159,7 +203,7 @@ const ClientDashboard = () => {
               <Laptop className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{equipment.length || 6}</div>
+              <div className="text-2xl font-bold">{equipment.length || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -170,7 +214,7 @@ const ClientDashboard = () => {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{offers.filter(o => o.status === 'pending').length || 1}</div>
+              <div className="text-2xl font-bold">{offers.filter(o => o.status === 'pending' || !o.status).length || 0}</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -208,48 +252,7 @@ const ClientDashboard = () => {
                         </Button>
                       </div>
                     </div>
-                  )) || (
-                    <>
-                      <div className="flex items-center justify-between border-b pb-4">
-                        <div>
-                          <div className="font-medium">Contrat #fcdeaf2d</div>
-                          <div className="text-sm text-muted-foreground">
-                            Créé le 09/03/2025
-                          </div>
-                          <Badge className="bg-green-500">Actif</Badge>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="font-medium text-right">
-                            73,80 €/mois
-                          </div>
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link to="/client/contracts/1">
-                              <ChevronRight className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between pb-4">
-                        <div>
-                          <div className="font-medium">Contrat #6987b377</div>
-                          <div className="text-sm text-muted-foreground">
-                            Créé le 09/03/2025
-                          </div>
-                          <Badge className="bg-green-500">Actif</Badge>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="font-medium text-right">
-                            80,85 €/mois
-                          </div>
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link to="/client/contracts/2">
-                              <ChevronRight className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted-foreground">
@@ -296,30 +299,7 @@ const ClientDashboard = () => {
                         </Button>
                       </div>
                     </div>
-                  )) || (
-                    <div className="flex items-center justify-between pb-4">
-                      <div>
-                        <div className="font-medium">Demande #303391c9</div>
-                        <div className="text-sm text-muted-foreground">
-                          Créée le 10/03/2025
-                        </div>
-                        <Badge className="bg-yellow-500">En attente de validation</Badge>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <div className="font-medium">23,10 €/mois</div>
-                          <div className="text-sm text-muted-foreground">
-                            1 équipement(s)
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link to="/client/requests/1">
-                            <ChevronRight className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted-foreground">

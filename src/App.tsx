@@ -15,7 +15,6 @@ import CreateOffer from "./pages/CreateOffer";
 import Offers from "./pages/Offers";
 import Contracts from "./pages/Contracts";
 import CreateTestUsers from "./pages/CreateTestUsers";
-import ClientDashboard from "./pages/ClientDashboard";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -44,7 +43,7 @@ const ProtectedRoute = ({
   children: React.ReactNode, 
   requireAdmin?: boolean 
 }) => {
-  const { user, isLoading, isAdmin } = useAuth();
+  const { user, isLoading, isAdmin, isClient } = useAuth();
   
   if (isLoading) {
     return <div>Chargement...</div>;
@@ -55,6 +54,11 @@ const ProtectedRoute = ({
   }
   
   if (requireAdmin && !isAdmin()) {
+    return <Navigate to="/client/dashboard" />;
+  }
+  
+  // Redirect clients to client dashboard if they try to access admin routes
+  if (!requireAdmin && isClient() && !window.location.pathname.startsWith('/client')) {
     return <Navigate to="/client/dashboard" />;
   }
   
