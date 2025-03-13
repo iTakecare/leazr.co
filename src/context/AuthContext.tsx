@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
@@ -33,7 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   
-  // Utiliser les clients supabase singleton
   const supabase = getSupabaseClient();
   const adminSupabase = getAdminSupabaseClient();
 
@@ -189,19 +187,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signUp(email: string, password: string, userData: Partial<UserProfile>) {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signUp({
+      console.log("Attempting signup with email:", email);
+      
+      const { data: existingClient, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('email', email)
+        .single();
+      
+      if (clientError && clientError.code !== 'PGRST116') {
+        console.error("Error checking existing client:", clientError);
+      }
+      
+      if (existingClient) {
+        console.log("Client found in database:", existingClient);
+        
+        userData = {
+          ...userData,
+          first_name: userData.first_name || existingClient.name.split(' ')[0],
+          last_name: userData.last_name || existingClient.name.split(' ').slice(1).join(' '),
+          company: userData.company || existingClient.company,
+        };
+      }
+      
+      const { data, error } = await adminSupabase.auth.admin.createUser({
         email,
         password,
-        options: {
-          data: userData,
-        }
+        email_confirm: true,
+        user_metadata: userData,
       });
-
+      
       if (error) {
+        console.error("Signup error:", error);
         throw error;
       }
-
-      toast.success('Inscription réussie, vérifiez votre email pour confirmer');
+      
+      toast.success('Compte créé avec succès! Vous pouvez maintenant vous connecter.');
+      navigate('/login');
     } catch (error: any) {
       console.error('Error signing up:', error);
       toast.error(error.message || 'Erreur lors de l\'inscription');

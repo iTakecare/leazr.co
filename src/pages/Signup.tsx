@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Container from "@/components/layout/Container";
 import { Mail, Lock, User, Building, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -17,7 +18,57 @@ const Signup = () => {
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
   const [role, setRole] = useState<"client" | "partner">("client");
+  const [isExistingClient, setIsExistingClient] = useState(false);
+  const [clientInfo, setClientInfo] = useState<any>(null);
   const { signUp, isLoading } = useAuth();
+
+  useEffect(() => {
+    const checkExistingClient = async () => {
+      if (email) {
+        try {
+          const { data, error } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('email', email)
+            .single();
+          
+          if (error && error.code !== 'PGRST116') {
+            console.error("Error checking client:", error);
+            return;
+          }
+          
+          if (data) {
+            setIsExistingClient(true);
+            setClientInfo(data);
+            
+            // Auto-populate fields from client data
+            if (!firstName && data.name) {
+              const nameParts = data.name.split(' ');
+              setFirstName(nameParts[0] || '');
+              setLastName(nameParts.slice(1).join(' ') || '');
+            }
+            
+            if (!company && data.company) {
+              setCompany(data.company);
+            }
+          } else {
+            setIsExistingClient(false);
+            setClientInfo(null);
+          }
+        } catch (error) {
+          console.error("Error checking client:", error);
+        }
+      }
+    };
+    
+    const debounce = setTimeout(() => {
+      if (email) {
+        checkExistingClient();
+      }
+    }, 500);
+    
+    return () => clearTimeout(debounce);
+  }, [email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +86,15 @@ const Signup = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Créer un compte</CardTitle>
           <CardDescription>
-            Remplissez le formulaire ci-dessous pour créer votre compte
+            {isExistingClient 
+              ? `Bienvenue ${clientInfo?.name}! Finalisez la création de votre compte.` 
+              : 'Remplissez le formulaire ci-dessous pour créer votre compte'}
           </CardDescription>
+          {isExistingClient && (
+            <div className="bg-green-50 border border-green-200 rounded p-2 text-sm text-green-800">
+              Votre adresse email est associée à un client existant. Certains champs ont été pré-remplis pour vous.
+            </div>
+          )}
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -80,7 +138,7 @@ const Signup = () => {
                   placeholder="exemple@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className={`pl-10 ${isExistingClient ? 'border-green-500' : ''}`}
                   required
                 />
               </div>
@@ -117,7 +175,7 @@ const Signup = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Entreprise (optionnel)</Label>
+              <Label htmlFor="company">Entreprise {isExistingClient ? '' : '(optionnel)'}</Label>
               <div className="relative">
                 <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -125,7 +183,8 @@ const Signup = () => {
                   placeholder="Nom de votre entreprise"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
-                  className="pl-10"
+                  className={`pl-10 ${isExistingClient && clientInfo?.company ? 'border-green-500' : ''}`}
+                  required={isExistingClient && !!clientInfo?.company}
                 />
               </div>
             </div>
