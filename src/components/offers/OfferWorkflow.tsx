@@ -200,10 +200,37 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
     }
   };
 
-  const getStepColor = (stepId: string) => {
+  // Map colors to Tailwind classes
+  const getColorClasses = (stepId: string, isActive: boolean) => {
     const step = workflowSteps.find(s => s.id === stepId);
-    if (!step) return "gray";
-    return step.color;
+    if (!step) return {};
+    
+    // Map color names to Tailwind classes
+    const colorMap: Record<string, { bg: string, border: string, text: string }> = {
+      blue: { bg: "bg-blue-100", border: "border-blue-500", text: "text-blue-600" },
+      green: { bg: "bg-green-100", border: "border-green-500", text: "text-green-600" },
+      red: { bg: "bg-red-100", border: "border-red-500", text: "text-red-600" },
+      yellow: { bg: "bg-yellow-100", border: "border-yellow-500", text: "text-yellow-600" },
+      purple: { bg: "bg-purple-100", border: "border-purple-500", text: "text-purple-600" },
+      orange: { bg: "bg-orange-100", border: "border-orange-500", text: "text-orange-600" },
+      gray: { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-600" },
+    };
+    
+    const colorClass = colorMap[step.color] || colorMap.gray;
+    
+    if (isActive) {
+      return {
+        bgColor: colorClass.bg,
+        borderColor: colorClass.border,
+        textColor: colorClass.text
+      };
+    }
+    
+    return {
+      bgColor: "bg-gray-50",
+      borderColor: "border-gray-200",
+      textColor: "text-gray-400"
+    };
   };
 
   return (
@@ -214,6 +241,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
           const Icon = step.icon;
           const isActive = step.id === currentStatus;
           const isPassed = false; // À implémenter si besoin
+          const { bgColor, borderColor, textColor } = getColorClasses(step.id, isActive);
 
           return (
             <React.Fragment key={`step-${step.id}`}>
@@ -232,20 +260,12 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                 <div 
                   className={cn(
                     "w-12 h-12 rounded-full flex items-center justify-center border-2",
-                    isActive 
-                      ? `bg-${getStepColor(step.id)}-100 border-${getStepColor(step.id)}-500` 
-                      : isPassed 
-                        ? "bg-green-50 border-green-200" 
-                        : "bg-gray-50 border-gray-200",
+                    bgColor,
+                    borderColor,
                     isActive && "ring-2 ring-offset-2 ring-primary/30"
                   )}
                 >
-                  <Icon 
-                    className={cn(
-                      "h-5 w-5",
-                      isActive ? `text-${getStepColor(step.id)}-600` : "text-gray-400"
-                    )} 
-                  />
+                  <Icon className={cn("h-5 w-5", textColor)} />
                 </div>
                 <span 
                   className={cn(
