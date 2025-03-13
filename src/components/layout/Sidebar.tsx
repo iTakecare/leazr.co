@@ -4,17 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { 
-  LayoutDashboard, 
-  Settings, 
-  PlusCircle, 
-  Calculator, 
-  ShoppingCart, 
-  Users, 
-  LogOut, 
-  LogIn, 
-  UserPlus
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { 
   Tooltip, 
   TooltipContent, 
@@ -145,42 +135,42 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <NavItem
                   to="/dashboard"
                   label="Tableau de bord"
-                  icon={LayoutDashboard}
+                  icon={LucideIcons.LayoutDashboard}
                   onClick={isMobile ? onClose : undefined}
                 />
                 
                 <NavItem
                   to="/clients"
                   label="Gestion des clients"
-                  icon={Users}
+                  icon={LucideIcons.Users}
                   onClick={isMobile ? onClose : undefined}
                 />
 
                 <NavItem
                   to="/create-offer"
                   label="Nouvelle offre"
-                  icon={PlusCircle}
+                  icon={LucideIcons.PlusCircle}
                   onClick={isMobile ? onClose : undefined}
                 />
 
                 <NavItem
                   to="/offers"
                   label="Mes offres"
-                  icon={Calculator}
+                  icon={LucideIcons.Calculator}
                   onClick={isMobile ? onClose : undefined}
                 />
 
                 <NavItem
                   to="/catalog"
                   label="Catalogue produits"
-                  icon={ShoppingCart}
+                  icon={LucideIcons.ShoppingCart}
                   onClick={isMobile ? onClose : undefined}
                 />
 
                 <NavItem
                   to="/settings"
                   label="Paramètres"
-                  icon={Settings}
+                  icon={LucideIcons.Settings}
                   onClick={isMobile ? onClose : undefined}
                 />
               </div>
@@ -195,7 +185,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                         className="h-10 w-10"
                         onClick={handleSignOut}
                       >
-                        <LogOut className="h-5 w-5" />
+                        <LucideIcons.LogOut className="h-5 w-5" />
                         <span className="sr-only">Se déconnecter</span>
                       </Button>
                     </TooltipTrigger>
@@ -211,13 +201,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <NavItem
                 to="/login"
                 label="Se connecter"
-                icon={LogIn}
+                icon={LucideIcons.LogIn}
                 onClick={isMobile ? onClose : undefined}
               />
               <NavItem
                 to="/signup"
                 label="Créer un compte"
-                icon={UserPlus}
+                icon={LucideIcons.UserPlus}
                 onClick={isMobile ? onClose : undefined}
               />
             </div>
