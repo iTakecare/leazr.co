@@ -386,12 +386,15 @@ export async function importWooCommerceProducts(
                 
                 // Mettre à jour le produit parent avec les références aux variations
                 if (variantIds.length > 0) {
+                  // Create an update object that matches the database schema
+                  const updateData = {
+                    is_parent: true,
+                    variants_ids: variantIds
+                  };
+                  
                   const { error: updateError } = await supabase
                     .from("products")
-                    .update({
-                      is_parent: true, // Marquer comme produit parent
-                      variants_ids: variantIds // Stocker les IDs des variations
-                    })
+                    .update(updateData)
                     .eq("id", parentProductData.id);
                     
                   if (updateError) {
@@ -708,3 +711,4 @@ const mapDbProductToProduct = (record: any): Product => {
     updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
   };
 };
+

@@ -26,6 +26,8 @@ export interface Product {
   active?: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Make sure to match database schema fields
+  monthly_price?: number;
 }
 
 export interface Category {
