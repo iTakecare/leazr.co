@@ -142,19 +142,22 @@ export const getProducts = async (): Promise<Product[]> => {
 // Get product by ID
 export const getProductById = async (id: string): Promise<Product | null> => {
   try {
+    console.log("Fetching product with ID:", id);
     const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching product by ID:", error);
+      // Try to find it in mock products as fallback
       const mockProduct = mockProducts.find(p => p.id === id);
       return mockProduct || null;
     }
 
     if (data) {
+      console.log("Found product in database:", data);
       return {
         id: data.id,
         name: data.name,
@@ -167,10 +170,16 @@ export const getProductById = async (id: string): Promise<Product | null> => {
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
         sku: data.sku,
-        monthly_price: data.monthly_price ? Number(data.monthly_price) : undefined
+        monthly_price: data.monthly_price ? Number(data.monthly_price) : undefined,
+        is_variation: data.is_variation,
+        parent_id: data.parent_id,
+        variation_attributes: data.variation_attributes,
+        is_parent: data.is_parent,
+        variants_ids: data.variants_ids
       };
     }
     
+    console.log("No product found with ID:", id);
     return null;
   } catch (error) {
     console.error("Exception fetching product by ID:", error);

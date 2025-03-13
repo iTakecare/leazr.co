@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
 const ProductDetail = () => {
-  const { productId } = useParams<{ productId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
@@ -32,9 +32,9 @@ const ProductDetail = () => {
   const [showVariants, setShowVariants] = useState(true);
   
   const { data: product, isLoading } = useQuery({
-    queryKey: ["product", productId],
-    queryFn: () => getProductById(productId!),
-    enabled: !!productId,
+    queryKey: ["product", id],
+    queryFn: () => getProductById(id!),
+    enabled: !!id,
   });
 
   useEffect(() => {
@@ -66,13 +66,13 @@ const ProductDetail = () => {
         setParentProduct(parent);
         
         if (parent.variants) {
-          setVariants(parent.variants.filter(v => v.id !== productId));
+          setVariants(parent.variants.filter(v => v.id !== id));
         } else {
           const { data, error } = await supabase
             .from('products')
             .select('*')
             .eq('parent_id', parentId)
-            .neq('id', productId);
+            .neq('id', id);
             
           if (!error && data) {
             setVariants(data.map(item => ({
@@ -93,7 +93,7 @@ const ProductDetail = () => {
     mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) => 
       updateProduct(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["product", productId] });
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Produit mis à jour avec succès");
     },
@@ -120,7 +120,7 @@ const ProductDetail = () => {
     onSuccess: (imageUrl: string) => {
       setFormData(prev => ({ ...prev, imageUrl }));
       updateMutation.mutate({ 
-        id: productId!, 
+        id: id, 
         data: { imageUrl } 
       });
       toast.success("Image mise à jour avec succès");
@@ -156,9 +156,9 @@ const ProductDetail = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (productId) {
+    if (id) {
       updateMutation.mutate({ 
-        id: productId, 
+        id: id, 
         data: { 
           ...formData,
           specifications 
@@ -169,18 +169,18 @@ const ProductDetail = () => {
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && productId) {
-      imageMutation.mutate({ file, id: productId });
+    if (file && id) {
+      imageMutation.mutate({ file, id });
     }
   };
   
   const navigateToVariant = (variantId: string) => {
-    navigate(`/catalog/${variantId}`);
+    navigate(`/products/${variantId}`);
   };
   
   const navigateToParent = () => {
     if (parentProduct) {
-      navigate(`/catalog/${parentProduct.id}`);
+      navigate(`/products/${parentProduct.id}`);
     }
   };
   
@@ -199,6 +199,7 @@ const ProductDetail = () => {
       <Container>
         <div className="py-8">
           <h1 className="text-2xl">Produit non trouvé</h1>
+          <p className="text-muted-foreground mt-2">L'identifiant du produit est: {id}</p>
           <Button onClick={() => navigate("/catalog")} className="mt-4">
             <ArrowLeft className="mr-2 h-4 w-4" /> Retour au catalogue
           </Button>
@@ -267,7 +268,7 @@ const ProductDetail = () => {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteMutation.mutate(productId!)}>
+                      <AlertDialogAction onClick={() => deleteMutation.mutate(id!)}>
                         Supprimer
                       </AlertDialogAction>
                     </AlertDialogFooter>
