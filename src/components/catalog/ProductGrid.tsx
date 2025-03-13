@@ -37,7 +37,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
 
   // Function to get alt text or generate fallback
   const getImageAlt = (product: Product): string => {
-    return product.name;
+    return product.name || 'Product image';
   };
 
   return (

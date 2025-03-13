@@ -21,9 +21,9 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // Get all available images (main image + additional images)
-  const images = product.imageUrls?.length 
-    ? [product.imageUrl, ...product.imageUrls]
+  // Handle image array access based on what's available
+  const images = product.image_urls && product.image_urls.length 
+    ? [product.imageUrl, ...product.image_urls]
     : [product.imageUrl];
   
   // Filter out any undefined or empty image URLs

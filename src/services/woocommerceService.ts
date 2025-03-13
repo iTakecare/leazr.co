@@ -680,7 +680,7 @@ async function createProductFromWooCommerceData(
     return acc;
   }, {} as Record<string, string>) || {};
 
-  // Prepare product data for database
+  // Prepare product data for database - fix the field names!
   const productData = {
     name: wooProduct.name,
     description: wooProduct.short_description || wooProduct.description || '',
@@ -688,6 +688,7 @@ async function createProductFromWooCommerceData(
     brand,
     category: determineCategory(wooProduct.categories),
     image_url: imageUrl,
+    // Use image_urls instead of imageUrls to match database schema
     image_urls: additionalImages.length > 0 ? additionalImages : null,
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
@@ -822,7 +823,8 @@ const mapDbProductToProduct = (record: any): Product => {
     price: Number(record.price),
     description: record.description || "",
     imageUrl: record.image_url || "",
-    imageUrls: record.image_urls || [], // Correct property name
+    // Fix property mapping to match database schema
+    image_urls: record.image_urls || [], 
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
