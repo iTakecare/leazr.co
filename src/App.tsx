@@ -16,25 +16,33 @@ import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import CreateTestUsers from "@/pages/CreateTestUsers";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Container from "@/components/layout/Container";
-import { useAuth } from "@/context/AuthContext";
 
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: 2,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
 
-// Composant pour les routes protégées
+// Component for protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   
-  if (isLoading) return <div className="w-full h-screen flex items-center justify-center">Chargement...</div>;
+  if (isLoading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mr-3"></div>
+        Chargement...
+      </div>
+    );
+  }
+  
   if (!user) return <Navigate to="/login" replace />;
   
   return <>{children}</>;
@@ -46,9 +54,7 @@ function Layout() {
       <Sidebar />
       <main className="flex-1 overflow-y-auto bg-background">
         <PageTransition>
-          <Container className="py-6">
-            <Outlet />
-          </Container>
+          <Outlet />
         </PageTransition>
       </main>
     </div>
@@ -57,9 +63,9 @@ function Layout() {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -75,14 +81,15 @@ function App() {
               <Route path="/create-offer" element={<CreateOffer />} />
               <Route path="/catalog" element={<Catalog />} />
               <Route path="/catalog/:productId" element={<ProductDetail />} />
+              <Route path="/calculator" element={<div className="p-6"><h1 className="text-3xl font-bold">Calculateur</h1><p className="text-muted-foreground mt-2">Page en cours de développement</p></div>} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
           <Toaster richColors position="top-right" />
-        </QueryClientProvider>
-      </AuthProvider>
-    </Router>
+        </AuthProvider>
+      </Router>
+    </QueryClientProvider>
   );
 }
 

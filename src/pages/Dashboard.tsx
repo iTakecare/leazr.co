@@ -1,7 +1,6 @@
 
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
-import Container from "@/components/layout/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";

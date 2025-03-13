@@ -26,7 +26,7 @@ const Container = ({
   return (
     <div
       className={cn(
-        "w-full px-6 mx-auto",
+        "w-full px-4 mx-auto",
         maxWidthClass[maxWidth],
         className
       )}
