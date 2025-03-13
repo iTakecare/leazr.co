@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -275,6 +274,44 @@ export const checkDatabaseSchema = async (): Promise<{ hasCategory: boolean; has
   } catch (error) {
     console.error('Error checking schema:', error);
     return { hasCategory: false, hasDescription: false };
+  }
+};
+
+export const updateDatabaseSchema = async (): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // Utilisation du client admin qui permet de contourner les restrictions RLS
+    // pour les opérations DDL (modification de schéma)
+    const { error: categoryError } = await adminSupabase.rpc('add_column_if_not_exists', {
+      table_name: 'products',
+      column_name: 'category',
+      column_type: 'text',
+      column_default: "'other'"
+    });
+    
+    if (categoryError) {
+      console.error('Erreur lors de l\'ajout de la colonne category:', categoryError);
+      return { success: false, error: categoryError.message };
+    }
+    
+    const { error: descriptionError } = await adminSupabase.rpc('add_column_if_not_exists', {
+      table_name: 'products',
+      column_name: 'description',
+      column_type: 'text',
+      column_default: 'NULL'
+    });
+    
+    if (descriptionError) {
+      console.error('Erreur lors de l\'ajout de la colonne description:', descriptionError);
+      return { success: false, error: descriptionError.message };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du schéma:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Erreur inconnue lors de la mise à jour du schéma'
+    };
   }
 };
 

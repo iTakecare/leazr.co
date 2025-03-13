@@ -12,12 +12,14 @@ import ImportStatistics from './woocommerce/ImportStatistics';
 import ErrorsList from './woocommerce/ErrorsList';
 import StatusBadge from './woocommerce/StatusBadge';
 import RLSWarning from './woocommerce/RLSWarning';
+import SchemaUpdateInfo from './woocommerce/SchemaUpdateInfo';
 
 // Services et types
 import { 
   fetchProductsFromWooCommerce, 
   importProductsToSupabase,
   checkDatabaseSchema,
+  updateDatabaseSchema,
   checkRLSPermissions
 } from './woocommerce/ImportService';
 import { 
@@ -52,6 +54,8 @@ const WooCommerceImporter = () => {
   // Vérification du schéma de la base de données
   const [schemaHasCategory, setSchemaHasCategory] = useState(false);
   const [schemaHasDescription, setSchemaHasDescription] = useState(false);
+  const [updatingSchema, setUpdatingSchema] = useState(false);
+  const [schemaUpdateSuccess, setSchemaUpdateSuccess] = useState(false);
   const [hasRLSPermissions, setHasRLSPermissions] = useState(false);
 
   // Vérifier si le schéma a les colonnes nécessaires au chargement
@@ -74,6 +78,40 @@ const WooCommerceImporter = () => {
     
     initializeComponent();
   }, []);
+  
+  // Mettre à jour le schéma de la base de données
+  const handleUpdateSchema = async () => {
+    if (!fetchingOptions.bypassRLS && !hasRLSPermissions) {
+      toast.error("Vous devez activer l'option 'Contourner la sécurité RLS' pour mettre à jour le schéma");
+      return;
+    }
+    
+    setUpdatingSchema(true);
+    setErrors([]);
+    
+    try {
+      setImportStage("Mise à jour du schéma de la base de données...");
+      
+      const result = await updateDatabaseSchema();
+      
+      if (result.success) {
+        setSchemaHasCategory(true);
+        setSchemaHasDescription(true);
+        setSchemaUpdateSuccess(true);
+        toast.success("Schéma de la base de données mis à jour avec succès");
+      } else {
+        setErrors(prev => [...prev, `Erreur lors de la mise à jour du schéma: ${result.error}`]);
+        toast.error(`Erreur lors de la mise à jour du schéma: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating database schema:', error);
+      setErrors(prev => [...prev, `Erreur lors de la mise à jour du schéma: ${error instanceof Error ? error.message : 'Erreur inconnue'}`]);
+      toast.error(`Erreur lors de la mise à jour du schéma: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setUpdatingSchema(false);
+      setImportStage('');
+    }
+  };
   
   // Récupérer les produits depuis WooCommerce
   const fetchProducts = async () => {
@@ -191,9 +229,18 @@ const WooCommerceImporter = () => {
       {/* Avertissement RLS */}
       <RLSWarning hasRLSPermissions={hasRLSPermissions} />
       
+      {/* Information sur le schéma */}
+      <SchemaUpdateInfo 
+        schemaHasCategory={schemaHasCategory}
+        schemaHasDescription={schemaHasDescription}
+        onUpdateSchema={handleUpdateSchema}
+        updatingSchema={updatingSchema}
+        updateSuccess={schemaUpdateSuccess}
+      />
+      
       {/* Formulaire des identifiants */}
       <ConnectionForm 
-        disabled={importStatus === 'fetching' || importStatus === 'importing'}
+        disabled={importStatus === 'fetching' || importStatus === 'importing' || updatingSchema}
         onTestConnection={handleConnectionTest}
         connectionStatus={connectionStatus}
         setErrors={setErrors}
@@ -203,7 +250,7 @@ const WooCommerceImporter = () => {
       <ImportOptions 
         options={fetchingOptions}
         setOptions={setFetchingOptions}
-        disabled={importStatus === 'fetching' || importStatus === 'importing'}
+        disabled={importStatus === 'fetching' || importStatus === 'importing' || updatingSchema}
         schemaHasCategory={schemaHasCategory}
         schemaHasDescription={schemaHasDescription}
       />
@@ -220,6 +267,7 @@ const WooCommerceImporter = () => {
             onReset={resetForm}
             productsCount={products.length}
             importStatus={importStatus}
+            disabled={updatingSchema}
           />
 
           {/* Statistiques */}
@@ -236,7 +284,7 @@ const WooCommerceImporter = () => {
           <ImportProgress 
             progress={importProgress}
             stage={importStage}
-            isActive={importStatus === 'importing' || importStatus === 'fetching'}
+            isActive={importStatus === 'importing' || importStatus === 'fetching' || updatingSchema}
           />
 
           {/* Liste des erreurs */}

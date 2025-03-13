@@ -10,6 +10,7 @@ interface ImportActionsProps {
   onReset: () => void;
   productsCount: number;
   importStatus: ImportStatus;
+  disabled?: boolean;
 }
 
 const ImportActions: React.FC<ImportActionsProps> = ({
@@ -17,9 +18,10 @@ const ImportActions: React.FC<ImportActionsProps> = ({
   onImportProducts,
   onReset,
   productsCount,
-  importStatus
+  importStatus,
+  disabled = false
 }) => {
-  const isDisabled = importStatus === 'fetching' || importStatus === 'importing';
+  const isDisabled = importStatus === 'fetching' || importStatus === 'importing' || disabled;
   
   return (
     <div className="flex flex-wrap gap-3">
