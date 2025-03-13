@@ -1,294 +1,166 @@
+import { getSupabaseClient } from "@/lib/supabase";
 import { Product } from "@/types/catalog";
-import { v4 as uuidv4 } from 'uuid';
-import { products as mockProducts } from '@/data/products';
-import { supabase } from '@/integrations/supabase/client';
 
-// Create mock products if not already available
-if (mockProducts.length === 0) {
-  const defaultProducts = [
-    {
-      id: uuidv4(),
-      name: "Solar Panel 400W",
-      category: "Renewable Energy",
-      price: 299.99,
-      description: "High efficiency monocrystalline solar panel, perfect for residential installations.",
-      imageUrl: "/placeholder.svg",
-      specifications: {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: uuidv4(),
-      name: "Wind Turbine 1kW",
-      category: "Renewable Energy",
-      price: 1299.99,
-      description: "Small-scale wind turbine for residential power generation.",
-      imageUrl: "/placeholder.svg",
-      specifications: {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: uuidv4(),
-      name: "Tesla Powerwall",
-      category: "Energy Storage",
-      price: 8500,
-      description: "Home battery system that stores your solar energy to power your home at night.",
-      imageUrl: "/placeholder.svg",
-      brand: "Tesla",
-      specifications: {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: uuidv4(),
-      name: "Heat Pump System",
-      category: "HVAC",
-      price: 4200,
-      description: "Energy-efficient heating and cooling system for residential use.",
-      imageUrl: "/placeholder.svg",
-      specifications: {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: uuidv4(),
-      name: "Smart Thermostat",
-      category: "Smart Home",
-      price: 249.99,
-      description: "Wi-Fi enabled thermostat that learns your habits and optimizes energy usage.",
-      imageUrl: "/placeholder.svg",
-      brand: "Nest",
-      specifications: {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: uuidv4(),
-      name: "LED Lighting Kit",
-      category: "Lighting",
-      price: 149.99,
-      description: "Complete home LED lighting conversion kit to reduce energy usage.",
-      imageUrl: "/placeholder.svg",
-      specifications: {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  ];
-
-  mockProducts.push(...defaultProducts);
-}
-
-// Helper function to get public URL for an image in Storage
-const getPublicImageUrl = (path) => {
-  if (!path) return '/placeholder.svg';
-  
-  // If the path is already a full URL or a local path, return it
-  if (path.startsWith('http') || path.startsWith('/')) {
-    return path;
-  }
-  
-  // Otherwise, construct the Supabase storage URL
+export async function getProducts(): Promise<Product[]> {
   try {
-    const { data } = supabase.storage.from('product-images').getPublicUrl(path);
-    return data?.publicUrl || '/placeholder.svg';
-  } catch (error) {
-    console.error("Error getting public URL for image:", error);
-    return '/placeholder.svg';
-  }
-};
-
-// Get all products
-export const getProducts = async (): Promise<Product[]> => {
-  try {
-    console.log("Fetching products from database...");
+    const { supabase } = await getSupabaseClient();
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .order('name');
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Error fetching products from Supabase:", error);
-      console.log("Falling back to mock products, count:", mockProducts.length);
-      return [...mockProducts];
+      throw new Error(`Error fetching products: ${error.message}`);
     }
 
-    if (data && data.length > 0) {
-      console.log(`Successfully fetched ${data.length} products from database`);
-      return data.map(item => ({
-        id: item.id,
-        name: item.name,
-        brand: item.brand || undefined,
-        category: item.category || 'Uncategorized',
-        price: Number(item.price) || 0,
-        description: item.description || '',
-        imageUrl: getPublicImageUrl(item.image_url),
-        specifications: item.specifications || {},
-        createdAt: new Date(item.created_at),
-        updatedAt: new Date(item.updated_at),
-        sku: item.sku,
-        monthly_price: item.monthly_price ? Number(item.monthly_price) : undefined,
-        is_variation: item.is_variation,
-        parent_id: item.parent_id,
-        variation_attributes: item.variation_attributes,
-        is_parent: item.is_parent,
-        variants_ids: item.variants_ids
-      }));
-    } else {
-      console.log("No products found in database, using mock products");
-      return [...mockProducts];
-    }
+    return data || [];
   } catch (error) {
-    console.error("Exception fetching products:", error);
-    return [...mockProducts];
+    console.error("Error in getProducts:", error);
+    return [];
   }
-};
+}
 
-// Get product by ID
-export const getProductById = async (id: string): Promise<Product | null> => {
+export async function getProductById(id: string): Promise<Product | null> {
   try {
-    console.log("Fetching product with ID:", id);
+    const { supabase } = await getSupabaseClient();
     const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('id', id)
-      .maybeSingle();
+      .single();
 
     if (error) {
-      console.error("Error fetching product by ID:", error);
-      // Try to find it in mock products as fallback
-      const mockProduct = mockProducts.find(p => p.id === id);
-      return mockProduct || null;
+      throw new Error(`Error fetching product by ID: ${error.message}`);
     }
 
-    if (data) {
-      console.log("Found product in database:", data);
-      return {
-        id: data.id,
-        name: data.name,
-        brand: data.brand || undefined,
-        category: data.category || 'Uncategorized',
-        price: Number(data.price) || 0,
-        description: data.description || '',
-        imageUrl: getPublicImageUrl(data.image_url),
-        specifications: data.specifications || {},
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at),
-        sku: data.sku,
-        monthly_price: data.monthly_price ? Number(data.monthly_price) : undefined,
-        is_variation: data.is_variation,
-        parent_id: data.parent_id,
-        variation_attributes: data.variation_attributes,
-        is_parent: data.is_parent,
-        variants_ids: data.variants_ids
-      };
-    }
-    
-    console.log("No product found with ID:", id);
-    return null;
+    return data || null;
   } catch (error) {
-    console.error("Exception fetching product by ID:", error);
+    console.error("Error in getProductById:", error);
     return null;
   }
-};
+}
 
-// Create a new product
-export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
-  const newProduct: Product = {
-    ...product,
-    id: uuidv4(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    specifications: product.specifications || {},
-  };
-  mockProducts.push(newProduct);
-  return newProduct;
-};
-
-// Add a product (alias for createProduct to fix the import error)
-export const addProduct = createProduct;
-
-// Update an existing product
-export const updateProduct = async (id: string, productData: Partial<Product>): Promise<Product> => {
-  const index = mockProducts.findIndex(p => p.id === id);
-  if (index === -1) {
-    throw new Error('Product not found');
-  }
-  
-  const existingProduct = mockProducts[index];
-  
-  const updatedProduct: Product = {
-    ...existingProduct,
-    ...productData,
-    id,
-    updatedAt: new Date(),
-  };
-  
-  mockProducts[index] = updatedProduct;
-  return updatedProduct;
-};
-
-// Delete a product
-export const deleteProduct = async (id: string): Promise<void> => {
-  const index = mockProducts.findIndex(p => p.id === id);
-  if (index === -1) {
-    throw new Error('Product not found');
-  }
-  
-  mockProducts.splice(index, 1);
-};
-
-// Delete all products
-export const deleteAllProducts = async (): Promise<void> => {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  mockProducts.length = 0;
-};
-
-// Upload product image - Implement actual Supabase storage upload
-export const uploadProductImage = async (file: File, productId: string): Promise<string> => {
+export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: string }> {
   try {
-    const fileExt = file.name.split('.').pop();
-    const filePath = `${productId}/${Date.now()}.${fileExt}`;
-    
-    // Check if bucket exists and create it if it doesn't
-    try {
-      const { data: buckets } = await supabase.storage.listBuckets();
-      
-      if (!buckets || !buckets.find(b => b.name === 'product-images')) {
-        console.log("Creating product-images bucket");
-        await supabase.storage.createBucket('product-images', {
-          public: true
-        });
-      }
-    } catch (bucketError) {
-      console.error("Error checking/creating bucket:", bucketError);
+    const { supabase } = await getSupabaseClient();
+    const { data, error } = await supabase
+      .from('products')
+      .insert([product])
+      .select('id')
+      .single();
+
+    if (error) {
+      throw new Error(`Error adding product: ${error.message}`);
     }
-    
-    const { error: uploadError } = await supabase.storage
+
+    if (!data || !data.id) {
+      throw new Error("Product ID not found after insertion.");
+    }
+
+    return { id: data.id };
+  } catch (error) {
+    console.error("Error in addProduct:", error);
+    throw error;
+  }
+}
+
+export async function updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
+  try {
+    const { supabase } = await getSupabaseClient();
+    const { data, error } = await supabase
+      .from('products')
+      .update(updates)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) {
+      throw new Error(`Error updating product: ${error.message}`);
+    }
+
+    return data || null;
+  } catch (error) {
+    console.error("Error in updateProduct:", error);
+    return null;
+  }
+}
+
+export async function uploadProductImage(file: File, productId: string): Promise<string> {
+  try {
+    const { supabase } = await getSupabaseClient();
+
+    const timestamp = new Date().getTime();
+    const imageName = `${productId}_${timestamp}.${file.name.split('.').pop()}`;
+
+    const { data, error } = await supabase.storage
       .from('product-images')
-      .upload(filePath, file, {
+      .upload(imageName, file, {
         cacheControl: '3600',
-        upsert: true
+        upsert: false
       });
 
-    if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      return URL.createObjectURL(file); // Fallback to local URL
+    if (error) {
+      throw new Error(`Error uploading image: ${error.message}`);
     }
 
-    // Get the public URL
-    const { data } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(filePath);
-      
-    return data?.publicUrl || URL.createObjectURL(file);
-  } catch (error) {
-    console.error('Exception during file upload:', error);
-    return URL.createObjectURL(file); // Fallback to local URL
-  }
-};
+    const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${data.path}`;
+    
+    // Update the product with the image URL
+    await updateProduct(productId, { imageUrl });
 
-// Clear mock products (for testing)
-export const clearMockProducts = (): void => {
-  mockProducts.length = 0;
-};
+    return imageUrl;
+  } catch (error) {
+    console.error("Error in uploadProductImage:", error);
+    throw error;
+  }
+}
+
+export async function deleteAllProducts(): Promise<void> {
+  try {
+    const { supabase } = await getSupabaseClient();
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .neq('id', 'null');
+
+    if (error) {
+      throw new Error(`Error deleting all products: ${error.message}`);
+    }
+
+    return Promise.resolve();
+  } catch (error) {
+    console.error("Error in deleteAllProducts:", error);
+    return Promise.reject(error);
+  }
+}
+
+export async function deleteProduct(productId: string): Promise<void> {
+  try {
+    const { supabase } = await getSupabaseClient();
+    
+    // Delete the product
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+    
+    if (error) {
+      throw new Error(`Error deleting product: ${error.message}`);
+    }
+    
+    // Check if it's a parent product and delete children if necessary
+    const { data: children, error: childrenError } = await supabase
+      .from('products')
+      .delete()
+      .eq('parent_id', productId);
+    
+    if (childrenError) {
+      console.error(`Error deleting child products: ${childrenError.message}`);
+    }
+    
+    return Promise.resolve();
+  } catch (error) {
+    console.error("Error in deleteProduct:", error);
+    return Promise.reject(error);
+  }
+}

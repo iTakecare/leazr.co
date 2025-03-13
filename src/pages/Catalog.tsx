@@ -1,15 +1,15 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
-import { getProducts, deleteAllProducts } from "@/services/catalogService";
+import { getProducts, deleteAllProducts, deleteProduct } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Search, Plus, Filter, AlertCircle, Trash2, Grid, List } from "lucide-react";
+import { Search, Plus, Filter, AlertCircle, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import ProductGrid from "@/components/catalog/ProductGrid";
 import CollapsibleProductList from "@/components/catalog/CollapsibleProductList";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "sonner";
@@ -25,6 +25,7 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
+import CategoryManager from "@/components/catalog/CategoryManager";
 
 const categoryTranslations: Record<string, string> = {
   "all": "Tous",
@@ -50,7 +51,6 @@ const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
   const { 
     data: products = [], 
@@ -78,6 +78,18 @@ const Catalog = () => {
     onError: (err: Error) => {
       console.error("Error deleting all products:", err);
       toast.error("Unable to delete all products");
+    }
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: (productId: string) => deleteProduct(productId),
+    onSuccess: () => {
+      refetch();
+      toast.success("Product has been deleted");
+    },
+    onError: (err: Error) => {
+      console.error("Error deleting product:", err);
+      toast.error("Unable to delete product");
     }
   });
 
@@ -118,6 +130,10 @@ const Catalog = () => {
 
   const handleDeleteAllProducts = () => {
     deleteAllProductsMutation.mutate();
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    deleteProductMutation.mutate(productId);
   };
 
   return (
@@ -170,6 +186,7 @@ const Catalog = () => {
           <TabsList>
             <TabsTrigger value="browse">Parcourir</TabsTrigger>
             <TabsTrigger value="manage">Gérer</TabsTrigger>
+            <TabsTrigger value="categories">Catégories</TabsTrigger>
           </TabsList>
           
           <TabsContent value="browse" className="space-y-4">
@@ -184,24 +201,6 @@ const Catalog = () => {
                 />
               </div>
               <div className="flex items-center space-x-2">
-                <div className="flex items-center border rounded-md overflow-hidden">
-                  <Button 
-                    variant={viewMode === "grid" ? "default" : "ghost"}
-                    size="icon"
-                    onClick={() => setViewMode("grid")}
-                    className="rounded-none h-9 w-9"
-                  >
-                    <Grid className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="icon"
-                    onClick={() => setViewMode("list")}
-                    className="rounded-none h-9 w-9"
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
                 <Button variant="outline" size="icon">
                   <Filter className="h-4 w-4" />
                 </Button>
@@ -231,9 +230,9 @@ const Catalog = () => {
             )}
 
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="h-64 rounded-md bg-muted animate-pulse" />
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
                 ))}
               </div>
             ) : filteredProducts.length > 0 ? (
@@ -242,11 +241,10 @@ const Catalog = () => {
                 initial="hidden"
                 animate="visible"
               >
-                {viewMode === "grid" ? (
-                  <ProductGrid products={filteredProducts} />
-                ) : (
-                  <CollapsibleProductList products={filteredProducts} />
-                )}
+                <CollapsibleProductList 
+                  products={filteredProducts} 
+                  onDeleteProduct={handleDeleteProduct}
+                />
               </motion.div>
             ) : (
               <div className="text-center py-12">
@@ -279,6 +277,13 @@ const Catalog = () => {
                           <Link to={`/products/${product.id}`}>
                             <Button variant="outline" size="sm">Modifier</Button>
                           </Link>
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={() => handleDeleteProduct(product.id)}
+                          >
+                            Supprimer
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -290,6 +295,13 @@ const Catalog = () => {
                 </div>
               )}
             </div>
+          </TabsContent>
+          
+          <TabsContent value="categories">
+            <CategoryManager 
+              categories={categories} 
+              categoryTranslations={categoryTranslations}
+            />
           </TabsContent>
         </Tabs>
       </div>

@@ -1,13 +1,22 @@
 
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatCurrency } from "@/utils/formatters";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Edit, Copy, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Map for translating category names to French
 const categoryTranslations: Record<string, string> = {
@@ -32,9 +41,10 @@ const translateCategory = (category: string): string => {
 
 interface CollapsibleProductListProps {
   products: Product[];
+  onDeleteProduct?: (productId: string) => void;
 }
 
-const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ products }) => {
+const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ products, onDeleteProduct }) => {
   const navigate = useNavigate();
   const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
 
@@ -83,6 +93,12 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
         ))}
       </div>
     );
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    if (onDeleteProduct) {
+      onDeleteProduct(productId);
+    }
   };
 
   return (
@@ -148,6 +164,32 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Êtes-vous sûr de vouloir supprimer ce produit ? Cette action ne peut pas être annulée.
+                          {hasVariations && " Toutes les variantes seront également supprimées."}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   {hasVariations && (
                     <Button
                       variant="outline"
@@ -214,6 +256,31 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Êtes-vous sûr de vouloir supprimer cette variante ? Cette action ne peut pas être annulée.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuler</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteProduct(variation.id)}>
+                                Supprimer
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   ))}
