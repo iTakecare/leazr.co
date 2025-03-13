@@ -687,10 +687,8 @@ async function createProductFromWooCommerceData(
     price,
     brand,
     category: determineCategory(wooProduct.categories),
-    imageUrl: imageUrl, 
-    image_url: imageUrl,
-    imageUrls: additionalImages.length > 0 ? additionalImages : undefined,
-    image_urls: additionalImages.length > 0 ? additionalImages : undefined,
+    image_url: imageUrl, // Corrected field name to use underscore convention
+    image_urls: additionalImages.length > 0 ? additionalImages : undefined, // Corrected field name
     specifications: specifications,
     active: wooProduct.status === "publish" || wooProduct.stock_status === "instock",
     is_variation: isVariation,
@@ -823,14 +821,14 @@ const mapDbProductToProduct = (record: any): Product => {
     category: record.category || "other",
     price: Number(record.price),
     description: record.description || "",
-    imageUrl: record.imageUrl || record.image_url || "",
-    imageUrls: record.imageUrls || record.image_urls || [],
-    image_url: record.image_url || record.imageUrl || "",
-    image_urls: record.image_urls || record.imageUrls || [],
-    imageAlt: record.imageAlt || record.image_alt || undefined,
-    imageAlts: record.imageAlts || record.image_alts || undefined,
-    image_alt: record.image_alt || record.imageAlt || undefined,
-    image_alts: record.image_alts || record.imageAlts || undefined,
+    imageUrl: record.image_url || "",
+    image_url: record.image_url || "",
+    imageUrls: record.image_urls || [],
+    image_urls: record.image_urls || [],
+    imageAlt: record.image_alt || undefined,
+    image_alt: record.image_alt || undefined,
+    imageAlts: record.image_alts || undefined,
+    image_alts: record.image_alts || undefined,
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
     is_variation: record.is_variation || false,
@@ -840,4 +838,3 @@ const mapDbProductToProduct = (record: any): Product => {
     updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
   };
 };
-
