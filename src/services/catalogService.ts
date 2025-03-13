@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -88,60 +87,20 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 
 export async function uploadProductImage(file: File, productId: string, isMainImage: boolean = true): Promise<string> {
   try {
-    const supabase = getSupabaseClient();
-
-    // Vérifier que le fichier est bien une image valide
-    if (!file.type.startsWith('image/')) {
-      console.warn(`Le fichier n'est pas une image valide, type détecté: ${file.type}`);
-      // Déterminer le type en fonction de l'extension
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      let contentType = 'image/jpeg'; // Default type
-      
-      if (extension === 'png') contentType = 'image/png';
-      else if (extension === 'gif') contentType = 'image/gif';
-      else if (extension === 'webp') contentType = 'image/webp';
-      
-      // Créer un nouveau blob avec le type correct
-      const fileArrayBuffer = await file.arrayBuffer();
-      const correctedFile = new File([fileArrayBuffer], file.name, { type: contentType });
-      
-      // Utiliser ce nouveau fichier
-      file = correctedFile;
-      console.log(`Type de fichier corrigé: ${file.type}`);
-    }
-
-    const timestamp = new Date().getTime();
-    const imageName = `${productId}_${timestamp}_${isMainImage ? 'main' : Date.now()}.${file.name.split('.').pop()}`;
-
-    // Créer d'abord le bucket s'il n'existe pas
-    const { data: buckets } = await supabase.storage.listBuckets();
-    if (!buckets || !buckets.find(b => b.name === 'product-images')) {
-      const { error: bucketError } = await supabase.storage.createBucket('product-images', {
-        public: true
-      });
-      if (bucketError) {
-        console.error("Erreur lors de la création du bucket:", bucketError);
-      }
-    }
-
-    // Vérifier une dernière fois que le type est correct
-    console.log(`Uploading image of type: ${file.type} for product: ${productId}`);
+    // Utiliser notre nouveau service d'image
+    const { uploadImage } = await import("@/services/imageService");
     
-    // Uploader le fichier avec le type de contenu explicite
-    const { data, error } = await supabase.storage
-      .from('product-images')
-      .upload(imageName, file, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: file.type // Ajouter explicitement le type de contenu
-      });
-
-    if (error) {
-      throw new Error(`Error uploading image: ${error.message}`);
+    // Générer un chemin unique pour l'image
+    const timestamp = Date.now();
+    const extension = file.name.split('.').pop() || 'jpg';
+    const path = `${productId}/${isMainImage ? 'main' : `additional_${timestamp}`}_${timestamp}.${extension}`;
+    
+    // Uploader l'image
+    const imageUrl = await uploadImage(file, path, 'product-images');
+    
+    if (!imageUrl) {
+      throw new Error("Failed to upload image");
     }
-
-    // Construire l'URL correctement
-    const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${data.path}`;
     
     // Update the product with the image URL
     const product = await getProductById(productId);
@@ -173,27 +132,28 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
 
 export async function uploadMultipleProductImages(files: File[], productId: string): Promise<string[]> {
   try {
+    // Utiliser notre nouveau service d'image
+    const { uploadProductImages } = await import("@/services/imageService");
+    
+    // Upload all images
+    const uploadedUrls = await uploadProductImages(files, productId);
+    
+    if (uploadedUrls.length === 0) {
+      throw new Error("No images were uploaded successfully");
+    }
+    
     // Get the current product
     const product = await getProductById(productId);
     if (!product) {
       throw new Error('Product not found');
     }
-
-    const uploadedUrls: string[] = [];
     
-    // Upload main image first if provided
-    if (files.length > 0) {
-      const mainImage = files[0];
-      const mainImageUrl = await uploadProductImage(mainImage, productId, true);
-      uploadedUrls.push(mainImageUrl);
-    }
-    
-    // Upload additional images (up to 4 more)
-    const additionalImages = files.slice(1, 5); // Limit to 4 additional images
-    
-    for (const file of additionalImages) {
-      const imageUrl = await uploadProductImage(file, productId, false);
-      uploadedUrls.push(imageUrl);
+    // Update the product with the first image as main image
+    if (uploadedUrls.length > 0) {
+      await updateProduct(productId, { 
+        imageUrl: uploadedUrls[0],
+        imageUrls: uploadedUrls.slice(1, 5) // Max 4 additional images
+      });
     }
     
     return uploadedUrls;
