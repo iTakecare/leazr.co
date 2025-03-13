@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { 
   File, Clock, CheckCircle, XCircle, UserCog, MessagesSquare, 
-  SendToBack, RefreshCw
+  SendToBack, RefreshCw, ChevronDown
 } from "lucide-react";
 import { workflowStatuses } from "@/hooks/useOffers";
 import {
@@ -16,9 +16,20 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 const workflowSteps = [
   { 
@@ -100,13 +111,7 @@ const workflowSteps = [
   }
 ];
 
-interface NextStepOption {
-  id: string;
-  label: string;
-  description: string;
-}
-
-function getNextStepOptions(currentStatus: string): NextStepOption[] {
+function getNextStepOptions(currentStatus: string) {
   const currentStep = workflowSteps.find(step => step.id === currentStatus);
   if (!currentStep) return [];
 
@@ -171,144 +176,167 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
 }) => {
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [reason, setReason] = useState("");
-  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
-  const [stepDialogOpen, setStepDialogOpen] = useState(false);
-  
-  const handleStepClick = (stepId: string) => {
-    console.log("Step clicked:", stepId);
-    console.log("Current status:", currentStatus);
-    
-    if (stepId === currentStatus) {
-      const nextOptions = getNextStepOptions(currentStatus);
-      if (nextOptions.length > 0) {
-        console.log("Opening step dialog for:", stepId);
-        setSelectedStep(stepId);
-        setStepDialogOpen(true);
-      }
-    }
-  };
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'visual' | 'simple'>('simple');
 
+  const currentStepInfo = workflowSteps.find(step => step.id === currentStatus);
+  const nextStepOptions = getNextStepOptions(currentStatus);
+  
   const handleNextStepSelect = (nextStepId: string) => {
     console.log("Next step selected:", nextStepId);
     setSelectedStep(nextStepId);
-    setStepDialogOpen(false);
-    setStatusConfirmOpen(true);
+    setConfirmOpen(true);
   };
 
   const confirmStatusChange = async () => {
     if (selectedStep) {
       await onStatusChange(selectedStep, reason || undefined);
       setReason("");
-      setStatusConfirmOpen(false);
+      setConfirmOpen(false);
     }
   };
 
-  // Function to get color classes based on status and step color
-  const getColorClasses = (step: typeof workflowSteps[0], isActive: boolean) => {
-    if (!isActive) {
-      return {
-        bg: "bg-gray-50",
-        border: "border-gray-200",
-        text: "text-gray-400"
-      };
-    }
+  // Map workflow status to color classes
+  const getStatusColor = (status: string) => {
+    const step = workflowSteps.find(s => s.id === status);
+    if (!step) return "bg-gray-100 border-gray-300 text-gray-600";
     
     switch (step.color) {
-      case "blue":
-        return { bg: "bg-blue-100", border: "border-blue-500", text: "text-blue-600" };
-      case "green":
-        return { bg: "bg-green-100", border: "border-green-500", text: "text-green-600" };
-      case "red":
-        return { bg: "bg-red-100", border: "border-red-500", text: "text-red-600" };
-      case "yellow":
-        return { bg: "bg-yellow-100", border: "border-yellow-500", text: "text-yellow-600" };
-      case "purple":
-        return { bg: "bg-purple-100", border: "border-purple-500", text: "text-purple-600" };
-      case "orange":
-        return { bg: "bg-orange-100", border: "border-orange-500", text: "text-orange-600" };
-      default:
-        return { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-600" };
+      case "blue": return "bg-blue-100 border-blue-500 text-blue-600";
+      case "green": return "bg-green-100 border-green-500 text-green-600";
+      case "red": return "bg-red-100 border-red-500 text-red-600";
+      case "yellow": return "bg-yellow-100 border-yellow-500 text-yellow-600";
+      case "purple": return "bg-purple-100 border-purple-500 text-purple-600";
+      case "orange": return "bg-orange-100 border-orange-500 text-orange-600";
+      default: return "bg-gray-100 border-gray-300 text-gray-600";
     }
   };
 
   return (
     <div className="mt-6">
-      <h3 className="text-sm font-medium mb-4">Étapes du workflow</h3>
-      <div className="flex flex-wrap items-center gap-1 relative">
-        {workflowSteps.map((step, index) => {
-          const Icon = step.icon;
-          const isActive = step.id === currentStatus;
-          const isClickable = isActive;
-          const colorClasses = getColorClasses(step, isActive);
-          
-          return (
-            <React.Fragment key={`step-${step.id}`}>
-              {index > 0 && (
-                <div className="h-px w-5 bg-gray-200" />
-              )}
-              <button
-                type="button"
-                onClick={() => handleStepClick(step.id)}
-                className={cn(
-                  "relative flex flex-col items-center",
-                  isClickable ? "cursor-pointer" : "cursor-default"
+      <h3 className="text-sm font-medium mb-4">Gestion du workflow</h3>
+      
+      <Tabs defaultValue="simple" onValueChange={(value) => setViewMode(value as 'visual' | 'simple')}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="simple">Mode Simple</TabsTrigger>
+          <TabsTrigger value="visual">Mode Visuel</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="simple" className="mt-2">
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center space-x-2">
+              <div className={cn(
+                "flex items-center px-3 py-2 rounded-md border-2",
+                getStatusColor(currentStatus)
+              )}>
+                {currentStepInfo && (
+                  <>
+                    <currentStepInfo.icon className="h-5 w-5 mr-2" />
+                    <span className="font-medium">{currentStepInfo.label}</span>
+                  </>
                 )}
-              >
-                <div 
-                  className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center border-2",
-                    colorClasses.bg,
-                    colorClasses.border,
-                    isActive && "ring-2 ring-offset-2 ring-primary/30"
-                  )}
-                >
-                  <Icon className={cn("h-5 w-5", colorClasses.text)} />
-                </div>
-                <span 
-                  className={cn(
-                    "text-xs mt-1 text-center",
-                    isActive ? "font-medium text-primary" : "text-gray-500"
-                  )}
-                >
-                  {step.label}
-                </span>
-              </button>
-            </React.Fragment>
-          );
-        })}
-      </div>
-
-      <Dialog open={stepDialogOpen} onOpenChange={setStepDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Changer le statut</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
-            <div className="space-y-2 py-2">
-              {getNextStepOptions(currentStatus).map((option) => (
-                <div
-                  key={option.id}
-                  onClick={() => handleNextStepSelect(option.id)}
-                  className="flex items-center justify-between p-3 rounded-md border hover:bg-muted cursor-pointer"
-                >
-                  <div>
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-sm text-muted-foreground">{option.description}</div>
-                  </div>
-                  <div className="text-primary">→</div>
-                </div>
-              ))}
+              </div>
             </div>
-          </ScrollArea>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStepDialogOpen(false)}>
-              Annuler
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            
+            {nextStepOptions.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-500">Passer à l'étape suivante:</p>
+                <Select onValueChange={handleNextStepSelect}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner la prochaine étape" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {nextStepOptions.map(option => (
+                      <SelectItem key={option.id} value={option.id}>
+                        <div>
+                          <span>{option.label}</span>
+                          <p className="text-xs text-gray-500">{option.description}</p>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="visual" className="mt-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {workflowSteps.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = step.id === currentStatus;
+              const hasPassed = false; // Add logic to determine if step has been passed
+              
+              return (
+                <React.Fragment key={step.id}>
+                  {index > 0 && (
+                    <div className="h-px w-4 bg-gray-200" />
+                  )}
+                  <div
+                    className={cn(
+                      "flex flex-col items-center",
+                      isActive && "relative"
+                    )}
+                  >
+                    <div 
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center border-2",
+                        getStatusColor(step.id),
+                        isActive && "ring-2 ring-offset-2 ring-primary/30"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <span 
+                      className={cn(
+                        "text-xs mt-1 text-center max-w-[80px] truncate",
+                        isActive ? "font-medium text-primary" : "text-gray-500"
+                      )}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+          
+          {nextStepOptions.length > 0 && (
+            <div className="mt-6 space-y-2">
+              <p className="text-sm font-medium text-gray-500">Passer à l'étape suivante:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {nextStepOptions.map(option => {
+                  const targetStep = workflowSteps.find(s => s.id === option.id);
+                  const TargetIcon = targetStep?.icon || File;
+                  
+                  return (
+                    <Button
+                      key={option.id}
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left h-auto py-3",
+                        getStatusColor(option.id)
+                      )}
+                      onClick={() => handleNextStepSelect(option.id)}
+                    >
+                      <div className="flex items-start">
+                        <TargetIcon className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="font-medium">{option.label}</div>
+                          <div className="text-xs mt-1">{option.description}</div>
+                        </div>
+                      </div>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
-      <AlertDialog open={statusConfirmOpen} onOpenChange={setStatusConfirmOpen}>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Changer le statut de l'offre ?</AlertDialogTitle>
