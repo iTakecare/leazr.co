@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Client, CreateClientData, Collaborator } from "@/types/client";
 import { useAuth } from "@/context/AuthContext";
@@ -132,6 +133,9 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
       return null;
     }
     
+    // Log the data we're about to send to the database
+    console.log("Creating client with data:", clientData);
+    
     const clientWithUserId = {
       ...clientData,
       user_id: user.id
@@ -143,8 +147,12 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error details:", error);
+      throw error;
+    }
     
+    console.log("Client created successfully:", data);
     return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error creating client:", error);
