@@ -28,9 +28,14 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
   const [leasers, setLeasers] = useState<Leaser[]>(defaultLeasers);
   const [loading, setLoading] = useState(false);
   
+  // Charger les leasers dès que le composant est monté, sans attendre l'ouverture
   useEffect(() => {
-    // Ne chargez les leasers que lorsque le sélecteur est ouvert
-    if (isOpen) {
+    fetchLeasers();
+  }, []);
+  
+  // Recharger les leasers quand le sélecteur est ouvert
+  useEffect(() => {
+    if (isOpen && !loading && leasers.length === defaultLeasers.length) {
       fetchLeasers();
     }
   }, [isOpen]);
@@ -50,7 +55,6 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
     } catch (error) {
       console.error("Error fetching leasers:", error);
       toast.error("Impossible de charger les leasers, utilisation des valeurs par défaut");
-      setLeasers(defaultLeasers);
     } finally {
       setLoading(false);
     }

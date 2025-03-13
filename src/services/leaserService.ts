@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Leaser } from "@/types/equipment";
 import { toast } from "sonner";
@@ -7,13 +8,7 @@ import { defaultLeasers } from "@/data/leasers";
 let leasersCache: Leaser[] | null = null;
 let lastFetchTime = 0;
 const CACHE_EXPIRY = 1000 * 60 * 5; // 5 minutes
-
-// Helper function to create a timeout promise
-const createTimeoutPromise = (ms: number) => {
-  return new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms);
-  });
-};
+const FETCH_TIMEOUT = 6000; // Augmenter le timeout à 6 secondes
 
 /**
  * Récupère tous les leasers de la base de données avec gestion de cache
@@ -27,24 +22,25 @@ export const getLeasers = async (): Promise<Leaser[]> => {
   }
   
   try {
-    // Récupérer tous les leasers avec un timeout de 3 secondes
+    // Utiliser Promise.race pour implémenter le timeout
     const leasersPromise = supabase
       .from("leasers")
       .select("*")
       .order("name");
     
-    const { data: leasers, error } = await Promise.race([
-      leasersPromise,
-      createTimeoutPromise(3000).then(() => {
-        throw new Error("Fetch leasers timed out");
-      })
-    ]) as any;
-
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`Fetch leasers timed out after ${FETCH_TIMEOUT}ms`)), FETCH_TIMEOUT);
+    });
+    
+    const result = await Promise.race([leasersPromise, timeoutPromise]);
+    // Si on arrive ici, c'est que la promesse leasers a été résolue avant le timeout
+    const { data: leasers, error } = result as any;
+    
     if (error) throw error;
 
     // Pour chaque leaser, récupérer ses tranches
     const leasersWithRanges = await Promise.all(
-      leasers.map(async (leaser) => {
+      leasers.map(async (leaser: any) => {
         try {
           const rangesPromise = supabase
             .from("leaser_ranges")
@@ -52,17 +48,18 @@ export const getLeasers = async (): Promise<Leaser[]> => {
             .eq("leaser_id", leaser.id)
             .order("min");
           
-          const { data: ranges, error: rangesError } = await Promise.race([
-            rangesPromise,
-            createTimeoutPromise(3000).then(() => {
-              throw new Error(`Fetch ranges for ${leaser.name} timed out`);
-            })
-          ]) as any;
-
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error(`Fetch ranges for ${leaser.name} timed out after ${FETCH_TIMEOUT}ms`)), FETCH_TIMEOUT);
+          });
+          
+          const result = await Promise.race([rangesPromise, timeoutPromise]);
+          // Si on arrive ici, c'est que la promesse ranges a été résolue avant le timeout
+          const { data: ranges, error: rangesError } = result as any;
+          
           if (rangesError) throw rangesError;
 
           // Convertir les ranges au format attendu
-          const formattedRanges = ranges.map(range => ({
+          const formattedRanges = ranges.map((range: any) => ({
             id: range.id,
             min: range.min,
             max: range.max,
@@ -142,10 +139,10 @@ export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | nu
       if (rangesError) throw rangesError;
     }
 
-    toast.success("Leaser ajouté avec succès");
-    
     // Vider le cache pour forcer un rechargement
     clearLeasersCache();
+    
+    toast.success("Leaser ajouté avec succès");
     
     // Récupérer le leaser complet avec ses tranches
     return {
@@ -153,6 +150,7 @@ export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | nu
       ranges: leaser.ranges
     };
   } catch (error: any) {
+    console.error("Erreur lors de l'ajout du leaser:", error);
     toast.error(`Erreur lors de l'ajout du leaser: ${error.message}`);
     return null;
   }
@@ -163,16 +161,20 @@ export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | nu
  */
 export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise<boolean> => {
   try {
-    // Mettre à jour le leaser
-    const { error } = await supabase
-      .from("leasers")
-      .update({
-        name: leaser.name,
-        logo_url: leaser.logo_url
-      })
-      .eq("id", id);
+    // Préparer les données à mettre à jour
+    const updateData: any = {};
+    if (leaser.name !== undefined) updateData.name = leaser.name;
+    if (leaser.logo_url !== undefined) updateData.logo_url = leaser.logo_url;
+    
+    // Mettre à jour le leaser seulement si on a des données à mettre à jour
+    if (Object.keys(updateData).length > 0) {
+      const { error } = await supabase
+        .from("leasers")
+        .update(updateData)
+        .eq("id", id);
 
-    if (error) throw error;
+      if (error) throw error;
+    }
 
     // Si des tranches sont fournies, les mettre à jour
     if (leaser.ranges) {
@@ -207,6 +209,7 @@ export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise
     toast.success("Leaser mis à jour avec succès");
     return true;
   } catch (error: any) {
+    console.error("Erreur lors de la mise à jour du leaser:", error);
     toast.error(`Erreur lors de la mise à jour du leaser: ${error.message}`);
     return false;
   }
@@ -239,6 +242,7 @@ export const deleteLeaser = async (id: string): Promise<boolean> => {
     toast.success("Leaser supprimé avec succès");
     return true;
   } catch (error: any) {
+    console.error("Erreur lors de la suppression du leaser:", error);
     toast.error(`Erreur lors de la suppression du leaser: ${error.message}`);
     return false;
   }
