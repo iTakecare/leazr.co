@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -303,77 +302,58 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
-    const { data: existingUser, error: userCheckError } = await adminSupabase.auth.admin.listUsers({
-      filter: {
-        email: client.email
+    const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+    
+    const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
+      email: client.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        first_name: client.name.split(' ')[0],
+        last_name: client.name.split(' ').slice(1).join(' '),
+        role: 'client',
+        company: client.company || null
       }
     });
-
-    if (userCheckError) {
-      console.error("Error checking existing user:", userCheckError);
-      throw userCheckError;
-    }
-
-    let userId: string;
     
-    if (existingUser && existingUser.users.length > 0) {
-      userId = existingUser.users[0].id;
-      console.log("User already exists, sending password reset email");
-      
-      const { error: resetError } = await adminSupabase.auth.admin.generateLink({
-        type: 'recovery',
-        email: client.email,
-        options: {
+    if (createError) {
+      if (createError.message.includes('already exists')) {
+        console.log("User already exists, sending password reset email");
+        
+        const { error: resetError } = await adminSupabase.auth.resetPasswordForEmail(client.email, {
           redirectTo: `${window.location.origin}/login`
+        });
+        
+        if (resetError) {
+          console.error("Error sending password reset:", resetError);
+          toast.error("Erreur lors de l'envoi du mail de réinitialisation");
+          return false;
         }
-      });
-      
-      if (resetError) {
-        console.error("Error sending password reset:", resetError);
-        throw resetError;
-      }
-    } else {
-      console.log("Creating new user account");
-      
-      const tempPassword = Math.random().toString(36).slice(-10);
-      
-      const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
-        email: client.email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
-          first_name: client.name.split(' ')[0],
-          last_name: client.name.split(' ').slice(1).join(' '),
-          role: 'client',
-          company: client.company || null
-        }
-      });
-      
-      if (createError) {
+        
+        toast.success("Email de réinitialisation envoyé avec succès");
+        return true;
+      } else {
         console.error("Error creating user account:", createError);
-        throw createError;
-      }
-      
-      userId = newUser.user.id;
-      
-      const { error: resetError } = await adminSupabase.auth.admin.generateLink({
-        type: 'recovery',
-        email: client.email,
-        options: {
-          redirectTo: `${window.location.origin}/login`
-        }
-      });
-      
-      if (resetError) {
-        console.error("Error sending password reset:", resetError);
-        throw resetError;
+        toast.error("Erreur lors de la création du compte");
+        return false;
       }
     }
     
-    toast.success("Email d'invitation envoyé avec succès");
+    const { error: resetError } = await adminSupabase.auth.resetPasswordForEmail(client.email, {
+      redirectTo: `${window.location.origin}/login`
+    });
+    
+    if (resetError) {
+      console.error("Error sending password reset:", resetError);
+      toast.error("Compte créé mais erreur lors de l'envoi du mail de réinitialisation");
+      return true;
+    }
+    
+    toast.success("Compte créé et email d'invitation envoyé avec succès");
     return true;
   } catch (error) {
     console.error("Error in createAccountForClient:", error);
+    toast.error("Erreur lors de la création du compte");
     return false;
   }
 };
