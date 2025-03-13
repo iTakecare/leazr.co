@@ -46,6 +46,47 @@ export async function saveWooCommerceConfig(userId: string, configData: {
   }
 }
 
+// Fonction pour tester la connexion à l'API WooCommerce
+export async function testWooCommerceConnection(
+  url: string,
+  consumerKey: string,
+  consumerSecret: string
+): Promise<boolean> {
+  try {
+    console.log("Testing WooCommerce connection with:", { url, consumerKey: consumerKey.slice(0, 5) + '...' });
+    
+    // Formater l'URL correctement
+    const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const apiUrl = `${baseUrl}/wp-json/wc/v3/products?per_page=1`;
+    
+    // Ajouter l'authentification Basic
+    const credentials = btoa(`${consumerKey}:${consumerSecret}`);
+    const headers = new Headers();
+    headers.append("Authorization", `Basic ${credentials}`);
+    headers.append("Content-Type", "application/json");
+    
+    // Faire la requête directement depuis le client
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers,
+    });
+    
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      const responseText = await response.text();
+      console.error("Response body:", responseText);
+      return false;
+    }
+    
+    const data = await response.json();
+    return Array.isArray(data);
+  } catch (error) {
+    console.error("Error testing WooCommerce connection:", error);
+    return false;
+  }
+}
+
+// Fonction pour récupérer les produits WooCommerce
 export async function getWooCommerceProducts(
   url: string,
   consumerKey: string,
@@ -54,23 +95,83 @@ export async function getWooCommerceProducts(
   perPage = 10
 ): Promise<WooCommerceProduct[]> {
   try {
-    const { data, error } = await supabase.functions.invoke("woocommerce-import", {
-      body: {
-        action: "getProducts",
-        url,
-        consumerKey,
-        consumerSecret,
-        page,
-        perPage
-      }
-    });
-
-    if (error) throw error;
+    console.log(`Fetching WooCommerce products, page ${page}`);
     
-    return data.products || [];
+    // Formater l'URL correctement
+    const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const apiUrl = `${baseUrl}/wp-json/wc/v3/products?page=${page}&per_page=${perPage}`;
+    
+    // Ajouter l'authentification Basic
+    const credentials = btoa(`${consumerKey}:${consumerSecret}`);
+    const headers = new Headers();
+    headers.append("Authorization", `Basic ${credentials}`);
+    headers.append("Content-Type", "application/json");
+    
+    // Faire la requête directement depuis le client
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers,
+    });
+    
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      const responseText = await response.text();
+      console.error("Response body:", responseText);
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const products = await response.json();
+    
+    if (!Array.isArray(products)) {
+      console.error("Invalid products response format:", products);
+      throw new Error("Invalid products response format");
+    }
+    
+    return products;
   } catch (error) {
     console.error("Error fetching WooCommerce products:", error);
     throw error;
+  }
+}
+
+// Fonction pour récupérer les variations d'un produit
+export async function getProductVariations(
+  url: string,
+  consumerKey: string,
+  consumerSecret: string,
+  productId: number
+): Promise<WooCommerceProduct[]> {
+  try {
+    // Formater l'URL correctement
+    const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const apiUrl = `${baseUrl}/wp-json/wc/v3/products/${productId}/variations`;
+    
+    // Ajouter l'authentification Basic
+    const credentials = btoa(`${consumerKey}:${consumerSecret}`);
+    const headers = new Headers();
+    headers.append("Authorization", `Basic ${credentials}`);
+    headers.append("Content-Type", "application/json");
+    
+    // Faire la requête directement depuis le client
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const variations = await response.json();
+    
+    if (!Array.isArray(variations)) {
+      throw new Error("Invalid variations response format");
+    }
+    
+    return variations;
+  } catch (error) {
+    console.error(`Error fetching variations for product ${productId}:`, error);
+    return [];
   }
 }
 
@@ -82,11 +183,25 @@ export async function importWooCommerceProducts(
     let imported = 0;
     let skipped = 0;
 
+    // Vérifier les produits existants
+    const { data: existingProducts } = await supabase
+      .from("products")
+      .select("name");
+    
+    const existingNames = new Set(existingProducts?.map(p => p.name.toLowerCase()) || []);
+
     // Import products one by one to the Supabase database
     for (const wooProduct of products) {
       // Ensure the required fields are present
       if (!wooProduct.name) {
         errors.push(`Product ID ${wooProduct.id} has no name and was skipped`);
+        skipped++;
+        continue;
+      }
+
+      // Check if product with same name already exists
+      if (existingNames.has(wooProduct.name.toLowerCase())) {
+        errors.push(`Product "${wooProduct.name}" already exists and was skipped`);
         skipped++;
         continue;
       }
@@ -126,35 +241,5 @@ export async function importWooCommerceProducts(
   } catch (error) {
     console.error("Error importing WooCommerce products:", error);
     throw error;
-  }
-}
-
-export async function testWooCommerceConnection(
-  url: string,
-  consumerKey: string,
-  consumerSecret: string
-): Promise<boolean> {
-  try {
-    console.log("Testing WooCommerce connection with:", { url, consumerKey: consumerKey.slice(0, 5) + '...' });
-    
-    const { data, error } = await supabase.functions.invoke("woocommerce-import", {
-      body: {
-        action: "testConnection",
-        url,
-        consumerKey,
-        consumerSecret
-      }
-    });
-
-    if (error) {
-      console.error("Edge function error:", error);
-      throw error;
-    }
-    
-    console.log("WooCommerce connection test result:", data);
-    return data.success || false;
-  } catch (error) {
-    console.error("Error testing WooCommerce connection:", error);
-    return false;
   }
 }

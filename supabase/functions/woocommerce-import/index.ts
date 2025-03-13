@@ -6,24 +6,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// This function is no longer needed as we're making direct API calls from the client
+// It's kept for backward compatibility
 async function callWooCommerceAPI(url: string, endpoint: string, consumerKey: string, consumerSecret: string, queryParams: Record<string, string> = {}) {
-  // Format the base URL
-  const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-  const apiUrl = `${baseUrl}/wp-json/wc/v3/${endpoint}`;
-  
-  // Add authorization
-  const headers = new Headers();
-  const credentials = btoa(`${consumerKey}:${consumerSecret}`);
-  headers.append("Authorization", `Basic ${credentials}`);
-  
-  // Add query parameters
-  const params = new URLSearchParams(queryParams);
-  const requestUrl = `${apiUrl}?${params.toString()}`;
-  
-  console.log(`Calling WooCommerce API: ${requestUrl}`);
-  
-  // Make the request
   try {
+    // Format the base URL
+    const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const apiUrl = `${baseUrl}/wp-json/wc/v3/${endpoint}`;
+    
+    // Add authorization
+    const headers = new Headers();
+    const credentials = btoa(`${consumerKey}:${consumerSecret}`);
+    headers.append("Authorization", `Basic ${credentials}`);
+    
+    // Add query parameters
+    const params = new URLSearchParams(queryParams);
+    const requestUrl = `${apiUrl}?${params.toString()}`;
+    
+    console.log(`Calling WooCommerce API: ${requestUrl}`);
+    
+    // Make the request
     const response = await fetch(requestUrl, {
       method: "GET",
       headers,
@@ -71,52 +73,85 @@ serve(async (req) => {
     switch (action) {
       case "testConnection":
         console.log("Testing connection to:", url);
-        // Test connection by fetching a single product
-        const testResult = await callWooCommerceAPI(
-          url, 
-          "products", 
-          consumerKey, 
-          consumerSecret,
-          { per_page: "1" }
-        );
-        
-        if (testResult.error) {
-          console.error("Test connection failed:", testResult.error);
+        try {
+          // Format the URL correctly
+          const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+          const apiUrl = `${baseUrl}/wp-json/wc/v3/products?per_page=1`;
+          
+          // Add Basic authentication
+          const credentials = btoa(`${consumerKey}:${consumerSecret}`);
+          const headers = new Headers();
+          headers.append("Authorization", `Basic ${credentials}`);
+          
+          // Make the request
+          console.log(`Making request to: ${apiUrl}`);
+          const response = await fetch(apiUrl, {
+            method: "GET",
+            headers,
+          });
+          
+          if (!response.ok) {
+            console.error(`API error: ${response.status} ${response.statusText}`);
+            const responseText = await response.text();
+            console.error("Response body:", responseText);
+            result = { 
+              success: false,
+              error: `API error: ${response.status} ${response.statusText}`
+            };
+          } else {
+            const data = await response.json();
+            console.log("Test connection successful, received data:", Array.isArray(data) ? `Array of ${data.length} items` : typeof data);
+            result = { 
+              success: true
+            };
+          }
+        } catch (error) {
+          console.error("Error testing connection:", error);
           result = { 
             success: false,
-            error: testResult.error
-          };
-        } else {
-          console.log("Test connection successful");
-          result = { 
-            success: true
+            error: error.message || "Unknown error"
           };
         }
         break;
         
       case "getProducts":
         // Fetch products with pagination
-        const productsResult = await callWooCommerceAPI(
-          url, 
-          "products", 
-          consumerKey, 
-          consumerSecret,
-          { 
-            page: page ? page.toString() : "1", 
-            per_page: perPage ? perPage.toString() : "10"
+        try {
+          const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+          const apiUrl = `${baseUrl}/wp-json/wc/v3/products?page=${page || 1}&per_page=${perPage || 10}`;
+          
+          // Add Basic authentication
+          const credentials = btoa(`${consumerKey}:${consumerSecret}`);
+          const headers = new Headers();
+          headers.append("Authorization", `Basic ${credentials}`);
+          
+          // Make the request
+          console.log(`Making request to: ${apiUrl}`);
+          const response = await fetch(apiUrl, {
+            method: "GET",
+            headers,
+          });
+          
+          if (!response.ok) {
+            console.error(`API error: ${response.status} ${response.statusText}`);
+            const responseText = await response.text();
+            console.error("Response body:", responseText);
+            result = {
+              products: [],
+              error: `API error: ${response.status} ${response.statusText}`
+            };
+          } else {
+            const products = await response.json();
+            console.log(`Retrieved ${products?.length || 0} products`);
+            result = {
+              products: products || [],
+            };
           }
-        );
-        
-        if (productsResult.error) {
-          console.error("Error fetching products:", productsResult.error);
+        } catch (error) {
+          console.error("Error fetching products:", error);
           result = {
             products: [],
-            error: productsResult.error
-          };
-        } else {
-          console.log(`Retrieved ${productsResult.data?.length || 0} products`);
-          result = {
-            products: productsResult.data || [],
+            error: error.message || "Unknown error"
           };
         }
         break;

@@ -12,12 +12,13 @@ import {
   Check, 
   X, 
   Download, 
-  ChevronRight, 
-  ArrowRight,
   AlertCircle,
   PackageCheck,
   Save,
-  RefreshCw
+  RefreshCw,
+  ExternalLink,
+  LinkIcon,
+  Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +42,9 @@ import {
 } from "@/services/woocommerceService";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
 import { useAuth } from "@/context/AuthContext";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 
 // Schéma de validation du formulaire
 const formSchema = z.object({
@@ -64,14 +68,20 @@ const WooCommerceImporter = () => {
   const [isFetchingProducts, setIsFetchingProducts] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
   const [connectionError, setConnectionError] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
+  const [importOptions, setImportOptions] = useState({
+    includeImages: true,
+    includeDescriptions: true,
+    overwriteExisting: false
+  });
 
-  // Initialiser le formulaire
+  // Initialiser le formulaire avec les valeurs par défaut
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      siteUrl: "",
-      consumerKey: "",
-      consumerSecret: "",
+      siteUrl: "https://www.itakecare.be",
+      consumerKey: "ck_09a895603eb75cc364669e8e3317fe13e607ace0",
+      consumerSecret: "cs_52c6e6aa2332f0d7e1b395ab32c32f75a8ce4ccc",
     },
   });
 
@@ -142,7 +152,7 @@ const WooCommerceImporter = () => {
     }
   };
 
-  // Tester la connexion à WooCommerce
+  // Tester la connexion à WooCommerce avec appel direct à l'API
   const handleTestConnection = async (values: z.infer<typeof formSchema>) => {
     setIsConnecting(true);
     setIsConnected(false);
@@ -207,6 +217,7 @@ const WooCommerceImporter = () => {
     } catch (error) {
       console.error("Error fetching products:", error);
       toast.error("Erreur lors de la récupération des produits");
+      setConnectionError("Erreur lors de la récupération des produits. Vérifiez vos identifiants et la connectivité de votre boutique.");
     } finally {
       setIsFetchingProducts(false);
     }
@@ -214,6 +225,11 @@ const WooCommerceImporter = () => {
 
   // Importer les produits vers Supabase
   const handleImportProducts = async () => {
+    if (productsList.length === 0) {
+      setErrors(["Aucun produit à importer"]);
+      return;
+    }
+    
     setIsImporting(true);
     setImportProgress(0);
     setImportResult(null);
@@ -258,8 +274,44 @@ const WooCommerceImporter = () => {
     setProductsList([]);
   };
 
+  // Gérer les erreurs d'importation
+  const [errors, setErrors] = useState<string[]>([]);
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-medium flex items-center gap-2">
+          <ShoppingBag className="h-5 w-5 text-primary" />
+          Importation du catalogue WooCommerce
+        </h2>
+        
+        {isConnected ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <Check className="h-3 w-3 mr-1" />
+            Connecté
+          </span>
+        ) : connectionError ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <X className="h-3 w-3 mr-1" />
+            Erreur de connexion
+          </span>
+        ) : null}
+      </div>
+      
+      <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <AlertCircle className="h-5 w-5 text-blue-400" />
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-blue-700">
+              Cet outil permet d'importer les produits de votre boutique WooCommerce directement dans le catalogue iTakecare.
+              Les identifiants d'API sont préremplis pour faciliter l'importation.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleTestConnection)} className="space-y-4">
           <FormField
@@ -268,15 +320,21 @@ const WooCommerceImporter = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2">
-                  <Server className="h-4 w-4 text-primary" />
+                  <LinkIcon className="h-4 w-4 text-primary" />
                   URL de votre boutique WooCommerce
                 </FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="https://monsite.com" 
-                    {...field} 
-                    disabled={isConnected || isConnecting}
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Server className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input 
+                      placeholder="https://monsite.com" 
+                      {...field} 
+                      disabled={isConnected || isConnecting}
+                      className="pl-10"
+                    />
+                  </div>
                 </FormControl>
                 <FormDescription>
                   Entrez l'URL complète de votre site WordPress avec WooCommerce
@@ -297,12 +355,18 @@ const WooCommerceImporter = () => {
                     Clé client WooCommerce
                   </FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxx" 
-                      type="password" 
-                      {...field} 
-                      disabled={isConnected || isConnecting}
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Key className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input 
+                        placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxx" 
+                        type="text" 
+                        {...field} 
+                        disabled={isConnected || isConnecting}
+                        className="pl-10"
+                      />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -319,12 +383,27 @@ const WooCommerceImporter = () => {
                     Clé secrète WooCommerce
                   </FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxx" 
-                      type="password" 
-                      {...field} 
-                      disabled={isConnected || isConnecting}
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Key className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input 
+                        placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxx" 
+                        type={showSecret ? "text" : "password"}
+                        {...field} 
+                        disabled={isConnected || isConnecting}
+                        className="pl-10 pr-20"
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => setShowSecret(!showSecret)}
+                          className="text-gray-400 hover:text-gray-500 focus:outline-none text-xs font-medium"
+                        >
+                          {showSecret ? "Masquer" : "Afficher"}
+                        </button>
+                      </div>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -356,7 +435,10 @@ const WooCommerceImporter = () => {
                   Connecté
                 </>
               ) : (
-                "Tester la connexion"
+                <>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Tester la connexion
+                </>
               )}
             </Button>
             
@@ -396,12 +478,12 @@ const WooCommerceImporter = () => {
       </Form>
       
       {isConnected && (
-        <div className="mt-8 border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium flex items-center gap-2">
+        <Card className="mt-8">
+          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-medium flex items-center gap-2">
               <ShoppingBag className="h-5 w-5 text-primary" />
               Produits disponibles
-            </h3>
+            </CardTitle>
             <div className="flex gap-2">
               <Button 
                 variant="outline"
@@ -421,85 +503,151 @@ const WooCommerceImporter = () => {
                 Importer les produits
               </Button>
             </div>
-          </div>
+          </CardHeader>
           
-          {isFetchingProducts ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : productsList.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <AlertCircle className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
-              <p>Aucun produit trouvé dans votre boutique WooCommerce</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-4"
-                onClick={() => fetchProducts(form.getValues(), 1)}
-              >
-                Réessayer
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="rounded-md border">
-                <div className="grid grid-cols-12 gap-2 p-3 bg-muted text-sm font-medium">
-                  <div className="col-span-6">Nom</div>
-                  <div className="col-span-2">Prix</div>
-                  <div className="col-span-4">Catégorie</div>
+          <CardContent className="pt-2">
+            {/* Options d'importation */}
+            <div className="border-b pb-4 mb-4">
+              <h4 className="text-sm font-medium mb-3">Options d'importation</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="includeImages" 
+                    checked={importOptions.includeImages}
+                    onCheckedChange={(checked) => 
+                      setImportOptions({...importOptions, includeImages: checked === true})
+                    }
+                  />
+                  <label
+                    htmlFor="includeImages"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Importer les images
+                  </label>
                 </div>
-                <div className="divide-y">
-                  {productsList.map((product) => (
-                    <div key={product.id} className="grid grid-cols-12 gap-2 p-3 text-sm items-center">
-                      <div className="col-span-6 flex items-center gap-2">
-                        {product.images.length > 0 ? (
-                          <img 
-                            src={product.images[0].src} 
-                            alt={product.name} 
-                            className="w-8 h-8 object-contain rounded-md"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center">
-                            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                        <span className="truncate">{product.name}</span>
-                      </div>
-                      <div className="col-span-2">
-                        {parseFloat(product.price || product.regular_price || "0").toFixed(2)} €
-                      </div>
-                      <div className="col-span-4">
-                        {product.categories.length > 0 ? product.categories[0].name : "Non catégorisé"}
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="includeDescriptions" 
+                    checked={importOptions.includeDescriptions}
+                    onCheckedChange={(checked) => 
+                      setImportOptions({...importOptions, includeDescriptions: checked === true})
+                    }
+                  />
+                  <label
+                    htmlFor="includeDescriptions"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Importer les descriptions
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="overwriteExisting" 
+                    checked={importOptions.overwriteExisting}
+                    onCheckedChange={(checked) => 
+                      setImportOptions({...importOptions, overwriteExisting: checked === true})
+                    }
+                  />
+                  <label
+                    htmlFor="overwriteExisting"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Écraser les produits existants
+                  </label>
                 </div>
               </div>
-              
-              <div className="flex items-center justify-between mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage <= 1 || isFetchingProducts}
+            </div>
+            
+            {isFetchingProducts ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : productsList.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <AlertCircle className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
+                <p>Aucun produit trouvé dans votre boutique WooCommerce</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                  onClick={() => fetchProducts(form.getValues(), 1)}
                 >
-                  Précédent
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {currentPage} sur {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= totalPages || isFetchingProducts}
-                >
-                  Suivant
+                  Réessayer
                 </Button>
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-12 gap-2 p-3 bg-muted text-sm font-medium">
+                    <div className="col-span-6">Nom</div>
+                    <div className="col-span-2">Prix</div>
+                    <div className="col-span-4">Catégorie</div>
+                  </div>
+                  <div className="divide-y">
+                    {productsList.map((product) => (
+                      <div key={product.id} className="grid grid-cols-12 gap-2 p-3 text-sm items-center">
+                        <div className="col-span-6 flex items-center gap-2">
+                          {product.images.length > 0 ? (
+                            <img 
+                              src={product.images[0].src} 
+                              alt={product.name} 
+                              className="w-8 h-8 object-contain rounded-md"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center">
+                              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span className="truncate">{product.name}</span>
+                        </div>
+                        <div className="col-span-2">
+                          {parseFloat(product.price || product.regular_price || "0").toFixed(2)} €
+                        </div>
+                        <div className="col-span-4 flex flex-wrap gap-1">
+                          {product.categories.length > 0 ? (
+                            product.categories.map((category, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                              >
+                                <Tag className="h-3 w-3 mr-1" />
+                                {category.name}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-500">Non catégorisé</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage <= 1 || isFetchingProducts}
+                  >
+                    Précédent
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} sur {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages || isFetchingProducts}
+                  >
+                    Suivant
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
       
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
@@ -533,6 +681,28 @@ const WooCommerceImporter = () => {
                 </div>
               )}
               
+              {errors.length > 0 && (
+                <div className="mt-4 bg-red-50 border-l-4 border-red-400 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="h-5 w-5 text-red-400" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">
+                        {errors.length} {errors.length > 1 ? 'erreurs ont été' : 'erreur a été'} rencontrée{errors.length > 1 ? 's' : ''}
+                      </h3>
+                      <div className="mt-2 text-sm text-red-700 max-h-40 overflow-auto">
+                        <ul className="list-disc pl-5 space-y-1">
+                          {errors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <DialogFooter>
                 <Button 
                   variant="outline" 
@@ -552,7 +722,7 @@ const WooCommerceImporter = () => {
                     </>
                   ) : (
                     <>
-                      <ArrowRight className="h-4 w-4 mr-2" />
+                      <Download className="h-4 w-4 mr-2" />
                       Démarrer l'importation
                     </>
                   )}
