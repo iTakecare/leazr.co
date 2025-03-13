@@ -17,6 +17,28 @@ import { getProducts } from "@/services/catalogService";
 import { Alert } from "@/components/ui/alert";
 import { products as defaultProducts } from "@/data/products";
 
+// Map for translating category names to French
+const categoryTranslations: Record<string, string> = {
+  "all": "Tous",
+  "laptop": "Ordinateur portable",
+  "desktop": "Ordinateur de bureau",
+  "tablet": "Tablette",
+  "smartphone": "Smartphone",
+  "accessories": "Accessoires",
+  "printer": "Imprimante",
+  "monitor": "Écran",
+  "software": "Logiciel",
+  "networking": "Réseau",
+  "server": "Serveur",
+  "storage": "Stockage",
+  "other": "Autre"
+};
+
+// Helper function to translate categories
+const translateCategory = (category: string): string => {
+  return categoryTranslations[category?.toLowerCase()] || category;
+};
+
 interface ProductCatalogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -115,7 +137,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
               >
-                {category === "all" ? "Tous" : category}
+                {category === "all" ? "Tous" : translateCategory(category)}
               </Button>
             ))}
           </div>
@@ -147,7 +169,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
                     />
                   </div>
                   <h3 className="font-medium line-clamp-1">{product.name}</h3>
-                  <p className="text-sm text-muted-foreground">{product.category}</p>
+                  <p className="text-sm text-muted-foreground">{translateCategory(product.category)}</p>
                   <div className="mt-2 flex items-center justify-between">
                     <p className="font-bold">
                       {product.price.toLocaleString("fr-FR", {

@@ -9,6 +9,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
+// Map for translating category names to French
+const categoryTranslations: Record<string, string> = {
+  "laptop": "Ordinateur portable",
+  "desktop": "Ordinateur de bureau",
+  "tablet": "Tablette",
+  "smartphone": "Smartphone",
+  "accessories": "Accessoires",
+  "printer": "Imprimante",
+  "monitor": "Écran",
+  "software": "Logiciel",
+  "networking": "Réseau",
+  "server": "Serveur",
+  "storage": "Stockage",
+  "other": "Autre"
+};
+
+// Helper function to translate categories
+const translateCategory = (category: string): string => {
+  return categoryTranslations[category?.toLowerCase()] || category;
+};
+
 interface CollapsibleProductListProps {
   products: Product[];
 }
@@ -103,7 +124,7 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
                     <h3 className="font-medium">{product.name}</h3>
                     <div className="text-sm text-muted-foreground">
                       {product.category && 
-                        <span className="inline-block mr-2">{product.category}</span>
+                        <span className="inline-block mr-2">{translateCategory(product.category)}</span>
                       }
                       {hasVariations && (
                         <Badge className="bg-primary/20 text-primary hover:bg-primary/30 border-0">

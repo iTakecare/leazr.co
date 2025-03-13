@@ -26,6 +26,26 @@ import {
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 
+const categoryTranslations: Record<string, string> = {
+  "all": "Tous",
+  "laptop": "Ordinateur portable",
+  "desktop": "Ordinateur de bureau",
+  "tablet": "Tablette",
+  "smartphone": "Smartphone",
+  "accessories": "Accessoires",
+  "printer": "Imprimante",
+  "monitor": "Écran",
+  "software": "Logiciel",
+  "networking": "Réseau",
+  "server": "Serveur",
+  "storage": "Stockage",
+  "other": "Autre"
+};
+
+const translateCategory = (category: string): string => {
+  return categoryTranslations[category.toLowerCase()] || category;
+};
+
 const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -104,28 +124,28 @@ const Catalog = () => {
     <Container>
       <div className="py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Product Catalog</h1>
+          <h1 className="text-3xl font-bold">Catalogue de produits</h1>
           <div className="flex gap-2">
             <Button onClick={() => setIsAddProductOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Add Product
+              <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete All Products
+                  <Trash2 className="mr-2 h-4 w-4" /> Supprimer tous les produits
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+                  <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete all products from the catalog? This action cannot be undone.
+                    Êtes-vous sûr de vouloir supprimer tous les produits du catalogue? Cette action ne peut pas être annulée.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDeleteAllProducts}>
-                    Delete All Products
+                    Supprimer tous les produits
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -136,11 +156,11 @@ const Catalog = () => {
         {isError && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
+            <AlertTitle>Erreur</AlertTitle>
             <AlertDescription className="flex flex-col gap-2">
-              <p>An error occurred while loading products: {error instanceof Error ? error.message : "Unknown error"}</p>
+              <p>Une erreur s'est produite lors du chargement des produits: {error instanceof Error ? error.message : "Erreur inconnue"}</p>
               <Button onClick={handleRetry} variant="outline" size="sm" className="self-start">
-                Retry
+                Réessayer
               </Button>
             </AlertDescription>
           </Alert>
@@ -148,8 +168,8 @@ const Catalog = () => {
 
         <Tabs defaultValue="browse" className="mb-6">
           <TabsList>
-            <TabsTrigger value="browse">Browse</TabsTrigger>
-            <TabsTrigger value="manage">Manage</TabsTrigger>
+            <TabsTrigger value="browse">Parcourir</TabsTrigger>
+            <TabsTrigger value="manage">Gérer</TabsTrigger>
           </TabsList>
           
           <TabsContent value="browse" className="space-y-4">
@@ -157,7 +177,7 @@ const Catalog = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search for a product..."
+                  placeholder="Rechercher un produit..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -195,7 +215,7 @@ const Catalog = () => {
                   size="sm"
                   onClick={() => setSelectedCategory(null)}
                 >
-                  All
+                  Tous
                 </Button>
                 {categories.map((category) => (
                   <Button
@@ -204,7 +224,7 @@ const Catalog = () => {
                     size="sm"
                     onClick={() => setSelectedCategory(category)}
                   >
-                    {category}
+                    {translateCategory(category)}
                   </Button>
                 ))}
               </div>
@@ -230,14 +250,14 @@ const Catalog = () => {
               </motion.div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No products found. {searchTerm && "Try modifying your search."}</p>
+                <p className="text-muted-foreground">Aucun produit trouvé. {searchTerm && "Essayez de modifier votre recherche."}</p>
               </div>
             )}
           </TabsContent>
           
           <TabsContent value="manage">
             <div className="border rounded-md p-4">
-              <h2 className="text-xl font-semibold mb-4">Catalog Management</h2>
+              <h2 className="text-xl font-semibold mb-4">Gestion du catalogue</h2>
               {isLoading ? (
                 <div className="h-32 flex items-center justify-center">
                   <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -252,12 +272,12 @@ const Catalog = () => {
                           <p className="text-sm text-muted-foreground">
                             {product.brand && <span className="font-semibold">{product.brand}</span>}
                             {product.brand && product.category && <span> • </span>}
-                            {product.category}
+                            {product.category && translateCategory(product.category)}
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Link to={`/products/${product.id}`}>
-                            <Button variant="outline" size="sm">Edit</Button>
+                            <Button variant="outline" size="sm">Modifier</Button>
                           </Link>
                         </div>
                       </div>
@@ -266,7 +286,7 @@ const Catalog = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground">No products in the catalog. Add products or import them from WooCommerce.</p>
+                  <p className="text-muted-foreground">Aucun produit dans le catalogue. Ajoutez des produits ou importez-les depuis WooCommerce.</p>
                 </div>
               )}
             </div>
