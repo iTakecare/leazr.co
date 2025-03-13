@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -14,7 +13,8 @@ import {
   Users, 
   LogOut, 
   LogIn, 
-  UserPlus
+  UserPlus,
+  User
 } from 'lucide-react';
 import { 
   Tooltip, 
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface NavItemProps {
   to: string;
@@ -69,7 +70,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
 
-  // Animation variants
   const sidebarVariants = {
     open: { x: 0, opacity: 1 },
     closed: { x: '-100%', opacity: 0 },
@@ -87,9 +87,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
   };
 
+  const getUserInitials = () => {
+    if (!user) return "U";
+    
+    const firstName = user.first_name || '';
+    const lastName = user.last_name || '';
+    
+    if (!firstName && !lastName) return "U";
+    
+    return `${firstName.charAt(0)}${lastName.charAt(0) || ''}`;
+  };
+
   return (
     <>
-      {/* Overlay for mobile */}
       {isMobile && isOpen && (
         <motion.div
           className="fixed inset-0 bg-black/50 z-40"
@@ -100,7 +110,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
       <motion.div
         className={`fixed left-0 top-0 bottom-0 z-50 w-16 bg-background border-r p-2 overflow-y-auto flex flex-col items-center ${
           isMobile ? '' : 'lg:z-30'
@@ -111,16 +120,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         <div className="flex flex-col items-center gap-2 py-4 h-full w-full">
-          {/* Logo/App Name with tooltip */}
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex h-10 w-10 items-center justify-center rounded-md p-2 font-bold">
-                  LT
+                <div className="flex h-10 w-10 items-center justify-center rounded-md p-0">
+                  <Avatar>
+                    <AvatarImage src={user?.avatar_url || undefined} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right">
-                <p>LeasingTools</p>
+                <p>{user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Profil' : 'Non connecté'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
