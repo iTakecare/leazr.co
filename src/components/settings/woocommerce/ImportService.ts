@@ -82,7 +82,7 @@ export const importProductsToSupabase = async (
       let name = product.name;
       
       // Essayer d'extraire la marque du début du nom
-      const brandMatch = name.match(/^([\w\s]+)\s+(.+)$/);
+      const brandMatch = name.match(/^([\\w\\s]+)\\s+(.+)$/);
       if (brandMatch) {
         brand = brandMatch[1].trim();
         name = brandMatch[2].trim();
