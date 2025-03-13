@@ -1,5 +1,5 @@
 
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -15,13 +15,15 @@ import CreateOffer from "./pages/CreateOffer";
 import Offers from "./pages/Offers";
 import Contracts from "./pages/Contracts";
 import CreateTestUsers from "./pages/CreateTestUsers";
+import ClientDashboard from "./pages/ClientDashboard";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
 import { Toaster } from "./components/ui/toaster";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Toaster as SonnerToaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import ClientRoutes from "./components/layout/ClientRoutes";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -34,6 +36,31 @@ const queryClient = new QueryClient({
   },
 });
 
+// Route guard component
+const ProtectedRoute = ({ 
+  children, 
+  requireAdmin = false 
+}: { 
+  children: React.ReactNode, 
+  requireAdmin?: boolean 
+}) => {
+  const { user, isLoading, isAdmin } = useAuth();
+  
+  if (isLoading) {
+    return <div>Chargement...</div>;
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (requireAdmin && !isAdmin()) {
+    return <Navigate to="/client/dashboard" />;
+  }
+  
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -44,7 +71,13 @@ function App() {
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/" element={<Layout />}>
+            
+            {/* Admin routes */}
+            <Route path="/" element={
+              <ProtectedRoute requireAdmin={true}>
+                <Layout />
+              </ProtectedRoute>
+            }>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/clients" element={<Clients />} />
               <Route path="/clients/new" element={<ClientForm />} />
@@ -58,6 +91,14 @@ function App() {
               <Route path="/contracts" element={<Contracts />} />
               <Route path="/create-test-users" element={<CreateTestUsers />} />
             </Route>
+            
+            {/* Client routes */}
+            <Route path="/client/*" element={
+              <ProtectedRoute>
+                <ClientRoutes />
+              </ProtectedRoute>
+            } />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />

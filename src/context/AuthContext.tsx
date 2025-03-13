@@ -22,6 +22,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  isClient: () => boolean;
+  isAdmin: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const supabase = getSupabaseClient();
   const adminSupabase = getAdminSupabaseClient();
+
+  const isClient = () => user?.role === 'client';
+  const isAdmin = () => user?.role === 'admin';
 
   useEffect(() => {
     const initAuth = async () => {
@@ -288,6 +293,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     updateProfile,
+    isClient,
+    isAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

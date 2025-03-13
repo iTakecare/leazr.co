@@ -1,152 +1,124 @@
 
-import React, { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import Container from "@/components/layout/Container";
-import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loginAttempted, setLoginAttempted] = useState(false);
-  const { signIn, isLoading, session } = useAuth();
+const formSchema = z.object({
+  email: z.string().email({ message: "Veuillez entrer une adresse e-mail valide" }),
+  password: z.string().min(8, { message: "Le mot de passe doit comporter au moins 8 caractères" }),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+export default function Login() {
+  const { signIn, isClient, isAdmin } = useAuth();
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Rediriger si déjà connecté
-  useEffect(() => {
-    if (session) {
-      console.log("User already logged in, redirecting to dashboard");
-      navigate('/dashboard');
-    }
-  }, [session, navigate]);
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error("Veuillez remplir tous les champs");
-      return;
-    }
-    
-    setLoginAttempted(true);
-    console.log("Login attempt with email:", email);
-    
+  const onSubmit = async (data: FormValues) => {
     try {
-      await signIn(email, password);
+      setLoading(true);
+      await signIn(data.email, data.password);
+      
+      // Redirect to appropriate dashboard based on role
+      if (isClient()) {
+        navigate("/client/dashboard");
+      } else if (isAdmin()) {
+        navigate("/dashboard");
+      } else {
+        // Default fallback
+        navigate("/dashboard");
+      }
+      
     } catch (error) {
-      console.error("Login form error:", error);
-      // L'erreur est déjà gérée dans le contexte Auth
+      console.error("Login error:", error);
+      // Error is handled by the signIn function in AuthContext
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
+    <div className="bg-background min-h-screen flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900">iTakeCare</h1>
-          <p className="mt-2 text-gray-600">Plateforme de gestion intégrée</p>
-        </div>
-        
-        <Card className="border-none shadow-xl bg-white/90 backdrop-blur">
+        <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Connexion</CardTitle>
-            <CardDescription className="text-center">
+            <CardTitle className="text-2xl font-bold">Connexion</CardTitle>
+            <CardDescription>
               Entrez vos identifiants pour accéder à votre compte
             </CardDescription>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {loginAttempted && !isLoading && !session && (
-                <div className="bg-destructive/15 p-3 rounded-md flex items-center text-sm text-destructive animate-fade-in">
-                  <AlertCircle className="h-4 w-4 mr-2" />
-                  <span>Identifiants incorrects. Veuillez réessayer.</span>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="exemple@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-12 border-gray-200 focus:border-indigo-500 rounded-xl"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Mot de passe oublié?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 h-12 border-gray-200 focus:border-indigo-500 rounded-xl"
-                    required
-                  />
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <Button
-                type="submit"
-                className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-medium text-base"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Connexion en cours...
-                  </>
-                ) : (
-                  "Se connecter"
-                )}
-              </Button>
-              
-              <div className="text-center text-sm">
-                Pas encore de compte?{" "}
-                <Link
-                  to="/signup"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Créer un compte
-                </Link>
-              </div>
-              
-              <div className="text-center text-xs text-muted-foreground">
-                <Link
-                  to="/create-test-users"
-                  className="text-muted-foreground hover:underline"
-                >
-                  Créer des utilisateurs de test
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="votre@email.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mot de passe</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Connexion en cours..." : "Se connecter"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <div className="text-sm text-center text-muted-foreground">
+              <span>Vous n'avez pas de compte ? </span>
+              <Link to="/signup" className="text-primary hover:underline">
+                Créer un compte
+              </Link>
+            </div>
+            <Link to="/" className="text-sm text-center text-primary hover:underline">
+              Retour à l'accueil
+            </Link>
+          </CardFooter>
         </Card>
       </div>
     </div>
   );
-};
-
-export default Login;
+}
