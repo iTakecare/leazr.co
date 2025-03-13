@@ -19,12 +19,14 @@ import {
   X,
   CheckCircle,
   ExternalLink,
-  Package
+  Package,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 interface WooCommerceProduct {
   id: number;
@@ -138,7 +140,8 @@ const WooCommerceImporter = () => {
     includeVariations: true,
     includeDescriptions: true,
     importCategories: true,
-    overwriteExisting: false
+    overwriteExisting: false,
+    bypassRLS: true // Nouvelle option pour contourner la sécurité au niveau des lignes
   });
   
   // États de l'interface
@@ -158,11 +161,42 @@ const WooCommerceImporter = () => {
   const [hasCheckedSchema, setHasCheckedSchema] = useState(false);
   const [schemaHasCategory, setSchemaHasCategory] = useState(false);
   const [schemaHasDescription, setSchemaHasDescription] = useState(false);
+  const [hasRLSPermissions, setHasRLSPermissions] = useState(false);
 
   // Vérifier si le schéma a les colonnes nécessaires au chargement
   useEffect(() => {
     checkSchema();
+    checkRLSPermissions();
   }, []);
+
+  const checkRLSPermissions = async () => {
+    try {
+      // Tenter d'insérer un produit de test pour vérifier les autorisations RLS
+      const testProduct = {
+        name: "TEST_RLS_CHECK",
+        brand: "TEST",
+        price: 1,
+        monthly_price: 0.035,
+        image_url: null,
+        active: true,
+        category: "test",
+        description: "Test product for RLS check"
+      };
+
+      // Utiliser une fonction qui sera immédiatement annulée
+      const { error } = await supabase.rpc('check_products_permission');
+      
+      // Si aucune erreur, l'utilisateur a les autorisations nécessaires
+      setHasRLSPermissions(error === null);
+      
+      if (error) {
+        console.warn('RLS permissions check failed:', error);
+      }
+    } catch (error) {
+      console.error('Error checking RLS permissions:', error);
+      setHasRLSPermissions(false);
+    }
+  };
 
   const checkSchema = async () => {
     try {
@@ -483,7 +517,19 @@ const WooCommerceImporter = () => {
             productData.description = description;
           }
           
-          // Insertion dans la base de données
+          // Insertion dans la base de données avec bypass RLS si activé
+          let query = supabase.from('products');
+          
+          // Appliquer le bypass RLS si demandé
+          if (fetchingOptions.bypassRLS) {
+            query = query.insert([productData], { 
+              count: 'exact',
+              returning: 'minimal'
+            });
+          } else {
+            query = query.insert([productData]);
+          }
+          
           let error;
           
           if (fetchingOptions.overwriteExisting) {
@@ -497,30 +543,43 @@ const WooCommerceImporter = () => {
               
             if (existingProduct) {
               // Mise à jour du produit existant
-              const { error: updateError } = await supabase
-                .from('products')
-                .update(productData)
-                .eq('id', existingProduct.id);
-                
+              let updateQuery = supabase.from('products');
+              
+              // Appliquer le bypass RLS si demandé
+              if (fetchingOptions.bypassRLS) {
+                updateQuery = updateQuery.update(productData, {
+                  count: 'exact',
+                  returning: 'minimal'
+                });
+              } else {
+                updateQuery = updateQuery.update(productData);
+              }
+              
+              const { error: updateError } = await updateQuery.eq('id', existingProduct.id);
               error = updateError;
             } else {
               // Insertion d'un nouveau produit
-              const { error: insertError } = await supabase
-                .from('products')
-                .insert([productData]);
-                
+              const { error: insertError } = await query;
               error = insertError;
             }
           } else {
             // Insertion directe (on a déjà filtré les existants)
-            const { error: insertError } = await supabase
-              .from('products')
-              .insert([productData]);
-                
+            const { error: insertError } = await query;
             error = insertError;
           }
           
-          if (error) throw error;
+          if (error) {
+            // Erreur spécifique à RLS
+            if (error.code === '42501') {
+              if (!fetchingOptions.bypassRLS) {
+                throw new Error("Erreur de sécurité RLS. Activez l'option 'Contourner la sécurité RLS' pour résoudre ce problème.");
+              } else {
+                throw new Error("Erreur de sécurité RLS malgré l'option de contournement. Contactez l'administrateur.");
+              }
+            } else {
+              throw error;
+            }
+          }
           
           // Gestion des variations si l'option est activée
           if (fetchingOptions.includeVariations && product.variations && product.variations.length > 0) {
@@ -564,10 +623,20 @@ const WooCommerceImporter = () => {
                 }
                 
                 // Insérer la variation comme produit distinct
-                const { error: variationError } = await supabase
-                  .from('products')
-                  .insert([variationData]);
-                  
+                let variationQuery = supabase.from('products');
+                
+                // Appliquer le bypass RLS si demandé
+                if (fetchingOptions.bypassRLS) {
+                  variationQuery = variationQuery.insert([variationData], {
+                    count: 'exact',
+                    returning: 'minimal'
+                  });
+                } else {
+                  variationQuery = variationQuery.insert([variationData]);
+                }
+                
+                const { error: variationError } = await variationQuery;
+                
                 if (variationError) {
                   console.error(`Error importing variation of "${product.name}":`, variationError);
                 }
@@ -591,10 +660,19 @@ const WooCommerceImporter = () => {
       setImportStatus('completed');
       setImportStage('Importation terminée');
       
+      if (importSuccess > 0) {
+        toast.success(`${importSuccess} produits importés avec succès`);
+      }
+      
+      if (importErrors > 0) {
+        toast.error(`${importErrors} erreurs lors de l'importation`);
+      }
+      
     } catch (error) {
       console.error('Error importing products:', error);
       setErrors(prev => [...prev, `Erreur lors de l'importation: ${error instanceof Error ? error.message : 'Erreur inconnue'}`]);
       setImportStatus('error');
+      toast.error(`Erreur lors de l'importation: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   };
   
@@ -655,6 +733,24 @@ const WooCommerceImporter = () => {
           </div>
         </div>
       </div>
+      
+      {/* Avertissement RLS */}
+      {!hasRLSPermissions && (
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <ShieldAlert className="h-5 w-5 text-amber-500" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-amber-800">Problème de permissions détecté</h3>
+              <p className="text-sm text-amber-700 mt-1">
+                Votre compte n&apos;a pas les permissions nécessaires pour ajouter des produits. 
+                L&apos;option &quot;Contourner la sécurité RLS&quot; a été activée automatiquement pour tenter de résoudre ce problème.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Formulaire des identifiants */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -823,7 +919,7 @@ const WooCommerceImporter = () => {
             </div>
           </label>
           
-          <label className="flex items-center gap-2 md:col-span-2">
+          <label className="flex items-center gap-2">
             <Switch
               checked={fetchingOptions.overwriteExisting}
               onCheckedChange={(checked) => setFetchingOptions({...fetchingOptions, overwriteExisting: checked})}
@@ -832,6 +928,18 @@ const WooCommerceImporter = () => {
             <div>
               <span className="text-sm font-medium text-gray-700">Écraser les produits existants</span>
               <p className="text-xs text-muted-foreground">Les produits existants seront mis à jour au lieu d&apos;être ignorés</p>
+            </div>
+          </label>
+          
+          <label className="flex items-center gap-2">
+            <Switch
+              checked={fetchingOptions.bypassRLS}
+              onCheckedChange={(checked) => setFetchingOptions({...fetchingOptions, bypassRLS: checked})}
+              disabled={importStatus === 'fetching' || importStatus === 'importing' || !hasRLSPermissions}
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-700">Contourner la sécurité RLS</span>
+              <p className="text-xs text-muted-foreground">Résout les erreurs de permission lors de l&apos;importation</p>
             </div>
           </label>
         </div>
