@@ -135,6 +135,8 @@ export async function testWooCommerceConnection(
   consumerSecret: string
 ): Promise<boolean> {
   try {
+    console.log("Testing WooCommerce connection with:", { url, consumerKey: consumerKey.slice(0, 5) + '...' });
+    
     const { data, error } = await supabase.functions.invoke("woocommerce-import", {
       body: {
         action: "testConnection",
@@ -144,8 +146,12 @@ export async function testWooCommerceConnection(
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Edge function error:", error);
+      throw error;
+    }
     
+    console.log("WooCommerce connection test result:", data);
     return data.success || false;
   } catch (error) {
     console.error("Error testing WooCommerce connection:", error);

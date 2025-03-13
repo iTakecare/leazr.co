@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -15,7 +16,8 @@ import {
   ArrowRight,
   AlertCircle,
   PackageCheck,
-  Save
+  Save,
+  RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +63,7 @@ const WooCommerceImporter = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [isFetchingProducts, setIsFetchingProducts] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [connectionError, setConnectionError] = useState("");
 
   // Initialiser le formulaire
   const form = useForm<z.infer<typeof formSchema>>({
@@ -78,9 +81,11 @@ const WooCommerceImporter = () => {
       if (!user) return;
       
       try {
+        console.log("Chargement de la configuration WooCommerce pour l'utilisateur:", user.id);
         const config = await getWooCommerceConfig(user.id);
         
         if (config) {
+          console.log("Configuration WooCommerce chargée:", config);
           form.reset({
             siteUrl: config.site_url,
             consumerKey: config.consumer_key,
@@ -89,14 +94,17 @@ const WooCommerceImporter = () => {
           
           toast.success("Configuration WooCommerce chargée");
           setConfigLoaded(true);
+        } else {
+          console.log("Aucune configuration WooCommerce trouvée");
         }
       } catch (error) {
         console.error("Error loading WooCommerce config:", error);
+        toast.error("Erreur lors du chargement de la configuration");
       }
     };
     
     loadSavedConfig();
-  }, [user]);
+  }, [user, form]);
 
   // Sauvegarder la configuration WooCommerce
   const handleSaveConfig = async (values: z.infer<typeof formSchema>) => {
@@ -106,8 +114,14 @@ const WooCommerceImporter = () => {
     }
     
     setIsSaving(true);
+    setConnectionError("");
     
     try {
+      console.log("Sauvegarde de la configuration WooCommerce:", {
+        siteUrl: values.siteUrl,
+        consumerKey: values.consumerKey.substring(0, 5) + "...",
+      });
+      
       const success = await saveWooCommerceConfig(user.id, {
         siteUrl: values.siteUrl,
         consumerKey: values.consumerKey,
@@ -116,6 +130,7 @@ const WooCommerceImporter = () => {
       
       if (success) {
         toast.success("Configuration WooCommerce sauvegardée");
+        setConfigLoaded(true);
       } else {
         toast.error("Échec de la sauvegarde de la configuration");
       }
@@ -131,8 +146,14 @@ const WooCommerceImporter = () => {
   const handleTestConnection = async (values: z.infer<typeof formSchema>) => {
     setIsConnecting(true);
     setIsConnected(false);
+    setConnectionError("");
     
     try {
+      console.log("Test de connexion à WooCommerce:", {
+        siteUrl: values.siteUrl,
+        consumerKey: values.consumerKey.substring(0, 5) + "...",
+      });
+      
       const success = await testWooCommerceConnection(
         values.siteUrl,
         values.consumerKey,
@@ -140,6 +161,7 @@ const WooCommerceImporter = () => {
       );
       
       if (success) {
+        console.log("Connexion WooCommerce réussie");
         toast.success("Connexion réussie à votre boutique WooCommerce");
         setIsConnected(true);
         fetchProducts(values, 1);
@@ -150,11 +172,14 @@ const WooCommerceImporter = () => {
           setConfigLoaded(true);
         }
       } else {
+        console.error("Échec de la connexion WooCommerce");
+        setConnectionError("Échec de la connexion. Vérifiez vos identifiants et assurez-vous que votre boutique est accessible.");
         toast.error("Échec de la connexion. Vérifiez vos identifiants.");
         setIsConnected(false);
       }
     } catch (error) {
       console.error("Error testing connection:", error);
+      setConnectionError("Erreur technique lors du test de connexion. Veuillez réessayer plus tard.");
       toast.error("Erreur lors du test de connexion");
     } finally {
       setIsConnecting(false);
@@ -166,6 +191,7 @@ const WooCommerceImporter = () => {
     setIsFetchingProducts(true);
     
     try {
+      console.log(`Récupération des produits WooCommerce, page ${page}`);
       const products = await getWooCommerceProducts(
         values.siteUrl,
         values.consumerKey,
@@ -174,9 +200,10 @@ const WooCommerceImporter = () => {
         10 // nombre de produits par page
       );
       
+      console.log(`${products.length} produits récupérés`);
       setProductsList(products);
       setCurrentPage(page);
-      setTotalPages(Math.ceil(products.length / 10)); // Estimation basique
+      setTotalPages(Math.max(1, Math.ceil(products.length / 10))); // Estimation basique
     } catch (error) {
       console.error("Error fetching products:", error);
       toast.error("Erreur lors de la récupération des produits");
@@ -225,6 +252,12 @@ const WooCommerceImporter = () => {
     fetchProducts(form.getValues(), newPage);
   };
 
+  const resetConnection = () => {
+    setIsConnected(false);
+    setConnectionError("");
+    setProductsList([]);
+  };
+
   return (
     <div className="space-y-6">
       <Form {...form}>
@@ -242,7 +275,7 @@ const WooCommerceImporter = () => {
                   <Input 
                     placeholder="https://monsite.com" 
                     {...field} 
-                    disabled={isConnected}
+                    disabled={isConnected || isConnecting}
                   />
                 </FormControl>
                 <FormDescription>
@@ -268,7 +301,7 @@ const WooCommerceImporter = () => {
                       placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxx" 
                       type="password" 
                       {...field} 
-                      disabled={isConnected}
+                      disabled={isConnected || isConnecting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -290,7 +323,7 @@ const WooCommerceImporter = () => {
                       placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxx" 
                       type="password" 
                       {...field} 
-                      disabled={isConnected}
+                      disabled={isConnected || isConnecting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -299,10 +332,17 @@ const WooCommerceImporter = () => {
             />
           </div>
           
+          {connectionError && (
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div>{connectionError}</div>
+            </div>
+          )}
+          
           <div className="flex flex-wrap gap-2">
             <Button 
               type="submit" 
-              disabled={isConnecting || isConnected || isSaving} 
+              disabled={isConnecting || isSaving} 
               className="mt-2"
             >
               {isConnecting ? (
@@ -344,10 +384,7 @@ const WooCommerceImporter = () => {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => {
-                  setIsConnected(false);
-                  form.reset();
-                }}
+                onClick={resetConnection}
                 className="mt-2"
               >
                 <X className="h-4 w-4 mr-2" />
@@ -365,13 +402,25 @@ const WooCommerceImporter = () => {
               <ShoppingBag className="h-5 w-5 text-primary" />
               Produits disponibles
             </h3>
-            <Button 
-              onClick={() => setImportDialogOpen(true)}
-              disabled={productsList.length === 0 || isImporting}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Importer les produits
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => fetchProducts(form.getValues(), currentPage)}
+                disabled={isFetchingProducts}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isFetchingProducts ? 'animate-spin' : ''}`} />
+                Actualiser
+              </Button>
+              <Button 
+                onClick={() => setImportDialogOpen(true)}
+                disabled={productsList.length === 0 || isImporting}
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Importer les produits
+              </Button>
+            </div>
           </div>
           
           {isFetchingProducts ? (

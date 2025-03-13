@@ -31,6 +31,8 @@ async function callWooCommerceAPI(url: string, endpoint: string, consumerKey: st
     
     if (!response.ok) {
       console.error(`Error from WooCommerce API: ${response.status} ${response.statusText}`);
+      const responseText = await response.text();
+      console.error("Response body:", responseText);
       return { error: `API error: ${response.status} ${response.statusText}` };
     }
     
@@ -50,7 +52,10 @@ serve(async (req) => {
   
   try {
     // Parse request body
-    const { action, url, consumerKey, consumerSecret, page, perPage } = await req.json();
+    const requestData = await req.json();
+    const { action, url, consumerKey, consumerSecret, page, perPage } = requestData;
+    
+    console.log(`Processing ${action} request`);
     
     // Validate required parameters
     if (!url || !consumerKey || !consumerSecret) {
@@ -65,6 +70,7 @@ serve(async (req) => {
     // Handle different actions
     switch (action) {
       case "testConnection":
+        console.log("Testing connection to:", url);
         // Test connection by fetching a single product
         const testResult = await callWooCommerceAPI(
           url, 
@@ -74,10 +80,18 @@ serve(async (req) => {
           { per_page: "1" }
         );
         
-        result = { 
-          success: !testResult.error,
-          error: testResult.error
-        };
+        if (testResult.error) {
+          console.error("Test connection failed:", testResult.error);
+          result = { 
+            success: false,
+            error: testResult.error
+          };
+        } else {
+          console.log("Test connection successful");
+          result = { 
+            success: true
+          };
+        }
         break;
         
       case "getProducts":
@@ -93,10 +107,18 @@ serve(async (req) => {
           }
         );
         
-        result = {
-          products: productsResult.data || [],
-          error: productsResult.error
-        };
+        if (productsResult.error) {
+          console.error("Error fetching products:", productsResult.error);
+          result = {
+            products: [],
+            error: productsResult.error
+          };
+        } else {
+          console.log(`Retrieved ${productsResult.data?.length || 0} products`);
+          result = {
+            products: productsResult.data || [],
+          };
+        }
         break;
         
       default:
