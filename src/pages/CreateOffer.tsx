@@ -13,6 +13,7 @@ import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { createOffer } from "@/services/offerService";
 import { getLeasers } from "@/services/leaserService";
+import { defaultLeasers } from "@/data/leasers";
 
 // Import the components
 import EquipmentForm from "@/components/offer/EquipmentForm";
@@ -27,7 +28,7 @@ const CreateOffer = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(null);
+  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -39,7 +40,7 @@ const CreateOffer = () => {
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isClientSelectorOpen, setIsClientSelectorOpen] = useState(false);
   const [isLeaserSelectorOpen, setIsLeaserSelectorOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Use the equipment calculator hook
@@ -69,20 +70,21 @@ const CreateOffer = () => {
   useEffect(() => {
     const initialize = async () => {
       try {
+        setLoading(true);
         const fetchedLeasers = await getLeasers();
         
         // Si des leasers ont été trouvés, utiliser le premier
-        if (fetchedLeasers.length > 0) {
+        if (fetchedLeasers && fetchedLeasers.length > 0) {
           setSelectedLeaser(fetchedLeasers[0]);
         } else {
-          // Sinon, utiliser le premier leaser par défaut (à importer depuis le fichier de données)
-          const { defaultLeasers } = await import('@/data/leasers');
+          // Sinon, utiliser le premier leaser par défaut
           setSelectedLeaser(defaultLeasers[0]);
         }
       } catch (error) {
         console.error("Error initializing offer calculator:", error);
-        const { defaultLeasers } = await import('@/data/leasers');
+        // En cas d'erreur, utiliser le leaser par défaut
         setSelectedLeaser(defaultLeasers[0]);
+        toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
       } finally {
         setLoading(false);
       }
