@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -69,17 +68,6 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
   });
   
   // Extraire les catégories à partir des produits chargés
-  const categories = React.useMemo(() => {
-    const uniqueCategories = new Set<string>();
-    products.forEach(product => {
-      if (product.category) {
-        uniqueCategories.add(product.category);
-      }
-    });
-    return ["all", ...Array.from(uniqueCategories)];
-  }, [products]);
-  
-  // Filtrer les produits selon la recherche et la catégorie
   const filteredProducts = React.useMemo(() => {
     return products.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -130,16 +118,19 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
           )}
           
           <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(category)}
-              >
-                {category === "all" ? "Tous" : translateCategory(category)}
-              </Button>
-            ))}
+            {React.useMemo(() => {
+              const categories = ["all", ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
+              return categories.map((category) => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category === "all" ? "Tous" : translateCategory(category)}
+                </Button>
+              ));
+            }, [products, selectedCategory])}
           </div>
           
           {isLoading ? (
