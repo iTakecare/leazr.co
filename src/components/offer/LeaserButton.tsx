@@ -32,7 +32,7 @@ const LeaserButton: React.FC<LeaserButtonProps> = ({
                   <AvatarImage 
                     src={selectedLeaser.logo_url} 
                     alt={selectedLeaser.name} 
-                    className="object-contain p-1 bg-white"
+                    className="object-contain p-2 bg-white"
                   />
                   <AvatarFallback className="bg-primary/10 rounded-md">
                     <Building2 className="h-4 w-4 text-primary" />

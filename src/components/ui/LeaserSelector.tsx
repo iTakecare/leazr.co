@@ -1,144 +1,125 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Sheet, 
   SheetContent, 
+  SheetDescription, 
   SheetHeader, 
-  SheetTitle, 
-  SheetDescription 
+  SheetTitle 
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Check, Building2, Loader2 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Leaser } from "@/types/equipment";
-import { getLeasers } from "@/services/leaserService";
-import { defaultLeasers } from "@/data/leasers";
-import { toast } from "sonner";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Building2, Loader2, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { getLeasers } from "@/services/leaserService";
+import { toast } from "sonner";
 
 interface LeaserSelectorProps {
   isOpen: boolean;
   onClose: () => void;
+  selectedLeaser: Leaser | null;
   onSelect: (leaser: Leaser) => void;
-  currentLeaserId?: string;
 }
 
-const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSelectorProps) => {
+const LeaserSelector: React.FC<LeaserSelectorProps> = ({
+  isOpen,
+  onClose,
+  selectedLeaser,
+  onSelect,
+}) => {
+  const [leasers, setLeasers] = useState<Leaser[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [leasers, setLeasers] = useState<Leaser[]>(defaultLeasers);
-  const [loading, setLoading] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  
-  const fetchLeasers = useCallback(async (forceRefresh = false) => {
-    if (loading) return;
-    
-    setLoading(true);
+
+  const fetchLeasers = useCallback(async () => {
+    setIsLoading(true);
     try {
       const fetchedLeasers = await getLeasers();
-      if (fetchedLeasers && fetchedLeasers.length > 0) {
-        setLeasers(fetchedLeasers);
-      } else {
-        setLeasers(defaultLeasers);
-      }
-      setIsInitialized(true);
+      setLeasers(fetchedLeasers);
     } catch (error) {
       console.error("Error fetching leasers:", error);
-      toast.error("Impossible de charger les leasers, utilisation des valeurs par défaut");
-      setLeasers(defaultLeasers);
+      toast.error("Failed to load leasers");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [loading]);
-  
+  }, []);
+
   useEffect(() => {
-    if (!isInitialized) {
-      fetchLeasers();
-    }
-  }, [fetchLeasers, isInitialized]);
-  
-  useEffect(() => {
-    if (isOpen && isInitialized) {
-      fetchLeasers(true);
-    }
-  }, [isOpen, fetchLeasers, isInitialized]);
-  
-  const filteredLeasers = leasers.filter(leaser => 
+    fetchLeasers();
+  }, [fetchLeasers]);
+
+  const filteredLeasers = leasers.filter((leaser) =>
     leaser.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
+
   const handleSelect = (leaser: Leaser) => {
     onSelect(leaser);
     onClose();
   };
-  
+
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Sélection du leaser</SheetTitle>
+          <SheetTitle>Sélectionner un leaser</SheetTitle>
           <SheetDescription>
-            Choisissez un organisme de financement
+            Choisissez l'organisme de financement pour cette offre.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
-          <Input
-            placeholder="Rechercher un leaser..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          
-          {loading ? (
+        <div className="mt-4 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Rechercher un leaser..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {isLoading ? (
             <div className="flex justify-center items-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : (
-            <ScrollArea className="h-[60vh]">
-              <div className="space-y-2 pr-3">
-                {filteredLeasers.map((leaser) => (
-                  <div
-                    key={leaser.id}
-                    className={`border rounded-lg p-4 cursor-pointer hover:border-primary ${
-                      currentLeaserId === leaser.id ? "border-primary bg-primary/5" : ""
-                    }`}
-                    onClick={() => handleSelect(leaser)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 rounded-md">
-                          {leaser.logo_url ? (
-                            <AvatarImage 
-                              src={leaser.logo_url} 
-                              alt={leaser.name}
-                              className="object-contain p-1 bg-white"
-                            />
-                          ) : null}
-                          <AvatarFallback className="rounded-md bg-primary/10">
-                            <Building2 className="h-5 w-5 text-muted-foreground" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <h3 className="font-medium">{leaser.name}</h3>
+          ) : filteredLeasers.length > 0 ? (
+            <div className="space-y-1">
+              {filteredLeasers.map((leaser) => (
+                <div
+                  key={leaser.id}
+                  className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
+                    selectedLeaser?.id === leaser.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                  onClick={() => handleSelect(leaser)}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <Avatar className="h-9 w-9 rounded-md">
+                      {leaser.logo_url ? (
+                        <AvatarImage 
+                          src={leaser.logo_url} 
+                          alt={leaser.name}
+                          className="object-contain p-2 bg-white"
+                        />
+                      ) : null}
+                      <AvatarFallback className="rounded-md bg-primary/10">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{leaser.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {leaser.ranges.length} tranches
                       </div>
-                      {currentLeaserId === leaser.id && (
-                        <Check className="h-5 w-5 text-primary" />
-                      )}
-                    </div>
-                    <div className="mt-2 pl-8">
-                      <p className="text-sm text-muted-foreground">
-                        {leaser.ranges.length} barème(s) disponible(s)
-                      </p>
                     </div>
                   </div>
-                ))}
-                
-                {filteredLeasers.length === 0 && (
-                  <div className="py-8 text-center">
-                    <p className="text-muted-foreground">Aucun leaser trouvé</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Aucun leaser trouvé.
+            </div>
           )}
         </div>
       </SheetContent>

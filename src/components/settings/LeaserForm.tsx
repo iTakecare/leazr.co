@@ -89,24 +89,33 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = fileName;
       
-      // Create a storage bucket if it doesn't exist (this will be handled by SQL separately)
-      // We're uploading the file as-is without any transformation
-      const { error } = await supabase.storage
-        .from('leaser-logos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type // Explicitly set the content type
-        });
+      // 1. Créer un objet FormData pour gérer correctement le type du fichier
+      const formData = new FormData();
+      formData.append('file', file);
       
-      if (error) throw error;
+      // 2. Utiliser fetch au lieu de l'API supabase directe pour un meilleur contrôle
+      const uploadResponse = await fetch(
+        `${supabase.storageUrl}/object/leaser-logos/${filePath}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabase.supabaseKey}`,
+            // Ne pas définir Content-Type ici pour que fetch définisse la bonne frontière multipart
+          },
+          body: formData
+        }
+      );
       
-      // Get the public URL
+      if (!uploadResponse.ok) {
+        throw new Error(`Erreur de téléchargement: ${await uploadResponse.text()}`);
+      }
+      
+      // 3. Obtenir l'URL publique
       const { data: { publicUrl } } = supabase.storage
         .from('leaser-logos')
         .getPublicUrl(filePath);
       
-      console.log("Logo uploaded successfully:", publicUrl);
+      console.log("Logo téléchargé avec succès:", publicUrl);
       setPreviewUrl(publicUrl);
       
       toast.success("Logo téléchargé avec succès");

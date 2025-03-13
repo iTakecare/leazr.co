@@ -23,6 +23,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
+// Exporter l'URL et la clé de storage pour un usage direct
+supabase.storageUrl = `${SUPABASE_URL}/storage/v1`;
+supabase.supabaseKey = SUPABASE_PUBLISHABLE_KEY;
+
 // Admin client that bypasses RLS policies - use with caution!
 // Only use this in admin-specific functions or server-side contexts
 export const adminSupabase = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY, {
