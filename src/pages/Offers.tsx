@@ -48,6 +48,7 @@ import { getOffers, deleteOffer } from "@/services/offerService";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAuth } from "@/context/AuthContext";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Offer {
   id: string;
@@ -76,14 +77,11 @@ const Offers = () => {
     setLoadingError(null);
     
     try {
-      console.log("Fetching offers...");
       const offersData = await getOffers();
-      console.log("Offers fetched:", offersData);
       
       if (Array.isArray(offersData)) {
         setOffers(offersData);
       } else {
-        // Données reçues mais de type incorrect
         console.error("Offers data is not an array:", offersData);
         setLoadingError("Format de données incorrect");
       }
@@ -102,7 +100,6 @@ const Offers = () => {
     return matchesSearch && matchesTab;
   });
 
-  // Gestion d'un retry en cas d'erreur
   const handleRetry = () => {
     fetchOffers();
   };
@@ -153,7 +150,8 @@ const Offers = () => {
       const success = await deleteOffer(offerId);
       if (success) {
         toast.success("L'offre a été supprimée avec succès");
-        fetchOffers();
+        // Mise à jour locale pour éviter de refaire un appel réseau
+        setOffers(offers.filter(offer => offer.id !== offerId));
       } else {
         toast.error("Erreur lors de la suppression de l'offre");
       }
@@ -174,24 +172,25 @@ const Offers = () => {
       opacity: 1,
       transition: {
         when: "beforeChildren",
-        staggerChildren: 0.1,
+        staggerChildren: 0.05, // Réduire le délai pour accélérer l'animation
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } }, // Accélérer les animations
   };
 
+  // Afficher un indicateur de chargement plus léger
   if (loading) {
     return (
       <PageTransition>
         <Container>
-          <div className="flex h-[60vh] items-center justify-center">
-            <div className="flex flex-col items-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">Chargement des offres...</p>
+          <div className="flex h-[40vh] items-center justify-center">
+            <div className="flex flex-col items-center space-y-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Chargement...</p>
             </div>
           </div>
         </Container>
@@ -199,18 +198,17 @@ const Offers = () => {
     );
   }
 
-  if (loadingError) {
+  if (loadingError && offers.length === 0) {
     return (
       <PageTransition>
         <Container>
-          <div className="flex h-[60vh] items-center justify-center">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="rounded-full bg-red-100 p-3">
-                <AlertCircle className="h-6 w-6 text-red-600" />
+          <div className="flex h-[40vh] items-center justify-center">
+            <div className="flex flex-col items-center space-y-3">
+              <div className="rounded-full bg-red-100 p-2">
+                <AlertCircle className="h-5 w-5 text-red-600" />
               </div>
-              <p className="text-lg font-medium">{loadingError}</p>
-              <p className="text-muted-foreground">Impossible de charger les offres</p>
-              <Button onClick={handleRetry}>Réessayer</Button>
+              <p className="text-base font-medium">{loadingError}</p>
+              <Button onClick={handleRetry} size="sm">Réessayer</Button>
             </div>
           </div>
         </Container>
@@ -222,14 +220,14 @@ const Offers = () => {
     <PageTransition>
       <Container>
         <motion.div
-          className="py-6"
+          className="py-4"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
-          <motion.div variants={itemVariants} className="flex justify-between items-center mb-8">
+          <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
+              <h1 className="text-2xl font-bold tracking-tight">
                 Mes offres
               </h1>
               <p className="text-muted-foreground">
@@ -246,8 +244,8 @@ const Offers = () => {
 
           <motion.div variants={itemVariants}>
             <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <CardHeader className="pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
                     <CardTitle>Liste des offres</CardTitle>
                     <CardDescription>
@@ -282,90 +280,92 @@ const Offers = () => {
                   </TabsList>
                   <TabsContent value={activeTab}>
                     <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Client</TableHead>
-                            <TableHead>Montant</TableHead>
-                            <TableHead>Loyer mensuel</TableHead>
-                            <TableHead>Commission</TableHead>
-                            <TableHead>Statut</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredOffers.length === 0 ? (
+                      <ScrollArea className="h-[calc(100vh-320px)]">
+                        <Table>
+                          <TableHeader>
                             <TableRow>
-                              <TableCell
-                                colSpan={7}
-                                className="h-24 text-center"
-                              >
-                                <div className="flex flex-col items-center justify-center py-4">
-                                  <FileText className="h-10 w-10 text-muted-foreground/50 mb-2" />
-                                  <p className="text-muted-foreground">
-                                    Aucune offre trouvée
-                                  </p>
-                                </div>
-                              </TableCell>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Montant</TableHead>
+                              <TableHead>Loyer mensuel</TableHead>
+                              <TableHead>Commission</TableHead>
+                              <TableHead>Statut</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead></TableHead>
                             </TableRow>
-                          ) : (
-                            filteredOffers.map((offer) => (
-                              <TableRow key={offer.id}>
-                                <TableCell className="font-medium">
-                                  {offer.client_name}
-                                </TableCell>
-                                <TableCell>
-                                  {formatCurrency(offer.amount)}
-                                </TableCell>
-                                <TableCell>
-                                  {formatCurrency(offer.monthly_payment)}
-                                </TableCell>
-                                <TableCell>
-                                  {formatCurrency(offer.commission)}
-                                </TableCell>
-                                <TableCell>
-                                  {getStatusBadge(offer.status)}
-                                </TableCell>
-                                <TableCell>{formatDate(offer.created_at)}</TableCell>
-                                <TableCell>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        className="h-8 w-8 p-0"
-                                      >
-                                        <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem
-                                        onClick={() => handleDownloadPdf(offer.id)}
-                                      >
-                                        <Download className="mr-2 h-4 w-4" />
-                                        Télécharger
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleResendOffer(offer.id)}
-                                      >
-                                        <Mail className="mr-2 h-4 w-4" />
-                                        Renvoyer
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleDeleteOffer(offer.id)}
-                                        className="text-red-600"
-                                      >
-                                        <X className="mr-2 h-4 w-4" />
-                                        Supprimer
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredOffers.length === 0 ? (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={7}
+                                  className="h-24 text-center"
+                                >
+                                  <div className="flex flex-col items-center justify-center py-4">
+                                    <FileText className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                                    <p className="text-muted-foreground">
+                                      Aucune offre trouvée
+                                    </p>
+                                  </div>
                                 </TableCell>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
+                            ) : (
+                              filteredOffers.map((offer) => (
+                                <TableRow key={offer.id}>
+                                  <TableCell className="font-medium">
+                                    {offer.client_name}
+                                  </TableCell>
+                                  <TableCell>
+                                    {formatCurrency(offer.amount)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {formatCurrency(offer.monthly_payment)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {formatCurrency(offer.commission)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {getStatusBadge(offer.status)}
+                                  </TableCell>
+                                  <TableCell>{formatDate(offer.created_at)}</TableCell>
+                                  <TableCell>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                          onClick={() => handleDownloadPdf(offer.id)}
+                                        >
+                                          <Download className="mr-2 h-4 w-4" />
+                                          Télécharger
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleResendOffer(offer.id)}
+                                        >
+                                          <Mail className="mr-2 h-4 w-4" />
+                                          Renvoyer
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleDeleteOffer(offer.id)}
+                                          className="text-red-600"
+                                        >
+                                          <X className="mr-2 h-4 w-4" />
+                                          Supprimer
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </ScrollArea>
                     </div>
                   </TabsContent>
                 </Tabs>
