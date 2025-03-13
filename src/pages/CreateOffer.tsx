@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -17,6 +16,7 @@ import ProductCatalog from "@/components/ui/ProductCatalog";
 import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { formatCurrency } from "@/utils/formatters";
+import { createOffer } from "@/services/offerService";
 
 const CreateOffer = () => {
   const { id } = useParams();
@@ -285,15 +285,14 @@ const CreateOffer = () => {
         commission: totalMonthlyPayment * 0.1, // Exemple: 10% de commission
       };
 
-      const { data, error } = await supabase
-        .from('offers')
-        .insert([offerData])
-        .select();
-
-      if (error) throw error;
+      const offerId = await createOffer(offerData);
       
-      toast.success("Offre créée avec succès !");
-      navigate("/offers");
+      if (offerId) {
+        toast.success("Offre créée avec succès !");
+        navigate("/offers");
+      } else {
+        throw new Error("Failed to create offer");
+      }
     } catch (error) {
       console.error("Error saving offer:", error);
       toast.error("Une erreur s'est produite lors de la création de l'offre");

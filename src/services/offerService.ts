@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 
@@ -17,13 +18,14 @@ export interface OfferData {
   coefficient: number;
   monthly_payment: number;
   commission: number;
+  user_id: string; // Added user_id field as it's required by the database
 }
 
 export const createOffer = async (offerData: OfferData): Promise<string | null> => {
   try {
     const { data, error } = await supabase
       .from('offers')
-      .insert([offerData])
+      .insert(offerData) // Remove the array brackets as offerData is already properly typed
       .select();
     
     if (error) throw error;
