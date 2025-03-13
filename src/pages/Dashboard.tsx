@@ -1,7 +1,6 @@
 
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
-import Container from "@/components/layout/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
@@ -47,11 +46,12 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="p-6 w-full">
+    <div className="w-full">
       <motion.div
         initial="hidden"
         animate="visible"
         variants={containerVariants}
+        className="w-full"
       >
         <motion.div variants={itemVariants} className="flex justify-between items-center mb-8">
           <div>
