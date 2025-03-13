@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Sheet, 
@@ -110,7 +111,7 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
                             <AvatarImage 
                               src={leaser.logo_url} 
                               alt={leaser.name}
-                              className="object-contain p-1"
+                              className="object-contain p-1 bg-white"
                             />
                           ) : null}
                           <AvatarFallback className="rounded-md bg-primary/10">

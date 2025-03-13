@@ -29,7 +29,11 @@ const LeaserButton: React.FC<LeaserButtonProps> = ({
             <div className="flex items-center gap-3">
               {selectedLeaser?.logo_url ? (
                 <Avatar className="h-8 w-8 rounded-md">
-                  <AvatarImage src={selectedLeaser.logo_url} alt={selectedLeaser.name} />
+                  <AvatarImage 
+                    src={selectedLeaser.logo_url} 
+                    alt={selectedLeaser.name} 
+                    className="object-contain p-1 bg-white"
+                  />
                   <AvatarFallback className="bg-primary/10 rounded-md">
                     <Building2 className="h-4 w-4 text-primary" />
                   </AvatarFallback>

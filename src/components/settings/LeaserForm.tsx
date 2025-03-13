@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,18 +87,26 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
       
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const filePath = fileName;
       
-      const { data, error } = await supabase.storage
+      // Create a storage bucket if it doesn't exist (this will be handled by SQL separately)
+      // We're uploading the file as-is without any transformation
+      const { error } = await supabase.storage
         .from('leaser-logos')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type // Explicitly set the content type
+        });
       
       if (error) throw error;
       
+      // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('leaser-logos')
         .getPublicUrl(filePath);
       
+      console.log("Logo uploaded successfully:", publicUrl);
       setPreviewUrl(publicUrl);
       
       toast.success("Logo téléchargé avec succès");
