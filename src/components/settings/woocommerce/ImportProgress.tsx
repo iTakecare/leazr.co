@@ -11,16 +11,19 @@ interface ImportProgressProps {
 const ImportProgress: React.FC<ImportProgressProps> = ({ progress, stage, isActive }) => {
   if (!isActive) return null;
   
+  // Ensure progress is always a valid number between 0 and 100
+  const safeProgress = isNaN(progress) ? 0 : Math.max(0, Math.min(100, progress));
+  
   return (
     <div className="space-y-2 mt-4">
       <div className="flex justify-between text-xs text-gray-500">
-        <span>{stage}</span>
-        <span>{progress}%</span>
+        <span>{stage || 'Chargement en cours...'}</span>
+        <span>{safeProgress}%</span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div className="w-full rounded-full overflow-hidden">
         <Progress 
-          value={progress} 
-          className="h-2"
+          value={safeProgress} 
+          className="h-2 transition-all"
         />
       </div>
     </div>

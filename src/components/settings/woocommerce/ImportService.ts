@@ -283,15 +283,21 @@ interface SchemaUpdateResult {
   error?: string;
 }
 
+// Fix for the TypeScript errors - update the RPC call parameters
 export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
   try {
     // Utilisation du client admin qui permet de contourner les restrictions RLS
     // pour les opérations DDL (modification de schéma)
+    
+    // Adding console.log for debugging
+    console.log('Starting schema update process...');
+    
+    // Fix: Use proper parameter structure for RPC calls
     const { error: categoryError } = await adminSupabase.rpc('add_column_if_not_exists', {
-      table_name: 'products',
-      column_name: 'category',
-      column_type: 'text',
-      column_default: "'other'"
+      p_table_name: 'products',
+      p_column_name: 'category',
+      p_column_type: 'text',
+      p_column_default: "'other'"
     });
     
     if (categoryError) {
@@ -299,11 +305,12 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
       return { success: false, error: categoryError.message };
     }
     
+    // Fix: Use proper parameter structure for RPC calls
     const { error: descriptionError } = await adminSupabase.rpc('add_column_if_not_exists', {
-      table_name: 'products',
-      column_name: 'description',
-      column_type: 'text',
-      column_default: 'NULL'
+      p_table_name: 'products',
+      p_column_name: 'description',
+      p_column_type: 'text',
+      p_column_default: 'NULL'
     });
     
     if (descriptionError) {
@@ -311,6 +318,7 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
       return { success: false, error: descriptionError.message };
     }
     
+    console.log('Schema update completed successfully');
     return { success: true };
   } catch (error) {
     console.error('Erreur lors de la mise à jour du schéma:', error);

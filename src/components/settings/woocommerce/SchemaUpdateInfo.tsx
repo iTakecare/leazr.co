@@ -51,7 +51,10 @@ const SchemaUpdateInfo: React.FC<SchemaUpdateInfoProps> = ({
           )}
           
           {updatingSchema && (
-            <Progress value={50} className="w-24 h-2" />
+            <>
+              <Progress value={50} className="w-24 h-2" />
+              <span className="text-xs text-amber-700">Mise à jour en cours...</span>
+            </>
           )}
           
           <Button 
