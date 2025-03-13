@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Table, 
   TableBody, 
@@ -24,7 +24,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { 
   Building2, 
@@ -32,10 +31,13 @@ import {
   Pencil, 
   Trash2, 
   Image as ImageIcon, 
-  Tag
+  Tag,
+  Loader2
 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
 import { defaultLeasers } from "@/data/leasers";
+import { getLeasers, addLeaser, updateLeaser, deleteLeaser } from "@/services/leaserService";
+import { toast } from "sonner";
 
 interface Range {
   id: string;
@@ -45,11 +47,32 @@ interface Range {
 }
 
 const LeaserManager = () => {
-  const [leasers, setLeasers] = useState<Leaser[]>(defaultLeasers);
+  const [leasers, setLeasers] = useState<Leaser[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentLeaser, setCurrentLeaser] = useState<Leaser | null>(null);
   const [tempRanges, setTempRanges] = useState<Range[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Charger les leasers au montage du composant
+  useEffect(() => {
+    fetchLeasers();
+  }, []);
+
+  const fetchLeasers = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedLeasers = await getLeasers();
+      // Si aucun leaser n'est trouvé, utiliser les leasers par défaut
+      setLeasers(fetchedLeasers.length > 0 ? fetchedLeasers : defaultLeasers);
+    } catch (error) {
+      console.error("Error fetching leasers:", error);
+      setLeasers(defaultLeasers);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleOpenSheet = (leaser?: Leaser) => {
     if (leaser) {
@@ -58,7 +81,7 @@ const LeaserManager = () => {
       setIsEditMode(true);
     } else {
       setCurrentLeaser(null);
-      setTempRanges([{ id: "1", min: 0, max: 0, coefficient: 0 }]);
+      setTempRanges([{ id: crypto.randomUUID(), min: 0, max: 0, coefficient: 0 }]);
       setIsEditMode(false);
     }
     setIsOpen(true);
@@ -79,7 +102,7 @@ const LeaserManager = () => {
   
   const handleAddRange = () => {
     const lastRange = tempRanges[tempRanges.length - 1];
-    const newRangeId = String(parseInt(lastRange.id) + 1);
+    const newRangeId = crypto.randomUUID();
     
     setTempRanges([
       ...tempRanges,
@@ -100,33 +123,55 @@ const LeaserManager = () => {
     }
   };
   
-  const handleSaveLeaser = (e: React.FormEvent) => {
+  const handleSaveLeaser = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
     
-    const newLeaser: Leaser = {
-      id: currentLeaser?.id || `leaser-${Date.now()}`,
-      name: formData.get("name") as string,
-      logo_url: formData.get("logo_url") as string || null,
-      ranges: tempRanges
-    };
-    
-    if (isEditMode) {
-      setLeasers(leasers.map(leaser => 
-        leaser.id === newLeaser.id ? newLeaser : leaser
-      ));
-    } else {
-      setLeasers([...leasers, newLeaser]);
+    try {
+      setIsSaving(true);
+      
+      const newLeaser: Omit<Leaser, "id"> = {
+        name: formData.get("name") as string,
+        logo_url: formData.get("logo_url") as string || null,
+        ranges: tempRanges
+      };
+      
+      if (isEditMode && currentLeaser) {
+        // Mise à jour d'un leaser existant
+        const success = await updateLeaser(currentLeaser.id, newLeaser);
+        if (success) {
+          // Rafraîchir la liste des leasers
+          await fetchLeasers();
+          handleCloseSheet();
+        }
+      } else {
+        // Ajout d'un nouveau leaser
+        const addedLeaser = await addLeaser(newLeaser);
+        if (addedLeaser) {
+          setLeasers([...leasers, addedLeaser]);
+          handleCloseSheet();
+        }
+      }
+    } catch (error) {
+      console.error("Error saving leaser:", error);
+      toast.error("Une erreur est survenue lors de l'enregistrement du leaser");
+    } finally {
+      setIsSaving(false);
     }
-    
-    handleCloseSheet();
   };
   
-  const handleDeleteLeaser = (id: string) => {
+  const handleDeleteLeaser = async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer ce leaser ?")) {
-      setLeasers(leasers.filter(leaser => leaser.id !== id));
+      try {
+        const success = await deleteLeaser(id);
+        if (success) {
+          setLeasers(leasers.filter(leaser => leaser.id !== id));
+        }
+      } catch (error) {
+        console.error("Error deleting leaser:", error);
+      }
     }
   };
   
@@ -149,78 +194,84 @@ const LeaserManager = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[300px]">Nom</TableHead>
-                <TableHead>Tranches</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leasers.map((leaser) => (
-                <TableRow key={leaser.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center overflow-hidden">
-                        {leaser.logo_url ? (
-                          <img 
-                            src={leaser.logo_url} 
-                            alt={leaser.name} 
-                            className="w-full h-full object-contain"
-                          />
-                        ) : (
-                          <Building2 className="h-4 w-4 text-primary" />
-                        )}
-                      </div>
-                      {leaser.name}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {leaser.ranges.map((range) => (
-                        <span 
-                          key={range.id} 
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                        >
-                          <Tag className="h-3 w-3 mr-1" />
-                          {range.min}€ - {range.max}€ ({range.coefficient})
-                        </span>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleOpenSheet(leaser)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Modifier</span>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleDeleteLeaser(leaser.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Supprimer</span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {leasers.length === 0 && (
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                    Aucun leaser disponible. Ajoutez votre premier leaser.
-                  </TableCell>
+                  <TableHead className="w-[300px]">Nom</TableHead>
+                  <TableHead>Tranches</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {leasers.map((leaser) => (
+                  <TableRow key={leaser.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center overflow-hidden">
+                          {leaser.logo_url ? (
+                            <img 
+                              src={leaser.logo_url} 
+                              alt={leaser.name} 
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <Building2 className="h-4 w-4 text-primary" />
+                          )}
+                        </div>
+                        {leaser.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {leaser.ranges.map((range) => (
+                          <span 
+                            key={range.id} 
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                          >
+                            <Tag className="h-3 w-3 mr-1" />
+                            {range.min}€ - {range.max}€ ({range.coefficient}%)
+                          </span>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleOpenSheet(leaser)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Modifier</span>
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleDeleteLeaser(leaser.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Supprimer</span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {leasers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                      Aucun leaser disponible. Ajoutez votre premier leaser.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
       
@@ -338,11 +389,19 @@ const LeaserManager = () => {
                 type="button" 
                 variant="outline" 
                 onClick={handleCloseSheet}
+                disabled={isSaving}
               >
                 Annuler
               </Button>
-              <Button type="submit">
-                {isEditMode ? 'Enregistrer' : 'Ajouter'}
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {isEditMode ? 'Enregistrement...' : 'Ajout...'}
+                  </>
+                ) : (
+                  isEditMode ? 'Enregistrer' : 'Ajouter'
+                )}
               </Button>
             </div>
           </form>

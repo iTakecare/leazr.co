@@ -3,19 +3,18 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { Calculator as CalcIcon } from "lucide-react";
+import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Equipment, Leaser } from "@/types/equipment";
-import { defaultLeasers } from "@/data/leasers";
 import ProductCatalog from "@/components/ui/ProductCatalog";
 import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { createOffer } from "@/services/offerService";
+import { getLeasers } from "@/services/leaserService";
 
-// Import the new components
+// Import the components
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import MarginCalculator from "@/components/offer/MarginCalculator";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -66,9 +65,30 @@ const CreateOffer = () => {
     findCoefficient
   } = useEquipmentCalculator(selectedLeaser);
 
+  // Charger les leasers au montage du composant
   useEffect(() => {
-    setSelectedLeaser(defaultLeasers[0]);
-    setLoading(false);
+    const initialize = async () => {
+      try {
+        const fetchedLeasers = await getLeasers();
+        
+        // Si des leasers ont été trouvés, utiliser le premier
+        if (fetchedLeasers.length > 0) {
+          setSelectedLeaser(fetchedLeasers[0]);
+        } else {
+          // Sinon, utiliser le premier leaser par défaut (à importer depuis le fichier de données)
+          const { defaultLeasers } = await import('@/data/leasers');
+          setSelectedLeaser(defaultLeasers[0]);
+        }
+      } catch (error) {
+        console.error("Error initializing offer calculator:", error);
+        const { defaultLeasers } = await import('@/data/leasers');
+        setSelectedLeaser(defaultLeasers[0]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    initialize();
   }, []);
 
   const handleProductSelect = (product: any) => {
@@ -145,7 +165,10 @@ const CreateOffer = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-gray-600">Chargement du calculateur...</p>
+        </div>
       </div>
     );
   }
