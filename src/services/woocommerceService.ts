@@ -35,25 +35,33 @@ export async function importWooCommerceProducts(
   products: WooCommerceProduct[]
 ): Promise<ImportResult> {
   try {
-    const transformedProducts: Partial<Product>[] = products.map((product) => ({
-      name: product.name,
-      description: product.description,
-      price: parseFloat(product.price || product.regular_price || "0"),
-      category: product.categories.length > 0 ? product.categories[0].name : "other",
-      imageUrl: product.images.length > 0 ? product.images[0].src : undefined,
-      specifications: product.attributes.reduce((acc, attr) => {
-        acc[attr.name] = attr.options.join(", ");
-        return acc;
-      }, {} as Record<string, string>),
-      active: product.status === "publish",
-    }));
-
     const errors: string[] = [];
     let imported = 0;
     let skipped = 0;
 
     // Import products one by one to the Supabase database
-    for (const product of transformedProducts) {
+    for (const wooProduct of products) {
+      // Ensure the required fields are present
+      if (!wooProduct.name) {
+        errors.push(`Product ID ${wooProduct.id} has no name and was skipped`);
+        skipped++;
+        continue;
+      }
+
+      // Create a properly typed product object that matches Supabase's expectations
+      const product = {
+        name: wooProduct.name,
+        description: wooProduct.description || '',
+        price: parseFloat(wooProduct.price || wooProduct.regular_price || "0"),
+        category: wooProduct.categories.length > 0 ? wooProduct.categories[0].name : "other",
+        image_url: wooProduct.images.length > 0 ? wooProduct.images[0].src : null,
+        specifications: wooProduct.attributes.reduce((acc, attr) => {
+          acc[attr.name] = attr.options.join(", ");
+          return acc;
+        }, {} as Record<string, string>),
+        active: wooProduct.status === "publish"
+      };
+
       const { error } = await supabase
         .from("products")
         .insert(product);
@@ -101,4 +109,3 @@ export async function testWooCommerceConnection(
     return false;
   }
 }
-
