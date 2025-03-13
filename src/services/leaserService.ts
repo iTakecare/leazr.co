@@ -1,13 +1,15 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Leaser } from "@/types/equipment";
 import { toast } from "sonner";
 import { defaultLeasers } from "@/data/leasers";
+import { validate as isUUID } from 'uuid';
 
 // Cache pour les leasers
 let leasersCache: Leaser[] | null = null;
 let lastFetchTime = 0;
 const CACHE_EXPIRY = 1000 * 60 * 5; // 5 minutes
-const FETCH_TIMEOUT = 10000; // Augmenter le timeout à 10 secondes
+const FETCH_TIMEOUT = 10000; // 10 secondes
 
 /**
  * Récupère tous les leasers de la base de données avec gestion de cache
@@ -152,10 +154,16 @@ export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | nu
  */
 export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise<boolean> => {
   try {
-    // Log de débogage
-    console.log("Mise à jour du leaser avec ID:", id);
+    // Vérifier que l'ID est un UUID valide
+    if (!isUUID(id)) {
+      throw new Error(`ID invalide: ${id} - doit être un UUID valide`);
+    }
     
-    // Préparer les données à mettre à jour
+    // Log détaillé de la mise à jour pour débogage
+    console.log("Mise à jour du leaser avec ID (UUID validé):", id);
+    console.log("Données de mise à jour:", JSON.stringify(leaser, null, 2));
+    
+    // Préparer les données à mettre à jour (uniquement le nom et le logo)
     const updateData: any = {};
     if (leaser.name !== undefined) updateData.name = leaser.name;
     if (leaser.logo_url !== undefined) updateData.logo_url = leaser.logo_url;
@@ -215,7 +223,7 @@ export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise
 export const deleteLeaser = async (id: string): Promise<boolean> => {
   try {
     // Vérifier que l'ID est un UUID valide
-    if (typeof id !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)) {
+    if (!isUUID(id)) {
       throw new Error(`ID invalide: ${id} - doit être un UUID valide`);
     }
     
