@@ -13,7 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 
 const Sidebar = () => {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   const sidebarItems = [
     { 
@@ -104,7 +104,7 @@ const Sidebar = () => {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={logout}
+              onClick={signOut}
               className="p-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors mt-auto"
             >
               <LogOut className="h-5 w-5" />

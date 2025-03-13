@@ -64,7 +64,7 @@ const Dashboard = () => {
                 Tableau de bord
               </h1>
               <p className="text-muted-foreground">
-                Bienvenue, {user?.name}
+                Bienvenue, {user?.first_name || ''}
               </p>
             </div>
             <Button asChild>

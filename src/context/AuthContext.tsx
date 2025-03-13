@@ -12,6 +12,7 @@ export interface UserProfile {
   role: 'admin' | 'client' | 'partner';
   company: string | null;
   avatar_url: string | null;
+  email?: string; // Add email to UserProfile
 }
 
 interface AuthContextType {
@@ -75,7 +76,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      setUser(data as UserProfile);
+      // Add email from session to the user profile
+      const userWithEmail = {
+        ...data,
+        email: session?.user?.email || null,
+      };
+
+      setUser(userWithEmail as UserProfile);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       toast.error('Erreur lors de la récupération du profil');
