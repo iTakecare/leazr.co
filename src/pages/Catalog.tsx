@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +20,22 @@ const Catalog = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   
-  const { data: products = [], isLoading, isError, error, refetch } = useQuery({
+  // Utiliser React Query pour charger les produits avec une gestion d'erreur améliorée
+  const { 
+    data: products = [], 
+    isLoading, 
+    isError, 
+    error, 
+    refetch 
+  } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
+    // Fallback pour utiliser un tableau vide si la requête échoue
+    onError: (err) => {
+      console.error("Erreur lors du chargement des produits:", err);
+      toast.error("Impossible de charger les produits");
+      return [];
+    }
   });
 
   // Filtrer les produits
@@ -37,7 +50,9 @@ const Catalog = () => {
   });
 
   // Extraire les catégories uniques
-  const categories = Array.from(new Set(products.map((product: Product) => product.category))).filter(Boolean);
+  const categories = Array.from(
+    new Set(products.map((product: Product) => product.category))
+  ).filter(Boolean);
 
   // Animation variants
   const containerVariants = {
@@ -56,6 +71,11 @@ const Catalog = () => {
     toast.success("Produit ajouté avec succès");
   };
 
+  const handleRetry = () => {
+    refetch();
+    toast.info("Tentative de rechargement des produits...");
+  };
+
   return (
     <Container>
       <div className="py-8">
@@ -70,8 +90,11 @@ const Catalog = () => {
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription>
-              Une erreur est survenue lors du chargement des produits: {error instanceof Error ? error.message : "Erreur inconnue"}
+            <AlertDescription className="flex flex-col gap-2">
+              <p>Une erreur est survenue lors du chargement des produits: {error instanceof Error ? error.message : "Erreur inconnue"}</p>
+              <Button onClick={handleRetry} variant="outline" size="sm" className="self-start">
+                Réessayer
+              </Button>
             </AlertDescription>
           </Alert>
         )}

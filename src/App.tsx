@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import './App.css';
 import { Toaster } from "sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Sidebar from "@/components/layout/Sidebar";
 import PageTransition from "@/components/layout/PageTransition";
 import Dashboard from "@/pages/Dashboard";
@@ -16,6 +17,17 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import CreateTestUsers from "@/pages/CreateTestUsers";
 import { AuthProvider } from "@/context/AuthContext";
+
+// Création d'un nouveau QueryClient
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function Layout() {
   return (
@@ -33,24 +45,26 @@ function Layout() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/create-test-users" element={<CreateTestUsers />} />
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/offers" element={<Offers />} />
-            <Route path="/create-offer" element={<CreateOffer />} />
-            <Route path="/catalog" element={<Catalog />} />
-            <Route path="/catalog/:productId" element={<ProductDetail />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
-        <Toaster richColors position="top-right" />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/create-test-users" element={<CreateTestUsers />} />
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/offers" element={<Offers />} />
+              <Route path="/create-offer" element={<CreateOffer />} />
+              <Route path="/catalog" element={<Catalog />} />
+              <Route path="/catalog/:productId" element={<ProductDetail />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+          <Toaster richColors position="top-right" />
+        </AuthProvider>
+      </QueryClientProvider>
     </Router>
   );
 }
