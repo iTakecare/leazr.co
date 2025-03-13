@@ -16,4 +16,5 @@ export const getProductCategories = (): string[] => {
 };
 
 // Re-export the Product type for backward compatibility
-export { Product } from "@/types/catalog";
+// Using 'export type' instead of 'export' for type re-exports when isolatedModules is enabled
+export type { Product } from "@/types/catalog";
