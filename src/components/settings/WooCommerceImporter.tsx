@@ -306,7 +306,6 @@ const WooCommerceImporter = () => {
       
       console.log(`Starting import with overwriteExisting: ${importOptions.overwriteExisting}`);
       
-      const { ensureStorageBucket } = await importStorageService;
       await ensureStorageBucket('product-images');
       
       const result = await importWooCommerceProducts(
