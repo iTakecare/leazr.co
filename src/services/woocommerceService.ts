@@ -3,6 +3,49 @@ import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
 import { Product } from "@/types/catalog";
 
+// Fonction pour récupérer la configuration WooCommerce de l'utilisateur
+export async function getWooCommerceConfig(userId: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke("woocommerce-config", {
+      body: {
+        action: "getConfig",
+        userId
+      }
+    });
+
+    if (error) throw error;
+    
+    return data.config;
+  } catch (error) {
+    console.error("Error fetching WooCommerce config:", error);
+    return null;
+  }
+}
+
+// Fonction pour sauvegarder la configuration WooCommerce de l'utilisateur
+export async function saveWooCommerceConfig(userId: string, configData: {
+  siteUrl: string;
+  consumerKey: string;
+  consumerSecret: string;
+}) {
+  try {
+    const { data, error } = await supabase.functions.invoke("woocommerce-config", {
+      body: {
+        action: "saveConfig",
+        userId,
+        configData
+      }
+    });
+
+    if (error) throw error;
+    
+    return data.success;
+  } catch (error) {
+    console.error("Error saving WooCommerce config:", error);
+    return false;
+  }
+}
+
 export async function getWooCommerceProducts(
   url: string,
   consumerKey: string,

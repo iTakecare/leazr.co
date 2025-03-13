@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -15,7 +15,8 @@ import {
   ChevronRight, 
   ArrowRight,
   AlertCircle,
-  PackageCheck
+  PackageCheck,
+  Save
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,8 +31,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getWooCommerceProducts, testWooCommerceConnection, importWooCommerceProducts } from "@/services/woocommerceService";
+import { 
+  getWooCommerceProducts, 
+  testWooCommerceConnection, 
+  importWooCommerceProducts,
+  getWooCommerceConfig,
+  saveWooCommerceConfig
+} from "@/services/woocommerceService";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
+import { useAuth } from "@/context/AuthContext";
 
 // Schéma de validation du formulaire
 const formSchema = z.object({
@@ -41,9 +49,11 @@ const formSchema = z.object({
 });
 
 const WooCommerceImporter = () => {
+  const { user } = useAuth();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [productsList, setProductsList] = useState<WooCommerceProduct[]>([]);
@@ -51,6 +61,7 @@ const WooCommerceImporter = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isFetchingProducts, setIsFetchingProducts] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
 
   // Initialiser le formulaire
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,6 +72,61 @@ const WooCommerceImporter = () => {
       consumerSecret: "",
     },
   });
+
+  // Charger la configuration WooCommerce sauvegardée
+  useEffect(() => {
+    const loadSavedConfig = async () => {
+      if (!user) return;
+      
+      try {
+        const config = await getWooCommerceConfig(user.id);
+        
+        if (config) {
+          form.reset({
+            siteUrl: config.site_url,
+            consumerKey: config.consumer_key,
+            consumerSecret: config.consumer_secret,
+          });
+          
+          toast.success("Configuration WooCommerce chargée");
+          setConfigLoaded(true);
+        }
+      } catch (error) {
+        console.error("Error loading WooCommerce config:", error);
+      }
+    };
+    
+    loadSavedConfig();
+  }, [user]);
+
+  // Sauvegarder la configuration WooCommerce
+  const handleSaveConfig = async (values: z.infer<typeof formSchema>) => {
+    if (!user) {
+      toast.error("Vous devez être connecté pour sauvegarder la configuration");
+      return;
+    }
+    
+    setIsSaving(true);
+    
+    try {
+      const success = await saveWooCommerceConfig(user.id, {
+        siteUrl: values.siteUrl,
+        consumerKey: values.consumerKey,
+        consumerSecret: values.consumerSecret,
+      });
+      
+      if (success) {
+        toast.success("Configuration WooCommerce sauvegardée");
+      } else {
+        toast.error("Échec de la sauvegarde de la configuration");
+      }
+    } catch (error) {
+      console.error("Error saving WooCommerce config:", error);
+      toast.error("Erreur lors de la sauvegarde de la configuration");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Tester la connexion à WooCommerce
   const handleTestConnection = async (values: z.infer<typeof formSchema>) => {
@@ -78,6 +144,12 @@ const WooCommerceImporter = () => {
         toast.success("Connexion réussie à votre boutique WooCommerce");
         setIsConnected(true);
         fetchProducts(values, 1);
+        
+        // Sauvegarder automatiquement si la connexion a réussi et pas encore de config sauvegardée
+        if (!configLoaded && user) {
+          await handleSaveConfig(values);
+          setConfigLoaded(true);
+        }
       } else {
         toast.error("Échec de la connexion. Vérifiez vos identifiants.");
         setIsConnected(false);
@@ -228,36 +300,62 @@ const WooCommerceImporter = () => {
             />
           </div>
           
-          <Button type="submit" disabled={isConnecting || isConnected} className="mt-2">
-            {isConnecting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Test de connexion...
-              </>
-            ) : isConnected ? (
-              <>
-                <Check className="h-4 w-4 mr-2" />
-                Connecté
-              </>
-            ) : (
-              "Tester la connexion"
-            )}
-          </Button>
-          
-          {isConnected && (
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              type="submit" 
+              disabled={isConnecting || isConnected || isSaving} 
+              className="mt-2"
+            >
+              {isConnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Test de connexion...
+                </>
+              ) : isConnected ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Connecté
+                </>
+              ) : (
+                "Tester la connexion"
+              )}
+            </Button>
+            
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => {
-                setIsConnected(false);
-                form.reset();
-              }}
-              className="ml-2"
+              onClick={() => handleSaveConfig(form.getValues())}
+              disabled={isConnecting || isSaving || !user}
+              className="mt-2"
             >
-              <X className="h-4 w-4 mr-2" />
-              Réinitialiser
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sauvegarde...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Sauvegarder la configuration
+                </>
+              )}
             </Button>
-          )}
+            
+            {isConnected && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setIsConnected(false);
+                  form.reset();
+                }}
+                className="mt-2"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Réinitialiser
+              </Button>
+            )}
+          </div>
         </form>
       </Form>
       
