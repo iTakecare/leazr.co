@@ -210,7 +210,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
       
-      // Use the standard supabase client instead of admin client
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

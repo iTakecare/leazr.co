@@ -1,6 +1,5 @@
-import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
-import { Client, CreateClientData, Collaborator } from "@/types/client";
-import { useAuth } from "@/context/AuthContext";
+import { supabase, adminSupabase } from "@/integrations/supabase/client";
+import { Client, Collaborator } from "@/types/client";
 import { toast } from "sonner";
 
 const mockClients = [
@@ -296,24 +295,29 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
 };
 
 export const createAccountForClient = async (client: Client): Promise<boolean> => {
-  if (!client.email) {
-    console.error("Cannot create account: client has no email");
-    return false;
-  }
-
   try {
-    const tempPassword = Math.random().toString(36).slice(-10);
+    if (!client.email) {
+      throw new Error("Email required to create account");
+    }
+
+    console.log("Creating account for client:", client.email);
     
-    const adminSupabase = getAdminSupabaseClient();
-    
-    const { data: existingUser } = await adminSupabase.auth.admin.listUsers({
+    const { data: existingUser, error: userCheckError } = await adminSupabase.auth.admin.listUsers({
       filter: {
         email: client.email
       }
     });
+
+    if (userCheckError) {
+      console.error("Error checking existing user:", userCheckError);
+      throw userCheckError;
+    }
+
+    let userId: string;
     
     if (existingUser && existingUser.users.length > 0) {
-      console.log("User already exists with this email", client.email);
+      userId = existingUser.users[0].id;
+      console.log("User already exists, sending password reset email");
       
       const { error: resetError } = await adminSupabase.auth.admin.generateLink({
         type: 'recovery',
@@ -324,44 +328,48 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       });
       
       if (resetError) {
-        console.error("Error sending reset link:", resetError);
+        console.error("Error sending password reset:", resetError);
         throw resetError;
       }
+    } else {
+      console.log("Creating new user account");
       
-      return true;
-    }
-    
-    const { data, error } = await adminSupabase.auth.admin.createUser({
-      email: client.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        first_name: client.name.split(' ')[0],
-        last_name: client.name.split(' ').slice(1).join(' '),
-        role: 'client',
-        company: client.company || ''
+      const tempPassword = Math.random().toString(36).slice(-10);
+      
+      const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
+        email: client.email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          first_name: client.name.split(' ')[0],
+          last_name: client.name.split(' ').slice(1).join(' '),
+          role: 'client',
+          company: client.company || null
+        }
+      });
+      
+      if (createError) {
+        console.error("Error creating user account:", createError);
+        throw createError;
       }
-    });
-    
-    if (error) {
-      console.error("Error creating user account:", error);
-      throw error;
-    }
-    
-    const { error: resetError } = await adminSupabase.auth.admin.generateLink({
-      type: 'recovery',
-      email: client.email,
-      options: {
-        redirectTo: `${window.location.origin}/login`
+      
+      userId = newUser.user.id;
+      
+      const { error: resetError } = await adminSupabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: client.email,
+        options: {
+          redirectTo: `${window.location.origin}/login`
+        }
+      });
+      
+      if (resetError) {
+        console.error("Error sending password reset:", resetError);
+        throw resetError;
       }
-    });
-    
-    if (resetError) {
-      console.error("Error sending reset link:", resetError);
-      throw resetError;
     }
     
-    console.log("Account created and invitation sent to:", client.email);
+    toast.success("Email d'invitation envoyé avec succès");
     return true;
   } catch (error) {
     console.error("Error in createAccountForClient:", error);
