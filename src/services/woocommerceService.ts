@@ -680,7 +680,7 @@ async function createProductFromWooCommerceData(
     return acc;
   }, {} as Record<string, string>) || {};
 
-  // Prepare product data for database - fix the field names!
+  // Prepare product data for database - ensure we set both field naming conventions
   const productData = {
     name: wooProduct.name,
     description: wooProduct.short_description || wooProduct.description || '',
@@ -823,8 +823,9 @@ const mapDbProductToProduct = (record: any): Product => {
     category: record.category || "other",
     price: Number(record.price),
     description: record.description || "",
-    imageUrl: record.image_url || record.imageUrl || "",
+    imageUrl: record.imageUrl || record.image_url || "",
     imageUrls: record.imageUrls || record.image_urls || [],
+    image_url: record.image_url || record.imageUrl || "",
     image_urls: record.image_urls || record.imageUrls || [],
     imageAlt: record.imageAlt || record.image_alt || undefined,
     imageAlts: record.imageAlts || record.image_alts || undefined,
@@ -839,3 +840,4 @@ const mapDbProductToProduct = (record: any): Product => {
     updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
   };
 };
+

@@ -186,7 +186,13 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          image_alt: string | null
+          image_alts: string[] | null
           image_url: string | null
+          image_urls: string[] | null
+          imagealt: string | null
+          imagealts: string[] | null
+          imageurls: string[] | null
           is_parent: boolean | null
           is_variation: boolean | null
           monthly_price: number | null
@@ -206,7 +212,13 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          image_alt?: string | null
+          image_alts?: string[] | null
           image_url?: string | null
+          image_urls?: string[] | null
+          imagealt?: string | null
+          imagealts?: string[] | null
+          imageurls?: string[] | null
           is_parent?: boolean | null
           is_variation?: boolean | null
           monthly_price?: number | null
@@ -226,7 +238,13 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          image_alt?: string | null
+          image_alts?: string[] | null
           image_url?: string | null
+          image_urls?: string[] | null
+          imagealt?: string | null
+          imagealts?: string[] | null
+          imageurls?: string[] | null
           is_parent?: boolean | null
           is_variation?: boolean | null
           monthly_price?: number | null
