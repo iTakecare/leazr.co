@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
@@ -18,7 +17,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// Map for translating category names to French
 const categoryTranslations: Record<string, string> = {
   "laptop": "Ordinateur portable",
   "desktop": "Ordinateur de bureau",
@@ -34,7 +32,6 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
-// Helper function to translate categories
 const translateCategory = (category: string): string => {
   return categoryTranslations[category?.toLowerCase()] || category;
 };
@@ -48,16 +45,13 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
   const navigate = useNavigate();
   const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
 
-  // Group products by parent-child relationship
   const groupedProducts = products.reduce((acc: Record<string, Product[]>, product) => {
-    // If it's a variation, add to parent's list
     if (product.parent_id) {
       if (!acc[product.parent_id]) {
         acc[product.parent_id] = [];
       }
       acc[product.parent_id].push(product);
     } 
-    // If it's a parent or standalone product, add to its own key
     else {
       if (!acc[product.id]) {
         acc[product.id] = [];
@@ -66,7 +60,6 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
     return acc;
   }, {});
 
-  // Get all parent products and standalone products
   const parentProducts = products.filter(p => !p.parent_id);
 
   const toggleExpand = (productId: string) => {
@@ -80,7 +73,6 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
     navigate(`/products/${productId}`);
   };
 
-  // Render attributes as badges
   const renderAttributes = (product: Product) => {
     if (!product.variation_attributes) return null;
     
@@ -154,7 +146,7 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
                   {formatCurrency(product.price)}
                 </div>
                 <div>
-                  {product.monthly_price && formatCurrency(product.monthly_price)}/mois
+                  {product.monthly_price ? `${formatCurrency(product.monthly_price)}/mois` : "-"}
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <Button
@@ -246,7 +238,7 @@ const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ product
                         {formatCurrency(variation.price)}
                       </div>
                       <div>
-                        {variation.monthly_price && formatCurrency(variation.monthly_price)}/mois
+                        {variation.monthly_price ? `${formatCurrency(variation.monthly_price)}/mois` : "-"}
                       </div>
                       <div className="flex items-center justify-end gap-2">
                         <Button

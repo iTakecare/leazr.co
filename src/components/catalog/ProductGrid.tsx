@@ -1,11 +1,9 @@
-
 import React from "react";
 import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
 import { AlertCircle, Tag, ImageIcon } from "lucide-react";
-import { toast } from "sonner";
 
 interface ProductGridProps {
   products: Product[];
@@ -81,15 +79,15 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
                 <p className="text-xs text-muted-foreground mb-2">SKU: {product.sku}</p>
               )}
               
-              <div className="mt-auto pt-2 flex justify-between items-end">
+              <div className="mt-auto pt-2 flex flex-col">
                 <p className="font-bold text-primary">
                   Prix d'achat: {formatCurrency(product.price)}
                 </p>
-                {product.monthly_price && (
-                  <p className="text-sm text-muted-foreground">
-                    {formatCurrency(product.monthly_price)}/mois
+                {product.monthly_price ? (
+                  <p className="text-sm">
+                    Mensualité: {formatCurrency(product.monthly_price)}/mois
                   </p>
-                )}
+                ) : null}
               </div>
             </div>
           </Link>
