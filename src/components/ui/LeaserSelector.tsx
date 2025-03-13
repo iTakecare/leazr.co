@@ -13,6 +13,7 @@ import { Check, Building2, Loader2 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
 import { getLeasers } from "@/services/leaserService";
 import { defaultLeasers } from "@/data/leasers";
+import { toast } from "sonner";
 
 interface LeaserSelectorProps {
   isOpen: boolean;
@@ -23,23 +24,31 @@ interface LeaserSelectorProps {
 
 const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSelectorProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [leasers, setLeasers] = useState<Leaser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [leasers, setLeasers] = useState<Leaser[]>(defaultLeasers);
+  const [loading, setLoading] = useState(false);
   
   useEffect(() => {
+    // Ne chargez les leasers que lorsque le sélecteur est ouvert
     if (isOpen) {
       fetchLeasers();
     }
   }, [isOpen]);
   
   const fetchLeasers = async () => {
+    if (loading) return; // Évitez les appels multiples
+    
     setLoading(true);
     try {
       const fetchedLeasers = await getLeasers();
       // Si aucun leaser n'est trouvé, utiliser les leasers par défaut
-      setLeasers(fetchedLeasers.length > 0 ? fetchedLeasers : defaultLeasers);
+      if (fetchedLeasers && fetchedLeasers.length > 0) {
+        setLeasers(fetchedLeasers);
+      } else {
+        setLeasers(defaultLeasers);
+      }
     } catch (error) {
       console.error("Error fetching leasers:", error);
+      toast.error("Impossible de charger les leasers, utilisation des valeurs par défaut");
       setLeasers(defaultLeasers);
     } finally {
       setLoading(false);
@@ -56,7 +65,7 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
   };
   
   return (
-    <Sheet open={isOpen} onOpenChange={() => onClose()}>
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Sélection du leaser</SheetTitle>
@@ -77,7 +86,7 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
               {filteredLeasers.map((leaser) => (
                 <div
                   key={leaser.id}

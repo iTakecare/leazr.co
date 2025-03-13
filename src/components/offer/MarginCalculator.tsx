@@ -19,6 +19,11 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
   calculatedMargin,
   applyCalculatedMargin,
 }) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value ? parseFloat(e.target.value) : 0;
+    setTargetMonthlyPayment(Math.max(0, value));
+  };
+  
   return (
     <div>
       <h2 className="text-lg font-semibold mb-6">Calcul de la marge à partir de la mensualité souhaitée</h2>
@@ -35,7 +40,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
               step="0.01"
               className="pl-10"
               value={targetMonthlyPayment || ''}
-              onChange={(e) => setTargetMonthlyPayment(Math.max(0, parseFloat(e.target.value) || 0))}
+              onChange={handleInputChange}
             />
           </div>
         </div>

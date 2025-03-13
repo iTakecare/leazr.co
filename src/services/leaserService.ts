@@ -2,17 +2,31 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Leaser } from "@/types/equipment";
 import { toast } from "sonner";
+import { defaultLeasers } from "@/data/leasers";
+
+// Cache pour les leasers
+let leasersCache: Leaser[] | null = null;
+let lastFetchTime = 0;
+const CACHE_EXPIRY = 1000 * 60 * 5; // 5 minutes
 
 /**
- * Récupère tous les leasers de la base de données
+ * Récupère tous les leasers de la base de données avec gestion de cache
  */
 export const getLeasers = async (): Promise<Leaser[]> => {
+  const now = Date.now();
+  
+  // Utiliser le cache si disponible et pas expiré
+  if (leasersCache && now - lastFetchTime < CACHE_EXPIRY) {
+    return leasersCache;
+  }
+  
   try {
     // Récupérer tous les leasers
     const { data: leasers, error } = await supabase
       .from("leasers")
       .select("*")
-      .order("name");
+      .order("name")
+      .timeout(3000); // 3 secondes maximum
 
     if (error) throw error;
 
@@ -23,7 +37,8 @@ export const getLeasers = async (): Promise<Leaser[]> => {
           .from("leaser_ranges")
           .select("*")
           .eq("leaser_id", leaser.id)
-          .order("min");
+          .order("min")
+          .timeout(3000);
 
         if (rangesError) {
           console.error(`Erreur lors de la récupération des tranches pour ${leaser.name}:`, rangesError);
@@ -50,13 +65,28 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       })
     );
 
+    // Mettre à jour le cache
+    leasersCache = leasersWithRanges;
+    lastFetchTime = now;
+
     return leasersWithRanges;
   } catch (error: any) {
-    toast.error(`Erreur lors de la récupération des leasers: ${error.message}`);
     console.error("Error fetching leasers:", error);
-    // Retourner les leasers par défaut en cas d'erreur
-    return [];
+    
+    // Si leasersCache existe, retourner le cache même s'il est expiré
+    if (leasersCache) {
+      return leasersCache;
+    }
+    
+    // Sinon, retourner les leasers par défaut
+    return defaultLeasers;
   }
+};
+
+// Fonction pour vider le cache
+export const clearLeasersCache = () => {
+  leasersCache = null;
+  lastFetchTime = 0;
 };
 
 /**
@@ -93,6 +123,9 @@ export const addLeaser = async (leaser: Omit<Leaser, "id">): Promise<Leaser | nu
     }
 
     toast.success("Leaser ajouté avec succès");
+    
+    // Vider le cache pour forcer un rechargement
+    clearLeasersCache();
     
     // Récupérer le leaser complet avec ses tranches
     return {
@@ -148,6 +181,9 @@ export const updateLeaser = async (id: string, leaser: Partial<Leaser>): Promise
       }
     }
 
+    // Vider le cache pour forcer un rechargement
+    clearLeasersCache();
+    
     toast.success("Leaser mis à jour avec succès");
     return true;
   } catch (error: any) {
@@ -177,6 +213,9 @@ export const deleteLeaser = async (id: string): Promise<boolean> => {
 
     if (error) throw error;
 
+    // Vider le cache pour forcer un rechargement
+    clearLeasersCache();
+    
     toast.success("Leaser supprimé avec succès");
     return true;
   } catch (error: any) {
