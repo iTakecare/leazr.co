@@ -45,14 +45,14 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
     // Adding console.log for debugging
     console.log('Starting schema update process...');
     
-    // Add category column
+    // Add category column - Fix: Pass parameters as an object with named parameters
     const { data: categoryData, error: categoryError } = await adminSupabase.rpc(
       'add_column_if_not_exists',
       {
-        table_name: 'products',
-        column_name: 'category',
-        column_type: 'text',
-        column_default: "'other'"
+        p_table_name: 'products',
+        p_column_name: 'category',
+        p_column_type: 'text',
+        p_column_default: "'other'"
       }
     );
     
@@ -61,14 +61,14 @@ export const updateDatabaseSchema = async (): Promise<SchemaUpdateResult> => {
       return { success: false, error: categoryError.message };
     }
     
-    // Add description column
+    // Add description column - Fix: Pass parameters as an object with named parameters
     const { data: descriptionData, error: descriptionError } = await adminSupabase.rpc(
       'add_column_if_not_exists',
       {
-        table_name: 'products',
-        column_name: 'description',
-        column_type: 'text',
-        column_default: 'NULL'
+        p_table_name: 'products',
+        p_column_name: 'description',
+        p_column_type: 'text',
+        p_column_default: 'NULL'
       }
     );
     
