@@ -79,6 +79,25 @@ if (mockProducts.length === 0) {
   mockProducts.push(...defaultProducts);
 }
 
+// Helper function to get public URL for an image in Storage
+const getPublicImageUrl = (path) => {
+  if (!path) return '/placeholder.svg';
+  
+  // If the path is already a full URL or a local path, return it
+  if (path.startsWith('http') || path.startsWith('/')) {
+    return path;
+  }
+  
+  // Otherwise, construct the Supabase storage URL
+  try {
+    const { data } = supabase.storage.from('products').getPublicUrl(path);
+    return data?.publicUrl || '/placeholder.svg';
+  } catch (error) {
+    console.error("Error getting public URL for image:", error);
+    return '/placeholder.svg';
+  }
+};
+
 // Get all products
 export const getProducts = async (): Promise<Product[]> => {
   try {
@@ -103,7 +122,7 @@ export const getProducts = async (): Promise<Product[]> => {
         category: item.category || 'Uncategorized',
         price: Number(item.price) || 0,
         description: item.description || '',
-        imageUrl: item.image_url || '/placeholder.svg',
+        imageUrl: getPublicImageUrl(item.image_url),
         specifications: item.specifications || {},
         createdAt: new Date(item.created_at),
         updatedAt: new Date(item.updated_at),
@@ -143,7 +162,7 @@ export const getProductById = async (id: string): Promise<Product | null> => {
         category: data.category || 'Uncategorized',
         price: Number(data.price) || 0,
         description: data.description || '',
-        imageUrl: data.image_url || '/placeholder.svg',
+        imageUrl: getPublicImageUrl(data.image_url),
         specifications: data.specifications || {},
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
@@ -211,10 +230,29 @@ export const deleteAllProducts = async (): Promise<void> => {
   mockProducts.length = 0;
 };
 
-// Upload product image - Mock implementation
+// Upload product image - Implement actual Supabase storage upload
 export const uploadProductImage = async (file: File, productId: string): Promise<string> => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return URL.createObjectURL(file);
+  try {
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${productId}/${Date.now()}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('products')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      return URL.createObjectURL(file); // Fallback to local URL
+    }
+
+    return filePath; // Return the path for storage in the database
+  } catch (error) {
+    console.error('Exception during file upload:', error);
+    return URL.createObjectURL(file); // Fallback to local URL
+  }
 };
 
 // Clear mock products (for testing)

@@ -4,7 +4,8 @@ import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
-import { AlertCircle, Tag } from "lucide-react";
+import { AlertCircle, Tag, ImageIcon } from "lucide-react";
+import { toast } from "sonner";
 
 interface ProductGridProps {
   products: Product[];
@@ -30,6 +31,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
+    console.log("Image failed to load:", target.src);
     target.src = "/placeholder.svg";
     target.onerror = null; // Prevent infinite loop
   };
@@ -42,7 +44,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
             to={`/catalog/${product.id}`}
             className="group block border rounded-md overflow-hidden transition-all hover:shadow-md h-full flex flex-col"
           >
-            <div className="aspect-square bg-muted overflow-hidden">
+            <div className="aspect-square bg-muted overflow-hidden relative">
               {product.imageUrl ? (
                 <img
                   src={product.imageUrl}
@@ -52,8 +54,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
                   loading="lazy"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted">
-                  <p className="text-muted-foreground">Aucune image</p>
+                <div className="w-full h-full flex flex-col items-center justify-center bg-muted">
+                  <ImageIcon className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">Aucune image</p>
                 </div>
               )}
             </div>
