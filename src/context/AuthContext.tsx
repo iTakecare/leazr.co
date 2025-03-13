@@ -8,6 +8,9 @@ type User = {
   email: string;
   name: string;
   role: "admin" | "partner";
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
 };
 
 type AuthContextType = {
@@ -46,6 +49,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email,
         name: email.split("@")[0],
         role: email.includes("admin") ? "admin" : "partner",
+        first_name: email.split("@")[0],
+        last_name: "User",
+        avatar_url: null
       };
       
       setUser(userData);
