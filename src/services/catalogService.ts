@@ -4,7 +4,7 @@ import { Product } from "@/types/catalog";
 
 export async function getProducts(): Promise<Product[]> {
   try {
-    const { supabase } = getSupabaseClient();
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -23,7 +23,7 @@ export async function getProducts(): Promise<Product[]> {
 
 export async function getProductById(id: string): Promise<Product | null> {
   try {
-    const { supabase } = getSupabaseClient();
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -43,7 +43,7 @@ export async function getProductById(id: string): Promise<Product | null> {
 
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: string }> {
   try {
-    const { supabase } = getSupabaseClient();
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('products')
       .insert([product])
@@ -67,7 +67,7 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
 
 export async function updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
   try {
-    const { supabase } = getSupabaseClient();
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('products')
       .update(updates)
@@ -88,7 +88,7 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 
 export async function uploadProductImage(file: File, productId: string): Promise<string> {
   try {
-    const { supabase } = getSupabaseClient();
+    const supabase = getSupabaseClient();
 
     const timestamp = new Date().getTime();
     const imageName = `${productId}_${timestamp}.${file.name.split('.').pop()}`;
@@ -118,7 +118,7 @@ export async function uploadProductImage(file: File, productId: string): Promise
 
 export async function deleteAllProducts(): Promise<void> {
   try {
-    const { supabase } = getSupabaseClient();
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('products')
       .delete()
@@ -137,7 +137,7 @@ export async function deleteAllProducts(): Promise<void> {
 
 export async function deleteProduct(productId: string): Promise<void> {
   try {
-    const { supabase } = getSupabaseClient();
+    const supabase = getSupabaseClient();
     
     // Delete the product
     const { error } = await supabase
