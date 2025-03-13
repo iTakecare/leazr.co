@@ -19,9 +19,9 @@ import { AuthProvider } from "@/context/AuthContext";
 
 function Layout() {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen w-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto p-6 pt-8">
         <PageTransition>
           <Outlet />
         </PageTransition>
