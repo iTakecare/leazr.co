@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { createContractFromOffer } from "./contractService";
 
 const mockOffers = [
   {
@@ -100,6 +101,7 @@ export const getOffers = async (): Promise<any[]> => {
     const fetchPromise = supabase
       .from('offers')
       .select('*, clients(name, email, company)')
+      .eq('converted_to_contract', false)
       .order('created_at', { ascending: false });
     
     const { data, error } = await Promise.race([
@@ -177,6 +179,23 @@ export const updateOfferStatus = async (
 
     if (logError) {
       console.error("Erreur lors de l'enregistrement du log :", logError);
+    }
+
+    if (newStatus === 'leaser_approved') {
+      try {
+        const leaserName = "Grenke";
+        const leaserLogo = "https://logo.clearbit.com/grenke.com";
+        
+        const contractId = await createContractFromOffer(offerId, leaserName, leaserLogo);
+        
+        if (contractId) {
+          toast.success("L'offre a été convertie en contrat");
+          console.log("Contrat créé avec l'ID:", contractId);
+        }
+      } catch (contractError) {
+        console.error("Erreur lors de la création du contrat:", contractError);
+        toast.error("L'offre a été approuvée mais nous n'avons pas pu créer le contrat");
+      }
     }
 
     await new Promise(resolve => setTimeout(resolve, 500));
