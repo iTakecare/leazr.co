@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Sheet, 
@@ -15,6 +14,7 @@ import { Leaser } from "@/types/equipment";
 import { getLeasers } from "@/services/leaserService";
 import { defaultLeasers } from "@/data/leasers";
 import { toast } from "sonner";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface LeaserSelectorProps {
   isOpen: boolean;
@@ -29,14 +29,12 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // Memoize fetchLeasers to prevent recreating this function on every render
   const fetchLeasers = useCallback(async (forceRefresh = false) => {
-    if (loading) return; // Éviter les appels multiples
+    if (loading) return;
     
     setLoading(true);
     try {
       const fetchedLeasers = await getLeasers();
-      // Si aucun leaser n'est trouvé, utiliser les leasers par défaut
       if (fetchedLeasers && fetchedLeasers.length > 0) {
         setLeasers(fetchedLeasers);
       } else {
@@ -52,14 +50,12 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
     }
   }, [loading]);
   
-  // Charger les leasers dès que le composant est monté, sans attendre l'ouverture
   useEffect(() => {
     if (!isInitialized) {
       fetchLeasers();
     }
   }, [fetchLeasers, isInitialized]);
   
-  // Recharger les leasers quand le sélecteur est ouvert
   useEffect(() => {
     if (isOpen && isInitialized) {
       fetchLeasers(true);
@@ -109,17 +105,18 @@ const LeaserSelector = ({ isOpen, onClose, onSelect, currentLeaserId }: LeaserSe
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        {leaser.logo_url ? (
-                          <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center overflow-hidden">
-                            <img 
+                        <Avatar className="h-10 w-10 rounded-md">
+                          {leaser.logo_url ? (
+                            <AvatarImage 
                               src={leaser.logo_url} 
-                              alt={leaser.name} 
-                              className="w-full h-full object-contain"
+                              alt={leaser.name}
+                              className="object-contain p-1"
                             />
-                          </div>
-                        ) : (
-                          <Building2 className="h-5 w-5 text-muted-foreground" />
-                        )}
+                          ) : null}
+                          <AvatarFallback className="rounded-md bg-primary/10">
+                            <Building2 className="h-5 w-5 text-muted-foreground" />
+                          </AvatarFallback>
+                        </Avatar>
                         <h3 className="font-medium">{leaser.name}</h3>
                       </div>
                       {currentLeaserId === leaser.id && (

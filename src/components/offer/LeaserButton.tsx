@@ -3,6 +3,7 @@ import React from "react";
 import { Building2, ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Leaser } from "@/types/equipment";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface LeaserButtonProps {
   selectedLeaser: Leaser | null;
@@ -27,14 +28,17 @@ const LeaserButton: React.FC<LeaserButtonProps> = ({
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               {selectedLeaser?.logo_url ? (
-                <div className="h-8 w-14 flex items-center">
-                  <img 
-                    src={selectedLeaser.logo_url} 
-                    alt={selectedLeaser.name} 
-                    className="max-h-full max-w-full object-contain"
-                  />
+                <Avatar className="h-8 w-8 rounded-md">
+                  <AvatarImage src={selectedLeaser.logo_url} alt={selectedLeaser.name} />
+                  <AvatarFallback className="bg-primary/10 rounded-md">
+                    <Building2 className="h-4 w-4 text-primary" />
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
+                  <Building2 className="h-4 w-4 text-primary" />
                 </div>
-              ) : null}
+              )}
               <span>{selectedLeaser?.name || 'Sélectionner un leaser'}</span>
             </div>
             <ChevronDown className="h-5 w-5 text-gray-400" />

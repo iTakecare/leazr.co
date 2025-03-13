@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Building2, Pencil, Trash2, Tag, Loader2 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface LeaserListProps {
   leasers: Leaser[];
@@ -40,17 +41,18 @@ const LeaserList = ({ leasers, isLoading, onEdit, onDelete }: LeaserListProps) =
               <TableRow key={leaser.id}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center overflow-hidden">
+                    <Avatar className="h-10 w-10 rounded-md">
                       {leaser.logo_url ? (
-                        <img 
+                        <AvatarImage 
                           src={leaser.logo_url} 
-                          alt={leaser.name} 
-                          className="w-full h-full object-contain"
+                          alt={leaser.name}
+                          className="object-contain p-1"
                         />
-                      ) : (
+                      ) : null}
+                      <AvatarFallback className="rounded-md bg-primary/10">
                         <Building2 className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
+                      </AvatarFallback>
+                    </Avatar>
                     {leaser.name}
                   </div>
                 </TableCell>

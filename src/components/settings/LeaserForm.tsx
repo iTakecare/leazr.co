@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +32,6 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLeaser?.logo_url || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Gestionnaire pour les modifications de tranches
   const handleRangeChange = (index: number, field: keyof Range, value: number) => {
     const newRanges = [...tempRanges];
     
@@ -44,7 +42,6 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
     setTempRanges(newRanges);
   };
   
-  // Ajouter une nouvelle tranche
   const handleAddRange = () => {
     const lastRange = tempRanges[tempRanges.length - 1];
     setTempRanges([
@@ -58,7 +55,6 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
     ]);
   };
   
-  // Supprimer une tranche
   const handleRemoveRange = (index: number) => {
     if (tempRanges.length > 1) {
       const newRanges = [...tempRanges];
@@ -67,7 +63,6 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
     }
   };
 
-  // Gestionnaires pour le logo
   const handleLogoClick = () => {
     fileInputRef.current?.click();
   };
@@ -121,7 +116,6 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
     setPreviewUrl(null);
   };
   
-  // Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -163,11 +157,11 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
           <Label htmlFor="logo_url">Logo du leaser</Label>
           <div className="mt-2">
             {previewUrl ? (
-              <div className="relative w-full h-32 border rounded-md overflow-hidden mb-2">
+              <div className="relative w-full h-32 border rounded-md overflow-hidden mb-2 bg-white p-4 flex items-center justify-center">
                 <img 
                   src={previewUrl} 
                   alt="Logo preview" 
-                  className="w-full h-full object-contain"
+                  className="max-w-full max-h-full object-contain"
                 />
                 <Button
                   type="button"

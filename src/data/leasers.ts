@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const defaultLeasers = [
   {
-    id: uuidv4(), // Utiliser un UUID valide au lieu d'une chaîne "grenke"
+    id: uuidv4(),
     name: "Grenke",
     logo_url: null,
     ranges: [
