@@ -12,7 +12,7 @@ export function Layout() {
       <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 overflow-auto p-4 pt-0 md:p-6 md:pt-0">
+        <main className="flex-1 overflow-auto p-4 pt-0 md:p-6 md:pt-0 ml-16">
           <Outlet />
         </main>
       </div>

@@ -4,7 +4,24 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LucideIcon, LayoutDashboard, Settings, PlusCircle, Calculator, ShoppingCart, Users } from 'lucide-react';
+import { 
+  LucideIcon, 
+  LayoutDashboard, 
+  Settings, 
+  PlusCircle, 
+  Calculator, 
+  ShoppingCart, 
+  Users, 
+  LogOut, 
+  LogIn, 
+  UserPlus
+} from 'lucide-react';
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -17,20 +34,29 @@ interface NavItemProps {
 
 const NavItem = ({ to, label, icon: Icon, onClick }: NavItemProps) => {
   return (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        `group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-          isActive
-            ? 'bg-accent text-accent-foreground'
-            : 'transparent hover:bg-accent/50'
-        }`
-      }
-      onClick={onClick}
-    >
-      <Icon className="mr-2 h-4 w-4" />
-      <span>{label}</span>
-    </NavLink>
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <NavLink
+            to={to}
+            className={({ isActive }) =>
+              `flex h-10 w-10 items-center justify-center rounded-md p-2 transition-colors ${
+                isActive
+                  ? 'bg-accent text-accent-foreground'
+                  : 'transparent hover:bg-accent/50'
+              }`
+            }
+            onClick={onClick}
+          >
+            <Icon className="h-5 w-5" />
+            <span className="sr-only">{label}</span>
+          </NavLink>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          <p>{label}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
@@ -40,7 +66,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
 
   // Animation variants
@@ -52,6 +78,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const overlayVariants = {
     open: { opacity: 1 },
     closed: { opacity: 0 },
+  };
+
+  const handleSignOut = () => {
+    signOut?.();
+    if (isMobile) {
+      onClose();
+    }
   };
 
   return (
@@ -69,7 +102,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <motion.div
-        className={`fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r p-4 overflow-y-auto ${
+        className={`fixed left-0 top-0 bottom-0 z-50 w-16 bg-background border-r p-2 overflow-y-auto flex flex-col items-center ${
           isMobile ? '' : 'lg:z-30'
         }`}
         initial="closed"
@@ -77,19 +110,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         variants={sidebarVariants}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
-        <div className="flex flex-col h-full">
-          <div className="py-2">
-            <h2 className="text-xl font-bold mb-2">LeasingTools</h2>
-            <p className="text-muted-foreground text-sm">
-              Calculez et gérez vos offres de leasing
-            </p>
-          </div>
+        <div className="flex flex-col items-center gap-2 py-4 h-full w-full">
+          {/* Logo/App Name with tooltip */}
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex h-10 w-10 items-center justify-center rounded-md p-2 font-bold">
+                  LT
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>LeasingTools</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-          <Separator className="my-4" />
+          <Separator className="my-2 w-10" />
 
           {user ? (
             <>
-              <div className="space-y-1">
+              <div className="flex flex-col items-center gap-3 w-full">
                 <NavItem
                   to="/dashboard"
                   label="Tableau de bord"
@@ -133,38 +173,41 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 />
               </div>
 
-              <div className="mt-auto pt-4">
-                {!isMobile && (
-                  <div className="rounded-lg border p-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                        {user?.email?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                      <div className="truncate">
-                        <p className="text-sm font-medium">{user?.email}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              <div className="mt-auto mb-4">
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10"
+                        onClick={handleSignOut}
+                      >
+                        <LogOut className="h-5 w-5" />
+                        <span className="sr-only">Se déconnecter</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Se déconnecter</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </>
           ) : (
-            <div className="space-y-2 mt-auto">
-              <Button
-                className="w-full"
-                asChild
+            <div className="mt-auto mb-4 flex flex-col gap-3">
+              <NavItem
+                to="/login"
+                label="Se connecter"
+                icon={LogIn}
                 onClick={isMobile ? onClose : undefined}
-              >
-                <NavLink to="/login">Se connecter</NavLink>
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                asChild
+              />
+              <NavItem
+                to="/signup"
+                label="Créer un compte"
+                icon={UserPlus}
                 onClick={isMobile ? onClose : undefined}
-              >
-                <NavLink to="/signup">Créer un compte</NavLink>
-              </Button>
+              />
             </div>
           )}
         </div>
