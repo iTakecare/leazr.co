@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, adminSupabase } from '@/integrations/supabase/client';
 import { 
   ShoppingBag, 
   Download, 
@@ -141,7 +140,7 @@ const WooCommerceImporter = () => {
     includeDescriptions: true,
     importCategories: true,
     overwriteExisting: false,
-    bypassRLS: true // Nouvelle option pour contourner la sécurité au niveau des lignes
+    bypassRLS: true
   });
   
   // États de l'interface
@@ -171,22 +170,13 @@ const WooCommerceImporter = () => {
 
   const checkRLSPermissions = async () => {
     try {
-      // Tenter d'insérer un produit de test pour vérifier les autorisations RLS
-      const testProduct = {
-        name: "TEST_RLS_CHECK",
-        brand: "TEST",
-        price: 1,
-        monthly_price: 0.035,
-        image_url: null,
-        active: true,
-        category: "test",
-        description: "Test product for RLS check"
-      };
-
-      // Utiliser une fonction qui sera immédiatement annulée
-      const { error } = await supabase.rpc('check_products_permission');
+      // Tenter une simple opération de lecture pour vérifier les permissions
+      const { data, error } = await supabase
+        .from('products')
+        .select('id')
+        .limit(1);
       
-      // Si aucune erreur, l'utilisateur a les autorisations nécessaires
+      // Si aucune erreur, l'utilisateur a probablement les permissions nécessaires
       setHasRLSPermissions(error === null);
       
       if (error) {
@@ -419,13 +409,16 @@ const WooCommerceImporter = () => {
     setImportProgress(0);
     setImportedImages(0);
     
+    // Déterminer quel client Supabase utiliser (normal ou avec bypass RLS)
+    const db = fetchingOptions.bypassRLS ? adminSupabase : supabase;
+    
     try {
       // Vérifier les produits existants si on ne veut pas les écraser
       let existingProducts: Record<string, boolean> = {};
       
       if (!fetchingOptions.overwriteExisting) {
         setImportStage('Vérification des produits existants...');
-        const { data, error } = await supabase
+        const { data, error } = await db
           .from('products')
           .select('name, brand');
         
@@ -517,24 +510,12 @@ const WooCommerceImporter = () => {
             productData.description = description;
           }
           
-          // Insertion dans la base de données avec bypass RLS si activé
-          let query = supabase.from('products');
-          
-          // Appliquer le bypass RLS si demandé
-          if (fetchingOptions.bypassRLS) {
-            query = query.insert([productData], { 
-              count: 'exact',
-              returning: 'minimal'
-            });
-          } else {
-            query = query.insert([productData]);
-          }
-          
-          let error;
+          // Insertion dans la base de données
+          let result;
           
           if (fetchingOptions.overwriteExisting) {
             // Tentative de mise à jour (si existe) sinon insertion
-            const { data: existingProduct } = await supabase
+            const { data: existingProduct } = await db
               .from('products')
               .select('id')
               .eq('name', name)
@@ -543,42 +524,27 @@ const WooCommerceImporter = () => {
               
             if (existingProduct) {
               // Mise à jour du produit existant
-              let updateQuery = supabase.from('products');
-              
-              // Appliquer le bypass RLS si demandé
-              if (fetchingOptions.bypassRLS) {
-                updateQuery = updateQuery.update(productData, {
-                  count: 'exact',
-                  returning: 'minimal'
-                });
-              } else {
-                updateQuery = updateQuery.update(productData);
-              }
-              
-              const { error: updateError } = await updateQuery.eq('id', existingProduct.id);
-              error = updateError;
+              const { error: updateError } = await db
+                .from('products')
+                .update(productData)
+                .eq('id', existingProduct.id);
+                
+              if (updateError) throw updateError;
             } else {
               // Insertion d'un nouveau produit
-              const { error: insertError } = await query;
-              error = insertError;
+              const { error: insertError } = await db
+                .from('products')
+                .insert(productData);
+                
+              if (insertError) throw insertError;
             }
           } else {
             // Insertion directe (on a déjà filtré les existants)
-            const { error: insertError } = await query;
-            error = insertError;
-          }
-          
-          if (error) {
-            // Erreur spécifique à RLS
-            if (error.code === '42501') {
-              if (!fetchingOptions.bypassRLS) {
-                throw new Error("Erreur de sécurité RLS. Activez l'option 'Contourner la sécurité RLS' pour résoudre ce problème.");
-              } else {
-                throw new Error("Erreur de sécurité RLS malgré l'option de contournement. Contactez l'administrateur.");
-              }
-            } else {
-              throw error;
-            }
+            const { error: insertError } = await db
+              .from('products')
+              .insert(productData);
+              
+            if (insertError) throw insertError;
           }
           
           // Gestion des variations si l'option est activée
@@ -623,19 +589,9 @@ const WooCommerceImporter = () => {
                 }
                 
                 // Insérer la variation comme produit distinct
-                let variationQuery = supabase.from('products');
-                
-                // Appliquer le bypass RLS si demandé
-                if (fetchingOptions.bypassRLS) {
-                  variationQuery = variationQuery.insert([variationData], {
-                    count: 'exact',
-                    returning: 'minimal'
-                  });
-                } else {
-                  variationQuery = variationQuery.insert([variationData]);
-                }
-                
-                const { error: variationError } = await variationQuery;
+                const { error: variationError } = await db
+                  .from('products')
+                  .insert(variationData);
                 
                 if (variationError) {
                   console.error(`Error importing variation of "${product.name}":`, variationError);
@@ -915,274 +871,3 @@ const WooCommerceImporter = () => {
               </span>
               <p className={`text-xs ${!schemaHasCategory ? 'text-gray-400' : 'text-muted-foreground'}`}>
                 Les catégories seront converties au format iTakecare
-              </p>
-            </div>
-          </label>
-          
-          <label className="flex items-center gap-2">
-            <Switch
-              checked={fetchingOptions.overwriteExisting}
-              onCheckedChange={(checked) => setFetchingOptions({...fetchingOptions, overwriteExisting: checked})}
-              disabled={importStatus === 'fetching' || importStatus === 'importing'}
-            />
-            <div>
-              <span className="text-sm font-medium text-gray-700">Écraser les produits existants</span>
-              <p className="text-xs text-muted-foreground">Les produits existants seront mis à jour au lieu d&apos;être ignorés</p>
-            </div>
-          </label>
-          
-          <label className="flex items-center gap-2">
-            <Switch
-              checked={fetchingOptions.bypassRLS}
-              onCheckedChange={(checked) => setFetchingOptions({...fetchingOptions, bypassRLS: checked})}
-              disabled={importStatus === 'fetching' || importStatus === 'importing' || !hasRLSPermissions}
-            />
-            <div>
-              <span className="text-sm font-medium text-gray-700">Contourner la sécurité RLS</span>
-              <p className="text-xs text-muted-foreground">Résout les erreurs de permission lors de l&apos;importation</p>
-            </div>
-          </label>
-        </div>
-      </div>
-      
-      {/* Boutons d'action */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <div className="flex flex-wrap gap-3">
-          {importStatus === 'idle' && (
-            <Button
-              onClick={fetchProducts}
-              disabled={!siteUrl || !consumerKey || !consumerSecret || importStatus !== 'idle'}
-              className="flex items-center gap-2"
-            >
-              <Server className="h-4 w-4" />
-              Récupérer les produits
-            </Button>
-          )}
-          
-          {importStatus === 'fetching' && (
-            <Button
-              disabled
-              className="flex items-center gap-2"
-            >
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Récupération en cours...
-            </Button>
-          )}
-          
-          {products.length > 0 && importStatus !== 'importing' && importStatus !== 'fetching' && (
-            <Button
-              onClick={importProducts}
-              className="flex items-center gap-2"
-              variant="secondary"
-            >
-              <DownloadCloud className="h-4 w-4" />
-              Importer {products.length} produits
-            </Button>
-          )}
-          
-          {importStatus === 'importing' && (
-            <Button
-              disabled
-              variant="secondary"
-              className="flex items-center gap-2"
-            >
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Importation en cours...
-            </Button>
-          )}
-          
-          {importStatus !== 'idle' && (
-            <Button
-              onClick={resetForm}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              {importStatus === 'completed' || importStatus === 'error' ? 'Recommencer' : 'Annuler'}
-            </Button>
-          )}
-        </div>
-        
-        {products.length > 0 && (
-          <div className="text-sm text-gray-500">
-            {products.length} produits trouvés
-          </div>
-        )}
-      </div>
-      
-      {/* Indicateur de progression */}
-      {(importStatus === 'importing' || importStatus === 'completed') && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="mb-2 flex justify-between">
-            <h3 className="text-md font-medium text-gray-900">{importStage || "Progression de l'importation"}</h3>
-            <span className="text-sm font-medium text-gray-700">{importProgress}%</span>
-          </div>
-          
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div 
-              className={`h-2.5 rounded-full ${
-                importStatus === 'completed' ? 'bg-green-600' : 'bg-blue-600'
-              }`}
-              style={{ width: `${importProgress}%` }}
-            ></div>
-          </div>
-          
-          {(importStatus === 'importing' || importStatus === 'completed') && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div className="bg-green-50 rounded-lg p-3">
-                <div className="font-medium text-green-800">{successCount}</div>
-                <div className="text-xs text-green-600">Produits importés</div>
-              </div>
-              
-              {fetchingOptions.includeImages && (
-                <div className="bg-blue-50 rounded-lg p-3">
-                  <div className="font-medium text-blue-800">{importedImages}</div>
-                  <div className="text-xs text-blue-600">Images importées</div>
-                </div>
-              )}
-              
-              <div className={`${errorCount > 0 ? 'bg-red-50' : 'bg-gray-50'} rounded-lg p-3`}>
-                <div className={`font-medium ${errorCount > 0 ? 'text-red-800' : 'text-gray-800'}`}>
-                  {errorCount}
-                </div>
-                <div className={`text-xs ${errorCount > 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                  Erreurs
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Messages d'erreur */}
-      {errors.length > 0 && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
-                {errors.length} {errors.length > 1 ? 'erreurs ont été' : 'erreur a été'} rencontrée{errors.length > 1 ? 's' : ''}
-              </h3>
-              <div className="mt-2 text-sm text-red-700 max-h-40 overflow-auto">
-                <ul className="list-disc pl-5 space-y-1">
-                  {errors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Tableau d'aperçu des produits */}
-      {products.length > 0 && importStatus !== 'importing' && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
-              <LayoutGrid className="h-5 w-5 text-gray-500" />
-              Aperçu des produits ({products.length})
-            </h3>
-            <div className="text-xs text-gray-500">
-              Affichage limité à 5 produits pour performance
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Produit
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Prix
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Catégories
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Images
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Variations
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {products.slice(0, 5).map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {product.images && product.images.length > 0 ? (
-                          <img
-                            src={product.images[0].src}
-                            alt={product.name}
-                            className="h-10 w-10 rounded object-cover flex-shrink-0 mr-4"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded bg-gray-200 flex items-center justify-center flex-shrink-0 mr-4">
-                            <Package className="h-5 w-5 text-gray-400" />
-                          </div>
-                        )}
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {product.name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            SKU: {product.sku || 'N/A'}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <div className="text-gray-900 font-medium">
-                        {product.price ? `${product.price} €` : 'N/A'}
-                      </div>
-                      {product.regular_price !== product.price && (
-                        <div className="text-xs text-gray-500 line-through">
-                          {product.regular_price} €
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex flex-wrap justify-center gap-1">
-                        {product.categories && product.categories.length > 0 ? (
-                          product.categories.map((category, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                            >
-                              <Tag className="h-3 w-3 mr-1" />
-                              {category.name}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-gray-500">Aucune catégorie</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
-                        {product.images?.length || 0}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
-                        {product.variations?.length || 0}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default WooCommerceImporter;

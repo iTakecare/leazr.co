@@ -12,11 +12,17 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true
+  }
+});
+
+// Create a client with RLS bypass for admin operations
+export const adminSupabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true
   },
   global: {
-    // Bypass RLS for authenticated users
     headers: {
-      'X-Supabase-Auth-Bypass': 'true'
+      'x-supabase-auth-bypass': 'true'
     }
   }
 });
