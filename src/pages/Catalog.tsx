@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
-import { getProducts, deleteAllProducts, clearMockProducts } from "@/services/catalogService";
+import { getProducts, deleteAllProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Search, Plus, Filter, AlertCircle, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -31,7 +31,7 @@ const Catalog = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   
-  // Utiliser React Query pour charger les produits avec une gestion d'erreur améliorée
+  // Using React Query to load products with improved error handling
   const { 
     data: products = [], 
     isLoading, 
@@ -43,29 +43,26 @@ const Catalog = () => {
     queryFn: getProducts,
     meta: {
       onError: (err: Error) => {
-        console.error("Erreur lors du chargement des produits:", err);
-        toast.error("Impossible de charger les produits");
+        console.error("Error loading products:", err);
+        toast.error("Unable to load products");
       }
     }
   });
 
-  // Mutation pour supprimer tous les produits
+  // Mutation to delete all products
   const deleteAllProductsMutation = useMutation({
-    mutationFn: async () => {
-      await deleteAllProducts();
-      clearMockProducts(); // Vider aussi les produits mockés
-    },
+    mutationFn: deleteAllProducts,
     onSuccess: () => {
-      refetch(); // Rafraîchir la liste des produits
-      toast.success("Tous les produits ont été supprimés");
+      refetch(); // Refresh the product list
+      toast.success("All products have been deleted");
     },
     onError: (err: Error) => {
-      console.error("Erreur lors de la suppression de tous les produits:", err);
-      toast.error("Impossible de supprimer tous les produits");
+      console.error("Error deleting all products:", err);
+      toast.error("Unable to delete all products");
     }
   });
 
-  // Filtrer les produits
+  // Filter products
   const filteredProducts = products.filter((product: Product) => {
     const matchesSearch = 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -76,7 +73,7 @@ const Catalog = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Extraire les catégories uniques
+  // Extract unique categories
   const categories = Array.from(
     new Set(products.map((product: Product) => product.category))
   ).filter(Boolean);
@@ -95,12 +92,12 @@ const Catalog = () => {
   const onProductAdded = () => {
     setIsAddProductOpen(false);
     refetch();
-    toast.success("Produit ajouté avec succès");
+    toast.success("Product added successfully");
   };
 
   const handleRetry = () => {
     refetch();
-    toast.info("Tentative de rechargement des produits...");
+    toast.info("Attempting to reload products...");
   };
 
   const handleDeleteAllProducts = () => {
@@ -111,28 +108,28 @@ const Catalog = () => {
     <Container>
       <div className="py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Catalogue de Produits</h1>
+          <h1 className="text-3xl font-bold">Product Catalog</h1>
           <div className="flex gap-2">
             <Button onClick={() => setIsAddProductOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
+              <Plus className="mr-2 h-4 w-4" /> Add Product
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Effacer tous les produits
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete All Products
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                  <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Êtes-vous sûr de vouloir supprimer tous les produits du catalogue ? Cette action ne peut pas être annulée.
+                    Are you sure you want to delete all products from the catalog? This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDeleteAllProducts}>
-                    Supprimer tous les produits
+                    Delete All Products
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -143,11 +140,11 @@ const Catalog = () => {
         {isError && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erreur</AlertTitle>
+            <AlertTitle>Error</AlertTitle>
             <AlertDescription className="flex flex-col gap-2">
-              <p>Une erreur est survenue lors du chargement des produits: {error instanceof Error ? error.message : "Erreur inconnue"}</p>
+              <p>An error occurred while loading products: {error instanceof Error ? error.message : "Unknown error"}</p>
               <Button onClick={handleRetry} variant="outline" size="sm" className="self-start">
-                Réessayer
+                Retry
               </Button>
             </AlertDescription>
           </Alert>
@@ -155,8 +152,8 @@ const Catalog = () => {
 
         <Tabs defaultValue="browse" className="mb-6">
           <TabsList>
-            <TabsTrigger value="browse">Parcourir</TabsTrigger>
-            <TabsTrigger value="manage">Gérer</TabsTrigger>
+            <TabsTrigger value="browse">Browse</TabsTrigger>
+            <TabsTrigger value="manage">Manage</TabsTrigger>
           </TabsList>
           
           <TabsContent value="browse" className="space-y-4">
@@ -164,7 +161,7 @@ const Catalog = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher un produit..."
+                  placeholder="Search for a product..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -184,7 +181,7 @@ const Catalog = () => {
                   size="sm"
                   onClick={() => setSelectedCategory(null)}
                 >
-                  Tous
+                  All
                 </Button>
                 {categories.map((category) => (
                   <Button
@@ -215,14 +212,14 @@ const Catalog = () => {
               </motion.div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">Aucun produit trouvé. {searchTerm && "Essayez de modifier votre recherche."}</p>
+                <p className="text-muted-foreground">No products found. {searchTerm && "Try modifying your search."}</p>
               </div>
             )}
           </TabsContent>
           
           <TabsContent value="manage">
             <div className="border rounded-md p-4">
-              <h2 className="text-xl font-semibold mb-4">Gestion du Catalogue</h2>
+              <h2 className="text-xl font-semibold mb-4">Catalog Management</h2>
               {isLoading ? (
                 <div className="h-32 flex items-center justify-center">
                   <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -242,7 +239,7 @@ const Catalog = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <Link to={`/catalog/${product.id}`}>
-                            <Button variant="outline" size="sm">Éditer</Button>
+                            <Button variant="outline" size="sm">Edit</Button>
                           </Link>
                         </div>
                       </div>
@@ -251,7 +248,7 @@ const Catalog = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground">Aucun produit dans le catalogue. Ajoutez des produits ou importez-les depuis WooCommerce.</p>
+                  <p className="text-muted-foreground">No products in the catalog. Add products or import them from WooCommerce.</p>
                 </div>
               )}
             </div>
