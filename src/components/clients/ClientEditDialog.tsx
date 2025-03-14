@@ -52,15 +52,15 @@ type ClientFormValues = z.infer<typeof clientSchema>;
 
 interface ClientEditDialogProps {
   client: Client;
-  isOpen: boolean;
-  onClose: () => void;
-  onClientUpdated: (client: Client) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onClientUpdated: (client?: Client) => void;
 }
 
 const ClientEditDialog = ({
   client,
-  isOpen,
-  onClose,
+  open,
+  onOpenChange,
   onClientUpdated,
 }: ClientEditDialogProps) => {
   const [loading, setLoading] = useState(false);
@@ -90,6 +90,7 @@ const ClientEditDialog = ({
       const updatedClient = await updateClient(client.id, values);
       if (updatedClient) {
         onClientUpdated(updatedClient);
+        onOpenChange(false);
       } else {
         toast.error("Erreur lors de la mise à jour du client");
       }
@@ -152,7 +153,7 @@ const ClientEditDialog = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier le client</DialogTitle>
@@ -375,7 +376,7 @@ const ClientEditDialog = ({
               <Button
                 type="button"
                 variant="outline"
-                onClick={onClose}
+                onClick={() => onOpenChange(false)}
                 disabled={loading}
               >
                 Annuler
