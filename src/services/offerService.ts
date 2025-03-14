@@ -70,7 +70,7 @@ export interface OfferData {
   commission: number;
   user_id: string;
   type?: string;
-  remarks?: string;
+  additional_info?: string;
 }
 
 export const createOffer = async (offerData: OfferData): Promise<string | null> => {
@@ -79,11 +79,8 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
       ...offerData,
       type: offerData.type || 'admin_offer',
       user_id: offerData.user_id === 'user-123' ? 
-        '00000000-0000-0000-0000-000000000000' : offerData.user_id,
-      remarks: offerData.remarks
+        '00000000-0000-0000-0000-000000000000' : offerData.user_id
     };
-    
-    delete (validData as any).additional_info;
     
     const { data, error } = await supabase
       .from('offers')
@@ -95,7 +92,6 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
     return data?.[0]?.id || null;
   } catch (error) {
     console.error("Error creating offer:", error);
-    toast.error("Une erreur s'est produite lors de la création de l'offre");
     return null;
   }
 };
@@ -373,29 +369,19 @@ export const getOfferById = async (offerId: string) => {
 
 export const updateOffer = async (offerId: string, offerData: any) => {
   try {
-    const cleanedData = { ...offerData };
-    delete (cleanedData as any).additional_info;
-    
-    if (cleanedData.remarks) {
-      cleanedData.remarks = cleanedData.remarks;
-      delete (cleanedData as any).remarks;
-    }
-    
     const { data, error } = await supabase
       .from('offers')
-      .update(cleanedData)
+      .update(offerData)
       .eq('id', offerId);
 
     if (error) {
       console.error('Error updating offer:', error);
-      toast.error("Une erreur s'est produite lors de la mise à jour de l'offre");
       return null;
     }
 
     return offerId;
   } catch (error) {
     console.error('Error updating offer:', error);
-    toast.error("Une erreur s'est produite lors de la mise à jour de l'offre");
     return null;
   }
 };
