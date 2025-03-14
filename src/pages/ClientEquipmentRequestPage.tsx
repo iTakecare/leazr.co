@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -14,278 +15,174 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Loader2, Package, Send, ShoppingCart } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowRight, SendHorizonal } from "lucide-react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
-import { formatCurrency } from "@/utils/formatters";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { getClientIdForUser } from "@/utils/clientUserAssociation";
-import { supabase } from "@/integrations/supabase/client";
 import { createClientRequest } from "@/services/offerService";
+import { calculateMonthlyPayment } from "@/utils/calculator";
 
-// Définition du schéma de validation pour le formulaire
-const requestFormSchema = z.object({
-  description: z.string().min(10, {
-    message: "La description doit comporter au moins 10 caractères.",
-  }),
-  amount: z.number().min(1, {
-    message: "Le montant doit être supérieur à 0.",
-  }),
+const clientRequestFormSchema = z.object({
+  description: z
+    .string()
+    .min(10, {
+      message: "La description doit comporter au moins 10 caractères.",
+    })
+    .max(500, {
+      message: "La description ne doit pas dépasser 500 caractères.",
+    }),
+  amount: z.coerce
+    .number()
+    .min(1, {
+      message: "Le montant doit être supérieur à 0.",
+    })
+    .max(100000, {
+      message: "Le montant ne doit pas dépasser 100 000 €.",
+    }),
   additional_info: z.string().optional(),
 });
 
-type RequestFormValues = z.infer<typeof requestFormSchema>;
+type ClientRequestFormValues = z.infer<typeof clientRequestFormSchema>;
+
+const defaultValues: Partial<ClientRequestFormValues> = {
+  description: "",
+  amount: 0,
+  additional_info: "",
+};
 
 const ClientEquipmentRequestPage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [clientId, setClientId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [monthlyPayment, setMonthlyPayment] = useState(0);
-  
-  // Configuration du formulaire avec React Hook Form
-  const form = useForm<RequestFormValues>({
-    resolver: zodResolver(requestFormSchema),
-    defaultValues: {
-      description: "",
-      amount: 1000,
-      additional_info: "",
-    },
+  const { user } = useAuth();
+
+  const form = useForm<ClientRequestFormValues>({
+    resolver: zodResolver(clientRequestFormSchema),
+    defaultValues,
   });
 
-  // Récupérer l'ID client associé à l'utilisateur
-  useEffect(() => {
-    const fetchClientId = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const id = await getClientIdForUser(user.id);
-        console.log("Client ID found:", id);
-        setClientId(id);
-      } catch (error) {
-        console.error("Erreur lors de la récupération de l'ID client:", error);
-        toast.error("Impossible de récupérer les informations du client");
-      }
-    };
-    
-    fetchClientId();
-  }, [user]);
-
-  // Calculer le paiement mensuel quand le montant change
-  const calculateMonthlyPayment = (amount: number) => {
-    // Exemple simple: diviser par 24 mois
-    return amount / 24;
-  };
-
-  // Mettre à jour le paiement mensuel quand le montant change
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === "amount" && value.amount) {
-        setMonthlyPayment(calculateMonthlyPayment(value.amount as number));
-      }
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-  // Soumettre la demande
-  const onSubmit = async (values: RequestFormValues) => {
-    if (!clientId) {
-      toast.error("Impossible de récupérer l'ID client");
+  const onSubmit = async (values: ClientRequestFormValues) => {
+    if (!user || !user.id) {
+      toast.error("Vous devez être connecté pour soumettre une demande");
       return;
     }
-    
-    setLoading(true);
-    
+
     try {
-      // Préparer les données de la demande
       const requestData = {
-        client_id: clientId,
+        user_id: user.id,
+        client_id: user?.client_id || null,
         client_name: user?.company || `${user?.first_name || ''} ${user?.last_name || ''}`,
         client_email: user?.email || '',
         equipment_description: values.description,
         additional_info: values.additional_info || '',  // Fixing the error here by providing a default empty string
         amount: values.amount,
-        monthly_payment: calculateMonthlyPayment(values.amount),
+        monthly_payment: calculateMonthlyPayment(values.amount, 36),  // Fixed by adding the required second parameter
         coefficient: 0.04, // Exemple de coefficient
-        commission: 0, // Pas de commission pour les demandes client
-        user_id: user?.id || '',
-        type: 'client_request'
+        commission: values.amount * 0.05, // Commission simplifiée pour l'exemple
       };
-      
-      // Créer la demande
+
       const requestId = await createClientRequest(requestData);
-      
+
       if (requestId) {
-        toast.success("Votre demande a été envoyée avec succès");
-        navigate('/client/requests');
+        toast.success("Votre demande a été soumise avec succès");
+        navigate("/client/dashboard");
       } else {
-        toast.error("Erreur lors de l'envoi de la demande");
+        toast.error("Erreur lors de la soumission de votre demande");
       }
     } catch (error) {
-      console.error("Erreur lors de l'envoi de la demande:", error);
-      toast.error("Impossible d'envoyer votre demande");
-    } finally {
-      setLoading(false);
+      console.error("Erreur lors de la soumission de la demande:", error);
+      toast.error("Une erreur est survenue lors de la soumission de votre demande");
     }
-  };
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        delayChildren: 0.3,
-        staggerChildren: 0.1
-      }
-    }
-  };
-  
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
   };
 
   return (
-    <div className="w-full p-6">
-      <motion.div 
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-        className="space-y-6"
-      >
-        <motion.div variants={itemVariants}>
-          <h1 className="text-3xl font-bold">Nouvelle Demande</h1>
-          <p className="text-muted-foreground">
-            Soumettez une demande d'équipement pour votre entreprise
-          </p>
-        </motion.div>
-        
-        <motion.div variants={itemVariants}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Formulaire de demande</CardTitle>
-              <CardDescription>
-                Décrivez les équipements dont vous avez besoin et indiquez le budget approximatif
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description de votre besoin</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Décrivez les équipements dont vous avez besoin..."
-                            className="min-h-32 resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Détaillez les équipements souhaités et leurs caractéristiques
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Budget approximatif (€)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="100"
-                            step="100"
-                            {...field}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value);
-                              field.onChange(value);
-                              setMonthlyPayment(calculateMonthlyPayment(value));
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Estimation du montant total pour l'équipement
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="bg-muted/30 p-4 rounded-md">
-                    <p className="text-sm font-medium mb-2">Estimation mensuelle</p>
-                    <p className="text-xl font-bold text-primary">
-                      {formatCurrency(monthlyPayment)}<span className="text-sm font-normal text-muted-foreground"> /mois</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Basé sur un financement sur 24 mois
-                    </p>
-                  </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="additional_info"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Informations complémentaires (optionnel)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Informations complémentaires..."
-                            className="resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="flex justify-end space-x-3 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => navigate('/client/requests')}
-                      className="w-32"
-                    >
-                      Annuler
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      className="w-40" 
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Envoi en cours...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Envoyer la demande
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </motion.div>
+    <div className="container py-6 md:py-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Demande d'équipement</h1>
+        <p className="text-muted-foreground mt-2">
+          Décrivez l'équipement dont vous avez besoin et nous vous proposerons des solutions de financement adaptées.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Nouvelle demande</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description de l'équipement</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Décrivez l'équipement dont vous avez besoin (type, marque, modèle, quantité...)"
+                        className="min-h-[120px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Soyez précis pour nous permettre de vous faire les meilleures propositions.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Budget estimé (en €)</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="0" step="0.01" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Indiquez le montant approximatif que vous souhaitez financer.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="additional_info"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Informations complémentaires (facultatif)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Indiquez toute information supplémentaire qui pourrait nous aider à traiter votre demande"
+                        className="min-h-[80px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate("/client/dashboard")}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit">
+                  <SendHorizonal className="mr-2 h-4 w-4" />
+                  Soumettre la demande
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   );
 };
