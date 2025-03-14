@@ -76,7 +76,7 @@ serve(async (req) => {
       }
     }).join('\n');
     
-    // Configurer le client SMTP de la manière la plus simple
+    // Configurer le client SMTP
     const client = new SMTPClient({
       connection: {
         hostname: smtpConfig.host,
@@ -90,19 +90,20 @@ serve(async (req) => {
     });
 
     try {
-      // Format de message simple sans MIME ou HTML complexe
-      const subject = "Documents requis - Offre de leasing";
+      // Préparer le contenu de l'email au format simple
+      const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}`;
       
-      // Message très simple
-      const message = {
+      console.log("Préparation de l'email pour:", clientEmail);
+      console.log("Expéditeur:", smtpConfig.from_email);
+      
+      // Utiliser le format le plus simple possible
+      await client.send({
         from: smtpConfig.from_email,
         to: clientEmail,
-        subject: subject,
-        content: `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}`
-      };
+        subject: "Documents requis - Offre de leasing",
+        text: emailBody, // Utiliser 'text' au lieu de 'content'
+      });
       
-      console.log("Envoi de l'email:", message);
-      await client.send(message);
       await client.close();
       
       console.log("Email envoyé avec succès à:", clientEmail);
