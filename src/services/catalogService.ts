@@ -387,6 +387,7 @@ export const deleteCategory = async ({ name }: { name: string }) => {
 }
 
 export const getBrands = async () => {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .rpc('get_brands');
   
@@ -399,6 +400,7 @@ export const getBrands = async () => {
 };
 
 export const addBrand = async ({ name, translation }: { name: string, translation: string }) => {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .rpc('add_brand', { 
       brand_name: name,
@@ -414,6 +416,7 @@ export const addBrand = async ({ name, translation }: { name: string, translatio
 };
 
 export const updateBrand = async ({ originalName, name, translation }: { originalName: string, name: string, translation: string }) => {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .rpc('update_brand', { 
       original_name: originalName,
@@ -430,6 +433,7 @@ export const updateBrand = async ({ originalName, name, translation }: { origina
 };
 
 export const deleteBrand = async ({ name }: { name: string }) => {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .rpc('delete_brand', { brand_name: name });
   
