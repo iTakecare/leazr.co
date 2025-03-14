@@ -292,6 +292,7 @@ export type Database = {
           id: string
           monthly_payment: number
           status: string
+          type: string | null
           updated_at: string | null
           user_id: string
           workflow_status: string | null
@@ -309,6 +310,7 @@ export type Database = {
           id?: string
           monthly_payment?: number
           status?: string
+          type?: string | null
           updated_at?: string | null
           user_id: string
           workflow_status?: string | null
@@ -326,6 +328,7 @@ export type Database = {
           id?: string
           monthly_payment?: number
           status?: string
+          type?: string | null
           updated_at?: string | null
           user_id?: string
           workflow_status?: string | null

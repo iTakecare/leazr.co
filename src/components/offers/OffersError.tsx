@@ -6,7 +6,7 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 
 interface OffersErrorProps {
-  message: string; // Changed from errorMessage to message
+  message: string;
   onRetry: () => void;
 }
 
