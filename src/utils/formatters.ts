@@ -1,3 +1,4 @@
+
 /**
  * Format number as currency (EUR)
  */

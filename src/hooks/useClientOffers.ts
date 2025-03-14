@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 
@@ -11,7 +12,7 @@ export interface ClientOffer {
   monthly_payment: number;
   equipment_description?: string;
   created_at: string;
-  status?: string;
+  status: string;
   workflow_status?: string;
 }
 
@@ -53,4 +54,3 @@ export const useClientOffers = () => {
 
   return { offers, loading, error, refresh };
 };
-
