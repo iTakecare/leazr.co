@@ -1,12 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { createClient, updateClient, verifyVatNumber } from "@/services/clientService";
+import { createClient, updateClient, verifyVatNumber, getClientById } from "@/services/clientService";
 import { CreateClientData } from "@/types/client";
 import { toast } from "sonner";
 import { ArrowLeft, Save, User, Search, Loader2, Check, AlertCircle } from "lucide-react";
@@ -68,17 +68,64 @@ const ClientForm = () => {
   
   // Déterminer explicitement le mode (création ou édition)
   const isCreateMode = !id || id === "new" || id === "create";
-  const pageTitle = isCreateMode ? "Nouveau client" : "Modifier le client";
   
   const [isLoading, setIsLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(!isCreateMode);
   const [verifyingVat, setVerifyingVat] = useState(false);
   const [vatValid, setVatValid] = useState<boolean | null>(null);
 
-  // Configuration du formulaire avec valeurs par défaut
+  // Configuration du formulaire
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
-    defaultValues,
+    defaultValues: isCreateMode ? defaultValues : undefined, // N'utiliser defaultValues qu'en mode création
   });
+
+  // Charger les données du client uniquement en mode édition
+  useEffect(() => {
+    const loadClientData = async () => {
+      if (!isCreateMode && id) {
+        try {
+          setDataLoading(true);
+          console.log("Chargement des données du client avec ID:", id);
+          
+          const clientData = await getClientById(id);
+          
+          if (clientData) {
+            console.log("Données client chargées:", clientData);
+            // Remplir le formulaire avec les données du client
+            form.reset({
+              name: clientData.name,
+              email: clientData.email || "",
+              company: clientData.company || "",
+              phone: clientData.phone || "",
+              address: clientData.address || "",
+              city: clientData.city || "",
+              postal_code: clientData.postal_code || "",
+              country: clientData.country || "",
+              vat_number: clientData.vat_number || "",
+              notes: clientData.notes || "",
+              status: clientData.status || "active",
+            });
+          } else {
+            toast.error("Client non trouvé");
+            navigate("/clients");
+          }
+        } catch (error) {
+          console.error("Erreur lors du chargement du client:", error);
+          toast.error("Erreur lors du chargement du client");
+          navigate("/clients");
+        } finally {
+          setDataLoading(false);
+        }
+      } else {
+        // En mode création, utiliser les valeurs par défaut
+        form.reset(defaultValues);
+        setDataLoading(false);
+      }
+    };
+
+    loadClientData();
+  }, [id, isCreateMode, navigate, form]);
 
   // Vérification du numéro de TVA
   const handleVerifyVatNumber = async () => {
@@ -135,23 +182,27 @@ const ClientForm = () => {
     setIsLoading(true);
     
     try {
-      if (!isCreateMode) {
-        // Mode édition
-        const updatedClient = await updateClient(id!, data as CreateClientData);
-        if (updatedClient) {
-          toast.success("Client mis à jour avec succès");
-          navigate("/clients");
-        } else {
-          toast.error("Erreur lors de la mise à jour du client");
-        }
-      } else {
+      if (isCreateMode) {
         // Mode création
+        console.log("Création d'un nouveau client avec les données:", data);
         const newClient = await createClient(data as CreateClientData);
+        
         if (newClient) {
           toast.success("Client créé avec succès");
           navigate("/clients");
         } else {
           toast.error("Erreur lors de la création du client");
+        }
+      } else if (id) {
+        // Mode édition
+        console.log("Mise à jour du client", id, "avec les données:", data);
+        const updatedClient = await updateClient(id, data as CreateClientData);
+        
+        if (updatedClient) {
+          toast.success("Client mis à jour avec succès");
+          navigate("/clients");
+        } else {
+          toast.error("Erreur lors de la mise à jour du client");
         }
       }
     } catch (error) {
@@ -161,6 +212,22 @@ const ClientForm = () => {
       setIsLoading(false);
     }
   };
+
+  // Afficher un indicateur de chargement pendant le chargement des données
+  if (dataLoading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-6 flex items-center justify-center min-h-[60vh]">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p>Chargement des données du client...</p>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
@@ -176,7 +243,7 @@ const ClientForm = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <h1 className="text-2xl font-bold">
-                {pageTitle}
+                {isCreateMode ? "Nouveau client" : "Modifier le client"}
               </h1>
             </div>
           </div>

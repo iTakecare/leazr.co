@@ -108,8 +108,10 @@ export const getClients = async (): Promise<Client[]> => {
 
 export const getClientById = async (id: string): Promise<Client | null> => {
   try {
-    // Special routes handling - return null immediately for special routes
-    if (!id || id === 'new' || id === 'create') {
+    // IMPORTANT: Special routes handling - return null IMMEDIATELY for special routes
+    // Ceci est crucial pour éviter toute tentative de récupération de client pour les routes spéciales
+    const specialRoutes = ['new', 'create'];
+    if (!id || specialRoutes.includes(id)) {
       console.log(`Skipping fetch for special route: ${id}`);
       return null;
     }
