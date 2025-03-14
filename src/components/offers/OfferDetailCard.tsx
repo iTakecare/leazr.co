@@ -55,6 +55,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
   };
 
   const handleStatusChange = async (newStatus: string, reason?: string) => {
+    console.log(`Changing status for offer ${offer.id} to ${newStatus}`);
     await onStatusChange(offer.id, newStatus, reason);
   };
 

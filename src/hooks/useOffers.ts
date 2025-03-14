@@ -121,14 +121,26 @@ export const useOffers = () => {
   const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string, reason?: string) => {
     setIsUpdatingStatus(true);
     try {
+      console.log(`Starting workflow status update for offer ${offerId} to ${newStatus}`);
+      
       // Obtenir le statut actuel pour pouvoir l'enregistrer dans l'historique
       const currentOffer = offers.find(offer => offer.id === offerId);
+      if (!currentOffer) {
+        console.error(`Offer with ID ${offerId} not found`);
+        toast.error("Erreur: offre introuvable");
+        setIsUpdatingStatus(false);
+        return;
+      }
+      
       const currentStatus = currentOffer?.workflow_status || 'draft';
+      console.log(`Current status: ${currentStatus}, New status: ${newStatus}`);
       
       // Appeler l'API pour mettre à jour le statut
       const success = await updateOfferStatus(offerId, newStatus, currentStatus, reason);
       
       if (success) {
+        console.log(`Status update successful for offer ${offerId}`);
+        
         // Mettre à jour localement
         setOffers(prevOffers => 
           prevOffers.map(offer => 
@@ -140,6 +152,7 @@ export const useOffers = () => {
         
         toast.success("Statut de l'offre mis à jour");
       } else {
+        console.error(`Status update failed for offer ${offerId}`);
         toast.error("Erreur lors de la mise à jour du statut");
       }
     } catch (error) {
