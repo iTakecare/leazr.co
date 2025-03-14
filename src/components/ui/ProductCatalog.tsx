@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -48,13 +49,15 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   
-  // Convert mock products to proper Product type
+  console.log("Default products available:", defaultProducts.length); // Debug log
+  
+  // Ensure default products are properly formatted
   const enrichedDefaultProducts = defaultProducts.map(product => ({
     ...product,
-    specifications: {},
-    createdAt: new Date(),
-    updatedAt: new Date()
-  })) as Product[];
+    specifications: product.specifications || {},
+    createdAt: product.createdAt || new Date(),
+    updatedAt: product.updatedAt || new Date()
+  }));
   
   // Utiliser React Query avec les produits par défaut comme fallback
   const { 
@@ -67,6 +70,8 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
     enabled: isOpen // Ne charger les données que lorsque le catalogue est ouvert
   });
   
+  console.log("Products available:", products.length); // Debug log
+  
   // Extraire les catégories à partir des produits chargés
   const filteredProducts = React.useMemo(() => {
     return products.filter(product => {
@@ -75,6 +80,8 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
       return matchesSearch && matchesCategory;
     });
   }, [products, searchTerm, selectedCategory]);
+  
+  console.log("Filtered products:", filteredProducts.length); // Debug log
   
   const handleSelectProduct = (product: Product) => {
     onSelectProduct(product);
@@ -141,41 +148,41 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
-              {filteredProducts.map((product) => (
-                <motion.div
-                  key={product.id}
-                  whileHover={{ y: -5 }}
-                  className="border rounded-lg p-4 cursor-pointer hover:border-primary"
-                  onClick={() => handleSelectProduct(product)}
-                >
-                  <div className="aspect-square w-full overflow-hidden bg-muted mb-3 rounded-md">
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/placeholder.svg";
-                      }}
-                    />
-                  </div>
-                  <h3 className="font-medium line-clamp-1">{product.name}</h3>
-                  <p className="text-sm text-muted-foreground">{translateCategory(product.category)}</p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <p className="font-bold">
-                      {product.price.toLocaleString("fr-FR", {
-                        style: "currency",
-                        currency: "EUR",
-                      })}
-                    </p>
-                    <Button size="sm" variant="ghost" className="rounded-full h-8 w-8 p-0">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-              
-              {filteredProducts.length === 0 && (
+              {filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
+                  <motion.div
+                    key={product.id}
+                    whileHover={{ y: -5 }}
+                    className="border rounded-lg p-4 cursor-pointer hover:border-primary"
+                    onClick={() => handleSelectProduct(product)}
+                  >
+                    <div className="aspect-square w-full overflow-hidden bg-muted mb-3 rounded-md">
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
+                      />
+                    </div>
+                    <h3 className="font-medium line-clamp-1">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground">{translateCategory(product.category)}</p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="font-bold">
+                        {product.price.toLocaleString("fr-FR", {
+                          style: "currency",
+                          currency: "EUR",
+                        })}
+                      </p>
+                      <Button size="sm" variant="ghost" className="rounded-full h-8 w-8 p-0">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
                 <div className="col-span-2 py-8 text-center">
                   <p className="text-muted-foreground">Aucun produit trouvé</p>
                 </div>
