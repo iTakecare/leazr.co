@@ -31,11 +31,9 @@ serve(async (req) => {
       host: config.host,
       port: config.port,
       username: config.username,
-      fromEmail: config.from_email,
       secure: config.secure
     });
 
-    // Créer un client SMTP avec les paramètres explicites
     const client = new SMTPClient({
       connection: {
         hostname: config.host,
@@ -49,25 +47,16 @@ serve(async (req) => {
     });
 
     try {
-      // Approche simplifiée : envoyer un email text sans HTML d'abord
+      // Simplify email structure - text only, no HTML or complex MIME
       await client.send({
-        from: `${config.from_name} <${config.from_email}>`,
+        from: config.from_email,
         to: config.username,
         subject: "Test de connexion SMTP réussi",
-        content: `
-Test de connexion SMTP réussi
-
-Ceci est un email de test pour vérifier les paramètres SMTP.
-
-Détails de la configuration:
-- Serveur: ${config.host}
-- Port: ${config.port}
-- Utilisateur: ${config.username}
-- Sécurisé: ${config.secure ? "Oui" : "Non"}
-        `
+        content: "Ceci est un email de test pour vérifier les paramètres SMTP.\n\nDétails de la configuration:\n- Serveur: " + 
+          config.host + "\n- Port: " + config.port + "\n- Utilisateur: " + config.username + 
+          "\n- Sécurisé: " + (config.secure ? "Oui" : "Non")
       });
 
-      // Fermer la connexion
       await client.close();
       
       return new Response(
@@ -86,8 +75,11 @@ Détails de la configuration:
     } catch (emailError) {
       console.error("Erreur lors de l'envoi de l'email de test:", emailError);
       
-      // Fermer la connexion en cas d'erreur
-      await client.close();
+      try {
+        await client.close();
+      } catch (closeError) {
+        console.error("Erreur supplémentaire lors de la fermeture du client:", closeError);
+      }
       
       return new Response(
         JSON.stringify({

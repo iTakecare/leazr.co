@@ -92,8 +92,7 @@ serve(async (req) => {
     try {
       // Construire le contenu de l'email en texte simple uniquement
       const subject = "Demande de documents complémentaires pour votre offre de leasing";
-      const emailContent = `
-Bonjour ${clientName},
+      const emailContent = `Bonjour ${clientName},
 
 Nous avons besoin des documents suivants pour poursuivre l'analyse de votre offre de leasing :
 ${formattedDocs}
@@ -103,12 +102,11 @@ ${customMessage ? `Message de l'équipe :\n${customMessage}\n\n` : ''}
 Merci de nous fournir ces documents dès que possible afin que nous puissions finaliser votre dossier.
 Vous pouvez répondre directement à cet email en attachant les documents demandés.
 
-Cet email est envoyé automatiquement par l'application de gestion de leasing.
-      `;
+Cet email est envoyé automatiquement par l'application de gestion de leasing.`;
       
-      // Envoyer l'email simplifié sans HTML
+      // Envoyer l'email simplifié sans HTML, juste en texte
       await client.send({
-        from: `${smtpConfig.from_name} <${smtpConfig.from_email}>`,
+        from: smtpConfig.from_email,
         to: clientEmail,
         subject: subject,
         content: emailContent
@@ -132,8 +130,11 @@ Cet email est envoyé automatiquement par l'application de gestion de leasing.
     } catch (emailError) {
       console.error("Erreur lors de l'envoi de l'email:", emailError);
       
-      // Fermer la connexion en cas d'erreur
-      await client.close();
+      try {
+        await client.close();
+      } catch (closeError) {
+        console.error("Erreur supplémentaire lors de la fermeture du client:", closeError);
+      }
       
       return new Response(
         JSON.stringify({
