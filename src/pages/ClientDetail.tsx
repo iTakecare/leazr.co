@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { verifyClientUserAssociation } from "@/utils/clientDiagnostics";
+import { verifyClientUserAssociation, mergeClients } from "@/utils/clientDiagnostics";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,31 +144,15 @@ const ClientDetail = () => {
 
     setIsMerging(true);
     try {
-      const success = await (async () => {
-        if (!id) {
-          toast.error("Client ID is missing.");
-          return false;
-        }
-        if (!targetClientId) {
-          toast.error("Target Client ID is missing.");
-          return false;
-        }
-
-        try {
-          console.log(`Attempting to merge client ${id} into ${targetClientId}`);
-          toast.success(`Client ${id} successfully merged into ${targetClientId}!`);
-          return true;
-        } catch (mergeError) {
-          console.error("Error during client merge:", mergeError);
-          toast.error("Failed to merge clients. Please check the console for details.");
-          return false;
-        }
-      })();
+      const success = await mergeClients(id, targetClientId);
 
       if (success) {
         toast.success("Clients fusionnés avec succès !");
-        refetch(); // Refresh client data
+        navigate(`/clients/${targetClientId}`);
       }
+    } catch (error) {
+      console.error("Error during client merge:", error);
+      toast.error("Échec de la fusion des clients");
     } finally {
       setIsMerging(false);
       setShowMergeInput(false);

@@ -207,12 +207,33 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
       }
     }
     
-    // 4. Désactiver le client source (sans le supprimer pour conserver l'historique)
+    // 4. Gérer les user_id des deux clients
+    if (sourceClient.user_id && targetClient.user_id && sourceClient.user_id !== targetClient.user_id) {
+      // Les deux clients ont des user_id différents - situation complexe
+      console.warn(`Les deux clients ont des user_id différents: ${sourceClient.user_id} et ${targetClient.user_id}`);
+      toast.warning("Attention: les deux clients sont associés à des comptes utilisateurs différents");
+    } else if (sourceClient.user_id && !targetClient.user_id) {
+      // Le client source a un user_id mais pas le client cible, transférer l'association
+      console.log(`Transfert de l'association utilisateur ${sourceClient.user_id} vers le client cible ${targetClientId}`);
+      
+      const { error: updateUserIdError } = await supabase
+        .from('clients')
+        .update({ user_id: sourceClient.user_id })
+        .eq('id', targetClientId);
+        
+      if (updateUserIdError) {
+        console.error("Erreur lors du transfert de l'association utilisateur:", updateUserIdError);
+      }
+    }
+    // Si le client cible a déjà un user_id ou si aucun n'a de user_id, rien à faire
+    
+    // 5. Désactiver le client source (sans le supprimer pour conserver l'historique)
     const { error: updateError } = await supabase
       .from('clients')
       .update({ 
         status: 'inactive',
-        notes: `Client fusionné avec ${targetClient.name} (${targetClientId}) le ${new Date().toISOString()}`
+        user_id: null, // Retirer l'association utilisateur
+        notes: `${sourceClient.notes ? sourceClient.notes + "\n\n" : ""}Client fusionné avec ${targetClient.name} (${targetClientId}) le ${new Date().toISOString()}`
       })
       .eq('id', sourceClientId);
       
