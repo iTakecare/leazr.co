@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,7 +91,6 @@ const PDFTemplateEditor = () => {
 
   const loadTemplate = async () => {
     try {
-      // Vérifier si la table pdf_templates existe
       const { data: tableExists, error: tableCheckError } = await supabase.rpc(
         'check_table_exists',
         { table_name: 'pdf_templates' }
@@ -100,13 +98,10 @@ const PDFTemplateEditor = () => {
 
       if (tableCheckError) {
         console.error("Erreur lors de la vérification de la table:", tableCheckError);
-        // Supposer que la table n'existe pas
       }
 
-      // Si la table n'existe pas, la créer
       if (!tableExists) {
         await createPdfTemplatesTable();
-        // Après avoir créé la table, insérer le modèle par défaut
         const { error: insertError } = await supabase
           .from('pdf_templates')
           .insert(defaultTemplate);
@@ -122,7 +117,6 @@ const PDFTemplateEditor = () => {
         return;
       }
 
-      // Charger le modèle depuis la base de données
       const { data, error } = await supabase
         .from('pdf_templates')
         .select('*')
@@ -152,7 +146,6 @@ const PDFTemplateEditor = () => {
           setLogoPreview(data.logoURL);
         }
       } else {
-        // Si aucun modèle n'existe, créer le modèle par défaut
         const { error: insertError } = await supabase
           .from('pdf_templates')
           .insert(defaultTemplate);
@@ -174,7 +167,6 @@ const PDFTemplateEditor = () => {
 
   const createPdfTemplatesTable = async () => {
     try {
-      // Créer la table pdf_templates
       const { error } = await supabase.rpc('execute_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS public.pdf_templates (
@@ -249,21 +241,15 @@ const PDFTemplateEditor = () => {
     try {
       let logoURL = template.logoURL;
 
-      // Create storage bucket if it doesn't exist
-      try {
-        const { error: storageError } = await supabase.storage.createBucket('pdfs', {
-          public: true,
-          fileSizeLimit: 5242880, // 5MB
-        });
-        
-        if (storageError && !storageError.message.includes('already exists')) {
-          console.error("Erreur lors de la création du bucket:", storageError);
-        }
-      } catch (storageErr) {
-        console.warn("Le bucket existe probablement déjà:", storageErr);
+      const { error: storageError } = await supabase.storage.createBucket('pdfs', {
+        public: true,
+        fileSizeLimit: 5242880,
+      });
+
+      if (storageError && !storageError.message.includes('already exists')) {
+        console.error("Erreur lors de la création du bucket:", storageError);
       }
 
-      // Upload logo if changed
       if (logoFile) {
         const fileName = `logos/${Date.now()}_${logoFile.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -281,14 +267,12 @@ const PDFTemplateEditor = () => {
         logoURL = urlData.publicUrl;
       }
 
-      // Update template
       const updatedTemplate = {
         ...template,
         ...formData,
         logoURL,
       };
 
-      // Vérifier si la table existe avant d'essayer d'insérer
       const { data: tableExists, error: tableCheckError } = await supabase.rpc(
         'check_table_exists',
         { table_name: 'pdf_templates' }
@@ -298,7 +282,6 @@ const PDFTemplateEditor = () => {
         await createPdfTemplatesTable();
       }
 
-      // Insérer ou mettre à jour le modèle
       const { error } = await supabase
         .from('pdf_templates')
         .upsert(updatedTemplate);
@@ -387,7 +370,6 @@ const PDFTemplateEditor = () => {
                   color: template.primaryColor, 
                 }}
               >
-                {/* Header */}
                 <div className="p-6 border-b" style={{ borderColor: template.secondaryColor }}>
                   <div className="flex items-center justify-between">
                     {logoPreview && (
@@ -408,7 +390,6 @@ const PDFTemplateEditor = () => {
                   </div>
                 </div>
                 
-                {/* Client info */}
                 {(template.fields.find(f => f.id === 'client_name')?.isVisible || 
                   template.fields.find(f => f.id === 'client_email')?.isVisible || 
                   template.fields.find(f => f.id === 'client_company')?.isVisible) && (
@@ -428,7 +409,6 @@ const PDFTemplateEditor = () => {
                   </div>
                 )}
                 
-                {/* Offer details */}
                 {(template.fields.find(f => f.id === 'amount')?.isVisible || 
                   template.fields.find(f => f.id === 'monthly_payment')?.isVisible || 
                   template.fields.find(f => f.id === 'coefficient')?.isVisible) && (
@@ -448,7 +428,6 @@ const PDFTemplateEditor = () => {
                   </div>
                 )}
                 
-                {/* Equipment table */}
                 {template.fields.find(f => f.id === 'equipment_table')?.isVisible && (
                   <div className="p-6">
                     <h3 className="font-bold mb-2" style={{ color: template.primaryColor }}>ÉQUIPEMENTS</h3>
@@ -478,7 +457,6 @@ const PDFTemplateEditor = () => {
                   </div>
                 )}
                 
-                {/* Footer */}
                 <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
                   <div className="text-xs mb-2">{template.footerText}</div>
                   <div className="border-t pt-2 text-xs" style={{ borderColor: template.secondaryColor }}>
