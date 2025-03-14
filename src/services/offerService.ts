@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -374,9 +375,24 @@ export const getOfferById = async (offerId: string) => {
 
     if (data && data.equipment_description) {
       try {
+        // Better parsing of equipment data with explicit type conversion
         const equipmentData = JSON.parse(data.equipment_description);
         console.log("Parsed equipment data:", equipmentData);
-        data.equipment_data = equipmentData;
+        
+        // Ensure all numeric values are properly parsed as numbers
+        if (Array.isArray(equipmentData)) {
+          data.equipment_data = equipmentData.map(item => ({
+            ...item,
+            purchasePrice: parseFloat(item.purchasePrice) || 0,
+            quantity: parseInt(item.quantity, 10) || 1,
+            margin: parseFloat(item.margin) || 20,
+            monthlyPayment: parseFloat(item.monthlyPayment || 0)
+          }));
+        } else {
+          data.equipment_data = equipmentData;
+        }
+        
+        console.log("Processed equipment data with preserved values:", data.equipment_data);
       } catch (e) {
         console.log("Equipment description is not valid JSON:", data.equipment_description);
       }

@@ -53,6 +53,8 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
     );
   }
 
+  console.log("Rendering equipment list with items:", equipmentList);
+
   return (
     <div className="space-y-6">
       <Card className="shadow-sm border-gray-200 rounded-lg">

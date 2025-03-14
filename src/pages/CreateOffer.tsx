@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -153,13 +152,15 @@ const CreateOffer = () => {
                   const formattedEquipment = equipmentData.map(item => ({
                     id: item.id || crypto.randomUUID(),
                     title: item.title,
-                    purchasePrice: parseFloat(item.purchasePrice),
-                    quantity: parseInt(item.quantity, 10),
-                    margin: parseFloat(item.margin),
+                    purchasePrice: parseFloat(item.purchasePrice) || 0,
+                    quantity: parseInt(item.quantity, 10) || 1,
+                    margin: parseFloat(item.margin) || 20,
                     monthlyPayment: parseFloat(item.monthlyPayment || 0)
                   }));
                   
+                  console.log("Formatted equipment with preserved margins:", formattedEquipment);
                   setEquipmentList(formattedEquipment);
+                  
                   if (offer.monthly_payment) {
                     setTargetMonthlyPayment(parseFloat(offer.monthly_payment) || 0);
                   }
@@ -263,7 +264,7 @@ const CreateOffer = () => {
     setIsSubmitting(true);
 
     try {
-      // Stocker les données d'équipement sous forme JSON pour une meilleure récupération
+      // Ensure all equipment data is properly preserved with correct types
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
@@ -272,6 +273,8 @@ const CreateOffer = () => {
         margin: eq.margin,
         monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
       }));
+      
+      console.log("Saving equipment data with preserved margins:", equipmentData);
       
       // Garder aussi le format texte pour compatibilité
       const equipmentDescription = equipmentList
