@@ -47,14 +47,15 @@ serve(async (req) => {
     });
 
     try {
-      // Créer un objet de mail conforme à la documentation denomailer
+      // Format de l'email simplifié et compatible avec les serveurs SMTP stricts
       console.log("Tentative d'envoi de mail de test...");
       
       await client.send({
-        from: config.from_email,
+        from: `${config.from_name} <${config.from_email}>`,
         to: config.username,
         subject: "Test SMTP",
         content: "Test de connexion SMTP réussi",
+        html: "<p>Test de connexion SMTP réussi</p>"
       });
       
       await client.close();

@@ -92,16 +92,32 @@ serve(async (req) => {
     try {
       // Préparer le contenu de l'email
       const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}`;
+      const htmlBody = `<p>Bonjour ${clientName},</p><p>Documents requis:</p><ul>${requestedDocs.map(doc => {
+        if (doc.startsWith('custom:')) {
+          return `<li>${doc.substring(7)}</li>`;
+        } else {
+          const docNameMap: {[key: string]: string} = {
+            balance_sheet: "Bilan financier",
+            tax_notice: "Avertissement extrait de rôle",
+            id_card: "Copie de la carte d'identité",
+            company_register: "Extrait de registre d'entreprise",
+            vat_certificate: "Attestation TVA",
+            bank_statement: "Relevé bancaire des 3 derniers mois"
+          };
+          return `<li>${docNameMap[doc] || doc}</li>`;
+        }
+      }).join('')}</ul>${customMessage ? `<p>${customMessage}</p>` : ''}`;
       
       console.log("Préparation de l'email pour:", clientEmail);
       console.log("Expéditeur:", smtpConfig.from_email);
       
-      // Utiliser la propriété 'content' au lieu de 'text'
+      // Envoyer l'email avec un format qui respecte mieux les standards
       await client.send({
-        from: smtpConfig.from_email,
+        from: `${smtpConfig.from_name} <${smtpConfig.from_email}>`,
         to: clientEmail,
         subject: "Documents requis - Offre de leasing",
         content: emailBody,
+        html: htmlBody
       });
       
       await client.close();
