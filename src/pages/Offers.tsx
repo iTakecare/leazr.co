@@ -8,7 +8,7 @@ import OffersTable from "@/components/offers/OffersTable";
 import OffersLoading from "@/components/offers/OffersLoading";
 import OffersError from "@/components/offers/OffersError";
 import { useLocation, useNavigate } from "react-router-dom";
-import { PageTransition } from "@/components/layout/PageTransition";
+import PageTransition from "@/components/layout/PageTransition";
 
 const Offers = () => {
   const {
@@ -70,7 +70,7 @@ const Offers = () => {
   return (
     <PageTransition>
       <div className="w-full p-4 md:p-8">
-        <OffersHeader count={filteredOffers.length} />
+        <OffersHeader />
         
         <div className="mb-6">
           <OffersFilter 
@@ -82,13 +82,13 @@ const Offers = () => {
         </div>
         
         <div className="mb-6">
-          <OffersSearch searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+          <OffersSearch value={searchTerm} onChange={setSearchTerm} />
         </div>
         
         {loading ? (
           <OffersLoading />
         ) : loadingError ? (
-          <OffersError error={loadingError} onRetry={fetchOffers} />
+          <OffersError message={loadingError} onRetry={fetchOffers} />
         ) : (
           <OffersTable
             offers={filteredOffers}

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import AdminOffersNotifications from "@/components/offers/AdminOffersNotifications";
@@ -6,6 +7,15 @@ import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/utils/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { 
+  TrendingUp, 
+  FileText, 
+  Package, 
+  BarChart3, 
+  ChevronRight 
+} from "lucide-react";
 
 const Dashboard = () => {
   const { user } = useAuth();
