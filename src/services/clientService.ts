@@ -108,7 +108,7 @@ export const getClients = async (): Promise<Client[]> => {
 
 export const getClientById = async (id: string): Promise<Client | null> => {
   try {
-    // Check if ID is a valid UUID or special routes
+    // Special routes handling - return null immediately for special routes
     if (!id || id === 'new' || id === 'create') {
       console.log(`Skipping fetch for special route: ${id}`);
       return null;

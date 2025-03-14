@@ -50,10 +50,11 @@ const ClientForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   
-  // Check more reliably if we're in edit mode or create mode
-  const isEditMode = !!id && id !== "new" && id !== "create";
-  const isCreateMode = !isEditMode;
+  // Determine mode with additional safety checks
+  const isCreateMode = !id || id === "new" || id === "create";
+  const isEditMode = !isCreateMode;
 
+  // Only set loading to true if we need to fetch data (edit mode)
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
   const [verifyingVat, setVerifyingVat] = useState(false);
@@ -77,38 +78,41 @@ const ClientForm = () => {
   });
 
   useEffect(() => {
+    // This function is ONLY for editing an existing client
     const fetchClient = async () => {
-      // Only fetch if we're in edit mode
-      if (id && isEditMode) {
-        console.log(`Fetching client with ID: ${id}, isEditMode: ${isEditMode}`);
-        try {
-          const client = await getClientById(id);
-          if (client) {
-            form.reset({
-              name: client.name,
-              email: client.email || "",
-              company: client.company || "",
-              phone: client.phone || "",
-              address: client.address || "",
-              city: client.city || "",
-              postal_code: client.postal_code || "",
-              country: client.country || "",
-              vat_number: client.vat_number || "",
-              notes: client.notes || "",
-              status: client.status || "active",
-            });
-          } else {
-            setError("Client introuvable");
-          }
-        } catch (error) {
-          console.error("Erreur lors du chargement du client:", error);
-          setError("Impossible de charger les données du client");
-        } finally {
-          setIsLoading(false);
+      // Safety checks to prevent unnecessary API calls
+      if (!isEditMode) {
+        console.log("Create mode detected - skipping client fetch");
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log(`Fetching client with ID: ${id}`);
+      try {
+        const client = await getClientById(id as string);
+        
+        if (client) {
+          form.reset({
+            name: client.name,
+            email: client.email || "",
+            company: client.company || "",
+            phone: client.phone || "",
+            address: client.address || "",
+            city: client.city || "",
+            postal_code: client.postal_code || "",
+            country: client.country || "",
+            vat_number: client.vat_number || "",
+            notes: client.notes || "",
+            status: client.status || "active",
+          });
+        } else if (isEditMode) {
+          // Only show error in edit mode, not create mode
+          setError("Client introuvable");
         }
-      } else {
-        // In create mode, just set loading to false
-        console.log(`Create mode detected: ${id}`);
+      } catch (error) {
+        console.error("Erreur lors du chargement du client:", error);
+        setError("Impossible de charger les données du client");
+      } finally {
         setIsLoading(false);
       }
     };
@@ -212,7 +216,8 @@ const ClientForm = () => {
             </div>
           </div>
 
-          {error && !isCreateMode ? (
+          {/* Only show error state in edit mode, not in create mode */}
+          {error && isEditMode ? (
             <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
               <p className="text-red-600">{error}</p>
               <Button 
