@@ -26,10 +26,13 @@ export const useOffers = () => {
 
   const {
     isUpdatingStatus,
+    isRequestingInfo,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     handleResendOffer,
-    handleDownloadPdf
+    handleDownloadPdf,
+    handleRequestInfo,
+    handleProcessInfoResponse
   } = useOfferActions(offers, setOffers);
 
   return {
@@ -44,12 +47,15 @@ export const useOffers = () => {
     activeType,
     setActiveType,
     isUpdatingStatus,
+    isRequestingInfo,
     includeConverted,
     setIncludeConverted,
     fetchOffers,
     handleDeleteOffer,
     handleResendOffer,
     handleDownloadPdf,
-    handleUpdateWorkflowStatus
+    handleUpdateWorkflowStatus,
+    handleRequestInfo,
+    handleProcessInfoResponse
   };
 };

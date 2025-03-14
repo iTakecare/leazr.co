@@ -4,9 +4,11 @@ import { deleteOffer, updateOfferStatus } from "@/services/offerService";
 import { toast } from "sonner";
 import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 import { Offer } from "./useFetchOffers";
+import { RequestInfoData, sendInfoRequest, processInfoResponse } from "@/services/requestInfoService";
 
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isRequestingInfo, setIsRequestingInfo] = useState(false);
 
   const handleDeleteOffer = async (offerId: string) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cette offre ?")) {
@@ -88,6 +90,88 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     }
   };
 
+  const handleRequestInfo = async (offerId: string, requestedDocs: string[], customMessage: string): Promise<void> => {
+    setIsRequestingInfo(true);
+    
+    try {
+      const currentOffer = offers.find(offer => offer.id === offerId);
+      if (!currentOffer) {
+        console.error(`Offer with ID ${offerId} not found`);
+        throw new Error("Offre introuvable");
+      }
+      
+      const data: RequestInfoData = {
+        offerId,
+        requestedDocs,
+        customMessage,
+        previousStatus: currentOffer.workflow_status || OFFER_STATUSES.DRAFT.id
+      };
+      
+      const success = await sendInfoRequest(data);
+      
+      if (success) {
+        // Update local state
+        setOffers(prevOffers => 
+          prevOffers.map(offer => 
+            offer.id === offerId 
+              ? { 
+                  ...offer, 
+                  workflow_status: OFFER_STATUSES.INFO_REQUESTED.id,
+                  previous_status: currentOffer.workflow_status
+                } 
+              : offer
+          )
+        );
+        
+        toast.success("Demande d'informations envoyée avec succès");
+      } else {
+        throw new Error("Échec de l'envoi de la demande");
+      }
+    } catch (error) {
+      console.error("Error requesting additional info:", error);
+      toast.error("Erreur lors de la demande d'informations");
+    } finally {
+      setIsRequestingInfo(false);
+    }
+  };
+
+  const handleProcessInfoResponse = async (offerId: string, approve: boolean): Promise<void> => {
+    setIsUpdatingStatus(true);
+    
+    try {
+      const success = await processInfoResponse(offerId, approve);
+      
+      if (success) {
+        // Mettre à jour l'état local
+        const newStatus = approve ? OFFER_STATUSES.LEASER_REVIEW.id : OFFER_STATUSES.REJECTED.id;
+        
+        setOffers(prevOffers => 
+          prevOffers.map(offer => 
+            offer.id === offerId 
+              ? { 
+                  ...offer, 
+                  workflow_status: newStatus,
+                  previous_status: null
+                } 
+              : offer
+          )
+        );
+        
+        toast.success(approve 
+          ? "L'offre a été approuvée et envoyée au bailleur" 
+          : "L'offre a été rejetée"
+        );
+      } else {
+        throw new Error("Échec du traitement de la réponse");
+      }
+    } catch (error) {
+      console.error("Error processing info response:", error);
+      toast.error("Erreur lors du traitement de la réponse");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   const handleResendOffer = (offerId: string) => {
     toast.success("L'offre a été renvoyée avec succès");
   };
@@ -98,9 +182,12 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
 
   return {
     isUpdatingStatus,
+    isRequestingInfo,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     handleResendOffer,
-    handleDownloadPdf
+    handleDownloadPdf,
+    handleRequestInfo,
+    handleProcessInfoResponse
   };
 };

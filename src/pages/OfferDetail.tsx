@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Building, FileText, Send, Download, RefreshCw, Trash2, CheckCircle, Mail } from "lucide-react";
+import { ChevronLeft, Building, FileText, Send, Download, RefreshCw, Trash2, CheckCircle, Mail, HelpCircle, X } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getOfferById, updateOfferStatus, getWorkflowLogs, deleteOffer } from "@/services/offerService";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 import { contractStatuses, updateContractStatus, getContractWorkflowLogs, addTrackingNumber } from "@/services/contractService";
 import { Progress } from "@/components/ui/progress";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
+import RequestInfoModal from "@/components/offers/RequestInfoModal";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +36,7 @@ const OfferDetail = () => {
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [carrier, setCarrier] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [infoRequestDialogOpen, setInfoRequestDialogOpen] = useState(false);
   
   const fetchOfferDetails = async () => {
     if (!id) return;
@@ -229,6 +231,60 @@ const OfferDetail = () => {
     // Email sending functionality to be implemented here
   };
   
+  const handleRequestInfo = async (requestedDocs: string[], customMessage: string) => {
+    if (!offer) return;
+    
+    try {
+      setIsUpdatingStatus(true);
+      
+      const data = {
+        offerId: offer.id,
+        requestedDocs,
+        customMessage,
+        previousStatus: offer.workflow_status
+      };
+      
+      const success = await sendInfoRequest(data);
+      
+      if (success) {
+        toast.success("Demande d'informations envoyée avec succès");
+        fetchOfferDetails();
+      } else {
+        toast.error("Erreur lors de l'envoi de la demande");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la demande d'informations:", error);
+      toast.error("Erreur lors de la demande d'informations");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+  
+  const handleProcessInfoResponse = async (approve: boolean) => {
+    if (!offer) return;
+    
+    try {
+      setIsUpdatingStatus(true);
+      
+      const success = await processInfoResponse(offer.id, approve);
+      
+      if (success) {
+        toast.success(approve 
+          ? "L'offre a été approuvée et envoyée au bailleur" 
+          : "L'offre a été rejetée"
+        );
+        fetchOfferDetails();
+      } else {
+        toast.error("Erreur lors du traitement de la réponse");
+      }
+    } catch (error) {
+      console.error("Erreur lors du traitement de la réponse:", error);
+      toast.error("Erreur lors du traitement de la réponse");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+  
   const getAvailableActions = () => {
     if (!offer) return [];
     
@@ -311,9 +367,38 @@ const OfferDetail = () => {
           
         case OFFER_STATUSES.VALID_ITC.id:
           actions.push({
-            label: "Marquer comme approuvée",
-            icon: Building,
+            label: "Approuver l'offre",
+            icon: Check,
             onClick: () => openStatusChangeDialog(OFFER_STATUSES.APPROVED.id),
+          });
+          
+          actions.push({
+            label: "Demander des infos",
+            icon: HelpCircle,
+            onClick: () => setInfoRequestDialogOpen(true),
+            variant: "outline",
+          });
+          
+          actions.push({
+            label: "Rejeter l'offre",
+            icon: X,
+            onClick: () => openStatusChangeDialog(OFFER_STATUSES.REJECTED.id),
+            className: "bg-red-600 text-white hover:bg-red-700",
+          });
+          break;
+          
+        case OFFER_STATUSES.INFO_REQUESTED.id:
+          actions.push({
+            label: "Approuver après infos",
+            icon: CheckCircle,
+            onClick: () => handleProcessInfoResponse(true),
+          });
+          
+          actions.push({
+            label: "Rejeter après infos",
+            icon: X,
+            onClick: () => handleProcessInfoResponse(false),
+            className: "bg-red-600 text-white hover:bg-red-700",
           });
           break;
           
@@ -879,6 +964,13 @@ const OfferDetail = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <RequestInfoModal 
+        isOpen={infoRequestDialogOpen}
+        onClose={() => setInfoRequestDialogOpen(false)}
+        onSendRequest={handleRequestInfo}
+        offerId={offer?.id || ''}
+      />
     </PageTransition>
   );
 };

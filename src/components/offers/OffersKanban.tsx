@@ -1,10 +1,11 @@
+
 import React, { useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Card, CardContent } from "@/components/ui/card";
 import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 import OfferCard from "@/components/offers/OfferCard";
 import { Offer } from "@/hooks/offers/useFetchOffers";
-import { Plus, Pencil, SendHorizontal, CheckCircle, Sparkle, Building, Star, X } from "lucide-react";
+import { Plus, Pencil, SendHorizontal, CheckCircle, Sparkle, Building, Star, X, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface OffersKanbanProps {
@@ -40,6 +41,14 @@ const KANBAN_COLUMNS = [
     color: "bg-purple-50",
     borderColor: "border-purple-200",
     textColor: "text-purple-700",
+  },
+  {
+    id: OFFER_STATUSES.INFO_REQUESTED.id,
+    title: "Infos demandées",
+    icon: HelpCircle,
+    color: "bg-amber-50",
+    borderColor: "border-amber-200",
+    textColor: "text-amber-700",
   },
   {
     id: OFFER_STATUSES.APPROVED.id,

@@ -3,6 +3,7 @@ import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { createContractFromOffer } from "./contractService";
+import { RequestInfoData } from "@/services/requestInfoService";
 
 const mockOffers = [
   {
@@ -469,5 +470,117 @@ export const updateOffer = async (offerId: string, offerData: any) => {
   } catch (error) {
     console.error('Error updating offer:', error);
     return null;
+  }
+};
+
+// Ajouter une fonction pour envoyer une demande d'informations
+export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> => {
+  try {
+    console.log("Sending information request for offer:", data.offerId);
+    console.log("Requested documents:", data.requestedDocs);
+    
+    // Journaliser la demande
+    const { error: logError } = await supabase
+      .from('offer_workflow_logs')
+      .insert({
+        offer_id: data.offerId,
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        previous_status: data.previousStatus,
+        new_status: 'info_requested',
+        reason: `Demande d'informations supplémentaires: ${data.requestedDocs.join(', ')}`
+      });
+      
+    if (logError) {
+      console.error("Error logging info request:", logError);
+      return false;
+    }
+    
+    // Mettre à jour l'état de l'offre
+    const { error: updateError } = await supabase
+      .from('offers')
+      .update({ 
+        workflow_status: 'info_requested',
+        previous_status: data.previousStatus
+      })
+      .eq('id', data.offerId);
+      
+    if (updateError) {
+      console.error("Error updating offer status for info request:", updateError);
+      return false;
+    }
+    
+    // Dans une implémentation réelle, nous enverrions un email ici
+    // via une fonction Supabase Edge ou un service d'emailing
+    
+    return true;
+  } catch (error) {
+    console.error("Error sending info request:", error);
+    return false;
+  }
+};
+
+// Traiter la réponse après réception des informations
+export const processInfoResponse = async (
+  offerId: string,
+  approve: boolean
+): Promise<boolean> => {
+  try {
+    console.log(`Processing info response for offer ${offerId}: ${approve ? 'Approved' : 'Rejected'}`);
+    
+    // Récupérer le statut précédent
+    const { data: offerData, error: fetchError } = await supabase
+      .from('offers')
+      .select('previous_status, workflow_status')
+      .eq('id', offerId)
+      .single();
+      
+    if (fetchError) {
+      console.error("Error fetching offer data:", fetchError);
+      throw fetchError;
+    }
+    
+    // Déterminer le nouveau statut
+    const newStatus = approve 
+      ? 'leaser_review'  // Si approuvé, on passe directement à la validation bailleur
+      : 'rejected';      // Sinon rejeté
+    
+    const previousStatus = offerData.workflow_status || 'info_requested';
+    
+    // Journaliser le changement
+    const { error: logError } = await supabase
+      .from('offer_workflow_logs')
+      .insert({
+        offer_id: offerId,
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        previous_status: previousStatus,
+        new_status: newStatus,
+        reason: approve 
+          ? "Informations complémentaires acceptées" 
+          : "Informations complémentaires insuffisantes"
+      });
+      
+    if (logError) {
+      console.error("Error logging status change:", logError);
+      return false;
+    }
+    
+    // Mettre à jour le statut
+    const { error: updateError } = await supabase
+      .from('offers')
+      .update({ 
+        workflow_status: newStatus,
+        previous_status: null
+      })
+      .eq('id', offerId);
+      
+    if (updateError) {
+      console.error("Error updating offer status:", updateError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error processing info response:", error);
+    return false;
   }
 };

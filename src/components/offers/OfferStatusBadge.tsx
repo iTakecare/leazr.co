@@ -5,7 +5,7 @@ import {
   Check, Clock, FileText, AlertCircle, 
   Info, X, Pencil, User, Building, 
   ArrowRight, CreditCard, CheckCircle,
-  Sparkle, Star, SendHorizontal
+  Sparkle, Star, SendHorizontal, HelpCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
@@ -67,6 +67,14 @@ export const OFFER_STATUSES = {
     textColor: 'text-red-700',
     progressValue: 0,
     icon: X,
+  },
+  INFO_REQUESTED: {
+    id: 'info_requested',
+    label: 'Infos demandées',
+    color: 'bg-amber-100',
+    textColor: 'text-amber-700',
+    progressValue: 30,
+    icon: HelpCircle,
   }
 };
 
