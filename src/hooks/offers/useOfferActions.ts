@@ -89,6 +89,10 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       const offer = offers.find(o => o.id === offerId);
       if (!offer) throw new Error("Offre non trouvée");
       
+      console.log("Demande d'informations pour l'offre:", offerId);
+      console.log("Documents demandés:", requestedDocs);
+      console.log("Message personnalisé:", customMessage);
+      
       const data = {
         offerId,
         requestedDocs,

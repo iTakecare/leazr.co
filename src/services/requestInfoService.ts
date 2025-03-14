@@ -61,15 +61,24 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
     }
     
     // 3. Mettre à jour le statut de l'offre
+    // Attention: le champ 'previous_status' n'existe pas dans la table 'offers' selon l'erreur des logs
+    // Nous allons donc mettre à jour uniquement le workflow_status
     await supabase
       .from('offers')
       .update({ 
-        workflow_status: 'info_requested',
-        previous_status: data.previousStatus
+        workflow_status: 'info_requested'
       })
       .eq('id', data.offerId);
     
     // 4. Envoyer l'email via la fonction Edge
+    console.log("Appel de la fonction Edge avec les données:", {
+      offerId: data.offerId,
+      clientEmail,
+      clientName,
+      requestedDocs: data.requestedDocs,
+      customMessage: data.customMessage
+    });
+    
     const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-document-request', {
       body: {
         offerId: data.offerId,
@@ -80,8 +89,10 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
       }
     });
     
+    console.log("Résultat de l'appel à la fonction Edge:", emailResult);
+    
     if (emailError) {
-      console.error("Erreur lors de l'envoi de l'email:", emailError);
+      console.error("Erreur lors de l'appel à la fonction Edge:", emailError);
       toast.error("Erreur lors de l'envoi de l'email");
       return false;
     }
@@ -106,16 +117,8 @@ export const processInfoResponse = async (
   approve: boolean
 ): Promise<boolean> => {
   try {
-    // Récupérer le statut précédent
-    const { data: offerData, error: fetchError } = await supabase
-      .from('offers')
-      .select('previous_status')
-      .eq('id', offerId)
-      .single();
-      
-    if (fetchError) throw fetchError;
-    
-    // Définir le nouveau statut en fonction de la décision
+    // Mettre à jour le statut de l'offre
+    // Comme le champ previous_status n'existe pas, nous définissons directement le nouveau statut
     const newStatus = approve 
       ? 'leaser_review' // Approuvé, donc envoyé au bailleur
       : 'rejected';     // Refusé
@@ -124,8 +127,7 @@ export const processInfoResponse = async (
     const { error } = await supabase
       .from('offers')
       .update({ 
-        workflow_status: newStatus,
-        previous_status: null
+        workflow_status: newStatus
       })
       .eq('id', offerId);
       

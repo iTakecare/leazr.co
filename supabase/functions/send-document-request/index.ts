@@ -22,26 +22,54 @@ interface RequestDocumentsData {
   customMessage?: string;
 }
 
+console.log("=== Function Edge send-document-request initialisée ===");
+
 serve(async (req) => {
+  console.log("===== NOUVELLE REQUÊTE REÇUE =====");
+  console.log("Méthode: ", req.method);
+  console.log("URL: ", req.url);
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Requête OPTIONS (CORS preflight) reçue, réponse avec headers CORS");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // Récupérer les données de la requête
+    const requestBody = await req.text();
+    console.log("Corps de la requête brut:", requestBody);
+    
+    const requestData = JSON.parse(requestBody);
+    console.log("Données de la requête parsed:", JSON.stringify(requestData, null, 2));
+    
     const { 
       offerId,
       clientEmail,
       clientName,
       requestedDocs,
       customMessage
-    } = await req.json() as RequestDocumentsData;
+    } = requestData as RequestDocumentsData;
     
-    console.log("Requête reçue pour envoyer un email à:", clientEmail);
+    if (!offerId || !clientEmail || !clientName || !requestedDocs) {
+      console.error("Données manquantes dans la requête");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Données manquantes: offerId, clientEmail, clientName et requestedDocs sont requis",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    console.log("Requête validée pour envoyer un email à:", clientEmail);
     console.log("Documents demandés:", requestedDocs);
     
     // Récupérer les paramètres SMTP depuis la base de données
+    console.log("Récupération de la configuration SMTP depuis la base de données...");
     const { data: smtpConfig, error: smtpError } = await supabase
       .from('smtp_settings')
       .select('*')
@@ -54,6 +82,7 @@ serve(async (req) => {
         JSON.stringify({
           success: false,
           message: "Configuration SMTP non trouvée ou désactivée",
+          details: smtpError,
         }),
         {
           status: 200,
@@ -89,6 +118,17 @@ serve(async (req) => {
     }).join('\n');
     
     // Configurer le client SMTP
+    console.log("Configuration du client SMTP avec les paramètres suivants:");
+    console.log({
+      hostname: smtpConfig.host,
+      port: parseInt(smtpConfig.port),
+      tls: smtpConfig.secure,
+      auth: {
+        username: smtpConfig.username,
+        password: "***HIDDEN***" // Ne pas logger le mot de passe
+      }
+    });
+    
     const client = new SMTPClient({
       connection: {
         hostname: smtpConfig.host,
@@ -123,7 +163,7 @@ serve(async (req) => {
       
       console.log("Préparation de l'email pour:", clientEmail);
       console.log("Sujet:", emailSubject);
-      console.log("Contenu texte:", emailBody);
+      console.log("Contenu texte (aperçu):", emailBody.substring(0, 100) + "...");
       
       // Format RFC-compliant pour le champ From
       const fromField = `"${smtpConfig.from_name}" <${smtpConfig.from_email}>`;
@@ -134,8 +174,10 @@ serve(async (req) => {
         throw new Error("Propriétés d'email manquantes");
       }
       
+      console.log("Tentative d'envoi d'email...");
+      
       // Envoi de l'email avec des options simples pour maximiser la compatibilité
-      await client.send({
+      const emailResult = await client.send({
         from: fromField,
         to: clientEmail,
         subject: emailSubject,
@@ -150,15 +192,19 @@ serve(async (req) => {
         }
       });
       
+      console.log("Résultat de l'envoi:", JSON.stringify(emailResult, null, 2));
+      
       // Fermez proprement la connexion après utilisation
       await client.close();
       
       console.log("Email envoyé avec succès à:", clientEmail);
+      console.log("Connexion SMTP fermée");
       
       return new Response(
         JSON.stringify({
           success: true,
           message: "Email envoyé avec succès",
+          details: emailResult
         }),
         {
           status: 200,
@@ -171,6 +217,7 @@ serve(async (req) => {
       
       try {
         await client.close();
+        console.log("Connexion SMTP fermée après erreur");
       } catch (closeError) {
         console.error("Erreur supplémentaire lors de la fermeture du client:", closeError);
       }
@@ -188,7 +235,7 @@ serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error("Erreur lors de l'envoi de l'email:", error);
+    console.error("Erreur lors du traitement de la requête:", error);
     console.error("Détails de l'erreur:", JSON.stringify(error, null, 2));
     
     return new Response(
