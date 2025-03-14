@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
 import { deleteAllProducts, deleteProduct } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Plus, Trash2, Tag, Award } from "lucide-react";
+import { Plus, Trash2, Tag, Award, List, Grid3X3 } from "lucide-react";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "sonner";
 import { 
@@ -25,11 +25,14 @@ import { getProducts } from "@/services/catalogService";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import BrandManager from "@/components/catalog/BrandManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AccordionProductList from "@/components/catalog/AccordionProductList";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const Catalog = () => {
   const navigate = useNavigate();
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
+  const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
   
   // Cette requête est juste pour avoir un refetch à transmettre au ProductCatalog
   const { refetch } = useQuery({
@@ -61,6 +64,10 @@ const Catalog = () => {
 
   const handleSelectProduct = (product: Product) => {
     navigate(`/products/${product.id}`);
+  };
+
+  const handleProductDeleted = () => {
+    refetch();
   };
 
   return (
@@ -110,14 +117,29 @@ const Catalog = () => {
           </TabsList>
           
           <TabsContent value="catalog">
-            <ProductCatalog 
-              isOpen={true} 
-              onClose={() => {}}
-              onSelectProduct={handleSelectProduct}
-              isSheet={false}
-              title="Catalogue de produits"
-              description="Parcourez notre catalogue complet de produits technologiques"
-            />
+            <div className="mb-4 flex justify-end">
+              <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "grid" | "accordion")}>
+                <ToggleGroupItem value="accordion" aria-label="Voir en accordéon">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="grid" aria-label="Voir en grille">
+                  <Grid3X3 className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            
+            {viewMode === "accordion" ? (
+              <AccordionProductList onProductDeleted={handleProductDeleted} />
+            ) : (
+              <ProductCatalog 
+                isOpen={true} 
+                onClose={() => {}}
+                onSelectProduct={handleSelectProduct}
+                isSheet={false}
+                title="Catalogue de produits"
+                description="Parcourez notre catalogue complet de produits technologiques"
+              />
+            )}
           </TabsContent>
           
           <TabsContent value="categories">
