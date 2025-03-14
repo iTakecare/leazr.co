@@ -84,6 +84,7 @@ export default function ClientDetail() {
     try {
       const success = await createAccountForClient(client);
       if (success) {
+        // Recharger les données du client pour afficher les changements
         const updatedClient = await getClientById(id!);
         setClient(updatedClient);
         toast.success("Compte utilisateur créé et email de configuration envoyé");
@@ -125,8 +126,13 @@ export default function ClientDetail() {
     );
   }
 
-  // Vérification explicite du compte utilisateur
+  // Vérification explicite du compte utilisateur - ignore d'autres facteurs
   const hasUserAccount = Boolean(client.user_id) || Boolean(client.has_user_account);
+  console.log("Client account status:", { 
+    hasUserAccount, 
+    user_id: client.user_id, 
+    has_user_account: client.has_user_account 
+  });
 
   return (
     <div className="container py-8 space-y-6">

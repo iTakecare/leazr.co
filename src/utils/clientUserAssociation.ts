@@ -1,11 +1,10 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
  * Associe un compte utilisateur à un client basé sur l'email
  * Cette fonction cherche un client par email et met à jour son user_id
- * Améliorée pour éviter les duplications de clients
+ * REMARQUE: Cette fonction n'essaie plus de créer un client automatiquement
  */
 export const linkUserToClient = async (userId: string, userEmail: string): Promise<string | null> => {
   try {
@@ -121,48 +120,10 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
       return clientToUse.id;
     }
     
-    // 3. Si aucun client correspondant n'est trouvé, essayer de créer un client automatiquement
-    console.log("Aucun client trouvé pour cet email, création d'un client automatique");
-    
-    try {
-      // Récupérer les informations utilisateur depuis le profil
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, company')
-        .eq('id', userId)
-        .single();
-        
-      const displayName = profileData ? 
-        `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() : 
-        userEmail.split('@')[0];
-        
-      // Créer un nouveau client
-      const { data: newClient, error: createError } = await supabase
-        .from('clients')
-        .insert({
-          name: displayName,
-          email: userEmail,
-          company: profileData?.company || null,
-          user_id: userId,
-          has_user_account: true,
-          user_account_created_at: new Date().toISOString(),
-          status: 'active'
-        })
-        .select()
-        .single();
-        
-      if (createError) {
-        console.error("Erreur lors de la création du client:", createError);
-        return null;
-      }
-      
-      console.log("Client créé automatiquement:", newClient);
-      localStorage.setItem(`client_id_${userId}`, newClient.id);
-      return newClient.id;
-    } catch (error) {
-      console.error("Erreur lors de la création automatique du client:", error);
-      return null;
-    }
+    // 3. Si aucun client correspondant n'est trouvé, on ne crée PLUS de client automatiquement
+    console.log("Aucun client trouvé pour cet email, la création automatique est désactivée");
+    toast.warning("Aucun client correspondant à votre compte n'a été trouvé. Veuillez contacter l'administrateur.");
+    return null;
   } catch (error) {
     console.error("Erreur dans linkUserToClient:", error);
     return null;
@@ -170,7 +131,7 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
 };
 
 /**
- * Force l'association pour tous les clients sans user_id qui ont un email correspondant à un utilisateur
+ * Associe tous les clients sans user_id qui ont un email correspondant à un utilisateur
  * Fonction améliorée pour détecter les potentiels doublons et conflits
  * Utilise les nouveaux champs de suivi du compte utilisateur
  */
@@ -272,7 +233,7 @@ export const associateAllClientsWithUsers = async (): Promise<void> => {
 
 /**
  * Récupère l'ID du client associé à un utilisateur
- * Fonction améliorée pour une meilleure gestion des cas problématiques et des doublons
+ * Fonction modifiée pour ne plus créer de client automatiquement
  */
 export const getClientIdForUser = async (userId: string, userEmail: string | null): Promise<string | null> => {
   try {
@@ -361,36 +322,14 @@ export const getClientIdForUser = async (userId: string, userEmail: string | nul
           .eq('id', selectedClient.id);
       }
       
-      // Marquer les autres clients comme doublons
-      if (potentialClients.length > 1) {
-        const otherClientIds = potentialClients
-          .filter(client => client.id !== selectedClient.id)
-          .map(client => client.id);
-          
-        if (otherClientIds.length > 0) {
-          await supabase
-            .from('clients')
-            .update({
-              status: 'duplicate',
-              notes: `Marqué comme doublon le ${new Date().toISOString()}. ID du client principal: ${selectedClient.id}`
-            })
-            .in('id', otherClientIds);
-            
-          console.log(`${otherClientIds.length} clients marqués comme doublons`);
-        }
-      }
-      
       // Stocker l'ID en cache
       localStorage.setItem(`client_id_${userId}`, selectedClient.id);
       return selectedClient.id;
     }
     
-    // Si aucun client n'est trouvé et qu'un email est disponible, créer un client
-    if (userEmail) {
-      return await linkUserToClient(userId, userEmail);
-    }
-    
-    console.log("Aucun client trouvé pour cet utilisateur");
+    // N'essaye plus de créer un client automatiquement
+    console.log("Aucun client trouvé pour cet utilisateur et la création automatique est désactivée");
+    toast.warning("Aucun client correspondant à votre compte n'a été trouvé. Veuillez contacter l'administrateur.");
     return null;
   } catch (error) {
     console.error("Erreur dans getClientIdForUser:", error);

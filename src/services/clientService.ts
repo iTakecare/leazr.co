@@ -157,7 +157,8 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     const clientWithUserId = {
       ...clientData,
-      user_id: user.id
+      user_id: null,
+      has_user_account: false
     };
     
     const { data, error } = await supabase
