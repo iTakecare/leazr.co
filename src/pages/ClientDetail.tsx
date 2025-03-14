@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/utils/formatters";
 import Container from "@/components/layout/Container";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const getStatusVariant = (status: string) => {
   switch (status) {
@@ -313,9 +313,6 @@ const ClientDetail: React.FC = () => {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Ajouter un collaborateur</DialogTitle>
-                      <DialogDescription>
-                        Ajoutez un collaborateur pour ce client. Les données seront enregistrées dans les notes du client jusqu'à la mise à jour du schéma de base de données.
-                      </DialogDescription>
                     </DialogHeader>
                     <CollaboratorForm clientId={id || ''} onSuccess={handleCollaboratorAdded} />
                   </DialogContent>

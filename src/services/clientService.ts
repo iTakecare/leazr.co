@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -58,35 +57,6 @@ const mockClients = [
 ];
 
 const mapDbClientToClient = (record: any): Client => {
-  // Extract collaborators from notes if they exist
-  let collaborators: Collaborator[] = [];
-  
-  if (record.notes) {
-    // Look for collaborator entries in the notes
-    const collaboratorMatches = record.notes.match(/--- COLLABORATOR ---\n(\{.*?\})/gs);
-    
-    if (collaboratorMatches) {
-      collaboratorMatches.forEach((match: string) => {
-        try {
-          const collaboratorJson = match.replace('--- COLLABORATOR ---\n', '');
-          const collaborator = JSON.parse(collaboratorJson);
-          if (collaborator && collaborator.id && collaborator.name && collaborator.role && collaborator.email) {
-            collaborators.push({
-              id: collaborator.id,
-              name: collaborator.name,
-              role: collaborator.role,
-              email: collaborator.email,
-              phone: collaborator.phone,
-              department: collaborator.department
-            });
-          }
-        } catch (error) {
-          console.error("Error parsing collaborator data:", error);
-        }
-      });
-    }
-  }
-  
   return {
     id: record.id,
     name: record.name,
@@ -100,7 +70,7 @@ const mapDbClientToClient = (record: any): Client => {
     city: record.city,
     postal_code: record.postal_code,
     country: record.country,
-    collaborators: collaborators,
+    collaborators: record.collaborators || [],
     user_id: record.user_id,
     created_at: record.created_at ? new Date(record.created_at) : new Date(),
     updated_at: record.updated_at ? new Date(record.updated_at) : new Date()
@@ -285,11 +255,10 @@ export const addCollaborator = async (clientId: string, collaborator: Omit<Colla
       id: crypto.randomUUID()
     };
     
-    const notes = client.notes || '';
-    const collaboratorData = JSON.stringify(newCollaborator);
-    const updatedNotes = `${notes}\n\n--- COLLABORATOR ---\n${collaboratorData}`;
+    const existingCollaborators = client.collaborators || [];
+    const updatedCollaborators = [...existingCollaborators, newCollaborator];
     
-    const updated = await updateClient(clientId, { notes: updatedNotes });
+    const updated = await updateClient(clientId, { collaborators: updatedCollaborators });
     
     if (!updated) {
       throw new Error("Échec de la mise à jour du client");
@@ -322,14 +291,17 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
     
     const updatedCollaborators = client.collaborators.filter(c => c.id !== collaboratorId);
     
-    // Update mock data for testing
+    const updated = await updateClient(clientId, { collaborators: updatedCollaborators });
+    
+    if (!updated) {
+      throw new Error("Échec de la mise à jour du client");
+    }
+    
     const mockClientIndex = mockClients.findIndex(c => c.id === clientId);
     if (mockClientIndex >= 0) {
       mockClients[mockClientIndex].collaborators = updatedCollaborators;
     }
     
-    // We would need to regenerate the notes without this collaborator
-    // For now, this is a simplified implementation
     toast.success("Collaborateur supprimé avec succès");
     return true;
   } catch (error) {
