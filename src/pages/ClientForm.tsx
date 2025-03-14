@@ -48,7 +48,7 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 const ClientForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const isEditMode = !!id;
+  const isEditMode = !!id && id !== "new" && id !== "create";
 
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +74,7 @@ const ClientForm = () => {
 
   useEffect(() => {
     const fetchClient = async () => {
-      if (id) {
+      if (id && isEditMode) {
         try {
           const client = await getClientById(id);
           if (client) {
@@ -106,7 +106,7 @@ const ClientForm = () => {
     };
 
     fetchClient();
-  }, [id, form]);
+  }, [id, form, isEditMode]);
 
   const handleVerifyVatNumber = async () => {
     const vatNumber = form.getValues("vat_number");
@@ -185,27 +185,6 @@ const ClientForm = () => {
     }
   };
 
-  if (error) {
-    return (
-      <PageTransition>
-        <Container>
-          <div className="py-6">
-            <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-              <p className="text-red-600">{error}</p>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate("/clients")}
-                className="mt-2"
-              >
-                Retour à la liste des clients
-              </Button>
-            </div>
-          </div>
-        </Container>
-      </PageTransition>
-    );
-  }
-
   return (
     <PageTransition>
       <Container>
@@ -225,257 +204,270 @@ const ClientForm = () => {
             </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
-                <CardTitle>Informations du client</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Informations société</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="vat_number"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Numéro de TVA</FormLabel>
-                              <div className="flex">
-                                <FormControl>
-                                  <div className="relative flex-1">
-                                    <Input 
-                                      placeholder="Ex: BE0123456789, FR12345678901" 
-                                      {...field} 
-                                      className="pr-9"
-                                    />
-                                    {vatValid !== null && (
-                                      <div className="absolute right-9 top-1/2 -translate-y-1/2">
-                                        {vatValid ? (
-                                          <Check className="text-green-500 h-4 w-4" />
-                                        ) : (
-                                          <AlertCircle className="text-red-500 h-4 w-4" />
-                                        )}
-                                      </div>
+          {error ? (
+            <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+              <p className="text-red-600">{error}</p>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate("/clients")}
+                className="mt-2"
+              >
+                Retour à la liste des clients
+              </Button>
+            </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  <CardTitle>Informations du client</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Informations société</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="vat_number"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Numéro de TVA</FormLabel>
+                                <div className="flex">
+                                  <FormControl>
+                                    <div className="relative flex-1">
+                                      <Input 
+                                        placeholder="Ex: BE0123456789, FR12345678901" 
+                                        {...field} 
+                                        className="pr-9"
+                                      />
+                                      {vatValid !== null && (
+                                        <div className="absolute right-9 top-1/2 -translate-y-1/2">
+                                          {vatValid ? (
+                                            <Check className="text-green-500 h-4 w-4" />
+                                          ) : (
+                                            <AlertCircle className="text-red-500 h-4 w-4" />
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </FormControl>
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="icon"
+                                    className="ml-2"
+                                    onClick={handleVerifyVatNumber}
+                                    disabled={verifyingVat}
+                                  >
+                                    {verifyingVat ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Search className="h-4 w-4" />
                                     )}
-                                  </div>
-                                </FormControl>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="icon"
-                                  className="ml-2"
-                                  onClick={handleVerifyVatNumber}
-                                  disabled={verifyingVat}
-                                >
-                                  {verifyingVat ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Search className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Formats acceptés: BE0123456789, FR12345678901, DE123456789, LU12345678
-                              </p>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                  </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Formats acceptés: BE0123456789, FR12345678901, DE123456789, LU12345678
+                                </p>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <FormField
-                          control={form.control}
-                          name="company"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Société</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Nom de la société" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="mt-4">
-                        <FormField
-                          control={form.control}
-                          name="address"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Adresse</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Adresse complète" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                        <FormField
-                          control={form.control}
-                          name="city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Ville</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Ville" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="postal_code"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Code postal</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Code postal" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="country"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Pays</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Pays" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Informations de contact</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Nom*</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Nom du client" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Email du client" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Téléphone</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Numéro de téléphone" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="status"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Statut</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
+                          <FormField
+                            control={form.control}
+                            name="company"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Société</FormLabel>
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Sélectionner un statut" />
-                                  </SelectTrigger>
+                                  <Input placeholder="Nom de la société" {...field} />
                                 </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="active">Client actif</SelectItem>
-                                  <SelectItem value="inactive">Client inactif</SelectItem>
-                                  <SelectItem value="lead">Prospect</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="mt-4">
+                          <FormField
+                            control={form.control}
+                            name="address"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Adresse</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Adresse complète" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                          <FormField
+                            control={form.control}
+                            name="city"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Ville</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Ville" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="postal_code"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Code postal</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Code postal" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="country"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Pays</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Pays" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </div>
+
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Informations de contact</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nom*</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Nom du client" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Email du client" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Téléphone</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Numéro de téléphone" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="status"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Statut</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Sélectionner un statut" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="active">Client actif</SelectItem>
+                                    <SelectItem value="inactive">Client inactif</SelectItem>
+                                    <SelectItem value="lead">Prospect</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Notes</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Notes additionnelles" 
+                                className="min-h-[120px]"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
-                    <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Notes additionnelles" 
-                              className="min-h-[120px]"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => navigate("/clients")}
-                    >
-                      Annuler
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      disabled={isLoading}
-                      className="gap-2"
-                    >
-                      <Save className="h-4 w-4" />
-                      {isEditMode ? "Mettre à jour" : "Créer le client"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+                    <div className="flex justify-end gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => navigate("/clients")}
+                      >
+                        Annuler
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={isLoading}
+                        className="gap-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        {isEditMode ? "Mettre à jour" : "Créer le client"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </Container>
     </PageTransition>

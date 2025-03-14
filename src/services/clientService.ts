@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -107,6 +108,12 @@ export const getClients = async (): Promise<Client[]> => {
 
 export const getClientById = async (id: string): Promise<Client | null> => {
   try {
+    // Check if ID is a valid UUID
+    if (id === 'new' || id === 'create') {
+      console.log("Skipping fetch for new/create route");
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('clients')
       .select('*')
