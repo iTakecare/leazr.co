@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Building, FileText, Send, Download, RefreshCw, Trash2 } from "lucide-react";
+import { ChevronLeft, Building, FileText, Send, Download, RefreshCw, Trash2, CheckCircle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getOfferById, updateOfferStatus, getWorkflowLogs, deleteOffer } from "@/services/offerService";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -354,23 +353,152 @@ const OfferDetail = () => {
           </div>
           
           <div className="flex gap-2">
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Télécharger
+            </Button>
+          </div>
+        </div>
+        
+        {/* Nouvelle section: Étapes du workflow avec actions disponibles */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <h2 className="text-lg font-medium mb-4">
+            {offer.converted_to_contract 
+              ? "Gestion du contrat - Étapes du workflow" 
+              : "Gestion de l'offre - Étapes du workflow"}
+          </h2>
+          
+          <div className="flex flex-wrap gap-3">
             {availableActions.map((action, index) => (
               <Button 
                 key={action.label}
                 onClick={action.onClick}
                 className={action.className}
                 disabled={isUpdatingStatus}
-                variant="default"
+                variant={action.label.includes("Supprimer") ? "destructive" : "default"}
+                size="lg"
               >
-                <action.icon className="mr-2 h-4 w-4" />
+                <action.icon className="mr-2 h-5 w-5" />
                 {action.label}
               </Button>
             ))}
             
-            <Button variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Télécharger
-            </Button>
+            {availableActions.length === 0 && (
+              <div className="text-gray-500 italic p-2">
+                {offer.converted_to_contract
+                  ? "Aucune action disponible pour ce statut de contrat"
+                  : "Aucune action disponible pour ce statut d'offre"}
+              </div>
+            )}
+          </div>
+          
+          {/* Indicateur visuel des étapes du workflow */}
+          <div className="mt-6">
+            {offer.converted_to_contract ? (
+              <div className="flex items-center justify-between">
+                <ProgressStep 
+                  label="Contrat envoyé" 
+                  isActive={offer.contract_status === contractStatuses.CONTRACT_SENT}
+                  isCompleted={[
+                    contractStatuses.CONTRACT_SIGNED, 
+                    contractStatuses.EQUIPMENT_ORDERED,
+                    contractStatuses.DELIVERED,
+                    contractStatuses.ACTIVE,
+                    contractStatuses.COMPLETED
+                  ].includes(offer.contract_status || '')}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Contrat signé" 
+                  isActive={offer.contract_status === contractStatuses.CONTRACT_SIGNED}
+                  isCompleted={[
+                    contractStatuses.EQUIPMENT_ORDERED,
+                    contractStatuses.DELIVERED,
+                    contractStatuses.ACTIVE,
+                    contractStatuses.COMPLETED
+                  ].includes(offer.contract_status || '')}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Équipement commandé" 
+                  isActive={offer.contract_status === contractStatuses.EQUIPMENT_ORDERED}
+                  isCompleted={[
+                    contractStatuses.DELIVERED,
+                    contractStatuses.ACTIVE,
+                    contractStatuses.COMPLETED
+                  ].includes(offer.contract_status || '')}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Livré" 
+                  isActive={offer.contract_status === contractStatuses.DELIVERED}
+                  isCompleted={[
+                    contractStatuses.ACTIVE,
+                    contractStatuses.COMPLETED
+                  ].includes(offer.contract_status || '')}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Actif" 
+                  isActive={offer.contract_status === contractStatuses.ACTIVE}
+                  isCompleted={[
+                    contractStatuses.COMPLETED
+                  ].includes(offer.contract_status || '')}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Terminé" 
+                  isActive={offer.contract_status === contractStatuses.COMPLETED}
+                  isCompleted={false}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <ProgressStep 
+                  label="Brouillon" 
+                  isActive={offer.workflow_status === OFFER_STATUSES.DRAFT.id}
+                  isCompleted={[
+                    OFFER_STATUSES.SENT.id, 
+                    OFFER_STATUSES.APPROVED.id,
+                    OFFER_STATUSES.LEASER_REVIEW.id,
+                    OFFER_STATUSES.FINANCED.id
+                  ].includes(offer.workflow_status || '')}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Envoyée" 
+                  isActive={offer.workflow_status === OFFER_STATUSES.SENT.id}
+                  isCompleted={[
+                    OFFER_STATUSES.APPROVED.id,
+                    OFFER_STATUSES.LEASER_REVIEW.id,
+                    OFFER_STATUSES.FINANCED.id
+                  ].includes(offer.workflow_status || '')}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Approuvée" 
+                  isActive={offer.workflow_status === OFFER_STATUSES.APPROVED.id}
+                  isCompleted={[
+                    OFFER_STATUSES.LEASER_REVIEW.id,
+                    OFFER_STATUSES.FINANCED.id
+                  ].includes(offer.workflow_status || '')}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Valid. bailleur" 
+                  isActive={offer.workflow_status === OFFER_STATUSES.LEASER_REVIEW.id}
+                  isCompleted={[
+                    OFFER_STATUSES.FINANCED.id
+                  ].includes(offer.workflow_status || '')}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Financée" 
+                  isActive={offer.workflow_status === OFFER_STATUSES.FINANCED.id}
+                  isCompleted={false}
+                />
+              </div>
+            )}
           </div>
         </div>
         
@@ -665,6 +793,30 @@ const OfferDetail = () => {
       </Dialog>
     </PageTransition>
   );
+};
+
+// Composants pour l'affichage du statut du workflow
+const ProgressStep = ({ label, isActive, isCompleted }: { label: string, isActive: boolean, isCompleted: boolean }) => {
+  let className = "flex flex-col items-center";
+  
+  return (
+    <div className={className}>
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
+        isActive 
+          ? "bg-blue-500 text-white" 
+          : isCompleted 
+            ? "bg-green-500 text-white" 
+            : "bg-gray-200 text-gray-500"
+      }`}>
+        {isCompleted ? <CheckCircle className="h-5 w-5" /> : <div className="text-sm">{label.charAt(0)}</div>}
+      </div>
+      <div className={`text-xs text-center ${isActive ? "font-bold" : ""}`}>{label}</div>
+    </div>
+  );
+};
+
+const ProgressLine = () => {
+  return <div className="flex-1 h-0.5 bg-gray-200 mx-1" />;
 };
 
 export default OfferDetail;
