@@ -302,6 +302,20 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
+    // Check if the client already has a user account
+    const { data: existingClients, error: checkError } = await supabase
+      .from('clients')
+      .select('user_id')
+      .eq('email', client.email);
+      
+    if (checkError) {
+      console.error("Error checking existing client:", checkError);
+    } else if (existingClients && existingClients.length > 0 && existingClients[0].user_id) {
+      console.log("Client already has a user account:", existingClients[0].user_id);
+      toast.warning("Ce client a déjà un compte utilisateur associé");
+      return false;
+    }
+    
     const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
     
     // Get the actual site URL
@@ -310,36 +324,36 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     
     try {
       // Créer un nouvel utilisateur
-      const { data: userData, error: signupError } = await supabase.auth.signUp({
+      const { data: userData, error: signupError } = await adminSupabase.auth.admin.createUser({
         email: client.email,
         password: tempPassword,
-        options: {
-          data: {
-            first_name: client.name.split(' ')[0],
-            last_name: client.name.split(' ').slice(1).join(' '),
-            role: 'client',
-            company: client.company || null
-          }
+        email_confirm: true,
+        user_metadata: {
+          first_name: client.name.split(' ')[0],
+          last_name: client.name.split(' ').slice(1).join(' '),
+          role: 'client',
+          company: client.company || null
         }
       });
       
       if (signupError) {
-        console.log("Sign up error, likely user exists:", signupError.message);
-      } else {
-        console.log("New user created successfully");
-        
-        // Important: Si l'utilisateur a été créé, mettre à jour la fiche client avec l'user_id
-        if (userData && userData.user) {
-          const { error: updateError } = await supabase
-            .from('clients')
-            .update({ user_id: userData.user.id })
-            .eq('id', client.id);
-            
-          if (updateError) {
-            console.error("Error updating client with user_id:", updateError);
-          } else {
-            console.log("Client updated with user_id:", userData.user.id);
-          }
+        console.log("Sign up error:", signupError.message);
+        throw signupError;
+      } 
+      
+      console.log("New user created successfully:", userData?.user?.id);
+      
+      // Important: Si l'utilisateur a été créé, mettre à jour la fiche client avec l'user_id
+      if (userData && userData.user) {
+        const { error: updateError } = await supabase
+          .from('clients')
+          .update({ user_id: userData.user.id })
+          .eq('id', client.id);
+          
+        if (updateError) {
+          console.error("Error updating client with user_id:", updateError);
+        } else {
+          console.log("Client updated with user_id:", userData.user.id);
         }
       }
       

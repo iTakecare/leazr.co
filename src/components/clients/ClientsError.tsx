@@ -16,6 +16,11 @@ const ClientsError = ({ errorMessage, onRetry }: ClientsErrorProps) => {
       <Alert className="my-8 border-red-300 bg-red-50 dark:bg-red-950/20">
         <AlertTriangle className="h-5 w-5 text-red-500" />
         <AlertDescription className="mt-2 text-lg font-medium text-red-500">{errorMessage}</AlertDescription>
+        
+        <div className="mt-4 text-sm text-red-500">
+          <p>Veuillez vérifier que votre compte utilisateur est bien associé à un client existant dans le système.</p>
+          <p>Si le problème persiste, contactez votre administrateur.</p>
+        </div>
       </Alert>
       
       <div className="flex gap-4 mt-6 justify-center">
