@@ -91,6 +91,9 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 
   // Si le workflow_status n'est pas défini, utilisez un statut par défaut
   const workflowStatus = offer.workflow_status || 'draft';
+  
+  console.log("OfferDetailCard - workflowStatus:", workflowStatus);
+  console.log("OfferDetailCard - original offer.workflow_status:", offer.workflow_status);
 
   return (
     <Card className="mb-4">

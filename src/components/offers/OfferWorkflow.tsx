@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
@@ -196,15 +195,20 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
   const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
-  const currentStepInfo = workflowSteps.find(step => step.id === currentStatus);
-  const nextStepOptions = getNextStepOptions(currentStatus);
+  const validStatus = workflowSteps.some(step => step.id === currentStatus)
+    ? currentStatus 
+    : 'draft';
+
+  const currentStepInfo = workflowSteps.find(step => step.id === validStatus);
+  const nextStepOptions = getNextStepOptions(validStatus);
   
-  // Pour déboguer les problèmes d'affichage
   useEffect(() => {
-    console.log("OfferWorkflow - Current status:", currentStatus);
+    console.log("OfferWorkflow - Current status (raw):", currentStatus);
+    console.log("OfferWorkflow - Valid status used:", validStatus);
     console.log("OfferWorkflow - Current step info:", currentStepInfo);
     console.log("OfferWorkflow - Next step options:", nextStepOptions);
-  }, [currentStatus, currentStepInfo, nextStepOptions]);
+    console.log("OfferWorkflow - Offer ID:", offerId);
+  }, [currentStatus, validStatus, currentStepInfo, nextStepOptions, offerId]);
 
   const handleNextStepSelect = (nextStepId: string) => {
     console.log("Next step selected:", nextStepId);
@@ -261,12 +265,10 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
     }
   };
 
-  // Vérifie si une étape est disponible comme prochaine étape
   const isAvailableNextStep = (stepId: string) => {
     return nextStepOptions.some(option => option.id === stepId);
   };
 
-  // Gère le clic sur une étape en mode visuel
   const handleStepClick = (stepId: string) => {
     if (stepId === currentStatus) {
       return; // Ne rien faire si c'est l'étape actuelle
@@ -305,7 +307,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
             <div className="flex items-center space-x-2">
               <div className={cn(
                 "flex items-center px-3 py-2 rounded-md border-2",
-                getStatusColor(currentStatus)
+                getStatusColor(validStatus)
               )}>
                 {currentStepInfo ? (
                   <>
@@ -313,7 +315,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                     <span className="font-medium">{currentStepInfo.label}</span>
                   </>
                 ) : (
-                  <span className="font-medium">Statut: {currentStatus || "Non défini"}</span>
+                  <span className="font-medium">Statut: {validStatus || "Non défini"}</span>
                 )}
               </div>
             </div>
@@ -349,7 +351,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             {workflowSteps.map((step, index) => {
               const Icon = step.icon;
-              const isActive = step.id === currentStatus;
+              const isActive = step.id === validStatus;
               const isClickable = isAvailableNextStep(step.id) || isActive;
               
               return (
