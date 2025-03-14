@@ -111,14 +111,12 @@ export const getClientById = async (id: string): Promise<Client | null> => {
   try {
     console.log(`getClientById called with id: ${id}`);
     
-    // Handle special routes - IMPORTANT: Return null for routes like "new", "create", etc.
     const specialRoutes = ['new', 'create'];
     if (!id || specialRoutes.includes(id.toLowerCase())) {
       console.log(`Special route detected: ${id} - Skipping client fetch`);
       return null;
     }
     
-    // UUID validation regex
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
       console.log(`Invalid UUID format for client ID: ${id} - Returning null`);
@@ -162,7 +160,7 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
       user_id: null
     };
     
-    const { data, error } = await supabase
+    const { data, error } = await adminSupabase
       .from('clients')
       .insert(clientWithUserId)
       .select()
@@ -175,7 +173,6 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     console.log("Client created successfully:", data);
     
-    // Automatiquement créer un compte utilisateur pour le client si un email est fourni
     let updatedData = data;
     if (data && data.email) {
       console.log("Creating user account for new client...");
@@ -184,7 +181,6 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
       if (accountCreated) {
         console.log("User account created and invitation sent for the new client");
         
-        // Récupérer le client mis à jour avec user_id
         const { data: refreshedData } = await supabase
           .from('clients')
           .select('*')
@@ -228,7 +224,6 @@ export const updateClient = async (id: string, clientData: Partial<CreateClientD
 
 export const deleteClient = async (id: string): Promise<boolean> => {
   try {
-    // Vérifier d'abord si le client a des offres associées
     const { data: offers, error: offersError } = await supabase
       .from('offers')
       .select('id')
@@ -244,7 +239,6 @@ export const deleteClient = async (id: string): Promise<boolean> => {
       return false;
     }
     
-    // Si aucune offre n'est associée, procéder à la suppression
     const { error } = await supabase
       .from('clients')
       .delete()
@@ -393,7 +387,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
-    // Vérifier si un compte utilisateur existe déjà
     const { data: existingClients, error: checkError } = await supabase
       .from('clients')
       .select('user_id, has_user_account')
@@ -408,7 +401,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
         console.log("Client already has a user account:", existingClient.user_id);
         toast.warning("Ce client a déjà un compte utilisateur associé");
         
-        // Si le client a un compte mais qu'il doit réinitialiser son mot de passe
         if (existingClient.user_id) {
           console.log("Resending password reset for existing user");
           return await resetClientPassword(client.email);
@@ -417,7 +409,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       }
     }
     
-    // Générer un mot de passe temporaire fort
     const generateStrongPassword = () => {
       const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
@@ -434,17 +425,14 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
         password += allChars.charAt(Math.floor(Math.random() * allChars.length));
       }
       
-      // Mélanger le mot de passe
       return password.split('').sort(() => 0.5 - Math.random()).join('');
     };
     
     const tempPassword = generateStrongPassword();
     
-    // Obtenir l'URL du site pour la redirection
     const siteUrl = window.location.origin;
     console.log("Using site URL for redirect:", siteUrl);
     
-    // Créer l'utilisateur avec des données de profil
     try {
       console.log("Creating user account with admin auth...");
       
@@ -469,7 +457,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       } catch (adminError) {
         console.error("Error using admin auth:", adminError);
         
-        // Fallback: utiliser l'inscription normale
         console.log("Fallback to regular signup...");
         const signupResult = await supabase.auth.signUp({
           email: client.email,
@@ -495,7 +482,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       
       console.log("New user created successfully:", userData?.user?.id);
       
-      // Mettre à jour le client avec l'ID utilisateur
       if (userData && userData.user) {
         const { error: updateError } = await supabase
           .from('clients')
@@ -513,7 +499,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
         }
       }
       
-      // Envoyer l'email de réinitialisation avec les bonnes redirections
       console.log("Sending password reset email for new account");
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(client.email, {
         redirectTo: `${siteUrl}/login`
@@ -568,4 +553,3 @@ export const resetClientPassword = async (email: string): Promise<boolean> => {
     return false;
   }
 };
-

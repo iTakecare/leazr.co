@@ -33,7 +33,7 @@ export const getSupabaseClient = () => {
 // Function to get admin supabase client
 export const getAdminSupabaseClient = () => {
   if (!adminSupabaseInstance) {
-    adminSupabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    adminSupabaseInstance = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: {
         persistSession: false,
       },
