@@ -1,9 +1,6 @@
 
 import React from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { Link } from "react-router-dom";
 
 interface OffersFilterProps {
   activeTab: string;
@@ -33,13 +30,6 @@ const OffersFilter = ({ activeTab, onTabChange, activeType, onTypeChange }: Offe
           </TabsList>
         </Tabs>
       </div>
-      
-      <Button asChild className="shadow-md bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary">
-        <Link to="/create-offer">
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvelle offre
-        </Link>
-      </Button>
     </div>
   );
 };
