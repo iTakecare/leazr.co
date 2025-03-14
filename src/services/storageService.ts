@@ -87,6 +87,12 @@ async function createPublicPolicy(bucketName: string): Promise<void> {
     
     if (error) {
       console.warn(`Could not create public access policy for ${bucketName}:`, error);
+      
+      // Fallback: Try to directly make the bucket objects public through storage API
+      const { error: policyError } = await supabase.storage.from(bucketName).getPublicUrl('test');
+      if (policyError) {
+        console.warn(`Could not verify public access for ${bucketName}:`, policyError);
+      }
     }
   } catch (error) {
     console.warn(`Error creating policy for ${bucketName}:`, error);

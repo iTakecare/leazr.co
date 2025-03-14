@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProductById, updateProduct, deleteProduct, uploadProductImage } from "@/services/catalogService";
+import { getProductById, updateProduct, deleteProduct, uploadProductImage, uploadMultipleProductImages } from "@/services/catalogService";
 import Container from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Trash2, Upload, PlusCircle, MinusCircle, ChevronDown, ChevronUp, Tag, Package, Layers, Euro } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Upload, PlusCircle, MinusCircle, ChevronDown, ChevronUp, Tag, Package, Layers, Euro, X, Image } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Product, ProductVariant } from "@/types/catalog";
@@ -82,6 +81,9 @@ const ProductDetail = () => {
   const [parentProduct, setParentProduct] = useState<Product | null>(null);
   const [showVariants, setShowVariants] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   
   const productQuery = useQuery({
     queryKey: ["product", id],
@@ -120,6 +122,10 @@ const ProductDetail = () => {
       
       if (productQuery.data.parent_id) {
         fetchParentProduct(productQuery.data.parent_id);
+      }
+      
+      if (productQuery.data.image_urls) {
+        setAdditionalImages(productQuery.data.image_urls);
       }
     } else if (productQuery.isError) {
       setIsLoading(false);
@@ -184,18 +190,25 @@ const ProductDetail = () => {
   });
   
   const imageMutation = useMutation({
-    mutationFn: ({ file, id }: { file: File; id: string }) => 
-      uploadProductImage(file, id),
-    onSuccess: (imageUrl: string) => {
-      setFormData(prev => ({ ...prev, imageUrl }));
-      updateMutation.mutate({ 
-        id: id!, 
-        data: { imageUrl } 
-      });
-      toast.success("Image mise à jour avec succès");
+    mutationFn: ({ files, id }: { files: File[]; id: string }) => 
+      uploadMultipleProductImages(files, id),
+    onSuccess: (imageUrls: string[]) => {
+      if (imageUrls.length > 0) {
+        setFormData(prev => ({ 
+          ...prev, 
+          imageUrl: imageUrls[0],
+          image_urls: imageUrls.slice(1)
+        }));
+        setAdditionalImages(imageUrls.slice(1));
+        setImageFiles([]);
+        setImagePreviews([]);
+        toast.success("Images mises à jour avec succès");
+      } else {
+        toast.error("Aucune image n'a été téléchargée");
+      }
     },
     onError: (error) => {
-      toast.error("Erreur lors de la mise à jour de l'image");
+      toast.error("Erreur lors de la mise à jour des images");
       console.error("Image upload error:", error);
     }
   });
@@ -242,9 +255,53 @@ const ProductDetail = () => {
   };
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && id) {
-      imageMutation.mutate({ file, id });
+    const files = e.target.files;
+    if (!files || !id) return;
+    
+    const newFiles = Array.from(files).slice(0, 5 - imageFiles.length);
+    if (newFiles.length === 0) return;
+    
+    const updatedFiles = [...imageFiles, ...newFiles].slice(0, 5);
+    setImageFiles(updatedFiles);
+    
+    newFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => {
+          const updated = [...prev, reader.result as string];
+          return updated.slice(0, 5);
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+  
+  const removeImagePreview = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const uploadImages = () => {
+    if (imageFiles.length > 0 && id) {
+      imageMutation.mutate({ files: imageFiles, id });
+    } else {
+      toast.error("Veuillez sélectionner au moins une image");
+    }
+  };
+  
+  const removeAdditionalImage = async (imageUrl: string, index: number) => {
+    try {
+      const newAdditionalImages = [...additionalImages];
+      newAdditionalImages.splice(index, 1);
+      setAdditionalImages(newAdditionalImages);
+      
+      if (id) {
+        await updateProduct(id, { image_urls: newAdditionalImages });
+        toast.success("Image supprimée avec succès");
+      }
+    } catch (error) {
+      console.error("Error removing additional image:", error);
+      toast.error("Erreur lors de la suppression de l'image");
     }
   };
   
@@ -320,6 +377,7 @@ const ProductDetail = () => {
         <Tabs defaultValue="general">
           <TabsList className="mb-4">
             <TabsTrigger value="general">Informations générales</TabsTrigger>
+            <TabsTrigger value="images">Images ({additionalImages.length + (formData.imageUrl ? 1 : 0)})</TabsTrigger>
             <TabsTrigger value="specifications">Spécifications</TabsTrigger>
             <TabsTrigger value="variants">Variantes {variants.length > 0 && `(${variants.length})`}</TabsTrigger>
           </TabsList>
@@ -501,6 +559,148 @@ const ProductDetail = () => {
                   )}
                 </div>
               </div>
+            </TabsContent>
+            
+            <TabsContent value="images" className="space-y-6">
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-medium mb-4">Images du produit (max 5)</h3>
+                  
+                  <div className="mb-6">
+                    <h4 className="text-md font-medium mb-2">Image principale</h4>
+                    <div className="border rounded-md overflow-hidden aspect-video md:aspect-square w-full md:w-64 mb-4">
+                      {formData.imageUrl ? (
+                        <img
+                          src={formData.imageUrl as string}
+                          alt={formData.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-muted">
+                          <p className="text-muted-foreground">Aucune image principale</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="mb-6">
+                    <h4 className="text-md font-medium mb-2">Images additionnelles ({additionalImages.length}/4)</h4>
+                    {additionalImages.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {additionalImages.map((imageUrl, index) => (
+                          <div key={index} className="relative border rounded-md overflow-hidden aspect-square">
+                            <img
+                              src={imageUrl}
+                              alt={`${formData.name} - Image ${index + 2}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2"
+                              onClick={() => removeAdditionalImage(imageUrl, index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground mb-4">Aucune image additionnelle</p>
+                    )}
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="mb-6">
+                    <h4 className="text-md font-medium mb-2">Télécharger de nouvelles images</h4>
+                    
+                    {imagePreviews.length > 0 ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {imagePreviews.map((preview, index) => (
+                            <div key={index} className="relative border rounded-md overflow-hidden aspect-square">
+                              <img
+                                src={preview}
+                                alt={`Aperçu ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2"
+                                onClick={() => removeImagePreview(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          
+                          {imagePreviews.length < 5 && (
+                            <div 
+                              className="border border-dashed rounded-md flex items-center justify-center cursor-pointer aspect-square bg-muted/50" 
+                              onClick={() => document.getElementById("image-upload")?.click()}
+                            >
+                              <div className="text-center space-y-1">
+                                <PlusCircle className="mx-auto h-6 w-6 text-muted-foreground" />
+                                <p className="text-xs text-muted-foreground">Ajouter</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <Button 
+                          type="button" 
+                          onClick={uploadImages}
+                          disabled={imageMutation.isPending}
+                        >
+                          {imageMutation.isPending ? (
+                            <span className="flex items-center">
+                              <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
+                              Téléchargement en cours...
+                            </span>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" /> Télécharger les images
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center border border-dashed rounded-md p-6 cursor-pointer" onClick={() => document.getElementById("image-upload")?.click()}>
+                        <div className="text-center space-y-2">
+                          <Image className="mx-auto h-8 w-8 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">Cliquez pour télécharger des images (max 5)</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                      multiple
+                    />
+                    
+                    <p className="text-xs text-muted-foreground mt-2">
+                      La première image sera utilisée comme image principale, les autres comme images additionnelles.
+                      Maximum 5 images au total.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
             
             <TabsContent value="specifications" className="space-y-6">

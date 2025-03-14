@@ -189,6 +189,10 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
 
 export async function uploadMultipleProductImages(files: File[], productId: string): Promise<string[]> {
   try {
+    if (!files.length) {
+      return [];
+    }
+    
     // Get product name for SEO-optimized alt texts
     const product = await getProductById(productId);
     const productName = product?.name || '';
@@ -207,18 +211,14 @@ export async function uploadMultipleProductImages(files: File[], productId: stri
     const uploadedUrls = uploadedImages.map(img => img.url);
     const uploadedAlts = uploadedImages.map(img => img.altText);
     
-    // Get the current product
-    if (!product) {
-      throw new Error('Product not found');
-    }
-    
-    // Update the product with the first image as main image
+    // Update the product with the first image as main image and the rest as additional images
     if (uploadedUrls.length > 0) {
       await updateProduct(productId, { 
         image_url: uploadedUrls[0],
         // Use optional property for imageAlt
         ...(uploadedAlts[0] ? { image_alt: uploadedAlts[0] } : {}),
-        image_urls: uploadedUrls.slice(1, 5), // Max 4 additional images
+        // If there are additional images, include them
+        ...(uploadedUrls.length > 1 ? { image_urls: uploadedUrls.slice(1, 5) } : {}),
         // Use optional property for imageAlts
         ...(uploadedAlts.length > 1 ? { image_alts: uploadedAlts.slice(1, 5) } : {})
       });
