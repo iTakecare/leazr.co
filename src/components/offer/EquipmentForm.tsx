@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -153,7 +154,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
                   value={equipment.title}
                   onChange={(e) => handleChange('title', e.target.value)}
                   className={errors.title ? "border-destructive" : ""}
-                  placeholder="Ex: Laptop HP ProBook 450 G8"
+                  placeholder=""
                 />
                 <Button 
                   type="button" 
