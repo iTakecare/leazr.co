@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   TrendingUp, 
@@ -18,7 +17,6 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { TimeFilterSelector } from "@/components/dashboard/TimeFilterSelector";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
-import ClientRequestsNotifications from "@/components/clients/ClientRequestsNotifications";
 import AdminOffersNotifications from "@/components/offers/AdminOffersNotifications";
 
 const Dashboard = () => {
@@ -185,14 +183,6 @@ const Dashboard = () => {
           transition={{ delay: 0.3, duration: 0.5 }}
         >
           <AdminOffersNotifications />
-        </motion.div>
-        
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-        >
-          <ClientRequestsNotifications />
         </motion.div>
       </div>
     </div>
