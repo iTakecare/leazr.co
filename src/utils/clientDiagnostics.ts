@@ -74,7 +74,11 @@ export const verifyClientUserAssociation = async (userId: string, userEmail: str
       
       const { error } = await supabase
         .from('clients')
-        .update({ user_id: userId })
+        .update({ 
+          user_id: userId,
+          has_user_account: true,
+          user_account_created_at: new Date().toISOString()
+        })
         .eq('id', clientToAssociate.id);
         
       if (!error) {
@@ -91,7 +95,11 @@ export const verifyClientUserAssociation = async (userId: string, userEmail: str
       
       const { error } = await supabase
         .from('clients')
-        .update({ user_id: userId })
+        .update({ 
+          user_id: userId,
+          has_user_account: true,
+          user_account_created_at: new Date().toISOString() 
+        })
         .eq('id', results.currentlyViewedClient.id);
         
       if (!error) {
@@ -218,7 +226,11 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
       
       const { error: updateUserIdError } = await supabase
         .from('clients')
-        .update({ user_id: sourceClient.user_id })
+        .update({ 
+          user_id: sourceClient.user_id,
+          has_user_account: true,
+          user_account_created_at: sourceClient.user_account_created_at || new Date().toISOString()
+        })
         .eq('id', targetClientId);
         
       if (updateUserIdError) {
@@ -233,6 +245,7 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
       .update({ 
         status: 'inactive',
         user_id: null, // Retirer l'association utilisateur
+        has_user_account: false, // Marquer comme n'ayant plus de compte
         notes: `${sourceClient.notes ? sourceClient.notes + "\n\n" : ""}Client fusionné avec ${targetClient.name} (${targetClientId}) le ${new Date().toISOString()}`
       })
       .eq('id', sourceClientId);
@@ -255,26 +268,28 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
 /**
  * Vérifie si une adresse email a un compte utilisateur associé
  * Cette fonction est utilisée pour vérifier si un client peut récupérer son mot de passe
+ * Utilise la nouvelle fonction SQL pour plus d'efficacité
  */
 export const checkUserExistenceByEmail = async (email: string) => {
   try {
-    // Vérifier d'abord si l'email existe dans auth.users
-    const { data: userData, error: userError } = await supabase.auth.admin
-      .getUserByEmail(email);
-      
-    if (userError) {
-      console.error("Erreur lors de la vérification de l'utilisateur:", userError);
+    // Utiliser la nouvelle fonction SQL pour vérifier si l'utilisateur existe
+    const { data, error } = await supabase.rpc('check_user_exists_by_email', {
+      user_email: email
+    });
+    
+    if (error) {
+      console.error("Erreur lors de la vérification de l'utilisateur:", error);
       return false;
     }
     
-    if (userData?.user) {
+    if (data === true) {
       return true; // Un utilisateur avec cet email existe
     }
     
-    // Vérifier si l'email existe dans la table clients
+    // Si aucun utilisateur n'existe, vérifier s'il y a un client avec cet email
     const { data: clientData, error: clientError } = await supabase
       .from('clients')
-      .select('id, name, email')
+      .select('id, name, email, has_user_account')
       .eq('email', email)
       .maybeSingle();
       
@@ -283,7 +298,8 @@ export const checkUserExistenceByEmail = async (email: string) => {
       return false;
     }
     
-    return clientData ? true : false; // Renvoie true si un client avec cet email existe
+    // Retourner true uniquement si le client existe et a déjà un compte utilisateur
+    return clientData ? clientData.has_user_account : false;
   } catch (error) {
     console.error("Erreur dans checkUserExistenceByEmail:", error);
     return false;

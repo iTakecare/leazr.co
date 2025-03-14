@@ -5,7 +5,7 @@ import { toast } from "sonner";
 /**
  * Associe un compte utilisateur à un client basé sur l'email
  * Cette fonction cherche un client par email et met à jour son user_id
- * Améliorée pour éviter les doublons et clarifier les relations client-utilisateur
+ * Améliorée pour utiliser les nouveaux champs de suivi du compte utilisateur
  */
 export const linkUserToClient = async (userId: string, userEmail: string): Promise<string | null> => {
   try {
@@ -19,7 +19,7 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
     // 1. D'abord, vérifier si un client est déjà associé à cet utilisateur
     const { data: existingClientByUserId, error: userIdError } = await supabase
       .from('clients')
-      .select('id, name, email, user_id')
+      .select('id, name, email, user_id, has_user_account')
       .eq('user_id', userId)
       .maybeSingle();
     
@@ -37,7 +37,7 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
     // 2. Vérifier s'il existe un client avec le même email que l'utilisateur
     const { data: existingClientByEmail, error: emailError } = await supabase
       .from('clients')
-      .select('id, name, user_id, email')
+      .select('id, name, user_id, email, has_user_account')
       .eq('email', userEmail)
       .maybeSingle();
       
@@ -73,7 +73,11 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
         
         const { error: updateError } = await supabase
           .from('clients')
-          .update({ user_id: userId })
+          .update({ 
+            user_id: userId,
+            has_user_account: true,
+            user_account_created_at: new Date().toISOString()
+          })
           .eq('id', existingClientByEmail.id);
           
         if (updateError) {
@@ -104,6 +108,8 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
         name: formattedName,
         email: userEmail,
         user_id: userId,
+        has_user_account: true,
+        user_account_created_at: new Date().toISOString(),
         status: 'active'
       })
       .select('id, name')
@@ -128,13 +134,14 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
 /**
  * Force l'association pour tous les clients sans user_id qui ont un email correspondant à un utilisateur
  * Fonction améliorée pour détecter les potentiels doublons et conflits
+ * Utilise les nouveaux champs de suivi du compte utilisateur
  */
 export const associateAllClientsWithUsers = async (): Promise<void> => {
   try {
     // Récupérer tous les clients sans user_id
     const { data: clientsWithoutUsers, error: clientsError } = await supabase
       .from('clients')
-      .select('id, name, email')
+      .select('id, name, email, has_user_account')
       .is('user_id', null)
       .not('email', 'is', null);
       
@@ -158,20 +165,22 @@ export const associateAllClientsWithUsers = async (): Promise<void> => {
     for (const client of clientsWithoutUsers) {
       if (!client.email) continue;
       
-      // Rechercher l'utilisateur par email
-      const { data: { user }, error: userError } = await supabase.auth.admin.getUserByEmail(client.email);
+      // Utiliser notre nouvelle fonction pour récupérer l'ID utilisateur par email
+      const { data: userId, error: userIdError } = await supabase.rpc('get_user_id_by_email', {
+        user_email: client.email
+      });
       
-      if (userError) {
-        console.error(`Erreur lors de la recherche de l'utilisateur pour ${client.email}:`, userError);
+      if (userIdError) {
+        console.error(`Erreur lors de la recherche de l'utilisateur pour ${client.email}:`, userIdError);
         continue;
       }
       
-      if (user) {
+      if (userId) {
         // Vérifier si cet utilisateur est déjà associé à un autre client
         const { data: existingClients, error: existingError } = await supabase
           .from('clients')
           .select('id, name')
-          .eq('user_id', user.id);
+          .eq('user_id', userId);
           
         if (existingError) {
           console.error(`Erreur lors de la vérification des associations existantes:`, existingError);
@@ -179,22 +188,26 @@ export const associateAllClientsWithUsers = async (): Promise<void> => {
         }
         
         if (existingClients && existingClients.length > 0) {
-          console.warn(`L'utilisateur ${user.id} est déjà associé à ${existingClients.length} client(s)`);
+          console.warn(`L'utilisateur ${userId} est déjà associé à ${existingClients.length} client(s)`);
           skippedCount++;
           continue;
         }
         
-        console.log(`Association du client ${client.id} (${client.name}) avec l'utilisateur ${user.id}`);
+        console.log(`Association du client ${client.id} (${client.name}) avec l'utilisateur ${userId}`);
         
         const { error: updateError } = await supabase
           .from('clients')
-          .update({ user_id: user.id })
+          .update({ 
+            user_id: userId,
+            has_user_account: true,
+            user_account_created_at: new Date().toISOString()
+          })
           .eq('id', client.id);
           
         if (updateError) {
           console.error(`Erreur lors de l'association pour ${client.id}:`, updateError);
         } else {
-          console.log(`Client ${client.id} associé avec succès à l'utilisateur ${user.id}`);
+          console.log(`Client ${client.id} associé avec succès à l'utilisateur ${userId}`);
           associationCount++;
         }
       } else {
@@ -222,6 +235,7 @@ export const associateAllClientsWithUsers = async (): Promise<void> => {
 /**
  * Récupère l'ID du client associé à un utilisateur
  * Fonction améliorée pour une meilleure gestion des cas problématiques
+ * Utilise les nouveaux champs de suivi du compte utilisateur
  */
 export const getClientIdForUser = async (userId: string, userEmail: string | null): Promise<string | null> => {
   try {
@@ -233,13 +247,13 @@ export const getClientIdForUser = async (userId: string, userEmail: string | nul
       // Vérifier que le client existe toujours et est bien associé à cet utilisateur
       const { data: cachedClient, error: cacheError } = await supabase
         .from('clients')
-        .select('id, user_id')
+        .select('id, user_id, has_user_account')
         .eq('id', cachedClientId)
         .maybeSingle();
         
       if (cacheError) {
         console.error("Erreur lors de la vérification du client en cache:", cacheError);
-      } else if (cachedClient && cachedClient.user_id === userId) {
+      } else if (cachedClient && cachedClient.user_id === userId && cachedClient.has_user_account) {
         return cachedClientId;
       } else {
         console.log("Client en cache invalide ou mal associé, recherche d'un nouveau client");
@@ -250,7 +264,7 @@ export const getClientIdForUser = async (userId: string, userEmail: string | nul
     // Rechercher par user_id
     const { data: clientByUserId, error: userIdError } = await supabase
       .from('clients')
-      .select('id')
+      .select('id, has_user_account')
       .eq('user_id', userId)
       .maybeSingle();
       
@@ -258,7 +272,7 @@ export const getClientIdForUser = async (userId: string, userEmail: string | nul
       console.error("Erreur lors de la recherche par user_id:", userIdError);
     }
     
-    if (clientByUserId) {
+    if (clientByUserId && clientByUserId.has_user_account) {
       console.log("Client trouvé par user_id:", clientByUserId.id);
       localStorage.setItem(`client_id_${userId}`, clientByUserId.id);
       return clientByUserId.id;
