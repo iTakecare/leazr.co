@@ -10,125 +10,52 @@ import {
   Clock,
   ChevronRight,
   Plus,
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { getClientIdForUser } from "@/utils/clientUserAssociation";
+import { useClientOffers } from "@/hooks/useClientOffers";
+import { useClientContracts } from "@/hooks/useClientContracts";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
-  const [contracts, setContracts] = useState([]);
-  const [offers, setOffers] = useState([]);
+  const { contracts, loading: contractsLoading, error: contractsError, refresh: refreshContracts } = useClientContracts();
+  const { offers, loading: offersLoading, error: offersError, refresh: refreshOffers } = useClientOffers();
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
   const [clientId, setClientId] = useState(null);
 
   useEffect(() => {
     const fetchClientData = async () => {
-      setLoading(true);
       try {
-        if (!user?.email) {
+        if (!user?.id) {
           setLoading(false);
           return;
         }
         
-        // Étape 1: Récupérer l'ID du client à partir de l'email
-        console.log("Fetching client data for email:", user.email);
-        const { data: clientData, error: clientError } = await supabase
-          .from('clients')
-          .select('id, name')
-          .eq('email', user.email)
-          .maybeSingle();
+        // Récupérer l'ID client
+        const id = await getClientIdForUser(user.id, user.email || null);
         
-        if (clientError) {
-          console.error("Error fetching client:", clientError);
-          toast.error("Erreur lors de la récupération des données client");
-          setLoading(false);
-          return;
-        }
-        
-        if (!clientData) {
-          console.log("No client found for email:", user.email);
-          setLoading(false);
-          return;
-        }
-        
-        console.log("Found client:", clientData);
-        setClientId(clientData.id);
-        
-        // Étape 2: Récupérer les contrats pour ce client
-        const { data: contractsData, error: contractsError } = await supabase
-          .from('contracts')
-          .select('*')
-          .eq('client_id', clientData.id);
-        
-        if (contractsError) {
-          console.error("Error fetching contracts:", contractsError);
-          toast.error("Erreur lors de la récupération des contrats");
-        } else {
-          console.log(`Found ${contractsData?.length || 0} contracts for client:`, contractsData);
-          setContracts(contractsData || []);
-        }
-        
-        // Si aucun contrat n'a été trouvé par client_id, essayer par client_name
-        if (!contractsData || contractsData.length === 0) {
-          console.log("Trying to find contracts by client_name");
+        if (id) {
+          console.log("Found client ID:", id);
+          setClientId(id);
           
-          const { data: nameContracts, error: nameError } = await supabase
-            .from('contracts')
-            .select('*')
-            .eq('client_name', clientData.name);
-          
-          if (nameError) {
-            console.error("Error fetching contracts by name:", nameError);
-          } else if (nameContracts && nameContracts.length > 0) {
-            console.log(`Found ${nameContracts.length} contracts by client_name:`, nameContracts);
-            
-            // Mettre à jour client_id pour ces contrats
-            for (const contract of nameContracts) {
-              const { error: updateError } = await supabase
-                .from('contracts')
-                .update({ client_id: clientData.id })
-                .eq('id', contract.id);
-                
-              if (updateError) {
-                console.error(`Error updating contract ${contract.id}:`, updateError);
-              } else {
-                console.log(`Updated client_id for contract ${contract.id}`);
-              }
-            }
-            
-            setContracts(nameContracts);
-          }
+          // Mock equipment data
+          setEquipment(Array(6).fill({
+            id: Math.random().toString(),
+            name: "Ordinateur fixe",
+            status: "Actif",
+            serial: "EZFDSDSFG",
+            assignedTo: "Eric Erac",
+            role: "CMO",
+            assignedDate: "09/03/2025"
+          }));
         }
-        
-        // Étape 3: Récupérer les offres pour ce client
-        const { data: offersData, error: offersError } = await supabase
-          .from('offers')
-          .select('*')
-          .eq('client_id', clientData.id)
-          .eq('converted_to_contract', false);
-        
-        if (offersError) {
-          console.error("Error fetching offers:", offersError);
-        } else {
-          console.log("Fetched offers:", offersData);
-          setOffers(offersData || []);
-        }
-        
-        // In a real app, we'd fetch equipment data from a dedicated table
-        // This is a placeholder for the mock equipment data
-        setEquipment(Array(6).fill({
-          id: Math.random().toString(),
-          name: "Ordinateur fixe",
-          status: "Actif",
-          serial: "EZFDSDSFG",
-          assignedTo: "Eric Erac",
-          role: "CMO",
-          assignedDate: "09/03/2025"
-        }));
       } catch (error) {
         console.error("Error fetching client data:", error);
         toast.error("Erreur lors de la récupération des données");
@@ -137,7 +64,7 @@ const ClientDashboard = () => {
       }
     };
 
-    if (user?.email) {
+    if (user?.id) {
       fetchClientData();
     }
   }, [user]);
@@ -167,6 +94,18 @@ const ClientDashboard = () => {
       return <Badge className="bg-gray-500">{status}</Badge>;
     }
   };
+  
+  const handleRefresh = () => {
+    setLoading(true);
+    refreshContracts();
+    refreshOffers();
+    
+    // Donner l'impression que le rechargement prend un peu de temps
+    setTimeout(() => {
+      setLoading(false);
+      toast.success("Données actualisées");
+    }, 1000);
+  };
 
   return (
     <div className="w-full max-w-full">
@@ -177,19 +116,29 @@ const ClientDashboard = () => {
         className="w-full max-w-full"
       >
         <motion.div variants={itemVariants} className="mb-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Tableau de bord
-            </h1>
-            <p className="text-muted-foreground">
-              Bienvenue, {user?.first_name || ''} {user?.last_name || ''}
-            </p>
-            <p className="text-muted-foreground">
-              {user?.company ? `Espace Client ${user.company}` : ''}
-            </p>
-            <p className="mt-4">
-              Voici un aperçu de vos contrats et équipements. Utilisez le tableau de bord pour gérer vos ressources iTakecare.
-            </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Tableau de bord
+              </h1>
+              <p className="text-muted-foreground">
+                Bienvenue, {user?.first_name || ''} {user?.last_name || ''}
+              </p>
+              <p className="text-muted-foreground">
+                {user?.company ? `Espace Client ${user.company}` : ''}
+              </p>
+              <p className="mt-4">
+                Voici un aperçu de vos contrats et équipements. Utilisez le tableau de bord pour gérer vos ressources iTakecare.
+              </p>
+            </div>
+            <Button variant="outline" onClick={handleRefresh} disabled={loading} className="flex items-center gap-2">
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Actualiser
+            </Button>
           </div>
         </motion.div>
 
@@ -202,7 +151,7 @@ const ClientDashboard = () => {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{contracts.length || 0}</div>
+              <div className="text-2xl font-bold">{contracts?.length || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -213,7 +162,7 @@ const ClientDashboard = () => {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{contracts.filter(c => c.status === 'active').length || 0}</div>
+              <div className="text-2xl font-bold">{contracts?.filter(c => c.status === 'active').length || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -235,7 +184,7 @@ const ClientDashboard = () => {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{offers.filter(o => o.status === 'pending' || !o.status).length || 0}</div>
+              <div className="text-2xl font-bold">{offers?.filter(o => o.status === 'pending' || !o.status).length || 0}</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -249,8 +198,10 @@ const ClientDashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-4">Chargement...</div>
+              {contractsLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
               ) : contracts.length > 0 ? (
                 <div className="space-y-4">
                   {contracts.slice(0, 3).map((contract) => (
@@ -277,7 +228,7 @@ const ClientDashboard = () => {
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted-foreground">
-                  Aucun contrat trouvé
+                  {contractsError ? "Erreur lors du chargement des contrats" : "Aucun contrat trouvé"}
                 </div>
               )}
             </CardContent>
@@ -293,8 +244,10 @@ const ClientDashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-4">Chargement...</div>
+              {offersLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
               ) : offers.length > 0 ? (
                 <div className="space-y-4">
                   {offers.map((offer) => (
@@ -324,7 +277,7 @@ const ClientDashboard = () => {
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted-foreground">
-                  Aucune demande en cours
+                  {offersError ? "Erreur lors du chargement des demandes" : "Aucune demande en cours"}
                 </div>
               )}
 

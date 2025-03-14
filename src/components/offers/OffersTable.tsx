@@ -18,7 +18,13 @@ interface Offer {
   monthly_payment: number;
   commission: number;
   status: string;
+  workflow_status?: string;
   created_at: string;
+  clients?: {
+    name: string;
+    email: string;
+    company: string;
+  } | null;
 }
 
 interface OffersTableProps {

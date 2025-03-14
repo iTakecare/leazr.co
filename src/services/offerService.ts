@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -120,14 +121,71 @@ export const getOffers = async (): Promise<any[]> => {
 
 export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
   try {
+    console.log("Fetching offers for client ID:", clientId);
+    
     const { data, error } = await supabase
       .from('offers')
       .select('*')
       .eq('client_id', clientId)
+      .eq('converted_to_contract', false)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
     
+    // Si aucune offre n'est trouvée avec client_id, essayer avec client_name
+    if (!data || data.length === 0) {
+      console.log("No offers found with client_id, trying with client_name");
+      
+      // Récupérer le nom du client
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('name')
+        .eq('id', clientId)
+        .single();
+        
+      if (clientError || !clientData) {
+        console.error("Error fetching client name:", clientError);
+        return [];
+      }
+      
+      console.log("Looking for offers by client name:", clientData.name);
+      
+      // Rechercher les offres par nom de client
+      const { data: nameOffers, error: nameError } = await supabase
+        .from('offers')
+        .select('*')
+        .eq('client_name', clientData.name)
+        .eq('converted_to_contract', false)
+        .order('created_at', { ascending: false });
+        
+      if (nameError) {
+        console.error("Error fetching offers by name:", nameError);
+        return [];
+      }
+      
+      // Si des offres sont trouvées par nom
+      if (nameOffers && nameOffers.length > 0) {
+        console.log(`Found ${nameOffers.length} offers by client_name`);
+        
+        // Mettre à jour client_id pour ces offres
+        for (const offer of nameOffers) {
+          const { error: updateError } = await supabase
+            .from('offers')
+            .update({ client_id: clientId })
+            .eq('id', offer.id);
+            
+          if (updateError) {
+            console.error(`Error updating offer ${offer.id}:`, updateError);
+          } else {
+            console.log(`Updated client_id for offer ${offer.id}`);
+          }
+        }
+        
+        return nameOffers;
+      }
+    }
+    
+    console.log(`Retrieved ${data?.length || 0} offers for client ${clientId}`);
     return data || [];
   } catch (error) {
     console.error("Error fetching offers by client ID:", error);
