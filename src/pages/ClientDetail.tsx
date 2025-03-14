@@ -86,7 +86,10 @@ export default function ClientDetail() {
       if (success) {
         // Recharger les données du client pour afficher les changements
         const updatedClient = await getClientById(id!);
-        setClient(updatedClient);
+        if (updatedClient) {
+          console.log("Client data refreshed after account creation:", updatedClient);
+          setClient(updatedClient);
+        }
         toast.success("Compte utilisateur créé et email de configuration envoyé");
       }
     } catch (error) {
@@ -126,7 +129,8 @@ export default function ClientDetail() {
     );
   }
 
-  // Utilisez has_user_account pour déterminer si le client a un compte utilisateur
+  // Déterminer si le client a un compte utilisateur actif
+  // Un compte est considéré comme actif si has_user_account est true
   const hasUserAccount = client.has_user_account === true;
   
   console.log("Client account status complete check:", { 
