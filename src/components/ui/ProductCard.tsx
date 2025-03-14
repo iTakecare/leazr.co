@@ -101,10 +101,10 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         <div>
           <div className="font-bold text-lg flex items-center">
             <Euro className="h-4 w-4 mr-1 text-muted-foreground" />
-            {formatCurrency(product.price)}<span className="text-xs font-normal text-muted-foreground"></span>
+            {formatCurrency(product.monthly_price)}<span className="text-xs font-normal text-muted-foreground"></span>
           </div>
           <div className="text-xs text-muted-foreground">
-            Prix mensuel: {formatCurrency(product.monthly_price)}€/mois
+            Prix mensuel: {formatCurrency(product.price)}€/mois
           </div>
         </div>
         <Button 

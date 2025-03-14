@@ -169,13 +169,13 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
                     <div className="mt-2 flex items-center justify-between">
                       <div>
                         <p className="font-bold">
-                          {product.monthly_price?.toLocaleString("fr-FR", {
+                          {product.price?.toLocaleString("fr-FR", {
                             style: "currency",
                             currency: "EUR",
                           })}<span className="text-xs font-normal text-muted-foreground">/mois</span>
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Prix d'achat: {product.price?.toLocaleString("fr-FR", {
+                          Prix d'achat: {product.monthly_price?.toLocaleString("fr-FR", {
                             style: "currency",
                             currency: "EUR",
                           })}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -88,7 +87,6 @@ const CreateOffer = () => {
     fetchLeasers();
   }, []);
 
-  // Charger le client à partir de l'URL si un ID est fourni
   useEffect(() => {
     const loadClientFromParam = async () => {
       if (clientIdParam) {
@@ -115,13 +113,13 @@ const CreateOffer = () => {
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
     
-    const coef = findCoefficient(product.price);
-    const margin = 20; // Default margin as the product doesn't include monthly_price
+    const coef = findCoefficient(product.monthly_price || 0);
+    const margin = 20; // Default margin
     
     setEquipment({
       id: crypto.randomUUID(),
       title: `${product.name}`,
-      purchasePrice: product.price,
+      purchasePrice: product.monthly_price || 0,
       quantity: 1,
       margin: Number(margin),
     });
@@ -160,12 +158,12 @@ const CreateOffer = () => {
         user_id: user.id,
         client_name: clientName,
         client_email: clientEmail,
-        client_id: clientId, // Ajout de l'ID du client
+        client_id: clientId,
         equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: totalMonthlyPayment * 0.1, // Exemple: 10% de commission
+        commission: totalMonthlyPayment * 0.1,
       };
 
       const offerId = await createOffer(offerData);

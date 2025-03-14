@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,12 @@ const ClientEquipmentRequestPage = () => {
   };
 
   const handleSelectProduct = (product: Product) => {
-    setSelectedProducts((prev) => [...prev, product]);
+    const adjustedProduct = {
+      ...product,
+      price: product.price,
+      monthly_price: product.monthly_price
+    };
+    setSelectedProducts((prev) => [...prev, adjustedProduct]);
   };
 
   const handleRemoveProduct = (productId: string) => {
@@ -59,9 +63,8 @@ const ClientEquipmentRequestPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Créer une description des équipements sélectionnés
       const equipmentDescription = selectedProducts
-        .map((p) => `${p.name} - ${p.price.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}`)
+        .map((p) => `${p.name} - ${p.monthly_price?.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}`)
         .join("\n");
 
       const requestData = {
@@ -75,7 +78,7 @@ const ClientEquipmentRequestPage = () => {
         monthly_payment: calculatedData.monthlyPayment,
         coefficient: calculatedData.coefficient,
         commission: calculatedData.commission,
-        type: "client_request", // Important: définir le type comme client_request
+        type: "client_request",
       };
 
       const requestId = await createClientRequest(requestData);
@@ -104,7 +107,6 @@ const ClientEquipmentRequestPage = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-7">
-        {/* Catalogue et sélection */}
         <div className="md:col-span-4 space-y-6">
           <Card>
             <CardHeader>
@@ -155,7 +157,7 @@ const ClientEquipmentRequestPage = () => {
                           <div>
                             <p className="font-medium">{product.name}</p>
                             <p className="text-sm text-muted-foreground">
-                              {product.price.toLocaleString("fr-FR", {
+                              {product.monthly_price?.toLocaleString("fr-FR", {
                                 style: "currency",
                                 currency: "EUR",
                               })}
@@ -199,7 +201,6 @@ const ClientEquipmentRequestPage = () => {
           </Card>
         </div>
 
-        {/* Calcul de l'offre */}
         <div className="md:col-span-3">
           <OfferCalculator
             selectedProducts={selectedProducts}
@@ -212,7 +213,6 @@ const ClientEquipmentRequestPage = () => {
         </div>
       </div>
 
-      {/* Catalogue de produits */}
       <ProductCatalog
         isOpen={isCatalogOpen}
         onClose={handleCloseCatalog}
