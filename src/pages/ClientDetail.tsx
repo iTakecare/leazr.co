@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/utils/formatters";
 import Container from "@/components/layout/Container";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
 const getStatusVariant = (status: string) => {
   switch (status) {
@@ -114,7 +113,6 @@ const ClientDetail: React.FC = () => {
   };
 
   const handleCollaboratorAdded = () => {
-    // Refresh client data to show the new collaborator
     if (id) {
       getClientById(id).then(updatedClient => {
         if (updatedClient) {
@@ -162,7 +160,6 @@ const ClientDetail: React.FC = () => {
   return (
     <Container className="py-6">
       <div className="space-y-6">
-        {/* Header with client name, status, and actions */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -205,7 +202,6 @@ const ClientDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Client summary card */}
         <Card className="overflow-hidden border-none shadow-md bg-gradient-to-r from-blue-50 to-indigo-50">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6">
@@ -270,7 +266,6 @@ const ClientDetail: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Tabs for different sections */}
         <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-3 w-full max-w-md mb-4">
             <TabsTrigger value="details">Détails</TabsTrigger>
@@ -315,6 +310,9 @@ const ClientDetail: React.FC = () => {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Ajouter un collaborateur</DialogTitle>
+                      <DialogDescription>
+                        Ajoutez un collaborateur pour ce client. Les données seront enregistrées dans les notes du client jusqu'à la mise à jour du schéma de base de données.
+                      </DialogDescription>
                     </DialogHeader>
                     <CollaboratorForm clientId={id || ''} onSuccess={handleCollaboratorAdded} />
                   </DialogContent>
@@ -371,7 +369,7 @@ const ClientDetail: React.FC = () => {
               </CardHeader>
               <CardContent>
                 {client.notes ? (
-                  <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="p-4 rounded-lg bg-muted/50 whitespace-pre-wrap">
                     {client.notes}
                   </div>
                 ) : (

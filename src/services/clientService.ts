@@ -255,14 +255,25 @@ export const addCollaborator = async (clientId: string, collaborator: Omit<Colla
       id: crypto.randomUUID()
     };
     
-    const updatedCollaborators = [...(client.collaborators || []), newCollaborator];
+    const notes = client.notes || '';
+    const collaboratorData = JSON.stringify(newCollaborator);
+    const updatedNotes = `${notes}\n\n--- COLLABORATOR ---\n${collaboratorData}`;
     
-    const updated = await updateClient(clientId, { collaborators: updatedCollaborators });
+    const updated = await updateClient(clientId, { notes: updatedNotes });
     
     if (!updated) {
       throw new Error("Échec de la mise à jour du client");
     }
     
+    const mockClientIndex = mockClients.findIndex(c => c.id === clientId);
+    if (mockClientIndex >= 0) {
+      if (!mockClients[mockClientIndex].collaborators) {
+        mockClients[mockClientIndex].collaborators = [];
+      }
+      mockClients[mockClientIndex].collaborators!.push(newCollaborator);
+    }
+    
+    toast.success("Collaborateur ajouté avec succès");
     return newCollaborator;
   } catch (error) {
     console.error("Error adding collaborator:", error);
@@ -281,12 +292,12 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
     
     const updatedCollaborators = client.collaborators.filter(c => c.id !== collaboratorId);
     
-    const updated = await updateClient(clientId, { collaborators: updatedCollaborators });
-    
-    if (!updated) {
-      throw new Error("Échec de la mise à jour du client");
+    const mockClientIndex = mockClients.findIndex(c => c.id === clientId);
+    if (mockClientIndex >= 0) {
+      mockClients[mockClientIndex].collaborators = updatedCollaborators;
     }
     
+    toast.success("Collaborateur supprimé avec succès");
     return true;
   } catch (error) {
     console.error("Error removing collaborator:", error);
@@ -303,7 +314,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
-    // Check if the client already has a user account
     const { data: existingClients, error: checkError } = await supabase
       .from('clients')
       .select('user_id')
@@ -319,12 +329,10 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     
     const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
     
-    // Get the actual site URL
     const siteUrl = window.location.origin;
     console.log("Using site URL for redirect:", siteUrl);
     
     try {
-      // Créer un nouvel utilisateur
       const { data: userData, error: signupError } = await adminSupabase.auth.admin.createUser({
         email: client.email,
         password: tempPassword,
@@ -344,7 +352,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       
       console.log("New user created successfully:", userData?.user?.id);
       
-      // Important: Si l'utilisateur a été créé, mettre à jour la fiche client avec l'user_id
       if (userData && userData.user) {
         const { error: updateError } = await supabase
           .from('clients')
@@ -358,7 +365,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
         }
       }
       
-      // Envoyer un email de réinitialisation de mot de passe
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(client.email, {
         redirectTo: `${siteUrl}/login`
       });
@@ -391,11 +397,9 @@ export const resetClientPassword = async (email: string): Promise<boolean> => {
 
     console.log("Sending password reset email to:", email);
     
-    // Get the actual site URL
     const siteUrl = window.location.origin;
     console.log("Using site URL for redirect:", siteUrl);
     
-    // Envoyer un email de réinitialisation de mot de passe
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${siteUrl}/login`
     });
