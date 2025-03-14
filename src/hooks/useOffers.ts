@@ -120,7 +120,7 @@ export const useOffers = () => {
     }
   };
 
-  const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string, reason?: string) => {
+  const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string, reason?: string): Promise<void> => {
     console.log(`Starting workflow status update for offer ${offerId} to ${newStatus}`);
     setIsUpdatingStatus(true);
     
@@ -131,7 +131,7 @@ export const useOffers = () => {
         console.error(`Offer with ID ${offerId} not found`);
         toast.error("Erreur: offre introuvable");
         setIsUpdatingStatus(false);
-        return false;
+        return;
       }
       
       // Get the current status from the workflow_status field
@@ -143,7 +143,7 @@ export const useOffers = () => {
         console.log("Status unchanged, skipping update");
         toast.info("Le statut est déjà à cette valeur");
         setIsUpdatingStatus(false);
-        return false;
+        return;
       }
       
       // Update the status in the database
@@ -174,17 +174,13 @@ export const useOffers = () => {
         } else {
           toast.success("Statut de l'offre mis à jour");
         }
-        
-        return true;
       } else {
         console.error(`Status update failed for offer ${offerId}`);
         toast.error("Erreur lors de la mise à jour du statut");
-        return false;
       }
     } catch (error) {
       console.error("Error updating offer status:", error);
       toast.error("Erreur lors de la mise à jour du statut");
-      return false;
     } finally {
       setIsUpdatingStatus(false);
     }
