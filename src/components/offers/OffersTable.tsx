@@ -40,6 +40,7 @@ const OffersTable = ({
   onResendOffer,
   onDownloadPdf
 }: OffersTableProps) => {
+  // Vérifier si offers est null ou vide
   if (!offers || offers.length === 0) {
     return (
       <div className="rounded-md border">

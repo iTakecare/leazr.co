@@ -13,6 +13,8 @@ import { Link } from "react-router-dom";
 const ClientRequestsPage = () => {
   const { offers, loading, error, refresh } = useClientOffers();
 
+  console.log("ClientRequestsPage - Offers:", offers);
+
   if (loading) {
     return (
       <div className="w-full p-8">

@@ -68,84 +68,105 @@ export const useClientOffers = () => {
           setLoading(false);
           return;
         }
+
+        console.log("Found offers by client_id:", offersById ? offersById.length : 0);
         
-        // Si aucune offre n'est trouvée par client_id, essayer par client_name
-        if (!offersById || offersById.length === 0) {
-          // Récupérer le nom du client
-          const { data: clientData, error: clientError } = await supabase
-            .from('clients')
-            .select('name, email')
-            .eq('id', id)
-            .single();
-            
-          if (clientError || !clientData) {
-            console.error("Error fetching client details:", clientError);
+        // Récupérer le nom et l'email du client pour chercher des offres associées
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('name, email')
+          .eq('id', id)
+          .single();
+          
+        if (clientError) {
+          console.error("Error fetching client details:", clientError);
+          if (offersById && offersById.length > 0) {
+            setOffers(offersById);
             setLoading(false);
-            setOffers([]);
             return;
           }
-          
-          console.log("Looking for offers by client name:", clientData.name);
-          
-          // Rechercher les offres par nom de client
-          const { data: nameOffers, error: nameError } = await supabase
-            .from('offers')
-            .select('*')
-            .eq('client_name', clientData.name)
-            .eq('converted_to_contract', false)
-            .order('created_at', { ascending: false });
-            
-          if (nameError) {
-            console.error("Error fetching offers by name:", nameError);
+          setLoading(false);
+          setOffers([]);
+          return;
+        }
+        
+        if (!clientData) {
+          console.log("Client data not found");
+          if (offersById && offersById.length > 0) {
+            setOffers(offersById);
             setLoading(false);
-            setOffers([]);
             return;
           }
+          setLoading(false);
+          setOffers([]);
+          return;
+        }
+        
+        console.log("Looking for offers by client name/email:", clientData.name, clientData.email);
+        
+        // Rechercher les offres par nom de client
+        const { data: nameOffers, error: nameError } = await supabase
+          .from('offers')
+          .select('*')
+          .ilike('client_name', clientData.name)
+          .eq('converted_to_contract', false)
+          .order('created_at', { ascending: false });
           
-          // Également rechercher par email client
-          const { data: emailOffers, error: emailError } = await supabase
+        if (nameError) {
+          console.error("Error fetching offers by name:", nameError);
+        }
+        
+        console.log("Found offers by client_name:", nameOffers ? nameOffers.length : 0);
+        
+        // Rechercher les offres par email client si disponible
+        let emailOffers: any[] = [];
+        if (clientData.email) {
+          const { data: emailData, error: emailError } = await supabase
             .from('offers')
             .select('*')
-            .eq('client_email', clientData.email)
+            .ilike('client_email', clientData.email)
             .eq('converted_to_contract', false)
             .order('created_at', { ascending: false });
             
           if (emailError) {
             console.error("Error fetching offers by email:", emailError);
-          }
-          
-          // Combiner les résultats et supprimer les doublons
-          const combinedOffers = [...(nameOffers || []), ...(emailOffers || [])];
-          const uniqueOffers = combinedOffers.filter((offer, index, self) =>
-            index === self.findIndex((o) => o.id === offer.id)
-          );
-          
-          // Si des offres sont trouvées
-          if (uniqueOffers.length > 0) {
-            console.log(`Found ${uniqueOffers.length} offers by client name/email`);
-            
-            // Mettre à jour client_id pour ces offres
-            for (const offer of uniqueOffers) {
-              const { error: updateError } = await supabase
-                .from('offers')
-                .update({ client_id: id })
-                .eq('id', offer.id);
-                
-              if (updateError) {
-                console.error(`Error updating offer ${offer.id}:`, updateError);
-              } else {
-                console.log(`Updated client_id for offer ${offer.id}`);
-              }
-            }
-            
-            setOffers(uniqueOffers);
-            setLoading(false);
-            return;
+          } else {
+            emailOffers = emailData || [];
+            console.log("Found offers by client_email:", emailOffers.length);
           }
         }
         
-        console.log("Fetched offers:", offersById);
-        setOffers(offersById || []);
+        // Combiner toutes les offres trouvées
+        const allOffers = [
+          ...(offersById || []), 
+          ...(nameOffers || []), 
+          ...(emailOffers || [])
+        ];
+        
+        // Supprimer les doublons en utilisant l'ID de l'offre
+        const uniqueOffers = allOffers.filter((offer, index, self) =>
+          index === self.findIndex((o) => o.id === offer.id)
+        );
+        
+        console.log(`Found ${uniqueOffers.length} unique offers in total`);
+        
+        // Si des offres sont trouvées, mettre à jour client_id pour celles qui ne l'ont pas
+        for (const offer of uniqueOffers) {
+          if (!offer.client_id || offer.client_id !== id) {
+            const { error: updateError } = await supabase
+              .from('offers')
+              .update({ client_id: id })
+              .eq('id', offer.id);
+              
+            if (updateError) {
+              console.error(`Error updating offer ${offer.id}:`, updateError);
+            } else {
+              console.log(`Updated client_id for offer ${offer.id}`);
+            }
+          }
+        }
+        
+        setOffers(uniqueOffers);
       } catch (error) {
         console.error("Error fetching client offers:", error);
         setError("Erreur lors de la récupération des offres");
