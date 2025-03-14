@@ -12,7 +12,7 @@ import {
   AccordionItem, 
   AccordionTrigger 
 } from "@/components/ui/accordion";
-import { Trash2, Edit, ChevronRight } from "lucide-react";
+import { Trash2, Edit, ChevronDown, ChevronRight } from "lucide-react";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -21,8 +21,7 @@ import {
   AlertDialogDescription, 
   AlertDialogFooter, 
   AlertDialogHeader, 
-  AlertDialogTitle, 
-  AlertDialogTrigger 
+  AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -109,32 +108,70 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
     return product.is_parent || (!product.parent_id && !product.is_variation);
   };
 
-  // Grouper les produits par modèle parent/base
+  // Grouper les produits par modèle parent
   const groupProductsByModel = () => {
     const parentProducts: Product[] = [];
     const variantsByParentId: Record<string, Product[]> = {};
     
-    // Première passe: identifier les produits parents et regrouper les variantes
+    // Première passe: collecter tous les produits parents
     products.forEach(product => {
       if (isParentProduct(product)) {
         parentProducts.push(product);
         variantsByParentId[product.id] = [];
-      } else if (product.parent_id) {
-        if (!variantsByParentId[product.parent_id]) {
-          variantsByParentId[product.parent_id] = [];
-        }
-        variantsByParentId[product.parent_id].push(product);
       }
     });
     
-    // Deuxième passe: regrouper les produits sans parent explicite mais avec des noms similaires
-    const remainingProducts = products.filter(
-      p => !isParentProduct(p) && !p.parent_id
+    // Deuxième passe: assigner les variantes à leurs parents
+    products.forEach(product => {
+      // Si c'est une variante et a un parent_id valide qui existe dans notre liste de parents
+      if (product.parent_id && variantsByParentId[product.parent_id]) {
+        variantsByParentId[product.parent_id].push(product);
+      } 
+      // Si le produit a un parent_id mais ce parent n'est pas dans notre liste
+      else if (product.parent_id) {
+        // Chercher si le parent existe dans products mais n'a pas été identifié comme parent
+        const parentExists = products.find(p => p.id === product.parent_id);
+        if (parentExists) {
+          if (!variantsByParentId[parentExists.id]) {
+            variantsByParentId[parentExists.id] = [];
+          }
+          variantsByParentId[parentExists.id].push(product);
+        } else {
+          // Si le parent n'existe pas, on traite ce produit comme indépendant
+          parentProducts.push(product);
+          variantsByParentId[product.id] = [];
+        }
+      }
+      // Si le produit n'a pas de parent_id mais est marqué comme variation
+      else if (product.is_variation) {
+        // Chercher un parent basé sur le nom similaire
+        const baseProductName = product.name.split(/\s+\d+\s*GB|\s+\d+Go|\s+\d+\s*To|\(/).shift()?.trim();
+        if (baseProductName) {
+          const potentialParent = parentProducts.find(
+            p => p.name.toLowerCase().includes(baseProductName.toLowerCase())
+          );
+          if (potentialParent) {
+            variantsByParentId[potentialParent.id].push(product);
+          } else {
+            // Pas de parent trouvé, on le traite comme indépendant
+            parentProducts.push(product);
+            variantsByParentId[product.id] = [];
+          }
+        } else {
+          // Fallback
+          parentProducts.push(product);
+          variantsByParentId[product.id] = [];
+        }
+      }
+    });
+    
+    // Troisième passe: traiter les produits qui ne sont ni parents ni assignés à un parent
+    const unassignedProducts = products.filter(
+      p => !isParentProduct(p) && !Object.values(variantsByParentId).flat().includes(p)
     );
     
-    // On essaie de regrouper par similarité de nom
-    remainingProducts.forEach(product => {
-      // On cherche si un parent existe avec un nom similaire
+    unassignedProducts.forEach(product => {
+      // Essayer de regrouper par similarité de nom avec un parent existant
       const baseProductName = product.name.split(/\s+\d+\s*GB|\s+\d+Go|\s+\d+\s*To|\(/).shift()?.trim();
       
       if (baseProductName) {
@@ -145,14 +182,29 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
         if (matchingParent) {
           variantsByParentId[matchingParent.id].push(product);
         } else {
-          // Si pas de parent trouvé, on le traite comme un produit indépendant
+          // Créer un nouveau groupe pour ce produit
           parentProducts.push(product);
           variantsByParentId[product.id] = [];
         }
       } else {
-        // Fallback si on ne peut pas extraire un nom de base
+        // Fallback
         parentProducts.push(product);
         variantsByParentId[product.id] = [];
+      }
+    });
+    
+    // Vérification des variants_ids
+    parentProducts.forEach(parent => {
+      if (parent.variants_ids && Array.isArray(parent.variants_ids)) {
+        // Trouver les variantes qui sont dans variants_ids mais pas encore dans variantsByParentId
+        const variantsToAdd = products.filter(
+          p => parent.variants_ids?.includes(p.id) && !variantsByParentId[parent.id].some(v => v.id === p.id)
+        );
+        
+        // Ajouter ces variantes
+        if (variantsToAdd.length > 0) {
+          variantsByParentId[parent.id] = [...variantsByParentId[parent.id], ...variantsToAdd];
+        }
       }
     });
     
@@ -189,6 +241,7 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
         {parentProducts.map((parentProduct) => {
           const variants = variantsByParentId[parentProduct.id] || [];
           const hasVariants = variants.length > 0;
+          const variantCount = variants.length;
           
           return (
             <motion.div key={parentProduct.id} variants={itemVariants}>
@@ -209,7 +262,7 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
                       <span className="font-medium">{parentProduct.name}</span>
                       {hasVariants && (
                         <span className="ml-2 text-sm text-muted-foreground">
-                          ({variants.length} variante{variants.length > 1 ? 's' : ''})
+                          ({variantCount} variante{variantCount > 1 ? 's' : ''})
                         </span>
                       )}
                     </div>
@@ -252,7 +305,9 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
                     {variants.length > 0 && (
                       <div className="bg-muted/10 rounded-b-lg">
                         <div className="p-3 border-t border-muted">
-                          <h4 className="text-sm font-medium text-muted-foreground mb-2">Variantes du produit</h4>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                            Variantes du produit ({variants.length})
+                          </h4>
                           <div className="space-y-2">
                             {variants.map((variant) => (
                               <div key={variant.id} className="p-3 bg-white rounded border border-muted hover:bg-muted/20 transition-colors">
@@ -272,6 +327,13 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
                                       <h3 className="font-medium">{variant.name}</h3>
                                       <p className="text-sm text-muted-foreground">
                                         {formatCurrency(variant.price || 0)}
+                                        {variant.variation_attributes && (
+                                          <span className="ml-2">
+                                            {Object.entries(variant.variation_attributes)
+                                              .map(([key, value]) => `${key}: ${value}`)
+                                              .join(', ')}
+                                          </span>
+                                        )}
                                       </p>
                                     </div>
                                   </div>
