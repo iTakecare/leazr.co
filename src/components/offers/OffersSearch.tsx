@@ -4,11 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 interface OffersSearchProps {
-  searchTerm: string;
-  setSearchTerm: (searchTerm: string) => void;
+  value: string;
+  onChange: (value: string) => void;
 }
 
-const OffersSearch = ({ searchTerm, setSearchTerm }: OffersSearchProps) => {
+const OffersSearch = ({ value, onChange }: OffersSearchProps) => {
   return (
     <div className="relative">
       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -16,8 +16,8 @@ const OffersSearch = ({ searchTerm, setSearchTerm }: OffersSearchProps) => {
         type="search"
         placeholder="Rechercher..."
         className="pl-8 w-full sm:w-[200px]"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
       />
     </div>
   );

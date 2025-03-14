@@ -6,11 +6,11 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 
 interface OffersErrorProps {
-  errorMessage: string;
+  message: string; // Changed from errorMessage to message
   onRetry: () => void;
 }
 
-const OffersError = ({ errorMessage, onRetry }: OffersErrorProps) => {
+const OffersError = ({ message, onRetry }: OffersErrorProps) => {
   return (
     <PageTransition>
       <Container>
@@ -19,7 +19,7 @@ const OffersError = ({ errorMessage, onRetry }: OffersErrorProps) => {
             <div className="rounded-full bg-red-100 p-2">
               <AlertCircle className="h-5 w-5 text-red-600" />
             </div>
-            <p className="text-base font-medium">{errorMessage}</p>
+            <p className="text-base font-medium">{message}</p>
             <Button onClick={onRetry} size="sm">
               Réessayer
             </Button>
