@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { getProducts, deleteProduct } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Button } from "@/components/ui/button";
