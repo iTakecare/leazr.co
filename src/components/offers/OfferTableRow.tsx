@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, Mail, MoreHorizontal, Trash2, User, Eye } from "lucide-react";
+import { Download, Mail, MoreHorizontal, Trash2, User, Eye, PenLine } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { useNavigate } from "react-router-dom";
 
@@ -64,6 +64,10 @@ const OfferTableRow = ({ offer, onDelete, onResend, onDownload }: OfferTableRowP
     return <div className="font-medium">{offer.client_name}</div>;
   };
 
+  const handleEditOffer = () => {
+    navigate(`/create-offer?id=${offer.id}`);
+  };
+
   return (
     <TableRow>
       <TableCell>
@@ -71,12 +75,20 @@ const OfferTableRow = ({ offer, onDelete, onResend, onDownload }: OfferTableRowP
       </TableCell>
       <TableCell>{formatCurrency(offer.amount)}</TableCell>
       <TableCell>{formatCurrency(offer.monthly_payment)}</TableCell>
-      <TableCell>{formatCurrency(offer.commission)}</TableCell>
       <TableCell>
         <OfferStatusBadge status={offer.status} />
       </TableCell>
       <TableCell>{formatDate(offer.created_at)}</TableCell>
       <TableCell className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 p-0 text-blue-500 hover:bg-blue-100 hover:text-blue-700"
+          onClick={handleEditOffer}
+          title="Éditer l'offre"
+        >
+          <PenLine className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

@@ -57,7 +57,6 @@ const OffersTable = ({
                 <TableHead>Client</TableHead>
                 <TableHead>Montant</TableHead>
                 <TableHead>Loyer mensuel</TableHead>
-                <TableHead>Commission</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead></TableHead>

@@ -3,12 +3,13 @@ import React, { useState } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, User, Mail, Building, CreditCard, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, User, Mail, Building, CreditCard, Trash2, PenLine } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
 import OfferWorkflow from "./OfferWorkflow";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 interface OfferDetailCardProps {
   offer: {
@@ -40,6 +41,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [comment, setComment] = useState("");
+  const navigate = useNavigate();
   
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -62,6 +64,10 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
     } catch (error) {
       return "Date incorrecte";
     }
+  };
+
+  const handleEditOffer = () => {
+    navigate(`/create-offer?id=${offer.id}`);
   };
 
   return (
@@ -95,9 +101,6 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
             <div className="bg-primary/10 text-primary py-1 px-3 rounded-full text-sm font-medium">
               {formatCurrency(offer.monthly_payment)}/mois
             </div>
-            <div className="bg-green-100 text-green-800 py-1 px-3 rounded-full text-sm font-medium">
-              Commission: {formatCurrency(offer.commission)}
-            </div>
             <div className="text-xs text-muted-foreground mt-1">
               Créée le {formatDate(offer.created_at)}
             </div>
@@ -105,6 +108,15 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleEditOffer}
+            className="text-blue-500 hover:bg-blue-100 hover:text-blue-700"
+            title="Éditer l'offre"
+          >
+            <PenLine className="h-4 w-4" />
+          </Button>
           {onDelete && (
             <Button 
               variant="ghost" 
