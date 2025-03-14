@@ -41,6 +41,15 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
     }
   };
 
+  const handleApplyMargin = () => {
+    applyCalculatedMargin();
+    // When applying the margin, also update the targetMonthlyPayment to ensure
+    // the displayed monthly payment in the parent component gets updated
+    if (targetMonthlyPayment > 0) {
+      setTargetMonthlyPayment(targetMonthlyPayment);
+    }
+  };
+
   return (
     <Card className="shadow-sm border-gray-200 rounded-lg">
       <CardHeader className="pb-3 border-b">
@@ -84,7 +93,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
           </div>
 
           <Button 
-            onClick={applyCalculatedMargin}
+            onClick={handleApplyMargin}
             disabled={calculatedMargin.percentage <= 0}
             className="w-full bg-blue-600 hover:bg-blue-700"
           >

@@ -97,13 +97,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       percentage: Number(marginPercentage.toFixed(2)),
       amount: marginAmount
     });
-    
-    if (targetMonthlyPayment > 0 && marginPercentage > 0) {
-      setEquipment(prev => ({
-        ...prev,
-        margin: Number(marginPercentage.toFixed(2))
-      }));
-    }
   };
 
   const calculateGlobalMarginAdjustment = () => {
@@ -176,15 +169,26 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const applyCalculatedMargin = () => {
     if (calculatedMargin.percentage > 0) {
       console.log("Applying calculated margin:", calculatedMargin.percentage);
-      setEquipment({
-        ...equipment,
+      
+      // Update the equipment with the calculated margin
+      setEquipment(prev => ({
+        ...prev,
         margin: Number(calculatedMargin.percentage.toFixed(2))
-      });
+      }));
+      
+      // If we have a targetMonthlyPayment, update the equipment's monthly payment
+      if (targetMonthlyPayment > 0) {
+        setEquipment(prev => ({
+          ...prev,
+          monthlyPayment: targetMonthlyPayment
+        }));
+      }
     }
   };
 
   const addToList = () => {
     if (equipment.title && equipment.purchasePrice > 0) {
+      // Use target monthly payment if it exists, otherwise use calculated monthly payment
       const currentMonthlyPayment = targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment;
       console.log("Adding to list with monthly payment:", currentMonthlyPayment);
       
@@ -203,6 +207,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         setEquipmentList([...equipmentList, equipmentToAdd]);
       }
       
+      // Reset equipment and targetMonthlyPayment after adding to list
       setEquipment({
         id: crypto.randomUUID(),
         title: '',
@@ -247,14 +252,17 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     ));
   };
 
+  // Recalculate monthly payment whenever equipment or leaser changes
   useEffect(() => {
     calculateMonthlyPayment();
   }, [equipment, leaser]);
 
+  // Recalculate margin whenever target monthly payment, purchase price, or leaser changes
   useEffect(() => {
     calculateMarginFromMonthlyPayment();
   }, [targetMonthlyPayment, equipment.purchasePrice, leaser]);
 
+  // Recalculate global margin adjustment whenever equipment list, leaser, or adaptMonthlyPayment changes
   useEffect(() => {
     calculateGlobalMarginAdjustment();
   }, [equipmentList, leaser, globalMarginAdjustment.adaptMonthlyPayment]);
