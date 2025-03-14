@@ -80,7 +80,7 @@ serve(async (req) => {
     });
     docsHtml += '</ul>';
     
-    // Créer un client SMTP
+    // Créer un client SMTP avec configuration explicite
     const client = new SMTPClient({
       connection: {
         hostname: smtpConfig.host,
@@ -96,7 +96,7 @@ serve(async (req) => {
     try {
       // Construire le contenu de l'email
       const subject = "Demande de documents complémentaires pour votre offre de leasing";
-      const html = `
+      const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2c3e50;">Documents complémentaires requis</h2>
           <p>Bonjour ${clientName},</p>
@@ -107,21 +107,27 @@ serve(async (req) => {
           <p>Vous pouvez répondre directement à cet email en attachant les documents demandés.</p>
           <hr style="border: 1px solid #eee; margin: 20px 0;">
           <p style="color: #7f8c8d; font-size: 12px;">
-            Cet email a été envoyé automatiquement. Veuillez ne pas y répondre.
+            Cet email est envoyé automatiquement par l'application de gestion de leasing.
           </p>
         </div>
       `;
       
-      // Envoyer l'email
+      // Envoyer l'email avec headers explicites
       await client.send({
         from: `${smtpConfig.from_name} <${smtpConfig.from_email}>`,
         to: clientEmail,
-        subject,
-        html,
+        subject: subject,
+        content: "Veuillez activer l'affichage HTML pour visualiser correctement ce message.",
+        html: htmlContent,
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8"
+        }
       });
 
       // Fermer la connexion
       await client.close();
+      
+      console.log("Email envoyé avec succès à:", clientEmail);
       
       return new Response(
         JSON.stringify({
@@ -143,6 +149,7 @@ serve(async (req) => {
         JSON.stringify({
           success: false,
           message: `Erreur lors de l'envoi de l'email: ${emailError.message}`,
+          details: JSON.stringify(emailError),
         }),
         {
           status: 200,
@@ -157,6 +164,7 @@ serve(async (req) => {
       JSON.stringify({
         success: false,
         message: `Erreur: ${error.message}`,
+        details: JSON.stringify(error),
       }),
       {
         status: 500,

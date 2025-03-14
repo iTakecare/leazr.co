@@ -35,7 +35,7 @@ serve(async (req) => {
       secure: config.secure
     });
 
-    // Créer un client SMTP
+    // Créer un client SMTP avec les paramètres explicites
     const client = new SMTPClient({
       connection: {
         hostname: config.host,
@@ -49,24 +49,29 @@ serve(async (req) => {
     });
 
     try {
-      // Tenter d'envoyer un email de test
+      // Tenter d'envoyer un email de test avec des headers Content-Type explicites
       await client.send({
         from: `${config.from_name} <${config.from_email}>`,
         to: config.username,
         subject: "Test de connexion SMTP réussi",
         content: "Ceci est un email de test pour vérifier les paramètres SMTP.",
         html: `
-          <h1>Connexion SMTP réussie!</h1>
-          <p>Cet email confirme que vos paramètres SMTP sont correctement configurés.</p>
-          <hr>
-          <p><b>Détails de la configuration:</b></p>
-          <ul>
-            <li>Serveur: ${config.host}</li>
-            <li>Port: ${config.port}</li>
-            <li>Utilisateur: ${config.username}</li>
-            <li>Sécurisé: ${config.secure ? "Oui" : "Non"}</li>
-          </ul>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #2c3e50;">Connexion SMTP réussie!</h1>
+            <p>Cet email confirme que vos paramètres SMTP sont correctement configurés.</p>
+            <hr style="border: 1px solid #eee; margin: 20px 0;">
+            <p><b>Détails de la configuration:</b></p>
+            <ul>
+              <li>Serveur: ${config.host}</li>
+              <li>Port: ${config.port}</li>
+              <li>Utilisateur: ${config.username}</li>
+              <li>Sécurisé: ${config.secure ? "Oui" : "Non"}</li>
+            </ul>
+          </div>
         `,
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8"
+        }
       });
 
       // Fermer la connexion
@@ -95,6 +100,7 @@ serve(async (req) => {
         JSON.stringify({
           success: false,
           message: `Erreur lors de l'envoi de l'email: ${emailError.message}`,
+          details: JSON.stringify(emailError)
         }),
         {
           status: 200,
@@ -112,6 +118,7 @@ serve(async (req) => {
       JSON.stringify({
         success: false,
         message: `Erreur lors du test SMTP: ${error.message}`,
+        details: JSON.stringify(error)
       }),
       {
         status: 500,
