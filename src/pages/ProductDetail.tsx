@@ -346,6 +346,12 @@ const ProductDetail = () => {
     }
   };
 
+  const navigateToCreateVariant = () => {
+    if (id) {
+      navigate(`/catalog/new?parent_id=${id}`);
+    }
+  };
+
   if (isLoading) {
     return (
       <Container>
@@ -807,25 +813,37 @@ const ProductDetail = () => {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium">Variantes du produit</h3>
-                    {variants.length > 0 && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setShowVariants(!showVariants)}
-                      >
-                        {showVariants ? (
-                          <>
-                            <ChevronUp className="h-4 w-4 mr-1" />
-                            Masquer
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="h-4 w-4 mr-1" />
-                            Afficher
-                          </>
-                        )}
-                      </Button>
-                    )}
+                    <div className="flex gap-2">
+                      {isParentProduct && (
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={navigateToCreateVariant}
+                        >
+                          <PlusCircle className="h-4 w-4 mr-1" />
+                          Ajouter une variante
+                        </Button>
+                      )}
+                      {variants.length > 0 && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowVariants(!showVariants)}
+                        >
+                          {showVariants ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-1" />
+                              Masquer
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-1" />
+                              Afficher
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   
                   {isParentProduct ? (
@@ -879,6 +897,14 @@ const ProductDetail = () => {
                       ) : variants.length === 0 ? (
                         <div className="text-center p-6 bg-muted/50 rounded-lg">
                           <p>Aucune variante trouvée pour ce produit</p>
+                          <Button 
+                            variant="outline" 
+                            className="mt-4"
+                            onClick={navigateToCreateVariant}
+                          >
+                            <PlusCircle className="h-4 w-4 mr-1" />
+                            Créer une variante pour ce produit
+                          </Button>
                         </div>
                       ) : null}
                     </>
@@ -936,8 +962,16 @@ const ProductDetail = () => {
                       ) : null}
                     </>
                   ) : (
-                    <div className="flex items-center justify-center h-32 border rounded-md bg-muted/50">
-                      <p className="text-muted-foreground">Ce produit n'a pas de variantes</p>
+                    <div className="flex flex-col items-center justify-center h-32 border rounded-md bg-muted/50">
+                      <p className="text-muted-foreground mb-2">Ce produit n'a pas de variantes</p>
+                      <p className="text-sm text-muted-foreground mb-3">Pour gérer des variantes, ce produit doit d'abord être défini comme un produit parent.</p>
+                      <Button 
+                        variant="outline"
+                        onClick={() => setFormData({...formData, is_parent: true})}
+                      >
+                        <Layers className="h-4 w-4 mr-1" />
+                        Convertir en produit parent
+                      </Button>
                     </div>
                   )}
                 </CardContent>
@@ -951,4 +985,3 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
-
