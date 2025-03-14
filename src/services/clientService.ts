@@ -157,10 +157,10 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     const clientWithUserId = {
       ...clientData,
-      user_id: null
+      user_id: user.id
     };
     
-    const { data, error } = await adminSupabase
+    const { data, error } = await supabase
       .from('clients')
       .insert(clientWithUserId)
       .select()
@@ -429,64 +429,38 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     };
     
     const tempPassword = generateStrongPassword();
-    
     const siteUrl = window.location.origin;
     console.log("Using site URL for redirect:", siteUrl);
+    
+    const adminSupabaseClient = getAdminSupabaseClient();
     
     try {
       console.log("Creating user account with admin auth...");
       
-      let userData;
-      let signupError;
+      const adminResult = await adminSupabaseClient.auth.admin.createUser({
+        email: client.email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          first_name: client.name.split(' ')[0],
+          last_name: client.name.split(' ').slice(1).join(' '),
+          role: 'client',
+          company: client.company || null
+        }
+      });
       
-      try {
-        const adminResult = await adminSupabase.auth.admin.createUser({
-          email: client.email,
-          password: tempPassword,
-          email_confirm: true,
-          user_metadata: {
-            first_name: client.name.split(' ')[0],
-            last_name: client.name.split(' ').slice(1).join(' '),
-            role: 'client',
-            company: client.company || null
-          }
-        });
-        
-        userData = adminResult.data;
-        signupError = adminResult.error;
-      } catch (adminError) {
-        console.error("Error using admin auth:", adminError);
-        
-        console.log("Fallback to regular signup...");
-        const signupResult = await supabase.auth.signUp({
-          email: client.email,
-          password: tempPassword,
-          options: {
-            data: {
-              first_name: client.name.split(' ')[0],
-              last_name: client.name.split(' ').slice(1).join(' '),
-              role: 'client',
-              company: client.company || null
-            }
-          }
-        });
-        
-        userData = signupResult.data;
-        signupError = signupResult.error;
+      if (adminResult.error) {
+        console.log("Admin auth signup error:", adminResult.error.message);
+        throw adminResult.error;
       }
       
-      if (signupError) {
-        console.log("Sign up error:", signupError.message);
-        throw signupError;
-      } 
+      console.log("New user created successfully:", adminResult.data?.user?.id);
       
-      console.log("New user created successfully:", userData?.user?.id);
-      
-      if (userData && userData.user) {
-        const { error: updateError } = await supabase
+      if (adminResult.data && adminResult.data.user) {
+        const { error: updateError } = await adminSupabaseClient
           .from('clients')
           .update({ 
-            user_id: userData.user.id,
+            user_id: adminResult.data.user.id,
             has_user_account: true,
             user_account_created_at: new Date().toISOString()
           })
@@ -495,12 +469,12 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
         if (updateError) {
           console.error("Error updating client with user_id:", updateError);
         } else {
-          console.log("Client updated with user_id:", userData.user.id);
+          console.log("Client updated with user_id:", adminResult.data.user.id);
         }
       }
       
       console.log("Sending password reset email for new account");
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(client.email, {
+      const { error: resetError } = await adminSupabaseClient.auth.resetPasswordForEmail(client.email, {
         redirectTo: `${siteUrl}/login`
       });
       

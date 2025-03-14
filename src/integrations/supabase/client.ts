@@ -37,6 +37,11 @@ export const getAdminSupabaseClient = () => {
       auth: {
         persistSession: false,
       },
+      global: {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
     });
   }
   return adminSupabaseInstance;
