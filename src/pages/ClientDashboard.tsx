@@ -26,68 +26,89 @@ const ClientDashboard = () => {
   const [clientId, setClientId] = useState(null);
 
   useEffect(() => {
-    const fetchClientId = async () => {
-      if (!user?.email) return;
-      
-      try {
-        console.log("Fetching client ID for email:", user.email);
-        const { data, error } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('email', user.email)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching client ID:", error);
-          toast.error("Erreur lors de la récupération des données client");
-          return;
-        }
-        
-        if (data) {
-          console.log("Found client ID:", data.id);
-          setClientId(data.id);
-          return data.id;
-        } else {
-          console.log("No client found for email:", user.email);
-        }
-      } catch (error) {
-        console.error("Error in fetchClientId:", error);
-      }
-      
-      return null;
-    };
-
     const fetchClientData = async () => {
       setLoading(true);
       try {
-        // First get the client ID
-        const id = await fetchClientId();
-        
-        if (!id) {
+        if (!user?.email) {
           setLoading(false);
           return;
         }
         
-        console.log("Fetching data for client ID:", id);
+        // Étape 1: Récupérer l'ID du client à partir de l'email
+        console.log("Fetching client data for email:", user.email);
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('id, name')
+          .eq('email', user.email)
+          .maybeSingle();
         
-        // Fetch contracts
+        if (clientError) {
+          console.error("Error fetching client:", clientError);
+          toast.error("Erreur lors de la récupération des données client");
+          setLoading(false);
+          return;
+        }
+        
+        if (!clientData) {
+          console.log("No client found for email:", user.email);
+          setLoading(false);
+          return;
+        }
+        
+        console.log("Found client:", clientData);
+        setClientId(clientData.id);
+        
+        // Étape 2: Récupérer les contrats pour ce client
         const { data: contractsData, error: contractsError } = await supabase
           .from('contracts')
           .select('*')
-          .eq('client_id', id);
-          
+          .eq('client_id', clientData.id);
+        
         if (contractsError) {
           console.error("Error fetching contracts:", contractsError);
+          toast.error("Erreur lors de la récupération des contrats");
         } else {
-          console.log("Fetched contracts:", contractsData);
+          console.log(`Found ${contractsData?.length || 0} contracts for client:`, contractsData);
           setContracts(contractsData || []);
         }
         
-        // Fetch offers/requests
+        // Si aucun contrat n'a été trouvé par client_id, essayer par client_name
+        if (!contractsData || contractsData.length === 0) {
+          console.log("Trying to find contracts by client_name");
+          
+          const { data: nameContracts, error: nameError } = await supabase
+            .from('contracts')
+            .select('*')
+            .eq('client_name', clientData.name);
+          
+          if (nameError) {
+            console.error("Error fetching contracts by name:", nameError);
+          } else if (nameContracts && nameContracts.length > 0) {
+            console.log(`Found ${nameContracts.length} contracts by client_name:`, nameContracts);
+            
+            // Mettre à jour client_id pour ces contrats
+            for (const contract of nameContracts) {
+              const { error: updateError } = await supabase
+                .from('contracts')
+                .update({ client_id: clientData.id })
+                .eq('id', contract.id);
+                
+              if (updateError) {
+                console.error(`Error updating contract ${contract.id}:`, updateError);
+              } else {
+                console.log(`Updated client_id for contract ${contract.id}`);
+              }
+            }
+            
+            setContracts(nameContracts);
+          }
+        }
+        
+        // Étape 3: Récupérer les offres pour ce client
         const { data: offersData, error: offersError } = await supabase
           .from('offers')
           .select('*')
-          .eq('client_id', id)
+          .eq('client_id', clientData.id)
           .eq('converted_to_contract', false);
         
         if (offersError) {

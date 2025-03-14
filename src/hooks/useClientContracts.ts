@@ -29,106 +29,54 @@ export const useClientContracts = () => {
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    const fetchClientId = async () => {
-      if (!user) return null;
-      
-      try {
-        console.log("Fetching client ID for user:", user.email);
-        
-        // First check local storage
-        const cachedClientId = localStorage.getItem(`client_id_${user.id}`);
-        if (cachedClientId) {
-          console.log("Using cached client ID:", cachedClientId);
-          setClientId(cachedClientId);
-          return cachedClientId;
-        }
-        
-        // Récupérer l'email directement depuis l'API Auth de Supabase
-        const { data: userData } = await supabase.auth.getUser();
-        const userEmail = userData?.user?.email || user.email;
-        
-        if (!userEmail) {
-          console.error("No email found for user");
-          return null;
-        }
-        
-        console.log("Looking for client with email:", userEmail);
-        
-        // Première tentative: chercher par email
-        const { data: dataByEmail, error: errorByEmail } = await supabase
-          .from('clients')
-          .select('id, user_id')
-          .eq('email', userEmail)
-          .maybeSingle();
-        
-        if (!errorByEmail && dataByEmail) {
-          console.log("Found client ID by email:", dataByEmail.id);
-          
-          // Si le user_id est null, mettre à jour le client
-          if (!dataByEmail.user_id) {
-            console.log("Found client without user_id, updating...");
-            const { error: updateError } = await supabase
-              .from('clients')
-              .update({ user_id: user.id })
-              .eq('id', dataByEmail.id);
-              
-            if (updateError) {
-              console.error("Error updating client with user_id:", updateError);
-            } else {
-              console.log("Updated client with user_id:", user.id);
-            }
-          }
-          
-          localStorage.setItem(`client_id_${user.id}`, dataByEmail.id);
-          setClientId(dataByEmail.id);
-          return dataByEmail.id;
-        } else {
-          console.log("No client found for email:", userEmail);
-        }
-        
-        // Deuxième tentative: chercher par user_id
-        if (user.id) {
-          const { data: dataByUserId, error: errorByUserId } = await supabase
-            .from('clients')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (!errorByUserId && dataByUserId) {
-            console.log("Found client ID by user_id:", dataByUserId.id);
-            localStorage.setItem(`client_id_${user.id}`, dataByUserId.id);
-            setClientId(dataByUserId.id);
-            return dataByUserId.id;
-          } else {
-            console.log("No client found for user_id:", user.id);
-          }
-        }
-        
-        // Si aucun client n'est trouvé, retourner null
-        console.log("No client found for this user");
-        return null;
-      } catch (error) {
-        console.error("Error in fetchClientId:", error);
-        return null;
-      }
-    };
-
-    const fetchClientContracts = async () => {
+    const fetchContracts = async () => {
       setLoading(true);
       setError(null);
       
       try {
-        const id = await fetchClientId();
-        
-        if (!id) {
+        if (!user) {
           setLoading(false);
-          setError("Compte client non trouvé. Veuillez contacter l'administrateur.");
+          setError("Utilisateur non connecté");
           return;
         }
         
-        console.log("Fetching contracts for client ID:", id);
+        console.log("Fetching contracts for user:", user.email);
         
-        // DEBUG: Récupérer tous les contrats pour vérifier
+        // Récupérer l'ID du client
+        const userEmail = user.email;
+        
+        if (!userEmail) {
+          console.error("No email found for user");
+          setLoading(false);
+          setError("Email de l'utilisateur non trouvé");
+          return;
+        }
+        
+        // Première étape: obtenir l'ID du client à partir de l'email
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('id, name')
+          .eq('email', userEmail)
+          .maybeSingle();
+        
+        if (clientError) {
+          console.error("Error fetching client ID:", clientError);
+          setLoading(false);
+          setError(`Erreur lors de la récupération du client: ${clientError.message}`);
+          return;
+        }
+        
+        if (!clientData) {
+          console.log("No client found for email:", userEmail);
+          setLoading(false);
+          setError("Aucun compte client trouvé pour cet email");
+          return;
+        }
+        
+        console.log("Found client:", clientData);
+        setClientId(clientData.id);
+        
+        // Test de débogage: récupérer tous les contrats
         const { data: allContracts, error: debugError } = await supabase
           .from('contracts')
           .select('*');
@@ -136,38 +84,71 @@ export const useClientContracts = () => {
         if (debugError) {
           console.error("Debug - Error fetching all contracts:", debugError);
         } else {
-          console.log("DEBUG - All contracts in database:", allContracts);
+          console.log("DEBUG - Tous les contrats dans la base de données:", allContracts);
         }
         
-        // Récupérer les contrats du client avec une requête explicite
-        const { data, error: contractsError } = await supabase
+        // Récupérer les contrats associés au client
+        const { data: clientContracts, error: contractsError } = await supabase
           .from('contracts')
           .select('*')
-          .eq('client_id', id);
+          .eq('client_id', clientData.id);
           
         if (contractsError) {
-          console.error("Error fetching contracts for client:", contractsError);
-          setError("Erreur lors de la récupération des contrats");
-          toast.error("Erreur lors du chargement des contrats");
-        } else {
-          console.log(`Fetched ${data?.length || 0} contracts for client:`, data);
-          setContracts(data || []);
+          console.error("Error fetching contracts:", contractsError);
+          setLoading(false);
+          setError(`Erreur lors de la récupération des contrats: ${contractsError.message}`);
+          return;
         }
+        
+        console.log(`Récupéré ${clientContracts?.length || 0} contrats pour le client ${clientData.name}:`, clientContracts);
+        
+        // Essayons également de vérifier par client_name si pas de résultat
+        if (!clientContracts || clientContracts.length === 0) {
+          console.log("No contracts found by client_id, trying by client_name");
+          
+          const { data: nameContracts, error: nameError } = await supabase
+            .from('contracts')
+            .select('*')
+            .eq('client_name', clientData.name);
+            
+          if (nameError) {
+            console.error("Error fetching contracts by name:", nameError);
+          } else if (nameContracts && nameContracts.length > 0) {
+            console.log(`Found ${nameContracts.length} contracts by client_name:`, nameContracts);
+            
+            // Mettre à jour client_id pour ces contrats
+            for (const contract of nameContracts) {
+              const { error: updateError } = await supabase
+                .from('contracts')
+                .update({ client_id: clientData.id })
+                .eq('id', contract.id);
+                
+              if (updateError) {
+                console.error(`Error updating contract ${contract.id}:`, updateError);
+              } else {
+                console.log(`Updated client_id for contract ${contract.id}`);
+              }
+            }
+            
+            setContracts(nameContracts);
+          } else {
+            console.log("No contracts found by client_name either");
+            setContracts([]);
+          }
+        } else {
+          setContracts(clientContracts);
+        }
+        
+        setLoading(false);
       } catch (error) {
-        console.error("Error fetching client contracts:", error);
+        console.error("Error in fetchContracts:", error);
+        setLoading(false);
         setError("Erreur lors de la récupération des contrats");
         toast.error("Erreur lors du chargement des contrats");
-      } finally {
-        setLoading(false);
       }
     };
 
-    if (user) {
-      fetchClientContracts();
-    } else {
-      setLoading(false);
-      setError("Utilisateur non connecté");
-    }
+    fetchContracts();
   }, [user, retry]);
 
   const refresh = () => {

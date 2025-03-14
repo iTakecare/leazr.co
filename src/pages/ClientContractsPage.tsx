@@ -4,10 +4,16 @@ import { useClientContracts } from "@/hooks/useClientContracts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
-import { File, Package, RefreshCw, AlertCircle } from "lucide-react";
+import { File, Package, RefreshCw, AlertCircle, Box } from "lucide-react";
+import { toast } from "sonner";
 
 const ClientContractsPage = () => {
   const { contracts, loading, error, refresh } = useClientContracts();
+
+  const handleRefresh = () => {
+    toast.info("Actualisation des contrats...");
+    refresh();
+  };
 
   if (loading) {
     return (
@@ -30,7 +36,7 @@ const ClientContractsPage = () => {
               <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
               <h2 className="text-xl font-semibold mb-2">Erreur</h2>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={refresh} variant="outline">
+              <Button onClick={handleRefresh} variant="outline">
                 <RefreshCw className="mr-2 h-4 w-4" /> Réessayer
               </Button>
             </div>
@@ -47,12 +53,12 @@ const ClientContractsPage = () => {
         <Card>
           <CardContent className="py-10">
             <div className="text-center">
-              <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <Box className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h2 className="text-xl font-semibold mb-2">Aucun contrat trouvé</h2>
               <p className="text-muted-foreground mb-4">
                 Vous n'avez pas encore de contrats actifs.
               </p>
-              <Button onClick={refresh} variant="outline">
+              <Button onClick={handleRefresh} variant="outline">
                 <RefreshCw className="mr-2 h-4 w-4" /> Actualiser
               </Button>
             </div>
@@ -66,7 +72,7 @@ const ClientContractsPage = () => {
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Mes Contrats</h1>
-        <Button onClick={refresh} variant="outline" size="sm">
+        <Button onClick={handleRefresh} variant="outline" size="sm">
           <RefreshCw className="mr-2 h-4 w-4" /> Actualiser
         </Button>
       </div>
@@ -93,7 +99,9 @@ const ClientContractsPage = () => {
                           ? "Équipement commandé"
                           : contract.status === "delivered"
                             ? "Livré"
-                            : contract.status}
+                            : contract.status === "completed"
+                              ? "Terminé"
+                              : contract.status}
                   </span>
                 </div>
                 <div className="flex justify-between">
