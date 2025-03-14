@@ -9,13 +9,12 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, AlertCircle } from "lucide-react";
+import { Search, AlertCircle } from "lucide-react";
 import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Alert } from "@/components/ui/alert";
-import { toast } from "sonner";
 import ProductCard from "./ProductCard";
 
 // Map for translating category names to French
@@ -76,30 +75,10 @@ const ProductCatalog = ({
         console.log("Fetching products for catalog...");
         const productsData = await getProducts();
         console.log(`Retrieved ${productsData.length} products for catalog`);
-        
-        // Fallback to mock data if API returns empty array
-        if (productsData.length === 0) {
-          console.log("No products found, using fallback data");
-          // Import the mock data
-          const { products: mockProducts } = await import("@/data/products");
-          toast.info("Utilisation des données de démonstration", {
-            description: "Les produits affichés sont des exemples",
-            duration: 5000,
-          });
-          return mockProducts;
-        }
-        
         return productsData;
       } catch (error) {
         console.error("Error fetching products:", error);
-        console.log("Timeout atteint, utilisation des données mockées");
-        // Import the mock data
-        const { products: mockProducts } = await import("@/data/products");
-        toast.error("Impossible de charger les produits depuis le serveur", {
-          description: "Utilisation des données de démonstration",
-          duration: 5000,
-        });
-        return mockProducts;
+        throw error;
       }
     },
     enabled: isOpen || !isSheet, // Load data when catalog is open OR when not in sheet mode
@@ -145,7 +124,7 @@ const ProductCatalog = ({
       {isError && (
         <Alert variant="destructive" className="my-2">
           <AlertCircle className="h-4 w-4" />
-          <p className="ml-2">Erreur lors du chargement des produits. Utilisation des données de démonstration.</p>
+          <p className="ml-2">Erreur lors du chargement des produits. Veuillez réessayer.</p>
         </Alert>
       )}
       
@@ -189,6 +168,9 @@ const ProductCatalog = ({
           ) : (
             <div className="col-span-full py-8 text-center">
               <p className="text-muted-foreground">Aucun produit trouvé</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Essayez d'ajuster votre recherche ou créez un nouveau produit
+              </p>
             </div>
           )}
         </div>

@@ -27,6 +27,23 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 
+// Map for translating category names to French
+const categoryTranslations: Record<string, string> = {
+  "all": "Tous",
+  "laptop": "Ordinateur portable",
+  "desktop": "Ordinateur de bureau",
+  "tablet": "Tablette",
+  "smartphone": "Smartphone",
+  "accessories": "Accessoires",
+  "printer": "Imprimante",
+  "monitor": "Écran",
+  "software": "Logiciel",
+  "networking": "Réseau",
+  "server": "Serveur",
+  "storage": "Stockage",
+  "other": "Autre"
+};
+
 const Catalog = () => {
   const navigate = useNavigate();
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
@@ -142,7 +159,10 @@ const Catalog = () => {
           </TabsContent>
           
           <TabsContent value="categories">
-            <CategoryManager />
+            <CategoryManager 
+              categories={Object.keys(categoryTranslations).filter(cat => cat !== "all")}
+              categoryTranslations={categoryTranslations}
+            />
           </TabsContent>
         </Tabs>
       </div>

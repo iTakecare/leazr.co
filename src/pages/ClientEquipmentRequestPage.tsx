@@ -213,7 +213,7 @@ const ClientEquipmentRequestPage = () => {
         </div>
       </div>
 
-      {/* Utilisation du composant ProductCatalog amélioré en mode Sheet */}
+      {/* Utiliser le même composant ProductCatalog que l'admin */}
       <ProductCatalog
         isOpen={isCatalogOpen}
         onClose={handleCloseCatalog}
