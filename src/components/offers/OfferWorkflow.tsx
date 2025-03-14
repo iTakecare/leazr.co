@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
@@ -301,6 +302,9 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
     );
   };
 
+  // Creating icon components from step info to avoid JSX syntax issues
+  const CurrentStepIcon = currentStepInfo.icon;
+
   return (
     <div className="mt-4">
       <h3 className="text-sm font-medium mb-2">Progression du workflow</h3>
@@ -310,7 +314,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
         "flex items-center p-3 mb-3 rounded-md",
         currentStepInfo.bgColor
       )}>
-        <currentStepInfo.icon className={cn("h-5 w-5 mr-2", currentStepInfo.color)} />
+        <CurrentStepIcon className={cn("h-5 w-5 mr-2", currentStepInfo.color)} />
         <div>
           <p className="font-medium">{currentStepInfo.title}</p>
           <p className="text-xs text-muted-foreground">{currentStepInfo.description}</p>
@@ -335,27 +339,31 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
             Prochaines étapes possibles:
           </h4>
           <div className="flex flex-wrap gap-2">
-            {nextStepOptions.map((step) => (
-              <Button
-                key={step?.id}
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "flex items-center",
-                  step?.color,
-                  "hover:bg-gray-100"
-                )}
-                onClick={() => handleStatusSelection(step?.id || "")}
-                disabled={isUpdating}
-              >
-                {isUpdating ? (
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                ) : (
-                  <step.icon className="h-3 w-3 mr-1" />
-                )}
-                {step?.title}
-              </Button>
-            ))}
+            {nextStepOptions.map((step) => {
+              if (!step) return null;
+              const StepIcon = step.icon;
+              return (
+                <Button
+                  key={step.id}
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "flex items-center",
+                    step.color,
+                    "hover:bg-gray-100"
+                  )}
+                  onClick={() => handleStatusSelection(step.id || "")}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? (
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  ) : (
+                    <StepIcon className="h-3 w-3 mr-1" />
+                  )}
+                  {step.title}
+                </Button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -393,6 +401,10 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                     const prevStatus = workflowSteps.find(s => s.id === log.previous_status);
                     const newStatus = workflowSteps.find(s => s.id === log.new_status);
                     
+                    // Creating icon components to avoid JSX syntax issues
+                    const PrevStatusIcon = prevStatus?.icon || FileText;
+                    const NewStatusIcon = newStatus?.icon || FileText;
+                    
                     return (
                       <div key={index} className="p-2 border-b last:border-0">
                         <div className="flex justify-between">
@@ -405,12 +417,12 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                         </div>
                         <div className="flex items-center mt-1 text-sm">
                           <span className={cn("inline-flex items-center", prevStatus?.color || "text-gray-500")}>
-                            <prevStatus?.icon className="h-3 w-3 mr-1" />
+                            <PrevStatusIcon className="h-3 w-3 mr-1" />
                             {prevStatus?.title || log.previous_status}
                           </span>
                           <ArrowRight className="h-3 w-3 mx-2 text-muted-foreground" />
                           <span className={cn("inline-flex items-center", newStatus?.color || "text-gray-500")}>
-                            <newStatus?.icon className="h-3 w-3 mr-1" />
+                            <NewStatusIcon className="h-3 w-3 mr-1" />
                             {newStatus?.title || log.new_status}
                           </span>
                         </div>
