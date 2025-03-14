@@ -77,7 +77,8 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       return;
     }
 
-    const ranges = selectedLeaser?.ranges || defaultLeasers[0].ranges;
+    // Use the selected leaser's ranges instead of defaultLeasers
+    const ranges = leaser?.ranges || defaultLeasers[0].ranges;
     let coef = ranges[0].coefficient;
     
     for (const range of ranges) {
@@ -270,7 +271,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     setEquipmentList,
     totalMonthlyPayment,
     globalMarginAdjustment,
-    setGlobalMarginAdjustment, // Add the missing function here
+    setGlobalMarginAdjustment,
     editingId,
     applyCalculatedMargin,
     addToList,

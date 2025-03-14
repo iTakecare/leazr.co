@@ -13,6 +13,7 @@ import { getProducts, getCategories, getBrands } from "@/services/catalogService
 import { useQuery } from "@tanstack/react-query";
 import ProductCard from "@/components/ui/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MarginCalculator from "./MarginCalculator";
 
 interface EquipmentFormProps {
   equipment: Equipment;
@@ -276,6 +277,17 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
               <Plus className="h-4 w-4 mr-2" /> Ajouter à la liste
             </Button>
           )}
+
+          {/* Add MarginCalculator component */}
+          <div className="mt-4 pt-4 border-t">
+            <MarginCalculator 
+              targetMonthlyPayment={targetMonthlyPayment}
+              setTargetMonthlyPayment={setTargetMonthlyPayment}
+              calculatedMargin={calculatedMargin}
+              applyCalculatedMargin={applyCalculatedMargin}
+              selectedLeaser={selectedLeaser}
+            />
+          </div>
         </div>
       </CardContent>
       

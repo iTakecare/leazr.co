@@ -5,19 +5,22 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Leaser } from "@/types/equipment";
 
 interface MarginCalculatorProps {
   targetMonthlyPayment: number;
   setTargetMonthlyPayment: (value: number) => void;
   calculatedMargin: { percentage: number; amount: number };
   applyCalculatedMargin: () => void;
+  selectedLeaser: Leaser | null;
 }
 
 const MarginCalculator: React.FC<MarginCalculatorProps> = ({
   targetMonthlyPayment,
   setTargetMonthlyPayment,
   calculatedMargin,
-  applyCalculatedMargin
+  applyCalculatedMargin,
+  selectedLeaser
 }) => {
   const [inputValue, setInputValue] = useState(targetMonthlyPayment ? targetMonthlyPayment.toString() : "");
 
@@ -42,6 +45,11 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
     <Card className="shadow-sm border-gray-200 rounded-lg">
       <CardHeader className="pb-3 border-b">
         <CardTitle className="text-lg font-medium">Calcul de la marge à partir de la mensualité souhaitée</CardTitle>
+        {selectedLeaser && (
+          <div className="text-sm text-muted-foreground">
+            Prestataire: {selectedLeaser.name}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-5">
