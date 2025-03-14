@@ -107,8 +107,8 @@ export default function Login() {
       <div className="flex flex-col w-full lg:w-1/2 p-8 justify-center items-center">
         <div className="w-full max-w-md">
           <div className="mb-8">
-            <Link to="/" className="text-2xl font-bold text-primary">MedEase</Link>
-            <p className="text-muted-foreground">Plateforme de gestion pour les équipements médicaux</p>
+            <Link to="/" className="text-2xl font-bold text-primary">iTakecare Hub</Link>
+            <p className="text-muted-foreground">Plateforme de gestion pour le leasing de matériel informatique reconditionné</p>
           </div>
 
           <Card className="border-none shadow-md">
@@ -266,21 +266,21 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Image à droite */}
+      {/* Image à droite - Mise à jour avec une image plus appropriée pour le matériel IT */}
       <div className="hidden lg:block lg:w-1/2 bg-primary-50">
         <div className="h-full w-full bg-cover bg-center" 
              style={{ 
-               backgroundImage: "url('https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&q=80&ixlib=rb-4.0.3')", 
+               backgroundImage: "url('https://images.unsplash.com/photo-1611078489935-0cb964de46d6?auto=format&fit=crop&q=80&ixlib=rb-4.0.3')", 
                backgroundSize: 'cover',
                position: 'relative'
              }}>
           <div className="absolute inset-0 bg-primary/10 backdrop-blur-[2px]"></div>
           <div className="absolute inset-0 flex flex-col justify-center p-12">
             <div className="glass p-8 max-w-md">
-              <h2 className="text-2xl font-bold mb-4">Gestion d'équipement médical simplifiée</h2>
+              <h2 className="text-2xl font-bold mb-4">Leasing de matériel informatique reconditionné simplifié</h2>
               <p className="text-muted-foreground mb-6">
                 Accédez à votre espace personnel pour gérer vos contrats, 
-                suivre vos demandes et consulter le catalogue d'équipements.
+                suivre vos demandes et consulter notre catalogue de matériel informatique reconditionné.
               </p>
               <div className="flex items-center text-primary font-medium">
                 En savoir plus <ArrowRight className="ml-2 h-4 w-4" />

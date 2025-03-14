@@ -28,14 +28,14 @@ const Index = () => {
             className="max-w-3xl mx-auto"
           >
             <div className="inline-block rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-6">
-              Génération d'offres simplifiée
+              Leasing informatique éco-responsable
             </div>
             <h1 className="text-4xl md:text-6xl font-bold leading-tight tracking-tight mb-6">
-              Transformez vos propositions en 
-              <span className="text-primary"> commissions</span>
+              Transformez votre infrastructure IT avec 
+              <span className="text-primary"> iTakecare Hub</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-xl mx-auto">
-              Créez des offres commerciales, calculez vos commissions et gérez vos opportunités en toute simplicité.
+              Créez des offres de leasing pour du matériel informatique reconditionné, calculez vos commissions et gérez vos opportunités en toute simplicité.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={() => navigate("/login")}>
@@ -63,7 +63,7 @@ const Index = () => {
               Configurez vos offres
             </h3>
             <p className="text-muted-foreground">
-              Sélectionnez des produits, personnalisez les options et créez des offres en quelques clics.
+              Sélectionnez des équipements reconditionnés, personnalisez les options et créez des offres de leasing en quelques clics.
             </p>
           </div>
           <div className="rounded-xl p-6 glass">

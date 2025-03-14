@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { Link } from "react-router-dom";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -23,6 +24,11 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           <Menu className="h-5 w-5" />
           <span className="sr-only">Menu</span>
         </Button>
+        
+        <Link to="/" className="text-xl font-semibold text-primary hidden md:block">
+          iTakecare Hub
+        </Link>
+        
         <div className="ml-auto flex items-center space-x-4">
           {user && (
             <div className="text-sm font-medium">
