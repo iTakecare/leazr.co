@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Plus, Grid, List, Filter, Search } from "lucide-react";
+import { Plus, Grid, List, Filter, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageTransition from "@/components/layout/PageTransition";
 import OffersKanban from "@/components/offers/OffersKanban";
@@ -44,6 +44,22 @@ const Offers = () => {
   const [viewMode, setViewMode] = useState<'kanban'>('kanban');
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Référence pour le défilement horizontal
+  const scrollContainer = React.useRef<HTMLDivElement>(null);
+  
+  // Fonctions pour faire défiler le kanban horizontalement
+  const scrollLeft = () => {
+    if (scrollContainer.current) {
+      scrollContainer.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+  
+  const scrollRight = () => {
+    if (scrollContainer.current) {
+      scrollContainer.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
 
   return (
     <PageTransition>
@@ -91,19 +107,42 @@ const Offers = () => {
           </div>
         </div>
         
-        {loading ? (
-          <OffersLoading />
-        ) : loadingError ? (
-          <OffersError message={loadingError} onRetry={fetchOffers} />
-        ) : (
-          <OffersKanban
-            offers={filteredOffers}
-            onStatusChange={handleUpdateWorkflowStatus}
-            isUpdatingStatus={isUpdatingStatus}
-            onDeleteOffer={handleDeleteOffer}
-            includeConverted={includeConverted}
-          />
-        )}
+        {/* Contrôles de navigation du Kanban */}
+        <div className="flex justify-between items-center mb-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={scrollLeft}
+            className="rounded-full"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={scrollRight}
+            className="rounded-full"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div ref={scrollContainer} className="overflow-hidden">
+          {loading ? (
+            <OffersLoading />
+          ) : loadingError ? (
+            <OffersError message={loadingError} onRetry={fetchOffers} />
+          ) : (
+            <OffersKanban
+              offers={filteredOffers}
+              onStatusChange={handleUpdateWorkflowStatus}
+              isUpdatingStatus={isUpdatingStatus}
+              onDeleteOffer={handleDeleteOffer}
+              includeConverted={includeConverted}
+            />
+          )}
+        </div>
       </div>
     </PageTransition>
   );

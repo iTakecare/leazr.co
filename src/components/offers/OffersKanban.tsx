@@ -109,9 +109,9 @@ const OffersKanban: React.FC<OffersKanbanProps> = ({
   return (
     <div className="flex flex-col h-[calc(100vh-220px)]">
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex overflow-x-auto pb-4 gap-4">
+        <div className="flex overflow-x-auto pb-4 gap-4 py-1 px-1 scroll-smooth snap-x">
           {KANBAN_COLUMNS.map(column => (
-            <div key={column.id} className="flex-shrink-0 w-80">
+            <div key={column.id} className="flex-shrink-0 w-72 md:w-80 snap-start">
               <div className={cn(
                 "rounded-t-lg p-3 flex items-center",
                 column.color,
