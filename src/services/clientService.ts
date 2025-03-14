@@ -433,7 +433,7 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       console.log("New user created successfully:", adminResult.data?.user?.id);
       
       if (adminResult.data && adminResult.data.user) {
-        const { error: updateError } = await adminSupabase
+        const { error: updateError } = await supabase
           .from('clients')
           .update({ 
             user_id: adminResult.data.user.id,
