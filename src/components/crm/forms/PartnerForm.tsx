@@ -23,12 +23,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Define the allowed partner types as a literal union type
+const partnerTypes = ["Revendeur", "Intégrateur", "Consultant"] as const;
+type PartnerType = typeof partnerTypes[number];
+
 const partnerSchema = z.object({
   name: z.string().min(2, "Le nom de la société doit contenir au moins 2 caractères"),
   contactName: z.string().min(2, "Le nom du contact doit contenir au moins 2 caractères"),
   email: z.string().email("Veuillez entrer un email valide"),
   phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
-  type: z.enum(["Revendeur", "Intégrateur", "Consultant"]),
+  type: z.enum(partnerTypes),
   notes: z.string().optional(),
 });
 

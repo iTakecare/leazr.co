@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,7 @@ interface Partner {
   contactName: string;
   email: string;
   phone: string;
-  type: string;
+  type: "Revendeur" | "Intégrateur" | "Consultant";
   commissionsTotal: number;
   status: string;
   notes?: string;
@@ -389,7 +388,6 @@ const PartnersList = () => {
         </TableBody>
       </Table>
 
-      {/* Modales et dialogs */}
       <PartnerModal 
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
