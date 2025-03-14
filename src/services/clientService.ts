@@ -73,6 +73,8 @@ const mapDbClientToClient = (record: any): Client => {
     country: record.country,
     collaborators: record.collaborators || [],
     user_id: record.user_id,
+    has_user_account: record.has_user_account,
+    user_account_created_at: record.user_account_created_at,
     created_at: record.created_at ? new Date(record.created_at) : new Date(),
     updated_at: record.updated_at ? new Date(record.updated_at) : new Date()
   };

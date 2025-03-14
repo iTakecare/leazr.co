@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CollaboratorForm } from "@/components/clients/CollaboratorForm";
+import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import { toast } from "sonner";
 import { createAccountForClient, getClientById, resetClientPassword } from "@/services/clientService";
 import { Client } from "@/types/client";

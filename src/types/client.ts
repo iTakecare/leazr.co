@@ -25,6 +25,8 @@ export interface Client {
   country?: string;
   collaborators?: Collaborator[];
   user_id?: string;
+  has_user_account?: boolean;
+  user_account_created_at?: string | Date;
 }
 
 export interface CreateClientData {
