@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Building, FileText, Send, Download, RefreshCw, Trash2, CheckCircle } from "lucide-react";
+import { ChevronLeft, Building, FileText, Send, Download, RefreshCw, Trash2, CheckCircle, Mail } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getOfferById, updateOfferStatus, getWorkflowLogs, deleteOffer } from "@/services/offerService";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,7 +48,6 @@ const OfferDetail = () => {
       
       setOffer(offerData);
       
-      // Parse equipment data if available
       if (offerData.equipment_description) {
         try {
           const parsedEquipment = typeof offerData.equipment_description === 'string' 
@@ -63,11 +62,9 @@ const OfferDetail = () => {
         }
       }
       
-      // Fetch workflow logs
       const workflowLogs = await getWorkflowLogs(id);
       setLogs(workflowLogs);
       
-      // Fetch contract logs if offer is converted to contract
       if (offerData.converted_to_contract) {
         try {
           const contractWorkflowLogs = await getContractWorkflowLogs(id);
@@ -109,7 +106,6 @@ const OfferDetail = () => {
       setIsUpdatingStatus(true);
       
       if (offer.converted_to_contract) {
-        // Mettre à jour le statut du contrat
         const success = await updateContractStatus(
           offer.id, 
           targetStatus, 
@@ -125,7 +121,6 @@ const OfferDetail = () => {
           toast.error("Erreur lors de la mise à jour du statut du contrat");
         }
       } else {
-        // Mettre à jour le statut de l'offre
         const success = await updateOfferStatus(
           offer.id, 
           targetStatus, 
@@ -165,7 +160,6 @@ const OfferDetail = () => {
       if (success) {
         toast.success(`Informations de suivi ajoutées avec succès`);
         
-        // Mettre à jour le statut automatiquement à "Équipement commandé"
         await updateContractStatus(
           offer.id,
           contractStatuses.EQUIPMENT_ORDERED,
@@ -208,14 +202,22 @@ const OfferDetail = () => {
     }
   };
   
-  // Détermine les actions disponibles en fonction du statut de l'offre ou du contrat
+  const handleGeneratePdf = () => {
+    toast.success("Génération du PDF en cours...");
+    // Logique de génération PDF à implémenter ici
+  };
+  
+  const handleSendEmail = () => {
+    toast.success("L'offre a été envoyée par email au client");
+    // Logique d'envoi d'email à implémenter ici
+  };
+  
   const getAvailableActions = () => {
     if (!offer) return [];
     
     const actions = [];
     
     if (offer.converted_to_contract) {
-      // Actions pour les contrats
       switch (offer.contract_status) {
         case contractStatuses.CONTRACT_SENT:
           actions.push({
@@ -258,13 +260,26 @@ const OfferDetail = () => {
           break;
       }
     } else {
-      // Actions pour les offres
       switch (offer.workflow_status) {
         case OFFER_STATUSES.DRAFT.id:
           actions.push({
             label: "Envoyer au client",
             icon: Send,
             onClick: () => openStatusChangeDialog(OFFER_STATUSES.SENT.id),
+          });
+          
+          actions.push({
+            label: "Générer PDF",
+            icon: Download,
+            onClick: handleGeneratePdf,
+            variant: "secondary",
+          });
+          
+          actions.push({
+            label: "Envoyer par email",
+            icon: Mail,
+            onClick: handleSendEmail,
+            variant: "secondary",
           });
           break;
           
@@ -298,7 +313,6 @@ const OfferDetail = () => {
           break;
       }
       
-      // Action de suppression (sauf si convertie en contrat)
       if (!offer.converted_to_contract) {
         actions.push({
           label: "Supprimer l'offre",
@@ -360,7 +374,6 @@ const OfferDetail = () => {
           </div>
         </div>
         
-        {/* Nouvelle section: Étapes du workflow avec actions disponibles */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
           <h2 className="text-lg font-medium mb-4">
             {offer.converted_to_contract 
@@ -371,11 +384,11 @@ const OfferDetail = () => {
           <div className="flex flex-wrap gap-3">
             {availableActions.map((action, index) => (
               <Button 
-                key={action.label}
+                key={`${action.label}-${index}`}
                 onClick={action.onClick}
                 className={action.className}
                 disabled={isUpdatingStatus}
-                variant={action.label.includes("Supprimer") ? "destructive" : "default"}
+                variant={action.variant || (action.label.includes("Supprimer") ? "destructive" : "default")}
                 size="lg"
               >
                 <action.icon className="mr-2 h-5 w-5" />
@@ -392,7 +405,6 @@ const OfferDetail = () => {
             )}
           </div>
           
-          {/* Indicateur visuel des étapes du workflow */}
           <div className="mt-6">
             {offer.converted_to_contract ? (
               <div className="flex items-center justify-between">
@@ -689,7 +701,6 @@ const OfferDetail = () => {
         </div>
       </div>
       
-      {/* Dialog pour le changement de statut avec raison */}
       <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -731,7 +742,6 @@ const OfferDetail = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Dialog pour l'ajout d'informations de suivi */}
       <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -795,7 +805,6 @@ const OfferDetail = () => {
   );
 };
 
-// Composants pour l'affichage du statut du workflow
 const ProgressStep = ({ label, isActive, isCompleted }: { label: string, isActive: boolean, isCompleted: boolean }) => {
   let className = "flex flex-col items-center";
   
