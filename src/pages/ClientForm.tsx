@@ -48,18 +48,17 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 const ClientForm = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams<{ id?: string }>();
   
-  // Determine mode with additional safety checks
-  const isCreateMode = !id || id === "new" || id === "create";
-  const isEditMode = !isCreateMode;
-
-  // Only set loading to true if we need to fetch data (edit mode)
-  const [isLoading, setIsLoading] = useState(isEditMode);
+  // Déterminer explicitement le mode (création ou édition)
+  const mode = !id || id === "new" || id === "create" ? "create" : "edit";
+  
+  const [isLoading, setIsLoading] = useState(mode === "edit");
   const [error, setError] = useState<string | null>(null);
   const [verifyingVat, setVerifyingVat] = useState(false);
   const [vatValid, setVatValid] = useState<boolean | null>(null);
 
+  // Configuration du formulaire avec valeurs par défaut
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: {
@@ -77,38 +76,47 @@ const ClientForm = () => {
     },
   });
 
+  // Charger les données du client uniquement en mode édition
   useEffect(() => {
-    // This function is ONLY for editing an existing client
     const fetchClient = async () => {
-      // Safety checks to prevent unnecessary API calls
-      if (!isEditMode) {
-        console.log("Create mode detected - skipping client fetch");
+      // Ne rien faire en mode création
+      if (mode === "create") {
+        console.log("Mode création - pas de chargement de client");
         setIsLoading(false);
         return;
       }
       
-      console.log(`Fetching client with ID: ${id}`);
       try {
-        const client = await getClientById(id as string);
+        setIsLoading(true);
+        console.log(`Chargement du client avec ID: ${id}`);
         
-        if (client) {
-          form.reset({
-            name: client.name,
-            email: client.email || "",
-            company: client.company || "",
-            phone: client.phone || "",
-            address: client.address || "",
-            city: client.city || "",
-            postal_code: client.postal_code || "",
-            country: client.country || "",
-            vat_number: client.vat_number || "",
-            notes: client.notes || "",
-            status: client.status || "active",
-          });
-        } else if (isEditMode) {
-          // Only show error in edit mode, not create mode
-          setError("Client introuvable");
+        // Valider que l'ID n'est pas un des mots clés réservés
+        if (!id || id === "new" || id === "create") {
+          throw new Error("ID client invalide");
         }
+        
+        const client = await getClientById(id);
+        
+        if (!client) {
+          setError("Client introuvable");
+          console.error(`Client avec ID ${id} introuvable`);
+          return;
+        }
+        
+        // Mise à jour du formulaire avec les données du client
+        form.reset({
+          name: client.name,
+          email: client.email || "",
+          company: client.company || "",
+          phone: client.phone || "",
+          address: client.address || "",
+          city: client.city || "",
+          postal_code: client.postal_code || "",
+          country: client.country || "",
+          vat_number: client.vat_number || "",
+          notes: client.notes || "",
+          status: client.status || "active",
+        });
       } catch (error) {
         console.error("Erreur lors du chargement du client:", error);
         setError("Impossible de charger les données du client");
@@ -118,8 +126,9 @@ const ClientForm = () => {
     };
 
     fetchClient();
-  }, [id, form, isEditMode]);
+  }, [id, form, mode]);
 
+  // Vérification du numéro de TVA
   const handleVerifyVatNumber = async () => {
     const vatNumber = form.getValues("vat_number");
     if (!vatNumber) {
@@ -137,6 +146,7 @@ const ClientForm = () => {
       if (result.valid) {
         toast.success("Numéro de TVA valide");
         
+        // Auto-remplissage des champs si les données sont disponibles
         if (result.companyName) {
           form.setValue("company", result.companyName);
         }
@@ -168,11 +178,13 @@ const ClientForm = () => {
     }
   };
 
+  // Soumission du formulaire
   const onSubmit = async (data: ClientFormValues) => {
     setIsLoading(true);
     
     try {
-      if (isEditMode && id) {
+      if (mode === "edit" && id) {
+        // Mode édition
         const updatedClient = await updateClient(id, data as CreateClientData);
         if (updatedClient) {
           toast.success("Client mis à jour avec succès");
@@ -181,6 +193,7 @@ const ClientForm = () => {
           toast.error("Erreur lors de la mise à jour du client");
         }
       } else {
+        // Mode création
         const newClient = await createClient(data as CreateClientData);
         if (newClient) {
           toast.success("Client créé avec succès");
@@ -190,7 +203,7 @@ const ClientForm = () => {
         }
       }
     } catch (error) {
-      console.error("Erreur:", error);
+      console.error("Erreur lors de la soumission:", error);
       toast.error("Une erreur s'est produite");
     } finally {
       setIsLoading(false);
@@ -211,13 +224,13 @@ const ClientForm = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <h1 className="text-2xl font-bold">
-                {isEditMode ? "Modifier le client" : "Nouveau client"}
+                {mode === "edit" ? "Modifier le client" : "Nouveau client"}
               </h1>
             </div>
           </div>
 
-          {/* Only show error state in edit mode, not in create mode */}
-          {error && isEditMode ? (
+          {/* Afficher l'erreur uniquement en mode édition */}
+          {error && mode === "edit" ? (
             <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
               <p className="text-red-600">{error}</p>
               <Button 
@@ -473,7 +486,7 @@ const ClientForm = () => {
                         className="gap-2"
                       >
                         <Save className="h-4 w-4" />
-                        {isEditMode ? "Mettre à jour" : "Créer le client"}
+                        {mode === "edit" ? "Mettre à jour" : "Créer le client"}
                       </Button>
                     </div>
                   </form>
