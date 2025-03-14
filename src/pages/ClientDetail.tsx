@@ -7,7 +7,6 @@ import { Client } from "@/types/client";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import ClientCleanupButton from "@/components/clients/ClientCleanupButton";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/utils/formatters";
@@ -197,7 +196,6 @@ const ClientDetail: React.FC = () => {
                 {resetPasswordLoading ? "Envoi en cours..." : "Réinitialiser le mot de passe"}
               </Button>
             )}
-            <ClientCleanupButton />
             <Button variant="destructive" size="sm" onClick={handleDeleteClick}>
               <Trash className="h-4 w-4 mr-2" />
               Supprimer
