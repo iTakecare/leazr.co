@@ -7,8 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
-import { Loader2, RefreshCw, FileText, Plus, Clock, CalendarRange, X, CheckCircle, AlertCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Loader2, RefreshCw, FileText, Clock, CalendarRange, X, CheckCircle, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -123,12 +122,7 @@ const ClientRequestsPage = () => {
             <RefreshCw className="h-4 w-4" />
             Actualiser
           </Button>
-          <Button asChild className="shadow-md bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary">
-            <Link to="/client/new-request">
-              <Plus className="mr-2 h-4 w-4" />
-              Créer une demande
-            </Link>
-          </Button>
+          {/* Le bouton pour créer une nouvelle demande a été supprimé */}
         </div>
       </div>
       
@@ -139,14 +133,9 @@ const ClientRequestsPage = () => {
               <FileText className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
               <h3 className="text-xl font-medium">Aucune demande trouvée</h3>
               <p className="text-muted-foreground mt-2 mb-6">
-                Vous n'avez pas encore de demandes actives. Créez votre première demande d'équipement pour commencer.
+                Vous n'avez pas encore de demandes actives.
               </p>
-              <Button asChild className="shadow-md bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary">
-                <Link to="/client/new-request">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nouvelle demande
-                </Link>
-              </Button>
+              {/* Le bouton pour créer une nouvelle demande a été supprimé */}
             </div>
           </CardContent>
         </Card>
@@ -216,10 +205,8 @@ const ClientRequestsPage = () => {
                     </div>
                     
                     <div className="pt-4 mt-auto">
-                      <Button size="sm" asChild className="w-full shadow-sm">
-                        <Link to={`/client/requests/${offer.id}`}>
-                          Voir les détails
-                        </Link>
+                      <Button size="sm" className="w-full shadow-sm">
+                        Voir les détails
                       </Button>
                     </div>
                   </div>
