@@ -73,16 +73,16 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             </Button>
           </div>
           
-          {clientId ? (
+          {clientId || clientName ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="client-name">Nom</Label>
-                  <Input id="client-name" value={clientName} readOnly className="bg-muted/50" />
+                  <Input id="client-name" value={clientName} readOnly={!!clientId} className={clientId ? "bg-muted/50" : ""} />
                 </div>
                 <div>
                   <Label htmlFor="client-email">Email</Label>
-                  <Input id="client-email" value={clientEmail} readOnly className="bg-muted/50" />
+                  <Input id="client-email" value={clientEmail} readOnly={!!clientId} className={clientId ? "bg-muted/50" : ""} />
                 </div>
               </div>
               

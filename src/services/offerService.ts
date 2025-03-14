@@ -338,3 +338,50 @@ export const createClientRequest = async (requestData: OfferData): Promise<strin
     return null;
   }
 };
+
+export const getOfferById = async (offerId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('offers')
+      .select(`
+        *,
+        clients:client_id (
+          id, 
+          name, 
+          email, 
+          company
+        )
+      `)
+      .eq('id', offerId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching offer:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching offer:', error);
+    return null;
+  }
+};
+
+export const updateOffer = async (offerId: string, offerData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('offers')
+      .update(offerData)
+      .eq('id', offerId);
+
+    if (error) {
+      console.error('Error updating offer:', error);
+      return null;
+    }
+
+    return offerId;
+  } catch (error) {
+    console.error('Error updating offer:', error);
+    return null;
+  }
+};

@@ -11,7 +11,7 @@ import { Leaser } from "@/types/equipment";
 import ProductCatalog from "@/components/ui/ProductCatalog";
 import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
-import { createOffer } from "@/services/offerService";
+import { createOffer, getOfferById, updateOffer } from "@/services/offerService";
 import { getLeasers } from "@/services/leaserService";
 import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
@@ -32,6 +32,7 @@ const CreateOffer = () => {
   const { user } = useAuth();
   const query = useQuery();
   const clientIdParam = query.get("client");
+  const offerId = query.get("id");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -47,6 +48,7 @@ const CreateOffer = () => {
   const [isLeaserSelectorOpen, setIsLeaserSelectorOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   const {
     equipment,
@@ -68,7 +70,8 @@ const CreateOffer = () => {
     removeFromList,
     updateQuantity,
     findCoefficient,
-    toggleAdaptMonthlyPayment
+    toggleAdaptMonthlyPayment,
+    setGlobalMarginAdjustment
   } = useEquipmentCalculator(selectedLeaser);
 
   useEffect(() => {
@@ -110,6 +113,77 @@ const CreateOffer = () => {
 
     loadClientFromParam();
   }, [clientIdParam]);
+
+  useEffect(() => {
+    const loadOfferData = async () => {
+      if (offerId) {
+        try {
+          setLoading(true);
+          setIsEditMode(true);
+          
+          const offer = await getOfferById(offerId);
+          if (offer) {
+            // Remplir les champs avec les données de l'offre
+            setClientId(offer.client_id || null);
+            setClientName(offer.client_name || '');
+            setClientEmail(offer.client_email || '');
+            setClientCompany(offer.clients?.company || '');
+            setRemarks(offer.remarks || '');
+            
+            // Définir le montant total et le coefficient
+            if (offer.coefficient && offer.amount) {
+              setGlobalMarginAdjustment({
+                amount: offer.amount,
+                newCoef: offer.coefficient
+              });
+            }
+            
+            // Créer un équipement factice à partir de la description
+            if (offer.equipment_description) {
+              const equipmentItems = offer.equipment_description.split(',').map(item => {
+                const match = item.trim().match(/(.+) \((\d+)x\)/);
+                if (match) {
+                  const title = match[1].trim();
+                  const quantity = parseInt(match[2], 10);
+                  
+                  // Calculer le prix d'achat approximatif
+                  // Note: C'est une approximation puisque nous n'avons pas les prix individuels
+                  const totalCost = offer.amount || 0;
+                  const approxPricePerItem = totalCost / (quantity || 1);
+                  
+                  return {
+                    id: crypto.randomUUID(),
+                    title,
+                    purchasePrice: approxPricePerItem,
+                    quantity,
+                    margin: 20 // Marge par défaut
+                  };
+                }
+                return null;
+              }).filter(Boolean);
+              
+              if (equipmentItems.length > 0) {
+                setEquipmentList(equipmentItems);
+                setTargetMonthlyPayment(offer.monthly_payment || 0);
+              }
+            }
+            
+            toast.success("Offre chargée avec succès");
+          } else {
+            toast.error("Impossible de trouver cette offre");
+            navigate("/offers");
+          }
+        } catch (error) {
+          console.error("Error loading offer:", error);
+          toast.error("Erreur lors du chargement de l'offre");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadOfferData();
+  }, [offerId, navigate, setEquipmentList, setGlobalMarginAdjustment, setTargetMonthlyPayment]);
 
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
@@ -177,19 +251,33 @@ const CreateOffer = () => {
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
+        remarks: remarks
       };
 
-      const offerId = await createOffer(offerData);
+      let result;
       
-      if (offerId) {
-        toast.success("Offre créée avec succès !");
-        navigate("/offers");
+      if (isEditMode && offerId) {
+        // Mise à jour de l'offre existante
+        result = await updateOffer(offerId, offerData);
+        if (result) {
+          toast.success("Offre mise à jour avec succès !");
+        } else {
+          throw new Error("Failed to update offer");
+        }
       } else {
-        throw new Error("Failed to create offer");
+        // Création d'une nouvelle offre
+        result = await createOffer(offerData);
+        if (result) {
+          toast.success("Offre créée avec succès !");
+        } else {
+          throw new Error("Failed to create offer");
+        }
       }
+      
+      navigate("/offers");
     } catch (error) {
       console.error("Error saving offer:", error);
-      toast.error("Une erreur s'est produite lors de la création de l'offre");
+      toast.error("Une erreur s'est produite lors de l'enregistrement de l'offre");
     } finally {
       setIsSubmitting(false);
     }
@@ -204,7 +292,7 @@ const CreateOffer = () => {
               <div className="flex items-center gap-3">
                 <CalcIcon className="h-8 w-8 text-blue-600" />
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Calculateur de Mensualités iTakecare
+                  {isEditMode ? "Modifier l'offre" : "Calculateur de Mensualités iTakecare"}
                 </h1>
               </div>
               <div className="flex gap-4">
@@ -217,59 +305,66 @@ const CreateOffer = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                <LeaserButton
-                  selectedLeaser={selectedLeaser}
-                  onOpen={handleOpenLeaserSelector}
-                />
-
-                <div className="mt-6">
-                  <EquipmentForm
-                    equipment={equipment}
-                    setEquipment={setEquipment}
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Chargement...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                  <LeaserButton
                     selectedLeaser={selectedLeaser}
-                    addToList={addToList}
+                    onOpen={handleOpenLeaserSelector}
+                  />
+
+                  <div className="mt-6">
+                    <EquipmentForm
+                      equipment={equipment}
+                      setEquipment={setEquipment}
+                      selectedLeaser={selectedLeaser}
+                      addToList={addToList}
+                      editingId={editingId}
+                      cancelEditing={cancelEditing}
+                      onOpenCatalog={() => setIsCatalogOpen(true)}
+                      coefficient={coefficient}
+                      monthlyPayment={monthlyPayment}
+                      targetMonthlyPayment={targetMonthlyPayment}
+                      setTargetMonthlyPayment={setTargetMonthlyPayment}
+                      calculatedMargin={calculatedMargin}
+                      applyCalculatedMargin={applyCalculatedMargin}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  <EquipmentList
+                    equipmentList={equipmentList}
                     editingId={editingId}
-                    cancelEditing={cancelEditing}
-                    onOpenCatalog={() => setIsCatalogOpen(true)}
-                    coefficient={coefficient}
-                    monthlyPayment={monthlyPayment}
-                    targetMonthlyPayment={targetMonthlyPayment}
-                    setTargetMonthlyPayment={setTargetMonthlyPayment}
-                    calculatedMargin={calculatedMargin}
-                    applyCalculatedMargin={applyCalculatedMargin}
+                    startEditing={startEditing}
+                    removeFromList={removeFromList}
+                    updateQuantity={updateQuantity}
+                    totalMonthlyPayment={totalMonthlyPayment}
+                    globalMarginAdjustment={globalMarginAdjustment}
+                    toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                  />
+                  
+                  <ClientInfo
+                    clientId={clientId}
+                    clientName={clientName}
+                    clientEmail={clientEmail}
+                    clientCompany={clientCompany}
+                    remarks={remarks}
+                    setRemarks={setRemarks}
+                    onOpenClientSelector={() => setIsClientSelectorOpen(true)}
+                    handleSaveOffer={handleSaveOffer}
+                    isSubmitting={isSubmitting}
+                    selectedLeaser={selectedLeaser}
+                    equipmentList={equipmentList}
                   />
                 </div>
               </div>
-
-              <div className="space-y-8">
-                <EquipmentList
-                  equipmentList={equipmentList}
-                  editingId={editingId}
-                  startEditing={startEditing}
-                  removeFromList={removeFromList}
-                  updateQuantity={updateQuantity}
-                  totalMonthlyPayment={totalMonthlyPayment}
-                  globalMarginAdjustment={globalMarginAdjustment}
-                  toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                />
-                
-                <ClientInfo
-                  clientId={clientId}
-                  clientName={clientName}
-                  clientEmail={clientEmail}
-                  clientCompany={clientCompany}
-                  remarks={remarks}
-                  setRemarks={setRemarks}
-                  onOpenClientSelector={() => setIsClientSelectorOpen(true)}
-                  handleSaveOffer={handleSaveOffer}
-                  isSubmitting={isSubmitting}
-                  selectedLeaser={selectedLeaser}
-                  equipmentList={equipmentList}
-                />
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
