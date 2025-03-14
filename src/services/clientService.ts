@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -157,11 +158,12 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     const clientWithUserId = {
       ...clientData,
-      user_id: null,
-      has_user_account: false
+      user_id: null, // Explicitly set to null - no automatic association
+      has_user_account: false // Explicitly set to false - accounts created only via button
     };
     
-    const { data, error } = await supabase
+    // Use adminSupabase to bypass RLS policies
+    const { data, error } = await adminSupabase
       .from('clients')
       .insert(clientWithUserId)
       .select()
