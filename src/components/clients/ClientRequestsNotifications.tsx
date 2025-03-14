@@ -19,6 +19,7 @@ const ClientRequestsNotifications = () => {
     setError(null);
     
     try {
+      // Requête corrigée pour filtrer explicitement par type='client_request' et status='pending'
       const { data, error } = await supabase
         .from('offers')
         .select(`

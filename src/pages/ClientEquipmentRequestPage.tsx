@@ -21,7 +21,13 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { createClientRequest } from "@/services/offerService";
-import { calculateMonthlyPayment } from "@/utils/calculator";
+
+// Fonction utilitaire pour calculer le paiement mensuel
+const calculateMonthlyPayment = (amount: number, durationInMonths: number): number => {
+  // Coefficient de leasing standard (exemple 0.04)
+  const coefficient = 0.04;
+  return amount * coefficient * (1 + (durationInMonths / 12) * 0.01);
+};
 
 const clientRequestFormSchema = z.object({
   description: z
@@ -73,9 +79,9 @@ const ClientEquipmentRequestPage = () => {
         client_name: user?.company || `${user?.first_name || ''} ${user?.last_name || ''}`,
         client_email: user?.email || '',
         equipment_description: values.description,
-        additional_info: values.additional_info || '',  // Fixing the error here by providing a default empty string
+        additional_info: values.additional_info || '',
         amount: values.amount,
-        monthly_payment: calculateMonthlyPayment(values.amount, 36),  // Fixed by adding the required second parameter
+        monthly_payment: calculateMonthlyPayment(values.amount, 36),
         coefficient: 0.04, // Exemple de coefficient
         commission: values.amount * 0.05, // Commission simplifiée pour l'exemple
       };
