@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import PageTransition from "@/components/layout/PageTransition";
+import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
+import { contractStatuses, updateContractStatus, getContractWorkflowLogs, addTrackingNumber } from "@/services/contractService";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +28,11 @@ const OfferDetail = () => {
   const [statusChangeReason, setStatusChangeReason] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [equipmentItems, setEquipmentItems] = useState<any[]>([]);
+  const [contractLogs, setContractLogs] = useState<any[]>([]);
+  const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [estimatedDelivery, setEstimatedDelivery] = useState('');
+  const [carrier, setCarrier] = useState('');
   
   const fetchOfferDetails = async () => {
     if (!id) return;
@@ -61,6 +68,16 @@ const OfferDetail = () => {
       const workflowLogs = await getWorkflowLogs(id);
       setLogs(workflowLogs);
       
+      // Fetch contract logs if offer is converted to contract
+      if (offerData.converted_to_contract) {
+        try {
+          const contractWorkflowLogs = await getContractWorkflowLogs(id);
+          setContractLogs(contractWorkflowLogs);
+        } catch (error) {
+          console.error("Erreur lors du chargement des logs de contrat:", error);
+        }
+      }
+      
     } catch (error) {
       console.error("Erreur lors du chargement des détails de l'offre:", error);
       setLoadingError("Erreur lors du chargement des détails de l'offre.");
@@ -79,32 +96,92 @@ const OfferDetail = () => {
     setStatusDialogOpen(true);
   };
   
+  const openTrackingDialog = () => {
+    setTrackingNumber('');
+    setEstimatedDelivery('');
+    setCarrier('');
+    setTrackingDialogOpen(true);
+  };
+  
   const handleStatusChange = async () => {
     if (!offer || !targetStatus) return;
     
     try {
       setIsUpdatingStatus(true);
       
-      const success = await updateOfferStatus(
-        offer.id, 
-        targetStatus, 
-        offer.workflow_status,
-        statusChangeReason
-      );
-      
-      if (success) {
-        toast.success(`Statut mis à jour avec succès`);
+      if (offer.converted_to_contract) {
+        // Mettre à jour le statut du contrat
+        const success = await updateContractStatus(
+          offer.id, 
+          targetStatus, 
+          offer.contract_status || contractStatuses.CONTRACT_SENT,
+          statusChangeReason
+        );
         
-        // Refresh the offer details to get updated status
-        fetchOfferDetails();
-        
-        setStatusDialogOpen(false);
+        if (success) {
+          toast.success(`Statut du contrat mis à jour avec succès`);
+          fetchOfferDetails();
+          setStatusDialogOpen(false);
+        } else {
+          toast.error("Erreur lors de la mise à jour du statut du contrat");
+        }
       } else {
-        toast.error("Erreur lors de la mise à jour du statut");
+        // Mettre à jour le statut de l'offre
+        const success = await updateOfferStatus(
+          offer.id, 
+          targetStatus, 
+          offer.workflow_status,
+          statusChangeReason
+        );
+        
+        if (success) {
+          toast.success(`Statut mis à jour avec succès`);
+          fetchOfferDetails();
+          setStatusDialogOpen(false);
+        } else {
+          toast.error("Erreur lors de la mise à jour du statut");
+        }
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error);
       toast.error("Erreur lors de la mise à jour du statut");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+  
+  const handleAddTrackingInfo = async () => {
+    if (!offer || !trackingNumber) return;
+    
+    try {
+      setIsUpdatingStatus(true);
+      
+      const success = await addTrackingNumber(
+        offer.id,
+        trackingNumber,
+        estimatedDelivery,
+        carrier
+      );
+      
+      if (success) {
+        toast.success(`Informations de suivi ajoutées avec succès`);
+        
+        // Mettre à jour le statut automatiquement à "Équipement commandé"
+        await updateContractStatus(
+          offer.id,
+          contractStatuses.EQUIPMENT_ORDERED,
+          offer.contract_status || contractStatuses.CONTRACT_SIGNED,
+          "Numéro de suivi ajouté"
+        );
+        
+        fetchOfferDetails();
+        setTrackingDialogOpen(false);
+      } else {
+        toast.error("Erreur lors de l'ajout des informations de suivi");
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'ajout des informations de suivi:", error);
+      toast.error("Erreur lors de l'ajout des informations de suivi");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -132,60 +209,105 @@ const OfferDetail = () => {
     }
   };
   
-  // Détermine les actions disponibles en fonction du statut de l'offre
+  // Détermine les actions disponibles en fonction du statut de l'offre ou du contrat
   const getAvailableActions = () => {
     if (!offer) return [];
     
     const actions = [];
     
-    // Actions spécifiques aux statuts
-    switch (offer.workflow_status) {
-      case OFFER_STATUSES.DRAFT.id:
+    if (offer.converted_to_contract) {
+      // Actions pour les contrats
+      switch (offer.contract_status) {
+        case contractStatuses.CONTRACT_SENT:
+          actions.push({
+            label: "Marquer comme signé",
+            icon: FileText,
+            onClick: () => openStatusChangeDialog(contractStatuses.CONTRACT_SIGNED),
+          });
+          break;
+          
+        case contractStatuses.CONTRACT_SIGNED:
+          actions.push({
+            label: "Ajouter numéro de suivi",
+            icon: Send,
+            onClick: openTrackingDialog,
+          });
+          break;
+          
+        case contractStatuses.EQUIPMENT_ORDERED:
+          actions.push({
+            label: "Marquer comme livré",
+            icon: RefreshCw,
+            onClick: () => openStatusChangeDialog(contractStatuses.DELIVERED),
+          });
+          break;
+          
+        case contractStatuses.DELIVERED:
+          actions.push({
+            label: "Marquer comme actif",
+            icon: Building,
+            onClick: () => openStatusChangeDialog(contractStatuses.ACTIVE),
+          });
+          break;
+          
+        case contractStatuses.ACTIVE:
+          actions.push({
+            label: "Marquer comme terminé",
+            icon: RefreshCw,
+            onClick: () => openStatusChangeDialog(contractStatuses.COMPLETED),
+          });
+          break;
+      }
+    } else {
+      // Actions pour les offres
+      switch (offer.workflow_status) {
+        case OFFER_STATUSES.DRAFT.id:
+          actions.push({
+            label: "Envoyer au client",
+            icon: Send,
+            onClick: () => openStatusChangeDialog(OFFER_STATUSES.SENT.id),
+          });
+          break;
+          
+        case OFFER_STATUSES.SENT.id:
+          actions.push({
+            label: "Marquer comme approuvée",
+            icon: Building,
+            onClick: () => openStatusChangeDialog(OFFER_STATUSES.APPROVED.id),
+          });
+          break;
+          
+        case OFFER_STATUSES.APPROVED.id:
+          actions.push({
+            label: "Validation bailleur",
+            icon: Building,
+            onClick: () => openStatusChangeDialog(OFFER_STATUSES.LEASER_REVIEW.id),
+          });
+          break;
+          
+        case OFFER_STATUSES.LEASER_REVIEW.id:
+          actions.push({
+            label: "Marquer comme financée",
+            icon: RefreshCw,
+            onClick: () => openStatusChangeDialog(OFFER_STATUSES.FINANCED.id),
+          });
+          actions.push({
+            label: "Rejeter l'offre",
+            icon: Trash2,
+            onClick: () => openStatusChangeDialog(OFFER_STATUSES.REJECTED.id),
+          });
+          break;
+      }
+      
+      // Action de suppression (sauf si convertie en contrat)
+      if (!offer.converted_to_contract) {
         actions.push({
-          label: "Envoyer au client",
-          icon: Send,
-          onClick: () => openStatusChangeDialog(OFFER_STATUSES.SENT.id),
-        });
-        break;
-        
-      case OFFER_STATUSES.SENT.id:
-        actions.push({
-          label: "Marquer comme approuvée",
-          icon: Building,
-          onClick: () => openStatusChangeDialog(OFFER_STATUSES.APPROVED.id),
-        });
-        break;
-        
-      case OFFER_STATUSES.APPROVED.id:
-        actions.push({
-          label: "Validation bailleur",
-          icon: Building,
-          onClick: () => openStatusChangeDialog(OFFER_STATUSES.LEASER_REVIEW.id),
-        });
-        break;
-        
-      case OFFER_STATUSES.LEASER_REVIEW.id:
-        actions.push({
-          label: "Marquer comme financée",
-          icon: RefreshCw,
-          onClick: () => openStatusChangeDialog(OFFER_STATUSES.FINANCED.id),
-        });
-        actions.push({
-          label: "Rejeter l'offre",
+          label: "Supprimer l'offre",
           icon: Trash2,
-          onClick: () => openStatusChangeDialog(OFFER_STATUSES.REJECTED.id),
+          onClick: handleDeleteOffer,
+          className: "bg-red-600 text-white hover:bg-red-700",
         });
-        break;
-    }
-    
-    // Action de suppression (sauf si convertie en contrat)
-    if (!offer.converted_to_contract) {
-      actions.push({
-        label: "Supprimer l'offre",
-        icon: Trash2,
-        onClick: handleDeleteOffer,
-        className: "bg-red-600 text-white hover:bg-red-700",
-      });
+      }
     }
     
     return actions;
@@ -224,11 +346,10 @@ const OfferDetail = () => {
             <h1 className="text-2xl font-bold">
               Offre {`OFF-${offer.id.slice(0, 8)}`}
             </h1>
-            <OfferStatusBadge status={offer.workflow_status} isConverted={offer.converted_to_contract} />
-            {offer.converted_to_contract && (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                Contrat actif
-              </Badge>
+            {offer.converted_to_contract ? (
+              <ContractStatusBadge status={offer.contract_status || contractStatuses.CONTRACT_SENT} />
+            ) : (
+              <OfferStatusBadge status={offer.workflow_status} isConverted={offer.converted_to_contract} />
             )}
           </div>
           
@@ -297,6 +418,33 @@ const OfferDetail = () => {
                 </div>
               </div>
               
+              {offer.converted_to_contract && offer.tracking_number && (
+                <>
+                  <Separator className="my-6" />
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Informations de livraison</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm font-medium text-gray-500">Numéro de suivi</div>
+                        <div className="text-lg">{offer.tracking_number}</div>
+                      </div>
+                      {offer.estimated_delivery && (
+                        <div>
+                          <div className="text-sm font-medium text-gray-500">Livraison estimée</div>
+                          <div className="text-lg">{offer.estimated_delivery}</div>
+                        </div>
+                      )}
+                      {offer.delivery_carrier && (
+                        <div>
+                          <div className="text-sm font-medium text-gray-500">Transporteur</div>
+                          <div className="text-lg">{offer.delivery_carrier}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+              
               <Separator className="my-6" />
               
               <div>
@@ -343,6 +491,42 @@ const OfferDetail = () => {
               <CardDescription>Modifications de statut</CardDescription>
             </CardHeader>
             <CardContent>
+              {offer.converted_to_contract && (
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium mb-2">Contrat</h3>
+                  {contractLogs.length > 0 ? (
+                    <div className="space-y-4">
+                      {contractLogs.map((log) => (
+                        <div key={log.id} className="border-l-2 border-blue-200 pl-4 py-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="font-medium">
+                              {log.profiles?.first_name} {log.profiles?.last_name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {formatDate(log.created_at)}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm flex-wrap">
+                            <span>Statut changé de</span>
+                            <ContractStatusBadge status={log.previous_status} />
+                            <span>à</span>
+                            <ContractStatusBadge status={log.new_status} />
+                          </div>
+                          {log.reason && (
+                            <div className="mt-2 text-sm text-gray-600">
+                              {log.reason}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500">Aucun historique disponible pour le contrat</div>
+                  )}
+                </div>
+              )}
+              
+              <h3 className="text-lg font-medium mb-2">Offre</h3>
               {logs.length > 0 ? (
                 <div className="space-y-4">
                   {logs.map((log) => (
@@ -355,7 +539,7 @@ const OfferDetail = () => {
                           {formatDate(log.created_at)}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex items-center gap-2 text-sm flex-wrap">
                         <span>Statut changé de</span>
                         <Badge variant="outline">{OFFER_STATUSES[log.previous_status]?.label || log.previous_status}</Badge>
                         <span>à</span>
@@ -381,7 +565,11 @@ const OfferDetail = () => {
       <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Changer le statut de l'offre</DialogTitle>
+            <DialogTitle>
+              {offer.converted_to_contract 
+                ? "Changer le statut du contrat" 
+                : "Changer le statut de l'offre"}
+            </DialogTitle>
             <DialogDescription>
               {targetStatus === OFFER_STATUSES.REJECTED.id 
                 ? "Veuillez indiquer la raison du rejet de cette offre."
@@ -408,6 +596,67 @@ const OfferDetail = () => {
             <Button 
               onClick={handleStatusChange}
               disabled={targetStatus === OFFER_STATUSES.REJECTED.id && !statusChangeReason.trim()}
+            >
+              Confirmer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog pour l'ajout d'informations de suivi */}
+      <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter les informations de suivi</DialogTitle>
+            <DialogDescription>
+              Entrez le numéro de suivi et autres informations de livraison.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="tracking" className="text-sm font-medium">Numéro de suivi*</label>
+              <input
+                id="tracking"
+                type="text"
+                className="w-full p-2 border rounded-md"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="carrier" className="text-sm font-medium">Transporteur</label>
+              <input
+                id="carrier"
+                type="text"
+                className="w-full p-2 border rounded-md"
+                value={carrier}
+                onChange={(e) => setCarrier(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="delivery" className="text-sm font-medium">Date de livraison estimée</label>
+              <input
+                id="delivery"
+                type="text"
+                className="w-full p-2 border rounded-md"
+                value={estimatedDelivery}
+                onChange={(e) => setEstimatedDelivery(e.target.value)}
+                placeholder="ex: 15/06/2024"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTrackingDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleAddTrackingInfo}
+              disabled={!trackingNumber.trim()}
             >
               Confirmer
             </Button>
