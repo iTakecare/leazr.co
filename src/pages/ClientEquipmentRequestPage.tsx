@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ const ClientEquipmentRequestPage = () => {
       monthly_price: product.monthly_price
     };
     setSelectedProducts((prev) => [...prev, adjustedProduct]);
+    toast.success(`${product.name} ajouté à votre sélection`);
   };
 
   const handleRemoveProduct = (productId: string) => {
@@ -146,7 +148,7 @@ const ClientEquipmentRequestPage = () => {
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 bg-muted rounded-md overflow-hidden">
                             <img
-                              src={product.imageUrl}
+                              src={product.image_url || product.imageUrl || '/placeholder.svg'}
                               alt={product.name}
                               className="h-full w-full object-cover"
                               onError={(e) => {

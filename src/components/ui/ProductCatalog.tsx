@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Alert } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 // Map for translating category names to French
 const categoryTranslations: Record<string, string> = {
@@ -50,15 +51,46 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
   
   console.log("ProductCatalog opened:", isOpen);
 
-  // Fetch products from the server
+  // Fetch products from the server with better error handling
   const { 
     data: products = [], 
     isLoading, 
     isError,
-    error
+    error,
+    refetch
   } = useQuery({
     queryKey: ["products"],
-    queryFn: getProducts,
+    queryFn: async () => {
+      try {
+        console.log("Fetching products for client catalog...");
+        const productsData = await getProducts();
+        console.log(`Retrieved ${productsData.length} products for client catalog`);
+        
+        // Fallback to mock data if API returns empty array
+        if (productsData.length === 0) {
+          console.log("No products found, using fallback data");
+          // Import the mock data
+          const { products: mockProducts } = await import("@/data/products");
+          toast.info("Utilisation des données de démonstration", {
+            description: "Les produits affichés sont des exemples",
+            duration: 5000,
+          });
+          return mockProducts;
+        }
+        
+        return productsData;
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        console.log("Timeout atteint, utilisation des données mockées");
+        // Import the mock data
+        const { products: mockProducts } = await import("@/data/products");
+        toast.error("Impossible de charger les produits depuis le serveur", {
+          description: "Utilisation des données de démonstration",
+          duration: 5000,
+        });
+        return mockProducts;
+      }
+    },
     enabled: isOpen, // Only load data when the catalog is open
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 3, // Retry 3 times if the request fails
@@ -70,8 +102,9 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
   // Filter products based on search term and category
   const filteredProducts = React.useMemo(() => {
     return products.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSearch = 
+        (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase())) || 
+        (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
@@ -90,8 +123,11 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
     if (!isOpen) {
       setSearchTerm("");
       setSelectedCategory("all");
+    } else {
+      // Force refetch when opened
+      refetch();
     }
-  }, [isOpen]);
+  }, [isOpen, refetch]);
   
   return (
     <Sheet open={isOpen} onOpenChange={() => onClose()}>
@@ -117,7 +153,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
           {isError && (
             <Alert variant="destructive" className="my-2">
               <AlertCircle className="h-4 w-4" />
-              <p className="ml-2">Erreur lors du chargement des produits. Veuillez réessayer ultérieurement.</p>
+              <p className="ml-2">Erreur lors du chargement des produits. Utilisation des données de démonstration.</p>
             </Alert>
           )}
           
@@ -155,7 +191,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
                   >
                     <div className="aspect-square w-full overflow-hidden bg-muted mb-3 rounded-md">
                       <img
-                        src={product.image_url || '/placeholder.svg'}
+                        src={product.image_url || product.imageUrl || '/placeholder.svg'}
                         alt={product.name}
                         className="h-full w-full object-cover"
                         loading="lazy"
@@ -165,16 +201,17 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
                       />
                     </div>
                     <h3 className="font-medium line-clamp-1">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground">{translateCategory(product.category)}</p>
+                    <p className="text-sm text-muted-foreground">{translateCategory(product.category || 'other')}</p>
                     <div className="mt-2 flex items-center justify-between">
                       <div>
                         <p className="font-bold">
-                          {product.price?.toLocaleString("fr-FR", {
+                          {(product.price || 0)?.toLocaleString("fr-FR", {
                             style: "currency",
                             currency: "EUR",
-                          })}</p>
+                          })}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          Mensualité: {product.monthly_price?.toLocaleString("fr-FR", {
+                          Mensualité: {(product.monthly_price || 0)?.toLocaleString("fr-FR", {
                             style: "currency",
                             currency: "EUR",
                           })}/mois

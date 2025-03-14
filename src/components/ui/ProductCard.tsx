@@ -21,7 +21,7 @@ type ProductCardProps = {
 
 // Helper function to get the appropriate icon based on category
 function getCategoryIcon(category: string) {
-  switch (category.toLowerCase()) {
+  switch (category?.toLowerCase()) {
     case 'laptop':
       return <Laptop className="h-4 w-4" />;
     case 'desktop':
@@ -67,7 +67,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
   const imageAlt = product.image_alt || product.imageAlt || `${product.name} image`;
   
   // Translate category to French
-  const translatedCategory = categoryTranslations[product.category?.toLowerCase()] || product.category;
+  const translatedCategory = categoryTranslations[product.category?.toLowerCase()] || product.category || 'Autre';
 
   return (
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 border-transparent hover:border-primary/20">
@@ -86,7 +86,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       </div>
       <CardHeader className="p-4 pb-2">
         <CardDescription className="text-xs font-medium text-primary/70">
-          {product.brand}
+          {product.brand || 'Marque non spécifiée'}
         </CardDescription>
         <CardTitle className="text-base font-semibold truncate leading-tight">
           {product.name}
@@ -101,10 +101,10 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         <div>
           <div className="font-bold text-lg flex items-center">
             <Euro className="h-4 w-4 mr-1 text-muted-foreground" />
-            {formatCurrency(product.price)}<span className="text-xs font-normal text-muted-foreground"></span>
+            {formatCurrency(product.price || 0)}<span className="text-xs font-normal text-muted-foreground"></span>
           </div>
           <div className="text-xs text-muted-foreground">
-            Prix mensuel: {formatCurrency(product.monthly_price)}€/mois
+            Prix mensuel: {formatCurrency(product.monthly_price || 0)}€/mois
           </div>
         </div>
         <Button 
