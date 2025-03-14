@@ -54,7 +54,8 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
                 <th className="text-right font-medium p-3">Prix unitaire</th>
                 <th className="text-center font-medium p-3">Qté</th>
                 <th className="text-right font-medium p-3">Marge</th>
-                <th className="text-right font-medium p-3">Total</th>
+                <th className="text-right font-medium p-3">Mensualité unitaire</th>
+                <th className="text-right font-medium p-3">Mensualité totale</th>
                 <th className="text-center font-medium p-3">Actions</th>
               </tr>
             </thead>
@@ -98,8 +99,11 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
                   <td className="p-3 text-right">
                     {formatPercentage(equipment.margin)}
                   </td>
-                  <td className="p-3 text-right font-medium">
-                    {formatCurrency(equipment.purchasePrice * equipment.quantity)}
+                  <td className="p-3 text-right font-medium text-blue-600">
+                    {formatCurrency(equipment.monthlyPayment || 0)}
+                  </td>
+                  <td className="p-3 text-right font-medium text-blue-600">
+                    {formatCurrency((equipment.monthlyPayment || 0) * equipment.quantity)}
                   </td>
                   <td className="p-3">
                     <div className="flex items-center justify-center space-x-1">
@@ -128,7 +132,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
             </tbody>
             <tfoot>
               <tr className="border-t bg-gray-50 font-medium">
-                <td colSpan={4} className="p-3 text-right">
+                <td colSpan={5} className="p-3 text-right">
                   Mensualité totale:
                 </td>
                 <td colSpan={2} className="p-3 text-right text-blue-600 font-bold">

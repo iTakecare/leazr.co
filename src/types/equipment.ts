@@ -5,18 +5,20 @@ export interface Equipment {
   purchasePrice: number;
   quantity: number;
   margin: number;
+  monthlyPayment?: number;
 }
 
 export interface Leaser {
   id: string;
   name: string;
-  logo_url?: string | null;
-  ranges: {
-    id: string;
-    min: number;
-    max: number;
-    coefficient: number;
-  }[];
+  logo_url?: string;
+  ranges: LeaserRange[];
+}
+
+export interface LeaserRange {
+  min: number;
+  max: number;
+  coefficient: number;
 }
 
 export interface GlobalMarginAdjustment {
