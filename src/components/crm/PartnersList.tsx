@@ -25,8 +25,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PartnerFormValues } from './forms/PartnerForm';
 
+// Define the interface for partner data structure
+interface Partner {
+  id: string;
+  name: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  type: string;
+  commissionsTotal: number;
+  status: string;
+  notes?: string;
+}
+
 // Ceci est une liste statique pour le moment, elle pourrait être remplacée par des données réelles plus tard
-const partners = [
+const partners: Partner[] = [
   {
     id: '1',
     name: 'TechSolutions SAS',
@@ -114,10 +127,10 @@ const mockOffers = {
 
 const PartnersList = () => {
   const navigate = useNavigate();
-  const [partnersList, setPartnersList] = useState(partners);
+  const [partnersList, setPartnersList] = useState<Partner[]>(partners);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [currentPartner, setCurrentPartner] = useState<any>(null);
+  const [currentPartner, setCurrentPartner] = useState<Partner | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isClientsViewOpen, setIsClientsViewOpen] = useState(false);
   const [isCommissionsViewOpen, setIsCommissionsViewOpen] = useState(false);
@@ -143,7 +156,7 @@ const PartnersList = () => {
         notes: partner.notes || '',
       };
       
-      setCurrentPartner({ ...partner, ...formData });
+      setCurrentPartner(partner);
       setIsEditModalOpen(true);
     }
   };
@@ -162,7 +175,7 @@ const PartnersList = () => {
       setCurrentPartner({
         ...partner,
         clients: mockClients[id] || []
-      });
+      } as Partner & { clients: any[] });
       setIsClientsViewOpen(true);
     }
   };
@@ -173,7 +186,7 @@ const PartnersList = () => {
       setCurrentPartner({
         ...partner,
         commissions: mockCommissions[id] || []
-      });
+      } as Partner & { commissions: any[] });
       setIsCommissionsViewOpen(true);
     }
   };
@@ -184,7 +197,7 @@ const PartnersList = () => {
       setCurrentPartner({
         ...partner,
         offers: mockOffers[id] || []
-      });
+      } as Partner & { offers: any[] });
       setIsOffersViewOpen(true);
     }
   };
@@ -245,7 +258,7 @@ const PartnersList = () => {
         setIsEditModalOpen(false);
       } else {
         // Ajout d'un nouveau partenaire
-        const newPartner = {
+        const newPartner: Partner = {
           id: `${partnersList.length + 1}`,
           name: data.name,
           contactName: data.contactName,

@@ -24,8 +24,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AmbassadorFormValues } from './forms/AmbassadorForm';
 
+// Define the interface for ambassador data structure to ensure type consistency
+interface Ambassador {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  region: string;
+  clientsCount: number;
+  commissionsTotal: number;
+  lastCommission: number;
+  status: string;
+  notes?: string;
+}
+
 // Données statiques pour démo
-const ambassadors = [
+const ambassadors: Ambassador[] = [
   {
     id: '1',
     name: 'Jean Dupont',
@@ -98,10 +112,10 @@ const mockCommissions = {
 
 const AmbassadorsList = () => {
   const navigate = useNavigate();
-  const [ambassadorsList, setAmbassadorsList] = useState(ambassadors);
+  const [ambassadorsList, setAmbassadorsList] = useState<Ambassador[]>(ambassadors);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [currentAmbassador, setCurrentAmbassador] = useState<any>(null);
+  const [currentAmbassador, setCurrentAmbassador] = useState<Ambassador | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isClientsViewOpen, setIsClientsViewOpen] = useState(false);
   const [isCommissionsViewOpen, setIsCommissionsViewOpen] = useState(false);
@@ -135,7 +149,7 @@ const AmbassadorsList = () => {
       setCurrentAmbassador({
         ...ambassador,
         clients: mockClients[id] || []
-      });
+      } as Ambassador & { clients: any[] });
       setIsClientsViewOpen(true);
     }
   };
@@ -146,7 +160,7 @@ const AmbassadorsList = () => {
       setCurrentAmbassador({
         ...ambassador,
         commissions: mockCommissions[id] || []
-      });
+      } as Ambassador & { commissions: any[] });
       setIsCommissionsViewOpen(true);
     }
   };
@@ -191,7 +205,14 @@ const AmbassadorsList = () => {
         setAmbassadorsList(prevList => 
           prevList.map(ambassador => 
             ambassador.id === currentAmbassador.id
-              ? { ...ambassador, ...data }
+              ? { 
+                  ...ambassador, 
+                  name: data.name,
+                  email: data.email,
+                  phone: data.phone,
+                  region: data.region,
+                  notes: data.notes
+                }
               : ambassador
           )
         );
@@ -199,9 +220,13 @@ const AmbassadorsList = () => {
         setIsEditModalOpen(false);
       } else {
         // Ajout d'un nouvel ambassadeur
-        const newAmbassador = {
+        const newAmbassador: Ambassador = {
           id: `${ambassadorsList.length + 1}`,
-          ...data,
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          region: data.region,
+          notes: data.notes,
           clientsCount: 0,
           commissionsTotal: 0,
           lastCommission: 0,
