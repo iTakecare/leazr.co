@@ -114,16 +114,21 @@ const CreateOffer = () => {
     if (!selectedLeaser) return;
     
     const purchasePrice = product.price || 0;
+    const monthlyPrice = product.monthly_price || 0;
     const coef = findCoefficient(purchasePrice);
     const margin = 20; // Default margin
     
     setEquipment({
       id: crypto.randomUUID(),
-      title: `${product.name}`,
+      title: product.name,
       purchasePrice: purchasePrice,
       quantity: 1,
       margin: Number(margin),
     });
+
+    if (monthlyPrice > 0) {
+      setTargetMonthlyPayment(monthlyPrice);
+    }
   };
 
   const handleClientSelect = (client: { id: string; name: string; email: string; company: string }) => {

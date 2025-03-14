@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -113,6 +114,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
 
   const handleProductSelect = (product: any) => {
     const purchasePrice = product.price || 0;
+    const monthlyPrice = product.monthly_price || 0;
+    
     handleChange('title', product.name);
     handleChange('purchasePrice', purchasePrice);
     setIsQuickCatalogOpen(false);
