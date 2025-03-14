@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -122,44 +123,74 @@ const CreateOffer = () => {
           
           const offer = await getOfferById(offerId);
           if (offer) {
+            console.log("Loaded offer data:", offer);
             setClientId(offer.client_id || null);
             setClientName(offer.client_name || '');
             setClientEmail(offer.client_email || '');
             setClientCompany(offer.clients?.company || '');
             setRemarks(offer.additional_info || '');
             
+            // Si coefficient et amount sont définis dans l'offre
             if (offer.coefficient && offer.amount) {
+              const coefficient = parseFloat(offer.coefficient) || 0;
+              const amount = parseFloat(offer.amount) || 0;
+              const monthlyPayment = parseFloat(offer.monthly_payment) || 0;
+              
               setGlobalMarginAdjustment(prev => ({
                 ...prev,
-                amount: offer.amount,
-                newCoef: offer.coefficient
+                amount: amount,
+                newCoef: coefficient,
+                newMonthly: monthlyPayment
               }));
             }
             
             if (offer.equipment_description) {
-              const equipmentItems = offer.equipment_description.split(',').map(item => {
-                const match = item.trim().match(/(.+) \((\d+)x\)/);
-                if (match) {
-                  const title = match[1].trim();
-                  const quantity = parseInt(match[2], 10);
+              try {
+                // Essayer d'abord de parser comme JSON si c'est un JSON
+                const equipmentData = JSON.parse(offer.equipment_description);
+                if (Array.isArray(equipmentData) && equipmentData.length > 0) {
+                  console.log("Found JSON equipment data:", equipmentData);
+                  const formattedEquipment = equipmentData.map(item => ({
+                    id: item.id || crypto.randomUUID(),
+                    title: item.title,
+                    purchasePrice: parseFloat(item.purchasePrice),
+                    quantity: parseInt(item.quantity, 10),
+                    margin: parseFloat(item.margin),
+                    monthlyPayment: parseFloat(item.monthlyPayment || 0)
+                  }));
                   
-                  const totalCost = offer.amount || 0;
-                  const approxPricePerItem = totalCost / (quantity || 1);
-                  
-                  return {
-                    id: crypto.randomUUID(),
-                    title,
-                    purchasePrice: approxPricePerItem,
-                    quantity,
-                    margin: 20
-                  };
+                  setEquipmentList(formattedEquipment);
+                  if (offer.monthly_payment) {
+                    setTargetMonthlyPayment(parseFloat(offer.monthly_payment) || 0);
+                  }
                 }
-                return null;
-              }).filter(Boolean);
-              
-              if (equipmentItems.length > 0) {
-                setEquipmentList(equipmentItems);
-                setTargetMonthlyPayment(offer.monthly_payment || 0);
+              } catch (e) {
+                // Si ce n'est pas un JSON, utiliser la méthode de parsing original
+                console.log("Parsing equipment_description as string format:", offer.equipment_description);
+                const equipmentItems = offer.equipment_description.split(',').map(item => {
+                  const match = item.trim().match(/(.+) \((\d+)x\)/);
+                  if (match) {
+                    const title = match[1].trim();
+                    const quantity = parseInt(match[2], 10);
+                    
+                    const totalCost = offer.amount || 0;
+                    const approxPricePerItem = totalCost / (quantity || 1);
+                    
+                    return {
+                      id: crypto.randomUUID(),
+                      title,
+                      purchasePrice: approxPricePerItem,
+                      quantity,
+                      margin: 20
+                    };
+                  }
+                  return null;
+                }).filter(Boolean);
+                
+                if (equipmentItems.length > 0) {
+                  setEquipmentList(equipmentItems);
+                  setTargetMonthlyPayment(parseFloat(offer.monthly_payment) || 0);
+                }
               }
             }
             
@@ -232,6 +263,17 @@ const CreateOffer = () => {
     setIsSubmitting(true);
 
     try {
+      // Stocker les données d'équipement sous forme JSON pour une meilleure récupération
+      const equipmentData = equipmentList.map(eq => ({
+        id: eq.id,
+        title: eq.title,
+        purchasePrice: eq.purchasePrice,
+        quantity: eq.quantity,
+        margin: eq.margin,
+        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+      }));
+      
+      // Garder aussi le format texte pour compatibilité
       const equipmentDescription = equipmentList
         .map(eq => `${eq.title} (${eq.quantity}x)`)
         .join(", ");
@@ -241,7 +283,8 @@ const CreateOffer = () => {
         client_name: clientName,
         client_email: clientEmail,
         client_id: clientId,
-        equipment_description: equipmentDescription,
+        equipment_description: JSON.stringify(equipmentData),
+        equipment_text: equipmentDescription,  // Format texte pour compatibilité
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,

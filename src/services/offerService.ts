@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -65,6 +64,7 @@ export interface OfferData {
   client_email: string;
   client_id?: string;
   equipment_description?: string;
+  equipment_text?: string;
   amount: number;
   coefficient: number;
   monthly_payment: number;
@@ -72,23 +72,26 @@ export interface OfferData {
   user_id: string;
   type?: string;
   additional_info?: string;
-  remarks?: string; // Support for remarks field
+  remarks?: string;
 }
 
 export const createOffer = async (offerData: OfferData): Promise<string | null> => {
   try {
-    // Préparer les données en standardisant les champs remarks et additional_info
     const dataToSend = {
       ...offerData,
       type: offerData.type || 'admin_offer',
       user_id: offerData.user_id === 'user-123' ? 
         '00000000-0000-0000-0000-000000000000' : offerData.user_id,
-      additional_info: offerData.additional_info || offerData.remarks
+      additional_info: offerData.additional_info || offerData.remarks,
+      equipment_description: offerData.equipment_description || offerData.equipment_text
     };
     
-    // Supprimer le champ remarks s'il existe pour éviter des erreurs de colonne inconnue
     if ('remarks' in dataToSend) {
       delete dataToSend.remarks;
+    }
+    
+    if ('equipment_text' in dataToSend) {
+      delete dataToSend.equipment_text;
     }
     
     const { data, error } = await supabase
@@ -369,6 +372,16 @@ export const getOfferById = async (offerId: string) => {
       return null;
     }
 
+    if (data && data.equipment_description) {
+      try {
+        const equipmentData = JSON.parse(data.equipment_description);
+        console.log("Parsed equipment data:", equipmentData);
+        data.equipment_data = equipmentData;
+      } catch (e) {
+        console.log("Equipment description is not valid JSON:", data.equipment_description);
+      }
+    }
+
     return data;
   } catch (error) {
     console.error('Error fetching offer:', error);
@@ -378,13 +391,18 @@ export const getOfferById = async (offerId: string) => {
 
 export const updateOffer = async (offerId: string, offerData: any) => {
   try {
-    // Préparer les données en standardisant les champs remarks et additional_info
     const dataToSend = { ...offerData };
     
-    // Si remarks existe, l'utiliser pour additional_info
     if (dataToSend.remarks !== undefined) {
       dataToSend.additional_info = dataToSend.remarks;
       delete dataToSend.remarks;
+    }
+    
+    if (dataToSend.equipment_text) {
+      if (!dataToSend.equipment_description) {
+        dataToSend.equipment_description = dataToSend.equipment_text;
+      }
+      delete dataToSend.equipment_text;
     }
     
     const { data, error } = await supabase
