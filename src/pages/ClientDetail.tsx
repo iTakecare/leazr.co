@@ -127,14 +127,14 @@ export default function ClientDetail() {
   }
 
   // Correction de la vérification du compte utilisateur
-  // On considère qu'un client a un compte si has_user_account est true OU s'il a un user_id 
-  // mais pas les deux en même temps (ce qui pourrait causer de la confusion)
-  const hasUserAccount = client.has_user_account === true;
+  // On considère qu'un client a un compte si has_user_account est true ET il a un user_id
+  const hasUserAccount = client.has_user_account === true && client.user_id;
   
   console.log("Client account status check:", { 
     hasUserAccount, 
     user_id: client.user_id, 
-    has_user_account: client.has_user_account 
+    has_user_account: client.has_user_account,
+    user_account_created_at: client.user_account_created_at
   });
 
   return (

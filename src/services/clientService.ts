@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -367,7 +366,7 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
-    if (client.has_user_account === true) {
+    if (client.has_user_account === true && client.user_id) {
       console.log("Client already has a user account");
       toast.warning("Ce client a déjà un compte utilisateur associé");
       
@@ -398,8 +397,6 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     console.log("Using site URL for redirect:", siteUrl);
     
     try {
-      // Since the adminSupabase client is having issues, we'll use the regular supabase client
-      // We'll just set up the user, then send a password reset email to let them create their own password
       console.log("Creating user account with standard auth...");
       
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
