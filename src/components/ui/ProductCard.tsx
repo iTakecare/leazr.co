@@ -65,9 +65,6 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
   // Get the alt text
   const imageAlt = product.image_alt || product.imageAlt || `${product.name} image`;
-
-  // Calculate monthly price if needed
-  const monthlyPrice = product.monthly_price || (product.price ? product.price * 0.033 : 0);
   
   // Translate category to French
   const translatedCategory = categoryTranslations[product.category?.toLowerCase()] || product.category;
@@ -104,10 +101,10 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         <div>
           <div className="font-bold text-lg flex items-center">
             <Euro className="h-4 w-4 mr-1 text-muted-foreground" />
-            {formatCurrency(monthlyPrice)}<span className="text-xs font-normal text-muted-foreground">/mois</span>
+            {formatCurrency(product.price)}<span className="text-xs font-normal text-muted-foreground"></span>
           </div>
           <div className="text-xs text-muted-foreground">
-            Prix d'achat: {formatCurrency(product.price)}
+            Prix mensuel: {formatCurrency(product.monthly_price)}€/mois
           </div>
         </div>
         <Button 

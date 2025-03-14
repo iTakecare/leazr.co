@@ -261,7 +261,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price" className="required">Mensualité (€)</Label>
+              <Label htmlFor="price" className="required">Prix d'achat (€)</Label>
               <div className="relative">
                 <Input
                   id="price"
@@ -276,11 +276,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                 />
                 <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
-              <p className="text-xs text-muted-foreground">Mensualité pour le leasing du produit</p>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="monthly_price">Prix d'achat (€)</Label>
+              <Label htmlFor="monthly_price">Mensualité (€/mois)</Label>
               <div className="relative">
                 <Input
                   id="monthly_price"
@@ -294,6 +293,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                 />
                 <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
+              <p className="text-xs text-muted-foreground">Mensualité pour le leasing du produit</p>
             </div>
 
             <div className="space-y-2">

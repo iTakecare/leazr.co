@@ -20,18 +20,8 @@ export async function getProducts(): Promise<Product[]> {
       return [];
     }
 
-    // Enhance API data with default monthly prices if not present
-    const enhancedData = data.map(product => {
-      if (!product.monthly_price && product.price) {
-        // Calcul approximatif d'une mensualité si elle n'est pas définie
-        const coefficient = 0.033; // Coefficient mensuel approximatif sur 36 mois
-        product.monthly_price = parseFloat((product.price * coefficient).toFixed(2));
-      }
-      return product;
-    });
-
-    console.log(`Retrieved ${enhancedData.length} products from API`);
-    return enhancedData;
+    console.log(`Retrieved ${data.length} products from API`);
+    return data;
   } catch (error) {
     console.error("Error in getProducts:", error);
     throw error;
@@ -56,11 +46,6 @@ export async function getProductById(id: string): Promise<Product | null> {
     if (!data) {
       console.log(`No product found with ID: ${id}`);
       return null;
-    }
-
-    // Calculate monthly price if not present
-    if (!data.monthly_price && data.price) {
-      data.monthly_price = parseFloat((data.price * 0.033).toFixed(2));
     }
 
     console.log(`Successfully retrieved product with ID: ${id}`, data);

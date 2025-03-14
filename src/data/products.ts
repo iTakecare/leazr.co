@@ -1,4 +1,3 @@
-
 import { Product } from "@/types/catalog";
 
 // Sample product data if API fails
