@@ -19,6 +19,10 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   const calculatedMonthly = (priceWithMargin * coefficient) / 100;
   const isMatchingFormula = Math.abs(calculatedMonthly - displayMonthlyPayment) < 0.01;
 
+  // Calculer la marge ajustée en fonction de la mensualité affichée
+  const adjustedMarginAmount = ((displayMonthlyPayment * 100) / coefficient) - (priceWithMargin - marginAmount);
+  const adjustedMarginPercentage = (adjustedMarginAmount / (priceWithMargin - marginAmount)) * 100;
+
   return (
     <div className="space-y-2 text-sm">
       <div className="flex justify-between py-1">
@@ -39,10 +43,22 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
       </div>
       
       {!isMatchingFormula && calculatedMonthly > 0 && (
-        <div className="flex justify-between py-1 text-amber-600 text-xs">
-          <span>Mensualité calculée avec le coefficient :</span>
-          <span>{formatCurrency(calculatedMonthly)}</span>
-        </div>
+        <>
+          <div className="flex justify-between py-1 text-amber-600 text-xs">
+            <span>Mensualité calculée avec le coefficient :</span>
+            <span>{formatCurrency(calculatedMonthly)}</span>
+          </div>
+          
+          <div className="flex justify-between py-1 text-green-600 text-xs">
+            <span>Marge ajustée en euros :</span>
+            <span>{formatCurrency(adjustedMarginAmount)}</span>
+          </div>
+          
+          <div className="flex justify-between py-1 text-green-600 text-xs">
+            <span>Marge ajustée en pourcentage :</span>
+            <span>{formatPercentage(adjustedMarginPercentage)}</span>
+          </div>
+        </>
       )}
     </div>
   );
