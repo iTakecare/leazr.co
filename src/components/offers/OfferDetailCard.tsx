@@ -1,11 +1,14 @@
+
 import React, { useState } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, User, Mail, Building, CreditCard } from "lucide-react";
+import { ChevronDown, ChevronUp, User, Mail, Building, CreditCard, Trash2 } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
 import OfferWorkflow from "./OfferWorkflow";
 import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface OfferDetailCardProps {
   offer: {
@@ -26,12 +29,14 @@ interface OfferDetailCardProps {
   };
   onStatusChange: (offerId: string, status: string, reason?: string) => Promise<void>;
   isUpdatingStatus: boolean;
+  onDelete?: (id: string) => void;
 }
 
 const OfferDetailCard: React.FC<OfferDetailCardProps> = ({ 
   offer, 
   onStatusChange,
-  isUpdatingStatus
+  isUpdatingStatus,
+  onDelete
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [comment, setComment] = useState("");
@@ -49,6 +54,14 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 
   const handleStatusChange = async (newStatus: string, reason?: string) => {
     await onStatusChange(offer.id, newStatus, reason);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy", { locale: fr });
+    } catch (error) {
+      return "Date incorrecte";
+    }
   };
 
   return (
@@ -85,21 +98,36 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
             <div className="bg-green-100 text-green-800 py-1 px-3 rounded-full text-sm font-medium">
               Commission: {formatCurrency(offer.commission)}
             </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Créée le {formatDate(offer.created_at)}
+            </div>
           </div>
         </div>
         
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={toggleExpand}
-          className="ml-2"
-        >
-          {isExpanded ? (
-            <ChevronUp className="h-5 w-5" />
-          ) : (
-            <ChevronDown className="h-5 w-5" />
+        <div className="flex items-center gap-2">
+          {onDelete && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => onDelete(offer.id)}
+              className="text-red-500 hover:bg-red-100 hover:text-red-700"
+              title="Supprimer l'offre"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           )}
-        </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={toggleExpand}
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-5 w-5" />
+            ) : (
+              <ChevronDown className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
       </CardHeader>
       
       {isExpanded && (

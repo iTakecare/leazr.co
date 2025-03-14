@@ -152,6 +152,7 @@ const Offers = () => {
                         offer={offer} 
                         onStatusChange={handleUpdateWorkflowStatus}
                         isUpdatingStatus={isUpdatingStatus}
+                        onDelete={handleDeleteOffer}
                       />
                     ))}
                   </div>
