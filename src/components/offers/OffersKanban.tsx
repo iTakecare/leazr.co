@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 import OfferCard from "@/components/offers/OfferCard";
 import { Offer } from "@/hooks/offers/useFetchOffers";
-import { KanbanPlus, KanbanSquare } from "lucide-react";
+import { Plus, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface OffersKanbanProps {
@@ -21,7 +21,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.DRAFT.id,
     title: "Brouillons",
-    icon: KanbanSquare,
+    icon: Square,
     color: "bg-gray-100",
     borderColor: "border-gray-300",
     textColor: "text-gray-700",
@@ -29,7 +29,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.SENT.id,
     title: "Envoyées",
-    icon: KanbanSquare,
+    icon: Square,
     color: "bg-orange-50",
     borderColor: "border-orange-200",
     textColor: "text-orange-700",
@@ -37,7 +37,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.APPROVED.id,
     title: "Approuvées",
-    icon: KanbanSquare,
+    icon: Square,
     color: "bg-emerald-50",
     borderColor: "border-emerald-200",
     textColor: "text-emerald-700",
@@ -45,7 +45,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.LEASER_REVIEW.id,
     title: "Validation Bailleur",
-    icon: KanbanSquare,
+    icon: Square,
     color: "bg-blue-50",
     borderColor: "border-blue-200",
     textColor: "text-blue-700",
@@ -53,7 +53,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.FINANCED.id,
     title: "Financées",
-    icon: KanbanSquare,
+    icon: Square,
     color: "bg-green-50",
     borderColor: "border-green-200",
     textColor: "text-green-700",
@@ -61,7 +61,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.REJECTED.id,
     title: "Rejetées",
-    icon: KanbanSquare,
+    icon: Square,
     color: "bg-red-50",
     borderColor: "border-red-200",
     textColor: "text-red-700",
