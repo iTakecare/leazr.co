@@ -4,7 +4,7 @@ import { Session } from "@supabase/supabase-js";
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { getClientIdForUser, linkUserToClient } from "@/utils/clientUserAssociation";
+import { getClientIdForUser, linkUserToClient, cleanupDuplicateClients } from "@/utils/clientUserAssociation";
 import { verifyClientUserAssociation } from "@/utils/clientDiagnostics";
 
 export interface UserProfile {
@@ -56,6 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchUserProfile(currentSession.user.id);
           
           if (currentSession.user.email) {
+            // Nettoyer les doublons avant d'associer l'utilisateur
+            if (isAdmin()) {
+              await cleanupDuplicateClients();
+            }
+            
             await linkUserToClient(currentSession.user.id, currentSession.user.email);
             
             // Exécuter un diagnostic pour détecter et corriger les problèmes
@@ -74,6 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await fetchUserProfile(newSession.user.id);
               
               if (newSession.user.email) {
+                // Nettoyer les doublons lors de la connexion (pour les admins)
+                if (_event === 'SIGNED_IN' && user?.role === 'admin') {
+                  await cleanupDuplicateClients();
+                }
+                
                 await linkUserToClient(newSession.user.id, newSession.user.email);
                 
                 // Diagnostic après connexion
@@ -199,6 +209,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("Sign in successful, session established");
         
         if (data.user) {
+          // Nettoyer les doublons lors de la connexion (pour les admins)
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+            
+          if (userProfile?.role === 'admin') {
+            await cleanupDuplicateClients();
+          }
+          
           await linkUserToClient(data.user.id, email);
         }
         
