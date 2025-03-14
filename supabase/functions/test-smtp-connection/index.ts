@@ -49,8 +49,12 @@ serve(async (req) => {
     });
 
     try {
-      // Définir un contenu simple non-HTML d'abord pour tester
-      const plainTextContent = `
+      // Approche simplifiée : envoyer un email text sans HTML d'abord
+      await client.send({
+        from: `${config.from_name} <${config.from_email}>`,
+        to: config.username,
+        subject: "Test de connexion SMTP réussi",
+        content: `
 Test de connexion SMTP réussi
 
 Ceci est un email de test pour vérifier les paramètres SMTP.
@@ -60,32 +64,7 @@ Détails de la configuration:
 - Port: ${config.port}
 - Utilisateur: ${config.username}
 - Sécurisé: ${config.secure ? "Oui" : "Non"}
-      `;
-
-      // Tenter d'envoyer un email de test simple
-      await client.send({
-        from: `${config.from_name} <${config.from_email}>`,
-        to: config.username,
-        subject: "Test de connexion SMTP réussi",
-        content: plainTextContent,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #2c3e50;">Connexion SMTP réussie!</h1>
-            <p>Cet email confirme que vos paramètres SMTP sont correctement configurés.</p>
-            <hr style="border: 1px solid #eee; margin: 20px 0;">
-            <p><b>Détails de la configuration:</b></p>
-            <ul>
-              <li>Serveur: ${config.host}</li>
-              <li>Port: ${config.port}</li>
-              <li>Utilisateur: ${config.username}</li>
-              <li>Sécurisé: ${config.secure ? "Oui" : "Non"}</li>
-            </ul>
-          </div>
-        `,
-        headers: {
-          "Content-Type": "multipart/alternative",
-          "MIME-Version": "1.0"
-        }
+        `
       });
 
       // Fermer la connexion

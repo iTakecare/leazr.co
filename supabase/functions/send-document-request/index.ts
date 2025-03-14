@@ -59,14 +59,11 @@ serve(async (req) => {
       );
     }
     
-    // Formater la liste des documents demandés pour l'email
-    let docsHtml = '<ul>';
-    requestedDocs.forEach(doc => {
-      // Extraire le nom du document personnalisé si présent (format "custom:Nom du document")
+    // Formater les documents demandés pour l'email en texte simple
+    const formattedDocs = requestedDocs.map(doc => {
       if (doc.startsWith('custom:')) {
-        docsHtml += `<li>${doc.substring(7)}</li>`;
+        return `- ${doc.substring(7)}`;
       } else {
-        // Mapper les identifiants standard à des noms lisibles
         const docNameMap: {[key: string]: string} = {
           balance_sheet: "Bilan financier",
           tax_notice: "Avertissement extrait de rôle",
@@ -75,10 +72,9 @@ serve(async (req) => {
           vat_certificate: "Attestation TVA",
           bank_statement: "Relevé bancaire des 3 derniers mois"
         };
-        docsHtml += `<li>${docNameMap[doc] || doc}</li>`;
+        return `- ${docNameMap[doc] || doc}`;
       }
-    });
-    docsHtml += '</ul>';
+    }).join('\n');
     
     // Créer un client SMTP avec configuration explicite
     const client = new SMTPClient({
@@ -94,15 +90,15 @@ serve(async (req) => {
     });
 
     try {
-      // Construire le contenu de l'email
+      // Construire le contenu de l'email en texte simple uniquement
       const subject = "Demande de documents complémentaires pour votre offre de leasing";
-      const plainTextContent = `
+      const emailContent = `
 Bonjour ${clientName},
 
 Nous avons besoin des documents suivants pour poursuivre l'analyse de votre offre de leasing :
-${requestedDocs.map(doc => `- ${doc.startsWith('custom:') ? doc.substring(7) : doc}`).join('\n')}
+${formattedDocs}
 
-${customMessage ? `Message de l'équipe :\n${customMessage}\n` : ''}
+${customMessage ? `Message de l'équipe :\n${customMessage}\n\n` : ''}
 
 Merci de nous fournir ces documents dès que possible afin que nous puissions finaliser votre dossier.
 Vous pouvez répondre directement à cet email en attachant les documents demandés.
@@ -110,33 +106,12 @@ Vous pouvez répondre directement à cet email en attachant les documents demand
 Cet email est envoyé automatiquement par l'application de gestion de leasing.
       `;
       
-      const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2c3e50;">Documents complémentaires requis</h2>
-          <p>Bonjour ${clientName},</p>
-          <p>Nous avons besoin des documents suivants pour poursuivre l'analyse de votre offre de leasing :</p>
-          ${docsHtml}
-          ${customMessage ? `<p><strong>Message de l'équipe :</strong></p><p>${customMessage}</p>` : ''}
-          <p>Merci de nous fournir ces documents dès que possible afin que nous puissions finaliser votre dossier.</p>
-          <p>Vous pouvez répondre directement à cet email en attachant les documents demandés.</p>
-          <hr style="border: 1px solid #eee; margin: 20px 0;">
-          <p style="color: #7f8c8d; font-size: 12px;">
-            Cet email est envoyé automatiquement par l'application de gestion de leasing.
-          </p>
-        </div>
-      `;
-      
-      // Envoyer l'email avec headers explicites
+      // Envoyer l'email simplifié sans HTML
       await client.send({
         from: `${smtpConfig.from_name} <${smtpConfig.from_email}>`,
         to: clientEmail,
         subject: subject,
-        content: plainTextContent,
-        html: htmlContent,
-        headers: {
-          "Content-Type": "multipart/alternative",
-          "MIME-Version": "1.0"
-        }
+        content: emailContent
       });
 
       // Fermer la connexion
