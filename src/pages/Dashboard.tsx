@@ -19,13 +19,6 @@ import {
 
 const Dashboard = () => {
   const { user } = useAuth();
-
-  // Mock data
-  const recentOffers = [
-    { id: 1, client: "Société A", amount: 12500, status: "Acceptée", date: "15/04/2023" },
-    { id: 2, client: "Entreprise B", amount: 8750, status: "En attente", date: "28/04/2023" },
-    { id: 3, client: "Cabinet C", amount: 5300, status: "En attente", date: "02/05/2023" },
-  ];
   
   const totalCommission = 4325.75;
   const pendingOffersCount = 2;
@@ -127,46 +120,6 @@ const Dashboard = () => {
         
         <motion.div variants={itemVariants} className="md:col-span-3 grid gap-4">
           <ClientRequestsNotifications />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Dernières offres</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentOffers.map((offer) => (
-                  <div
-                    key={offer.id}
-                    className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <div>
-                      <div className="font-medium">{offer.client}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatCurrency(offer.amount)}
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <div className={`text-xs px-2 py-1 rounded-full ${
-                        offer.status === "Acceptée" 
-                          ? "bg-green-100 text-green-800" 
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}>
-                        {offer.status}
-                      </div>
-                      <ChevronRight className="h-4 w-4 ml-2 text-muted-foreground" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4">
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link to="/offers">
-                    Voir toutes les offres
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </motion.div>
       </motion.div>
 
