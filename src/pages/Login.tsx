@@ -39,8 +39,10 @@ export default function Login() {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
   const navigate = useNavigate();
   const supabase = getSupabaseClient();
+  const adminSupabase = getAdminSupabaseClient();
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -83,6 +85,44 @@ export default function Login() {
   const onSubmitResetPassword = async (data: ResetPasswordFormValues) => {
     try {
       setResetLoading(true);
+      setResetError(null);
+      
+      // 1. Check if email exists in auth.users
+      const { data: userData, error: userError } = await adminSupabase.auth.admin
+        .getUserByEmail(data.email);
+      
+      if (userError) {
+        console.error("Error checking user:", userError);
+      }
+      
+      // 2. If not in auth system, check if it exists as a client
+      if (!userData?.user) {
+        // Check if email exists in clients table
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('id, name, email')
+          .eq('email', data.email)
+          .maybeSingle();
+          
+        if (clientError && clientError.code !== 'PGRST116') {
+          console.error("Error checking client:", clientError);
+          throw new Error("Erreur lors de la vérification du client");
+        }
+        
+        if (clientData) {
+          // Client exists but no auth account
+          setResetError(
+            "Cette adresse email est associée à un client mais n'a pas encore de compte utilisateur. " +
+            "Veuillez créer un compte avec cette adresse."
+          );
+          return;
+        } else {
+          // No client or user found
+          throw new Error("Aucun compte trouvé avec cette adresse email");
+        }
+      }
+      
+      // Email exists in auth system, proceed with password reset
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: `${window.location.origin}/login`,
       });
@@ -95,6 +135,7 @@ export default function Login() {
       toast.success('Instructions de réinitialisation envoyées par e-mail');
     } catch (error: any) {
       console.error('Reset password error:', error);
+      setResetError(error.message || 'Erreur lors de la réinitialisation du mot de passe');
       toast.error(error.message || 'Erreur lors de la réinitialisation du mot de passe');
     } finally {
       setResetLoading(false);
@@ -136,6 +177,14 @@ export default function Login() {
                 ) : (
                   <Form {...resetForm}>
                     <form onSubmit={resetForm.handleSubmit(onSubmitResetPassword)} className="space-y-4">
+                      {resetError && (
+                        <Alert className="mb-4 bg-destructive/10 border-destructive/20">
+                          <AlertTriangle className="h-4 w-4 text-destructive mr-2" />
+                          <AlertDescription className="text-destructive">
+                            {resetError}
+                          </AlertDescription>
+                        </Alert>
+                      )}
                       <FormField
                         control={resetForm.control}
                         name="email"
@@ -168,7 +217,10 @@ export default function Login() {
                           type="button"
                           variant="outline"
                           className="w-full"
-                          onClick={() => setResetPassword(false)}
+                          onClick={() => {
+                            setResetPassword(false);
+                            setResetError(null);
+                          }}
                         >
                           Retour à la connexion
                         </Button>
@@ -294,4 +346,4 @@ export default function Login() {
 }
 
 // Importation nécessaire pour la fonctionnalité de réinitialisation de mot de passe
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";

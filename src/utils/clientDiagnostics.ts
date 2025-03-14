@@ -251,3 +251,41 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
     return false;
   }
 };
+
+/**
+ * Vérifie si une adresse email a un compte utilisateur associé
+ * Cette fonction est utilisée pour vérifier si un client peut récupérer son mot de passe
+ */
+export const checkUserExistenceByEmail = async (email: string) => {
+  try {
+    // Vérifier d'abord si l'email existe dans auth.users
+    const { data: userData, error: userError } = await supabase.auth.admin
+      .getUserByEmail(email);
+      
+    if (userError) {
+      console.error("Erreur lors de la vérification de l'utilisateur:", userError);
+      return false;
+    }
+    
+    if (userData?.user) {
+      return true; // Un utilisateur avec cet email existe
+    }
+    
+    // Vérifier si l'email existe dans la table clients
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select('id, name, email')
+      .eq('email', email)
+      .maybeSingle();
+      
+    if (clientError && clientError.code !== 'PGRST116') {
+      console.error("Erreur lors de la vérification du client:", clientError);
+      return false;
+    }
+    
+    return clientData ? true : false; // Renvoie true si un client avec cet email existe
+  } catch (error) {
+    console.error("Erreur dans checkUserExistenceByEmail:", error);
+    return false;
+  }
+};
