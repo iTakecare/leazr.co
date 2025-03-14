@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
@@ -13,6 +13,7 @@ interface MarginCalculatorProps {
   calculatedMargin: { percentage: number; amount: number };
   applyCalculatedMargin: () => void;
   selectedLeaser: Leaser | null;
+  coefficient: number;
 }
 
 const MarginCalculator: React.FC<MarginCalculatorProps> = ({
@@ -20,9 +21,17 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
   setTargetMonthlyPayment,
   calculatedMargin,
   applyCalculatedMargin,
-  selectedLeaser
+  selectedLeaser,
+  coefficient
 }) => {
   const [inputValue, setInputValue] = useState(targetMonthlyPayment ? targetMonthlyPayment.toString() : "");
+
+  // Mettre à jour le champ d'entrée quand targetMonthlyPayment change
+  useEffect(() => {
+    if (targetMonthlyPayment > 0) {
+      setInputValue(targetMonthlyPayment.toString());
+    }
+  }, [targetMonthlyPayment]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
@@ -42,14 +51,18 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
   };
 
   const handleApplyMargin = () => {
-    // First set the target monthly payment explicitly to ensure it's updated
+    // D'abord définir explicitement la mensualité cible pour garantir sa mise à jour
     const numValue = parseFloat(inputValue);
     if (!isNaN(numValue) && numValue > 0) {
       setTargetMonthlyPayment(numValue);
+      
+      // Attendre le prochain cycle de rendu avant d'appliquer la marge calculée
+      setTimeout(() => {
+        applyCalculatedMargin();
+      }, 0);
+    } else {
+      applyCalculatedMargin();
     }
-    
-    // Then apply the calculated margin
-    applyCalculatedMargin();
   };
 
   return (
@@ -84,6 +97,10 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
           </div>
 
           <div className="space-y-2 text-sm">
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">Coefficient appliqué :</span>
+              <span className="font-medium">{formatPercentage(coefficient)}</span>
+            </div>
             <div className="flex justify-between py-1">
               <span className="text-gray-600">Marge nécessaire :</span>
               <span className="font-medium">{formatPercentage(calculatedMargin.percentage)}</span>

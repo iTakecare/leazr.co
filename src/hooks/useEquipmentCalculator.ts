@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -77,117 +76,74 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       return;
     }
 
-    // Use the selected leaser's ranges instead of defaultLeasers
+    // Récupérer les plages du prestataire sélectionné
     const ranges = leaser?.ranges || defaultLeasers[0].ranges;
-    let coef = ranges[0].coefficient;
     
+    // Trouver le coefficient approprié pour cette plage de financement
+    // On commence par une estimation avec le coefficient de base
+    let coef = ranges[0].coefficient;
+    let finalCoef = coef;
+    
+    // Calculer le montant financé requis pour atteindre la mensualité cible
+    // Formule: Montant financé = (Mensualité cible * 100) / coefficient
+    const requiredFinancedAmount = (targetMonthlyPayment * 100) / coef;
+    
+    // Maintenant vérifier si ce montant de financement tombe dans une autre plage de coefficient
+    // Si oui, recalculer avec le coefficient correct de cette plage
     for (const range of ranges) {
-      const estimatedFinancedAmount = (targetMonthlyPayment * 100) / range.coefficient;
-      if (estimatedFinancedAmount >= range.min && estimatedFinancedAmount <= range.max) {
-        coef = range.coefficient;
+      if (requiredFinancedAmount >= range.min && requiredFinancedAmount <= range.max) {
+        finalCoef = range.coefficient;
         break;
       }
     }
-
-    const requiredFinancedAmount = (targetMonthlyPayment * 100) / coef;
-    const marginAmount = requiredFinancedAmount - equipment.purchasePrice;
+    
+    // Recalculer le montant financé requis avec le coefficient correct
+    const finalRequiredFinancedAmount = (targetMonthlyPayment * 100) / finalCoef;
+    
+    // La marge est la différence entre le montant financé requis et le prix d'achat
+    const marginAmount = finalRequiredFinancedAmount - equipment.purchasePrice;
+    
+    // Calculer le pourcentage de marge
     const marginPercentage = (marginAmount / equipment.purchasePrice) * 100;
-
+    
+    // Mettre à jour l'état avec les valeurs calculées
     setCalculatedMargin({
       percentage: Number(marginPercentage.toFixed(2)),
       amount: marginAmount
     });
-  };
-
-  const calculateGlobalMarginAdjustment = () => {
-    if (equipmentList.length === 0) {
-      setGlobalMarginAdjustment({ 
-        percentage: 0, 
-        amount: 0, 
-        newMonthly: 0,
-        currentCoef: 0,
-        newCoef: 0,
-        adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
-        marginDifference: 0
-      });
-      return;
-    }
-
-    const totalBaseAmount = equipmentList.reduce((sum, eq) => {
-      return sum + (eq.purchasePrice * eq.quantity);
-    }, 0);
-
-    const totalFinancedAmount = equipmentList.reduce((sum, eq) => {
-      return sum + calculateFinancedAmount(eq) * eq.quantity;
-    }, 0);
-
-    const currentCoef = findCoefficient(totalFinancedAmount);
-    const currentMonthly = (totalFinancedAmount * currentCoef) / 100;
-    const newCoef = findCoefficient(totalFinancedAmount);
     
-    let newMonthly;
-    let marginDifference = 0;
+    // Mettre à jour le coefficient de l'équipement
+    setCoefficient(finalCoef);
     
-    if (globalMarginAdjustment.adaptMonthlyPayment) {
-      // Case 1: Using adapted monthly payment based on the coefficient
-      newMonthly = (totalFinancedAmount * newCoef) / 100;
-      marginDifference = 0; // No difference in this case
-    } else {
-      // Case 2: Using original monthly payments from individual equipment items
-      newMonthly = equipmentList.reduce((sum, eq) => {
-        return sum + (eq.monthlyPayment || 0) * eq.quantity;
-      }, 0);
-      
-      // Calculate adapted monthly based on new coefficient
-      const adaptedMonthly = (totalFinancedAmount * newCoef) / 100;
-      
-      // Calculate the monthly payment difference first
-      const monthlyDifference = newMonthly - adaptedMonthly;
-      
-      // Convert to margin difference by calculating how much capital this represents
-      // If we have the coefficient, we can calculate how much capital is needed to generate 
-      // this monthly payment difference
-      marginDifference = (monthlyDifference * 100) / newCoef;
-    }
-
-    const marginAmount = totalFinancedAmount - totalBaseAmount;
-    const marginPercentage = (marginAmount / totalBaseAmount) * 100;
-
-    setGlobalMarginAdjustment({
-      percentage: Number(marginPercentage.toFixed(2)),
-      amount: marginAmount,
-      newMonthly: newMonthly,
-      currentCoef: currentCoef,
-      newCoef: newCoef,
-      adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
-      marginDifference: marginDifference
-    });
-
-    setTotalMonthlyPayment(newMonthly);
+    console.log("Target monthly:", targetMonthlyPayment);
+    console.log("Applied coefficient:", finalCoef);
+    console.log("Required financed amount:", finalRequiredFinancedAmount);
+    console.log("Calculated margin percentage:", marginPercentage);
+    console.log("Calculated margin amount:", marginAmount);
   };
 
   const applyCalculatedMargin = () => {
     if (calculatedMargin.percentage > 0) {
       console.log("Applying calculated margin:", calculatedMargin.percentage);
       
-      // Update the equipment with the calculated margin
+      // Mettre à jour l'équipement avec la marge calculée
       setEquipment(prev => {
+        // Créer un nouvel objet d'équipement avec la marge mise à jour
         const updatedEquipment = {
           ...prev,
           margin: Number(calculatedMargin.percentage.toFixed(2))
         };
         
-        // If we have a targetMonthlyPayment, update the equipment's monthly payment
+        // Si nous avons une mensualité cible, mettre à jour la mensualité de l'équipement
         if (targetMonthlyPayment > 0) {
           updatedEquipment.monthlyPayment = targetMonthlyPayment;
-          // This ensures the applied monthly payment is immediately visible
           console.log("Setting monthly payment to target:", targetMonthlyPayment);
         }
         
         return updatedEquipment;
       });
       
-      // Force a recalculation of the monthly payment based on the new margin
+      // Forcer un recalcul de la mensualité uniquement si pas de mensualité cible
       if (targetMonthlyPayment <= 0) {
         calculateMonthlyPayment();
       }
@@ -279,6 +235,73 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   useEffect(() => {
     calculateGlobalMarginAdjustment();
   }, [equipmentList, leaser, globalMarginAdjustment.adaptMonthlyPayment]);
+
+  const calculateGlobalMarginAdjustment = () => {
+    if (equipmentList.length === 0) {
+      setGlobalMarginAdjustment({ 
+        percentage: 0, 
+        amount: 0, 
+        newMonthly: 0,
+        currentCoef: 0,
+        newCoef: 0,
+        adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
+        marginDifference: 0
+      });
+      return;
+    }
+
+    const totalBaseAmount = equipmentList.reduce((sum, eq) => {
+      return sum + (eq.purchasePrice * eq.quantity);
+    }, 0);
+
+    const totalFinancedAmount = equipmentList.reduce((sum, eq) => {
+      return sum + calculateFinancedAmount(eq) * eq.quantity;
+    }, 0);
+
+    const currentCoef = findCoefficient(totalFinancedAmount);
+    const currentMonthly = (totalFinancedAmount * currentCoef) / 100;
+    const newCoef = findCoefficient(totalFinancedAmount);
+    
+    let newMonthly;
+    let marginDifference = 0;
+    
+    if (globalMarginAdjustment.adaptMonthlyPayment) {
+      // Case 1: Using adapted monthly payment based on the coefficient
+      newMonthly = (totalFinancedAmount * newCoef) / 100;
+      marginDifference = 0; // No difference in this case
+    } else {
+      // Case 2: Using original monthly payments from individual equipment items
+      newMonthly = equipmentList.reduce((sum, eq) => {
+        return sum + (eq.monthlyPayment || 0) * eq.quantity;
+      }, 0);
+      
+      // Calculate adapted monthly based on new coefficient
+      const adaptedMonthly = (totalFinancedAmount * newCoef) / 100;
+      
+      // Calculate the monthly payment difference first
+      const monthlyDifference = newMonthly - adaptedMonthly;
+      
+      // Convert to margin difference by calculating how much capital this represents
+      // If we have the coefficient, we can calculate how much capital is needed to generate 
+      // this monthly payment difference
+      marginDifference = (monthlyDifference * 100) / newCoef;
+    }
+
+    const marginAmount = totalFinancedAmount - totalBaseAmount;
+    const marginPercentage = (marginAmount / totalBaseAmount) * 100;
+
+    setGlobalMarginAdjustment({
+      percentage: Number(marginPercentage.toFixed(2)),
+      amount: marginAmount,
+      newMonthly: newMonthly,
+      currentCoef: currentCoef,
+      newCoef: newCoef,
+      adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
+      marginDifference: marginDifference
+    });
+
+    setTotalMonthlyPayment(newMonthly);
+  };
 
   return {
     equipment,

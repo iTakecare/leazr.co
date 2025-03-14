@@ -174,7 +174,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             cancelEditing={cancelEditing}
           />
 
-          {/* Add MarginCalculator component */}
+          {/* Add MarginCalculator component with coefficient prop */}
           <div className="mt-4 pt-4 border-t">
             <MarginCalculator 
               targetMonthlyPayment={targetMonthlyPayment}
@@ -182,6 +182,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
               calculatedMargin={calculatedMargin}
               applyCalculatedMargin={applyCalculatedMargin}
               selectedLeaser={selectedLeaser}
+              coefficient={coefficient}
             />
           </div>
         </div>

@@ -15,6 +15,10 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   coefficient,
   displayMonthlyPayment
 }) => {
+  // Vérifier si la mensualité calculée correspond exactement à la formule PrixAvecMarge * Coefficient / 100
+  const calculatedMonthly = (priceWithMargin * coefficient) / 100;
+  const isMatchingFormula = Math.abs(calculatedMonthly - displayMonthlyPayment) < 0.01;
+
   return (
     <div className="space-y-2 text-sm">
       <div className="flex justify-between py-1">
@@ -33,6 +37,13 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
         <span className="font-medium">Mensualité unitaire :</span>
         <span className="font-bold">{formatCurrency(displayMonthlyPayment)}</span>
       </div>
+      
+      {!isMatchingFormula && calculatedMonthly > 0 && (
+        <div className="flex justify-between py-1 text-amber-600 text-xs">
+          <span>Mensualité calculée avec le coefficient :</span>
+          <span>{formatCurrency(calculatedMonthly)}</span>
+        </div>
+      )}
     </div>
   );
 };
