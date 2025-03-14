@@ -9,6 +9,7 @@ import ProductCard from "./ProductCard";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ProductCatalogProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   description = "Sélectionnez un produit à ajouter à votre offre"
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   
   // Utiliser useQuery pour récupérer les produits réels depuis la base de données
   const { data: products = [], isLoading, error } = useQuery({
@@ -36,9 +38,22 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     enabled: isOpen, // Ne récupère les produits que lorsque le catalogue est ouvert
   });
 
-  const filteredProducts = products.filter((product: Product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Extraire les catégories uniques des produits
+  const categories = React.useMemo(() => {
+    const uniqueCategories = new Set<string>();
+    products.forEach((product: Product) => {
+      if (product.category) {
+        uniqueCategories.add(product.category);
+      }
+    });
+    return ["all", ...Array.from(uniqueCategories)];
+  }, [products]);
+
+  const filteredProducts = products.filter((product: Product) => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const DialogOrSheet = isSheet ? Sheet : Dialog;
   const ContentComponent = isSheet ? SheetContent : DialogContent;
@@ -62,6 +77,22 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+
+        <div className="my-4">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner une catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category === "all" ? "Toutes les catégories" : 
+                    category.charAt(0).toUpperCase() + category.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         {isLoading ? (
