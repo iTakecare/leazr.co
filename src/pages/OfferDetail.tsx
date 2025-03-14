@@ -416,10 +416,20 @@ const OfferDetail = () => {
             icon: RefreshCw,
             onClick: () => openStatusChangeDialog(OFFER_STATUSES.FINANCED.id),
           });
+          
+          // Add request info option in leaser_review stage
+          actions.push({
+            label: "Demander des infos",
+            icon: HelpCircle,
+            onClick: () => setInfoRequestDialogOpen(true),
+            variant: "outline",
+          });
+          
           actions.push({
             label: "Rejeter l'offre",
             icon: Trash2,
             onClick: () => openStatusChangeDialog(OFFER_STATUSES.REJECTED.id),
+            className: "bg-red-600 text-white hover:bg-red-700",
           });
           break;
       }
@@ -890,126 +900,3 @@ const OfferDetail = () => {
               required={targetStatus === OFFER_STATUSES.REJECTED.id}
             />
           </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button 
-              onClick={handleStatusChange}
-              disabled={targetStatus === OFFER_STATUSES.REJECTED.id && !statusChangeReason.trim()}
-            >
-              Confirmer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ajouter les informations de suivi</DialogTitle>
-            <DialogDescription>
-              Entrez le numéro de suivi et autres informations de livraison.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="tracking" className="text-sm font-medium">Numéro de suivi*</label>
-              <input
-                id="tracking"
-                type="text"
-                className="w-full p-2 border rounded-md"
-                value={trackingNumber}
-                onChange={(e) => setTrackingNumber(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="carrier" className="text-sm font-medium">Transporteur</label>
-              <input
-                id="carrier"
-                type="text"
-                className="w-full p-2 border rounded-md"
-                value={carrier}
-                onChange={(e) => setCarrier(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="delivery" className="text-sm font-medium">Date de livraison estimée</label>
-              <input
-                id="delivery"
-                type="text"
-                className="w-full p-2 border rounded-md"
-                value={estimatedDelivery}
-                onChange={(e) => setEstimatedDelivery(e.target.value)}
-                placeholder="ex: 15/06/2024"
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTrackingDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button 
-              onClick={handleAddTrackingInfo}
-              disabled={!trackingNumber.trim()}
-            >
-              Confirmer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <RequestInfoModal 
-        isOpen={infoRequestDialogOpen}
-        onClose={() => setInfoRequestDialogOpen(false)}
-        onSendRequest={handleRequestInfo}
-        offerId={offer?.id || ''}
-      />
-    </PageTransition>
-  );
-};
-
-const ProgressStep = ({ 
-  label, 
-  isActive, 
-  isCompleted, 
-  status, 
-  onClick 
-}: { 
-  label: string, 
-  isActive: boolean, 
-  isCompleted: boolean, 
-  status: string, 
-  onClick: (status: string) => void 
-}) => {
-  return (
-    <div 
-      className={`flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity px-3`}
-      onClick={() => onClick(status)}
-      title={`Changer le statut à "${label}"`}
-    >
-      <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-3 shadow-sm transition-all ${
-        isActive 
-          ? "bg-blue-500 text-white scale-110" 
-          : isCompleted 
-            ? "bg-green-500 text-white" 
-            : "bg-gray-100 text-gray-500"
-      }`}>
-        {isCompleted ? <CheckCircle className="h-7 w-7" /> : <div className="text-lg font-medium">{label.charAt(0)}</div>}
-      </div>
-      <div className={`text-sm text-center max-w-20 ${isActive ? "font-bold" : ""}`}>{label}</div>
-    </div>
-  );
-};
-
-const ProgressLine = () => {
-  return <div className="flex-1 h-1 bg-gray-200 mx-2 mt-7" />;
-};
-
-export default OfferDetail;

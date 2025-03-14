@@ -142,6 +142,14 @@ const OffersTable: React.FC<OffersTableProps> = ({
           icon: RefreshCw,
           onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.FINANCED.id),
         });
+        // Add the ability to request info at the leaser_review stage
+        if (onRequestInfo) {
+          actions.push({
+            label: "Demander des infos",
+            icon: HelpCircle,
+            onClick: () => openInfoRequestDialog(offer),
+          });
+        }
         actions.push({
           label: "Rejeter l'offre",
           icon: Trash2,
