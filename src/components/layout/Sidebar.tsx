@@ -3,7 +3,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Home,
+  LayoutDashboard,
   Users,
   Box,
   Settings,
@@ -35,13 +35,13 @@ const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
           <Link
             to={to}
             className={cn(
-              "flex items-center justify-center py-2 px-3 my-1 rounded-md transition-colors",
+              "flex items-center justify-center py-3 px-3 my-3 rounded-md transition-colors",
               active
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
             )}
           >
-            <Icon className="h-5 w-5" aria-hidden="true" />
+            <Icon className="h-6 w-6" aria-hidden="true" />
           </Link>
         </TooltipTrigger>
         <TooltipContent side="right">
@@ -65,9 +65,9 @@ const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
         <TooltipTrigger asChild>
           <button
             onClick={onClick}
-            className="flex items-center justify-center py-2 px-3 my-1 rounded-md transition-colors text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+            className="flex items-center justify-center py-3 px-3 my-3 rounded-md transition-colors text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
           >
-            <Icon className="h-5 w-5" aria-hidden="true" />
+            <Icon className="h-6 w-6" aria-hidden="true" />
           </button>
         </TooltipTrigger>
         <TooltipContent side="right">
@@ -107,10 +107,10 @@ const Sidebar = ({ className }: SidebarProps) => {
         className
       )}
     >
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto p-2 space-y-3">
         <MenuItem
           to="/dashboard"
-          icon={Home}
+          icon={LayoutDashboard}
           label="Tableau de bord"
           active={isActive("/dashboard")}
         />
@@ -148,7 +148,7 @@ const Sidebar = ({ className }: SidebarProps) => {
 
       {user && (
         <div className="p-3 border-t flex flex-col items-center">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-2">
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-4">
             {user.email?.charAt(0).toUpperCase() || "U"}
           </div>
           <ActionItem 

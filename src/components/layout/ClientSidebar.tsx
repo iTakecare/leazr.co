@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -33,13 +34,13 @@ const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
           <Link
             to={to}
             className={cn(
-              "flex items-center justify-center py-3 px-3 my-1 rounded-md transition-all",
+              "flex items-center justify-center py-3 px-3 my-3 rounded-md transition-all",
               active
                 ? "bg-primary/15 text-primary shadow-sm translate-x-1"
                 : "text-muted-foreground hover:bg-primary/5 hover:text-primary hover:translate-x-1"
             )}
           >
-            <Icon className={cn("h-5 w-5", active && "stroke-[2.5px]")} aria-hidden="true" />
+            <Icon className={cn("h-6 w-6", active && "stroke-[2.5px]")} aria-hidden="true" />
           </Link>
         </TooltipTrigger>
         <TooltipContent side="right" className="font-medium">
@@ -63,9 +64,9 @@ const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
         <TooltipTrigger asChild>
           <button
             onClick={onClick}
-            className="flex items-center justify-center py-2 px-3 my-1 rounded-md transition-colors text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+            className="flex items-center justify-center py-3 px-3 my-3 rounded-md transition-colors text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
           >
-            <Icon className="h-5 w-5" aria-hidden="true" />
+            <Icon className="h-6 w-6" aria-hidden="true" />
           </button>
         </TooltipTrigger>
         <TooltipContent side="right" className="font-medium">
@@ -115,11 +116,11 @@ const ClientSidebar = ({ className }: SidebarProps) => {
     >
       <div className="flex-1 overflow-y-auto py-4 px-2">
         <div className="flex justify-center mb-6">
-          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
+          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
             IT
           </div>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-3">
           {sidebarItems.map((item) => (
             <MenuItem
               key={item.path}
@@ -134,7 +135,7 @@ const ClientSidebar = ({ className }: SidebarProps) => {
 
       {user && (
         <div className="p-3 border-t border-t-muted/40 flex flex-col items-center">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center text-primary font-medium mb-2 shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center text-primary font-medium mb-4 shadow-sm">
             {user.first_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
           </div>
           <ActionItem 
