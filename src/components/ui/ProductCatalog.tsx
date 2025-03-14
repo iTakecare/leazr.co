@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProductCard from "./ProductCard";
 import { useQuery } from "@tanstack/react-query";
-import { getProducts, getCategories } from "@/services/catalogService";
+import { getProducts, getCategories, getBrands } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +31,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedBrand, setSelectedBrand] = useState<string>("all");
   
   // Utiliser useQuery pour récupérer les produits réels depuis la base de données
   const { data: products = [], isLoading, error } = useQuery({
@@ -46,6 +47,13 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     enabled: isOpen,
   });
 
+  // Récupérer les marques depuis la base de données
+  const { data: brandsData = [] } = useQuery({
+    queryKey: ["brands"],
+    queryFn: getBrands,
+    enabled: isOpen,
+  });
+
   // Extraire les catégories depuis les données récupérées
   const categories = React.useMemo(() => {
     return [
@@ -54,10 +62,19 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     ];
   }, [categoriesData]);
 
+  // Extraire les marques depuis les données récupérées
+  const brands = React.useMemo(() => {
+    return [
+      { name: "all", translation: "Toutes les marques" }, 
+      ...brandsData
+    ];
+  }, [brandsData]);
+
   const filteredProducts = products.filter((product: Product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesBrand = selectedBrand === "all" || product.brand === selectedBrand;
+    return matchesSearch && matchesCategory && matchesBrand;
   });
 
   // Components for modal/sheet version
@@ -87,15 +104,28 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             />
           </div>
 
-          <div className="my-4">
+          <div className="grid grid-cols-2 gap-4 my-4">
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionner une catégorie" />
+                <SelectValue placeholder="Catégorie" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
                   <SelectItem key={category.name} value={category.name}>
                     {category.translation}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+              <SelectTrigger>
+                <SelectValue placeholder="Marque" />
+              </SelectTrigger>
+              <SelectContent>
+                {brands.map((brand) => (
+                  <SelectItem key={brand.name} value={brand.name}>
+                    {brand.translation}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -138,7 +168,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="relative w-full md:w-72">
+        <div className="relative w-full md:w-[300px]">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher un produit..."
@@ -148,18 +178,33 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           />
         </div>
         
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-full md:w-60">
-            <SelectValue placeholder="Sélectionner une catégorie" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category.name} value={category.name}>
-                {category.translation}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category.name} value={category.name}>
+                  {category.translation}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Marque" />
+            </SelectTrigger>
+            <SelectContent>
+              {brands.map((brand) => (
+                <SelectItem key={brand.name} value={brand.name}>
+                  {brand.translation}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
       {isLoading ? (
@@ -192,14 +237,21 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                     </div>
                     <div className="flex-1">
                       <h3 className="font-medium mb-1">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Catégorie: {product.category ? 
-                          (categories.find(c => c.name === product.category)?.translation || product.category) 
-                          : "Non catégorisé"}
-                      </p>
-                      <p className="text-sm font-medium">
-                        Mensualité: {product.monthly_price ? (product.monthly_price + "€/mois") : "Non définie"}
-                      </p>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>
+                          Catégorie: {product.category ? 
+                            (categories.find(c => c.name === product.category)?.translation || product.category) 
+                            : "Non catégorisé"}
+                        </p>
+                        <p>
+                          Marque: {product.brand ? 
+                            (brands.find(b => b.name === product.brand)?.translation || product.brand) 
+                            : "Non spécifié"}
+                        </p>
+                        <p className="font-medium">
+                          Mensualité: {product.monthly_price ? (product.monthly_price + "€/mois") : "Non définie"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      brands: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          translation: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          translation: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          translation?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -545,6 +569,19 @@ export type Database = {
       }
     }
     Functions: {
+      add_brand: {
+        Args: {
+          brand_name: string
+          brand_translation: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          translation: string
+          updated_at: string
+        }
+      }
       calculate_total_revenue: {
         Args: {
           time_filter: string
@@ -571,6 +608,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      delete_brand: {
+        Args: {
+          brand_name: string
+        }
+        Returns: boolean
+      }
+      get_brands: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          translation: string
+          updated_at: string
+        }[]
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -580,6 +633,20 @@ export type Database = {
           user_email: string
         }
         Returns: string
+      }
+      update_brand: {
+        Args: {
+          original_name: string
+          new_name: string
+          new_translation: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          translation: string
+          updated_at: string
+        }
       }
     }
     Enums: {

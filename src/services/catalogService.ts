@@ -254,7 +254,7 @@ export async function deleteProduct(productId: string): Promise<void> {
   }
 }
 
-export async function getCategories() {
+export const getCategories = async () => {
   try {
     console.log("Fetching categories from API");
     const supabase = getSupabaseClient();
@@ -307,7 +307,7 @@ export async function getCategories() {
   }
 }
 
-export async function addCategory({ name, translation }: { name: string, translation: string }) {
+export const addCategory = async ({ name, translation }: { name: string, translation: string }) => {
   try {
     console.log(`Adding category: ${name} (${translation})`);
     const supabase = getSupabaseClient();
@@ -338,15 +338,7 @@ export async function addCategory({ name, translation }: { name: string, transla
   }
 }
 
-export async function updateCategory({ 
-  originalName, 
-  name, 
-  translation 
-}: { 
-  originalName: string, 
-  name: string, 
-  translation: string 
-}) {
+export const updateCategory = async ({ originalName, name, translation }: { originalName: string, name: string, translation: string }) => {
   try {
     console.log(`Updating category: ${originalName} -> ${name} (${translation})`);
     const supabase = getSupabaseClient();
@@ -371,7 +363,7 @@ export async function updateCategory({
   }
 }
 
-export async function deleteCategory({ name }: { name: string }) {
+export const deleteCategory = async ({ name }: { name: string }) => {
   try {
     console.log(`Deleting category: ${name}`);
     const supabase = getSupabaseClient();
@@ -393,3 +385,58 @@ export async function deleteCategory({ name }: { name: string }) {
     throw error;
   }
 }
+
+export const getBrands = async () => {
+  const { data, error } = await supabase
+    .rpc('get_brands');
+  
+  if (error) {
+    console.error("Error fetching brands:", error);
+    throw new Error(error.message);
+  }
+  
+  return data || [];
+};
+
+export const addBrand = async ({ name, translation }: { name: string, translation: string }) => {
+  const { data, error } = await supabase
+    .rpc('add_brand', { 
+      brand_name: name,
+      brand_translation: translation
+    });
+  
+  if (error) {
+    console.error("Error adding brand:", error);
+    throw new Error(error.message);
+  }
+  
+  return data;
+};
+
+export const updateBrand = async ({ originalName, name, translation }: { originalName: string, name: string, translation: string }) => {
+  const { data, error } = await supabase
+    .rpc('update_brand', { 
+      original_name: originalName,
+      new_name: name,
+      new_translation: translation
+    });
+  
+  if (error) {
+    console.error("Error updating brand:", error);
+    throw new Error(error.message);
+  }
+  
+  return data;
+};
+
+export const deleteBrand = async ({ name }: { name: string }) => {
+  const { data, error } = await supabase
+    .rpc('delete_brand', { brand_name: name });
+  
+  if (error) {
+    console.error("Error deleting brand:", error);
+    throw new Error(error.message);
+  }
+  
+  return data;
+};

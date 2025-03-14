@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
 import { deleteAllProducts, deleteProduct } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Tag, Award } from "lucide-react";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "sonner";
 import { 
@@ -22,10 +22,14 @@ import {
 import ProductCatalog from "@/components/ui/ProductCatalog";
 import { useNavigate } from "react-router-dom";
 import { getProducts } from "@/services/catalogService";
+import CategoryManager from "@/components/catalog/CategoryManager";
+import BrandManager from "@/components/catalog/BrandManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Catalog = () => {
   const navigate = useNavigate();
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("catalog");
   
   // Cette requête est juste pour avoir un refetch à transmettre au ProductCatalog
   const { refetch } = useQuery({
@@ -92,14 +96,38 @@ const Catalog = () => {
           </div>
         </div>
 
-        <ProductCatalog 
-          isOpen={true} 
-          onClose={() => {}}
-          onSelectProduct={handleSelectProduct}
-          isSheet={false}
-          title="Catalogue de produits"
-          description="Parcourez notre catalogue complet de produits technologiques"
-        />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4 w-full justify-start">
+            <TabsTrigger value="catalog">Catalogue</TabsTrigger>
+            <TabsTrigger value="categories">
+              <Tag className="mr-2 h-4 w-4" />
+              Catégories
+            </TabsTrigger>
+            <TabsTrigger value="brands">
+              <Award className="mr-2 h-4 w-4" />
+              Marques
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="catalog">
+            <ProductCatalog 
+              isOpen={true} 
+              onClose={() => {}}
+              onSelectProduct={handleSelectProduct}
+              isSheet={false}
+              title="Catalogue de produits"
+              description="Parcourez notre catalogue complet de produits technologiques"
+            />
+          </TabsContent>
+          
+          <TabsContent value="categories">
+            <CategoryManager />
+          </TabsContent>
+          
+          <TabsContent value="brands">
+            <BrandManager />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <ProductEditor 
