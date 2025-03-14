@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -131,21 +130,29 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     const currentMonthly = (totalFinancedAmount * currentCoef) / 100;
     const newCoef = findCoefficient(totalFinancedAmount);
     
-    let newMonthly, marginDifference = 0;
+    let newMonthly;
+    let marginDifference = 0;
     
     if (globalMarginAdjustment.adaptMonthlyPayment) {
+      // Case 1: Using adapted monthly payment based on the coefficient
       newMonthly = (totalFinancedAmount * newCoef) / 100;
-      // No margin difference in this case as we're using the new coefficient
-      marginDifference = 0;
+      marginDifference = 0; // No difference in this case
     } else {
-      // Using original monthly payments
+      // Case 2: Using original monthly payments from individual equipment items
       newMonthly = equipmentList.reduce((sum, eq) => {
         return sum + (eq.monthlyPayment || 0) * eq.quantity;
       }, 0);
       
-      // Calculate margin difference between adapted and non-adapted
+      // Calculate adapted monthly based on new coefficient
       const adaptedMonthly = (totalFinancedAmount * newCoef) / 100;
-      marginDifference = newMonthly - adaptedMonthly;
+      
+      // Calculate the monthly payment difference first
+      const monthlyDifference = newMonthly - adaptedMonthly;
+      
+      // Convert to margin difference by calculating how much capital this represents
+      // If we have the coefficient, we can calculate how much capital is needed to generate 
+      // this monthly payment difference
+      marginDifference = (monthlyDifference * 100) / newCoef;
     }
 
     const marginAmount = totalFinancedAmount - totalBaseAmount;
