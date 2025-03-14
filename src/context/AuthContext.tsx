@@ -3,6 +3,7 @@ import { Session } from "@supabase/supabase-js";
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { getClientIdForUser, linkUserToClient } from "@/utils/clientUserAssociation";
 
 export interface UserProfile {
   id: string;
@@ -50,6 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (currentSession) {
           await fetchUserProfile(currentSession.user.id);
+          
+          if (currentSession.user.email) {
+            await linkUserToClient(currentSession.user.id, currentSession.user.email);
+          }
         } else {
           setIsLoading(false);
         }
@@ -61,6 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             if (newSession) {
               await fetchUserProfile(newSession.user.id);
+              
+              if (newSession.user.email) {
+                await linkUserToClient(newSession.user.id, newSession.user.email);
+              }
             } else {
               setUser(null);
               setIsLoading(false);
@@ -171,6 +180,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.session) {
         console.log("Sign in successful, session established");
+        
+        if (data.user) {
+          await linkUserToClient(data.user.id, email);
+        }
+        
         navigate('/dashboard');
         toast.success('Connexion réussie');
       } else {

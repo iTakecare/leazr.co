@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -8,10 +7,9 @@ import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
 import ClientsLoading from "@/components/clients/ClientsLoading";
 import ClientsError from "@/components/clients/ClientsError";
-import { supabase } from "@/integrations/supabase/client";
+import { linkUserToClient } from "@/utils/clientUserAssociation";
 import { toast } from "sonner";
 
-// Placeholder components for client routes
 const ClientEquipment = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Mes Équipements</h1><p>Gestion des équipements en cours d'implémentation.</p></div>;
 const ClientCatalog = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Catalogue</h1><p>Catalogue en cours d'implémentation.</p></div>;
 const ClientNewRequest = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Nouvelle Demande</h1><p>Formulaire de création de demande en cours d'implémentation.</p></div>;
@@ -27,7 +25,6 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// Component pour vérifier si l'utilisateur est associé à un client
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -45,163 +42,25 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
         
         console.log("Checking client association for user:", user.id, user.email);
         
-        // Clear any cached client ID
         if (retryCount > 0 && user?.id) {
           localStorage.removeItem(`client_id_${user.id}`);
           console.log("Cleared cached client ID for retry");
         }
         
-        // Tentative 1: Vérifier par email (plus fiable)
         if (user.email) {
-          const { data: clientByEmail, error: emailError } = await supabase
-            .from('clients')
-            .select('id, name, user_id')
-            .eq('email', user.email)
-            .maybeSingle();
-            
-          if (emailError) {
-            console.error("Error checking client by email:", emailError);
-          }
+          const clientId = await linkUserToClient(user.id, user.email);
           
-          if (clientByEmail) {
-            console.log("Client found by email:", clientByEmail);
-            
-            // Si le client n'a pas d'user_id, on le met à jour
-            if (!clientByEmail.user_id) {
-              console.log("Client has no user_id, updating...");
-              const { error: updateError } = await supabase
-                .from('clients')
-                .update({ user_id: user.id })
-                .eq('id', clientByEmail.id);
-                
-              if (!updateError) {
-                console.log("Successfully linked user to client:", clientByEmail.id);
-                toast.success("Votre compte a été associé au client " + clientByEmail.name);
-              } else {
-                console.error("Error linking user to client:", updateError);
-              }
-            }
-            
-            // Sauvegarder le client_id dans le localStorage
-            if (user.id) {
-              localStorage.setItem(`client_id_${user.id}`, clientByEmail.id);
-            }
-            
+          if (clientId) {
+            console.log("Client association successful, client ID:", clientId);
             setCheckingClient(false);
             return;
           } else {
-            console.log("No client found for email:", user.email);
+            console.error("No client found for this user");
+            setClientError(`Compte client non trouvé. L'utilisateur n'est associé à aucun client dans le système.`);
           }
+        } else {
+          setClientError("L'utilisateur n'a pas d'email associé.");
         }
-        
-        // Tentative 2: Vérifier par user_id
-        if (user.id) {
-          const { data: clientByUserId, error: userIdError } = await supabase
-            .from('clients')
-            .select('id, name')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (userIdError) {
-            console.error("Error checking client by user_id:", userIdError);
-          }
-          
-          if (clientByUserId) {
-            console.log("Client found by user_id:", clientByUserId);
-            
-            // Sauvegarder le client_id dans le localStorage
-            localStorage.setItem(`client_id_${user.id}`, clientByUserId.id);
-            
-            setCheckingClient(false);
-            return;
-          } else {
-            console.log("No client found for user_id:", user.id);
-          }
-        }
-        
-        // Recherche spéciale pour mistergi118@gmail.com
-        if (user.email === "mistergi118@gmail.com") {
-          console.log("Special check for mistergi118@gmail.com");
-          
-          // Vérifier tous les clients
-          const { data: allClients, error: allClientsError } = await supabase
-            .from('clients')
-            .select('id, name, email, user_id');
-            
-          if (allClientsError) {
-            console.error("Error fetching all clients:", allClientsError);
-          } else {
-            console.log("All clients:", allClients);
-            
-            // Chercher un client sans user_id mais avec le même email
-            const matchingClient = allClients?.find(c => 
-              c.email === user.email && (!c.user_id || c.user_id === null)
-            );
-            
-            if (matchingClient) {
-              console.log("Found matching client without user_id:", matchingClient);
-              
-              // Mettre à jour le client avec l'user_id
-              const { error: updateError } = await supabase
-                .from('clients')
-                .update({ user_id: user.id })
-                .eq('id', matchingClient.id);
-                
-              if (!updateError) {
-                console.log("Successfully linked user to client:", matchingClient.id);
-                toast.success("Votre compte a été associé au client " + matchingClient.name);
-                
-                // Sauvegarder le client_id dans le localStorage
-                if (user.id) {
-                  localStorage.setItem(`client_id_${user.id}`, matchingClient.id);
-                }
-                
-                setCheckingClient(false);
-                return;
-              } else {
-                console.error("Error linking user to client:", updateError);
-              }
-            } else {
-              // Si aucun client n'est trouvé, créer un nouveau client
-              console.log("No matching client found, creating a new one for:", user.email);
-              
-              // Extraire le nom du prénom/nom de l'utilisateur ou de l'email
-              const nameFromEmail = user.email.split('@')[0];
-              const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || nameFromEmail;
-              
-              const { data: newClient, error: createError } = await supabase
-                .from('clients')
-                .insert({
-                  name: name,
-                  email: user.email,
-                  user_id: user.id,
-                  status: 'active'
-                })
-                .select('id, name')
-                .single();
-                
-              if (!createError && newClient) {
-                console.log("Created new client:", newClient);
-                toast.success("Un nouveau compte client a été créé pour vous");
-                
-                // Sauvegarder le client_id dans le localStorage
-                if (user.id) {
-                  localStorage.setItem(`client_id_${user.id}`, newClient.id);
-                }
-                
-                setCheckingClient(false);
-                return;
-              } else {
-                console.error("Error creating new client:", createError);
-              }
-            }
-          }
-        }
-        
-        // Si on arrive ici, aucun client n'a été trouvé
-        console.error("No client found for this user");
-        setClientError(`Compte client non trouvé. L'utilisateur n'est associé à aucun client dans le système.`);
-        
       } catch (error) {
         console.error("Error in client verification:", error);
         setClientError("Erreur lors de la vérification du compte client");
@@ -221,6 +80,45 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
     setRetryCount(prev => prev + 1);
   };
 
+  const handleForceLink = async () => {
+    if (!user || !user.email) return;
+    
+    try {
+      setCheckingClient(true);
+      
+      const { data: newClient, error: createError } = await supabase
+        .from('clients')
+        .insert({
+          name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email.split('@')[0],
+          email: user.email,
+          user_id: user.id,
+          status: 'active'
+        })
+        .select('id, name')
+        .single();
+        
+      if (createError) {
+        console.error("Error creating new client:", createError);
+        toast.error("Erreur lors de la création du client");
+        return;
+      }
+      
+      console.log("New client created:", newClient);
+      toast.success(`Un nouveau compte client a été créé pour vous (${newClient.name})`);
+      
+      if (user.id) {
+        localStorage.setItem(`client_id_${user.id}`, newClient.id);
+      }
+      
+      setRetryCount(prev => prev + 1);
+    } catch (error) {
+      console.error("Error in force link:", error);
+      toast.error("Erreur lors de la création du client");
+    } finally {
+      setCheckingClient(false);
+    }
+  };
+
   if (isLoading || checkingClient) {
     return <ClientLayout><ClientsLoading /></ClientLayout>;
   }
@@ -232,6 +130,8 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           errorMessage={clientError} 
           onRetry={handleRetry}
           email={user?.email}
+          userId={user?.id}
+          onForceLink={handleForceLink}
         />
       </ClientLayout>
     );
@@ -245,7 +145,6 @@ const ClientRoutes = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Si l'utilisateur n'est pas en cours de chargement et n'est pas un client, rediriger
     if (!isLoading && user && !isClient()) {
       navigate('/dashboard');
     }
