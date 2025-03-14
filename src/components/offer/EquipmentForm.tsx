@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,6 +46,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
+  const [productMonthlyPrice, setProductMonthlyPrice] = useState<number | null>(null);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", isQuickCatalogOpen],
@@ -109,6 +109,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const handleSubmit = () => {
     if (validateForm()) {
       addToList();
+      setProductMonthlyPrice(null);
     }
   };
 
@@ -118,8 +119,15 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
     
     handleChange('title', product.name);
     handleChange('purchasePrice', purchasePrice);
+    
+    if (monthlyPrice > 0) {
+      setProductMonthlyPrice(monthlyPrice);
+    }
+    
     setIsQuickCatalogOpen(false);
   };
+
+  const displayMonthlyPayment = productMonthlyPrice || monthlyPayment;
 
   return (
     <>
@@ -236,7 +244,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Mensualité (par unité):</span>
-                <span className="font-medium">{formatCurrency(monthlyPayment)}</span>
+                <span className="font-medium">{formatCurrency(displayMonthlyPayment)}</span>
               </div>
             </div>
 
