@@ -9,7 +9,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
-export const WORKFLOW_STAGES = {
+// Définition plus simple des statuts
+export const OFFER_STATUSES = {
   DRAFT: {
     id: 'draft',
     label: 'Brouillon',
@@ -17,70 +18,46 @@ export const WORKFLOW_STAGES = {
     textColor: 'text-gray-700',
     progressValue: 10,
     icon: PenLine,
-    description: "L'offre est en cours de préparation"
   },
-  CLIENT_WAITING: {
-    id: 'client_waiting',
-    label: 'Attente client',
+  SENT: {
+    id: 'sent',
+    label: 'Envoyée',
     color: 'bg-orange-100',
     textColor: 'text-orange-700',
-    progressValue: 25,
-    icon: Clock,
-    description: "En attente de la réponse du client"
+    progressValue: 30,
+    icon: ArrowRight,
   },
-  CLIENT_APPROVED: {
-    id: 'client_approved',
-    label: 'Approuvée client',
+  APPROVED: {
+    id: 'approved',
+    label: 'Approuvée',
     color: 'bg-emerald-100',
     textColor: 'text-emerald-700',
-    progressValue: 40,
-    icon: User,
-    description: "Le client a approuvé l'offre"
+    progressValue: 60,
+    icon: Check,
   },
-  INTERNAL_REVIEW: {
-    id: 'internal_review',
-    label: 'Revue interne',
+  LEASER_REVIEW: {
+    id: 'leaser_review',
+    label: 'Revue bailleur',
     color: 'bg-blue-100',
     textColor: 'text-blue-700',
-    progressValue: 55,
-    icon: FileText,
-    description: "En cours d'examen par l'équipe interne"
-  },
-  NEED_INFO: {
-    id: 'need_info',
-    label: 'Info. requises',
-    color: 'bg-amber-100',
-    textColor: 'text-amber-700',
-    progressValue: 30,
-    icon: Info,
-    description: "Informations supplémentaires nécessaires"
-  },
-  LEASER_SENT: {
-    id: 'leaser_sent',
-    label: 'Envoyée bailleur',
-    color: 'bg-purple-100',
-    textColor: 'text-purple-700',
-    progressValue: 70,
+    progressValue: 80,
     icon: Building,
-    description: "L'offre a été transmise au bailleur"
   },
-  LEASER_APPROVED: {
-    id: 'leaser_approved',
-    label: 'Approuvée bailleur',
+  FINANCED: {
+    id: 'financed',
+    label: 'Financée',
     color: 'bg-green-100',
     textColor: 'text-green-700',
     progressValue: 100,
-    icon: Check,
-    description: "Le bailleur a approuvé l'offre"
+    icon: CreditCard,
   },
-  LEASER_REJECTED: {
-    id: 'leaser_rejected',
-    label: 'Rejetée bailleur',
+  REJECTED: {
+    id: 'rejected',
+    label: 'Rejetée',
     color: 'bg-red-100',
     textColor: 'text-red-700',
     progressValue: 0,
     icon: X,
-    description: "Le bailleur a rejeté l'offre"
   }
 };
 
@@ -101,7 +78,7 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
       <div className="flex flex-col gap-1 w-full">
         <Badge className="bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900">
           <Check className="h-3 w-3 mr-1" />
-          Convertie en contrat
+          Contrat actif
         </Badge>
         {showProgress && <Progress value={100} className="h-2 bg-green-100" />}
       </div>
@@ -109,25 +86,25 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
   }
 
   // Récupérer les informations du statut
-  const stageInfo = Object.values(WORKFLOW_STAGES).find(stage => stage.id === status) || WORKFLOW_STAGES.DRAFT;
-  const Icon = stageInfo.icon;
+  const statusInfo = Object.values(OFFER_STATUSES).find(s => s.id === status) || OFFER_STATUSES.DRAFT;
+  const Icon = statusInfo.icon;
 
   return (
     <div className="flex flex-col gap-1 w-full">
       <Badge className={cn(
-        stageInfo.color,
-        stageInfo.textColor,
+        statusInfo.color,
+        statusInfo.textColor,
         "hover:bg-opacity-80"
       )}>
         <Icon className="h-3 w-3 mr-1" />
-        {stageInfo.label}
+        {statusInfo.label}
       </Badge>
       {showProgress && (
         <Progress 
-          value={stageInfo.progressValue} 
+          value={statusInfo.progressValue} 
           className={cn("h-2", 
-            stageInfo.progressValue === 100 ? "bg-green-100" : 
-            stageInfo.progressValue === 0 ? "bg-red-100" : "bg-gray-100"
+            statusInfo.progressValue === 100 ? "bg-green-100" : 
+            statusInfo.progressValue === 0 ? "bg-red-100" : "bg-gray-100"
           )} 
         />
       )}

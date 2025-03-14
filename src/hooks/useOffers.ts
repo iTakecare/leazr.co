@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { getOffers, deleteOffer, updateOfferStatus } from "@/services/offerService";
 import { toast } from "sonner";
+import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 
 interface Offer {
   id: string;
@@ -20,21 +22,6 @@ interface Offer {
   type: string;
   converted_to_contract?: boolean;
 }
-
-// Statuts de workflow disponibles
-export const workflowStatuses = {
-  DRAFT: "draft",
-  CLIENT_WAITING: "client_waiting",
-  CLIENT_APPROVED: "client_approved",
-  CLIENT_NO_RESPONSE: "client_no_response",
-  INTERNAL_REVIEW: "internal_review",
-  NEED_INFO: "need_info",
-  INTERNAL_REJECTED: "internal_rejected",
-  LEASER_SENT: "leaser_sent",
-  LEASER_REVIEW: "leaser_review",
-  LEASER_APPROVED: "leaser_approved",
-  LEASER_REJECTED: "leaser_rejected"
-};
 
 export const useOffers = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -64,16 +51,16 @@ export const useOffers = () => {
             let workflowStatus;
             switch (offer.status) {
               case "accepted":
-                workflowStatus = workflowStatuses.CLIENT_APPROVED;
+                workflowStatus = OFFER_STATUSES.APPROVED.id;
                 break;
               case "rejected":
-                workflowStatus = workflowStatuses.CLIENT_NO_RESPONSE;
+                workflowStatus = OFFER_STATUSES.REJECTED.id;
                 break;
               case "pending":
-                workflowStatus = workflowStatuses.DRAFT;
+                workflowStatus = OFFER_STATUSES.DRAFT.id;
                 break;
               default:
-                workflowStatus = workflowStatuses.DRAFT;
+                workflowStatus = OFFER_STATUSES.DRAFT.id;
             }
             return { ...offer, workflow_status: workflowStatus };
           }
@@ -123,9 +110,9 @@ export const useOffers = () => {
     console.log(`Starting workflow status update for offer ${offerId} to ${newStatus}`);
     
     // Vérifier que le statut est valide
-    if (!Object.values(workflowStatuses).includes(newStatus)) {
+    if (!Object.values(OFFER_STATUSES).some(status => status.id === newStatus)) {
       console.error(`Invalid workflow status: ${newStatus}`);
-      toast.error("Statut de workflow invalide");
+      toast.error("Statut invalide");
       return;
     }
 
@@ -141,15 +128,8 @@ export const useOffers = () => {
         return;
       }
       
-      // Get the current status from the workflow_status field
-      const currentStatus = currentOffer.workflow_status && 
-        Object.values(workflowStatuses).includes(currentOffer.workflow_status) ?
-          currentOffer.workflow_status : workflowStatuses.DRAFT;
-      
-      console.log(`Current status: ${currentStatus}, New status: ${newStatus}`);
-      
       // Skip update if status hasn't changed
-      if (currentStatus === newStatus) {
+      if (currentOffer.workflow_status === newStatus) {
         console.log("Status unchanged, skipping update");
         toast.info("Le statut est déjà à cette valeur");
         setIsUpdatingStatus(false);
@@ -157,7 +137,7 @@ export const useOffers = () => {
       }
       
       // Update the status in the database
-      const success = await updateOfferStatus(offerId, newStatus, currentStatus, reason);
+      const success = await updateOfferStatus(offerId, newStatus, currentOffer.workflow_status || OFFER_STATUSES.DRAFT.id, reason);
       
       if (success) {
         console.log(`Status update successful for offer ${offerId} to ${newStatus}`);
@@ -170,15 +150,15 @@ export const useOffers = () => {
                   ...offer, 
                   workflow_status: newStatus,
                   // Mark as converted to contract if approved by leaser
-                  converted_to_contract: newStatus === workflowStatuses.LEASER_APPROVED ? true : offer.converted_to_contract
+                  converted_to_contract: newStatus === OFFER_STATUSES.FINANCED.id ? true : offer.converted_to_contract
                 } 
               : offer
           )
         );
         
         // Show appropriate toast based on the status change
-        if (newStatus === workflowStatuses.LEASER_APPROVED) {
-          toast.success("L'offre a été approuvée et convertie en contrat");
+        if (newStatus === OFFER_STATUSES.FINANCED.id) {
+          toast.success("L'offre a été financée et convertie en contrat");
           // Refresh offers to ensure we get the latest data including conversion status
           setTimeout(() => fetchOffers(), 1000);
         } else {

@@ -3,9 +3,11 @@ import React, { useState } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, User, Mail, Building, CreditCard, Trash2, PenLine } from "lucide-react";
-import OfferStatusBadge from "./OfferStatusBadge";
-import OfferWorkflowSimple from "./OfferWorkflowSimple";
+import { 
+  ChevronDown, ChevronUp, User, Mail, Building, 
+  CreditCard, Trash2, PenLine, Check, X, ArrowRight 
+} from "lucide-react";
+import OfferStatusBadge, { OFFER_STATUSES } from "./OfferStatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -69,6 +71,11 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
     }
   };
   
+  const handleStatus = async (newStatus: string) => {
+    if (isUpdatingStatus) return;
+    await onStatusChange(offer.id, newStatus);
+  };
+
   return (
     <Card className={offer.converted_to_contract ? "mb-4 border-green-200 bg-green-50" : "mb-4"}>
       <CardHeader className="flex flex-row items-center justify-between p-4">
@@ -152,13 +159,59 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
             </div>
           )}
           
-          <OfferWorkflowSimple 
-            currentStatus={offer.workflow_status || "draft"}
-            onStatusChange={onStatusChange}
-            isUpdating={isUpdatingStatus}
-            offerId={offer.id}
-            isConverted={offer.converted_to_contract}
-          />
+          {!offer.converted_to_contract && (
+            <div className="my-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <Button 
+                variant="outline" 
+                className="flex items-center justify-center gap-2" 
+                onClick={() => handleStatus(OFFER_STATUSES.SENT.id)}
+                disabled={isUpdatingStatus}
+              >
+                <ArrowRight className="h-4 w-4" />
+                Envoyer au client
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 border-emerald-200" 
+                onClick={() => handleStatus(OFFER_STATUSES.APPROVED.id)}
+                disabled={isUpdatingStatus}
+              >
+                <Check className="h-4 w-4" />
+                Approuver
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-200" 
+                onClick={() => handleStatus(OFFER_STATUSES.LEASER_REVIEW.id)}
+                disabled={isUpdatingStatus}
+              >
+                <Building className="h-4 w-4" />
+                Envoyer au bailleur
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 border-green-200" 
+                onClick={() => handleStatus(OFFER_STATUSES.FINANCED.id)}
+                disabled={isUpdatingStatus}
+              >
+                <CreditCard className="h-4 w-4" />
+                Marquer financée
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 border-red-200" 
+                onClick={() => handleStatus(OFFER_STATUSES.REJECTED.id)}
+                disabled={isUpdatingStatus}
+              >
+                <X className="h-4 w-4" />
+                Rejeter
+              </Button>
+            </div>
+          )}
           
           <div className="mt-6">
             <h3 className="text-sm font-medium mb-2">Ajouter un commentaire</h3>
