@@ -35,13 +35,13 @@ const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
           <Link
             to={to}
             className={cn(
-              "flex items-center justify-center py-3 px-3 my-3 rounded-md transition-colors",
+              "flex items-center justify-center py-4 px-3 my-5 rounded-md transition-colors",
               active
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
             )}
           >
-            <Icon className="h-6 w-6" aria-hidden="true" />
+            <Icon className="h-7 w-7" aria-hidden="true" />
           </Link>
         </TooltipTrigger>
         <TooltipContent side="right">
@@ -65,9 +65,9 @@ const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
         <TooltipTrigger asChild>
           <button
             onClick={onClick}
-            className="flex items-center justify-center py-3 px-3 my-3 rounded-md transition-colors text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+            className="flex items-center justify-center py-4 px-3 my-5 rounded-md transition-colors text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
           >
-            <Icon className="h-6 w-6" aria-hidden="true" />
+            <Icon className="h-7 w-7" aria-hidden="true" />
           </button>
         </TooltipTrigger>
         <TooltipContent side="right">
@@ -107,7 +107,7 @@ const Sidebar = ({ className }: SidebarProps) => {
         className
       )}
     >
-      <div className="flex-1 overflow-y-auto p-2 space-y-3">
+      <div className="flex-1 overflow-y-auto p-2 pt-8 space-y-6">
         <MenuItem
           to="/dashboard"
           icon={LayoutDashboard}
@@ -147,8 +147,8 @@ const Sidebar = ({ className }: SidebarProps) => {
       </div>
 
       {user && (
-        <div className="p-3 border-t flex flex-col items-center">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-4">
+        <div className="p-3 border-t flex flex-col items-center pt-6 pb-6">
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-6">
             {user.email?.charAt(0).toUpperCase() || "U"}
           </div>
           <ActionItem 
