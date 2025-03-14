@@ -19,8 +19,9 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
     // 1. D'abord, vérifier si un client est déjà associé à cet utilisateur
     const { data: existingClientByUserId, error: userIdError } = await supabase
       .from('clients')
-      .select('id, name, email, user_id, has_user_account')
+      .select('id, name, email, user_id, has_user_account, status')
       .eq('user_id', userId)
+      .eq('status', 'active')
       .maybeSingle();
     
     if (userIdError && userIdError.code !== 'PGRST116') {
@@ -120,10 +121,48 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
       return clientToUse.id;
     }
     
-    // 3. Si aucun client correspondant n'est trouvé, ne pas créer de client automatiquement
-    console.log("Aucun client trouvé pour cet email, pas de création automatique");
-    return null;
+    // 3. Si aucun client correspondant n'est trouvé, essayer de créer un client automatiquement
+    console.log("Aucun client trouvé pour cet email, création d'un client automatique");
     
+    try {
+      // Récupérer les informations utilisateur depuis le profil
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, company')
+        .eq('id', userId)
+        .single();
+        
+      const displayName = profileData ? 
+        `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() : 
+        userEmail.split('@')[0];
+        
+      // Créer un nouveau client
+      const { data: newClient, error: createError } = await supabase
+        .from('clients')
+        .insert({
+          name: displayName,
+          email: userEmail,
+          company: profileData?.company || null,
+          user_id: userId,
+          has_user_account: true,
+          user_account_created_at: new Date().toISOString(),
+          status: 'active'
+        })
+        .select()
+        .single();
+        
+      if (createError) {
+        console.error("Erreur lors de la création du client:", createError);
+        return null;
+      }
+      
+      console.log("Client créé automatiquement:", newClient);
+      localStorage.setItem(`client_id_${userId}`, newClient.id);
+      return newClient.id;
+    } catch (error) {
+      console.error("Erreur lors de la création automatique du client:", error);
+      return null;
+    }
   } catch (error) {
     console.error("Erreur dans linkUserToClient:", error);
     return null;
@@ -262,50 +301,92 @@ export const getClientIdForUser = async (userId: string, userEmail: string | nul
       }
     }
     
-    // Rechercher par user_id (uniquement les clients actifs)
-    const { data: clientsByUserId, error: userIdError } = await supabase
+    // Rechercher tous les clients potentiellement liés à cet utilisateur
+    const query = supabase
       .from('clients')
-      .select('id, name, has_user_account, status')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: true });
+      .select('id, name, user_id, email, has_user_account, status, created_at');
       
-    if (userIdError) {
-      console.error("Erreur lors de la recherche par user_id:", userIdError);
+    if (userEmail) {
+      // Recherche par user_id OU email (insensible à la casse)
+      query.or(`user_id.eq.${userId},email.ilike.${userEmail.toLowerCase()}`);
+    } else {
+      // Recherche uniquement par user_id
+      query.eq('user_id', userId);
     }
     
-    if (clientsByUserId && clientsByUserId.length > 0) {
-      // S'il y a plusieurs clients associés, prendre le plus ancien
-      const clientToUse = clientsByUserId[0];
-      console.log(`Client actif trouvé par user_id: ${clientToUse.id} (${clientToUse.name})`);
+    const { data: potentialClients, error: searchError } = await query.order('created_at', { ascending: true });
       
-      localStorage.setItem(`client_id_${userId}`, clientToUse.id);
+    if (searchError) {
+      console.error("Erreur lors de la recherche des clients potentiels:", searchError);
+      return null;
+    }
+    
+    console.log("Clients potentiels trouvés:", potentialClients);
+    
+    if (potentialClients && potentialClients.length > 0) {
+      // Priorité 1: Client avec le même user_id et statut actif
+      const clientWithUserId = potentialClients.find(
+        client => client.user_id === userId && client.status === 'active'
+      );
       
-      // Si plusieurs clients sont trouvés, marquer les autres comme doublons
-      if (clientsByUserId.length > 1) {
-        console.warn(`Attention: ${clientsByUserId.length} clients actifs trouvés pour l'utilisateur ${userId}. Utilisation du plus ancien.`);
+      // Priorité 2: Client actif avec le même email et sans user_id
+      const clientWithEmail = userEmail ? 
+        potentialClients.find(
+          client => client.email && 
+          client.email.toLowerCase() === userEmail.toLowerCase() && 
+          client.status === 'active' && 
+          !client.user_id
+        ) : null;
+      
+      // Priorité 3: Premier client actif
+      const activeClient = potentialClients.find(
+        client => client.status === 'active'
+      );
+      
+      // Sélectionner le client le plus pertinent
+      const selectedClient = clientWithUserId || clientWithEmail || activeClient || potentialClients[0];
+      
+      // Si le client n'a pas d'user_id ou a un user_id différent, l'associer à cet utilisateur
+      if (selectedClient && (!selectedClient.user_id || selectedClient.user_id !== userId)) {
+        console.log(`Association du client ${selectedClient.id} avec l'utilisateur ${userId}`);
         
-        // Marquer les autres comme doublons (sauf le premier)
-        const duplicateIds = clientsByUserId.slice(1).map(c => c.id);
-        if (duplicateIds.length > 0) {
+        await supabase
+          .from('clients')
+          .update({
+            user_id: userId,
+            has_user_account: true,
+            user_account_created_at: new Date().toISOString(),
+            status: 'active'
+          })
+          .eq('id', selectedClient.id);
+      }
+      
+      // Marquer les autres clients comme doublons
+      if (potentialClients.length > 1) {
+        const otherClientIds = potentialClients
+          .filter(client => client.id !== selectedClient.id)
+          .map(client => client.id);
+          
+        if (otherClientIds.length > 0) {
           await supabase
             .from('clients')
             .update({
               status: 'duplicate',
-              notes: `Marqué comme doublon le ${new Date().toISOString()}. ID du client principal: ${clientToUse.id}`
+              notes: `Marqué comme doublon le ${new Date().toISOString()}. ID du client principal: ${selectedClient.id}`
             })
-            .in('id', duplicateIds);
+            .in('id', otherClientIds);
             
-          console.log(`${duplicateIds.length} clients marqués comme doublons`);
+          console.log(`${otherClientIds.length} clients marqués comme doublons`);
         }
       }
       
-      return clientToUse.id;
+      // Stocker l'ID en cache
+      localStorage.setItem(`client_id_${userId}`, selectedClient.id);
+      return selectedClient.id;
     }
     
-    // Si l'email est disponible, essayer de lier
+    // Si aucun client n'est trouvé et qu'un email est disponible, créer un client
     if (userEmail) {
-      console.log(`Tentative de liaison par email: ${userEmail}`);
       return await linkUserToClient(userId, userEmail);
     }
     

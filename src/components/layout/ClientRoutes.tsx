@@ -59,44 +59,116 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
         setCheckingClient(true);
         setClientError(null);
         
-        // Récupérer l'email directement depuis l'API Auth de Supabase
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        const userEmail = userData?.user?.email || user.email;
-        
-        console.log("Vérification de l'association client pour l'utilisateur:", user.id, userEmail);
+        console.log("Vérification de l'association client pour l'utilisateur:", user.id, user.email);
         
         if (retryCount > 0 && user?.id) {
           localStorage.removeItem(`client_id_${user.id}`);
           console.log("Cache client ID effacé pour la nouvelle tentative");
         }
         
-        if (userEmail) {
-          const clientId = await linkUserToClient(user.id, userEmail);
+        // Première étape: Vérifier si le client existe déjà dans la base de données
+        const { data: existingClients, error: clientsError } = await supabase
+          .from('clients')
+          .select('id, name, email, user_id, status')
+          .or(`email.ilike.${user.email},user_id.eq.${user.id}`);
+        
+        if (clientsError) {
+          console.error("Erreur lors de la vérification des clients existants:", clientsError);
+          setClientError("Erreur lors de la vérification des clients");
+          setCheckingClient(false);
+          return;
+        }
+        
+        console.log("Clients existants trouvés:", existingClients);
+        
+        // Si des clients sont trouvés, choisir le plus pertinent
+        if (existingClients && existingClients.length > 0) {
+          // Priorité 1: Client avec le même user_id
+          const clientWithUserId = existingClients.find(client => 
+            client.user_id === user.id && client.status === 'active'
+          );
           
-          if (clientId) {
-            console.log("Association client réussie, ID client:", clientId);
+          // Priorité 2: Client actif avec le même email (insensible à la casse)
+          const clientWithEmail = existingClients.find(client => 
+            client.email && client.email.toLowerCase() === user.email.toLowerCase() && 
+            client.status === 'active' && !client.user_id
+          );
+          
+          // Priorité 3: Premier client actif trouvé
+          const activeClient = existingClients.find(client => client.status === 'active');
+          
+          const selectedClient = clientWithUserId || clientWithEmail || activeClient || existingClients[0];
+          
+          if (selectedClient) {
+            console.log("Client sélectionné:", selectedClient);
+            
+            // Si le client n'a pas encore d'user_id, l'associer
+            if (selectedClient.user_id !== user.id) {
+              console.log("Association du client avec l'utilisateur");
+              const { error: updateError } = await supabase
+                .from('clients')
+                .update({ 
+                  user_id: user.id,
+                  has_user_account: true,
+                  user_account_created_at: new Date().toISOString(),
+                  status: 'active'
+                })
+                .eq('id', selectedClient.id);
+                
+              if (updateError) {
+                console.error("Erreur lors de l'association:", updateError);
+              }
+            }
+            
+            // Stocker l'ID client en cache
+            localStorage.setItem(`client_id_${user.id}`, selectedClient.id);
             setCheckingClient(false);
             return;
-          } else {
-            console.error("Aucun client trouvé pour cet utilisateur");
-            setClientError(`Aucun client trouvé pour votre compte utilisateur. Veuillez contacter l'assistance.`);
           }
-        } else {
-          // Vérifier si l'utilisateur est connecté mais sans email
-          const { data: authUser } = await supabase.auth.getUser();
-          if (authUser?.user?.email) {
-            console.log("Email trouvé dans l'utilisateur auth:", authUser.user.email);
-            const clientId = await linkUserToClient(user.id, authUser.user.email);
-            
-            if (clientId) {
-              console.log("Association client réussie via l'API auth, ID client:", clientId);
-              setCheckingClient(false);
-              return;
-            }
-          }
-          
-          setClientError("L'utilisateur n'a pas d'email associé. Veuillez contacter votre administrateur.");
         }
+        
+        // Pas de client trouvé, essayer d'en créer un automatiquement à partir du profil utilisateur
+        if (user.email) {
+          console.log("Tentative de création automatique d'un client");
+          
+          const { data: newClient, error: createError } = await supabase
+            .from('clients')
+            .insert({
+              name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+              email: user.email,
+              company: user.company || null,
+              user_id: user.id,
+              has_user_account: true,
+              user_account_created_at: new Date().toISOString(),
+              status: 'active'
+            })
+            .select()
+            .single();
+            
+          if (createError) {
+            console.error("Erreur lors de la création du client:", createError);
+            setClientError("Impossible de créer un client automatiquement");
+          } else if (newClient) {
+            console.log("Client créé automatiquement:", newClient);
+            localStorage.setItem(`client_id_${user.id}`, newClient.id);
+            setCheckingClient(false);
+            return;
+          }
+        }
+        
+        // En dernier recours, essayer d'utiliser linkUserToClient
+        if (user.email) {
+          const clientId = await linkUserToClient(user.id, user.email);
+          if (clientId) {
+            console.log("Client associé via linkUserToClient:", clientId);
+            setCheckingClient(false);
+            return;
+          }
+        }
+        
+        // Si on arrive ici, c'est qu'on n'a pas pu trouver ou créer de client
+        setClientError(`Aucun client trouvé pour votre compte utilisateur (${user.email}). Veuillez contacter l'assistance.`);
+        console.error("Aucun client associé à l'utilisateur:", user.id, user.email);
       } catch (error) {
         console.error("Erreur lors de la vérification du client:", error);
         setClientError("Erreur lors de la vérification du compte client");
