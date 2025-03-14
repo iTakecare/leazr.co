@@ -47,15 +47,18 @@ serve(async (req) => {
     });
 
     try {
-      // Utiliser le format le plus basique possible pour éviter les erreurs MIME
+      // Créer un objet de mail conforme à la documentation denomailer
+      console.log("Tentative d'envoi de mail de test...");
+      
       await client.send({
         from: config.from_email,
         to: config.username,
         subject: "Test SMTP",
-        text: "Test de connexion SMTP réussi", // Utiliser 'text' au lieu de 'content'
+        content: "Test de connexion SMTP réussi",
       });
       
       await client.close();
+      console.log("Mail de test envoyé avec succès");
       
       return new Response(
         JSON.stringify({

@@ -90,18 +90,18 @@ serve(async (req) => {
     });
 
     try {
-      // Préparer le contenu de l'email au format simple
+      // Préparer le contenu de l'email
       const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}`;
       
       console.log("Préparation de l'email pour:", clientEmail);
       console.log("Expéditeur:", smtpConfig.from_email);
       
-      // Utiliser le format le plus simple possible
+      // Utiliser la propriété 'content' au lieu de 'text'
       await client.send({
         from: smtpConfig.from_email,
         to: clientEmail,
         subject: "Documents requis - Offre de leasing",
-        text: emailBody, // Utiliser 'text' au lieu de 'content'
+        content: emailBody,
       });
       
       await client.close();
