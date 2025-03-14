@@ -1,11 +1,10 @@
-
 import React, { useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Card, CardContent } from "@/components/ui/card";
 import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 import OfferCard from "@/components/offers/OfferCard";
 import { Offer } from "@/hooks/offers/useFetchOffers";
-import { Plus, Square, CheckCircle } from "lucide-react";
+import { Plus, Pencil, SendHorizontal, CheckCircle, Sparkle, Building, Star, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface OffersKanbanProps {
@@ -21,7 +20,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.DRAFT.id,
     title: "Brouillons",
-    icon: Square,
+    icon: Pencil,
     color: "bg-gray-100",
     borderColor: "border-gray-300",
     textColor: "text-gray-700",
@@ -29,7 +28,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.SENT.id,
     title: "Envoyées",
-    icon: Square,
+    icon: SendHorizontal,
     color: "bg-orange-50",
     borderColor: "border-orange-200",
     textColor: "text-orange-700",
@@ -37,7 +36,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.VALID_ITC.id,
     title: "Valid. ITC",
-    icon: CheckCircle,
+    icon: Sparkle,
     color: "bg-purple-50",
     borderColor: "border-purple-200",
     textColor: "text-purple-700",
@@ -45,7 +44,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.APPROVED.id,
     title: "Approuvées",
-    icon: Square,
+    icon: CheckCircle,
     color: "bg-emerald-50",
     borderColor: "border-emerald-200",
     textColor: "text-emerald-700",
@@ -53,7 +52,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.LEASER_REVIEW.id,
     title: "Validation Bailleur",
-    icon: Square,
+    icon: Building,
     color: "bg-blue-50",
     borderColor: "border-blue-200",
     textColor: "text-blue-700",
@@ -61,7 +60,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.FINANCED.id,
     title: "Financées",
-    icon: Square,
+    icon: Star,
     color: "bg-green-50",
     borderColor: "border-green-200",
     textColor: "text-green-700",
@@ -69,7 +68,7 @@ const KANBAN_COLUMNS = [
   {
     id: OFFER_STATUSES.REJECTED.id,
     title: "Rejetées",
-    icon: Square,
+    icon: X,
     color: "bg-red-50",
     borderColor: "border-red-200",
     textColor: "text-red-700",

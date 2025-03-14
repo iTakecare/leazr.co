@@ -896,30 +896,28 @@ const ProgressStep = ({
   status: string, 
   onClick: (status: string) => void 
 }) => {
-  let className = "flex flex-col items-center";
-  
   return (
     <div 
-      className={`${className} cursor-pointer hover:opacity-80 transition-opacity`}
+      className={`flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity px-3`}
       onClick={() => onClick(status)}
       title={`Changer le statut à "${label}"`}
     >
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
+      <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-3 shadow-sm transition-all ${
         isActive 
-          ? "bg-blue-500 text-white" 
+          ? "bg-blue-500 text-white scale-110" 
           : isCompleted 
             ? "bg-green-500 text-white" 
-            : "bg-gray-200 text-gray-500"
+            : "bg-gray-100 text-gray-500"
       }`}>
-        {isCompleted ? <CheckCircle className="h-5 w-5" /> : <div className="text-sm">{label.charAt(0)}</div>}
+        {isCompleted ? <CheckCircle className="h-7 w-7" /> : <div className="text-lg font-medium">{label.charAt(0)}</div>}
       </div>
-      <div className={`text-xs text-center ${isActive ? "font-bold" : ""}`}>{label}</div>
+      <div className={`text-sm text-center max-w-20 ${isActive ? "font-bold" : ""}`}>{label}</div>
     </div>
   );
 };
 
 const ProgressLine = () => {
-  return <div className="flex-1 h-0.5 bg-gray-200 mx-1" />;
+  return <div className="flex-1 h-1 bg-gray-200 mx-2 mt-7" />;
 };
 
 export default OfferDetail;

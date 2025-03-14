@@ -3,8 +3,9 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { 
   Check, Clock, FileText, AlertCircle, 
-  Info, X, PenLine, User, Building, 
-  ArrowRight, CreditCard, CheckCircle
+  Info, X, Pencil, User, Building, 
+  ArrowRight, CreditCard, CheckCircle,
+  Sparkle, Star, SendHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
@@ -17,7 +18,7 @@ export const OFFER_STATUSES = {
     color: 'bg-gray-100',
     textColor: 'text-gray-700',
     progressValue: 10,
-    icon: PenLine,
+    icon: Pencil,
   },
   SENT: {
     id: 'sent',
@@ -25,7 +26,7 @@ export const OFFER_STATUSES = {
     color: 'bg-orange-100',
     textColor: 'text-orange-700',
     progressValue: 20,
-    icon: ArrowRight,
+    icon: SendHorizontal,
   },
   VALID_ITC: {
     id: 'valid_itc',
@@ -33,7 +34,7 @@ export const OFFER_STATUSES = {
     color: 'bg-purple-100',
     textColor: 'text-purple-700',
     progressValue: 40,
-    icon: CheckCircle,
+    icon: Sparkle,
   },
   APPROVED: {
     id: 'approved',
@@ -57,7 +58,7 @@ export const OFFER_STATUSES = {
     color: 'bg-green-100',
     textColor: 'text-green-700',
     progressValue: 100,
-    icon: CreditCard,
+    icon: Star,
   },
   REJECTED: {
     id: 'rejected',
