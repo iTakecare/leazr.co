@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -156,25 +157,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
       </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-6">
-          <div>
-            <Label htmlFor="leaser" className="font-medium text-gray-700">Leaser</Label>
-            <div className="mt-1 border rounded-md p-2 flex items-center justify-between bg-white">
-              {selectedLeaser?.logo_url ? (
-                <img src={selectedLeaser.logo_url} alt={selectedLeaser.name} className="h-8" />
-              ) : (
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-md flex items-center justify-center bg-gray-100 text-gray-500 mr-2">
-                    <span className="text-xs font-medium">G</span>
-                  </div>
-                  <span>{selectedLeaser?.name || 'Grenke'} Lease BE</span>
-                </div>
-              )}
-              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-                <path d="M7 7l3-3 3 3m0 6l-3 3-3-3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </div>
-
           <div>
             <Label htmlFor="equipment-title" className="font-medium text-gray-700">Intitulé du matériel</Label>
             <div className="mt-1 flex gap-2">
