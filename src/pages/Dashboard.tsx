@@ -1,25 +1,38 @@
 
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import AdminOffersNotifications from "@/components/offers/AdminOffersNotifications";
-import ClientRequestsNotifications from "@/components/clients/ClientRequestsNotifications";
-import { useAuth } from "@/context/AuthContext";
-import { formatCurrency } from "@/utils/formatters";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
 import { 
   TrendingUp, 
   FileText, 
+  Users,
   Package, 
-  BarChart3
+  Percent,
+  RefreshCcw,
+  Bell,
+  Inbox
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { useDashboard } from "@/hooks/useDashboard";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { TimeFilterSelector } from "@/components/dashboard/TimeFilterSelector";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
+import ClientRequestsNotifications from "@/components/clients/ClientRequestsNotifications";
+import AdminOffersNotifications from "@/components/offers/AdminOffersNotifications";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  
-  const totalCommission = 4325.75;
-  const pendingOffersCount = 2;
-  const acceptedOffersCount = 1;
-  
+  const {
+    stats,
+    recentActivity,
+    isLoading,
+    error,
+    timeFilter,
+    setTimeFilter,
+    refreshData
+  } = useDashboard();
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -49,80 +62,138 @@ const Dashboard = () => {
             Tableau de bord
           </h1>
           <p className="text-muted-foreground">
-            Gérez vos clients, demandes et contrats
+            Bienvenue {user?.first_name || ''} - Vue d'ensemble de vos activités
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <TimeFilterSelector 
+            value={timeFilter} 
+            onChange={setTimeFilter} 
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={refreshData}
+            className="h-10 w-10"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            <span className="sr-only">Rafraîchir</span>
+          </Button>
         </div>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-3 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Commissions totales
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalCommission)}</div>
-            <p className="text-xs text-muted-foreground">
-              +12.5% par rapport au mois dernier
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Offres en attente
-            </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingOffersCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Valeur: {formatCurrency(14050)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Offres acceptées
-            </CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{acceptedOffersCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Valeur: {formatCurrency(12500)}
-            </p>
-          </CardContent>
-        </Card>
+      {error && (
+        <div className="bg-destructive/15 text-destructive p-4 rounded-md mb-6">
+          {error}
+        </div>
+      )}
+
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8"
+      >
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="Offres en attente"
+            value={stats?.pendingOffers || 0}
+            icon={FileText}
+            description="Demandes nécessitant une action"
+            trend="neutral"
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="Requêtes clients"
+            value={stats?.pendingRequests || 0}
+            icon={Inbox}
+            description="Demandes clients en attente"
+            trend="neutral"
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="Chiffre d'affaires"
+            value={stats?.formattedRevenue || "€0"}
+            icon={TrendingUp}
+            description={`${timeFilter === 'month' ? 'Ce mois' : timeFilter === 'year' ? 'Cette année' : timeFilter === 'quarter' ? 'Ce trimestre' : 'Total'}`}
+            change="+12.5% par rapport à la période précédente"
+            trend="up"
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="Clients"
+            value={stats?.clientsCount || 0}
+            icon={Users}
+            description="Nombre total de clients"
+            change="+3 nouveaux ce mois-ci"
+            trend="up"
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="Offres converties"
+            value={stats?.acceptedOffers || 0}
+            icon={Package}
+            description="Offres acceptées et signées"
+            trend="neutral"
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="Marge brute"
+            value={stats?.formattedGrossMargin || "€0"}
+            icon={Percent}
+            description={`${stats?.marginPercentage || 0}% du chiffre d'affaires`}
+            trend="neutral"
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="md:col-span-2">
+          <StatCard
+            title="Notifications"
+            value="Vous avez des alertes à traiter"
+            icon={Bell}
+            description="Offres et demandes nécessitant votre attention"
+            className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-100 dark:border-purple-900"
+          />
+        </motion.div>
       </motion.div>
       
-      <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-7">
-        <Card className="md:col-span-4">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Activité récente</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-8">
-              <div className="h-[200px] w-full bg-muted/30 rounded-md flex items-center justify-center">
-                <p className="text-muted-foreground">Graphique d'activité</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid gap-6 mb-8 lg:grid-cols-7">
+        <motion.div variants={itemVariants} className="lg:col-span-4">
+          <PerformanceChart isLoading={isLoading} />
+        </motion.div>
         
-        <motion.div variants={itemVariants} className="md:col-span-3 grid gap-4">
-          <ClientRequestsNotifications />
+        <motion.div variants={itemVariants} className="lg:col-span-3">
+          <ActivityFeed activities={recentActivity} isLoading={isLoading} />
         </motion.div>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        <div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
           <AdminOffersNotifications />
-        </div>
+        </motion.div>
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <ClientRequestsNotifications />
+        </motion.div>
       </div>
     </div>
   );
