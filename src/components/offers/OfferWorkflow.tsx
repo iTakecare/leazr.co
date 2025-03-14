@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
   File, Clock, CheckCircle, XCircle, UserCog, MessagesSquare, 
-  SendToBack, RefreshCw, ChevronDown, History
+  SendToBack, RefreshCw, History
 } from "lucide-react";
 import { workflowStatuses } from "@/hooks/useOffers";
 import {

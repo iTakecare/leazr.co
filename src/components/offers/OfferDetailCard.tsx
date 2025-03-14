@@ -89,6 +89,9 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
     navigate(`/create-offer?id=${offer.id}`);
   };
 
+  // Si le workflow_status n'est pas défini, utilisez un statut par défaut
+  const workflowStatus = offer.workflow_status || 'draft';
+
   return (
     <Card className="mb-4">
       <CardHeader className="flex flex-row items-center justify-between p-4">
@@ -165,7 +168,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
       {isExpanded && (
         <CardContent className="p-4 pt-0 border-t">
           <OfferWorkflow 
-            currentStatus={offer.workflow_status || "draft"} 
+            currentStatus={workflowStatus} 
             onStatusChange={handleStatusChange}
             isUpdating={isUpdatingStatus}
             offerId={offer.id}
