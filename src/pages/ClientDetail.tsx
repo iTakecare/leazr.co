@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ const getStatusVariant = (status: string) => {
   switch (status) {
     case 'active': return "default";
     case 'inactive': return "secondary";
-    case 'pending': return "warning";
+    case 'pending': return "outline";
     case 'duplicate': return "destructive";
     default: return "default";
   }
