@@ -9,6 +9,9 @@ import OffersLoading from "@/components/offers/OffersLoading";
 import OffersError from "@/components/offers/OffersError";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageTransition from "@/components/layout/PageTransition";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { Plus } from "lucide-react";
 
 const Offers = () => {
   const {
@@ -24,6 +27,8 @@ const Offers = () => {
     handleDeleteOffer,
     handleResendOffer,
     handleDownloadPdf,
+    handleUpdateWorkflowStatus,
+    isUpdatingStatus,
     fetchOffers
   } = useOffers();
   
@@ -70,7 +75,15 @@ const Offers = () => {
   return (
     <PageTransition>
       <div className="w-full p-4 md:p-8">
-        <OffersHeader />
+        <div className="flex justify-between items-center mb-6">
+          <OffersHeader />
+          <Button asChild>
+            <Link to="/create-offer" className="flex items-center">
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle offre
+            </Link>
+          </Button>
+        </div>
         
         <div className="mb-6">
           <OffersFilter 
@@ -95,6 +108,8 @@ const Offers = () => {
             onDeleteOffer={handleDeleteOffer}
             onResendOffer={handleResendOffer}
             onDownloadPdf={handleDownloadPdf}
+            onStatusChange={handleUpdateWorkflowStatus}
+            isUpdatingStatus={isUpdatingStatus}
           />
         )}
       </div>

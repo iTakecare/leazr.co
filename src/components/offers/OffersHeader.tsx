@@ -1,8 +1,5 @@
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface OffersHeaderProps {
@@ -23,12 +20,6 @@ const OffersHeader = ({ itemVariants = {
           Gérez et suivez toutes vos offres commerciales
         </p>
       </div>
-      <Button asChild>
-        <Link to="/create-offer" className="flex items-center">
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvelle offre
-        </Link>
-      </Button>
     </motion.div>
   );
 };
