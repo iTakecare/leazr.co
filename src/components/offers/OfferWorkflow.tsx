@@ -36,7 +36,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { getWorkflowLogs } from "@/services/offerService";
@@ -200,6 +199,13 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
   const currentStepInfo = workflowSteps.find(step => step.id === currentStatus);
   const nextStepOptions = getNextStepOptions(currentStatus);
   
+  // Pour déboguer les problèmes d'affichage
+  useEffect(() => {
+    console.log("OfferWorkflow - Current status:", currentStatus);
+    console.log("OfferWorkflow - Current step info:", currentStepInfo);
+    console.log("OfferWorkflow - Next step options:", nextStepOptions);
+  }, [currentStatus, currentStepInfo, nextStepOptions]);
+
   const handleNextStepSelect = (nextStepId: string) => {
     console.log("Next step selected:", nextStepId);
     setSelectedStep(nextStepId);
@@ -213,7 +219,6 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
         await onStatusChange(selectedStep, reason || undefined);
         setReason("");
         setConfirmOpen(false);
-        toast.success(`Statut changé avec succès`);
       } catch (error) {
         console.error("Error changing status:", error);
         toast.error("Erreur lors du changement de statut");
@@ -302,11 +307,13 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                 "flex items-center px-3 py-2 rounded-md border-2",
                 getStatusColor(currentStatus)
               )}>
-                {currentStepInfo && (
+                {currentStepInfo ? (
                   <>
                     <currentStepInfo.icon className="h-5 w-5 mr-2" />
                     <span className="font-medium">{currentStepInfo.label}</span>
                   </>
+                ) : (
+                  <span className="font-medium">Statut: {currentStatus || "Non défini"}</span>
                 )}
               </div>
             </div>

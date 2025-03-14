@@ -57,9 +57,20 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
   };
 
   const handleStatusChange = async (newStatus: string, reason?: string) => {
-    console.log(`Changing status for offer ${offer.id} to ${newStatus}`);
+    console.log(`Changing status for offer ${offer.id} to ${newStatus}`, {
+      current: offer.workflow_status,
+      new: newStatus
+    });
+    
+    if (offer.workflow_status === newStatus) {
+      console.log("Status unchanged, skipping update");
+      toast.info("Le statut est déjà à cette valeur");
+      return;
+    }
+    
     try {
       await onStatusChange(offer.id, newStatus, reason);
+      toast.success(`Statut changé avec succès vers ${newStatus}`);
     } catch (error) {
       console.error("Error changing status:", error);
       toast.error("Erreur lors du changement de statut");
