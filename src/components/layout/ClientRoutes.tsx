@@ -9,6 +9,7 @@ import ClientsLoading from "@/components/clients/ClientsLoading";
 import ClientsError from "@/components/clients/ClientsError";
 import { linkUserToClient } from "@/utils/clientUserAssociation";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const ClientEquipment = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Mes Équipements</h1><p>Gestion des équipements en cours d'implémentation.</p></div>;
 const ClientCatalog = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Catalogue</h1><p>Catalogue en cours d'implémentation.</p></div>;
