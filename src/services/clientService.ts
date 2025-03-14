@@ -269,7 +269,12 @@ export const addCollaborator = async (clientId: string, collaborator: Omit<Colla
       if (!mockClients[mockClientIndex].collaborators) {
         mockClients[mockClientIndex].collaborators = [];
       }
-      mockClients[mockClientIndex].collaborators!.push(newCollaborator);
+      const mockCompatibleCollaborator = {
+        ...newCollaborator,
+        phone: newCollaborator.phone || "",
+        department: newCollaborator.department || ""
+      };
+      mockClients[mockClientIndex].collaborators!.push(mockCompatibleCollaborator);
     }
     
     toast.success("Collaborateur ajouté avec succès");
@@ -298,8 +303,12 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
     }
     
     const mockClientIndex = mockClients.findIndex(c => c.id === clientId);
-    if (mockClientIndex >= 0) {
-      mockClients[mockClientIndex].collaborators = updatedCollaborators;
+    if (mockClientIndex >= 0 && mockClients[mockClientIndex].collaborators) {
+      mockClients[mockClientIndex].collaborators = updatedCollaborators.map(c => ({
+        ...c,
+        phone: c.phone || "",
+        department: c.department || ""
+      }));
     }
     
     toast.success("Collaborateur supprimé avec succès");
