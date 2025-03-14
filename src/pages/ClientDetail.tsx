@@ -89,8 +89,8 @@ export default function ClientDetail() {
         if (updatedClient) {
           console.log("Client data refreshed after account creation:", updatedClient);
           setClient(updatedClient);
+          toast.success("Compte utilisateur créé et email de configuration envoyé");
         }
-        toast.success("Compte utilisateur créé et email de configuration envoyé");
       }
     } catch (error) {
       console.error("Error creating account:", error);
@@ -129,17 +129,16 @@ export default function ClientDetail() {
     );
   }
 
-  // Déterminer si le client a un compte utilisateur actif
-  // Un compte est considéré comme actif si has_user_account est true
-  const hasUserAccount = client.has_user_account === true;
-  
-  console.log("Client account status complete check:", { 
-    hasUserAccount, 
-    user_id: client.user_id, 
+  // Afficher les informations de débogage complètes
+  console.log("Client account status debug:", { 
+    client_id: client.id,
     has_user_account: client.has_user_account,
-    user_account_created_at: client.user_account_created_at,
-    complete_client: client
+    user_id: client.user_id,
+    user_account_created_at: client.user_account_created_at
   });
+
+  // Un compte est considéré comme actif uniquement si has_user_account est true
+  const hasUserAccount = Boolean(client.has_user_account);
 
   return (
     <div className="container py-8 space-y-6">
