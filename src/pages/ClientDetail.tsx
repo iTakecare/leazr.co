@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -124,6 +125,9 @@ export default function ClientDetail() {
     );
   }
 
+  // Vérification explicite du compte utilisateur
+  const hasUserAccount = Boolean(client.user_id) || Boolean(client.has_user_account);
+
   return (
     <div className="container py-8 space-y-6">
       <div className="flex justify-between items-center">
@@ -235,10 +239,10 @@ export default function ClientDetail() {
             <CardDescription>Accès au portail client</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            {client.user_id || client.has_user_account ? (
+            {hasUserAccount ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
                     Compte actif
                   </Badge>
                   {client.user_account_created_at && (

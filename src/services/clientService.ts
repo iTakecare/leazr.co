@@ -365,26 +365,15 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
-    const { data: existingClients, error: checkError } = await supabase
-      .from('clients')
-      .select('user_id, has_user_account')
-      .eq('email', client.email);
+    if (client.user_id || client.has_user_account === true) {
+      console.log("Client already has a user account:", client.user_id);
+      toast.warning("Ce client a déjà un compte utilisateur associé");
       
-    if (checkError) {
-      console.error("Error checking existing client:", checkError);
-    } else if (existingClients && existingClients.length > 0) {
-      const existingClient = existingClients[0];
-      
-      if (existingClient.user_id || existingClient.has_user_account) {
-        console.log("Client already has a user account:", existingClient.user_id);
-        toast.warning("Ce client a déjà un compte utilisateur associé");
-        
-        if (existingClient.user_id) {
-          console.log("Resending password reset for existing user");
-          return await resetClientPassword(client.email);
-        }
-        return false;
+      if (client.user_id) {
+        console.log("Resending password reset for existing user");
+        return await resetClientPassword(client.email);
       }
+      return false;
     }
     
     const generateStrongPassword = () => {
@@ -433,7 +422,7 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       console.log("New user created successfully:", adminResult.data?.user?.id);
       
       if (adminResult.data && adminResult.data.user) {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await adminSupabase
           .from('clients')
           .update({ 
             user_id: adminResult.data.user.id,
