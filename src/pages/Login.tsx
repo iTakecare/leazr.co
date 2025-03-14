@@ -19,36 +19,35 @@ const Login = () => {
   const [isResetMode, setIsResetMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, session } = useAuth();
+  const { signIn, session, user } = useAuth();
 
-  // Check if we have a password reset token in the URL as soon as the component mounts
+  // Vérifier si nous avons un token de réinitialisation dans l'URL dès que le composant monte
   useEffect(() => {
     const checkForResetToken = () => {
       const hash = location.hash || window.location.hash;
-      console.log("Checking for reset token in hash:", hash);
+      console.log("Vérification du token de réinitialisation dans le hash:", hash);
       
       if (hash && hash.includes('type=recovery')) {
-        // Extract the access token from the hash
-        const hashParams = new URLSearchParams(hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        
-        if (accessToken) {
-          console.log("Reset token found. Entering password reset mode");
-          setIsResetMode(true);
-          return true;
-        }
+        console.log("Token de réinitialisation trouvé. Activation du mode de réinitialisation");
+        setIsResetMode(true);
+        return true;
       }
       return false;
     };
 
     const hasResetToken = checkForResetToken();
     
-    // Only redirect if there's no reset token and we have a session
-    if (!hasResetToken && session) {
-      console.log("User is already logged in, redirecting to dashboard");
-      navigate('/dashboard');
+    // Si nous n'avons pas de token de réinitialisation et que nous avons une session,
+    // et que nous ne sommes pas en mode réinitialisation, rediriger vers le tableau de bord
+    if (!hasResetToken && session && user && !isResetMode) {
+      console.log("L'utilisateur est déjà connecté, redirection vers le tableau de bord approprié");
+      if (user.role === 'client') {
+        navigate('/client/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     }
-  }, [session, navigate, location]);
+  }, [session, navigate, location, user, isResetMode]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +60,7 @@ const Login = () => {
     try {
       const { error } = await signIn(email, password);
       if (error) {
-        console.error('Error during login:', error);
+        console.error('Erreur lors de la connexion:', error);
         toast.error('Échec de la connexion : ' + (error.message || 'Erreur inconnue'));
       }
     } finally {
@@ -89,31 +88,31 @@ const Login = () => {
     
     setLoading(true);
     try {
-      console.log("Attempting to update password with token");
+      console.log("Tentative de mise à jour du mot de passe avec le token");
       
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
       
       if (error) {
-        console.error('Error updating password:', error);
+        console.error('Erreur lors de la mise à jour du mot de passe:', error);
         toast.error('Échec de la mise à jour du mot de passe : ' + error.message);
       } else {
         toast.success('Votre mot de passe a été mis à jour avec succès');
         
-        // Clear the hash to avoid re-entering reset flow on refresh
+        // Supprimer le hash pour éviter de revenir au flux de réinitialisation lors de l'actualisation
         window.location.hash = '';
         
-        // Navigate to login page without hash
-        navigate('/login');
-        
-        // Reset all form state
+        // Réinitialiser l'état du formulaire
         setIsResetMode(false);
         setNewPassword('');
         setConfirmPassword('');
+        
+        // Rediriger vers la page de connexion sans hash
+        navigate('/login', { replace: true });
       }
     } catch (error: any) {
-      console.error('Exception updating password:', error);
+      console.error('Exception lors de la mise à jour du mot de passe:', error);
       toast.error('Erreur lors de la mise à jour du mot de passe : ' + error.message);
     } finally {
       setLoading(false);
@@ -139,6 +138,7 @@ const Login = () => {
                     placeholder="Entrez votre nouveau mot de passe" 
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
+                    autoFocus
                   />
                 </div>
                 <div className="space-y-2">

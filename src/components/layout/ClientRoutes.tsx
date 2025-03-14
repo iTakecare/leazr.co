@@ -35,15 +35,15 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
   const [clientError, setClientError] = React.useState<string | null>(null);
   const [retryCount, setRetryCount] = React.useState(0);
 
-  // Check for password reset flow first - before any other redirects
+  // Vérifier d'abord le flux de réinitialisation de mot de passe - avant toute autre redirection
   useEffect(() => {
-    const hash = window.location.hash;
+    const hash = window.location.hash || location.hash;
     if (hash && hash.includes('type=recovery')) {
-      console.log("Password reset flow detected in ClientCheck, redirecting to login");
-      navigate('/login' + hash);
+      console.log("Flux de réinitialisation de mot de passe détecté dans ClientCheck, redirection vers login");
+      navigate('/login', { replace: true });
       return;
     }
-  }, [navigate]);
+  }, [navigate, location]);
 
   useEffect(() => {
     const checkClientAssociation = async () => {
@@ -57,33 +57,33 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
         const { data: userData, error: userError } = await supabase.auth.getUser();
         const userEmail = userData?.user?.email || user.email;
         
-        console.log("Checking client association for user:", user.id, userEmail);
+        console.log("Vérification de l'association client pour l'utilisateur:", user.id, userEmail);
         
         if (retryCount > 0 && user?.id) {
           localStorage.removeItem(`client_id_${user.id}`);
-          console.log("Cleared cached client ID for retry");
+          console.log("Cache client ID effacé pour la nouvelle tentative");
         }
         
         if (userEmail) {
           const clientId = await linkUserToClient(user.id, userEmail);
           
           if (clientId) {
-            console.log("Client association successful, client ID:", clientId);
+            console.log("Association client réussie, ID client:", clientId);
             setCheckingClient(false);
             return;
           } else {
-            console.error("No client found for this user");
+            console.error("Aucun client trouvé pour cet utilisateur");
             setClientError(`Aucun client trouvé pour votre compte utilisateur. Veuillez contacter l'assistance.`);
           }
         } else {
           // Vérifier si l'utilisateur est connecté mais sans email
           const { data: authUser } = await supabase.auth.getUser();
           if (authUser?.user?.email) {
-            console.log("Found email in auth user:", authUser.user.email);
+            console.log("Email trouvé dans l'utilisateur auth:", authUser.user.email);
             const clientId = await linkUserToClient(user.id, authUser.user.email);
             
             if (clientId) {
-              console.log("Client association successful via auth API, client ID:", clientId);
+              console.log("Association client réussie via l'API auth, ID client:", clientId);
               setCheckingClient(false);
               return;
             }
@@ -92,7 +92,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           setClientError("L'utilisateur n'a pas d'email associé. Veuillez contacter votre administrateur.");
         }
       } catch (error) {
-        console.error("Error in client verification:", error);
+        console.error("Erreur lors de la vérification du client:", error);
         setClientError("Erreur lors de la vérification du compte client");
       } finally {
         setCheckingClient(false);
@@ -135,24 +135,24 @@ const ClientRoutes = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check for password reset flow first - before any redirects
+  // Vérifier d'abord le flux de réinitialisation de mot de passe - avant les redirections
   useEffect(() => {
     const hash = location.hash || window.location.hash;
     
     if (hash && hash.includes('type=recovery')) {
-      console.log("Detected password reset flow in ClientRoutes, redirecting to login");
-      navigate('/login' + hash, { replace: true });
+      console.log("Flux de réinitialisation de mot de passe détecté dans ClientRoutes, redirection vers login");
+      navigate('/login', { replace: true });
       return;
     }
     
-    // Only redirect authenticated users who aren't clients to dashboard
+    // Rediriger uniquement les utilisateurs authentifiés qui ne sont pas des clients vers le tableau de bord
     if (!isLoading && user && !isClient()) {
-      console.log("User is not a client, redirecting to admin dashboard");
-      navigate('/dashboard');
+      console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
+      navigate('/dashboard', { replace: true });
     }
-  }, [isLoading, user, isClient, navigate, location.hash]);
+  }, [isLoading, user, isClient, navigate, location]);
 
-  // Don't render anything during a password reset flow
+  // Ne rien afficher pendant un flux de réinitialisation de mot de passe
   if (location.hash && location.hash.includes('type=recovery')) {
     return null;
   }
@@ -162,7 +162,7 @@ const ClientRoutes = () => {
   }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -174,7 +174,7 @@ const ClientRoutes = () => {
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><ClientCatalog /></ClientLayout>} />
         <Route path="new-request" element={<ClientLayout><ClientNewRequest /></ClientLayout>} />
-        <Route path="*" element={<Navigate to="/client/dashboard" />} />
+        <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>
     </ClientCheck>
   );

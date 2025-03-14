@@ -38,7 +38,7 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
     const { data: existingClientsByEmail, error: emailError } = await supabase
       .from('clients')
       .select('id, name, user_id, email, has_user_account, status, created_at')
-      .eq('email', userEmail)
+      .or(`email.eq.${userEmail},email.ilike.${userEmail}`)
       .order('created_at', { ascending: true });
       
     if (emailError) {

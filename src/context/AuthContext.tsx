@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
@@ -49,14 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        // Check for password reset flow
+        // Vérifier le flux de réinitialisation de mot de passe
         const hash = window.location.hash;
-        const hashParams = new URLSearchParams(hash.substring(1));
-        const type = hashParams.get('type');
         
-        // If we're in a password reset flow, don't redirect and don't set the session
-        if (type === 'recovery') {
-          console.log("Detected password reset flow, keeping user on login page");
+        // Si nous sommes dans un flux de réinitialisation, ne pas rediriger et ne pas définir la session
+        if (hash && hash.includes('type=recovery')) {
+          console.log("Flux de réinitialisation de mot de passe détecté, maintien de l'utilisateur sur la page de connexion");
           setIsLoading(false);
           return;
         }
@@ -67,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchUserProfile(currentSession.user.id);
           
           if (currentSession.user.email) {
-            // Nettoyer les doublons avant d'associer l'utilisateur
+            // Nettoyer les doublons avant d'associer l'utilisateur (pour les admins)
             if (isAdmin()) {
               await cleanupDuplicateClients();
             }
@@ -83,15 +82,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (_event, newSession) => {
-            console.log("Auth state change:", _event, newSession ? "session exists" : "no session");
+            console.log("Changement d'état d'authentification:", _event, newSession ? "session existe" : "pas de session");
             
-            // If hash contains recovery type, don't set session or redirect
+            // Si le hash contient le type recovery, ne pas définir la session ou rediriger
             const currentHash = window.location.hash;
-            const currentHashParams = new URLSearchParams(currentHash.substring(1));
-            const currentType = currentHashParams.get('type');
             
-            if (currentType === 'recovery' && _event !== 'PASSWORD_RECOVERY') {
-              console.log("Recovery flow is active, not setting session");
+            if (currentHash && currentHash.includes('type=recovery') && _event !== 'PASSWORD_RECOVERY') {
+              console.log("Flux de réinitialisation actif, ne pas définir la session");
               setIsLoading(false);
               return;
             }
@@ -125,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           subscription.unsubscribe();
         };
       } catch (error) {
-        console.error("Error initializing auth:", error);
+        console.error("Erreur d'initialisation de l'authentification:", error);
         setIsLoading(false);
       }
     };
@@ -136,13 +133,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function fetchUserProfile(userId: string) {
     try {
       setIsLoading(true);
-      console.log("Fetching user profile for ID:", userId);
+      console.log("Récupération du profil utilisateur pour l'ID:", userId);
       
       // Récupérer l'email de l'utilisateur depuis la session
       const { data: userData } = await supabase.auth.getUser();
       const userEmail = userData?.user?.email;
       
-      console.log("User email from auth:", userEmail);
+      console.log("Email de l'utilisateur provenant de l'authentification:", userEmail);
       
       let profileData = null;
       
@@ -154,19 +151,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single();
           
         if (error) {
-          console.error("Standard fetch error:", error);
+          console.error("Erreur de récupération standard:", error);
         } else if (data) {
-          console.log("Profile data retrieved via standard client:", data);
+          console.log("Données de profil récupérées via le client standard:", data);
           profileData = data;
         }
       } catch (standardError) {
-        console.error('Standard fetch failed:', standardError);
+        console.error('Échec de la récupération standard:', standardError);
       }
       
       if (!profileData && session) {
-        console.log("No profile found, creating default profile");
+        console.log("Aucun profil trouvé, création d'un profil par défaut");
         
-        // Get user metadata from auth
+        // Obtenir les métadonnées de l'utilisateur depuis l'authentification
         const { data: authUser } = await supabase.auth.getUser();
         const userMetadata = authUser?.user?.user_metadata;
         
@@ -179,19 +176,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatar_url: null
         };
         
-        // Try to create the profile
+        // Essayer de créer le profil
         try {
           const { error: insertError } = await supabase
             .from('profiles')
             .insert(profileData);
             
           if (insertError) {
-            console.error("Error creating profile:", insertError);
+            console.error("Erreur lors de la création du profil:", insertError);
           } else {
-            console.log("Created new profile for user");
+            console.log("Nouveau profil créé pour l'utilisateur");
           }
         } catch (insertError) {
-          console.error("Exception creating profile:", insertError);
+          console.error("Exception lors de la création du profil:", insertError);
         }
       }
       
@@ -201,13 +198,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: userEmail || session?.user?.email || null,
         };
         
-        console.log("Setting user profile:", userWithEmail);
+        console.log("Définition du profil utilisateur:", userWithEmail);
         setUser(userWithEmail as UserProfile);
       } else {
-        console.log("No profile data available");
+        console.log("Aucune donnée de profil disponible");
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Erreur lors de la récupération du profil utilisateur:', error);
       toast.error('Erreur lors de la récupération du profil');
     } finally {
       setIsLoading(false);
@@ -217,7 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signIn(email: string, password: string): Promise<{ error?: Error }> {
     try {
       setIsLoading(true);
-      console.log("Attempting signin with email:", email);
+      console.log("Tentative de connexion avec l'email:", email);
 
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
@@ -225,12 +222,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error("Sign in error:", error);
+        console.error("Erreur de connexion:", error);
         return { error };
       }
 
       if (data.session) {
-        console.log("Sign in successful, session established");
+        console.log("Connexion réussie, session établie");
         
         if (data.user) {
           // Nettoyer les doublons lors de la connexion (pour les admins)
@@ -247,22 +244,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await linkUserToClient(data.user.id, email);
         }
         
+        // Vérifier s'il y a un hash de récupération de mot de passe
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const type = hashParams.get('type');
         
-        // Don't navigate if we're in a password reset flow
+        // Ne pas naviguer si nous sommes dans un flux de réinitialisation de mot de passe
         if (type !== 'recovery') {
-          navigate('/dashboard');
+          // Naviguer vers le tableau de bord approprié en fonction du rôle
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+            
+          if (profile && profile.role === 'client') {
+            navigate('/client/dashboard');
+          } else {
+            navigate('/dashboard');
+          }
+          
           toast.success('Connexion réussie');
         }
       } else {
-        console.error("No session returned after signin");
+        console.error("Aucune session retournée après la connexion");
         toast.error('Erreur de connexion: aucune session retournée');
       }
       
-      return {}; // Success
+      return {}; // Succès
     } catch (error: any) {
-      console.error('Error signing in:', error);
+      console.error('Erreur lors de la connexion:', error);
       const errorMessage = error.message === 'Invalid login credentials' 
         ? 'Email ou mot de passe incorrect'
         : error.message || 'Erreur lors de la connexion';

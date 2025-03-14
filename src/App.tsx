@@ -47,49 +47,56 @@ const ProtectedRoute = ({
   const { user, isLoading, isAdmin, isClient } = useAuth();
   const location = useLocation();
 
-  // Priority check for password reset flow
+  // Priorité au flux de réinitialisation de mot de passe
   const isPasswordResetFlow = () => {
-    const hash = location.hash;
-    return hash && hash.includes('type=recovery');
+    // Vérifier à la fois dans location.hash et window.location.hash pour être sûr
+    const hash = location.hash || window.location.hash;
+    return hash.includes('type=recovery');
   };
   
-  // If we're in a password reset flow, we should always redirect to login
+  // Journaliser si nous sommes dans un flux de réinitialisation
   useEffect(() => {
     if (isPasswordResetFlow()) {
-      console.log("Password reset flow detected in protected route");
+      console.log("Flux de réinitialisation de mot de passe détecté dans ProtectedRoute");
     }
-  }, [location.hash]);
+  }, [location]);
   
+  // Pendant le chargement, afficher un indicateur
   if (isLoading) {
     return <div>Chargement...</div>;
   }
   
-  // If we have a recovery token, we want to allow access to the login page
+  // Si nous sommes dans un flux de réinitialisation et sur la page de connexion, autoriser l'accès
   if (isPasswordResetFlow() && location.pathname === '/login') {
-    console.log("Allowing access to login for password reset");
+    console.log("Autorisation d'accès à login pour la réinitialisation de mot de passe");
     return <>{children}</>;
   }
   
-  // Redirect to login for password reset if we're not already there
-  if (isPasswordResetFlow() && location.pathname !== '/login') {
-    console.log("Redirecting to login for password reset");
-    return <Navigate to={`/login${location.hash}`} replace />;
+  // Rediriger vers la page de connexion pour la réinitialisation si nous ne sommes pas déjà là
+  if (isPasswordResetFlow()) {
+    console.log("Redirection vers login pour la réinitialisation de mot de passe");
+    return <Navigate to="/login" replace />;
   }
   
+  // Si l'utilisateur n'est pas connecté, rediriger vers la connexion
   if (!user) {
-    // Include the hash in the redirect so login can handle the password reset token
-    return <Navigate to={`/login${location.hash}`} />;
+    console.log("Utilisateur non connecté, redirection vers login");
+    return <Navigate to="/login" />;
   }
   
+  // Si un admin est requis mais l'utilisateur n'est pas admin
   if (requireAdmin && !isAdmin()) {
+    console.log("Accès admin requis mais utilisateur non admin, redirection");
     return <Navigate to="/client/dashboard" />;
   }
   
-  // Redirect clients to client dashboard if they try to access admin routes
+  // Rediriger les clients vers le tableau de bord client s'ils essaient d'accéder aux routes admin
   if (!requireAdmin && isClient() && !window.location.pathname.startsWith('/client')) {
+    console.log("Client tentant d'accéder à une route admin, redirection");
     return <Navigate to="/client/dashboard" />;
   }
   
+  // Tout est OK, autoriser l'accès
   return <>{children}</>;
 };
 
