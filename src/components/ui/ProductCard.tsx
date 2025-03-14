@@ -61,9 +61,11 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           onError={handleImageError}
           className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
         />
-        <Badge className="absolute top-2 right-2 bg-primary/80 hover:bg-primary/90">
-          {product.category}
-        </Badge>
+        {product.category && (
+          <Badge className="absolute top-2 right-2 bg-primary/80 hover:bg-primary/90">
+            {product.category}
+          </Badge>
+        )}
       </div>
       <CardHeader className="p-4 pb-2">
         <CardDescription className="text-xs font-medium text-primary/70">
@@ -93,7 +95,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           onClick={() => onClick && onClick(product)}
           className="flex items-center gap-1"
         >
-          {getCategoryIcon(product.category)}
+          {getCategoryIcon(product.category || "other")}
           <span>Détails</span>
         </Button>
       </CardFooter>

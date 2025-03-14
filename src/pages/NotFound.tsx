@@ -1,7 +1,7 @@
 
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
-import { ArrowLeft, Home } from "lucide-react";
+import { ArrowLeft, Home, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
@@ -14,10 +14,15 @@ const NotFound = () => {
     );
   }, [location.pathname]);
 
-  // Check if the path contains "edit" for client routes
+  // Check if the path contains specific routes
   const isClientEditAttempt = location.pathname.includes('/clients/edit/');
+  const isProductDetailAttempt = location.pathname.includes('/products/');
+  
   const clientId = isClientEditAttempt ? 
     location.pathname.split('/clients/edit/')[1] : null;
+  
+  const productId = isProductDetailAttempt ?
+    location.pathname.split('/products/')[1] : null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -37,6 +42,19 @@ const NotFound = () => {
               <Link to={`/clients/${clientId}`}>
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2">
                   <ArrowLeft className="h-4 w-4" /> Voir la fiche client
+                </Button>
+              </Link>
+            </div>
+          )}
+          
+          {isProductDetailAttempt && productId && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-amber-700 text-sm mb-4">
+                Le produit que vous recherchez n'a pas été trouvé. Revenez au catalogue pour voir les produits disponibles.
+              </p>
+              <Link to="/catalog">
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <Package className="h-4 w-4" /> Voir le catalogue
                 </Button>
               </Link>
             </div>

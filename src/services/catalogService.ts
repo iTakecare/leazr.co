@@ -1,3 +1,4 @@
+
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -40,6 +41,7 @@ export async function getProducts(): Promise<Product[]> {
 
 export async function getProductById(id: string): Promise<Product | null> {
   try {
+    console.log(`Fetching product with ID: ${id}`);
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('products')
@@ -48,10 +50,22 @@ export async function getProductById(id: string): Promise<Product | null> {
       .single();
 
     if (error) {
+      console.error(`Error fetching product by ID ${id}:`, error);
       throw new Error(`Error fetching product by ID: ${error.message}`);
     }
 
-    return data || null;
+    if (!data) {
+      console.log(`No product found with ID: ${id}`);
+      return null;
+    }
+
+    // Calculate monthly price if not present
+    if (!data.monthly_price && data.price) {
+      data.monthly_price = parseFloat((data.price * 0.033).toFixed(2));
+    }
+
+    console.log(`Successfully retrieved product with ID: ${id}`);
+    return data;
   } catch (error) {
     console.error("Error in getProductById:", error);
     return null;
