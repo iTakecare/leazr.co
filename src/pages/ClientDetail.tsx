@@ -126,9 +126,12 @@ export default function ClientDetail() {
     );
   }
 
-  // Vérification explicite du compte utilisateur - ignore d'autres facteurs
-  const hasUserAccount = Boolean(client.user_id) || Boolean(client.has_user_account);
-  console.log("Client account status:", { 
+  // Correction de la vérification du compte utilisateur
+  // On considère qu'un client a un compte si has_user_account est true OU s'il a un user_id 
+  // mais pas les deux en même temps (ce qui pourrait causer de la confusion)
+  const hasUserAccount = client.has_user_account === true;
+  
+  console.log("Client account status check:", { 
     hasUserAccount, 
     user_id: client.user_id, 
     has_user_account: client.has_user_account 

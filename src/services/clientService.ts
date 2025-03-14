@@ -146,7 +146,6 @@ export const getClientById = async (id: string): Promise<Client | null> => {
 
 export const createClient = async (clientData: CreateClientData): Promise<Client | null> => {
   try {
-    // Check if the user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -156,14 +155,12 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     console.log("Creating client with data:", clientData);
     
-    // Create the client data object with explicit properties
     const clientWithUserId = {
       ...clientData,
       user_id: user.id,
       has_user_account: false
     };
     
-    // Try with regular supabase client
     const { data, error } = await supabase
       .from('clients')
       .insert(clientWithUserId)
@@ -369,15 +366,11 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
-    if (client.user_id || client.has_user_account === true) {
-      console.log("Client already has a user account:", client.user_id);
+    if (client.has_user_account === true) {
+      console.log("Client already has a user account");
       toast.warning("Ce client a déjà un compte utilisateur associé");
       
-      if (client.user_id) {
-        console.log("Resending password reset for existing user");
-        return await resetClientPassword(client.email);
-      }
-      return false;
+      return await resetClientPassword(client.email);
     }
     
     const generateStrongPassword = () => {
