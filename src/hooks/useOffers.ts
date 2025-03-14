@@ -121,6 +121,14 @@ export const useOffers = () => {
 
   const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string, reason?: string): Promise<void> => {
     console.log(`Starting workflow status update for offer ${offerId} to ${newStatus}`);
+    
+    // Vérifier que le statut est valide
+    if (!Object.values(workflowStatuses).includes(newStatus)) {
+      console.error(`Invalid workflow status: ${newStatus}`);
+      toast.error("Statut de workflow invalide");
+      return;
+    }
+
     setIsUpdatingStatus(true);
     
     try {
@@ -134,9 +142,8 @@ export const useOffers = () => {
       }
       
       // Get the current status from the workflow_status field
-      const currentStatus = 
-        currentOffer.workflow_status && 
-        Object.values(workflowStatuses).includes(currentOffer.workflow_status) ? 
+      const currentStatus = currentOffer.workflow_status && 
+        Object.values(workflowStatuses).includes(currentOffer.workflow_status) ?
           currentOffer.workflow_status : workflowStatuses.DRAFT;
       
       console.log(`Current status: ${currentStatus}, New status: ${newStatus}`);

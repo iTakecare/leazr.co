@@ -1,17 +1,16 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, User, Mail, Building, CreditCard, Trash2, PenLine } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
-import OfferWorkflow from "./OfferWorkflow";
+import OfferWorkflowSimple from "./OfferWorkflowSimple";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { workflowStatuses } from "@/hooks/useOffers";
 
 interface OfferDetailCardProps {
   offer: {
@@ -44,25 +43,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [comment, setComment] = useState("");
-  const [localWorkflowStatus, setLocalWorkflowStatus] = useState<string>("");
   const navigate = useNavigate();
-  
-  // Update local status whenever offer changes
-  useEffect(() => {
-    console.log("OfferDetailCard - offer updated:", offer.id);
-    
-    // Vérifier si workflow_status est une valeur valide
-    const isValidStatus = Object.values(workflowStatuses).includes(offer.workflow_status || "");
-    const newStatus = isValidStatus 
-      ? offer.workflow_status
-      : workflowStatuses.DRAFT;
-    
-    console.log("Current local status:", localWorkflowStatus);
-    console.log("New offer status:", offer.workflow_status);
-    console.log("Setting status to:", newStatus);
-    
-    setLocalWorkflowStatus(newStatus || workflowStatuses.DRAFT);
-  }, [offer]);
   
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -76,34 +57,8 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
     }
   };
 
-  const handleStatusChange = async (newStatus: string, reason?: string) => {
-    console.log(`OfferDetailCard - Changing status for offer ${offer.id} from ${localWorkflowStatus} to ${newStatus}`);
-    
-    // Skip if status is unchanged
-    if (localWorkflowStatus === newStatus) {
-      console.log("Status unchanged, skipping update");
-      toast.info("Le statut est déjà à cette valeur");
-      return;
-    }
-    
-    try {
-      // Update status through parent component
-      await onStatusChange(offer.id, newStatus, reason);
-      
-      // Update local status immediately for better UX
-      console.log("Updating local status to:", newStatus);
-      setLocalWorkflowStatus(newStatus);
-      
-      // For conversion to contract, show appropriate message
-      if (newStatus === workflowStatuses.LEASER_APPROVED) {
-        toast.success("L'offre a été approuvée et convertie en contrat");
-      } else {
-        toast.success(`Statut mis à jour vers ${newStatus}`);
-      }
-    } catch (error) {
-      console.error("Error changing status:", error);
-      toast.error("Erreur lors du changement de statut");
-    }
+  const handleEditOffer = () => {
+    navigate(`/create-offer?id=${offer.id}`);
   };
 
   const formatDate = (dateString: string) => {
@@ -113,15 +68,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
       return "Date incorrecte";
     }
   };
-
-  const handleEditOffer = () => {
-    navigate(`/create-offer?id=${offer.id}`);
-  };
   
-  console.log("OfferDetailCard - Render with localWorkflowStatus:", localWorkflowStatus);
-  console.log("OfferDetailCard - original offer.workflow_status:", offer.workflow_status);
-  console.log("OfferDetailCard - converted_to_contract:", offer.converted_to_contract);
-
   return (
     <Card className={offer.converted_to_contract ? "mb-4 border-green-200 bg-green-50" : "mb-4"}>
       <CardHeader className="flex flex-row items-center justify-between p-4">
@@ -130,7 +77,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
             <h3 className="text-lg font-semibold">{offer.client_name}</h3>
             <div className="ml-2">
               <OfferStatusBadge 
-                status={localWorkflowStatus}
+                status={offer.workflow_status}
                 isConverted={offer.converted_to_contract}
               />
             </div>
@@ -204,9 +151,9 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
             </div>
           )}
           
-          <OfferWorkflow 
-            currentStatus={localWorkflowStatus}
-            onStatusChange={handleStatusChange}
+          <OfferWorkflowSimple 
+            currentStatus={offer.workflow_status || "draft"}
+            onStatusChange={onStatusChange}
             isUpdating={isUpdatingStatus}
             offerId={offer.id}
             isConverted={offer.converted_to_contract}
