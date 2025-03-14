@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -217,6 +216,23 @@ export const updateClient = async (id: string, clientData: Partial<CreateClientD
 
 export const deleteClient = async (id: string): Promise<boolean> => {
   try {
+    // Vérifier d'abord si le client a des offres associées
+    const { data: offers, error: offersError } = await supabase
+      .from('offers')
+      .select('id')
+      .eq('client_id', id);
+    
+    if (offersError) {
+      console.error("Error checking associated offers:", offersError);
+      throw offersError;
+    }
+    
+    if (offers && offers.length > 0) {
+      toast.error("Impossible de supprimer ce client car il a des offres associées");
+      return false;
+    }
+    
+    // Si aucune offre n'est associée, procéder à la suppression
     const { error } = await supabase
       .from('clients')
       .delete()
