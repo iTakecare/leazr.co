@@ -108,9 +108,16 @@ export const getClients = async (): Promise<Client[]> => {
 
 export const getClientById = async (id: string): Promise<Client | null> => {
   try {
-    // Check if ID is a valid UUID
-    if (id === 'new' || id === 'create') {
-      console.log("Skipping fetch for new/create route");
+    // Check if ID is a valid UUID or special routes
+    if (!id || id === 'new' || id === 'create') {
+      console.log(`Skipping fetch for special route: ${id}`);
+      return null;
+    }
+    
+    // UUID validation regex
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      console.log(`Invalid UUID format for client ID: ${id}`);
       return null;
     }
     

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -48,7 +49,10 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 const ClientForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  
+  // Check more reliably if we're in edit mode or create mode
   const isEditMode = !!id && id !== "new" && id !== "create";
+  const isCreateMode = !isEditMode;
 
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +78,9 @@ const ClientForm = () => {
 
   useEffect(() => {
     const fetchClient = async () => {
+      // Only fetch if we're in edit mode
       if (id && isEditMode) {
+        console.log(`Fetching client with ID: ${id}, isEditMode: ${isEditMode}`);
         try {
           const client = await getClientById(id);
           if (client) {
@@ -101,6 +107,8 @@ const ClientForm = () => {
           setIsLoading(false);
         }
       } else {
+        // In create mode, just set loading to false
+        console.log(`Create mode detected: ${id}`);
         setIsLoading(false);
       }
     };
@@ -204,7 +212,7 @@ const ClientForm = () => {
             </div>
           </div>
 
-          {error ? (
+          {error && !isCreateMode ? (
             <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
               <p className="text-red-600">{error}</p>
               <Button 
