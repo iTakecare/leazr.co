@@ -6,6 +6,7 @@ export interface RequestInfoData {
   offerId: string;
   requestedDocs: string[];
   customMessage?: string;
+  previousStatus?: string; // Added this property to fix the TypeScript error
 }
 
 export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> => {
@@ -63,7 +64,8 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
     await supabase
       .from('offers')
       .update({ 
-        workflow_status: 'info_requested'
+        workflow_status: 'info_requested',
+        previous_status: data.previousStatus // Use the previousStatus parameter here
       })
       .eq('id', data.offerId);
     
