@@ -5,6 +5,8 @@ import { useClientContracts, ClientContract } from "@/hooks/useClientContracts";
 import ClientsError from "@/components/clients/ClientsError";
 import ContractDetailCard from "@/components/contracts/ContractDetailCard";
 import { formatCurrency } from "@/utils/formatters";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 const ClientContractsPage = () => {
   const { contracts, loading, error, refresh } = useClientContracts();
@@ -13,7 +15,8 @@ const ClientContractsPage = () => {
     return (
       <div className="w-full p-8">
         <h1 className="text-3xl font-bold mb-6">Mes Contrats</h1>
-        <div className="flex justify-center items-center min-h-[300px]">
+        <div className="flex flex-col justify-center items-center min-h-[300px] gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p>Chargement des contrats...</p>
         </div>
       </div>

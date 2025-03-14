@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 const ClientRequestsPage = () => {
   const { offers, loading, error, refresh } = useClientOffers();
@@ -16,7 +16,8 @@ const ClientRequestsPage = () => {
     return (
       <div className="w-full p-8">
         <h1 className="text-3xl font-bold mb-6">Mes Demandes en cours</h1>
-        <div className="flex justify-center items-center min-h-[300px]">
+        <div className="flex flex-col justify-center items-center min-h-[300px] gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p>Chargement des demandes...</p>
         </div>
       </div>

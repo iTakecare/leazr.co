@@ -37,7 +37,7 @@ export const useClientContracts = () => {
           .from('clients')
           .select('id')
           .eq('email', user.email)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error("Error fetching client ID:", error);
@@ -48,6 +48,27 @@ export const useClientContracts = () => {
           console.log("Found client ID:", data.id);
           setClientId(data.id);
           return data.id;
+        } else {
+          console.log("No client found for email:", user.email);
+          // Si aucun client n'est trouvé avec cet email, essayons de chercher par user_id
+          if (user.id) {
+            const { data: dataByUserId, error: errorByUserId } = await supabase
+              .from('clients')
+              .select('id')
+              .eq('user_id', user.id)
+              .maybeSingle();
+            
+            if (errorByUserId) {
+              console.error("Error fetching client by user_id:", errorByUserId);
+              return null;
+            }
+            
+            if (dataByUserId) {
+              console.log("Found client ID by user_id:", dataByUserId.id);
+              setClientId(dataByUserId.id);
+              return dataByUserId.id;
+            }
+          }
         }
       } catch (error) {
         console.error("Error in fetchClientId:", error);
@@ -93,20 +114,24 @@ export const useClientContracts = () => {
       }
     };
 
-    if (user?.email) {
+    if (user) {
       fetchClientContracts();
+    } else {
+      setLoading(false);
+      setError("Utilisateur non connecté");
     }
   }, [user]);
+
+  const refresh = () => {
+    setLoading(true);
+    setContracts([]);
+  };
 
   return {
     contracts,
     loading,
     error,
     clientId,
-    refresh: () => {
-      setLoading(true);
-      // We'll re-trigger the effect by changing a dependency, but for now this will do
-      setContracts([]);
-    }
+    refresh
   };
 };

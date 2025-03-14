@@ -1,11 +1,12 @@
 
-import React from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
 import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
+import ClientsLoading from "@/components/clients/ClientsLoading";
 
 // Placeholder components for client routes
 const ClientEquipment = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Mes Équipements</h1><p>Gestion des équipements en cours d'implémentation.</p></div>;
@@ -24,10 +25,22 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientRoutes = () => {
-  const { isClient } = useAuth();
+  const { user, isLoading, isClient } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Si l'utilisateur n'est pas en cours de chargement et n'est pas un client, rediriger
+    if (!isLoading && user && !isClient()) {
+      navigate('/dashboard');
+    }
+  }, [isLoading, user, isClient, navigate]);
 
-  if (!isClient()) {
-    return <Navigate to="/dashboard" />;
+  if (isLoading) {
+    return <ClientLayout><ClientsLoading /></ClientLayout>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
   }
 
   return (
