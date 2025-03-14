@@ -34,6 +34,19 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
   const [clientError, setClientError] = React.useState<string | null>(null);
   const [retryCount, setRetryCount] = React.useState(0);
 
+  // Check for password reset flow
+  useEffect(() => {
+    const hash = window.location.hash;
+    const hashParams = new URLSearchParams(hash.substring(1));
+    const type = hashParams.get('type');
+    
+    // If we're in a password reset flow, redirect to login
+    if (type === 'recovery') {
+      console.log("Detected password reset flow, redirecting to login");
+      navigate('/login' + hash);
+    }
+  }, [window.location.hash]);
+
   useEffect(() => {
     const checkClientAssociation = async () => {
       if (!user) return;
@@ -62,7 +75,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
             return;
           } else {
             console.error("No client found for this user");
-            setClientError(`Erreur lors de la vérification du compte client. Veuillez réessayer ou contacter l'assistance.`);
+            setClientError(`Aucun client trouvé pour votre compte utilisateur. Veuillez contacter l'assistance.`);
           }
         } else {
           // Vérifier si l'utilisateur est connecté mais sans email
@@ -123,11 +136,23 @@ const ClientRoutes = () => {
   const { user, isLoading, isClient } = useAuth();
   const navigate = useNavigate();
   
+  // Check for password reset flow
   useEffect(() => {
+    const hash = window.location.hash;
+    const hashParams = new URLSearchParams(hash.substring(1));
+    const type = hashParams.get('type');
+    
+    // If we're in a password reset flow, redirect to login
+    if (type === 'recovery') {
+      console.log("Detected password reset flow in ClientRoutes, redirecting to login");
+      navigate('/login' + hash);
+      return;
+    }
+    
     if (!isLoading && user && !isClient()) {
       navigate('/dashboard');
     }
-  }, [isLoading, user, isClient, navigate]);
+  }, [isLoading, user, isClient, navigate, window.location.hash]);
 
   if (isLoading) {
     return <ClientLayout><ClientsLoading /></ClientLayout>;

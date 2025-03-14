@@ -19,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, Mail, AlertTriangle, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse e-mail valide" }),
@@ -54,43 +55,60 @@ export default function Login() {
   const [updatePasswordMode, setUpdatePasswordMode] = useState(false);
   const [updatePasswordLoading, setUpdatePasswordLoading] = useState(false);
   const [updatePasswordError, setUpdatePasswordError] = useState<string | null>(null);
+  const [passwordResetToken, setPasswordResetToken] = useState<string | null>(null);
+  const [type, setType] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
-  const supabase = getSupabaseClient();
-  const adminSupabase = getAdminSupabaseClient();
 
   // Detect password reset flow
   useEffect(() => {
     const checkForPasswordReset = async () => {
-      // Check if we have an access token in the URL (this indicates a password reset flow)
-      const hashParams = new URLSearchParams(location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const type = hashParams.get('type');
+      console.log("Checking for password reset parameters");
       
-      if (accessToken && type === 'recovery') {
-        console.log("Password reset flow detected");
-        setUpdatePasswordMode(true);
+      // Check if we have parameters in the URL hash
+      if (location.hash) {
+        console.log("Hash detected:", location.hash);
+        const hashParams = new URLSearchParams(location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const typeParam = hashParams.get('type');
         
-        // Set the session with these tokens
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || '',
-        });
+        console.log("Access token:", accessToken ? "Present" : "Not present");
+        console.log("Type:", typeParam);
         
-        if (error) {
-          console.error("Error setting session from recovery tokens:", error);
-          toast.error("Erreur lors de la récupération de votre session");
-          setUpdatePasswordError("Lien de réinitialisation invalide ou expiré. Veuillez réessayer.");
-        } else {
-          console.log("Session set for password reset");
+        if (accessToken && typeParam === 'recovery') {
+          console.log("Password reset flow detected");
+          setPasswordResetToken(accessToken);
+          setType(typeParam);
+          setUpdatePasswordMode(true);
+          
+          try {
+            // Set the session with these tokens
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+            
+            if (error) {
+              console.error("Error setting session from recovery tokens:", error);
+              toast.error("Erreur lors de la récupération de votre session");
+              setUpdatePasswordError("Lien de réinitialisation invalide ou expiré. Veuillez réessayer.");
+              setUpdatePasswordMode(false);
+            } else {
+              console.log("Session set for password reset");
+            }
+          } catch (err) {
+            console.error("Exception during session setting:", err);
+            setUpdatePasswordError("Une erreur est survenue lors de la récupération de votre session");
+            setUpdatePasswordMode(false);
+          }
         }
       }
     };
     
     checkForPasswordReset();
-  }, [location, supabase.auth]);
+  }, [location.hash]);
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -122,6 +140,7 @@ export default function Login() {
   const testConnection = async () => {
     try {
       setLoginError(null);
+      console.log("Testing Supabase connection...");
       const { data, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -142,39 +161,17 @@ export default function Login() {
     try {
       setLoading(true);
       setLoginError(null);
-      console.log("Attempting signin with email:", data.email);
+      console.log("Attempting login with email:", data.email);
       
-      const { data: authData, error } = await supabase.auth.signInWithPassword({ 
-        email: data.email, 
-        password: data.password 
-      });
-      
+      const { error } = await signIn(data.email, data.password);
       if (error) {
-        console.error("Sign in error:", error);
-        setLoginError(error.message === 'Invalid login credentials' 
-          ? 'Email ou mot de passe incorrect' 
-          : `Erreur: ${error.message}`);
-        return;
+        throw error;
       }
-      
-      console.log("Sign in successful, session established");
-      
-      // Simuler un signIn réussi pour mettre à jour le contexte d'auth
-      await signIn(data.email, data.password);
-      
-      // Redirect to appropriate dashboard based on role
-      if (isClient()) {
-        navigate("/client/dashboard");
-      } else if (isAdmin()) {
-        navigate("/dashboard");
-      } else {
-        // Default fallback
-        navigate("/dashboard");
-      }
-      
     } catch (error: any) {
       console.error("Error signing in:", error);
-      setLoginError(error.message || "Erreur lors de la connexion");
+      setLoginError(error.message === 'Invalid login credentials' 
+        ? 'Email ou mot de passe incorrect' 
+        : error.message || "Erreur lors de la connexion");
     } finally {
       setLoading(false);
     }
@@ -185,42 +182,7 @@ export default function Login() {
       setResetLoading(true);
       setResetError(null);
       
-      // 1. Check if email exists in auth.users
-      const { data: userData, error: userError } = await adminSupabase.auth.admin
-        .getUserByEmail(data.email);
-      
-      if (userError) {
-        console.error("Error checking user:", userError);
-      }
-      
-      // 2. If not in auth system, check if it exists as a client
-      if (!userData?.user) {
-        // Check if email exists in clients table
-        const { data: clientData, error: clientError } = await supabase
-          .from('clients')
-          .select('id, name, email')
-          .eq('email', data.email)
-          .maybeSingle();
-          
-        if (clientError && clientError.code !== 'PGRST116') {
-          console.error("Error checking client:", clientError);
-          throw new Error("Erreur lors de la vérification du client");
-        }
-        
-        if (clientData) {
-          // Client exists but no auth account
-          setResetError(
-            "Cette adresse email est associée à un client mais n'a pas encore de compte utilisateur. " +
-            "Veuillez créer un compte avec cette adresse."
-          );
-          return;
-        } else {
-          // No client or user found
-          throw new Error("Aucun compte trouvé avec cette adresse email");
-        }
-      }
-      
-      // Email exists in auth system, proceed with password reset
+      console.log("Sending password reset to:", data.email);
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: `${window.location.origin}/login`,
       });
@@ -259,13 +221,11 @@ export default function Login() {
       
       toast.success("Mot de passe mis à jour avec succès");
       
-      // Redirect to login after a successful password update
-      setUpdatePasswordMode(false);
-      
       // Clear the URL hash to remove the tokens
       window.history.replaceState(null, '', location.pathname);
       
       // Show login form again
+      setUpdatePasswordMode(false);
       loginForm.reset();
       
     } catch (error: any) {
@@ -326,6 +286,30 @@ export default function Login() {
                 }
               </CardDescription>
             </CardHeader>
+
+            {debugMode && (
+              <div className="px-6 mb-4">
+                <Alert className="bg-yellow-50 border-yellow-200">
+                  <div className="text-xs space-y-2">
+                    <div><strong>Mode Debug:</strong> Info pour développeur</div>
+                    <div>Hash: <code className="text-xs break-all">{location.hash || "Aucun"}</code></div>
+                    <div>Type: <code>{type || "Aucun"}</code></div>
+                    <div>Reset Token: <code>{passwordResetToken ? "Présent" : "Aucun"}</code></div>
+                    <div>
+                      <Button 
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs h-7 mt-1"
+                        onClick={testConnection}
+                      >
+                        Tester connexion Supabase
+                      </Button>
+                    </div>
+                  </div>
+                </Alert>
+              </div>
+            )}
 
             {updatePasswordMode ? (
               // Formulaire de mise à jour du mot de passe
@@ -540,86 +524,73 @@ export default function Login() {
                       <Button
                         type="button"
                         variant="link"
-                        className="px-0 text-sm"
-                        onClick={() => setResetPassword(true)}
+                        className="h-auto p-0 text-sm"
+                        onClick={() => {
+                          setResetPassword(true);
+                          loginForm.reset();
+                        }}
                       >
-                        Mot de passe oublié ?
+                        Mot de passe oublié?
                       </Button>
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={loading}
+                    >
                       {loading ? "Connexion en cours..." : "Se connecter"}
                     </Button>
-                    
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      className="w-full"
-                      onClick={loginWithTestAccount}
-                    >
-                      Connexion avec compte démo
-                    </Button>
-                    
-                    {debugMode && (
-                      <div className="space-y-2 mt-4 p-4 bg-muted/50 rounded-md">
-                        <h3 className="text-sm font-medium">Mode Debug</h3>
-                        <Button 
-                          type="button" 
-                          variant="secondary" 
-                          size="sm" 
-                          className="w-full"
-                          onClick={testConnection}
-                        >
-                          Tester la connexion à Supabase
-                        </Button>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          <p>Compte démo: admin@test.com / admintest123</p>
-                          <p>URL Supabase: {import.meta.env.VITE_SUPABASE_URL || "Non défini"}</p>
-                        </div>
+                    <div className="text-center space-y-2">
+                      <div className="text-sm text-muted-foreground">
+                        ou
                       </div>
-                    )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={loginWithTestAccount}
+                      >
+                        Se connecter avec le compte démo
+                      </Button>
+                    </div>
                   </form>
                 </Form>
               </CardContent>
             )}
-            
-            <CardFooter className="flex flex-col space-y-4 border-t pt-4">
-              <div className="text-sm text-center text-muted-foreground">
-                <span>Vous n'avez pas de compte ? </span>
-                <Link to="/signup" className="text-primary hover:underline">
-                  Créer un compte
-                </Link>
-              </div>
-            </CardFooter>
           </Card>
         </div>
       </div>
-
-      {/* Image à droite - Mise à jour avec une image plus appropriée pour le matériel IT */}
-      <div className="hidden lg:block lg:w-1/2 bg-primary-50">
-        <div className="h-full w-full bg-cover bg-center" 
-             style={{ 
-               backgroundImage: "url('https://images.unsplash.com/photo-1611078489935-0cb964de46d6?auto=format&fit=crop&q=80&ixlib=rb-4.0.3')", 
-               backgroundSize: 'cover',
-               position: 'relative'
-             }}>
-          <div className="absolute inset-0 bg-primary/10 backdrop-blur-[2px]"></div>
-          <div className="absolute inset-0 flex flex-col justify-center p-12">
-            <div className="glass p-8 max-w-md">
-              <h2 className="text-2xl font-bold mb-4">Leasing de matériel informatique reconditionné simplifié</h2>
-              <p className="text-muted-foreground mb-6">
-                Accédez à votre espace personnel pour gérer vos contrats, 
-                suivre vos demandes et consulter notre catalogue de matériel informatique reconditionné.
-              </p>
-              <div className="flex items-center text-primary font-medium">
-                En savoir plus <ArrowRight className="ml-2 h-4 w-4" />
-              </div>
-            </div>
+      
+      {/* Bannière à droite */}
+      <div className="hidden lg:block lg:w-1/2 bg-gradient-to-br from-primary-foreground to-primary">
+        <div className="flex flex-col justify-center items-center h-full text-white p-12">
+          <h1 className="text-3xl font-bold mb-4">iTakeCare Hub</h1>
+          <p className="text-lg mb-8 text-center max-w-md">
+            Plateforme de gestion pour le leasing de matériel informatique reconditionné. Simplifiez vos processus et gérez vos clients efficacement.
+          </p>
+          <div className="p-6 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">Fonctionnalités principales</h3>
+            <ul className="space-y-3">
+              <li className="flex items-center gap-2">
+                <ArrowRight className="h-4 w-4" />
+                <span>Gestion des clients et contrats</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <ArrowRight className="h-4 w-4" />
+                <span>Création et suivi d'offres</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <ArrowRight className="h-4 w-4" />
+                <span>Tableau de bord intuitif</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <ArrowRight className="h-4 w-4" />
+                <span>Espace client dédié</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-// Importation nécessaire pour la fonctionnalité de réinitialisation de mot de passe
-import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";

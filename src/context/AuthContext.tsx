@@ -21,7 +21,7 @@ interface AuthContextType {
   session: Session | null;
   user: UserProfile | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: Error }>;
   signUp: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
@@ -50,6 +50,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
+        // Check for password reset flow
+        const hash = window.location.hash;
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const type = hashParams.get('type');
+        
+        // If we're in a password reset flow, don't redirect and don't set the session
+        if (type === 'recovery') {
+          console.log("Detected password reset flow, keeping user on login page");
+          setIsLoading(false);
+          return;
+        }
+        
         setSession(currentSession);
         
         if (currentSession) {
@@ -73,6 +85,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (_event, newSession) => {
             console.log("Auth state change:", _event, newSession ? "session exists" : "no session");
+            
+            // If hash contains recovery type, don't set session or redirect
+            const currentHash = window.location.hash;
+            const currentHashParams = new URLSearchParams(currentHash.substring(1));
+            const currentType = currentHashParams.get('type');
+            
+            if (currentType === 'recovery' && _event !== 'PASSWORD_RECOVERY') {
+              console.log("Recovery flow is active, not setting session");
+              setIsLoading(false);
+              return;
+            }
+            
             setSession(newSession);
             
             if (newSession) {
@@ -124,51 +148,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let profileData = null;
       
       try {
-        const { data, error } = await adminSupabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .single();
           
         if (error) {
-          console.error("Admin fetch error:", error);
+          console.error("Standard fetch error:", error);
         } else if (data) {
-          console.log("Profile data retrieved via admin client:", data);
+          console.log("Profile data retrieved via standard client:", data);
           profileData = data;
         }
-      } catch (adminError) {
-        console.error('Admin fetch failed:', adminError);
-      }
-      
-      if (!profileData) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-          
-          if (error) {
-            console.error("Standard fetch error:", error);
-          } else if (data) {
-            console.log("Profile data retrieved via standard client:", data);
-            profileData = data;
-          }
-        } catch (standardError) {
-          console.error('Standard fetch failed:', standardError);
-        }
+      } catch (standardError) {
+        console.error('Standard fetch failed:', standardError);
       }
       
       if (!profileData && session) {
         console.log("No profile found, creating default profile");
+        
+        // Get user metadata from auth
+        const { data: authUser } = await supabase.auth.getUser();
+        const userMetadata = authUser?.user?.user_metadata;
+        
         profileData = {
           id: userId,
-          first_name: null,
-          last_name: null,
-          role: 'client' as const,
-          company: null,
+          first_name: userMetadata?.first_name || null,
+          last_name: userMetadata?.last_name || null,
+          role: userMetadata?.role || 'client' as const,
+          company: userMetadata?.company || null,
           avatar_url: null
         };
+        
+        // Try to create the profile
+        try {
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert(profileData);
+            
+          if (insertError) {
+            console.error("Error creating profile:", insertError);
+          } else {
+            console.log("Created new profile for user");
+          }
+        } catch (insertError) {
+          console.error("Exception creating profile:", insertError);
+        }
       }
       
       if (profileData) {
@@ -190,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function signIn(email: string, password: string) {
+  async function signIn(email: string, password: string): Promise<{ error?: Error }> {
     try {
       setIsLoading(true);
       console.log("Attempting signin with email:", email);
@@ -202,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error("Sign in error:", error);
-        throw error;
+        return { error };
       }
 
       if (data.session) {
@@ -223,12 +248,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await linkUserToClient(data.user.id, email);
         }
         
-        navigate('/dashboard');
-        toast.success('Connexion réussie');
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const type = hashParams.get('type');
+        
+        // Don't navigate if we're in a password reset flow
+        if (type !== 'recovery') {
+          navigate('/dashboard');
+          toast.success('Connexion réussie');
+        }
       } else {
         console.error("No session returned after signin");
         toast.error('Erreur de connexion: aucune session retournée');
       }
+      
+      return {}; // Success
     } catch (error: any) {
       console.error('Error signing in:', error);
       const errorMessage = error.message === 'Invalid login credentials' 
@@ -236,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         : error.message || 'Erreur lors de la connexion';
       
       toast.error(errorMessage);
+      return { error };
     } finally {
       setIsLoading(false);
     }
@@ -304,6 +338,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
       
+      navigate('/login');
       console.log("Supabase signOut completed successfully");
     } catch (error: any) {
       console.error('Error signing out:', error);
@@ -346,17 +381,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log(`Création d'un compte utilisateur pour le client avec l'email ${email}`);
       
       // Vérifier si un compte utilisateur existe déjà
-      const { data: userData, error: userError } = await adminSupabase.auth.admin
-        .getUserByEmail(email);
-        
-      if (userError) {
-        console.error("Error checking user existence:", userError);
-        toast.error("Erreur lors de la vérification de l'utilisateur");
-        return false;
-      }
+      const checkUserFunction = async () => {
+        try {
+          const { data: authUsers } = await supabase.auth.admin.listUsers();
+          const existingUser = authUsers?.users?.find(user => user.email === email);
+          return existingUser || null;
+        } catch (e) {
+          console.error("Error checking users with admin:", e);
+          
+          // Fallback to RPC call
+          try {
+            const { data: exists } = await supabase.rpc('check_user_exists_by_email', {
+              user_email: email
+            });
+            
+            if (exists) {
+              console.log("User exists according to RPC");
+              return true;
+            }
+            
+            return null;
+          } catch (rpcError) {
+            console.error("Error checking user with RPC:", rpcError);
+            return null;
+          }
+        }
+      };
       
-      if (userData?.user) {
-        console.log("User already exists:", userData.user);
+      const existingUser = await checkUserFunction();
+      
+      if (existingUser) {
+        console.log("User already exists:", existingUser);
         toast.info("Un compte utilisateur existe déjà pour cette adresse email");
         return true;
       }
@@ -380,20 +435,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Générer un mot de passe temporaire
-      const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).toUpperCase().slice(-2) + "!1";
+      const generatePassword = () => {
+        const randomPart = Math.random().toString(36).slice(-10);
+        const uppercasePart = Math.random().toString(36).toUpperCase().slice(-2);
+        return `${randomPart}${uppercasePart}!1`;
+      };
+      
+      const tempPassword = generatePassword();
       
       // Créer le compte utilisateur
-      const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
-        email: email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
-          first_name: client.name.split(' ')[0],
-          last_name: client.name.split(' ').slice(1).join(' '),
-          role: 'client',
-          company: client.company
+      const createUserFunction = async () => {
+        try {
+          return await supabase.auth.admin.createUser({
+            email: email,
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: {
+              first_name: client.name.split(' ')[0],
+              last_name: client.name.split(' ').slice(1).join(' '),
+              role: 'client',
+              company: client.company
+            }
+          });
+        } catch (e) {
+          console.error("Error creating user with admin:", e);
+          
+          // Fallback to signUp
+          return await supabase.auth.signUp({
+            email: email,
+            password: tempPassword,
+            options: {
+              data: {
+                first_name: client.name.split(' ')[0],
+                last_name: client.name.split(' ').slice(1).join(' '),
+                role: 'client',
+                company: client.company
+              },
+              emailRedirectTo: `${window.location.origin}/login`
+            }
+          });
         }
-      });
+      };
+      
+      const { data: newUser, error: createError } = await createUserFunction();
       
       if (createError) {
         console.error("Error creating user:", createError);
@@ -405,7 +489,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (newUser?.user) {
         const { error: updateError } = await supabase
           .from('clients')
-          .update({ user_id: newUser.user.id })
+          .update({ 
+            user_id: newUser.user.id,
+            has_user_account: true,
+            user_account_created_at: new Date().toISOString()
+          })
           .eq('id', client.id);
           
         if (updateError) {
@@ -413,14 +501,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         // Envoyer l'email de réinitialisation de mot de passe
-        const { error: resetError } = await adminSupabase.auth.admin
-          .generateLink({
-            type: 'recovery',
-            email: email,
-            options: {
-              redirectTo: `${window.location.origin}/login`
-            }
-          });
+        const siteUrl = window.location.origin;
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${siteUrl}/login`
+        });
           
         if (resetError) {
           console.error("Error sending reset email:", resetError);

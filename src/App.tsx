@@ -1,5 +1,6 @@
 
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -44,13 +45,37 @@ const ProtectedRoute = ({
   requireAdmin?: boolean 
 }) => {
   const { user, isLoading, isAdmin, isClient } = useAuth();
+  const location = useLocation();
+
+  // Check for password reset flow
+  useEffect(() => {
+    if (location.hash) {
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      const type = hashParams.get('type');
+      
+      if (type === 'recovery') {
+        console.log("Password reset detected in protected route");
+      }
+    }
+  }, [location.hash]);
   
   if (isLoading) {
     return <div>Chargement...</div>;
   }
   
+  // If we have a recovery token, we want to allow access to the login page
+  if (location.hash) {
+    const hashParams = new URLSearchParams(location.hash.substring(1));
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery' && location.pathname === '/login') {
+      return <>{children}</>;
+    }
+  }
+  
   if (!user) {
-    return <Navigate to="/login" />;
+    // Include the hash in the redirect so login can handle the password reset token
+    return <Navigate to={`/login${location.hash}`} />;
   }
   
   if (requireAdmin && !isAdmin()) {
@@ -66,6 +91,8 @@ const ProtectedRoute = ({
 };
 
 function App() {
+  const location = useLocation();
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="medease-theme">
