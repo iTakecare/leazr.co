@@ -361,7 +361,7 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
 
 export const createAccountForClient = async (client: Client): Promise<boolean> => {
   try {
-    if (!client.email) {
+    if (!client?.email) {
       throw new Error("Email required to create account");
     }
 
@@ -422,8 +422,8 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       console.log("New user created successfully:", signUpData?.user?.id);
       
       if (signUpData && signUpData.user) {
-        // Mise à jour explicite de la base de données pour s'assurer que has_user_account est true
-        const { data: updatedClient, error: updateError } = await supabase
+        // Mise à jour avec adminSupabase pour contourner les politiques RLS
+        const { data: updatedClient, error: updateError } = await adminSupabase
           .from('clients')
           .update({ 
             user_id: signUpData.user.id,

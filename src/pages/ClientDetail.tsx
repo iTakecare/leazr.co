@@ -23,30 +23,31 @@ export default function ClientDetail() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
-  useEffect(() => {
-    const fetchClient = async () => {
-      if (!id) return;
+  // Fonction pour charger les données du client
+  const fetchClient = async () => {
+    if (!id) return;
+    
+    setLoading(true);
+    try {
+      const clientData = await getClientById(id);
       
-      setLoading(true);
-      try {
-        const clientData = await getClientById(id);
-        
-        if (!clientData) {
-          toast.error("Client introuvable");
-          navigate("/clients");
-          return;
-        }
-        
-        console.log("Client data loaded:", clientData);
-        setClient(clientData);
-      } catch (error) {
-        console.error("Error fetching client:", error);
-        toast.error("Erreur lors du chargement du client");
-      } finally {
-        setLoading(false);
+      if (!clientData) {
+        toast.error("Client introuvable");
+        navigate("/clients");
+        return;
       }
-    };
+      
+      console.log("Client data loaded:", clientData);
+      setClient(clientData);
+    } catch (error) {
+      console.error("Error fetching client:", error);
+      toast.error("Erreur lors du chargement du client");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchClient();
   }, [id, navigate]);
 
@@ -85,12 +86,8 @@ export default function ClientDetail() {
       const success = await createAccountForClient(client);
       if (success) {
         // Recharger les données du client pour afficher les changements
-        const updatedClient = await getClientById(id!);
-        if (updatedClient) {
-          console.log("Client data refreshed after account creation:", updatedClient);
-          setClient(updatedClient);
-          toast.success("Compte utilisateur créé et email de configuration envoyé");
-        }
+        await fetchClient();
+        toast.success("Compte utilisateur créé et email de configuration envoyé");
       }
     } catch (error) {
       console.error("Error creating account:", error);
