@@ -47,7 +47,8 @@ const ClientRequestsNotifications = () => {
       
       if (error) throw error;
       
-      setPendingRequests(data);
+      setPendingRequests(data || []);
+      console.log("Client requests loaded:", data);
     } catch (err) {
       console.error("Erreur lors du chargement des demandes en attente:", err);
       setError("Impossible de charger les demandes en attente");

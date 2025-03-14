@@ -5,16 +5,12 @@ import AdminOffersNotifications from "@/components/offers/AdminOffersNotificatio
 import ClientRequestsNotifications from "@/components/clients/ClientRequestsNotifications";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/utils/formatters";
-import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import { 
   TrendingUp, 
   FileText, 
   Package, 
-  BarChart3, 
-  ChevronRight 
+  BarChart3
 } from "lucide-react";
 
 const Dashboard = () => {

@@ -108,7 +108,7 @@ const ClientEquipmentRequestPage = () => {
         client_name: user?.company || `${user?.first_name || ''} ${user?.last_name || ''}`,
         client_email: user?.email || '',
         equipment_description: values.description,
-        additional_info: values.additional_info,
+        additional_info: values.additional_info || '',  // Fixing the error here by providing a default empty string
         amount: values.amount,
         monthly_payment: calculateMonthlyPayment(values.amount),
         coefficient: 0.04, // Exemple de coefficient
