@@ -96,6 +96,20 @@ serve(async (req) => {
     try {
       // Construire le contenu de l'email
       const subject = "Demande de documents complémentaires pour votre offre de leasing";
+      const plainTextContent = `
+Bonjour ${clientName},
+
+Nous avons besoin des documents suivants pour poursuivre l'analyse de votre offre de leasing :
+${requestedDocs.map(doc => `- ${doc.startsWith('custom:') ? doc.substring(7) : doc}`).join('\n')}
+
+${customMessage ? `Message de l'équipe :\n${customMessage}\n` : ''}
+
+Merci de nous fournir ces documents dès que possible afin que nous puissions finaliser votre dossier.
+Vous pouvez répondre directement à cet email en attachant les documents demandés.
+
+Cet email est envoyé automatiquement par l'application de gestion de leasing.
+      `;
+      
       const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2c3e50;">Documents complémentaires requis</h2>
@@ -117,10 +131,11 @@ serve(async (req) => {
         from: `${smtpConfig.from_name} <${smtpConfig.from_email}>`,
         to: clientEmail,
         subject: subject,
-        content: "Veuillez activer l'affichage HTML pour visualiser correctement ce message.",
+        content: plainTextContent,
         html: htmlContent,
         headers: {
-          "Content-Type": "text/html; charset=UTF-8"
+          "Content-Type": "multipart/alternative",
+          "MIME-Version": "1.0"
         }
       });
 

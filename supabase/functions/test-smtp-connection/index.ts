@@ -49,12 +49,25 @@ serve(async (req) => {
     });
 
     try {
-      // Tenter d'envoyer un email de test avec des headers Content-Type explicites
+      // Définir un contenu simple non-HTML d'abord pour tester
+      const plainTextContent = `
+Test de connexion SMTP réussi
+
+Ceci est un email de test pour vérifier les paramètres SMTP.
+
+Détails de la configuration:
+- Serveur: ${config.host}
+- Port: ${config.port}
+- Utilisateur: ${config.username}
+- Sécurisé: ${config.secure ? "Oui" : "Non"}
+      `;
+
+      // Tenter d'envoyer un email de test simple
       await client.send({
         from: `${config.from_name} <${config.from_email}>`,
         to: config.username,
         subject: "Test de connexion SMTP réussi",
-        content: "Ceci est un email de test pour vérifier les paramètres SMTP.",
+        content: plainTextContent,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #2c3e50;">Connexion SMTP réussie!</h1>
@@ -70,7 +83,8 @@ serve(async (req) => {
           </div>
         `,
         headers: {
-          "Content-Type": "text/html; charset=UTF-8"
+          "Content-Type": "multipart/alternative",
+          "MIME-Version": "1.0"
         }
       });
 
