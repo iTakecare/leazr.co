@@ -15,7 +15,6 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Alert } from "@/components/ui/alert";
-import { products as defaultProducts } from "@/data/products";
 
 // Map for translating category names to French
 const categoryTranslations: Record<string, string> = {
@@ -50,38 +49,25 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
   const [selectedCategory, setSelectedCategory] = useState("all");
   
   console.log("ProductCatalog opened:", isOpen);
-  console.log("Default products available:", defaultProducts.length); // Debug log
-  
-  // Ensure default products are properly formatted
-  const enrichedDefaultProducts = defaultProducts.map(product => ({
-    ...product,
-    specifications: product.specifications || {},
-    createdAt: product.createdAt || new Date(),
-    updatedAt: product.updatedAt || new Date(),
-    active: product.active !== undefined ? product.active : true
-  }));
-  
-  // Utiliser React Query avec les produits par défaut comme fallback
+
+  // Fetch products from the server
   const { 
-    data: productsFromServer, 
+    data: products = [], 
     isLoading, 
     isError,
     error
   } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
-    enabled: isOpen, // Ne charger les données que lorsque le catalogue est ouvert
+    enabled: isOpen, // Only load data when the catalog is open
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 3, // Retry 3 times if the request fails
   });
   
-  // On utilise les produits du serveur s'ils sont disponibles, sinon les produits par défaut
-  const products = productsFromServer?.length ? productsFromServer : enrichedDefaultProducts;
-  
-  console.log("Products available:", products.length); // Debug log
-  console.log("Products from server:", productsFromServer?.length || 0);
+  console.log("Products from server:", products.length);
   if (error) console.error("Error loading products:", error);
   
-  // Extraire les catégories à partir des produits chargés
+  // Filter products based on search term and category
   const filteredProducts = React.useMemo(() => {
     return products.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -91,7 +77,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
     });
   }, [products, searchTerm, selectedCategory]);
   
-  console.log("Filtered products:", filteredProducts.length); // Debug log
+  console.log("Filtered products:", filteredProducts.length);
   
   const handleSelectProduct = (product: Product) => {
     console.log("Selected product:", product.name);
@@ -131,7 +117,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
           {isError && (
             <Alert variant="destructive" className="my-2">
               <AlertCircle className="h-4 w-4" />
-              <p className="ml-2">Erreur lors du chargement des produits. Utilisation des données locales.</p>
+              <p className="ml-2">Erreur lors du chargement des produits. Veuillez réessayer ultérieurement.</p>
             </Alert>
           )}
           
@@ -169,7 +155,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
                   >
                     <div className="aspect-square w-full overflow-hidden bg-muted mb-3 rounded-md">
                       <img
-                        src={product.imageUrl}
+                        src={product.imageUrl || '/placeholder.svg'}
                         alt={product.name}
                         className="h-full w-full object-cover"
                         loading="lazy"

@@ -49,6 +49,9 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
   // Get the alt text
   const imageAlt = product.image_alt || `${product.name} image`;
 
+  // Calculate monthly price if needed
+  const monthlyPrice = product.monthly_price || (product.price ? product.price * 0.033 : 0);
+
   return (
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 border-transparent hover:border-primary/20">
       <div className="aspect-square overflow-hidden relative">
@@ -78,7 +81,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
         <div>
           <div className="font-bold text-lg">
-            {formatCurrency(product.monthly_price || 0)}<span className="text-xs font-normal text-muted-foreground">/mois</span>
+            {formatCurrency(monthlyPrice)}<span className="text-xs font-normal text-muted-foreground">/mois</span>
           </div>
           <div className="text-xs text-muted-foreground">
             Prix d'achat: {formatCurrency(product.price)}
