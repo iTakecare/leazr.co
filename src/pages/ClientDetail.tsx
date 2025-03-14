@@ -5,7 +5,7 @@ import * as clientService from "@/services/clientService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { AlertTriangle, UserCircle2, Building2, Phone, MapPin, FileText, RefreshCw, Search, Plus } from "lucide-react";
+import { AlertTriangle, UserCircle2, Building2, Phone, MapPin, FileText, RefreshCw, Search, Plus, Mail } from "lucide-react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import ClientEditDialog from "@/components/clients/ClientEditDialog";
@@ -33,6 +33,7 @@ const ClientDetail = () => {
   const [isMerging, setIsMerging] = useState(false);
   const [targetClientId, setTargetClientId] = useState('');
   const [showMergeInput, setShowMergeInput] = useState(false);
+  const [isResetPasswordLoading, setIsResetPasswordLoading] = useState(false);
 
   const {
     data: client,
@@ -111,6 +112,26 @@ const ClientDetail = () => {
     if (user?.id && user?.email) {
       const results = await verifyClientUserAssociation(user.id, user.email);
       setDiagnosticResults(results);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!client?.email) {
+      toast.error("Email du client non défini");
+      return;
+    }
+
+    setIsResetPasswordLoading(true);
+    try {
+      const success = await clientService.resetClientPassword(client.email);
+      if (success) {
+        toast.success(`Email de réinitialisation envoyé à ${client.email}`);
+      }
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast.error("Erreur lors de l'envoi du mail de réinitialisation");
+    } finally {
+      setIsResetPasswordLoading(false);
     }
   };
 
@@ -220,9 +241,20 @@ const ClientDetail = () => {
               ID: {client.id}
             </p>
           </div>
-          <div>
+          <div className="flex gap-2">
             <Button onClick={handleEditClick}>Modifier</Button>
-            <Button variant="destructive" onClick={() => setShowMergeInput(true)} disabled={isMerging} className="ml-2">
+            {client.email && (
+              <Button 
+                variant="outline" 
+                onClick={handleResetPassword}
+                disabled={isResetPasswordLoading}
+                className="flex items-center gap-1"
+              >
+                <Mail className="h-4 w-4" />
+                {isResetPasswordLoading ? "Envoi en cours..." : "Réinitialiser mot de passe"}
+              </Button>
+            )}
+            <Button variant="destructive" onClick={() => setShowMergeInput(true)} disabled={isMerging}>
               {isMerging ? "Fusion en cours..." : "Fusionner"}
             </Button>
           </div>
