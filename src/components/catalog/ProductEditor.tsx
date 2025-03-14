@@ -12,6 +12,12 @@ import { toast } from "sonner";
 import { Upload, X, Plus, Image, Euro } from "lucide-react";
 import { Product } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Available product categories with French translations
 const productCategories = [
@@ -45,6 +51,26 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
+// Popular brand options
+const popularBrands = [
+  "Apple",
+  "Samsung",
+  "HP",
+  "Dell",
+  "Lenovo",
+  "Asus",
+  "Acer",
+  "Microsoft",
+  "Sony",
+  "LG",
+  "Huawei",
+  "Canon",
+  "Xerox",
+  "Logitech",
+  "Brother",
+  "Autre"
+];
+
 interface ProductEditorProps {
   isOpen: boolean;
   onClose: () => void;
@@ -55,6 +81,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [brand, setBrand] = useState("");
   const [price, setPrice] = useState("");
   const [monthlyPrice, setMonthlyPrice] = useState("");
   const [description, setDescription] = useState("");
@@ -65,6 +92,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   const resetForm = () => {
     setName("");
     setCategory("");
+    setBrand("");
     setPrice("");
     setMonthlyPrice("");
     setDescription("");
@@ -140,7 +168,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       price: parseFloat(price),
       monthly_price: monthlyPrice ? parseFloat(monthlyPrice) : undefined,
       description,
-      brand: "",
+      brand: brand || "",
       imageUrl: "",
       specifications: {}
     });
@@ -198,6 +226,22 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                 placeholder="Nom du produit"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="brand">Marque</Label>
+              <Select value={brand} onValueChange={setBrand}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une marque" />
+                </SelectTrigger>
+                <SelectContent>
+                  {popularBrands.map((brandName) => (
+                    <SelectItem key={brandName} value={brandName}>
+                      {brandName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
