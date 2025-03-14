@@ -30,34 +30,46 @@ const ProductDetail = () => {
   const [isParentProduct, setIsParentProduct] = useState(false);
   const [parentProduct, setParentProduct] = useState<Product | null>(null);
   const [showVariants, setShowVariants] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const { data: product, isLoading } = useQuery({
+  const productQuery = useQuery({
     queryKey: ["product", id],
-    queryFn: () => getProductById(id!),
+    queryFn: () => {
+      console.log(`Fetching product with ID: ${id}`);
+      return getProductById(id!);
+    },
     enabled: !!id,
+    retry: 2,
+    onError: (error) => {
+      console.error(`Error fetching product with ID ${id}:`, error);
+      toast.error("Erreur lors du chargement du produit");
+    }
   });
 
   useEffect(() => {
-    if (product) {
-      console.log("Product data loaded:", product);
-      setFormData(product);
+    if (productQuery.data) {
+      console.log("Product data loaded:", productQuery.data);
+      setFormData(productQuery.data);
+      setIsLoading(false);
       
-      if (product.specifications) {
-        setSpecifications(product.specifications as Record<string, string>);
+      if (productQuery.data.specifications) {
+        setSpecifications(productQuery.data.specifications as Record<string, string>);
       }
       
-      if (product.variants) {
+      if (productQuery.data.variants) {
         setIsParentProduct(true);
-        setVariants(product.variants);
+        setVariants(productQuery.data.variants);
       } else {
         setIsParentProduct(false);
       }
       
-      if (product.parent_id) {
-        fetchParentProduct(product.parent_id);
+      if (productQuery.data.parent_id) {
+        fetchParentProduct(productQuery.data.parent_id);
       }
+    } else if (productQuery.isError) {
+      setIsLoading(false);
     }
-  }, [product]);
+  }, [productQuery.data, productQuery.isError]);
   
   const fetchParentProduct = async (parentId: string) => {
     try {
@@ -99,6 +111,7 @@ const ProductDetail = () => {
     },
     onError: (error) => {
       toast.error("Erreur lors de la mise à jour du produit");
+      console.error("Update error:", error);
     }
   });
   
@@ -111,6 +124,7 @@ const ProductDetail = () => {
     },
     onError: (error) => {
       toast.error("Erreur lors de la suppression du produit");
+      console.error("Delete error:", error);
     }
   });
   
@@ -120,13 +134,14 @@ const ProductDetail = () => {
     onSuccess: (imageUrl: string) => {
       setFormData(prev => ({ ...prev, imageUrl }));
       updateMutation.mutate({ 
-        id: id, 
+        id: id!, 
         data: { imageUrl } 
       });
       toast.success("Image mise à jour avec succès");
     },
     onError: (error) => {
       toast.error("Erreur lors de la mise à jour de l'image");
+      console.error("Image upload error:", error);
     }
   });
   
@@ -194,7 +209,7 @@ const ProductDetail = () => {
     );
   }
   
-  if (!product) {
+  if (!productQuery.data && !isLoading) {
     return (
       <Container>
         <div className="py-8">
@@ -216,11 +231,11 @@ const ProductDetail = () => {
             <ArrowLeft className="mr-2 h-4 w-4" /> Retour
           </Button>
           <h1 className="text-3xl font-bold">Éditer le produit</h1>
-          {product.is_variation && parentProduct && (
+          {formData.is_variation && parentProduct && (
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={navigateToParent}
+              onClick={() => navigate(`/catalog/${parentProduct.id}`)}
               className="ml-auto"
             >
               <Layers className="mr-2 h-4 w-4" />
@@ -229,7 +244,7 @@ const ProductDetail = () => {
           )}
         </div>
         
-        {product.is_variation && parentProduct && (
+        {formData.is_variation && parentProduct && (
           <div className="mb-6 p-4 bg-muted rounded-lg">
             <div className="flex items-center">
               <div className="mr-3">
@@ -375,11 +390,11 @@ const ProductDetail = () => {
                     </Label>
                   </div>
                   
-                  {product.is_variation && product.variation_attributes && (
+                  {formData.is_variation && formData.variation_attributes && (
                     <div className="mt-6">
                       <h3 className="text-lg font-medium mb-3">Attributs de variation</h3>
                       <div className="space-y-3 bg-muted p-4 rounded-lg">
-                        {Object.entries(product.variation_attributes).map(([key, value]) => (
+                        {Object.entries(formData.variation_attributes).map(([key, value]) => (
                           <div key={key} className="grid grid-cols-2 gap-2">
                             <div className="text-sm font-medium">{key}:</div>
                             <div className="text-sm">{value}</div>
@@ -529,7 +544,7 @@ const ProductDetail = () => {
                         </div>
                       ) : null}
                     </>
-                  ) : product.is_variation && parentProduct ? (
+                  ) : formData.is_variation && parentProduct ? (
                     <>
                       <p className="text-muted-foreground mb-4">
                         Ce produit est une variante de {parentProduct.name}

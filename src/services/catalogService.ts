@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -47,7 +46,7 @@ export async function getProductById(id: string): Promise<Product | null> {
       .from('products')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error(`Error fetching product by ID ${id}:`, error);
@@ -64,11 +63,11 @@ export async function getProductById(id: string): Promise<Product | null> {
       data.monthly_price = parseFloat((data.price * 0.033).toFixed(2));
     }
 
-    console.log(`Successfully retrieved product with ID: ${id}`);
+    console.log(`Successfully retrieved product with ID: ${id}`, data);
     return data;
   } catch (error) {
     console.error("Error in getProductById:", error);
-    return null;
+    throw error;
   }
 }
 
@@ -98,22 +97,25 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
 
 export async function updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
   try {
+    console.log(`Updating product with ID: ${id}`, updates);
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('products')
       .update(updates)
       .eq('id', id)
       .select('*')
-      .single();
+      .maybeSingle();
 
     if (error) {
+      console.error(`Error updating product with ID ${id}:`, error);
       throw new Error(`Error updating product: ${error.message}`);
     }
 
+    console.log(`Successfully updated product with ID: ${id}`);
     return data || null;
   } catch (error) {
     console.error("Error in updateProduct:", error);
-    return null;
+    throw error;
   }
 }
 

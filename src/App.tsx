@@ -1,3 +1,4 @@
+
 import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -130,6 +131,7 @@ function App() {
               <Route path="/clients/edit/:id" element={<ClientForm />} />
               <Route path="/catalog" element={<Catalog />} />
               <Route path="/catalog/:id" element={<ProductDetail />} />
+              <Route path="/products/:id" element={<ProductDetail />} /> {/* Added new route for products */}
               <Route path="/settings" element={<Settings />} />
               <Route path="/create-offer" element={<CreateOffer />} />
               <Route path="/offers" element={<Offers />} />

@@ -17,12 +17,19 @@ const NotFound = () => {
   // Check if the path contains specific routes
   const isClientEditAttempt = location.pathname.includes('/clients/edit/');
   const isProductDetailAttempt = location.pathname.includes('/products/');
+  const isCatalogDetailAttempt = location.pathname.includes('/catalog/');
   
   const clientId = isClientEditAttempt ? 
     location.pathname.split('/clients/edit/')[1] : null;
   
   const productId = isProductDetailAttempt ?
     location.pathname.split('/products/')[1] : null;
+    
+  const catalogId = isCatalogDetailAttempt ?
+    location.pathname.split('/catalog/')[1] : null;
+
+  // If we have a product ID, use it for both routes
+  const productOrCatalogId = productId || catalogId;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -47,7 +54,7 @@ const NotFound = () => {
             </div>
           )}
           
-          {isProductDetailAttempt && productId && (
+          {productOrCatalogId && (isProductDetailAttempt || isCatalogDetailAttempt) && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
               <p className="text-amber-700 text-sm mb-4">
                 Le produit que vous recherchez n'a pas été trouvé. Revenez au catalogue pour voir les produits disponibles.
