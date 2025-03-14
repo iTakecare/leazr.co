@@ -1,3 +1,4 @@
+
 import React from "react";
 import { 
   Table, 
@@ -15,7 +16,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, FileText, RefreshCw, Trash2, Download, Building, Send, CheckCircle } from "lucide-react";
+import { MoreHorizontal, FileText, RefreshCw, Trash2, Download, Building, Send, CheckCircle, HelpCircle } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Offer } from "@/hooks/offers/useFetchOffers";
@@ -23,6 +24,7 @@ import OfferStatusBadge, { OFFER_STATUSES } from "@/components/offers/OfferStatu
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import RequestInfoModal from "./RequestInfoModal";
 
 interface OffersTableProps {
   offers: Offer[];
@@ -31,6 +33,7 @@ interface OffersTableProps {
   onResendOffer: (id: string) => void;
   onDownloadPdf: (id: string) => void;
   isUpdatingStatus: boolean;
+  onRequestInfo?: (offerId: string, requestedDocs: string[], customMessage: string) => Promise<void>;
 }
 
 const OffersTable: React.FC<OffersTableProps> = ({
@@ -39,13 +42,15 @@ const OffersTable: React.FC<OffersTableProps> = ({
   onDeleteOffer,
   onResendOffer,
   onDownloadPdf,
-  isUpdatingStatus
+  isUpdatingStatus,
+  onRequestInfo
 }) => {
   const navigate = useNavigate();
   const [statusDialogOpen, setStatusDialogOpen] = React.useState(false);
   const [selectedOffer, setSelectedOffer] = React.useState<Offer | null>(null);
   const [targetStatus, setTargetStatus] = React.useState<string>('');
   const [statusChangeReason, setStatusChangeReason] = React.useState('');
+  const [infoRequestDialogOpen, setInfoRequestDialogOpen] = React.useState(false);
   
   const handleRowClick = (offerId: string) => {
     navigate(`/offers/${offerId}`);
@@ -62,6 +67,18 @@ const OffersTable: React.FC<OffersTableProps> = ({
     if (selectedOffer && targetStatus) {
       await onStatusChange(selectedOffer.id, targetStatus, statusChangeReason);
       setStatusDialogOpen(false);
+    }
+  };
+  
+  const openInfoRequestDialog = (offer: Offer) => {
+    setSelectedOffer(offer);
+    setInfoRequestDialogOpen(true);
+  };
+  
+  const handleInfoRequest = async (requestedDocs: string[], customMessage: string) => {
+    if (selectedOffer && onRequestInfo) {
+      await onRequestInfo(selectedOffer.id, requestedDocs, customMessage);
+      setInfoRequestDialogOpen(false);
     }
   };
   
@@ -102,6 +119,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
           icon: Building,
           onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.APPROVED.id),
         });
+        if (onRequestInfo) {
+          actions.push({
+            label: "Demander des infos",
+            icon: HelpCircle,
+            onClick: () => openInfoRequestDialog(offer),
+          });
+        }
         break;
         
       case OFFER_STATUSES.APPROVED.id:
@@ -262,6 +286,15 @@ const OffersTable: React.FC<OffersTableProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {onRequestInfo && (
+        <RequestInfoModal 
+          isOpen={infoRequestDialogOpen}
+          onClose={() => setInfoRequestDialogOpen(false)}
+          onSendRequest={handleInfoRequest}
+          offerId={selectedOffer?.id || ''}
+        />
+      )}
     </>
   );
 };

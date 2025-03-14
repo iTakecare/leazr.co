@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Building, FileText, Send, Download, RefreshCw, Trash2, CheckCircle, Mail, HelpCircle, X } from "lucide-react";
+import { ChevronLeft, Building, FileText, Send, Download, RefreshCw, Trash2, CheckCircle, Mail, HelpCircle, X, Check } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { getOfferById, updateOfferStatus, getWorkflowLogs, deleteOffer } from "@/services/offerService";
+import { getOfferById, updateOfferStatus, getWorkflowLogs, deleteOffer, sendInfoRequest, processInfoResponse } from "@/services/offerService";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
