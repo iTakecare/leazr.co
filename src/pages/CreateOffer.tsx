@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -6,7 +7,7 @@ import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { Equipment, Leaser } from "@/types/equipment";
+import { Leaser } from "@/types/equipment";
 import ProductCatalog from "@/components/ui/ProductCatalog";
 import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
@@ -197,7 +198,7 @@ const CreateOffer = () => {
               <div className="flex items-center gap-3">
                 <CalcIcon className="h-8 w-8 text-blue-600" />
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Calculateur de Mensualités
+                  Calculateur de Mensualités iTakecare
                 </h1>
               </div>
               <div className="flex gap-4">
@@ -211,35 +212,21 @@ const CreateOffer = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white rounded-2xl shadow-xl p-8">
-                <div className="grid gap-6">
-                  <LeaserButton 
-                    selectedLeaser={selectedLeaser} 
-                    onOpen={() => setIsLeaserSelectorOpen(true)} 
-                  />
-                  
-                  <EquipmentForm
-                    equipment={equipment}
-                    setEquipment={setEquipment}
-                    selectedLeaser={selectedLeaser}
-                    addToList={addToList}
-                    editingId={editingId}
-                    cancelEditing={cancelEditing}
-                    onOpenCatalog={() => setIsCatalogOpen(true)}
-                    coefficient={coefficient}
-                    monthlyPayment={monthlyPayment}
-                  />
-
-                  <MarginCalculator
-                    targetMonthlyPayment={targetMonthlyPayment}
-                    setTargetMonthlyPayment={setTargetMonthlyPayment}
-                    calculatedMargin={calculatedMargin}
-                    applyCalculatedMargin={applyCalculatedMargin}
-                  />
-                </div>
+              <div>
+                <EquipmentForm
+                  equipment={equipment}
+                  setEquipment={setEquipment}
+                  selectedLeaser={selectedLeaser}
+                  addToList={addToList}
+                  editingId={editingId}
+                  cancelEditing={cancelEditing}
+                  onOpenCatalog={() => setIsCatalogOpen(true)}
+                  coefficient={coefficient}
+                  monthlyPayment={monthlyPayment}
+                />
               </div>
 
-              <div className="bg-white rounded-2xl shadow-xl p-8">
+              <div className="space-y-8">
                 <EquipmentList
                   equipmentList={equipmentList}
                   editingId={editingId}

@@ -1,10 +1,9 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
-import { Calculator } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 interface MarginCalculatorProps {
   targetMonthlyPayment: number;
@@ -39,59 +38,47 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center">
-          <Calculator className="h-4 w-4 mr-2 text-primary" />
-          Calculateur de marge inversé
-        </CardTitle>
-        <CardDescription className="text-xs">
-          Calculez la marge à appliquer pour atteindre une mensualité cible
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-2">
-            <div className="col-span-2">
-              <Input
-                type="number"
-                min="0"
-                step="1"
-                value={inputValue}
-                onChange={handleInputChange}
-                onBlur={handleBlur}
-                onKeyDown={handleKeyDown}
-                className="w-full"
-                placeholder="Mensualité souhaitée"
-              />
-            </div>
-            <Button 
-              onClick={applyCalculatedMargin}
-              disabled={calculatedMargin.percentage <= 0}
-              variant="secondary"
-              className="w-full"
-            >
-              Appliquer
-            </Button>
-          </div>
-
-          <div className="bg-muted/50 p-3 rounded text-sm">
-            <div className="flex justify-between mb-1">
-              <span className="text-muted-foreground">Marge calculée:</span>
-              <span className="font-medium">
-                {formatPercentage(calculatedMargin.percentage)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Montant de la marge:</span>
-              <span className="font-medium">
-                {formatCurrency(calculatedMargin.amount)}
-              </span>
-            </div>
-          </div>
+    <div className="space-y-5">
+      <h3 className="font-medium text-base">Calcul de la marge à partir de la mensualité souhaitée</h3>
+      
+      <div>
+        <Label htmlFor="target-monthly" className="font-medium text-gray-700">Mensualité souhaitée (€)</Label>
+        <div className="mt-1 relative">
+          <span className="absolute left-3 top-3 text-gray-500">€</span>
+          <Input
+            id="target-monthly"
+            type="number"
+            min="0"
+            step="0.01"
+            value={inputValue}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            className="pl-8"
+            placeholder="0.00"
+          />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between py-1">
+          <span className="text-gray-600">Marge nécessaire :</span>
+          <span className="font-medium">{formatPercentage(calculatedMargin.percentage)}</span>
+        </div>
+        <div className="flex justify-between py-1 text-blue-600">
+          <span className="font-medium">Marge en euros :</span>
+          <span className="font-bold">{formatCurrency(calculatedMargin.amount)}</span>
+        </div>
+      </div>
+
+      <Button 
+        onClick={applyCalculatedMargin}
+        disabled={calculatedMargin.percentage <= 0}
+        className="w-full bg-blue-600 hover:bg-blue-700"
+      >
+        Appliquer cette marge
+      </Button>
+    </div>
   );
 };
 
