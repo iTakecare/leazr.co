@@ -4,7 +4,7 @@ import { useClientContracts } from "@/hooks/useClientContracts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
-import { File, Package, RefreshCw } from "lucide-react";
+import { File, Package, RefreshCw, AlertCircle } from "lucide-react";
 
 const ClientContractsPage = () => {
   const { contracts, loading, error, refresh } = useClientContracts();
@@ -27,7 +27,7 @@ const ClientContractsPage = () => {
         <Card>
           <CardContent className="py-10">
             <div className="text-center">
-              <File className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
               <h2 className="text-xl font-semibold mb-2">Erreur</h2>
               <p className="text-muted-foreground mb-4">{error}</p>
               <Button onClick={refresh} variant="outline">
@@ -40,7 +40,7 @@ const ClientContractsPage = () => {
     );
   }
 
-  if (contracts.length === 0) {
+  if (!contracts || contracts.length === 0) {
     return (
       <div className="w-full">
         <h1 className="text-3xl font-bold mb-6">Mes Contrats</h1>
@@ -73,7 +73,7 @@ const ClientContractsPage = () => {
 
       <div className="grid gap-4">
         {contracts.map((contract) => (
-          <Card key={contract.id}>
+          <Card key={contract.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <CardTitle>{contract.equipment_description || "Équipement"}</CardTitle>
               <CardDescription>
@@ -89,7 +89,11 @@ const ClientContractsPage = () => {
                       ? "Actif" 
                       : contract.status === "contract_sent" 
                         ? "Contrat envoyé" 
-                        : contract.status}
+                        : contract.status === "equipment_ordered"
+                          ? "Équipement commandé"
+                          : contract.status === "delivered"
+                            ? "Livré"
+                            : contract.status}
                   </span>
                 </div>
                 <div className="flex justify-between">

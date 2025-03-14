@@ -128,18 +128,18 @@ export const useClientContracts = () => {
         
         console.log("Fetching contracts for client ID:", id);
         
-        // Récupérer tous les contrats pour afficher les données brutes dans la console
-        const { data: allContracts, error: allContractsError } = await supabase
+        // DEBUG: Récupérer tous les contrats pour vérifier
+        const { data: allContracts, error: debugError } = await supabase
           .from('contracts')
           .select('*');
           
-        if (allContractsError) {
-          console.error("Error fetching all contracts:", allContractsError);
+        if (debugError) {
+          console.error("Debug - Error fetching all contracts:", debugError);
         } else {
-          console.log("All contracts in database:", allContracts);
+          console.log("DEBUG - All contracts in database:", allContracts);
         }
         
-        // Récupérer les contrats du client
+        // Récupérer les contrats du client avec une requête explicite
         const { data, error: contractsError } = await supabase
           .from('contracts')
           .select('*')
@@ -150,7 +150,7 @@ export const useClientContracts = () => {
           setError("Erreur lors de la récupération des contrats");
           toast.error("Erreur lors du chargement des contrats");
         } else {
-          console.log("Fetched contracts for client:", data);
+          console.log(`Fetched ${data?.length || 0} contracts for client:`, data);
           setContracts(data || []);
         }
       } catch (error) {
