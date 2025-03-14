@@ -39,7 +39,7 @@ const ClientRequestsPage = () => {
         </Button>
       </div>
       
-      {offers.length === 0 ? (
+      {(!offers || offers.length === 0) ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="text-center">

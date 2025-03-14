@@ -37,7 +37,7 @@ const OffersFilter = ({
   onDownloadPdf
 }: OffersFilterProps) => {
   return (
-    <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList>
         <TabsTrigger value="all">Toutes</TabsTrigger>
         <TabsTrigger value="accepted">Acceptées</TabsTrigger>

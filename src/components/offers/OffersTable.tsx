@@ -40,6 +40,31 @@ const OffersTable = ({
   onResendOffer,
   onDownloadPdf
 }: OffersTableProps) => {
+  if (!offers || offers.length === 0) {
+    return (
+      <div className="rounded-md border">
+        <ScrollArea className="h-[calc(100vh-320px)]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Client</TableHead>
+                <TableHead>Montant</TableHead>
+                <TableHead>Loyer mensuel</TableHead>
+                <TableHead>Commission</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <OffersEmptyState />
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-md border">
       <ScrollArea className="h-[calc(100vh-320px)]">
@@ -56,19 +81,15 @@ const OffersTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {offers.length === 0 ? (
-              <OffersEmptyState />
-            ) : (
-              offers.map((offer) => (
-                <OfferTableRow
-                  key={offer.id}
-                  offer={offer}
-                  onDelete={onDeleteOffer}
-                  onResend={onResendOffer}
-                  onDownload={onDownloadPdf}
-                />
-              ))
-            )}
+            {offers.map((offer) => (
+              <OfferTableRow
+                key={offer.id}
+                offer={offer}
+                onDelete={onDeleteOffer}
+                onResend={onResendOffer}
+                onDownload={onDownloadPdf}
+              />
+            ))}
           </TableBody>
         </Table>
       </ScrollArea>
