@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -900,3 +901,136 @@ const OfferDetail = () => {
               required={targetStatus === OFFER_STATUSES.REJECTED.id}
             />
           </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleStatusChange}
+              disabled={targetStatus === OFFER_STATUSES.REJECTED.id && !statusChangeReason.trim()}
+            >
+              Confirmer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter un numéro de suivi</DialogTitle>
+            <DialogDescription>
+              Renseignez les informations de livraison pour ce contrat.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="grid w-full gap-1.5">
+              <label htmlFor="tracking-number" className="text-sm font-medium">
+                Numéro de suivi
+              </label>
+              <input
+                id="tracking-number"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                placeholder="123456789"
+                required
+              />
+            </div>
+            
+            <div className="grid w-full gap-1.5">
+              <label htmlFor="carrier" className="text-sm font-medium">
+                Transporteur
+              </label>
+              <input
+                id="carrier"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={carrier}
+                onChange={(e) => setCarrier(e.target.value)}
+                placeholder="DHL, UPS, ..."
+              />
+            </div>
+            
+            <div className="grid w-full gap-1.5">
+              <label htmlFor="delivery-date" className="text-sm font-medium">
+                Date de livraison estimée
+              </label>
+              <input
+                id="delivery-date"
+                type="date"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={estimatedDelivery}
+                onChange={(e) => setEstimatedDelivery(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTrackingDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleAddTrackingInfo}
+              disabled={!trackingNumber.trim()}
+            >
+              Confirmer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <RequestInfoModal
+        isOpen={infoRequestDialogOpen}
+        onClose={() => setInfoRequestDialogOpen(false)}
+        onSendRequest={handleInfoRequest}
+        offerId={offer?.id || ''}
+      />
+    </PageTransition>
+  );
+};
+
+const ProgressStep = ({ 
+  label, 
+  isActive, 
+  isCompleted, 
+  status,
+  onClick
+}: { 
+  label: string; 
+  isActive: boolean; 
+  isCompleted: boolean;
+  status: string;
+  onClick: (status: string) => void;
+}) => {
+  const getClassName = () => {
+    if (isActive) return "bg-blue-600 text-white";
+    if (isCompleted) return "bg-green-500 text-white";
+    return "bg-gray-200 text-gray-700";
+  };
+  
+  return (
+    <div 
+      className="flex flex-col items-center cursor-pointer"
+      onClick={() => onClick(status)}
+    >
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getClassName()}`}>
+        {isCompleted ? (
+          <CheckCircle className="h-5 w-5" />
+        ) : (
+          <span>{label.charAt(0)}</span>
+        )}
+      </div>
+      <div className="text-xs mt-1 text-center max-w-[80px]">{label}</div>
+    </div>
+  );
+};
+
+const ProgressLine = () => {
+  return (
+    <div className="h-0.5 bg-gray-200 flex-grow mx-2"></div>
+  );
+};
+
+export default OfferDetail;
