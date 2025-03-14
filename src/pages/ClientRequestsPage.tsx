@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useClientOffers, ClientOffer } from "@/hooks/useClientOffers";
 import ClientsError from "@/components/clients/ClientsError";
@@ -7,14 +7,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
-import { Loader2, RefreshCw, FileText, Plus, Clock, CalendarRange, PanelLeftClose } from "lucide-react";
+import { Loader2, RefreshCw, FileText, Plus, Clock, CalendarRange, X, CheckCircle, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const ClientRequestsPage = () => {
+  const { user } = useAuth();
   const { offers, loading, error, refresh } = useClientOffers();
-
-  console.log("ClientRequestsPage - Offers:", offers);
 
   // Animation variants
   const containerVariants = {
@@ -32,6 +34,41 @@ const ClientRequestsPage = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   };
+
+  // Écouter les notifications de nouvelles demandes en temps réel
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // S'abonner aux changements de statut des demandes
+    const channel = supabase
+      .channel('offers-status-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'offers',
+        filter: `client_id=eq.${user.id}`,
+      }, (payload) => {
+        console.log('Notification de mise à jour de statut:', payload);
+        
+        // Récupérer les dernières données
+        refresh();
+        
+        // Afficher une notification appropriée
+        if (payload.new.status === 'accepted') {
+          toast.success("Votre demande a été acceptée!");
+        } else if (payload.new.status === 'rejected') {
+          toast.error("Votre demande a été refusée.");
+        } else {
+          toast.info("Le statut de votre demande a été mis à jour.");
+        }
+      })
+      .subscribe();
+
+    // Nettoyage lors du démontage
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refresh]);
 
   if (loading) {
     return (
@@ -56,6 +93,16 @@ const ClientRequestsPage = () => {
       return <Badge className="bg-red-500">Refusée</Badge>;
     } else {
       return <Badge className="bg-yellow-500">En attente</Badge>;
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    if (status === 'accepted') {
+      return <CheckCircle className="h-6 w-6 text-green-500" />;
+    } else if (status === 'rejected') {
+      return <X className="h-6 w-6 text-red-500" />;
+    } else {
+      return <Clock className="h-6 w-6 text-yellow-500" />;
     }
   };
 
@@ -107,8 +154,8 @@ const ClientRequestsPage = () => {
         <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" variants={containerVariants}>
           {offers.map((offer: ClientOffer) => (
             <motion.div key={offer.id} variants={itemVariants}>
-              <Card className="h-full shadow-md hover:shadow-lg transition-all border-t-4 border-t-yellow-500/60 overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-muted/30 to-transparent">
+              <Card className="h-full shadow-md hover:shadow-lg transition-all overflow-hidden border-t-4 border-t-yellow-500/60">
+                <CardHeader className="bg-gradient-to-r from-muted/30 to-transparent flex flex-col gap-4">
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="flex items-center gap-2">
@@ -120,6 +167,28 @@ const ClientRequestsPage = () => {
                       </CardDescription>
                     </div>
                     {getStatusBadge(offer.status)}
+                  </div>
+                  
+                  <div className="flex items-center bg-muted/20 p-3 rounded-md -mx-6">
+                    <div className="mr-3">
+                      {getStatusIcon(offer.status)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {offer.status === 'accepted' 
+                          ? "Demande acceptée" 
+                          : offer.status === 'rejected' 
+                            ? "Demande refusée" 
+                            : "En attente de validation"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {offer.status === 'accepted' 
+                          ? "Votre demande a été approuvée" 
+                          : offer.status === 'rejected' 
+                            ? "Votre demande n'a pas été approuvée" 
+                            : "Votre demande est en cours d'examen"}
+                      </p>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -137,7 +206,13 @@ const ClientRequestsPage = () => {
                     
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Équipement</p>
-                      <p className="text-sm bg-muted/10 p-2 rounded-md">{offer.equipment_description || "Description non disponible"}</p>
+                      <p className="text-sm bg-muted/10 p-2 rounded-md">
+                        {offer.equipment_description
+                          ? offer.equipment_description.length > 100
+                            ? `${offer.equipment_description.substring(0, 100)}...`
+                            : offer.equipment_description
+                          : "Description non disponible"}
+                      </p>
                     </div>
                     
                     <div className="pt-4 mt-auto">

@@ -9,7 +9,8 @@ import {
   Clock,
   Package,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  ShoppingCart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -106,6 +107,7 @@ const ClientSidebar = ({ className }: SidebarProps) => {
     { path: "/client/contracts", icon: FileText, label: "Contrats" },
     { path: "/client/equipment", icon: Laptop, label: "Équipements" },
     { path: "/client/requests", icon: Clock, label: "Demandes en cours" },
+    { path: "/client/new-request", icon: ShoppingCart, label: "Demander un équipement" },
     { path: "/client/catalog", icon: Package, label: "Catalogue" },
   ];
 
