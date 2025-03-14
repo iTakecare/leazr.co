@@ -59,7 +59,7 @@ serve(async (req) => {
       );
     }
     
-    // Formater les documents demandés pour l'email en texte simple
+    // Formater les documents demandés pour l'email
     const formattedDocs = requestedDocs.map(doc => {
       if (doc.startsWith('custom:')) {
         return `- ${doc.substring(7)}`;
@@ -76,7 +76,7 @@ serve(async (req) => {
       }
     }).join('\n');
     
-    // Créer un client SMTP avec configuration explicite
+    // Configurer le client SMTP de la manière la plus simple
     const client = new SMTPClient({
       connection: {
         hostname: smtpConfig.host,
@@ -90,29 +90,19 @@ serve(async (req) => {
     });
 
     try {
-      // Construire le contenu de l'email en texte simple uniquement
-      const subject = "Demande de documents complémentaires pour votre offre de leasing";
-      const emailContent = `Bonjour ${clientName},
-
-Nous avons besoin des documents suivants pour poursuivre l'analyse de votre offre de leasing :
-${formattedDocs}
-
-${customMessage ? `Message de l'équipe :\n${customMessage}\n\n` : ''}
-
-Merci de nous fournir ces documents dès que possible afin que nous puissions finaliser votre dossier.
-Vous pouvez répondre directement à cet email en attachant les documents demandés.
-
-Cet email est envoyé automatiquement par l'application de gestion de leasing.`;
+      // Format de message simple sans MIME ou HTML complexe
+      const subject = "Documents requis - Offre de leasing";
       
-      // Envoyer l'email simplifié sans HTML, juste en texte
-      await client.send({
+      // Message très simple
+      const message = {
         from: smtpConfig.from_email,
         to: clientEmail,
         subject: subject,
-        content: emailContent
-      });
-
-      // Fermer la connexion
+        content: `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}`
+      };
+      
+      console.log("Envoi de l'email:", message);
+      await client.send(message);
       await client.close();
       
       console.log("Email envoyé avec succès à:", clientEmail);

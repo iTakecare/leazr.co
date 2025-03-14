@@ -34,6 +34,7 @@ serve(async (req) => {
       secure: config.secure
     });
 
+    // Utiliser directement SMTPClient sans configuration MIME complexe
     const client = new SMTPClient({
       connection: {
         hostname: config.host,
@@ -47,16 +48,16 @@ serve(async (req) => {
     });
 
     try {
-      // Simplify email structure - text only, no HTML or complex MIME
-      await client.send({
+      // Utiliser le format le plus simple possible pour le test
+      const message = {
         from: config.from_email,
         to: config.username,
-        subject: "Test de connexion SMTP réussi",
-        content: "Ceci est un email de test pour vérifier les paramètres SMTP.\n\nDétails de la configuration:\n- Serveur: " + 
-          config.host + "\n- Port: " + config.port + "\n- Utilisateur: " + config.username + 
-          "\n- Sécurisé: " + (config.secure ? "Oui" : "Non")
-      });
-
+        subject: "Test SMTP",
+        content: "Test de connexion SMTP réussi"
+      };
+      
+      console.log("Envoi du message de test:", message);
+      await client.send(message);
       await client.close();
       
       return new Response(
