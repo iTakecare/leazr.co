@@ -63,13 +63,14 @@ export interface OfferData {
   client_name: string;
   client_email: string;
   client_id?: string;
-  equipment_description: string;
+  equipment_description?: string;
   amount: number;
   coefficient: number;
   monthly_payment: number;
   commission: number;
   user_id: string;
   type?: string;
+  additional_info?: string;
 }
 
 export const createOffer = async (offerData: OfferData): Promise<string | null> => {

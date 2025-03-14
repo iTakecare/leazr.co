@@ -1,8 +1,10 @@
+
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
+import ClientEquipmentRequestPage from "@/pages/ClientEquipmentRequestPage";
 import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
 import ClientsLoading from "@/components/clients/ClientsLoading";
@@ -13,7 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 const ClientEquipment = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Mes Équipements</h1><p>Gestion des équipements en cours d'implémentation.</p></div>;
 const ClientCatalog = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Catalogue</h1><p>Catalogue en cours d'implémentation.</p></div>;
-const ClientNewRequest = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Nouvelle Demande</h1><p>Formulaire de création de demande en cours d'implémentation.</p></div>;
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -174,7 +175,7 @@ const ClientRoutes = () => {
         <Route path="equipment" element={<ClientLayout><ClientEquipment /></ClientLayout>} />
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><ClientCatalog /></ClientLayout>} />
-        <Route path="new-request" element={<ClientLayout><ClientNewRequest /></ClientLayout>} />
+        <Route path="new-request" element={<ClientLayout><ClientEquipmentRequestPage /></ClientLayout>} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>
     </ClientCheck>

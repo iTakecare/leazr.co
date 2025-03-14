@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -9,7 +8,6 @@ import {
   Clock,
   Package,
   LogOut,
-  ChevronRight,
   ShoppingCart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +18,6 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
-import { motion } from "framer-motion";
 
 interface MenuItemProps {
   to: string;
@@ -107,7 +104,7 @@ const ClientSidebar = ({ className }: SidebarProps) => {
     { path: "/client/contracts", icon: FileText, label: "Contrats" },
     { path: "/client/equipment", icon: Laptop, label: "Équipements" },
     { path: "/client/requests", icon: Clock, label: "Demandes en cours" },
-    { path: "/client/new-request", icon: ShoppingCart, label: "Demander un équipement" },
+    { path: "/client/new-request", icon: ShoppingCart, label: "Nouvelle demande" },
     { path: "/client/catalog", icon: Package, label: "Catalogue" },
   ];
 
