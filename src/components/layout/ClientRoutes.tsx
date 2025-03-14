@@ -1,5 +1,6 @@
+
 import React, { useEffect } from "react";
-import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
+import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
@@ -29,22 +30,20 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [checkingClient, setCheckingClient] = React.useState(true);
   const [clientError, setClientError] = React.useState<string | null>(null);
   const [retryCount, setRetryCount] = React.useState(0);
 
-  // Check for password reset flow
+  // Check for password reset flow first - before any other redirects
   useEffect(() => {
     const hash = window.location.hash;
-    const hashParams = new URLSearchParams(hash.substring(1));
-    const type = hashParams.get('type');
-    
-    // If we're in a password reset flow, redirect to login
-    if (type === 'recovery') {
-      console.log("Detected password reset flow, redirecting to login");
+    if (hash && hash.includes('type=recovery')) {
+      console.log("Password reset flow detected in ClientCheck, redirecting to login");
       navigate('/login' + hash);
+      return;
     }
-  }, [window.location.hash]);
+  }, [navigate]);
 
   useEffect(() => {
     const checkClientAssociation = async () => {
@@ -134,24 +133,29 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
 const ClientRoutes = () => {
   const { user, isLoading, isClient } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
-  // Check for password reset flow
+  // Check for password reset flow first - before any redirects
   useEffect(() => {
-    const hash = window.location.hash;
-    const hashParams = new URLSearchParams(hash.substring(1));
-    const type = hashParams.get('type');
+    const hash = location.hash || window.location.hash;
     
-    // If we're in a password reset flow, redirect to login
-    if (type === 'recovery') {
+    if (hash && hash.includes('type=recovery')) {
       console.log("Detected password reset flow in ClientRoutes, redirecting to login");
-      navigate('/login' + hash);
+      navigate('/login' + hash, { replace: true });
       return;
     }
     
+    // Only redirect authenticated users who aren't clients to dashboard
     if (!isLoading && user && !isClient()) {
+      console.log("User is not a client, redirecting to admin dashboard");
       navigate('/dashboard');
     }
-  }, [isLoading, user, isClient, navigate, window.location.hash]);
+  }, [isLoading, user, isClient, navigate, location.hash]);
+
+  // Don't render anything during a password reset flow
+  if (location.hash && location.hash.includes('type=recovery')) {
+    return null;
+  }
 
   if (isLoading) {
     return <ClientLayout><ClientsLoading /></ClientLayout>;

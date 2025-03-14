@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,31 +17,38 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
-  const [resetToken, setResetToken] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, session } = useAuth();
 
+  // Check if we have a password reset token in the URL as soon as the component mounts
   useEffect(() => {
-    // Check if we have a password reset token in the URL
-    const hash = window.location.hash;
-    if (hash && hash.includes('type=recovery')) {
-      console.log("Password reset flow detected:", hash);
+    const checkForResetToken = () => {
+      const hash = location.hash || window.location.hash;
+      console.log("Checking for reset token in hash:", hash);
       
-      // Extract the access token from the hash
-      const hashParams = new URLSearchParams(hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      
-      if (accessToken) {
-        console.log("Reset token found. Entering password reset mode");
-        setIsResetMode(true);
-        setResetToken(accessToken);
+      if (hash && hash.includes('type=recovery')) {
+        // Extract the access token from the hash
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        
+        if (accessToken) {
+          console.log("Reset token found. Entering password reset mode");
+          setIsResetMode(true);
+          return true;
+        }
       }
-    } else if (session) {
-      // Only redirect if we're not in a password reset flow
-      console.log("User session found, redirecting to dashboard");
+      return false;
+    };
+
+    const hasResetToken = checkForResetToken();
+    
+    // Only redirect if there's no reset token and we have a session
+    if (!hasResetToken && session) {
+      console.log("User is already logged in, redirecting to dashboard");
       navigate('/dashboard');
     }
-  }, [session, navigate]);
+  }, [session, navigate, location]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,10 +100,17 @@ const Login = () => {
         toast.error('Échec de la mise à jour du mot de passe : ' + error.message);
       } else {
         toast.success('Votre mot de passe a été mis à jour avec succès');
+        
         // Clear the hash to avoid re-entering reset flow on refresh
         window.location.hash = '';
+        
+        // Navigate to login page without hash
         navigate('/login');
+        
+        // Reset all form state
         setIsResetMode(false);
+        setNewPassword('');
+        setConfirmPassword('');
       }
     } catch (error: any) {
       console.error('Exception updating password:', error);

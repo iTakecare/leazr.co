@@ -47,15 +47,16 @@ const ProtectedRoute = ({
   const { user, isLoading, isAdmin, isClient } = useAuth();
   const location = useLocation();
 
-  // Check for password reset flow
+  // Priority check for password reset flow
+  const isPasswordResetFlow = () => {
+    const hash = location.hash;
+    return hash && hash.includes('type=recovery');
+  };
+  
+  // If we're in a password reset flow, we should always redirect to login
   useEffect(() => {
-    if (location.hash) {
-      const hashParams = new URLSearchParams(location.hash.substring(1));
-      const type = hashParams.get('type');
-      
-      if (type === 'recovery') {
-        console.log("Password reset detected in protected route");
-      }
+    if (isPasswordResetFlow()) {
+      console.log("Password reset flow detected in protected route");
     }
   }, [location.hash]);
   
@@ -64,13 +65,15 @@ const ProtectedRoute = ({
   }
   
   // If we have a recovery token, we want to allow access to the login page
-  if (location.hash) {
-    const hashParams = new URLSearchParams(location.hash.substring(1));
-    const type = hashParams.get('type');
-    
-    if (type === 'recovery' && location.pathname === '/login') {
-      return <>{children}</>;
-    }
+  if (isPasswordResetFlow() && location.pathname === '/login') {
+    console.log("Allowing access to login for password reset");
+    return <>{children}</>;
+  }
+  
+  // Redirect to login for password reset if we're not already there
+  if (isPasswordResetFlow() && location.pathname !== '/login') {
+    console.log("Redirecting to login for password reset");
+    return <Navigate to={`/login${location.hash}`} replace />;
   }
   
   if (!user) {
