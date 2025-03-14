@@ -114,7 +114,7 @@ export const useClientContracts = () => {
         if (user?.id) {
           const { data: clientByUserID, error: userIdError } = await supabase
             .from('clients')
-            .select('id, name')
+            .select('id, name, email')
             .eq('user_id', user.id)
             .maybeSingle();
             
@@ -128,6 +128,8 @@ export const useClientContracts = () => {
                 .from('clients')
                 .update({ email: email })
                 .eq('id', clientByUserID.id);
+                
+              console.log(`Updated email for client ${clientByUserID.id} to ${email}`);
             }
             
             await fetchContractsByClientId(clientByUserID.id);
@@ -153,7 +155,16 @@ export const useClientContracts = () => {
           
         if (updateError) {
           console.error("Error updating client user_id:", updateError);
+        } else {
+          console.log(`Successfully associated client ${clientData.id} with user ${user.id}`);
         }
+      } else if (clientData.user_id && clientData.user_id !== user?.id) {
+        // Cas où le client est déjà associé à un autre utilisateur
+        console.log(`Client ${clientData.id} is already associated with a different user: ${clientData.user_id}`);
+        console.log(`Current user is: ${user?.id}`);
+        
+        // On peut décider de créer un nouveau client pour cet utilisateur si nécessaire
+        // Ou simplement notifier l'utilisateur de l'incohérence
       }
       
       setClientId(clientData.id);
