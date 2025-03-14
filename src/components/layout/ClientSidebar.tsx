@@ -9,6 +9,7 @@ import {
   Clock,
   Package,
   LogOut,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -18,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
+import { motion } from "framer-motion";
 
 interface MenuItemProps {
   to: string;
@@ -34,16 +36,16 @@ const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
           <Link
             to={to}
             className={cn(
-              "flex items-center justify-center py-2 px-3 my-1 rounded-md transition-colors",
+              "flex items-center justify-center py-3 px-3 my-1 rounded-md transition-all",
               active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
+                ? "bg-primary/15 text-primary shadow-sm translate-x-1"
+                : "text-muted-foreground hover:bg-primary/5 hover:text-primary hover:translate-x-1"
             )}
           >
-            <Icon className="h-5 w-5" aria-hidden="true" />
+            <Icon className={cn("h-5 w-5", active && "stroke-[2.5px]")} aria-hidden="true" />
           </Link>
         </TooltipTrigger>
-        <TooltipContent side="right">
+        <TooltipContent side="right" className="font-medium">
           <p>{label}</p>
         </TooltipContent>
       </Tooltip>
@@ -69,7 +71,7 @@ const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
             <Icon className="h-5 w-5" aria-hidden="true" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right">
+        <TooltipContent side="right" className="font-medium">
           <p>{label}</p>
         </TooltipContent>
       </Tooltip>
@@ -99,49 +101,43 @@ const ClientSidebar = ({ className }: SidebarProps) => {
     }
   };
 
+  const sidebarItems = [
+    { path: "/client/dashboard", icon: LayoutDashboard, label: "Tableau de bord" },
+    { path: "/client/contracts", icon: FileText, label: "Contrats" },
+    { path: "/client/equipment", icon: Laptop, label: "Équipements" },
+    { path: "/client/requests", icon: Clock, label: "Demandes en cours" },
+    { path: "/client/catalog", icon: Package, label: "Catalogue" },
+  ];
+
   return (
     <div
       className={cn(
-        "h-full flex flex-col border-r bg-background w-16",
+        "h-full flex flex-col border-r bg-gradient-to-b from-background to-muted/20 w-16 shadow-md",
         className
       )}
     >
-      <div className="flex-1 overflow-y-auto p-2">
-        <MenuItem
-          to="/client/dashboard"
-          icon={LayoutDashboard}
-          label="Tableau de bord"
-          active={isActive("/client/dashboard")}
-        />
-        <MenuItem
-          to="/client/contracts"
-          icon={FileText}
-          label="Contrats"
-          active={isActive("/client/contracts")}
-        />
-        <MenuItem
-          to="/client/equipment"
-          icon={Laptop}
-          label="Équipements"
-          active={isActive("/client/equipment")}
-        />
-        <MenuItem
-          to="/client/requests"
-          icon={Clock}
-          label="Demandes en cours"
-          active={isActive("/client/requests")}
-        />
-        <MenuItem
-          to="/client/catalog"
-          icon={Package}
-          label="Catalogue"
-          active={isActive("/client/catalog")}
-        />
+      <div className="flex-1 overflow-y-auto py-4 px-2">
+        <div className="flex justify-center mb-6">
+          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
+            IT
+          </div>
+        </div>
+        <div className="space-y-1">
+          {sidebarItems.map((item) => (
+            <MenuItem
+              key={item.path}
+              to={item.path}
+              icon={item.icon}
+              label={item.label}
+              active={isActive(item.path)}
+            />
+          ))}
+        </div>
       </div>
 
       {user && (
-        <div className="p-3 border-t flex flex-col items-center">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-2">
+        <div className="p-3 border-t border-t-muted/40 flex flex-col items-center">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center text-primary font-medium mb-2 shadow-sm">
             {user.first_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
           </div>
           <ActionItem 

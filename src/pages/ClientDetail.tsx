@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
-  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, Trash
+  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, Trash, ChevronLeft, User, CheckCircle, 
+  AlertCircle, Info
 } from "lucide-react";
 
 export default function ClientDetail() {
@@ -139,7 +140,7 @@ export default function ClientDetail() {
 
   return (
     <div className="container py-8 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{client.name}</h1>
           {client.company && (
@@ -147,18 +148,19 @@ export default function ClientDetail() {
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/clients")}>
+          <Button variant="outline" onClick={() => navigate("/clients")} className="flex items-center">
+            <ChevronLeft className="mr-1 h-4 w-4" />
             Retour
           </Button>
           <Link to={`/clients/edit/${id}`}>
-            <Button>Modifier</Button>
+            <Button className="shadow-sm">Modifier</Button>
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2 shadow-md">
-          <CardHeader className="bg-muted/50 pb-4">
+        <Card className="md:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
+          <CardHeader className="bg-muted/50 pb-4 border-b">
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
               Informations générales
@@ -168,8 +170,8 @@ export default function ClientDetail() {
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {client.email && (
-                <div className="flex items-start space-x-3">
-                  <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                  <Mail className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="text-sm font-medium">Email</h3>
                     <p className="text-sm">{client.email}</p>
@@ -178,8 +180,8 @@ export default function ClientDetail() {
               )}
               
               {client.phone && (
-                <div className="flex items-start space-x-3">
-                  <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                  <Phone className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="text-sm font-medium">Téléphone</h3>
                     <p className="text-sm">{client.phone}</p>
@@ -188,8 +190,8 @@ export default function ClientDetail() {
               )}
               
               {client.vat_number && (
-                <div className="flex items-start space-x-3">
-                  <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                  <FileText className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="text-sm font-medium">Numéro de TVA</h3>
                     <p className="text-sm">{client.vat_number}</p>
@@ -198,8 +200,8 @@ export default function ClientDetail() {
               )}
               
               {client.address && (
-                <div className="flex items-start space-x-3 md:col-span-2">
-                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="flex items-start space-x-3 md:col-span-2 bg-muted/20 p-3 rounded-md">
+                  <MapPin className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="text-sm font-medium">Adresse</h3>
                     <p className="text-sm">
@@ -213,16 +215,16 @@ export default function ClientDetail() {
                 </div>
               )}
               
-              <div className="flex items-start space-x-3">
-                <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                <Clock className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium">Créé le</h3>
                   <p className="text-sm">{formatDate(client.created_at)}</p>
                 </div>
               </div>
               
-              <div className="flex items-start space-x-3">
-                <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                <Clock className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium">Dernière mise à jour</h3>
                   <p className="text-sm">{formatDate(client.updated_at)}</p>
@@ -232,17 +234,20 @@ export default function ClientDetail() {
             
             {client.notes && (
               <div className="mt-6 border-t pt-4">
-                <h3 className="text-sm font-medium mb-2">Notes</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line bg-muted/30 p-3 rounded-md">{client.notes}</p>
+                <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <Info className="h-4 w-4 text-primary" />
+                  Notes
+                </h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-line bg-muted/30 p-4 rounded-md">{client.notes}</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
-          <CardHeader className="bg-muted/50 pb-4">
+        <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+          <CardHeader className="bg-muted/50 pb-4 border-b">
             <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-primary" />
+              <User className="h-5 w-5 text-primary" />
               Compte utilisateur
             </CardTitle>
             <CardDescription>Accès au portail client</CardDescription>
@@ -250,20 +255,21 @@ export default function ClientDetail() {
           <CardContent className="pt-6">
             {hasUserAccount ? (
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-                    Compte actif
-                  </Badge>
-                  {client.user_account_created_at && (
-                    <span className="text-xs text-muted-foreground">
-                      depuis le {formatDate(client.user_account_created_at)}
-                    </span>
-                  )}
+                <div className="flex items-center gap-2 bg-green-50 p-4 rounded-md border border-green-200">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div>
+                    <div className="font-medium text-green-800">Compte actif</div>
+                    {client.user_account_created_at && (
+                      <span className="text-xs text-green-700">
+                        Créé le {formatDate(client.user_account_created_at)}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="w-full"
+                  className="w-full flex items-center justify-center"
                   onClick={handleResetPassword}
                   disabled={isResettingPassword || !client.email}
                 >
@@ -273,12 +279,13 @@ export default function ClientDetail() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 p-3 rounded-md text-sm">
-                  <p>Ce client n'a pas encore de compte utilisateur.</p>
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm">Ce client n'a pas encore de compte utilisateur pour accéder au portail.</p>
                 </div>
                 {client.email ? (
                   <Button 
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
                     onClick={handleCreateAccount}
                     disabled={isCreatingAccount}
                   >
@@ -286,8 +293,8 @@ export default function ClientDetail() {
                     {isCreatingAccount ? "Création en cours..." : "Créer un compte client"}
                   </Button>
                 ) : (
-                  <div className="text-sm text-muted-foreground">
-                    Une adresse email est nécessaire pour créer un compte.
+                  <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-md">
+                    Une adresse email est nécessaire pour créer un compte utilisateur.
                   </div>
                 )}
               </div>
@@ -295,9 +302,12 @@ export default function ClientDetail() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-3 shadow-md">
-          <CardHeader className="bg-muted/50">
-            <CardTitle>Collaborateurs</CardTitle>
+        <Card className="md:col-span-3 shadow-md border-none bg-gradient-to-br from-card to-background">
+          <CardHeader className="bg-muted/50 border-b">
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Collaborateurs
+            </CardTitle>
             <CardDescription>Personnes à contacter chez ce client</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
