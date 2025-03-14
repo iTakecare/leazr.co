@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
 import { deleteAllProducts, deleteProduct } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
@@ -20,7 +19,6 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
-import CategoryManager from "@/components/catalog/CategoryManager";
 import ProductCatalog from "@/components/ui/ProductCatalog";
 import { useNavigate } from "react-router-dom";
 import { getProducts } from "@/services/catalogService";
@@ -94,27 +92,14 @@ const Catalog = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="browse" className="mb-6">
-          <TabsList>
-            <TabsTrigger value="browse">Parcourir</TabsTrigger>
-            <TabsTrigger value="categories">Catégories</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="browse" className="space-y-4">
-            <ProductCatalog 
-              isOpen={true} 
-              onClose={() => {}}
-              onSelectProduct={handleSelectProduct}
-              isSheet={false}
-              title="Catalogue de produits"
-              description="Parcourez notre catalogue complet de produits technologiques"
-            />
-          </TabsContent>
-          
-          <TabsContent value="categories">
-            <CategoryManager />
-          </TabsContent>
-        </Tabs>
+        <ProductCatalog 
+          isOpen={true} 
+          onClose={() => {}}
+          onSelectProduct={handleSelectProduct}
+          isSheet={false}
+          title="Catalogue de produits"
+          description="Parcourez notre catalogue complet de produits technologiques"
+        />
       </div>
 
       <ProductEditor 

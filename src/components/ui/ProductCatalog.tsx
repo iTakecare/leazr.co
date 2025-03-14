@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProductCard from "./ProductCard";
 import { useQuery } from "@tanstack/react-query";
-import { getProducts } from "@/services/catalogService";
+import { getProducts, getCategories } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,16 +39,20 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     enabled: isOpen, // Ne récupère les produits que lorsque le catalogue est ouvert
   });
 
-  // Extraire les catégories uniques des produits
+  // Récupérer les catégories depuis la base de données
+  const { data: categoriesData = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: getCategories,
+    enabled: isOpen,
+  });
+
+  // Extraire les catégories depuis les données récupérées
   const categories = React.useMemo(() => {
-    const uniqueCategories = new Set<string>();
-    products.forEach((product: Product) => {
-      if (product.category) {
-        uniqueCategories.add(product.category);
-      }
-    });
-    return ["all", ...Array.from(uniqueCategories)];
-  }, [products]);
+    return [
+      { name: "all", translation: "Toutes les catégories" }, 
+      ...categoriesData
+    ];
+  }, [categoriesData]);
 
   const filteredProducts = products.filter((product: Product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -90,9 +94,8 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category === "all" ? "Toutes les catégories" : 
-                      category.charAt(0).toUpperCase() + category.slice(1)}
+                  <SelectItem key={category.name} value={category.name}>
+                    {category.translation}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -151,9 +154,8 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category === "all" ? "Toutes les catégories" : 
-                  category.charAt(0).toUpperCase() + category.slice(1)}
+              <SelectItem key={category.name} value={category.name}>
+                {category.translation}
               </SelectItem>
             ))}
           </SelectContent>
@@ -191,7 +193,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                     <div className="flex-1">
                       <h3 className="font-medium mb-1">{product.name}</h3>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Catégorie: {product.category || "Non catégorisé"}
+                        Catégorie: {product.category ? 
+                          (categories.find(c => c.name === product.category)?.translation || product.category) 
+                          : "Non catégorisé"}
                       </p>
                       <p className="text-sm font-medium">
                         Mensualité: {product.monthly_price ? (product.monthly_price + "€/mois") : "Non définie"}

@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          translation: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          translation: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          translation?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -531,11 +555,21 @@ export type Database = {
           clients_count: number
         }[]
       }
+      check_table_exists: {
+        Args: {
+          table_name: string
+        }
+        Returns: boolean
+      }
       check_user_exists_by_email: {
         Args: {
           user_email: string
         }
         Returns: boolean
+      }
+      create_categories_table: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
