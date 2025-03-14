@@ -92,6 +92,36 @@ const PDFTemplateEditor = () => {
 
   const loadTemplate = async () => {
     try {
+      // Vérifier si la table pdf_templates existe
+      const { data: tableExists, error: tableCheckError } = await supabase.rpc(
+        'check_table_exists',
+        { table_name: 'pdf_templates' }
+      );
+
+      if (tableCheckError) {
+        console.error("Erreur lors de la vérification de la table:", tableCheckError);
+        // Supposer que la table n'existe pas
+      }
+
+      // Si la table n'existe pas, la créer
+      if (!tableExists) {
+        await createPdfTemplatesTable();
+        // Après avoir créé la table, insérer le modèle par défaut
+        const { error: insertError } = await supabase
+          .from('pdf_templates')
+          .insert(defaultTemplate);
+
+        if (insertError) {
+          console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
+          toast.error(`Erreur: ${insertError.message}`);
+          return;
+        }
+        
+        setTemplate(defaultTemplate);
+        form.reset(defaultTemplate);
+        return;
+      }
+
       // Charger le modèle depuis la base de données
       const { data, error } = await supabase
         .from('pdf_templates')
@@ -100,7 +130,9 @@ const PDFTemplateEditor = () => {
         .single();
 
       if (error && error.code !== 'PGSQL_ERROR') {
-        throw error;
+        console.error("Erreur lors du chargement du modèle:", error);
+        toast.error(`Erreur: ${error.message}`);
+        return;
       }
 
       if (data) {
@@ -125,10 +157,51 @@ const PDFTemplateEditor = () => {
           .from('pdf_templates')
           .insert(defaultTemplate);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
+          toast.error(`Erreur: ${insertError.message}`);
+          return;
+        }
+        
+        setTemplate(defaultTemplate);
+        form.reset(defaultTemplate);
       }
     } catch (error: any) {
       console.error("Erreur lors du chargement du modèle:", error);
+      toast.error(`Erreur: ${error.message}`);
+    }
+  };
+
+  const createPdfTemplatesTable = async () => {
+    try {
+      // Créer la table pdf_templates
+      const { error } = await supabase.rpc('execute_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.pdf_templates (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            "companyName" TEXT NOT NULL,
+            "companyAddress" TEXT NOT NULL,
+            "companyContact" TEXT NOT NULL,
+            "companySiret" TEXT NOT NULL,
+            "logoURL" TEXT,
+            "primaryColor" TEXT NOT NULL,
+            "secondaryColor" TEXT NOT NULL,
+            "headerText" TEXT NOT NULL,
+            "footerText" TEXT NOT NULL,
+            fields JSONB NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+          );
+        `
+      });
+
+      if (error) {
+        console.error("Erreur lors de la création de la table pdf_templates:", error);
+        toast.error(`Erreur lors de la création de la table: ${error.message}`);
+      }
+    } catch (error: any) {
+      console.error("Erreur lors de la création de la table pdf_templates:", error);
       toast.error(`Erreur: ${error.message}`);
     }
   };
@@ -176,6 +249,20 @@ const PDFTemplateEditor = () => {
     try {
       let logoURL = template.logoURL;
 
+      // Create storage bucket if it doesn't exist
+      try {
+        const { error: storageError } = await supabase.storage.createBucket('pdfs', {
+          public: true,
+          fileSizeLimit: 5242880, // 5MB
+        });
+        
+        if (storageError && !storageError.message.includes('already exists')) {
+          console.error("Erreur lors de la création du bucket:", storageError);
+        }
+      } catch (storageErr) {
+        console.warn("Le bucket existe probablement déjà:", storageErr);
+      }
+
       // Upload logo if changed
       if (logoFile) {
         const fileName = `logos/${Date.now()}_${logoFile.name}`;
@@ -201,6 +288,17 @@ const PDFTemplateEditor = () => {
         logoURL,
       };
 
+      // Vérifier si la table existe avant d'essayer d'insérer
+      const { data: tableExists, error: tableCheckError } = await supabase.rpc(
+        'check_table_exists',
+        { table_name: 'pdf_templates' }
+      );
+
+      if (tableCheckError || !tableExists) {
+        await createPdfTemplatesTable();
+      }
+
+      // Insérer ou mettre à jour le modèle
       const { error } = await supabase
         .from('pdf_templates')
         .upsert(updatedTemplate);

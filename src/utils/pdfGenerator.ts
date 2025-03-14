@@ -4,18 +4,74 @@ import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 
+// Fonction pour vérifier et créer la table pdf_templates si nécessaire
+const ensurePDFTemplateTableExists = async () => {
+  const supabase = getSupabaseClient();
+  
+  try {
+    // Vérifier si la table existe
+    const { data, error } = await supabase
+      .from('pdf_templates')
+      .select('id')
+      .limit(1);
+    
+    if (error && error.code === 'PGRST116') {
+      // La table n'existe pas, la créer
+      const { error: createError } = await supabase.rpc('execute_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.pdf_templates (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            "companyName" TEXT NOT NULL,
+            "companyAddress" TEXT NOT NULL,
+            "companyContact" TEXT NOT NULL,
+            "companySiret" TEXT NOT NULL,
+            "logoURL" TEXT,
+            "primaryColor" TEXT NOT NULL,
+            "secondaryColor" TEXT NOT NULL,
+            "headerText" TEXT NOT NULL,
+            "footerText" TEXT NOT NULL,
+            fields JSONB NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+          );
+        `
+      });
+      
+      if (createError) {
+        console.error("Erreur lors de la création de la table pdf_templates:", createError);
+        return null;
+      }
+      
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Erreur lors de la vérification de la table pdf_templates:", error);
+    return null;
+  }
+};
+
 // Récupérer le modèle PDF depuis la base de données
 const getPDFTemplate = async () => {
   const supabase = getSupabaseClient();
   
   try {
+    // S'assurer que la table existe
+    await ensurePDFTemplateTableExists();
+    
     const { data, error } = await supabase
       .from('pdf_templates')
       .select('*')
       .eq('id', 'default')
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Erreur lors de la récupération du modèle PDF:", error);
+      return null;
+    }
+    
     return data || null;
   } catch (error) {
     console.error("Erreur lors de la récupération du modèle PDF:", error);
