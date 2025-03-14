@@ -81,6 +81,14 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       percentage: Number(marginPercentage.toFixed(2)),
       amount: marginAmount
     });
+    
+    // Auto-apply the calculated margin when target monthly payment is set
+    if (targetMonthlyPayment > 0 && marginPercentage > 0) {
+      setEquipment(prev => ({
+        ...prev,
+        margin: Number(marginPercentage.toFixed(2))
+      }));
+    }
   };
 
   const calculateGlobalMarginAdjustment = () => {
@@ -133,8 +141,8 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
 
   const addToList = () => {
     if (equipment.title && equipment.purchasePrice > 0) {
-      const currentMonthly = targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment;
-      console.log("Adding to list with monthly payment:", currentMonthly);
+      const currentMonthlyPayment = targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment;
+      console.log("Adding to list with monthly payment:", currentMonthlyPayment);
       
       if (editingId) {
         setEquipmentList(equipmentList.map(eq => 

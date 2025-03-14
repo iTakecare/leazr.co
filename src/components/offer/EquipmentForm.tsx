@@ -145,6 +145,9 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
     if (product.monthly_price) {
       setProductMonthlyPrice(product.monthly_price);
       setTargetMonthlyPayment(product.monthly_price);
+      
+      // When we set the target monthly payment, the calculated margin will be applied
+      // automatically by the effect in useEquipmentCalculator
     }
     
     setIsQuickCatalogOpen(false);
