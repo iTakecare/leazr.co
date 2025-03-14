@@ -4,12 +4,19 @@ import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+// Extend the User type to include the missing properties
+type ExtendedUser = User & {
+  first_name?: string;
+  last_name?: string;
+  company?: string;
+};
+
 interface AuthContextType {
-  user: User | null;
+  user: ExtendedUser | null;
   session: Session | null;
   isLoading: boolean;
-  signUp: (email: string, password: string) => Promise<{ user: User | null; session: Session | null; error: any }>;
-  signIn: (email: string, password: string) => Promise<{ user: User | null; session: Session | null; error: any }>;
+  signUp: (email: string, password: string) => Promise<{ user: ExtendedUser | null; session: Session | null; error: any }>;
+  signIn: (email: string, password: string) => Promise<{ user: ExtendedUser | null; session: Session | null; error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ data: any; error: any }>;
   isAdmin: () => boolean;
@@ -31,7 +38,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
 
@@ -41,13 +48,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const { data } = await supabase.auth.getSession();
         setSession(data.session);
-        setUser(data.session?.user || null);
+        
+        if (data.session?.user) {
+          // Get user profile data from profiles table if needed
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, company')
+            .eq('id', data.session.user.id)
+            .single();
+            
+          // Merge user data with profile data
+          const extendedUser: ExtendedUser = {
+            ...data.session.user,
+            first_name: profileData?.first_name || '',
+            last_name: profileData?.last_name || '',
+            company: profileData?.company || ''
+          };
+          
+          setUser(extendedUser);
+        } else {
+          setUser(null);
+        }
 
         // Set up auth state listener
         const { data: authListener } = supabase.auth.onAuthStateChange(
-          (_event, session) => {
+          async (_event, session) => {
             setSession(session);
-            setUser(session?.user || null);
+            
+            if (session?.user) {
+              // Get user profile data from profiles table if needed
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('first_name, last_name, company')
+                .eq('id', session.user.id)
+                .single();
+                
+              // Merge user data with profile data
+              const extendedUser: ExtendedUser = {
+                ...session.user,
+                first_name: profileData?.first_name || '',
+                last_name: profileData?.last_name || '',
+                company: profileData?.company || ''
+              };
+              
+              setUser(extendedUser);
+            } else {
+              setUser(null);
+            }
           }
         );
 
@@ -74,7 +121,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           emailRedirectTo: `${window.location.origin}/api/auth/callback`,
         },
       });
-      return { user: data.user, session: data.session, error };
+      
+      const extendedUser = data.user ? {
+        ...data.user,
+        first_name: '',
+        last_name: '',
+        company: ''
+      } : null;
+      
+      return { user: extendedUser, session: data.session, error };
     } catch (error: any) {
       console.error("Signup error", error);
       return { user: null, session: null, error: error.message };
@@ -90,7 +145,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email,
         password,
       });
-      return { user: data.user, session: data.session, error };
+      
+      let extendedUser = null;
+      
+      if (data.user) {
+        // Get user profile data from profiles table if needed
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, company')
+          .eq('id', data.user.id)
+          .single();
+          
+        // Merge user data with profile data
+        extendedUser = {
+          ...data.user,
+          first_name: profileData?.first_name || '',
+          last_name: profileData?.last_name || '',
+          company: profileData?.company || ''
+        };
+      }
+      
+      return { user: extendedUser, session: data.session, error };
     } catch (error: any) {
       console.error("Signin error", error);
       return { user: null, session: null, error: error.message };
