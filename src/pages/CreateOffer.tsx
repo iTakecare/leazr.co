@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -66,7 +67,8 @@ const CreateOffer = () => {
     cancelEditing,
     removeFromList,
     updateQuantity,
-    findCoefficient
+    findCoefficient,
+    toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
 
   useEffect(() => {
@@ -250,6 +252,7 @@ const CreateOffer = () => {
                   updateQuantity={updateQuantity}
                   totalMonthlyPayment={totalMonthlyPayment}
                   globalMarginAdjustment={globalMarginAdjustment}
+                  toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                 />
                 
                 <ClientInfo

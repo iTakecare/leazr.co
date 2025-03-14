@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface EquipmentListProps {
   equipmentList: Equipment[];
@@ -23,6 +25,7 @@ interface EquipmentListProps {
   updateQuantity: (id: string, change: number) => void;
   totalMonthlyPayment: number;
   globalMarginAdjustment: GlobalMarginAdjustment;
+  toggleAdaptMonthlyPayment: () => void;
 }
 
 const EquipmentList: React.FC<EquipmentListProps> = ({
@@ -32,7 +35,8 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
   removeFromList,
   updateQuantity,
   totalMonthlyPayment,
-  globalMarginAdjustment
+  globalMarginAdjustment,
+  toggleAdaptMonthlyPayment
 }) => {
   if (equipmentList.length === 0) {
     return (
@@ -169,7 +173,21 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
               <span className="text-gray-600">Marge totale en euros :</span>
               <span className="font-medium">{formatCurrency(globalMarginAdjustment.amount)}</span>
             </div>
-            <div className="flex justify-between items-center text-blue-600">
+            
+            <div className="flex items-center justify-between py-2 border-t border-b mt-2">
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="adapt-monthly" 
+                  checked={globalMarginAdjustment.adaptMonthlyPayment}
+                  onCheckedChange={toggleAdaptMonthlyPayment}
+                />
+                <Label htmlFor="adapt-monthly" className="cursor-pointer">
+                  Adapter la mensualité au nouveau coefficient
+                </Label>
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center text-blue-600 mt-2">
               <span className="font-medium">Mensualité totale :</span>
               <span className="font-bold">{formatCurrency(globalMarginAdjustment.newMonthly)}</span>
             </div>

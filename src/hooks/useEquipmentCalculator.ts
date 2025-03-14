@@ -25,9 +25,17 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     amount: 0,
     newMonthly: 0,
     currentCoef: 0,
-    newCoef: 0
+    newCoef: 0,
+    adaptMonthlyPayment: true
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const toggleAdaptMonthlyPayment = () => {
+    setGlobalMarginAdjustment(prev => ({
+      ...prev,
+      adaptMonthlyPayment: !prev.adaptMonthlyPayment
+    }));
+  };
 
   const calculateFinancedAmount = (eq: Equipment) => {
     return eq.purchasePrice * (1 + eq.margin / 100);
@@ -102,7 +110,8 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         amount: 0, 
         newMonthly: 0,
         currentCoef: 0,
-        newCoef: 0
+        newCoef: 0,
+        adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment
       });
       return;
     }
@@ -118,7 +127,16 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     const currentCoef = findCoefficient(totalFinancedAmount);
     const currentMonthly = (totalFinancedAmount * currentCoef) / 100;
     const newCoef = findCoefficient(totalFinancedAmount);
-    const newMonthly = (totalFinancedAmount * newCoef) / 100;
+    
+    let newMonthly;
+    if (globalMarginAdjustment.adaptMonthlyPayment) {
+      newMonthly = (totalFinancedAmount * newCoef) / 100;
+    } else {
+      newMonthly = equipmentList.reduce((sum, eq) => {
+        return sum + (eq.monthlyPayment || 0) * eq.quantity;
+      }, 0);
+    }
+
     const marginAmount = totalFinancedAmount - totalBaseAmount;
     const marginPercentage = (marginAmount / totalBaseAmount) * 100;
 
@@ -127,7 +145,8 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       amount: marginAmount,
       newMonthly: newMonthly,
       currentCoef: currentCoef,
-      newCoef: newCoef
+      newCoef: newCoef,
+      adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment
     });
 
     setTotalMonthlyPayment(newMonthly);
@@ -217,7 +236,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
 
   useEffect(() => {
     calculateGlobalMarginAdjustment();
-  }, [equipmentList, leaser]);
+  }, [equipmentList, leaser, globalMarginAdjustment.adaptMonthlyPayment]);
 
   return {
     equipment,
@@ -239,6 +258,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     removeFromList,
     updateQuantity,
     findCoefficient,
-    calculateFinancedAmount
+    calculateFinancedAmount,
+    toggleAdaptMonthlyPayment
   };
 };

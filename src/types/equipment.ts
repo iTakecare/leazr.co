@@ -28,4 +28,5 @@ export interface GlobalMarginAdjustment {
   newMonthly: number;
   currentCoef: number;
   newCoef: number;
+  adaptMonthlyPayment: boolean; // New field to track whether to adapt monthly payment
 }
