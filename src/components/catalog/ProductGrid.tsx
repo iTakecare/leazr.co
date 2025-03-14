@@ -3,8 +3,7 @@ import React from "react";
 import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { formatCurrency } from "@/utils/formatters";
-import { AlertCircle, Tag, ImageIcon } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import ProductCard from "@/components/ui/ProductCard";
 
 interface ProductGridProps {

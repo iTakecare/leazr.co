@@ -7,7 +7,7 @@ interface ProductCardProps {
   product: {
     id: string;
     name: string;
-    monthly_price: number;
+    monthly_price?: number; // Changed from required to optional
     image_url?: string;
   };
 }
@@ -26,7 +26,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </div>
           <div className="w-2/3 p-4">
             <h3 className="font-medium text-sm mb-1 line-clamp-2">{product.name}</h3>
-            <p className="text-sm text-muted-foreground">Prix: {formatCurrency(product.monthly_price)}</p>
+            <p className="text-sm text-muted-foreground">
+              Prix: {product.monthly_price ? formatCurrency(product.monthly_price) : "Non défini"}
+            </p>
             <div className="mt-2 flex items-center">
               <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
                 Disponible
