@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -41,15 +42,19 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
         setCheckingClient(true);
         setClientError(null);
         
-        console.log("Checking client association for user:", user.id, user.email);
+        // Récupérer l'email directement depuis l'API Auth de Supabase
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        const userEmail = userData?.user?.email || user.email;
+        
+        console.log("Checking client association for user:", user.id, userEmail);
         
         if (retryCount > 0 && user?.id) {
           localStorage.removeItem(`client_id_${user.id}`);
           console.log("Cleared cached client ID for retry");
         }
         
-        if (user.email) {
-          const clientId = await linkUserToClient(user.id, user.email);
+        if (userEmail) {
+          const clientId = await linkUserToClient(user.id, userEmail);
           
           if (clientId) {
             console.log("Client association successful, client ID:", clientId);
@@ -60,7 +65,20 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
             setClientError(`Erreur lors de la vérification du compte client. Veuillez réessayer ou contacter l'assistance.`);
           }
         } else {
-          setClientError("L'utilisateur n'a pas d'email associé.");
+          // Vérifier si l'utilisateur est connecté mais sans email
+          const { data: authUser } = await supabase.auth.getUser();
+          if (authUser?.user?.email) {
+            console.log("Found email in auth user:", authUser.user.email);
+            const clientId = await linkUserToClient(user.id, authUser.user.email);
+            
+            if (clientId) {
+              console.log("Client association successful via auth API, client ID:", clientId);
+              setCheckingClient(false);
+              return;
+            }
+          }
+          
+          setClientError("L'utilisateur n'a pas d'email associé. Veuillez contacter votre administrateur.");
         }
       } catch (error) {
         console.error("Error in client verification:", error);

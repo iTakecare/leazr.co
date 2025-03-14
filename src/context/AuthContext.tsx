@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
@@ -94,6 +95,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       console.log("Fetching user profile for ID:", userId);
       
+      // Récupérer l'email de l'utilisateur depuis la session
+      const { data: userData } = await supabase.auth.getUser();
+      const userEmail = userData?.user?.email;
+      
+      console.log("User email from auth:", userEmail);
+      
       let profileData = null;
       
       try {
@@ -147,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profileData) {
         const userWithEmail = {
           ...profileData,
-          email: session?.user?.email || null,
+          email: userEmail || session?.user?.email || null,
         };
         
         console.log("Setting user profile:", userWithEmail);

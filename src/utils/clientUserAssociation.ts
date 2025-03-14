@@ -10,6 +10,11 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
   try {
     console.log(`Tentative d'association du compte ${userEmail} (${userId}) à un client`);
     
+    if (!userEmail || !userId) {
+      console.error("Email ou ID utilisateur manquant pour l'association");
+      return null;
+    }
+    
     // Vérifier si un client avec cet email existe déjà
     const { data: existingClient, error: clientError } = await supabase
       .from('clients')
