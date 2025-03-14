@@ -1,6 +1,6 @@
 
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,8 +29,17 @@ const resetPasswordSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse e-mail valide" }),
 });
 
+const updatePasswordSchema = z.object({
+  password: z.string().min(8, { message: "Le mot de passe doit comporter au moins 8 caractères" }),
+  confirmPassword: z.string().min(8, { message: "Le mot de passe doit comporter au moins 8 caractères" }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
+
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+type UpdatePasswordFormValues = z.infer<typeof updatePasswordSchema>;
 
 export default function Login() {
   const { signIn, isClient, isAdmin } = useAuth();
@@ -42,9 +51,46 @@ export default function Login() {
   const [resetError, setResetError] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [debugMode, setDebugMode] = useState(false);
+  const [updatePasswordMode, setUpdatePasswordMode] = useState(false);
+  const [updatePasswordLoading, setUpdatePasswordLoading] = useState(false);
+  const [updatePasswordError, setUpdatePasswordError] = useState<string | null>(null);
+  
   const navigate = useNavigate();
+  const location = useLocation();
   const supabase = getSupabaseClient();
   const adminSupabase = getAdminSupabaseClient();
+
+  // Detect password reset flow
+  useEffect(() => {
+    const checkForPasswordReset = async () => {
+      // Check if we have an access token in the URL (this indicates a password reset flow)
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      if (accessToken && type === 'recovery') {
+        console.log("Password reset flow detected");
+        setUpdatePasswordMode(true);
+        
+        // Set the session with these tokens
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+        });
+        
+        if (error) {
+          console.error("Error setting session from recovery tokens:", error);
+          toast.error("Erreur lors de la récupération de votre session");
+          setUpdatePasswordError("Lien de réinitialisation invalide ou expiré. Veuillez réessayer.");
+        } else {
+          console.log("Session set for password reset");
+        }
+      }
+    };
+    
+    checkForPasswordReset();
+  }, [location, supabase.auth]);
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -58,6 +104,14 @@ export default function Login() {
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       email: "",
+    },
+  });
+  
+  const updatePasswordForm = useForm<UpdatePasswordFormValues>({
+    resolver: zodResolver(updatePasswordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
     },
   });
 
@@ -185,6 +239,42 @@ export default function Login() {
       setResetLoading(false);
     }
   };
+  
+  const onSubmitUpdatePassword = async (data: UpdatePasswordFormValues) => {
+    try {
+      setUpdatePasswordLoading(true);
+      setUpdatePasswordError(null);
+      
+      console.log("Updating password");
+      
+      const { error } = await supabase.auth.updateUser({
+        password: data.password
+      });
+      
+      if (error) {
+        console.error("Error updating password:", error);
+        setUpdatePasswordError(error.message || "Erreur lors de la mise à jour du mot de passe");
+        return;
+      }
+      
+      toast.success("Mot de passe mis à jour avec succès");
+      
+      // Redirect to login after a successful password update
+      setUpdatePasswordMode(false);
+      
+      // Clear the URL hash to remove the tokens
+      window.history.replaceState(null, '', location.pathname);
+      
+      // Show login form again
+      loginForm.reset();
+      
+    } catch (error: any) {
+      console.error("Error in update password:", error);
+      setUpdatePasswordError(error.message || "Erreur lors de la mise à jour du mot de passe");
+    } finally {
+      setUpdatePasswordLoading(false);
+    }
+  };
 
   // Compte de démonstration pour faciliter les tests
   const loginWithTestAccount = async () => {
@@ -212,7 +302,11 @@ export default function Login() {
             <CardHeader className="space-y-1">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-2xl font-bold">
-                  {resetPassword ? "Réinitialiser le mot de passe" : "Connexion"}
+                  {updatePasswordMode 
+                    ? "Définir un nouveau mot de passe" 
+                    : resetPassword 
+                      ? "Réinitialiser le mot de passe" 
+                      : "Connexion"}
                 </CardTitle>
                 <Button 
                   variant="ghost" 
@@ -224,14 +318,94 @@ export default function Login() {
                 </Button>
               </div>
               <CardDescription>
-                {resetPassword 
-                  ? "Entrez votre adresse e-mail pour recevoir un lien de réinitialisation"
-                  : "Entrez vos identifiants pour accéder à votre compte"
+                {updatePasswordMode 
+                  ? "Choisissez un nouveau mot de passe pour accéder à votre compte"
+                  : resetPassword 
+                    ? "Entrez votre adresse e-mail pour recevoir un lien de réinitialisation"
+                    : "Entrez vos identifiants pour accéder à votre compte"
                 }
               </CardDescription>
             </CardHeader>
 
-            {resetPassword ? (
+            {updatePasswordMode ? (
+              // Formulaire de mise à jour du mot de passe
+              <CardContent>
+                <Form {...updatePasswordForm}>
+                  <form onSubmit={updatePasswordForm.handleSubmit(onSubmitUpdatePassword)} className="space-y-4">
+                    {updatePasswordError && (
+                      <Alert className="mb-4 bg-destructive/10 border-destructive/20">
+                        <AlertTriangle className="h-4 w-4 text-destructive mr-2" />
+                        <AlertDescription className="text-destructive">
+                          {updatePasswordError}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <FormField
+                      control={updatePasswordForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nouveau mot de passe</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input 
+                                type={showPassword ? "text" : "password"} 
+                                placeholder="••••••••" 
+                                className="pl-10" 
+                                {...field} 
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-1 top-1"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={updatePasswordForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirmer le mot de passe</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input 
+                                type={showPassword ? "text" : "password"} 
+                                placeholder="••••••••" 
+                                className="pl-10" 
+                                {...field} 
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={updatePasswordLoading}
+                    >
+                      {updatePasswordLoading ? "Mise à jour en cours..." : "Mettre à jour le mot de passe"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            ) : resetPassword ? (
               // Formulaire de réinitialisation de mot de passe
               <CardContent>
                 {resetEmailSent ? (
