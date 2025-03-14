@@ -147,6 +147,7 @@ export const getClientById = async (id: string): Promise<Client | null> => {
 
 export const createClient = async (clientData: CreateClientData): Promise<Client | null> => {
   try {
+    // Check if the user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -156,18 +157,35 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     console.log("Creating client with data:", clientData);
     
+    // Create the client data object with explicit properties
     const clientWithUserId = {
       ...clientData,
       user_id: null, // Explicitly set to null - no automatic association
       has_user_account: false // Explicitly set to false - accounts created only via button
     };
     
-    // Use adminSupabase to bypass RLS policies
-    const { data, error } = await adminSupabase
-      .from('clients')
-      .insert(clientWithUserId)
-      .select()
-      .single();
+    // Try with regular supabase client first
+    let result = null;
+    try {
+      result = await supabase
+        .from('clients')
+        .insert(clientWithUserId)
+        .select()
+        .single();
+    } catch (innerError) {
+      console.log("Regular client insertion failed, trying with admin client:", innerError);
+    }
+    
+    // If failed with regular client, try with admin client
+    if (!result || result.error) {
+      result = await adminSupabase
+        .from('clients')
+        .insert(clientWithUserId)
+        .select()
+        .single();
+    }
+    
+    const { data, error } = result;
     
     if (error) {
       console.error("Supabase error details:", error);
