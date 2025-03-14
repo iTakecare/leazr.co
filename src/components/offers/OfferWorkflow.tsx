@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
@@ -197,9 +198,9 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
   const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
-  const validStatus = workflowSteps.some(step => step.id === currentStatus)
-    ? currentStatus 
-    : 'draft';
+  // Validate if the current status is a valid workflow status
+  const isValidStatus = Object.values(workflowStatuses).includes(currentStatus);
+  const validStatus = isValidStatus ? currentStatus : 'draft';
 
   const currentStepInfo = workflowSteps.find(step => step.id === validStatus);
   const nextStepOptions = isConverted ? [] : getNextStepOptions(validStatus);
@@ -273,7 +274,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
   };
 
   const handleStepClick = (stepId: string) => {
-    if (stepId === currentStatus) {
+    if (stepId === validStatus) {
       return; // Ne rien faire si c'est l'étape actuelle
     }
     

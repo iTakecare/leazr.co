@@ -46,9 +46,11 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
   const [localWorkflowStatus, setLocalWorkflowStatus] = useState(offer.workflow_status || 'draft');
   const navigate = useNavigate();
   
-  // Mettre à jour le statut local quand l'offre change
+  // Update local status when offer changes
   useEffect(() => {
-    setLocalWorkflowStatus(offer.workflow_status || 'draft');
+    if (offer.workflow_status && offer.workflow_status !== localWorkflowStatus) {
+      setLocalWorkflowStatus(offer.workflow_status);
+    }
   }, [offer.workflow_status]);
   
   const toggleExpand = () => {
@@ -77,7 +79,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
     
     try {
       await onStatusChange(offer.id, newStatus, reason);
-      // Mettre à jour le statut local immédiatement pour une réactivité plus rapide
+      // Update local status immediately for better reactivity
       setLocalWorkflowStatus(newStatus);
       toast.success(`Statut changé avec succès vers ${newStatus}`);
     } catch (error) {

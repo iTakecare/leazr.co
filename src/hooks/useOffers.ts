@@ -129,7 +129,8 @@ export const useOffers = () => {
         return;
       }
       
-      const currentStatus = currentOffer?.workflow_status || 'draft';
+      // Ensure we are using the workflow_status field, not the offer's ID
+      const currentStatus = currentOffer.workflow_status || 'draft';
       console.log(`Current status: ${currentStatus}, New status: ${newStatus}`);
       
       if (currentStatus === newStatus) {
@@ -142,7 +143,7 @@ export const useOffers = () => {
       const success = await updateOfferStatus(offerId, newStatus, currentStatus, reason);
       
       if (success) {
-        console.log(`Status update successful for offer ${offerId}`);
+        console.log(`Status update successful for offer ${offerId} to ${newStatus}`);
         
         // Mettre à jour immédiatement l'état local pour une meilleure réactivité
         setOffers(prevOffers => 
@@ -160,6 +161,8 @@ export const useOffers = () => {
         
         if (newStatus === workflowStatuses.LEASER_APPROVED) {
           toast.success("L'offre a été approuvée et convertie en contrat");
+          // Fetch offers again to ensure we get the latest status
+          setTimeout(fetchOffers, 1000);
         } else {
           toast.success("Statut de l'offre mis à jour");
         }
