@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface OfferDetailCardProps {
   offer: {
@@ -50,6 +51,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
   const handleAddComment = () => {
     if (comment.trim()) {
       console.log("Commentaire ajouté:", comment);
+      toast.success("Commentaire ajouté");
       setComment("");
     }
   };
@@ -60,6 +62,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
       await onStatusChange(offer.id, newStatus, reason);
     } catch (error) {
       console.error("Error changing status:", error);
+      toast.error("Erreur lors du changement de statut");
     }
   };
 
@@ -137,6 +140,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
             variant="ghost" 
             size="sm" 
             onClick={toggleExpand}
+            className="ml-2"
           >
             {isExpanded ? (
               <ChevronUp className="h-5 w-5" />

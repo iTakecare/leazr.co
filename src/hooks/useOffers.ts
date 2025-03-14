@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { getOffers, deleteOffer, updateOfferStatus } from "@/services/offerService";
 import { toast } from "sonner";
@@ -57,10 +56,8 @@ export const useOffers = () => {
       const offersData = await getOffers();
       
       if (Array.isArray(offersData)) {
-        // Pour les offres sans statut de workflow, définir par défaut selon le statut
         const offersWithWorkflow = offersData.map(offer => {
           if (!offer.workflow_status) {
-            // Attribuer un statut de workflow basé sur le status existant
             let workflowStatus;
             switch (offer.status) {
               case "accepted":
@@ -80,7 +77,6 @@ export const useOffers = () => {
           return offer;
         });
         
-        // S'assurer que toutes les offres ont un type (par compatibilité)
         const offersWithType = offersWithWorkflow.map(offer => {
           if (!offer.type) {
             return {
@@ -110,7 +106,6 @@ export const useOffers = () => {
       const success = await deleteOffer(offerId);
       if (success) {
         toast.success("L'offre a été supprimée avec succès");
-        // Mise à jour locale pour éviter de refaire un appel réseau
         setOffers(offers.filter(offer => offer.id !== offerId));
       } else {
         toast.error("Erreur lors de la suppression de l'offre");
@@ -119,11 +114,10 @@ export const useOffers = () => {
   };
 
   const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string, reason?: string) => {
+    console.log(`Starting workflow status update for offer ${offerId} to ${newStatus}`);
     setIsUpdatingStatus(true);
+    
     try {
-      console.log(`Starting workflow status update for offer ${offerId} to ${newStatus}`);
-      
-      // Obtenir le statut actuel pour pouvoir l'enregistrer dans l'historique
       const currentOffer = offers.find(offer => offer.id === offerId);
       if (!currentOffer) {
         console.error(`Offer with ID ${offerId} not found`);
@@ -135,13 +129,18 @@ export const useOffers = () => {
       const currentStatus = currentOffer?.workflow_status || 'draft';
       console.log(`Current status: ${currentStatus}, New status: ${newStatus}`);
       
-      // Appeler l'API pour mettre à jour le statut
+      if (currentStatus === newStatus) {
+        console.log("Status unchanged, skipping update");
+        toast.info("Le statut est déjà à cette valeur");
+        setIsUpdatingStatus(false);
+        return;
+      }
+      
       const success = await updateOfferStatus(offerId, newStatus, currentStatus, reason);
       
       if (success) {
         console.log(`Status update successful for offer ${offerId}`);
         
-        // Mettre à jour localement
         setOffers(prevOffers => 
           prevOffers.map(offer => 
             offer.id === offerId 
@@ -172,7 +171,6 @@ export const useOffers = () => {
   };
 
   const filteredOffers = offers.filter((offer) => {
-    // Rechercher dans le nom du client ou le nom de la société du client s'il est lié
     const clientName = offer.client_name.toLowerCase();
     const clientCompany = offer.clients?.company?.toLowerCase() || '';
     

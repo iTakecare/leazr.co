@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -258,6 +257,11 @@ export const updateOfferStatus = async (
   try {
     console.log(`Updating offer ${offerId} from ${previousStatus} to ${newStatus} with reason: ${reason || 'Aucune'}`);
 
+    // Vérifier que les statuts sont valides
+    if (!newStatus) {
+      throw new Error("Le nouveau statut est requis");
+    }
+
     // Get the user for logging the change
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -265,8 +269,10 @@ export const updateOfferStatus = async (
       throw new Error("Utilisateur non authentifié");
     }
 
+    console.log("Authenticated user:", user.id);
+
     // First, log the status change
-    const { error: logError } = await supabase
+    const { data: logData, error: logError } = await supabase
       .from('offer_workflow_logs')
       .insert({
         offer_id: offerId,
@@ -274,22 +280,29 @@ export const updateOfferStatus = async (
         previous_status: previousStatus,
         new_status: newStatus,
         reason: reason || null
-      });
+      })
+      .select();
 
     if (logError) {
-      console.error("Erreur lors de l'enregistrement du log :", logError);
+      console.error("Erreur lors de l'enregistrement du log:", logError);
+      throw new Error("Erreur lors de l'enregistrement du log");
     }
+    
+    console.log("Log created successfully:", logData);
 
     // Then, update the offer's workflow_status
-    const { error: updateError } = await supabase
+    const { data: updateData, error: updateError } = await supabase
       .from('offers')
       .update({ workflow_status: newStatus })
-      .eq('id', offerId);
+      .eq('id', offerId)
+      .select();
       
     if (updateError) {
-      console.error("Erreur lors de la mise à jour du statut :", updateError);
-      throw updateError;
+      console.error("Erreur lors de la mise à jour du statut:", updateError);
+      throw new Error("Erreur lors de la mise à jour du statut");
     }
+    
+    console.log("Offer status updated successfully:", updateData);
 
     // If the status is approved by the leaser, convert it to a contract
     if (newStatus === 'leaser_approved') {
@@ -310,7 +323,7 @@ export const updateOfferStatus = async (
             .eq('id', offerId);
             
           if (error) {
-            console.error("Erreur lors de la mise à jour du statut de conversion :", error);
+            console.error("Erreur lors de la mise à jour du statut de conversion:", error);
           }
         }
       } catch (contractError) {
@@ -318,8 +331,6 @@ export const updateOfferStatus = async (
         toast.error("L'offre a été approuvée mais nous n'avons pas pu créer le contrat");
       }
     }
-
-    await new Promise(resolve => setTimeout(resolve, 500));
     
     return true;
   } catch (error) {
@@ -461,3 +472,4 @@ export const updateOffer = async (offerId: string, offerData: any) => {
     return null;
   }
 };
+

@@ -42,6 +42,7 @@ import { format } from "date-fns";
 import { getWorkflowLogs } from "@/services/offerService";
 import { fr } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
 
 const workflowSteps = [
   { 
@@ -212,8 +213,10 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
         await onStatusChange(selectedStep, reason || undefined);
         setReason("");
         setConfirmOpen(false);
+        toast.success(`Statut changé avec succès`);
       } catch (error) {
         console.error("Error changing status:", error);
+        toast.error("Erreur lors du changement de statut");
       }
     }
   };
@@ -250,6 +253,24 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
       case "purple": return "bg-purple-100 border-purple-500 text-purple-600";
       case "orange": return "bg-orange-100 border-orange-500 text-orange-600";
       default: return "bg-gray-100 border-gray-300 text-gray-600";
+    }
+  };
+
+  // Vérifie si une étape est disponible comme prochaine étape
+  const isAvailableNextStep = (stepId: string) => {
+    return nextStepOptions.some(option => option.id === stepId);
+  };
+
+  // Gère le clic sur une étape en mode visuel
+  const handleStepClick = (stepId: string) => {
+    if (stepId === currentStatus) {
+      return; // Ne rien faire si c'est l'étape actuelle
+    }
+    
+    if (isAvailableNextStep(stepId)) {
+      handleNextStepSelect(stepId);
+    } else {
+      toast.error("Cette étape n'est pas disponible comme prochaine étape");
     }
   };
 
@@ -322,7 +343,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
             {workflowSteps.map((step, index) => {
               const Icon = step.icon;
               const isActive = step.id === currentStatus;
-              const hasPassed = false; // Add logic to determine if step has been passed
+              const isClickable = isAvailableNextStep(step.id) || isActive;
               
               return (
                 <React.Fragment key={step.id}>
@@ -332,14 +353,19 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                   <div
                     className={cn(
                       "flex flex-col items-center",
-                      isActive && "relative"
+                      isActive && "relative",
+                      isClickable && !isActive && "cursor-pointer hover:opacity-80",
+                      !isClickable && !isActive && "opacity-50"
                     )}
+                    onClick={() => isClickable ? handleStepClick(step.id) : null}
+                    title={!isActive && isClickable ? "Cliquer pour passer à cette étape" : ""}
                   >
                     <div 
                       className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center border-2",
                         getStatusColor(step.id),
-                        isActive && "ring-2 ring-offset-2 ring-primary/30"
+                        isActive && "ring-2 ring-offset-2 ring-primary/30",
+                        isClickable && !isActive && "ring-1 ring-offset-1 ring-primary/30"
                       )}
                     >
                       <Icon className="h-4 w-4" />
