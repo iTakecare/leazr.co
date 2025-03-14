@@ -10,12 +10,12 @@ const ensurePDFTemplateTableExists = async () => {
   
   try {
     // Vérifier si la table existe
-    const { data, error } = await supabase
-      .from('pdf_templates')
-      .select('id')
-      .limit(1);
+    const { data: tableExists, error: tableCheckError } = await supabase.rpc(
+      'check_table_exists',
+      { table_name: 'pdf_templates' }
+    );
     
-    if (error && error.code === 'PGRST116') {
+    if (tableCheckError || !tableExists) {
       // La table n'existe pas, la créer
       const { error: createError } = await supabase.rpc('execute_sql', {
         sql: `
@@ -46,7 +46,7 @@ const ensurePDFTemplateTableExists = async () => {
       return null;
     }
     
-    return data;
+    return tableExists;
   } catch (error) {
     console.error("Erreur lors de la vérification de la table pdf_templates:", error);
     return null;
