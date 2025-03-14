@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
@@ -13,13 +12,9 @@ import {
   Loader2, 
   Info
 } from "lucide-react";
-import { 
-  Button, 
-  Popover, 
-  PopoverTrigger, 
-  PopoverContent, 
-  Textarea
-} from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import { workflowStatuses } from "@/hooks/useOffers";
 import { toast } from "sonner";
 import { getWorkflowLogs } from "@/services/offerService";
