@@ -180,7 +180,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     className="font-medium cursor-pointer"
                     onClick={() => handleRowClick(offer.id)}
                   >
-                    {offer.reference || `OFF-${offer.id.slice(0, 8)}`}
+                    {`OFF-${offer.id.slice(0, 8)}`}
                     {offer.converted_to_contract && (
                       <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
                         Contrat actif
@@ -188,7 +188,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     )}
                   </TableCell>
                   <TableCell>{offer.client_name}</TableCell>
-                  <TableCell>{formatCurrency(offer.total_amount || 0)}</TableCell>
+                  <TableCell>{formatCurrency(offer.amount || 0)}</TableCell>
                   <TableCell>{formatDate(offer.created_at)}</TableCell>
                   <TableCell>
                     <OfferStatusBadge status={offer.workflow_status} isConverted={offer.converted_to_contract} />
