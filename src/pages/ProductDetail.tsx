@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Trash2, Upload, PlusCircle, MinusCircle, ChevronDown, ChevronUp, Tag, Package, Layers, Euro, X, Image } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Upload, PlusCircle, MinusCircle, ChevronDown, ChevronUp, Tag, Package, Layers, Euro, X, Image, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Product, ProductVariant } from "@/types/catalog";
@@ -213,6 +213,31 @@ const ProductDetail = () => {
     }
   });
   
+  const detachFromParentMutation = useMutation({
+    mutationFn: (productId: string) => 
+      updateProduct(productId, { 
+        parent_id: null, 
+        is_variation: false,
+        variation_attributes: {}
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setParentProduct(null);
+      setFormData(prev => ({
+        ...prev,
+        parent_id: null,
+        is_variation: false,
+        variation_attributes: {}
+      }));
+      toast.success("Produit détaché du produit parent avec succès");
+    },
+    onError: (error) => {
+      toast.error("Erreur lors du détachement du produit");
+      console.error("Detach error:", error);
+    }
+  });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -315,6 +340,12 @@ const ProductDetail = () => {
     }
   };
   
+  const handleDetachFromParent = () => {
+    if (id) {
+      detachFromParentMutation.mutate(id);
+    }
+  };
+
   if (isLoading) {
     return (
       <Container>
@@ -351,7 +382,7 @@ const ProductDetail = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => navigate(`/catalog/${parentProduct.id}`)}
+              onClick={() => navigate(`/products/${parentProduct.id}`)}
               className="ml-auto"
             >
               <Layers className="mr-2 h-4 w-4" />
@@ -362,14 +393,25 @@ const ProductDetail = () => {
         
         {formData.is_variation && parentProduct && (
           <div className="mb-6 p-4 bg-muted rounded-lg">
-            <div className="flex items-center">
-              <div className="mr-3">
-                <Package className="h-5 w-5 text-muted-foreground" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="mr-3">
+                  <Package className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Ce produit est une variation de</p>
+                  <p className="text-lg font-semibold">{parentProduct.name}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Ce produit est une variation de</p>
-                <p className="text-lg font-semibold">{parentProduct.name}</p>
-              </div>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={handleDetachFromParent}
+                title="Détacher du produit parent"
+              >
+                <Unlink className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         )}
@@ -909,3 +951,4 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
+
