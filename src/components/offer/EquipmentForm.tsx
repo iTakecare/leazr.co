@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,7 +12,6 @@ import { getProducts, getCategories, getBrands } from "@/services/catalogService
 import { useQuery } from "@tanstack/react-query";
 import ProductCard from "@/components/ui/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import MarginCalculator from "./MarginCalculator";
 
 interface EquipmentFormProps {
   equipment: Equipment;
@@ -58,7 +56,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [productMonthlyPrice, setProductMonthlyPrice] = useState<number | null>(null);
   
-  // Calculate margin amount
   const marginAmount = equipment.purchasePrice * (equipment.margin / 100);
   const priceWithMargin = equipment.purchasePrice + marginAmount;
 
@@ -122,7 +119,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
 
   const handleSubmit = () => {
     if (validateForm()) {
-      // Set monthly price before adding to list
       console.log("Submitting with monthly payment:", displayMonthlyPayment);
       addToList();
       setProductMonthlyPrice(null);
@@ -132,7 +128,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const handleProductSelect = (product: any) => {
     console.log("Product selected:", product);
     
-    // Update the equipment state with the product information
     const equipmentUpdate = {
       ...equipment,
       title: product.name,
@@ -141,7 +136,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
     
     setEquipment(equipmentUpdate);
     
-    // Set monthly price if available
     if (product.monthly_price) {
       setProductMonthlyPrice(product.monthly_price);
       setTargetMonthlyPayment(product.monthly_price);
@@ -156,161 +150,153 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const displayMonthlyPayment = productMonthlyPrice || monthlyPayment;
 
   return (
-    <>
-      <Card className="shadow-md border-gray-200">
-        <CardContent className="p-6">
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="leaser" className="font-medium text-gray-700">Leaser</Label>
-              <div className="mt-1 border rounded-md p-2 flex items-center justify-between bg-white">
-                {selectedLeaser?.logo_url ? (
-                  <img src={selectedLeaser.logo_url} alt={selectedLeaser.name} className="h-8" />
-                ) : (
-                  <div className="flex items-center">
-                    <div className="h-8 w-8 rounded-md flex items-center justify-center bg-gray-100 text-gray-500 mr-2">
-                      <span className="text-xs font-medium">G</span>
-                    </div>
-                    <span>{selectedLeaser?.name || 'Grenke'} Lease BE</span>
+    <Card className="shadow-sm border-gray-200 rounded-lg">
+      <CardHeader className="pb-3 border-b">
+        <CardTitle className="text-lg font-medium">Calculateur de mensualité</CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="space-y-6">
+          <div>
+            <Label htmlFor="leaser" className="font-medium text-gray-700">Leaser</Label>
+            <div className="mt-1 border rounded-md p-2 flex items-center justify-between bg-white">
+              {selectedLeaser?.logo_url ? (
+                <img src={selectedLeaser.logo_url} alt={selectedLeaser.name} className="h-8" />
+              ) : (
+                <div className="flex items-center">
+                  <div className="h-8 w-8 rounded-md flex items-center justify-center bg-gray-100 text-gray-500 mr-2">
+                    <span className="text-xs font-medium">G</span>
                   </div>
-                )}
-                <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-                  <path d="M7 7l3-3 3 3m0 6l-3 3-3-3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="equipment-title" className="font-medium text-gray-700">Intitulé du matériel</Label>
-              <div className="mt-1 flex gap-2">
-                <div className="relative flex-1">
-                  <Package className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="equipment-title"
-                    value={equipment.title}
-                    onChange={(e) => handleChange('title', e.target.value)}
-                    className={`pl-10 ${errors.title ? "border-destructive" : ""}`}
-                    placeholder="Ex: ThinkPad T480"
-                  />
+                  <span>{selectedLeaser?.name || 'Grenke'} Lease BE</span>
                 </div>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsQuickCatalogOpen(true)}
-                  title="Sélectionner depuis le catalogue"
-                  className="border-gray-300"
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-              {errors.title && (
-                <p className="text-destructive text-xs mt-1">La désignation est requise</p>
               )}
+              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                <path d="M7 7l3-3 3 3m0 6l-3 3-3-3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="purchase-price" className={`font-medium text-gray-700 ${errors.purchasePrice ? "text-destructive" : ""}`}>
-                  Prix d'achat (€)
-                </Label>
-                <div className="mt-1 relative">
-                  <span className="absolute left-3 top-3 text-gray-500">€</span>
-                  <Input
-                    id="purchase-price"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={equipment.purchasePrice || ''}
-                    onChange={(e) => handleChange('purchasePrice', parseFloat(e.target.value) || 0)}
-                    className={`pl-8 ${errors.purchasePrice ? "border-destructive" : ""}`}
-                    placeholder="0.00"
-                  />
-                  {errors.purchasePrice && (
-                    <p className="text-destructive text-xs mt-1">Prix invalide</p>
-                  )}
-                </div>
+          <div>
+            <Label htmlFor="equipment-title" className="font-medium text-gray-700">Intitulé du matériel</Label>
+            <div className="mt-1 flex gap-2">
+              <div className="relative flex-1">
+                <Package className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="equipment-title"
+                  value={equipment.title}
+                  onChange={(e) => handleChange('title', e.target.value)}
+                  className={`pl-10 ${errors?.title ? "border-destructive" : ""}`}
+                  placeholder="Ex: ThinkPad T480"
+                />
               </div>
-
-              <div>
-                <Label htmlFor="margin" className={`font-medium text-gray-700 ${errors.margin ? "text-destructive" : ""}`}>
-                  Marge (%)
-                </Label>
-                <div className="mt-1 relative">
-                  <span className="absolute left-3 top-3 text-gray-500">%</span>
-                  <Input
-                    id="margin"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    value={equipment.margin || ''}
-                    onChange={(e) => handleChange('margin', parseFloat(e.target.value) || 0)}
-                    className={`pl-8 ${errors.margin ? "border-destructive" : ""}`}
-                    placeholder="20.00"
-                  />
-                  {errors.margin && (
-                    <p className="text-destructive text-xs mt-1">Marge invalide</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between py-1">
-                <span className="text-gray-600">Marge en euros :</span>
-                <span className="font-medium">{formatCurrency(marginAmount)}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-gray-600">Prix avec marge :</span>
-                <span className="font-medium">{formatCurrency(priceWithMargin)}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-gray-600">Coefficient appliqué :</span>
-                <span className="font-medium">{formatPercentage(coefficient)}</span>
-              </div>
-              <div className="flex justify-between py-1 text-blue-600">
-                <span className="font-medium">Mensualité unitaire :</span>
-                <span className="font-bold">{formatCurrency(displayMonthlyPayment)}</span>
-              </div>
-            </div>
-
-            {editingId ? (
-              <div className="flex gap-2">
-                <Button 
-                  variant="default" 
-                  onClick={handleSubmit} 
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  <Edit className="h-4 w-4 mr-2" /> Mettre à jour
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={cancelEditing}
-                  className="flex-1"
-                >
-                  <X className="h-4 w-4 mr-2" /> Annuler
-                </Button>
-              </div>
-            ) : (
               <Button 
-                variant="default" 
-                onClick={handleSubmit}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsQuickCatalogOpen(true)}
+                title="Sélectionner depuis le catalogue"
+                className="border-gray-300"
               >
-                <Plus className="h-4 w-4 mr-2" /> Ajouter à la liste
+                <Search className="h-4 w-4" />
               </Button>
+            </div>
+            {errors?.title && (
+              <p className="text-destructive text-xs mt-1">La désignation est requise</p>
             )}
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="mt-8">
-        <MarginCalculator 
-          targetMonthlyPayment={targetMonthlyPayment}
-          setTargetMonthlyPayment={setTargetMonthlyPayment}
-          calculatedMargin={calculatedMargin}
-          applyCalculatedMargin={applyCalculatedMargin}
-        />
-      </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="purchase-price" className={`font-medium text-gray-700 ${errors?.purchasePrice ? "text-destructive" : ""}`}>
+                Prix d'achat (€)
+              </Label>
+              <div className="mt-1 relative">
+                <span className="absolute left-3 top-3 text-gray-500">€</span>
+                <Input
+                  id="purchase-price"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={equipment.purchasePrice || ''}
+                  onChange={(e) => handleChange('purchasePrice', parseFloat(e.target.value) || 0)}
+                  className={`pl-8 ${errors?.purchasePrice ? "border-destructive" : ""}`}
+                  placeholder="0.00"
+                />
+                {errors?.purchasePrice && (
+                  <p className="text-destructive text-xs mt-1">Prix invalide</p>
+                )}
+              </div>
+            </div>
 
+            <div>
+              <Label htmlFor="margin" className={`font-medium text-gray-700 ${errors?.margin ? "text-destructive" : ""}`}>
+                Marge (%)
+              </Label>
+              <div className="mt-1 relative">
+                <span className="absolute left-3 top-3 text-gray-500">%</span>
+                <Input
+                  id="margin"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={equipment.margin || ''}
+                  onChange={(e) => handleChange('margin', parseFloat(e.target.value) || 0)}
+                  className={`pl-8 ${errors?.margin ? "border-destructive" : ""}`}
+                  placeholder="20.00"
+                />
+                {errors?.margin && (
+                  <p className="text-destructive text-xs mt-1">Marge invalide</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">Marge en euros :</span>
+              <span className="font-medium">{formatCurrency(marginAmount)}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">Prix avec marge :</span>
+              <span className="font-medium">{formatCurrency(priceWithMargin)}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">Coefficient appliqué :</span>
+              <span className="font-medium">{formatPercentage(coefficient)}</span>
+            </div>
+            <div className="flex justify-between py-1 text-blue-600">
+              <span className="font-medium">Mensualité unitaire :</span>
+              <span className="font-bold">{formatCurrency(displayMonthlyPayment)}</span>
+            </div>
+          </div>
+
+          {editingId ? (
+            <div className="flex gap-2">
+              <Button 
+                variant="default" 
+                onClick={handleSubmit} 
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                <Edit className="h-4 w-4 mr-2" /> Mettre à jour
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={cancelEditing}
+                className="flex-1"
+              >
+                <X className="h-4 w-4 mr-2" /> Annuler
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              variant="default" 
+              onClick={handleSubmit}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" /> Ajouter à la liste
+            </Button>
+          )}
+        </div>
+      </CardContent>
+      
       <Dialog open={isQuickCatalogOpen} onOpenChange={setIsQuickCatalogOpen}>
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
@@ -381,7 +367,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </Card>
   );
 };
 

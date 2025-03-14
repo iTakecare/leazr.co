@@ -3,8 +3,17 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
-import { Trash2, Edit, Plus, Minus } from "lucide-react";
+import { Trash2, Edit, Plus, Minus, PenLine } from "lucide-react";
 import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface EquipmentListProps {
   equipmentList: Equipment[];
@@ -27,8 +36,8 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
 }) => {
   if (equipmentList.length === 0) {
     return (
-      <Card className="shadow-md border-gray-200">
-        <CardHeader className="pb-4 border-b">
+      <Card className="shadow-sm border-gray-200 rounded-lg">
+        <CardHeader className="pb-3 border-b">
           <CardTitle className="text-lg font-medium">Liste des équipements</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -41,39 +50,36 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
   }
 
   return (
-    <Card className="shadow-md border-gray-200">
-      <CardHeader className="pb-4 border-b">
-        <CardTitle className="text-lg font-medium">Liste des équipements</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left font-medium p-3">Équipement</th>
-                <th className="text-right font-medium p-3">Prix unitaire</th>
-                <th className="text-center font-medium p-3">Qté</th>
-                <th className="text-right font-medium p-3">Marge</th>
-                <th className="text-right font-medium p-3">Mensualité unitaire</th>
-                <th className="text-right font-medium p-3">Mensualité totale</th>
-                <th className="text-center font-medium p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+    <div className="space-y-6">
+      <Card className="shadow-sm border-gray-200 rounded-lg">
+        <CardHeader className="pb-3 border-b">
+          <CardTitle className="text-lg font-medium">Liste des équipements</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50 hover:bg-gray-50">
+                <TableHead className="font-medium">Équipement</TableHead>
+                <TableHead className="text-right font-medium">Prix unitaire</TableHead>
+                <TableHead className="text-center font-medium">Qté</TableHead>
+                <TableHead className="text-right font-medium">Marge</TableHead>
+                <TableHead className="text-right font-medium">Total</TableHead>
+                <TableHead className="text-center font-medium">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {equipmentList.map((equipment) => (
-                <tr 
+                <TableRow 
                   key={equipment.id}
-                  className={`border-b hover:bg-gray-50 ${
-                    editingId === equipment.id ? 'bg-blue-50' : ''
-                  }`}
+                  className={`${editingId === equipment.id ? 'bg-blue-50' : ''}`}
                 >
-                  <td className="p-3 text-left">
+                  <TableCell>
                     <div className="font-medium">{equipment.title}</div>
-                  </td>
-                  <td className="p-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     {formatCurrency(equipment.purchasePrice)}
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center justify-center">
                       <Button 
                         variant="ghost" 
@@ -95,55 +101,82 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
-                  </td>
-                  <td className="p-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     {formatPercentage(equipment.margin)}
-                  </td>
-                  <td className="p-3 text-right font-medium text-blue-600">
-                    {formatCurrency(equipment.monthlyPayment || 0)}
-                  </td>
-                  <td className="p-3 text-right font-medium text-blue-600">
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-blue-600">
                     {formatCurrency((equipment.monthlyPayment || 0) * equipment.quantity)}
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center justify-center space-x-1">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-6 w-6 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                         onClick={() => startEditing(equipment.id)}
                         disabled={editingId !== null}
                       >
-                        <Edit className="h-3 w-3" />
+                        <PenLine className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-6 w-6 text-red-600 hover:text-red-800 hover:bg-red-50"
+                        className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
                         onClick={() => removeFromList(equipment.id)}
                         disabled={editingId !== null}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t bg-gray-50 font-medium">
-                <td colSpan={5} className="p-3 text-right">
-                  Mensualité totale:
-                </td>
-                <td colSpan={2} className="p-3 text-right text-blue-600 font-bold">
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={4} className="text-right font-medium">
+                  Mensualité totale :
+                </TableCell>
+                <TableCell colSpan={2} className="text-right text-blue-600 font-bold">
                   {formatCurrency(totalMonthlyPayment)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm border-gray-200 rounded-lg">
+        <CardHeader className="pb-3 border-b">
+          <CardTitle className="text-lg font-medium">Récapitulatif global</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Coefficient actuel :</span>
+              <span className="font-medium">{formatPercentage(globalMarginAdjustment.currentCoef)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Nouveau coefficient :</span>
+              <span className="font-medium">{formatPercentage(globalMarginAdjustment.newCoef)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Marge globale :</span>
+              <span className="font-medium">{formatPercentage(globalMarginAdjustment.percentage)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Marge totale en euros :</span>
+              <span className="font-medium">{formatCurrency(globalMarginAdjustment.amount)}</span>
+            </div>
+            <div className="flex justify-between items-center text-blue-600">
+              <span className="font-medium">Mensualité totale :</span>
+              <span className="font-bold">{formatCurrency(globalMarginAdjustment.newMonthly)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
