@@ -126,7 +126,7 @@ const CreateOffer = () => {
             setClientName(offer.client_name || '');
             setClientEmail(offer.client_email || '');
             setClientCompany(offer.clients?.company || '');
-            setRemarks(offer.remarks || '');
+            setRemarks(offer.additional_info || '');
             
             if (offer.coefficient && offer.amount) {
               setGlobalMarginAdjustment(prev => ({
@@ -246,7 +246,7 @@ const CreateOffer = () => {
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
-        remarks: remarks
+        additional_info: remarks
       };
 
       let result;
