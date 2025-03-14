@@ -56,7 +56,11 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 
   const handleStatusChange = async (newStatus: string, reason?: string) => {
     console.log(`Changing status for offer ${offer.id} to ${newStatus}`);
-    await onStatusChange(offer.id, newStatus, reason);
+    try {
+      await onStatusChange(offer.id, newStatus, reason);
+    } catch (error) {
+      console.error("Error changing status:", error);
+    }
   };
 
   const formatDate = (dateString: string) => {

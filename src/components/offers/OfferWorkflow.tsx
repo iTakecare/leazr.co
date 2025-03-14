@@ -207,9 +207,14 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
 
   const confirmStatusChange = async () => {
     if (selectedStep) {
-      await onStatusChange(selectedStep, reason || undefined);
-      setReason("");
-      setConfirmOpen(false);
+      console.log("Confirming status change to:", selectedStep);
+      try {
+        await onStatusChange(selectedStep, reason || undefined);
+        setReason("");
+        setConfirmOpen(false);
+      } catch (error) {
+        console.error("Error changing status:", error);
+      }
     }
   };
 
@@ -285,7 +290,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
               </div>
             </div>
             
-            {nextStepOptions.length > 0 && (
+            {nextStepOptions.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-500">Passer à l'étape suivante:</p>
                 <Select onValueChange={handleNextStepSelect}>
@@ -295,14 +300,18 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                   <SelectContent>
                     {nextStepOptions.map(option => (
                       <SelectItem key={option.id} value={option.id}>
-                        <div>
-                          <span>{option.label}</span>
-                          <p className="text-xs text-gray-500">{option.description}</p>
+                        <div className="py-1">
+                          <span className="font-medium">{option.label}</span>
+                          <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Aucune étape suivante disponible pour ce statut.
               </div>
             )}
           </div>
