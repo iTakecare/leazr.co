@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -310,7 +309,8 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     console.log("Using site URL for redirect:", siteUrl);
     
     try {
-      const { error: signupError } = await supabase.auth.signUp({
+      // Créer un nouvel utilisateur
+      const { data: userData, error: signupError } = await supabase.auth.signUp({
         email: client.email,
         password: tempPassword,
         options: {
@@ -327,8 +327,23 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
         console.log("Sign up error, likely user exists:", signupError.message);
       } else {
         console.log("New user created successfully");
+        
+        // Important: Si l'utilisateur a été créé, mettre à jour la fiche client avec l'user_id
+        if (userData && userData.user) {
+          const { error: updateError } = await supabase
+            .from('clients')
+            .update({ user_id: userData.user.id })
+            .eq('id', client.id);
+            
+          if (updateError) {
+            console.error("Error updating client with user_id:", updateError);
+          } else {
+            console.log("Client updated with user_id:", userData.user.id);
+          }
+        }
       }
       
+      // Envoyer un email de réinitialisation de mot de passe
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(client.email, {
         redirectTo: `${siteUrl}/login`
       });

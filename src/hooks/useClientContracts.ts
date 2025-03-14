@@ -29,52 +29,52 @@ export const useClientContracts = () => {
 
   useEffect(() => {
     const fetchClientId = async () => {
-      if (!user?.email) return null;
+      if (!user) return null;
       
       try {
-        console.log("Fetching client ID for email:", user.email);
-        const { data, error } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('email', user.email)
-          .maybeSingle();
+        console.log("Fetching client ID for user:", user.email);
         
-        if (error) {
-          console.error("Error fetching client ID:", error);
-          return null;
-        }
-        
-        if (data) {
-          console.log("Found client ID:", data.id);
-          setClientId(data.id);
-          return data.id;
-        } else {
-          console.log("No client found for email:", user.email);
-          // Si aucun client n'est trouvé avec cet email, essayons de chercher par user_id
-          if (user.id) {
-            const { data: dataByUserId, error: errorByUserId } = await supabase
-              .from('clients')
-              .select('id')
-              .eq('user_id', user.id)
-              .maybeSingle();
-            
-            if (errorByUserId) {
-              console.error("Error fetching client by user_id:", errorByUserId);
-              return null;
-            }
-            
-            if (dataByUserId) {
-              console.log("Found client ID by user_id:", dataByUserId.id);
-              setClientId(dataByUserId.id);
-              return dataByUserId.id;
-            }
+        // Première tentative: chercher par email
+        if (user.email) {
+          const { data: dataByEmail, error: errorByEmail } = await supabase
+            .from('clients')
+            .select('id')
+            .eq('email', user.email)
+            .maybeSingle();
+          
+          if (!errorByEmail && dataByEmail) {
+            console.log("Found client ID by email:", dataByEmail.id);
+            setClientId(dataByEmail.id);
+            return dataByEmail.id;
+          } else {
+            console.log("No client found for email:", user.email);
           }
         }
+        
+        // Deuxième tentative: chercher par user_id
+        if (user.id) {
+          const { data: dataByUserId, error: errorByUserId } = await supabase
+            .from('clients')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (!errorByUserId && dataByUserId) {
+            console.log("Found client ID by user_id:", dataByUserId.id);
+            setClientId(dataByUserId.id);
+            return dataByUserId.id;
+          } else {
+            console.log("No client found for user_id:", user.id);
+          }
+        }
+        
+        // Si aucun client n'est trouvé, retourner null
+        console.log("No client found for this user");
+        return null;
       } catch (error) {
         console.error("Error in fetchClientId:", error);
+        return null;
       }
-      
-      return null;
     };
 
     const fetchClientContracts = async () => {
