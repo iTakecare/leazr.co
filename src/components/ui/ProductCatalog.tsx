@@ -49,6 +49,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   
+  console.log("ProductCatalog opened:", isOpen);
   console.log("Default products available:", defaultProducts.length); // Debug log
   
   // Ensure default products are properly formatted
@@ -56,26 +57,35 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
     ...product,
     specifications: product.specifications || {},
     createdAt: product.createdAt || new Date(),
-    updatedAt: product.updatedAt || new Date()
+    updatedAt: product.updatedAt || new Date(),
+    active: product.active !== undefined ? product.active : true
   }));
   
   // Utiliser React Query avec les produits par défaut comme fallback
   const { 
-    data: products = enrichedDefaultProducts, 
+    data: productsFromServer, 
     isLoading, 
-    isError 
+    isError,
+    error
   } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
-    enabled: isOpen // Ne charger les données que lorsque le catalogue est ouvert
+    enabled: isOpen, // Ne charger les données que lorsque le catalogue est ouvert
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
   
+  // On utilise les produits du serveur s'ils sont disponibles, sinon les produits par défaut
+  const products = productsFromServer?.length ? productsFromServer : enrichedDefaultProducts;
+  
   console.log("Products available:", products.length); // Debug log
+  console.log("Products from server:", productsFromServer?.length || 0);
+  if (error) console.error("Error loading products:", error);
   
   // Extraire les catégories à partir des produits chargés
   const filteredProducts = React.useMemo(() => {
     return products.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
@@ -84,6 +94,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
   console.log("Filtered products:", filteredProducts.length); // Debug log
   
   const handleSelectProduct = (product: Product) => {
+    console.log("Selected product:", product.name);
     onSelectProduct(product);
     onClose();
   };
@@ -98,7 +109,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
   
   return (
     <Sheet open={isOpen} onOpenChange={() => onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Catalogue de produits</SheetTitle>
           <SheetDescription>
@@ -118,7 +129,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
           </div>
           
           {isError && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="my-2">
               <AlertCircle className="h-4 w-4" />
               <p className="ml-2">Erreur lors du chargement des produits. Utilisation des données locales.</p>
             </Alert>

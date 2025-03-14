@@ -86,19 +86,76 @@ export const products: Product[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     active: true
+  },
+  {
+    id: "7",
+    name: "ThinkPad X1 Carbon",
+    brand: "Lenovo",
+    category: "laptop",
+    description: "Ordinateur portable professionnel léger et robuste",
+    price: 1599,
+    monthly_price: 52,
+    imageUrl: "https://p2-ofp.static.pub/fes/cms/2022/04/26/dx4k8mid73gk5ldw8rkodl7c7c04pe236853.png",
+    specifications: {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
+  },
+  {
+    id: "8",
+    name: "Galaxy Tab S9 Ultra",
+    brand: "Samsung",
+    category: "tablet",
+    description: "Tablette Android haut de gamme avec stylet",
+    price: 1299,
+    monthly_price: 42,
+    imageUrl: "https://images.samsung.com/is/image/samsung/p6pim/fr/sm-x910nzaeeub/gallery/fr-galaxy-tab-s9-ultra-wifi-sm-x910nzaeeub-536818644?$650_519_PNG$",
+    specifications: {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   }
 ];
 
+/**
+ * Get a product by its ID
+ */
 export const getProductById = (id: string): Product | undefined => {
   return products.find((product) => product.id === id);
 };
 
+/**
+ * Get products by category
+ */
 export const getProductsByCategory = (category: string): Product[] => {
   return products.filter((product) => product.category === category);
 };
 
+/**
+ * Get all unique product categories
+ */
 export const getProductCategories = (): string[] => {
   return [...new Set(products.map((product) => product.category))];
+};
+
+/**
+ * Get all brands
+ */
+export const getProductBrands = (): string[] => {
+  return [...new Set(products.map((product) => product.brand))];
+};
+
+/**
+ * Search products by term
+ */
+export const searchProducts = (term: string): Product[] => {
+  const searchTerm = term.toLowerCase();
+  return products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm) ||
+    product.description.toLowerCase().includes(searchTerm) ||
+    product.brand.toLowerCase().includes(searchTerm) ||
+    product.category.toLowerCase().includes(searchTerm)
+  );
 };
 
 // Re-export the Product type for backward compatibility

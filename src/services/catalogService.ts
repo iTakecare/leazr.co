@@ -1,9 +1,10 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
+import { products as defaultProducts } from "@/data/products";
 
 export async function getProducts(): Promise<Product[]> {
   try {
+    console.log("Fetching products from API");
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('products')
@@ -11,13 +12,21 @@ export async function getProducts(): Promise<Product[]> {
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error("Error fetching products from API:", error);
       throw new Error(`Error fetching products: ${error.message}`);
     }
 
+    if (!data || data.length === 0) {
+      console.log("No products found in API, using default products");
+      return defaultProducts;
+    }
+
+    console.log(`Retrieved ${data.length} products from API`);
     return data || [];
   } catch (error) {
     console.error("Error in getProducts:", error);
-    return [];
+    console.log("Returning default products due to error");
+    return defaultProducts;
   }
 }
 
