@@ -3,21 +3,14 @@ import React, { useState } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { formatCurrency } from "@/utils/formatters";
-import { motion } from "framer-motion";
 import { useContracts } from "@/hooks/useContracts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { FileText, Search, Package } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import ContractDetailCard from "@/components/contracts/ContractDetailCard";
+import { motion } from "framer-motion";
+import ContractsKanban from "@/components/contracts/ContractsKanban";
 import { contractStatuses } from "@/services/contractService";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Contracts = () => {
   const {
@@ -105,7 +98,7 @@ const Contracts = () => {
           >
             <motion.div variants={itemVariants}>
               <div className="text-center py-16">
-                <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                 <h2 className="text-2xl font-semibold mb-2">Aucun contrat trouvé</h2>
                 <p className="text-muted-foreground mb-6">
                   Vous n'avez pas encore de contrats actifs.
@@ -140,78 +133,53 @@ const Contracts = () => {
             </p>
           </motion.div>
 
+          <motion.div variants={itemVariants} className="mb-6 flex justify-between items-center">
+            <Tabs
+              value={activeStatusFilter}
+              onValueChange={setActiveStatusFilter}
+              className="w-auto"
+            >
+              <TabsList>
+                <TabsTrigger value="all">Tous</TabsTrigger>
+                <TabsTrigger value={contractStatuses.CONTRACT_SENT}>Envoyés</TabsTrigger>
+                <TabsTrigger value={contractStatuses.CONTRACT_SIGNED}>Signés</TabsTrigger>
+                <TabsTrigger value={contractStatuses.ACTIVE}>Actifs</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Rechercher un contrat..."
+                className="pl-8 w-[200px] sm:w-[300px]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </motion.div>
+
           <motion.div variants={itemVariants}>
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <CardTitle>Liste des contrats</CardTitle>
-                    <CardDescription>
-                      {filteredContracts.length} contrat(s) trouvé(s)
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="search"
-                        placeholder="Rechercher un contrat..."
-                        className="pl-8 w-[200px] sm:w-[300px]"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex space-x-2 mb-4">
-                    <button
-                      className={`px-3 py-1 text-sm rounded-md ${activeStatusFilter === 'all' ? 'bg-primary text-white' : 'bg-muted'}`}
-                      onClick={() => setActiveStatusFilter('all')}
-                    >
-                      Tous
-                    </button>
-                    <button
-                      className={`px-3 py-1 text-sm rounded-md ${activeStatusFilter === contractStatuses.CONTRACT_SENT ? 'bg-primary text-white' : 'bg-muted'}`}
-                      onClick={() => setActiveStatusFilter(contractStatuses.CONTRACT_SENT)}
-                    >
-                      Contrats envoyés
-                    </button>
-                    <button
-                      className={`px-3 py-1 text-sm rounded-md ${activeStatusFilter === contractStatuses.ACTIVE ? 'bg-primary text-white' : 'bg-muted'}`}
-                      onClick={() => setActiveStatusFilter(contractStatuses.ACTIVE)}
-                    >
-                      Actifs
-                    </button>
-                  </div>
-                  
-                  {filteredContracts.map(contract => (
-                    <ContractDetailCard 
-                      key={contract.id} 
-                      contract={contract} 
-                      onStatusChange={handleUpdateContractStatus}
-                      onAddTrackingInfo={handleAddTrackingInfo}
-                      isUpdatingStatus={isUpdatingStatus}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Valeur mensuelle totale:{" "}
-                  <span className="font-medium text-foreground">
-                    {formatCurrency(
-                      filteredContracts.reduce(
-                        (total, contract) => total + contract.monthly_payment,
-                        0
-                      )
-                    )}
-                  </span>
-                </p>
-              </CardFooter>
-            </Card>
+            <ContractsKanban 
+              contracts={filteredContracts}
+              onStatusChange={handleUpdateContractStatus}
+              onAddTrackingInfo={handleAddTrackingInfo}
+              isUpdatingStatus={isUpdatingStatus}
+            />
+          </motion.div>
+          
+          <motion.div variants={itemVariants} className="mt-6 text-sm text-muted-foreground">
+            <p>
+              Valeur mensuelle totale:{" "}
+              <span className="font-medium text-foreground">
+                {formatCurrency(
+                  filteredContracts.reduce(
+                    (total, contract) => total + contract.monthly_payment,
+                    0
+                  )
+                )}
+              </span>
+            </p>
           </motion.div>
         </motion.div>
       </Container>

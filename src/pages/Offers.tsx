@@ -1,17 +1,26 @@
 
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
-import OffersHeader from "@/components/offers/OffersHeader";
-import OffersFilter from "@/components/offers/OffersFilter";
-import OffersSearch from "@/components/offers/OffersSearch";
-import OffersTable from "@/components/offers/OffersTable";
-import OffersLoading from "@/components/offers/OffersLoading";
-import OffersError from "@/components/offers/OffersError";
-import { useLocation, useNavigate } from "react-router-dom";
-import PageTransition from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Grid, List, Filter, Search } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import PageTransition from "@/components/layout/PageTransition";
+import OffersKanban from "@/components/offers/OffersKanban";
+import OffersHeader from "@/components/offers/OffersHeader";
+import OffersSearch from "@/components/offers/OffersSearch";
+import OffersFilter from "@/components/offers/OffersFilter";
+import OffersLoading from "@/components/offers/OffersLoading";
+import OffersError from "@/components/offers/OffersError";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const Offers = () => {
   const {
@@ -25,52 +34,16 @@ const Offers = () => {
     activeType,
     setActiveType,
     handleDeleteOffer,
-    handleResendOffer,
-    handleDownloadPdf,
     handleUpdateWorkflowStatus,
     isUpdatingStatus,
+    includeConverted,
+    setIncludeConverted,
     fetchOffers
   } = useOffers();
   
+  const [viewMode, setViewMode] = useState<'kanban'>('kanban');
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // Vérifier si des filtres sont spécifiés dans l'URL
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const statusFilter = searchParams.get('status');
-    const typeFilter = searchParams.get('type');
-    
-    if (statusFilter) {
-      setActiveTab(statusFilter);
-    }
-    
-    if (typeFilter) {
-      setActiveType(typeFilter);
-    }
-  }, [location.search]);
-  
-  // Mise à jour de l'URL quand les filtres changent
-  useEffect(() => {
-    const searchParams = new URLSearchParams();
-    
-    if (activeTab !== 'all') {
-      searchParams.set('status', activeTab);
-    }
-    
-    if (activeType !== 'all') {
-      searchParams.set('type', activeType);
-    }
-    
-    const newSearch = searchParams.toString();
-    const currentSearch = location.search.startsWith('?') 
-      ? location.search.substring(1) 
-      : location.search;
-    
-    if (newSearch !== currentSearch) {
-      navigate({ pathname: location.pathname, search: newSearch }, { replace: true });
-    }
-  }, [activeTab, activeType, navigate, location.pathname, location.search]);
 
   return (
     <PageTransition>
@@ -85,17 +58,37 @@ const Offers = () => {
           </Button>
         </div>
         
-        <div className="mb-6">
+        <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
           <OffersFilter 
             activeTab={activeTab} 
             onTabChange={setActiveTab}
             activeType={activeType}
             onTypeChange={setActiveType}
           />
-        </div>
-        
-        <div className="mb-6">
-          <OffersSearch value={searchTerm} onChange={setSearchTerm} />
+          
+          <div className="flex items-center gap-2">
+            <OffersSearch value={searchTerm} onChange={setSearchTerm} />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="flex items-center justify-between p-2">
+                  <Label htmlFor="show-converted" className="flex items-center cursor-pointer">
+                    <span>Inclure les offres converties</span>
+                  </Label>
+                  <Switch 
+                    id="show-converted"
+                    checked={includeConverted}
+                    onCheckedChange={setIncludeConverted}
+                  />
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         
         {loading ? (
@@ -103,13 +96,12 @@ const Offers = () => {
         ) : loadingError ? (
           <OffersError message={loadingError} onRetry={fetchOffers} />
         ) : (
-          <OffersTable
+          <OffersKanban
             offers={filteredOffers}
-            onDeleteOffer={handleDeleteOffer}
-            onResendOffer={handleResendOffer}
-            onDownloadPdf={handleDownloadPdf}
             onStatusChange={handleUpdateWorkflowStatus}
             isUpdatingStatus={isUpdatingStatus}
+            onDeleteOffer={handleDeleteOffer}
+            includeConverted={includeConverted}
           />
         )}
       </div>

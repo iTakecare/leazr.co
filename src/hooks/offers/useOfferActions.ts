@@ -63,7 +63,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
               ? { 
                   ...offer, 
                   workflow_status: newStatus,
-                  // Mark as converted to contract if approved by leaser
+                  // Mark as converted to contract if financed
                   converted_to_contract: newStatus === OFFER_STATUSES.FINANCED.id ? true : offer.converted_to_contract
                 } 
               : offer
