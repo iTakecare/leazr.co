@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -6,10 +7,43 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, X, Plus, Image } from "lucide-react";
+import { Upload, X, Plus, Image, Euro } from "lucide-react";
 import { Product } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+// Available product categories with French translations
+const productCategories = [
+  "laptop",
+  "desktop",
+  "tablet",
+  "smartphone",
+  "accessories",
+  "printer",
+  "monitor",
+  "software",
+  "networking",
+  "server",
+  "storage",
+  "other"
+];
+
+// Map for translating category names to French
+const categoryTranslations: Record<string, string> = {
+  "laptop": "Ordinateur portable",
+  "desktop": "Ordinateur de bureau",
+  "tablet": "Tablette",
+  "smartphone": "Smartphone",
+  "accessories": "Accessoires",
+  "printer": "Imprimante",
+  "monitor": "Écran",
+  "software": "Logiciel",
+  "networking": "Réseau",
+  "server": "Serveur",
+  "storage": "Stockage",
+  "other": "Autre"
+};
 
 interface ProductEditorProps {
   isOpen: boolean;
@@ -22,6 +56,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
+  const [monthlyPrice, setMonthlyPrice] = useState("");
   const [description, setDescription] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -31,6 +66,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     setName("");
     setCategory("");
     setPrice("");
+    setMonthlyPrice("");
     setDescription("");
     setImageFiles([]);
     setImagePreviews([]);
@@ -102,6 +138,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       name,
       category,
       price: parseFloat(price),
+      monthly_price: monthlyPrice ? parseFloat(monthlyPrice) : undefined,
       description,
       brand: "",
       imageUrl: "",
@@ -165,27 +202,54 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 
             <div className="space-y-2">
               <Label htmlFor="category" className="required">Catégorie</Label>
-              <Input
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="Catégorie du produit"
-                required
-              />
+              <Select value={category} onValueChange={setCategory} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productCategories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {categoryTranslations[cat] || cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price" className="required">Prix (€)</Label>
-              <Input
-                id="price"
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                required
-              />
+              <Label htmlFor="price" className="required">Prix d'achat (€)</Label>
+              <div className="relative">
+                <Input
+                  id="price"
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  required
+                  className="pl-8"
+                />
+                <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="monthly_price">Mensualité (€)</Label>
+              <div className="relative">
+                <Input
+                  id="monthly_price"
+                  type="number"
+                  value={monthlyPrice}
+                  onChange={(e) => setMonthlyPrice(e.target.value)}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  className="pl-8"
+                />
+                <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground">Si laissé vide, sera calculé automatiquement à partir du prix d'achat</p>
             </div>
 
             <div className="space-y-2">

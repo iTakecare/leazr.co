@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
-import { Laptop, PcCase, Smartphone, Monitor, Package, Tablet } from "lucide-react";
+import { Laptop, PcCase, Smartphone, Monitor, Package, Tablet, Euro } from "lucide-react";
 
 type ProductCardProps = {
   product: Product;
@@ -31,11 +31,28 @@ function getCategoryIcon(category: string) {
     case 'tablet':
       return <Tablet className="h-4 w-4" />;
     case 'display':
+    case 'monitor':
       return <Monitor className="h-4 w-4" />;
     default:
       return <Package className="h-4 w-4" />;
   }
 }
+
+// Map for translating category names to French
+const categoryTranslations: Record<string, string> = {
+  "laptop": "Ordinateur portable",
+  "desktop": "Ordinateur de bureau",
+  "tablet": "Tablette",
+  "smartphone": "Smartphone",
+  "accessories": "Accessoires",
+  "printer": "Imprimante",
+  "monitor": "Écran",
+  "software": "Logiciel",
+  "networking": "Réseau",
+  "server": "Serveur",
+  "storage": "Stockage",
+  "other": "Autre"
+};
 
 export default function ProductCard({ product, onClick }: ProductCardProps) {
   // Function to handle fallback if the image fails to load
@@ -47,10 +64,13 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
   const imageSource = product.image_url || product.imageUrl || '/placeholder.svg';
 
   // Get the alt text
-  const imageAlt = product.image_alt || `${product.name} image`;
+  const imageAlt = product.image_alt || product.imageAlt || `${product.name} image`;
 
   // Calculate monthly price if needed
   const monthlyPrice = product.monthly_price || (product.price ? product.price * 0.033 : 0);
+  
+  // Translate category to French
+  const translatedCategory = categoryTranslations[product.category?.toLowerCase()] || product.category;
 
   return (
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 border-transparent hover:border-primary/20">
@@ -63,7 +83,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         />
         {product.category && (
           <Badge className="absolute top-2 right-2 bg-primary/80 hover:bg-primary/90">
-            {product.category}
+            {translatedCategory}
           </Badge>
         )}
       </div>
@@ -82,7 +102,8 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
         <div>
-          <div className="font-bold text-lg">
+          <div className="font-bold text-lg flex items-center">
+            <Euro className="h-4 w-4 mr-1 text-muted-foreground" />
             {formatCurrency(monthlyPrice)}<span className="text-xs font-normal text-muted-foreground">/mois</span>
           </div>
           <div className="text-xs text-muted-foreground">

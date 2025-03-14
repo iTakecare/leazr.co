@@ -10,12 +10,43 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Trash2, Upload, PlusCircle, MinusCircle, ChevronDown, ChevronUp, Tag, Package, Layers } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Upload, PlusCircle, MinusCircle, ChevronDown, ChevronUp, Tag, Package, Layers, Euro } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Product, ProductVariant } from "@/types/catalog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const productCategories = [
+  "laptop",
+  "desktop",
+  "tablet",
+  "smartphone",
+  "accessories",
+  "printer",
+  "monitor",
+  "software",
+  "networking",
+  "server",
+  "storage",
+  "other"
+];
+
+const categoryTranslations: Record<string, string> = {
+  "laptop": "Ordinateur portable",
+  "desktop": "Ordinateur de bureau",
+  "tablet": "Tablette",
+  "smartphone": "Smartphone",
+  "accessories": "Accessoires",
+  "printer": "Imprimante",
+  "monitor": "Écran",
+  "software": "Logiciel",
+  "networking": "Réseau",
+  "server": "Serveur",
+  "storage": "Stockage",
+  "other": "Autre"
+};
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,9 +71,13 @@ const ProductDetail = () => {
     },
     enabled: !!id,
     retry: 2,
-    onError: (error) => {
-      console.error(`Error fetching product with ID ${id}:`, error);
-      toast.error("Erreur lors du chargement du produit");
+    meta: {
+      onSettled: (data, error) => {
+        if (error) {
+          console.error(`Error fetching product with ID ${id}:`, error);
+          toast.error("Erreur lors du chargement du produit");
+        }
+      }
     }
   });
 
@@ -148,6 +183,10 @@ const ProductDetail = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+  
+  const handleCategoryChange = (value: string) => {
+    setFormData({ ...formData, category: value });
   };
   
   const handleSpecificationChange = (key: string, value: string) => {
@@ -322,25 +361,53 @@ const ProductDetail = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="category">Catégorie</Label>
-                    <Input
-                      id="category"
-                      name="category"
-                      value={formData.category || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
+                    <Select 
+                      value={formData.category || "other"} 
+                      onValueChange={handleCategoryChange}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionner une catégorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {productCategories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {categoryTranslations[category] || category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="price">Prix (€)</Label>
-                    <Input
-                      id="price"
-                      name="price"
-                      type="number"
-                      value={formData.price || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
+                    <Label htmlFor="price">Prix d'achat (€)</Label>
+                    <div className="relative">
+                      <Input
+                        id="price"
+                        name="price"
+                        type="number"
+                        value={formData.price || ""}
+                        onChange={handleInputChange}
+                        required
+                        className="pl-8"
+                      />
+                      <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="monthly_price">Mensualité (€)</Label>
+                    <div className="relative">
+                      <Input
+                        id="monthly_price"
+                        name="monthly_price"
+                        type="number"
+                        value={formData.monthly_price || ""}
+                        onChange={handleInputChange}
+                        className="pl-8"
+                      />
+                      <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Si laissé vide, sera calculé automatiquement à partir du prix d'achat</p>
                   </div>
                   
                   <div className="space-y-2">
@@ -613,3 +680,5 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
+
+
