@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getProducts, deleteProduct } from "@/services/catalogService";
@@ -103,17 +102,14 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
     );
   }
 
-  // Fonction pour déterminer si un produit est un parent ou un enfant
   const isParentProduct = (product: Product) => {
     return product.is_parent || (!product.parent_id && !product.is_variation);
   };
 
-  // Grouper les produits par modèle parent
   const groupProductsByModel = () => {
     const parentProducts: Product[] = [];
     const variantsByParentId: Record<string, Product[]> = {};
     
-    // Première passe: collecter tous les produits parents
     products.forEach(product => {
       if (isParentProduct(product)) {
         parentProducts.push(product);
@@ -121,15 +117,11 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
       }
     });
     
-    // Deuxième passe: assigner les variantes à leurs parents
     products.forEach(product => {
-      // Si c'est une variante et a un parent_id valide qui existe dans notre liste de parents
       if (product.parent_id && variantsByParentId[product.parent_id]) {
         variantsByParentId[product.parent_id].push(product);
       } 
-      // Si le produit a un parent_id mais ce parent n'est pas dans notre liste
       else if (product.parent_id) {
-        // Chercher si le parent existe dans products mais n'a pas été identifié comme parent
         const parentExists = products.find(p => p.id === product.parent_id);
         if (parentExists) {
           if (!variantsByParentId[parentExists.id]) {
@@ -137,14 +129,11 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
           }
           variantsByParentId[parentExists.id].push(product);
         } else {
-          // Si le parent n'existe pas, on traite ce produit comme indépendant
           parentProducts.push(product);
           variantsByParentId[product.id] = [];
         }
       }
-      // Si le produit n'a pas de parent_id mais est marqué comme variation
       else if (product.is_variation) {
-        // Chercher un parent basé sur le nom similaire
         const baseProductName = product.name.split(/\s+\d+\s*GB|\s+\d+Go|\s+\d+\s*To|\(/).shift()?.trim();
         if (baseProductName) {
           const potentialParent = parentProducts.find(
@@ -153,25 +142,21 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
           if (potentialParent) {
             variantsByParentId[potentialParent.id].push(product);
           } else {
-            // Pas de parent trouvé, on le traite comme indépendant
             parentProducts.push(product);
             variantsByParentId[product.id] = [];
           }
         } else {
-          // Fallback
           parentProducts.push(product);
           variantsByParentId[product.id] = [];
         }
       }
     });
     
-    // Troisième passe: traiter les produits qui ne sont ni parents ni assignés à un parent
     const unassignedProducts = products.filter(
       p => !isParentProduct(p) && !Object.values(variantsByParentId).flat().includes(p)
     );
     
     unassignedProducts.forEach(product => {
-      // Essayer de regrouper par similarité de nom avec un parent existant
       const baseProductName = product.name.split(/\s+\d+\s*GB|\s+\d+Go|\s+\d+\s*To|\(/).shift()?.trim();
       
       if (baseProductName) {
@@ -182,26 +167,21 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
         if (matchingParent) {
           variantsByParentId[matchingParent.id].push(product);
         } else {
-          // Créer un nouveau groupe pour ce produit
           parentProducts.push(product);
           variantsByParentId[product.id] = [];
         }
       } else {
-        // Fallback
         parentProducts.push(product);
         variantsByParentId[product.id] = [];
       }
     });
     
-    // Vérification des variants_ids
     parentProducts.forEach(parent => {
       if (parent.variants_ids && Array.isArray(parent.variants_ids)) {
-        // Trouver les variantes qui sont dans variants_ids mais pas encore dans variantsByParentId
         const variantsToAdd = products.filter(
           p => parent.variants_ids?.includes(p.id) && !variantsByParentId[parent.id].some(v => v.id === p.id)
         );
         
-        // Ajouter ces variantes
         if (variantsToAdd.length > 0) {
           variantsByParentId[parent.id] = [...variantsByParentId[parent.id], ...variantsToAdd];
         }
@@ -271,12 +251,10 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
                 
                 <AccordionContent className="p-0">
                   <div className="divide-y">
-                    {/* Produit principal */}
                     <div className="p-4 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <div>
-                            <h3 className="font-medium text-primary">Modèle de base</h3>
                             <p className="text-sm text-muted-foreground">
                               {parentProduct.brand && <span>{parentProduct.brand} • </span>}
                               {formatCurrency(parentProduct.price || 0)}
@@ -301,7 +279,6 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
                       </div>
                     </div>
                     
-                    {/* Variantes du produit */}
                     {variants.length > 0 && (
                       <div className="bg-muted/10 rounded-b-lg">
                         <div className="p-3 border-t border-muted">
