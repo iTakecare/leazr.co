@@ -296,6 +296,54 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_info_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          offer_id: string
+          requested_documents: string[]
+          response_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          offer_id: string
+          requested_documents: string[]
+          response_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          offer_id?: string
+          requested_documents?: string[]
+          response_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_info_requests_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pending_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_info_requests_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_workflow_logs: {
         Row: {
           created_at: string
@@ -502,6 +550,48 @@ export type Database = {
           last_name?: string | null
           role?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      smtp_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          from_email: string
+          from_name: string
+          host: string
+          id: number
+          password: string
+          port: string
+          secure: boolean
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          from_email: string
+          from_name?: string
+          host: string
+          id: number
+          password: string
+          port?: string
+          secure?: boolean
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          from_email?: string
+          from_name?: string
+          host?: string
+          id?: number
+          password?: string
+          port?: string
+          secure?: boolean
+          updated_at?: string
+          username?: string
         }
         Relationships: []
       }

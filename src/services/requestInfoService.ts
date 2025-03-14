@@ -9,7 +9,6 @@ export interface RequestInfoData {
   previousStatus: string;
 }
 
-// Cette fonction envoie un email au client via la configuration SMTP
 export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> => {
   try {
     console.log("Sending info request to client for offer:", data.offerId);

@@ -1,16 +1,21 @@
 
 import React, { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Mail, Save, SendHorizonal, TestTube } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Mail, Send, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const SmtpSettings = () => {
-  const [smtpConfig, setSmtpConfig] = useState({
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [testing, setTesting] = useState<boolean>(false);
+  const [settings, setSettings] = useState({
+    id: 1,
     host: "",
     port: "587",
     username: "",
@@ -20,153 +25,161 @@ const SmtpSettings = () => {
     secure: false,
     enabled: true
   });
-  const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSmtpSettings();
-  }, []);
-
-  const fetchSmtpSettings = async () => {
+  const fetchSettings = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('smtp_settings')
         .select('*')
+        .eq('id', 1)
         .single();
-        
+
       if (error && error.code !== 'PGRST116') {
         console.error("Erreur lors de la récupération des paramètres SMTP:", error);
-        toast.error("Erreur lors de la récupération des paramètres SMTP");
+        toast.error("Erreur lors du chargement des paramètres SMTP");
         return;
       }
-      
+
       if (data) {
-        setSmtpConfig({
-          host: data.host || "",
-          port: data.port || "587",
-          username: data.username || "",
-          password: data.password || "",
-          from_email: data.from_email || "",
-          from_name: data.from_name || "Leasing App",
-          secure: data.secure || false,
-          enabled: data.enabled !== undefined ? data.enabled : true
-        });
+        setSettings(data);
       }
     } catch (error) {
-      console.error("Erreur lors de la récupération des paramètres SMTP:", error);
-      toast.error("Erreur lors de la récupération des paramètres SMTP");
+      console.error("Erreur lors de la récupération des paramètres:", error);
+      toast.error("Erreur lors du chargement des paramètres SMTP");
     } finally {
       setLoading(false);
     }
   };
 
-  const saveSmtpSettings = async () => {
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
     try {
-      setIsSaving(true);
+      setSaving(true);
       
-      // Validation basique
-      if (!smtpConfig.host || !smtpConfig.port || !smtpConfig.username || !smtpConfig.from_email) {
-        toast.error("Veuillez remplir tous les champs obligatoires");
-        return;
-      }
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('smtp_settings')
-        .upsert(
-          { 
-            id: 1, // On utilise un ID fixe pour toujours mettre à jour la même ligne
-            ...smtpConfig,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'id' }
-        );
-        
-      if (error) {
-        throw error;
-      }
+        .upsert({
+          ...settings,
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
       
       toast.success("Paramètres SMTP enregistrés avec succès");
     } catch (error) {
       console.error("Erreur lors de l'enregistrement des paramètres SMTP:", error);
       toast.error("Erreur lors de l'enregistrement des paramètres SMTP");
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
-  const testSmtpConnection = async () => {
+  const handleTest = async () => {
     try {
-      setIsTesting(true);
-      
-      if (!smtpConfig.host || !smtpConfig.port || !smtpConfig.username || !smtpConfig.from_email) {
-        toast.error("Veuillez remplir tous les champs obligatoires avant de tester");
-        return;
-      }
+      setTesting(true);
+      toast.info("Test de connexion SMTP en cours...");
       
       const { data, error } = await supabase.functions.invoke('test-smtp-connection', {
         body: {
-          config: smtpConfig
+          config: settings
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur lors du test SMTP:", error);
+        toast.error(`Erreur de connexion: ${error.message}`);
+        return;
+      }
       
       if (data.success) {
-        toast.success("Connexion SMTP réussie. Un email de test a été envoyé.");
+        toast.success(data.message);
       } else {
-        toast.error(`Erreur lors du test SMTP: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error("Erreur lors du test SMTP:", error);
       toast.error("Erreur lors du test de connexion SMTP");
     } finally {
-      setIsTesting(false);
+      setTesting(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
-    setSmtpConfig(prev => ({
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setSettings((prev) => ({
       ...prev,
-      [name]: type === 'number' ? parseInt(value) : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Mail className="h-5 w-5 text-primary" />
-          <span>Configuration SMTP</span>
+          <Mail className="h-5 w-5" />
+          Paramètres SMTP
         </CardTitle>
         <CardDescription>
-          Configurez les paramètres SMTP pour l'envoi d'emails depuis l'application
+          Configurez les paramètres du serveur d'email SMTP pour l'envoi des emails du système
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex items-center justify-between mb-4">
+      <CardContent className="space-y-4">
+        <Alert className="bg-yellow-50 border-yellow-200">
+          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          <AlertTitle>Configuration requise</AlertTitle>
+          <AlertDescription>
+            La configuration du serveur SMTP est nécessaire pour l'envoi des emails aux clients, 
+            notamment pour les demandes d'informations complémentaires.
+          </AlertDescription>
+        </Alert>
+
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Switch
-              id="smtp-enabled"
-              checked={smtpConfig.enabled}
-              onCheckedChange={(checked) => setSmtpConfig(prev => ({ ...prev, enabled: checked }))}
+              id="enabled"
+              name="enabled"
+              checked={settings.enabled}
+              onCheckedChange={(checked) => setSettings({ ...settings, enabled: checked })}
             />
-            <Label htmlFor="smtp-enabled">Activer l'envoi d'emails</Label>
+            <Label htmlFor="enabled" className="font-medium">
+              Activer l'envoi d'emails
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="secure"
+              name="secure"
+              checked={settings.secure}
+              onCheckedChange={(checked) => setSettings({ ...settings, secure: checked })}
+            />
+            <Label htmlFor="secure" className="font-medium">
+              Connexion sécurisée (TLS)
+            </Label>
           </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="host">Serveur SMTP</Label>
             <Input
               id="host"
               name="host"
-              value={smtpConfig.host}
-              onChange={handleInputChange}
               placeholder="smtp.example.com"
-              disabled={loading}
+              value={settings.host}
+              onChange={handleChange}
             />
           </div>
           
@@ -175,11 +188,9 @@ const SmtpSettings = () => {
             <Input
               id="port"
               name="port"
-              type="number"
-              value={smtpConfig.port}
-              onChange={handleInputChange}
               placeholder="587"
-              disabled={loading}
+              value={settings.port}
+              onChange={handleChange}
             />
           </div>
           
@@ -188,10 +199,9 @@ const SmtpSettings = () => {
             <Input
               id="username"
               name="username"
-              value={smtpConfig.username}
-              onChange={handleInputChange}
-              placeholder="utilisateur@example.com"
-              disabled={loading}
+              placeholder="user@example.com"
+              value={settings.username}
+              onChange={handleChange}
             />
           </div>
           
@@ -201,10 +211,9 @@ const SmtpSettings = () => {
               id="password"
               name="password"
               type="password"
-              value={smtpConfig.password}
-              onChange={handleInputChange}
               placeholder="••••••••"
-              disabled={loading}
+              value={settings.password}
+              onChange={handleChange}
             />
           </div>
           
@@ -213,10 +222,9 @@ const SmtpSettings = () => {
             <Input
               id="from_email"
               name="from_email"
-              value={smtpConfig.from_email}
-              onChange={handleInputChange}
-              placeholder="no-reply@example.com"
-              disabled={loading}
+              placeholder="noreply@example.com"
+              value={settings.from_email}
+              onChange={handleChange}
             />
           </div>
           
@@ -225,45 +233,35 @@ const SmtpSettings = () => {
             <Input
               id="from_name"
               name="from_name"
-              value={smtpConfig.from_name}
-              onChange={handleInputChange}
               placeholder="Mon Application"
-              disabled={loading}
+              value={settings.from_name}
+              onChange={handleChange}
             />
           </div>
-          
-          <div className="flex items-center space-x-2 col-span-full">
-            <Switch
-              id="secure"
-              checked={smtpConfig.secure}
-              onCheckedChange={(checked) => setSmtpConfig(prev => ({ ...prev, secure: checked }))}
-              disabled={loading}
-            />
-            <Label htmlFor="secure">Utiliser une connexion sécurisée (SSL/TLS)</Label>
-          </div>
-        </div>
-        
-        <div className="flex space-x-4 pt-4">
-          <Button
-            onClick={saveSmtpSettings}
-            disabled={isSaving || loading}
-            className="flex items-center"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {isSaving ? "Enregistrement..." : "Enregistrer les paramètres"}
-          </Button>
-          
-          <Button
-            onClick={testSmtpConnection}
-            variant="outline"
-            disabled={isTesting || loading}
-            className="flex items-center"
-          >
-            <SendHorizonal className="mr-2 h-4 w-4" />
-            {isTesting ? "Test en cours..." : "Tester la connexion"}
-          </Button>
         </div>
       </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={() => fetchSettings()}>
+          Annuler
+        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleTest} 
+            disabled={testing || !settings.host || !settings.username || !settings.password}
+          >
+            <Send className="mr-2 h-4 w-4" />
+            {testing ? "Test en cours..." : "Tester la connexion"}
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={saving || !settings.host || !settings.username || !settings.password}
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            {saving ? "Enregistrement..." : "Enregistrer"}
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 };
