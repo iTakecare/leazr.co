@@ -1,38 +1,117 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useClientContracts } from "@/hooks/useClientContracts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
-import { File, RefreshCw, AlertCircle, Box, ExternalLink } from "lucide-react";
+import { File, RefreshCw, AlertCircle, Box, ExternalLink, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const ClientContractsPage = () => {
-  const { contracts, loading, error, refresh, debug } = useClientContracts();
+  const { contracts, loading, error, refresh, debug, clientId } = useClientContracts();
   const params = useParams();
-  const clientId = params.id;
+  const urlClientId = params.id;
+  const [userData, setUserData] = useState(null);
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [diagnosticInfo, setDiagnosticInfo] = useState({
+    user: null,
+    clientInfo: null,
+    clientsCount: 0,
+    contractsCount: 0,
+    matchingContracts: 0
+  });
 
   useEffect(() => {
     // Log diagnostic information when component mounts
-    console.log("ClientContractsPage - clientId from params:", clientId);
+    console.log("ClientContractsPage - clientId from params:", urlClientId);
+    console.log("ClientContractsPage - clientId from hook:", clientId);
     console.log("ClientContractsPage - Contracts loaded:", contracts?.length || 0);
     
     // Force a refresh if there's a clientId in the URL
-    if (clientId) {
-      console.log("Forcing refresh for specific client:", clientId);
-      refresh(clientId);
+    if (urlClientId) {
+      console.log("Forcing refresh for specific client:", urlClientId);
+      refresh(urlClientId);
     }
-  }, [clientId]);
+
+    // Get current user data
+    const fetchUserData = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUserData(data?.user || null);
+    };
+    
+    fetchUserData();
+  }, [urlClientId, clientId]);
 
   const handleRefresh = () => {
     toast.info("Actualisation des contrats...");
-    refresh(clientId);
+    refresh(urlClientId);
   };
 
-  const handleDebug = () => {
-    debug();
-    toast.info("Vérification des contrats en cours, consultez la console.");
+  const handleDebug = async () => {
+    try {
+      // Collect diagnostic information
+      const { data: userData } = await supabase.auth.getUser();
+      
+      // Get client info
+      let clientInfo = null;
+      if (clientId) {
+        const { data } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('id', clientId)
+          .single();
+        clientInfo = data;
+      }
+      
+      // Count all clients
+      const { count: clientsCount } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true });
+      
+      // Count all contracts
+      const { count: contractsCount } = await supabase
+        .from('contracts')
+        .select('*', { count: 'exact', head: true });
+      
+      // Count matching contracts
+      let matchingContracts = 0;
+      if (clientId) {
+        const { count } = await supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('client_id', clientId);
+        matchingContracts = count;
+      }
+      
+      // Update state with diagnostic info
+      setDiagnosticInfo({
+        user: userData?.user || null,
+        clientInfo,
+        clientsCount: clientsCount || 0,
+        contractsCount: contractsCount || 0,
+        matchingContracts: matchingContracts || 0
+      });
+      
+      // Open debug dialog
+      setDebugOpen(true);
+      
+      // Also run the console debug
+      debug();
+      toast.info("Diagnostic terminé, consultez les résultats");
+    } catch (error) {
+      console.error("Error running diagnostics:", error);
+      toast.error("Erreur lors du diagnostic");
+    }
   };
 
   if (loading) {
@@ -94,6 +173,21 @@ const ClientContractsPage = () => {
             </div>
           </CardContent>
         </Card>
+        
+        {clientId && (
+          <div className="mt-4 p-4 rounded-lg border bg-muted/50">
+            <div className="flex items-center gap-2 mb-2">
+              <Info className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Informations de connexion</span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-2">
+              Utilisateur connecté: {userData?.email || "Non disponible"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              ID client: {clientId}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -188,6 +282,75 @@ const ClientContractsPage = () => {
           </Card>
         ))}
       </div>
+
+      {/* Diagnostic Dialog */}
+      <Dialog open={debugOpen} onOpenChange={setDebugOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Diagnostic des contrats client</DialogTitle>
+            <DialogDescription>
+              Informations détaillées sur la connexion entre l'utilisateur et les contrats
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="border rounded-lg p-4">
+              <h3 className="font-medium mb-2">Informations utilisateur</h3>
+              <div className="text-sm space-y-1">
+                <p><strong>Email:</strong> {diagnosticInfo.user?.email || "Non disponible"}</p>
+                <p><strong>ID utilisateur:</strong> {diagnosticInfo.user?.id || "Non disponible"}</p>
+              </div>
+            </div>
+            
+            <div className="border rounded-lg p-4">
+              <h3 className="font-medium mb-2">Informations client</h3>
+              {diagnosticInfo.clientInfo ? (
+                <div className="text-sm space-y-1">
+                  <p><strong>Nom client:</strong> {diagnosticInfo.clientInfo.name}</p>
+                  <p><strong>ID client:</strong> {diagnosticInfo.clientInfo.id}</p>
+                  <p><strong>Email client:</strong> {diagnosticInfo.clientInfo.email || "Non disponible"}</p>
+                  <p><strong>ID utilisateur associé:</strong> {diagnosticInfo.clientInfo.user_id || "Aucun"}</p>
+                  <p><strong>Statut:</strong> {diagnosticInfo.clientInfo.status || "Non défini"}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Aucune information client trouvée</p>
+              )}
+            </div>
+            
+            <div className="border rounded-lg p-4">
+              <h3 className="font-medium mb-2">Statistiques</h3>
+              <div className="text-sm space-y-1">
+                <p><strong>Nombre total de clients:</strong> {diagnosticInfo.clientsCount}</p>
+                <p><strong>Nombre total de contrats:</strong> {diagnosticInfo.contractsCount}</p>
+                <p><strong>Contrats associés à ce client:</strong> {diagnosticInfo.matchingContracts}</p>
+              </div>
+            </div>
+            
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <h3 className="font-medium mb-2">Liens directs</h3>
+              <div className="text-sm space-y-2">
+                <p>Accéder à la page des contrats avec l'ID client:</p>
+                <code className="block p-2 bg-muted rounded text-xs overflow-x-auto">
+                  {window.location.origin}/client/contracts?id={clientId || "[id_client]"}
+                </code>
+                
+                {diagnosticInfo.clientInfo && (
+                  <>
+                    <p className="mt-2">Lien vers la page client dans l'interface d'administration:</p>
+                    <code className="block p-2 bg-muted rounded text-xs overflow-x-auto">
+                      {window.location.origin}/clients/{diagnosticInfo.clientInfo.id}
+                    </code>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end mt-4">
+            <Button onClick={() => setDebugOpen(false)}>Fermer</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

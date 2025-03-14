@@ -47,14 +47,15 @@ export const useClientContracts = () => {
         forceClientId
       });
       
-      // Direct fetch by client ID if provided (useful for admin views or direct links)
+      // 1. Si un ID client est fourni directement (par URL ou autre), utiliser cet ID
       if (targetClientId) {
         console.log("Direct fetch by client ID:", targetClientId);
+        setClientId(targetClientId); // S'assurer que l'état est à jour
         await fetchContractsByClientId(targetClientId);
         return;
       }
       
-      // If no direct client ID, get user email and find the client
+      // 2. Sinon, essayer de trouver l'ID client à partir de l'utilisateur connecté
       if (!user?.email) {
         console.error("No user email found");
         setLoading(false);
@@ -62,7 +63,18 @@ export const useClientContracts = () => {
         return;
       }
       
-      // First step: get client ID from email
+      // Vérifier d'abord dans le cache local
+      if (user.id) {
+        const cachedId = localStorage.getItem(`client_id_${user.id}`);
+        if (cachedId) {
+          console.log("Found client ID in local cache:", cachedId);
+          setClientId(cachedId);
+          await fetchContractsByClientId(cachedId);
+          return;
+        }
+      }
+      
+      // Sinon, chercher l'ID client à partir de l'email
       await fetchClientIdFromEmail(user.email);
     } catch (error) {
       console.error("Error in fetchContracts:", error);
@@ -76,9 +88,10 @@ export const useClientContracts = () => {
     try {
       console.log("Looking up client ID for email:", email);
       
+      // Rechercher le client par email
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
-        .select('id, name')
+        .select('id, name, user_id')
         .eq('email', email)
         .maybeSingle();
       
@@ -89,17 +102,63 @@ export const useClientContracts = () => {
         return;
       }
       
+      // Si le client n'est pas trouvé par email
       if (!clientData) {
         console.log("No client found for email:", email);
+        
+        // Vérifier si l'utilisateur est associé à un client par user_id
+        if (user?.id) {
+          const { data: clientByUserID, error: userIdError } = await supabase
+            .from('clients')
+            .select('id, name')
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          if (clientByUserID) {
+            console.log("Found client by user_id:", clientByUserID);
+            setClientId(clientByUserID.id);
+            
+            // Mettre à jour le client avec l'email si manquant
+            if (!clientByUserID.email) {
+              await supabase
+                .from('clients')
+                .update({ email: email })
+                .eq('id', clientByUserID.id);
+            }
+            
+            await fetchContractsByClientId(clientByUserID.id);
+            return;
+          }
+        }
+        
         setLoading(false);
         setError("Aucun compte client trouvé pour cet email");
         return;
       }
       
       console.log("Found client:", clientData);
+      
+      // Si le client existe mais n'est pas associé à l'utilisateur actuel
+      if (!clientData.user_id && user?.id) {
+        console.log(`Associating client ${clientData.id} with user ${user.id}`);
+        
+        const { error: updateError } = await supabase
+          .from('clients')
+          .update({ user_id: user.id })
+          .eq('id', clientData.id);
+          
+        if (updateError) {
+          console.error("Error updating client user_id:", updateError);
+        }
+      }
+      
       setClientId(clientData.id);
       
-      // Now fetch contracts with this client ID
+      if (user?.id) {
+        localStorage.setItem(`client_id_${user.id}`, clientData.id);
+      }
+      
+      // Maintenant récupérer les contrats avec cet ID client
       await fetchContractsByClientId(clientData.id);
     } catch (error) {
       console.error("Error in fetchClientIdFromEmail:", error);
@@ -112,29 +171,10 @@ export const useClientContracts = () => {
     try {
       console.log("Fetching contracts for client ID:", id);
       
-      // Debug - fetch all contracts first for diagnostic purposes
-      const { data: allContracts, error: debugError } = await supabase
-        .from('contracts')
-        .select('*');
-        
-      if (debugError) {
-        console.error("Debug - Error fetching all contracts:", debugError);
-      } else {
-        console.log("DEBUG - All contracts in database:", allContracts);
-        
-        if (allContracts) {
-          const contractsForThisClient = allContracts.filter(c => 
-            c.client_id === id || 
-            (c.clients && c.clients.id === id)
-          );
-          console.log(`DEBUG - Filtered ${contractsForThisClient.length} contracts for client ID ${id}`);
-        }
-      }
-      
-      // Fetch contracts by client_id
+      // Récupérer d'abord les contrats par client_id
       const { data: clientContracts, error: contractsError } = await supabase
         .from('contracts')
-        .select('*, clients(*)')
+        .select('*')
         .eq('client_id', id);
         
       if (contractsError) {
@@ -146,7 +186,7 @@ export const useClientContracts = () => {
       
       console.log(`Retrieved ${clientContracts?.length || 0} contracts for client ${id}:`, clientContracts);
       
-      // If no contracts found by client_id, try by client_name
+      // Si aucun contrat n'est trouvé par client_id, essayer par client_name
       if (!clientContracts || clientContracts.length === 0) {
         await tryFetchByClientName(id);
       } else {
@@ -162,7 +202,7 @@ export const useClientContracts = () => {
 
   const tryFetchByClientName = async (clientId: string) => {
     try {
-      // Get the client name first
+      // Obtenir d'abord le nom du client
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('name')
@@ -178,6 +218,7 @@ export const useClientContracts = () => {
       
       console.log("Looking for contracts by client name:", clientData.name);
       
+      // Rechercher les contrats par nom de client
       const { data: nameContracts, error: nameError } = await supabase
         .from('contracts')
         .select('*')
@@ -190,12 +231,20 @@ export const useClientContracts = () => {
         return;
       }
       
+      // Si des contrats sont trouvés par nom
       if (nameContracts && nameContracts.length > 0) {
         console.log(`Found ${nameContracts.length} contracts by client_name:`, nameContracts);
         
-        // Update client_id for these contracts
+        // Mettre à jour client_id pour ces contrats
+        const updatedContracts = [];
+        
         for (const contract of nameContracts) {
+          // Créer une copie du contrat avec client_id mis à jour
+          const updatedContract = { ...contract, client_id: clientId };
+          updatedContracts.push(updatedContract);
+          
           try {
+            // Mettre à jour le contrat dans la base de données
             const { error: updateError } = await supabase
               .from('contracts')
               .update({ client_id: clientId })
@@ -211,7 +260,7 @@ export const useClientContracts = () => {
           }
         }
         
-        setContracts(nameContracts);
+        setContracts(updatedContracts);
       } else {
         console.log("No contracts found by client_name either");
         setContracts([]);
@@ -225,42 +274,66 @@ export const useClientContracts = () => {
     }
   };
 
-  // Debug function to diagnose contract lookup issues
+  // Fonction de diagnostic pour les problèmes de recherche de contrats
   const runDiagnostics = async () => {
     try {
       console.log("Running contract diagnostics...");
       console.log("Current user:", user);
       console.log("Current clientId:", clientId);
       
-      // Get all clients
+      // Récupérer tous les clients
       const { data: allClients } = await supabase
         .from('clients')
         .select('*');
         
       console.log("All clients:", allClients);
       
-      // Get all contracts
+      // Récupérer tous les contrats
       const { data: allContracts } = await supabase
         .from('contracts')
         .select('*');
         
       console.log("All contracts:", allContracts);
       
-      // Find potential matches
+      // Trouver les correspondances potentielles
       if (allClients && allContracts && user?.email) {
+        // Trouver le client correspondant à l'email de l'utilisateur
         const userClient = allClients.find(c => c.email === user.email);
         console.log("Client matching user email:", userClient);
         
         if (userClient) {
+          // Trouver les contrats correspondant au nom du client
           const nameMatches = allContracts.filter(c => 
             c.client_name === userClient.name
           );
           console.log("Contracts matching by name:", nameMatches);
           
+          // Trouver les contrats correspondant à l'ID du client
           const idMatches = allContracts.filter(c => 
             c.client_id === userClient.id
           );
           console.log("Contracts matching by ID:", idMatches);
+          
+          // Si des contrats sont trouvés par nom mais pas par ID
+          if (nameMatches.length > 0 && idMatches.length === 0) {
+            console.log("Found contracts by name but not by ID, correcting...");
+            // Mettre à jour les contrats avec l'ID client correct
+            for (const contract of nameMatches) {
+              const { error } = await supabase
+                .from('contracts')
+                .update({ client_id: userClient.id })
+                .eq('id', contract.id);
+                
+              if (error) {
+                console.error(`Error updating contract ${contract.id}:`, error);
+              } else {
+                console.log(`Updated client_id for contract ${contract.id}`);
+              }
+            }
+            
+            // Rafraîchir les contrats après correction
+            refresh();
+          }
         }
       }
       
@@ -278,7 +351,7 @@ export const useClientContracts = () => {
   }, [user, retry]);
 
   const refresh = (forceClientId?: string) => {
-    // Clear cache and retry
+    // Effacer le cache et réessayer
     if (user) {
       localStorage.removeItem(`client_id_${user.id}`);
     }
