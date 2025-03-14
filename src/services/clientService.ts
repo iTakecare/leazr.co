@@ -159,7 +159,7 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     const clientWithUserId = {
       ...clientData,
-      user_id: user.id
+      user_id: null
     };
     
     const { data, error } = await supabase
@@ -176,18 +176,30 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     console.log("Client created successfully:", data);
     
     // Automatiquement créer un compte utilisateur pour le client si un email est fourni
+    let updatedData = data;
     if (data && data.email) {
       console.log("Creating user account for new client...");
       const accountCreated = await createAccountForClient(mapDbClientToClient(data));
       
       if (accountCreated) {
         console.log("User account created and invitation sent for the new client");
+        
+        // Récupérer le client mis à jour avec user_id
+        const { data: refreshedData } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('id', data.id)
+          .single();
+          
+        if (refreshedData) {
+          updatedData = refreshedData;
+        }
       } else {
         console.log("Failed to create user account for the new client");
       }
     }
     
-    return data ? mapDbClientToClient(data) : null;
+    return updatedData ? mapDbClientToClient(updatedData) : null;
   } catch (error) {
     console.error("Error creating client:", error);
     toast.error("Erreur lors de la création du client");
@@ -556,3 +568,4 @@ export const resetClientPassword = async (email: string): Promise<boolean> => {
     return false;
   }
 };
+

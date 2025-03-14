@@ -82,6 +82,7 @@ export default function ClientDetail() {
         // Refresh client data to show updated user_id
         const updatedClient = await getClientById(id!);
         setClient(updatedClient);
+        toast.success("Compte utilisateur créé et email de configuration envoyé");
       }
     } catch (error) {
       console.error("Error creating account:", error);
@@ -234,7 +235,7 @@ export default function ClientDetail() {
             {client.user_id ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Badge variant="success" className="bg-green-100 text-green-800 hover:bg-green-200">
+                  <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
                     Compte actif
                   </Badge>
                   {client.user_account_created_at && (
