@@ -381,3 +381,35 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     return false;
   }
 };
+
+export const resetClientPassword = async (email: string): Promise<boolean> => {
+  try {
+    if (!email) {
+      throw new Error("Email required to reset password");
+    }
+
+    console.log("Sending password reset email to:", email);
+    
+    // Get the actual site URL
+    const siteUrl = window.location.origin;
+    console.log("Using site URL for redirect:", siteUrl);
+    
+    // Envoyer un email de réinitialisation de mot de passe
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl}/login`
+    });
+    
+    if (resetError) {
+      console.error("Error sending password reset:", resetError);
+      toast.error("Erreur lors de l'envoi du mail de réinitialisation");
+      return false;
+    }
+    
+    toast.success("Email de réinitialisation envoyé au client avec succès");
+    return true;
+  } catch (error) {
+    console.error("Error in resetClientPassword:", error);
+    toast.error("Erreur lors de l'envoi de l'email de réinitialisation");
+    return false;
+  }
+};

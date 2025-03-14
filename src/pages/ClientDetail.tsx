@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { getClientById, removeCollaborator, createAccountForClient } from "@/services/clientService";
+import { getClientById, removeCollaborator, createAccountForClient, resetClientPassword } from "@/services/clientService";
 import { Client, Collaborator } from "@/types/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -22,7 +22,8 @@ import {
   Clock,
   Users,
   UserPlus,
-  LoaderCircle
+  LoaderCircle,
+  KeyRound
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,7 @@ const ClientDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
+  const [resetingPassword, setResetingPassword] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -115,6 +117,33 @@ const ClientDetail = () => {
       toast.error("Erreur lors de la création du compte");
     } finally {
       setCreatingAccount(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!client || !client.email) {
+      toast.error("Le client doit avoir un email pour réinitialiser son mot de passe");
+      return;
+    }
+
+    if (!client.user_id) {
+      toast.error("Le client doit avoir un compte utilisateur associé");
+      return;
+    }
+
+    setResetingPassword(true);
+    try {
+      const success = await resetClientPassword(client.email);
+      if (success) {
+        toast.success("Email de réinitialisation envoyé au client");
+      } else {
+        toast.error("Erreur lors de l'envoi de l'email de réinitialisation");
+      }
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast.error("Erreur lors de la réinitialisation du mot de passe");
+    } finally {
+      setResetingPassword(false);
     }
   };
 
@@ -199,22 +228,40 @@ const ClientDetail = () => {
                     <User className="h-5 w-5 text-primary" />
                     <CardTitle>{client.name}</CardTitle>
                   </div>
-                  {client.email && (
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      className="gap-1"
-                      onClick={handleCreateAccount}
-                      disabled={creatingAccount}
-                    >
-                      {creatingAccount ? (
-                        <LoaderCircle className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <UserPlus className="h-4 w-4" />
-                      )}
-                      {creatingAccount ? "Envoi en cours..." : "Créer un compte"}
-                    </Button>
-                  )}
+                  <div className="flex gap-2">
+                    {client.email && !client.user_id && (
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        onClick={handleCreateAccount}
+                        disabled={creatingAccount}
+                      >
+                        {creatingAccount ? (
+                          <LoaderCircle className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <UserPlus className="h-4 w-4" />
+                        )}
+                        {creatingAccount ? "Envoi en cours..." : "Créer un compte"}
+                      </Button>
+                    )}
+                    {client.email && client.user_id && (
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        onClick={handleResetPassword}
+                        disabled={resetingPassword}
+                      >
+                        {resetingPassword ? (
+                          <LoaderCircle className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <KeyRound className="h-4 w-4" />
+                        )}
+                        {resetingPassword ? "Envoi en cours..." : "Renvoyer mot de passe"}
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
