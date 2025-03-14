@@ -1,18 +1,38 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useClientContracts } from "@/hooks/useClientContracts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
-import { File, Package, RefreshCw, AlertCircle, Box } from "lucide-react";
+import { File, RefreshCw, AlertCircle, Box, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { useParams } from "react-router-dom";
 
 const ClientContractsPage = () => {
-  const { contracts, loading, error, refresh } = useClientContracts();
+  const { contracts, loading, error, refresh, debug } = useClientContracts();
+  const params = useParams();
+  const clientId = params.id;
+
+  useEffect(() => {
+    // Log diagnostic information when component mounts
+    console.log("ClientContractsPage - clientId from params:", clientId);
+    console.log("ClientContractsPage - Contracts loaded:", contracts?.length || 0);
+    
+    // Force a refresh if there's a clientId in the URL
+    if (clientId) {
+      console.log("Forcing refresh for specific client:", clientId);
+      refresh(clientId);
+    }
+  }, [clientId]);
 
   const handleRefresh = () => {
     toast.info("Actualisation des contrats...");
-    refresh();
+    refresh(clientId);
+  };
+
+  const handleDebug = () => {
+    debug();
+    toast.info("Vérification des contrats en cours, consultez la console.");
   };
 
   if (loading) {
@@ -36,9 +56,14 @@ const ClientContractsPage = () => {
               <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
               <h2 className="text-xl font-semibold mb-2">Erreur</h2>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={handleRefresh} variant="outline">
-                <RefreshCw className="mr-2 h-4 w-4" /> Réessayer
-              </Button>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={handleRefresh} variant="outline">
+                  <RefreshCw className="mr-2 h-4 w-4" /> Réessayer
+                </Button>
+                <Button onClick={handleDebug} variant="secondary">
+                  Diagnostic
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -58,9 +83,14 @@ const ClientContractsPage = () => {
               <p className="text-muted-foreground mb-4">
                 Vous n'avez pas encore de contrats actifs.
               </p>
-              <Button onClick={handleRefresh} variant="outline">
-                <RefreshCw className="mr-2 h-4 w-4" /> Actualiser
-              </Button>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={handleRefresh} variant="outline">
+                  <RefreshCw className="mr-2 h-4 w-4" /> Actualiser
+                </Button>
+                <Button onClick={handleDebug} variant="secondary">
+                  Diagnostic
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -72,19 +102,35 @@ const ClientContractsPage = () => {
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Mes Contrats</h1>
-        <Button onClick={handleRefresh} variant="outline" size="sm">
-          <RefreshCw className="mr-2 h-4 w-4" /> Actualiser
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleRefresh} variant="outline" size="sm">
+            <RefreshCw className="mr-2 h-4 w-4" /> Actualiser
+          </Button>
+          <Button onClick={handleDebug} variant="ghost" size="sm">
+            Diagnostic
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4">
         {contracts.map((contract) => (
           <Card key={contract.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle>{contract.equipment_description || "Équipement"}</CardTitle>
-              <CardDescription>
-                Contrat avec {contract.leaser_name}
-              </CardDescription>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>{contract.equipment_description || "Équipement"}</CardTitle>
+                  <CardDescription>
+                    Contrat avec {contract.leaser_name}
+                  </CardDescription>
+                </div>
+                {contract.leaser_logo && (
+                  <img 
+                    src={contract.leaser_logo} 
+                    alt={contract.leaser_name} 
+                    className="h-8 object-contain" 
+                  />
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -111,7 +157,19 @@ const ClientContractsPage = () => {
                 {contract.tracking_number && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Numéro de suivi:</span>
-                    <span className="font-medium">{contract.tracking_number}</span>
+                    <div className="flex items-center">
+                      <span className="font-medium mr-2">{contract.tracking_number}</span>
+                      {contract.delivery_carrier === "bpost" && (
+                        <a 
+                          href={`https://track.bpost.be/btr/web/#/search?itemCode=${contract.tracking_number}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
                 {contract.estimated_delivery && (
