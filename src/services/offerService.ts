@@ -108,7 +108,7 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
   }
 };
 
-export const getOffers = async (): Promise<any[]> => {
+export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
   try {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => {
@@ -120,7 +120,7 @@ export const getOffers = async (): Promise<any[]> => {
     const fetchPromise = supabase
       .from('offers')
       .select('*, clients(name, email, company)')
-      .eq('converted_to_contract', false)
+      .eq('converted_to_contract', includeConverted ? false : false)
       .order('created_at', { ascending: false });
     
     const { data, error } = await Promise.race([
@@ -313,7 +313,6 @@ export const updateOfferStatus = async (
         const contractId = await createContractFromOffer(offerId, leaserName, leaserLogo);
         
         if (contractId) {
-          toast.success("L'offre a été convertie en contrat");
           console.log("Contrat créé avec l'ID:", contractId);
           
           // Mark the offer as converted to contract
@@ -472,4 +471,3 @@ export const updateOffer = async (offerId: string, offerData: any) => {
     return null;
   }
 };
-

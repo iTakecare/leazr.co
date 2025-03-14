@@ -19,6 +19,7 @@ interface Offer {
   workflow_status?: string;
   created_at: string;
   type: string;
+  converted_to_contract?: boolean;
 }
 
 // Statuts de workflow disponibles
@@ -44,6 +45,7 @@ export const useOffers = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [activeType, setActiveType] = useState("all");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [includeConverted, setIncludeConverted] = useState(true);
 
   useEffect(() => {
     fetchOffers();
@@ -54,7 +56,7 @@ export const useOffers = () => {
     setLoadingError(null);
     
     try {
-      const offersData = await getOffers();
+      const offersData = await getOffers(includeConverted);
       
       if (Array.isArray(offersData)) {
         const offersWithWorkflow = offersData.map(offer => {
@@ -146,12 +148,21 @@ export const useOffers = () => {
         setOffers(prevOffers => 
           prevOffers.map(offer => 
             offer.id === offerId 
-              ? { ...offer, workflow_status: newStatus } 
+              ? { 
+                  ...offer, 
+                  workflow_status: newStatus,
+                  // Si c'est approuvé par le bailleur, on marque comme converti en contrat
+                  converted_to_contract: newStatus === workflowStatuses.LEASER_APPROVED ? true : offer.converted_to_contract
+                } 
               : offer
           )
         );
         
-        toast.success("Statut de l'offre mis à jour");
+        if (newStatus === workflowStatuses.LEASER_APPROVED) {
+          toast.success("L'offre a été approuvée et convertie en contrat");
+        } else {
+          toast.success("Statut de l'offre mis à jour");
+        }
       } else {
         console.error(`Status update failed for offer ${offerId}`);
         toast.error("Erreur lors de la mise à jour du statut");
@@ -199,6 +210,8 @@ export const useOffers = () => {
     activeType,
     setActiveType,
     isUpdatingStatus,
+    includeConverted,
+    setIncludeConverted,
     fetchOffers,
     handleDeleteOffer,
     handleResendOffer,

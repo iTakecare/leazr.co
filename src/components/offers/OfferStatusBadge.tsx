@@ -1,102 +1,91 @@
 
 import React from "react";
-import { Check, Clock, X, FileText, UserCog, MessagesSquare, RefreshCw, SendToBack } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { workflowStatuses } from "@/hooks/useOffers";
+import { cn } from "@/lib/utils";
 
 interface OfferStatusBadgeProps {
   status: string;
-  className?: string;
+  isConverted?: boolean;
 }
 
-const OfferStatusBadge = ({ status, className }: OfferStatusBadgeProps) => {
-  // Style et icône basés sur le statut
-  const getStatusConfig = () => {
-    switch (status) {
-      case "accepted":
-      case workflowStatuses.CLIENT_APPROVED:
-      case workflowStatuses.LEASER_APPROVED:
-        return {
-          icon: Check,
-          label: "Acceptée",
-          bgColor: "bg-green-100",
-          textColor: "text-green-800"
-        };
-      
-      case "pending":
-      case workflowStatuses.CLIENT_WAITING:
-      case workflowStatuses.LEASER_REVIEW:
-        return {
-          icon: Clock,
-          label: "En attente",
-          bgColor: "bg-yellow-100",
-          textColor: "text-yellow-800"
-        };
-      
-      case "rejected":
-      case workflowStatuses.CLIENT_NO_RESPONSE:
-      case workflowStatuses.INTERNAL_REJECTED:
-      case workflowStatuses.LEASER_REJECTED:
-        return {
-          icon: X,
-          label: "Refusée",
-          bgColor: "bg-red-100",
-          textColor: "text-red-800"
-        };
-      
-      case workflowStatuses.DRAFT:
-        return {
-          icon: FileText,
-          label: "Brouillon",
-          bgColor: "bg-blue-100",
-          textColor: "text-blue-800"
-        };
-      
-      case workflowStatuses.INTERNAL_REVIEW:
-        return {
-          icon: UserCog,
-          label: "Revue interne",
-          bgColor: "bg-purple-100",
-          textColor: "text-purple-800"
-        };
-      
-      case workflowStatuses.NEED_INFO:
-        return {
-          icon: MessagesSquare,
-          label: "Informations",
-          bgColor: "bg-orange-100",
-          textColor: "text-orange-800"
-        };
-      
-      case workflowStatuses.LEASER_SENT:
-        return {
-          icon: SendToBack,
-          label: "Envoyé",
-          bgColor: "bg-blue-100",
-          textColor: "text-blue-800"
-        };
-      
-      default:
-        return {
-          icon: Clock,
-          label: status || "Inconnu",
-          bgColor: "bg-gray-100",
-          textColor: "text-gray-800"
-        };
-    }
-  };
-
-  const { icon: Icon, label, bgColor, textColor } = getStatusConfig();
-
+const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({ 
+  status,
+  isConverted = false
+}) => {
+  let variant: "default" | "secondary" | "destructive" | "outline" = "default";
+  let badgeText = "Inconnu";
+  
+  // Ajout d'une vérification pour éviter que le status soit l'ID de l'offre 
+  const isStatusValid = Object.values(workflowStatuses).includes(status);
+  const safeStatus = isStatusValid ? status : "draft";
+  
+  switch (safeStatus) {
+    case workflowStatuses.DRAFT:
+      variant = "outline";
+      badgeText = "Brouillon";
+      break;
+    case workflowStatuses.CLIENT_WAITING:
+      variant = "secondary";
+      badgeText = "En attente client";
+      break;
+    case workflowStatuses.CLIENT_APPROVED:
+      variant = "default";
+      badgeText = "Approuvé par client";
+      break;
+    case workflowStatuses.CLIENT_NO_RESPONSE:
+      variant = "destructive";
+      badgeText = "Sans réponse client";
+      break;
+    case workflowStatuses.INTERNAL_REVIEW:
+      variant = "secondary";
+      badgeText = "Revue interne";
+      break;
+    case workflowStatuses.NEED_INFO:
+      variant = "outline";
+      badgeText = "Infos supplémentaires";
+      break;
+    case workflowStatuses.INTERNAL_REJECTED:
+      variant = "destructive";
+      badgeText = "Rejeté en interne";
+      break;
+    case workflowStatuses.LEASER_SENT:
+      variant = "secondary";
+      badgeText = "Envoyé au bailleur";
+      break;
+    case workflowStatuses.LEASER_REVIEW:
+      variant = "secondary";
+      badgeText = "Revue bailleur";
+      break;
+    case workflowStatuses.LEASER_APPROVED:
+      variant = "default";
+      badgeText = "Approuvé par bailleur";
+      break;
+    case workflowStatuses.LEASER_REJECTED:
+      variant = "destructive";
+      badgeText = "Rejeté par bailleur";
+      break;
+    default:
+      variant = "outline";
+      badgeText = "Statut inconnu";
+  }
+  
   return (
-    <div className={cn(
-      "flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium",
-      bgColor,
-      textColor,
-      className
-    )}>
-      <Icon className="h-3 w-3" />
-      <span>{label}</span>
+    <div className="flex items-center gap-1">
+      <Badge 
+        variant={variant}
+        className={cn(
+          isConverted && "opacity-70"
+        )}
+      >
+        {badgeText}
+      </Badge>
+      
+      {isConverted && (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          Contrat créé
+        </Badge>
+      )}
     </div>
   );
 };

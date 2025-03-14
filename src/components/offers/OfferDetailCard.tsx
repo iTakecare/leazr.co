@@ -28,6 +28,7 @@ interface OfferDetailCardProps {
     status: string;
     workflow_status?: string;
     created_at: string;
+    converted_to_contract?: boolean;
   };
   onStatusChange: (offerId: string, status: string, reason?: string) => Promise<void>;
   isUpdatingStatus: boolean;
@@ -99,15 +100,19 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
   
   console.log("OfferDetailCard - localWorkflowStatus:", localWorkflowStatus);
   console.log("OfferDetailCard - original offer.workflow_status:", offer.workflow_status);
+  console.log("OfferDetailCard - converted_to_contract:", offer.converted_to_contract);
 
   return (
-    <Card className="mb-4">
+    <Card className={offer.converted_to_contract ? "mb-4 border-green-200 bg-green-50" : "mb-4"}>
       <CardHeader className="flex flex-row items-center justify-between p-4">
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">{offer.client_name}</h3>
             <div className="ml-2">
-              <OfferStatusBadge status={localWorkflowStatus} />
+              <OfferStatusBadge 
+                status={localWorkflowStatus}
+                isConverted={offer.converted_to_contract}
+              />
             </div>
           </div>
           
@@ -173,11 +178,18 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
       
       {isExpanded && (
         <CardContent className="p-4 pt-0 border-t">
+          {offer.converted_to_contract && (
+            <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md">
+              Cette offre a été convertie en contrat et est visible dans l'onglet "Contrats".
+            </div>
+          )}
+          
           <OfferWorkflow 
             currentStatus={localWorkflowStatus} 
             onStatusChange={handleStatusChange}
             isUpdating={isUpdatingStatus}
             offerId={offer.id}
+            isConverted={offer.converted_to_contract}
           />
           
           <div className="mt-6">

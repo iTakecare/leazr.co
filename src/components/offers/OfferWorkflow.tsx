@@ -179,13 +179,15 @@ interface OfferWorkflowProps {
   onStatusChange: (status: string, reason?: string) => Promise<void>;
   isUpdating: boolean;
   offerId: string;
+  isConverted?: boolean;
 }
 
 const OfferWorkflow: React.FC<OfferWorkflowProps> = ({ 
   currentStatus, 
   onStatusChange,
   isUpdating,
-  offerId
+  offerId,
+  isConverted = false
 }) => {
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -200,7 +202,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
     : 'draft';
 
   const currentStepInfo = workflowSteps.find(step => step.id === validStatus);
-  const nextStepOptions = getNextStepOptions(validStatus);
+  const nextStepOptions = isConverted ? [] : getNextStepOptions(validStatus);
   
   useEffect(() => {
     console.log("OfferWorkflow - Current status (raw):", currentStatus);
@@ -208,7 +210,8 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
     console.log("OfferWorkflow - Current step info:", currentStepInfo);
     console.log("OfferWorkflow - Next step options:", nextStepOptions);
     console.log("OfferWorkflow - Offer ID:", offerId);
-  }, [currentStatus, validStatus, currentStepInfo, nextStepOptions, offerId]);
+    console.log("OfferWorkflow - Is converted:", isConverted);
+  }, [currentStatus, validStatus, currentStepInfo, nextStepOptions, offerId, isConverted]);
 
   const handleNextStepSelect = (nextStepId: string) => {
     console.log("Next step selected:", nextStepId);
@@ -284,7 +287,9 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
   return (
     <div className="mt-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-sm font-medium">Gestion du workflow</h3>
+        <h3 className="text-sm font-medium">
+          {isConverted ? "Historique du workflow" : "Gestion du workflow"}
+        </h3>
         <Button 
           variant="outline" 
           size="sm" 
@@ -295,6 +300,12 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
           <span>Historique</span>
         </Button>
       </div>
+      
+      {isConverted && (
+        <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md">
+          Cette offre a été convertie en contrat et ne peut plus être modifiée.
+        </div>
+      )}
       
       <Tabs defaultValue="simple" onValueChange={(value) => setViewMode(value as 'visual' | 'simple')}>
         <TabsList className="mb-4">
@@ -320,7 +331,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
               </div>
             </div>
             
-            {nextStepOptions.length > 0 ? (
+            {!isConverted && nextStepOptions.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-500">Passer à l'étape suivante:</p>
                 <Select onValueChange={handleNextStepSelect}>
@@ -341,7 +352,9 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
               </div>
             ) : (
               <div className="text-sm text-muted-foreground">
-                Aucune étape suivante disponible pour ce statut.
+                {isConverted 
+                  ? "Cette offre a atteint son statut final et a été convertie en contrat." 
+                  : "Aucune étape suivante disponible pour ce statut."}
               </div>
             )}
           </div>
@@ -352,7 +365,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
             {workflowSteps.map((step, index) => {
               const Icon = step.icon;
               const isActive = step.id === validStatus;
-              const isClickable = isAvailableNextStep(step.id) || isActive;
+              const isClickable = !isConverted && (isAvailableNextStep(step.id) || isActive);
               
               return (
                 <React.Fragment key={step.id}>
@@ -364,17 +377,17 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                       "flex flex-col items-center",
                       isActive && "relative",
                       isClickable && !isActive && "cursor-pointer hover:opacity-80",
-                      !isClickable && !isActive && "opacity-50"
+                      (!isClickable && !isActive) || isConverted ? "opacity-50" : ""
                     )}
-                    onClick={() => isClickable ? handleStepClick(step.id) : null}
-                    title={!isActive && isClickable ? "Cliquer pour passer à cette étape" : ""}
+                    onClick={() => isClickable && !isConverted ? handleStepClick(step.id) : null}
+                    title={!isActive && isClickable && !isConverted ? "Cliquer pour passer à cette étape" : ""}
                   >
                     <div 
                       className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center border-2",
                         getStatusColor(step.id),
                         isActive && "ring-2 ring-offset-2 ring-primary/30",
-                        isClickable && !isActive && "ring-1 ring-offset-1 ring-primary/30"
+                        isClickable && !isActive && !isConverted && "ring-1 ring-offset-1 ring-primary/30"
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -393,7 +406,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
             })}
           </div>
           
-          {nextStepOptions.length > 0 && (
+          {!isConverted && nextStepOptions.length > 0 && (
             <div className="mt-6 space-y-2">
               <p className="text-sm font-medium text-gray-500">Passer à l'étape suivante:</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -410,6 +423,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                         getStatusColor(option.id)
                       )}
                       onClick={() => handleNextStepSelect(option.id)}
+                      disabled={isConverted}
                     >
                       <div className="flex items-start">
                         <TargetIcon className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
