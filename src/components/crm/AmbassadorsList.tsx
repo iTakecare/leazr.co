@@ -3,8 +3,9 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { HeartHandshake, MoreHorizontal, Mail, Phone } from "lucide-react";
+import { HeartHandshake, MoreHorizontal, Mail, Phone, ReceiptEuro } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { formatCurrency } from "@/utils/formatters";
 
 // Ceci est une liste statique pour le moment, elle pourrait être remplacée par des données réelles plus tard
 const ambassadors = [
@@ -15,6 +16,8 @@ const ambassadors = [
     phone: '+33 6 12 34 56 78',
     region: 'Île-de-France',
     clientsCount: 12,
+    commissionsTotal: 8750,
+    lastCommission: 1250,
     status: 'active'
   },
   {
@@ -24,6 +27,8 @@ const ambassadors = [
     phone: '+33 6 23 45 67 89',
     region: 'Auvergne-Rhône-Alpes',
     clientsCount: 8,
+    commissionsTotal: 5320,
+    lastCommission: 980,
     status: 'active'
   },
   {
@@ -33,6 +38,8 @@ const ambassadors = [
     phone: '+33 6 34 56 78 90',
     region: 'Nouvelle-Aquitaine',
     clientsCount: 5,
+    commissionsTotal: 3150,
+    lastCommission: 0,
     status: 'inactive'
   }
 ];
@@ -54,6 +61,7 @@ const AmbassadorsList = () => {
             <TableHead>Contact</TableHead>
             <TableHead>Région</TableHead>
             <TableHead>Clients</TableHead>
+            <TableHead>Commissions</TableHead>
             <TableHead>Statut</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -77,6 +85,19 @@ const AmbassadorsList = () => {
               <TableCell>{ambassador.region}</TableCell>
               <TableCell>{ambassador.clientsCount} clients</TableCell>
               <TableCell>
+                <div className="flex flex-col">
+                  <div className="font-medium text-sm">
+                    {formatCurrency(ambassador.commissionsTotal)}
+                  </div>
+                  {ambassador.lastCommission > 0 && (
+                    <div className="text-xs text-muted-foreground flex items-center">
+                      <ReceiptEuro className="h-3 w-3 mr-1" />
+                      Dernière: {formatCurrency(ambassador.lastCommission)}
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
                 <Badge variant={ambassador.status === 'active' ? 'default' : 'secondary'} className={
                   ambassador.status === 'active' 
                     ? "bg-green-100 text-green-800 hover:bg-green-100" 
@@ -99,6 +120,7 @@ const AmbassadorsList = () => {
                     <DropdownMenuItem>Afficher le profil</DropdownMenuItem>
                     <DropdownMenuItem>Modifier</DropdownMenuItem>
                     <DropdownMenuItem>Voir les clients</DropdownMenuItem>
+                    <DropdownMenuItem>Voir les commissions</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-red-600">Désactiver</DropdownMenuItem>
                   </DropdownMenuContent>
