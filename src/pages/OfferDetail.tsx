@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import PageTransition from "@/components/layout/PageTransition";
 import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 import { contractStatuses, updateContractStatus, getContractWorkflowLogs, addTrackingNumber } from "@/services/contractService";
+import { Progress } from "@/components/ui/progress";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -326,6 +327,18 @@ const OfferDetail = () => {
     return actions;
   };
   
+  const handleStepClick = (status: string) => {
+    if (offer.converted_to_contract) {
+      if (status !== offer.contract_status) {
+        openStatusChangeDialog(status);
+      }
+    } else {
+      if (status !== offer.workflow_status) {
+        openStatusChangeDialog(status);
+      }
+    }
+  };
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -418,6 +431,8 @@ const OfferDetail = () => {
                     contractStatuses.ACTIVE,
                     contractStatuses.COMPLETED
                   ].includes(offer.contract_status || '')}
+                  status={contractStatuses.CONTRACT_SENT}
+                  onClick={handleStepClick}
                 />
                 <ProgressLine />
                 <ProgressStep 
@@ -429,6 +444,8 @@ const OfferDetail = () => {
                     contractStatuses.ACTIVE,
                     contractStatuses.COMPLETED
                   ].includes(offer.contract_status || '')}
+                  status={contractStatuses.CONTRACT_SIGNED}
+                  onClick={handleStepClick}
                 />
                 <ProgressLine />
                 <ProgressStep 
@@ -439,6 +456,8 @@ const OfferDetail = () => {
                     contractStatuses.ACTIVE,
                     contractStatuses.COMPLETED
                   ].includes(offer.contract_status || '')}
+                  status={contractStatuses.EQUIPMENT_ORDERED}
+                  onClick={handleStepClick}
                 />
                 <ProgressLine />
                 <ProgressStep 
@@ -448,6 +467,8 @@ const OfferDetail = () => {
                     contractStatuses.ACTIVE,
                     contractStatuses.COMPLETED
                   ].includes(offer.contract_status || '')}
+                  status={contractStatuses.DELIVERED}
+                  onClick={handleStepClick}
                 />
                 <ProgressLine />
                 <ProgressStep 
@@ -456,12 +477,16 @@ const OfferDetail = () => {
                   isCompleted={[
                     contractStatuses.COMPLETED
                   ].includes(offer.contract_status || '')}
+                  status={contractStatuses.ACTIVE}
+                  onClick={handleStepClick}
                 />
                 <ProgressLine />
                 <ProgressStep 
                   label="Terminé" 
                   isActive={offer.contract_status === contractStatuses.COMPLETED}
                   isCompleted={false}
+                  status={contractStatuses.COMPLETED}
+                  onClick={handleStepClick}
                 />
               </div>
             ) : (
@@ -475,6 +500,8 @@ const OfferDetail = () => {
                     OFFER_STATUSES.LEASER_REVIEW.id,
                     OFFER_STATUSES.FINANCED.id
                   ].includes(offer.workflow_status || '')}
+                  status={OFFER_STATUSES.DRAFT.id}
+                  onClick={handleStepClick}
                 />
                 <ProgressLine />
                 <ProgressStep 
@@ -485,6 +512,8 @@ const OfferDetail = () => {
                     OFFER_STATUSES.LEASER_REVIEW.id,
                     OFFER_STATUSES.FINANCED.id
                   ].includes(offer.workflow_status || '')}
+                  status={OFFER_STATUSES.SENT.id}
+                  onClick={handleStepClick}
                 />
                 <ProgressLine />
                 <ProgressStep 
@@ -494,6 +523,8 @@ const OfferDetail = () => {
                     OFFER_STATUSES.LEASER_REVIEW.id,
                     OFFER_STATUSES.FINANCED.id
                   ].includes(offer.workflow_status || '')}
+                  status={OFFER_STATUSES.APPROVED.id}
+                  onClick={handleStepClick}
                 />
                 <ProgressLine />
                 <ProgressStep 
@@ -502,12 +533,16 @@ const OfferDetail = () => {
                   isCompleted={[
                     OFFER_STATUSES.FINANCED.id
                   ].includes(offer.workflow_status || '')}
+                  status={OFFER_STATUSES.LEASER_REVIEW.id}
+                  onClick={handleStepClick}
                 />
                 <ProgressLine />
                 <ProgressStep 
                   label="Financée" 
                   isActive={offer.workflow_status === OFFER_STATUSES.FINANCED.id}
                   isCompleted={false}
+                  status={OFFER_STATUSES.FINANCED.id}
+                  onClick={handleStepClick}
                 />
               </div>
             )}
@@ -805,11 +840,27 @@ const OfferDetail = () => {
   );
 };
 
-const ProgressStep = ({ label, isActive, isCompleted }: { label: string, isActive: boolean, isCompleted: boolean }) => {
+const ProgressStep = ({ 
+  label, 
+  isActive, 
+  isCompleted, 
+  status, 
+  onClick 
+}: { 
+  label: string, 
+  isActive: boolean, 
+  isCompleted: boolean, 
+  status: string, 
+  onClick: (status: string) => void 
+}) => {
   let className = "flex flex-col items-center";
   
   return (
-    <div className={className}>
+    <div 
+      className={`${className} cursor-pointer hover:opacity-80 transition-opacity`}
+      onClick={() => onClick(status)}
+      title={`Changer le statut à "${label}"`}
+    >
       <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
         isActive 
           ? "bg-blue-500 text-white" 
