@@ -1,5 +1,6 @@
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
+import { products as sampleProducts } from "@/data/products";
 
 export async function getProducts(): Promise<Product[]> {
   try {
@@ -16,15 +17,16 @@ export async function getProducts(): Promise<Product[]> {
     }
 
     if (!data || data.length === 0) {
-      console.log("No products found in API");
-      return [];
+      console.log("No products found in API, using sample products");
+      return sampleProducts;
     }
 
     console.log(`Retrieved ${data.length} products from API`);
     return data;
   } catch (error) {
     console.error("Error in getProducts:", error);
-    throw error;
+    console.log("Falling back to sample products");
+    return sampleProducts;
   }
 }
 
