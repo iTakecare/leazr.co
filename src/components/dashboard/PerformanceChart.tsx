@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { useTheme } from '@/components/providers/theme-provider';
+import { useTheme as useNextTheme } from 'next-themes';
 
 const dummyData = [
   { name: 'Jan', revenue: 4000, margin: 2400 },
@@ -35,7 +35,7 @@ interface PerformanceChartProps {
 }
 
 export const PerformanceChart = ({ data = dummyData, isLoading = false }: PerformanceChartProps) => {
-  const { theme } = useTheme();
+  const { theme } = useNextTheme();
   const isDark = theme === 'dark';
   
   const textColor = isDark ? '#e2e8f0' : '#64748b';

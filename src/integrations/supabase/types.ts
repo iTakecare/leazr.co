@@ -521,6 +521,16 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_total_revenue: {
+        Args: {
+          time_filter: string
+        }
+        Returns: {
+          total_revenue: number
+          gross_margin: number
+          clients_count: number
+        }[]
+      }
       check_user_exists_by_email: {
         Args: {
           user_email: string
