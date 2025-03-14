@@ -47,14 +47,18 @@ serve(async (req) => {
     });
 
     try {
-      // Format de l'email simplifié et compatible avec les serveurs SMTP stricts
       console.log("Tentative d'envoi de mail de test...");
       
+      // Format RFC-compliant pour le champ From
+      const fromField = `"${config.from_name}" <${config.from_email}>`;
+      console.log("From field format:", fromField);
+      
+      // Utiliser text au lieu de content pour la compatibilité
       await client.send({
-        from: `${config.from_name} <${config.from_email}>`,
+        from: fromField,
         to: config.username,
         subject: "Test SMTP",
-        content: "Test de connexion SMTP réussi",
+        text: "Test de connexion SMTP réussi",
         html: "<p>Test de connexion SMTP réussi</p>"
       });
       

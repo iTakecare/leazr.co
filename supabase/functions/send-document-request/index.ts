@@ -111,12 +111,16 @@ serve(async (req) => {
       console.log("Préparation de l'email pour:", clientEmail);
       console.log("Expéditeur:", smtpConfig.from_email);
       
-      // Envoyer l'email avec un format qui respecte mieux les standards
+      // Format RFC-compliant pour le champ From
+      const fromField = `"${smtpConfig.from_name}" <${smtpConfig.from_email}>`;
+      console.log("From field format:", fromField);
+      
+      // Utiliser text au lieu de content pour la compatibilité
       await client.send({
-        from: `${smtpConfig.from_name} <${smtpConfig.from_email}>`,
+        from: fromField,
         to: clientEmail,
         subject: "Documents requis - Offre de leasing",
-        content: emailBody,
+        text: emailBody,
         html: htmlBody
       });
       
