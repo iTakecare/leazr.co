@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -397,32 +398,35 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     console.log("Using site URL for redirect:", siteUrl);
     
     try {
-      console.log("Creating user account with admin auth...");
+      // Since the adminSupabase client is having issues, we'll use the regular supabase client
+      // We'll just set up the user, then send a password reset email to let them create their own password
+      console.log("Creating user account with standard auth...");
       
-      const adminResult = await adminSupabase.auth.admin.createUser({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: client.email,
         password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
-          first_name: client.name.split(' ')[0],
-          last_name: client.name.split(' ').slice(1).join(' '),
-          role: 'client',
-          company: client.company || null
+        options: {
+          data: {
+            first_name: client.name.split(' ')[0],
+            last_name: client.name.split(' ').slice(1).join(' '),
+            role: 'client',
+            company: client.company || null
+          }
         }
       });
       
-      if (adminResult.error) {
-        console.log("Admin auth signup error:", adminResult.error.message);
-        throw adminResult.error;
+      if (signUpError) {
+        console.log("Standard auth signup error:", signUpError.message);
+        throw signUpError;
       }
       
-      console.log("New user created successfully:", adminResult.data?.user?.id);
+      console.log("New user created successfully:", signUpData?.user?.id);
       
-      if (adminResult.data && adminResult.data.user) {
-        const { error: updateError } = await adminSupabase
+      if (signUpData && signUpData.user) {
+        const { error: updateError } = await supabase
           .from('clients')
           .update({ 
-            user_id: adminResult.data.user.id,
+            user_id: signUpData.user.id,
             has_user_account: true,
             user_account_created_at: new Date().toISOString()
           })
@@ -431,12 +435,12 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
         if (updateError) {
           console.error("Error updating client with user_id:", updateError);
         } else {
-          console.log("Client updated with user_id:", adminResult.data.user.id);
+          console.log("Client updated with user_id:", signUpData.user.id);
         }
       }
       
       console.log("Sending password reset email for new account");
-      const { error: resetError } = await adminSupabase.auth.resetPasswordForEmail(client.email, {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(client.email, {
         redirectTo: `${siteUrl}/login`
       });
       
