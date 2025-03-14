@@ -1,180 +1,165 @@
-
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
-  File, Clock, CheckCircle, XCircle, UserCog, MessagesSquare, 
-  SendToBack, RefreshCw, History
+  AlertCircle, 
+  CheckCircle, 
+  Clock, 
+  FileText, 
+  XCircle, 
+  ArrowRight, 
+  ChevronDown, 
+  Calendar, 
+  Loader2, 
+  Info
 } from "lucide-react";
+import { 
+  Button, 
+  Popover, 
+  PopoverTrigger, 
+  PopoverContent, 
+  Textarea
+} from "@/components/ui";
 import { workflowStatuses } from "@/hooks/useOffers";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { format } from "date-fns";
-import { getWorkflowLogs } from "@/services/offerService";
-import { fr } from "date-fns/locale";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { getWorkflowLogs } from "@/services/offerService";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
+// Ensure we're using the same status constants everywhere
+const {
+  DRAFT,
+  CLIENT_WAITING,
+  CLIENT_APPROVED,
+  CLIENT_NO_RESPONSE,
+  INTERNAL_REVIEW,
+  NEED_INFO,
+  INTERNAL_REJECTED,
+  LEASER_SENT,
+  LEASER_REVIEW,
+  LEASER_APPROVED,
+  LEASER_REJECTED
+} = workflowStatuses;
+
+// Define the workflow steps and their relationships
 const workflowSteps = [
-  { 
-    id: workflowStatuses.DRAFT, 
-    label: "Brouillon", 
-    icon: File,
-    nextSteps: [workflowStatuses.CLIENT_WAITING],
-    color: "blue"
+  {
+    id: DRAFT,
+    title: "Brouillon",
+    description: "L'offre est en cours de préparation",
+    icon: FileText,
+    color: "text-gray-500",
+    bgColor: "bg-gray-100"
   },
-  { 
-    id: workflowStatuses.CLIENT_WAITING, 
-    label: "En attente client", 
+  {
+    id: CLIENT_WAITING,
+    title: "En attente du client",
+    description: "Offre envoyée, en attente de réponse",
     icon: Clock,
-    nextSteps: [workflowStatuses.CLIENT_APPROVED, workflowStatuses.CLIENT_NO_RESPONSE],
-    color: "yellow"
+    color: "text-orange-500",
+    bgColor: "bg-orange-100",
+    nextDefault: CLIENT_APPROVED
   },
-  { 
-    id: workflowStatuses.CLIENT_APPROVED, 
-    label: "Approuvé par client", 
+  {
+    id: CLIENT_APPROVED,
+    title: "Approuvée par le client",
+    description: "Le client a accepté l'offre",
     icon: CheckCircle,
-    nextSteps: [workflowStatuses.INTERNAL_REVIEW],
-    color: "green"
+    color: "text-emerald-500",
+    bgColor: "bg-emerald-100",
+    nextDefault: INTERNAL_REVIEW
   },
-  { 
-    id: workflowStatuses.CLIENT_NO_RESPONSE, 
-    label: "Sans réponse client", 
+  {
+    id: CLIENT_NO_RESPONSE,
+    title: "Pas de réponse du client",
+    description: "Le client n'a pas répondu dans les délais",
+    icon: AlertCircle,
+    color: "text-amber-500",
+    bgColor: "bg-amber-100",
+    nextDefault: LEASER_REJECTED
+  },
+  {
+    id: INTERNAL_REVIEW,
+    title: "Examen interne",
+    description: "Vérification interne de l'offre",
+    icon: FileText,
+    color: "text-blue-500",
+    bgColor: "bg-blue-100",
+    nextDefault: LEASER_SENT
+  },
+  {
+    id: NEED_INFO,
+    title: "Informations manquantes",
+    description: "Informations supplémentaires requises",
+    icon: Info,
+    color: "text-amber-500",
+    bgColor: "bg-amber-100",
+    nextDefault: INTERNAL_REVIEW
+  },
+  {
+    id: INTERNAL_REJECTED,
+    title: "Rejetée en interne",
+    description: "L'offre a été rejetée lors de l'examen interne",
     icon: XCircle,
-    nextSteps: [workflowStatuses.CLIENT_WAITING, workflowStatuses.DRAFT],
-    color: "red"
+    color: "text-red-500",
+    bgColor: "bg-red-100"
   },
-  { 
-    id: workflowStatuses.INTERNAL_REVIEW, 
-    label: "Revue interne", 
-    icon: UserCog,
-    nextSteps: [workflowStatuses.NEED_INFO, workflowStatuses.INTERNAL_REJECTED, workflowStatuses.LEASER_SENT],
-    color: "purple"
+  {
+    id: LEASER_SENT,
+    title: "Envoyée au bailleur",
+    description: "L'offre a été transmise au bailleur",
+    icon: Clock,
+    color: "text-purple-500",
+    bgColor: "bg-purple-100",
+    nextDefault: LEASER_REVIEW
   },
-  { 
-    id: workflowStatuses.NEED_INFO, 
-    label: "Informations supplémentaires", 
-    icon: MessagesSquare,
-    nextSteps: [workflowStatuses.INTERNAL_REVIEW, workflowStatuses.DRAFT],
-    color: "orange"
+  {
+    id: LEASER_REVIEW,
+    title: "En examen par le bailleur",
+    description: "Le bailleur examine actuellement l'offre",
+    icon: FileText,
+    color: "text-indigo-500",
+    bgColor: "bg-indigo-100",
+    nextDefault: LEASER_APPROVED
   },
-  { 
-    id: workflowStatuses.INTERNAL_REJECTED, 
-    label: "Rejeté en interne", 
-    icon: XCircle,
-    nextSteps: [workflowStatuses.DRAFT],
-    color: "red"
-  },
-  { 
-    id: workflowStatuses.LEASER_SENT, 
-    label: "Envoyé au bailleur", 
-    icon: SendToBack,
-    nextSteps: [workflowStatuses.LEASER_REVIEW],
-    color: "blue"
-  },
-  { 
-    id: workflowStatuses.LEASER_REVIEW, 
-    label: "Revue bailleur", 
-    icon: RefreshCw,
-    nextSteps: [workflowStatuses.LEASER_APPROVED, workflowStatuses.LEASER_REJECTED],
-    color: "purple"
-  },
-  { 
-    id: workflowStatuses.LEASER_APPROVED, 
-    label: "Approuvé par bailleur", 
+  {
+    id: LEASER_APPROVED,
+    title: "Approuvée par le bailleur",
+    description: "Le bailleur a approuvé l'offre",
     icon: CheckCircle,
-    nextSteps: [],
-    color: "green"
+    color: "text-green-500",
+    bgColor: "bg-green-100"
   },
-  { 
-    id: workflowStatuses.LEASER_REJECTED, 
-    label: "Rejeté par bailleur", 
+  {
+    id: LEASER_REJECTED,
+    title: "Rejetée par le bailleur",
+    description: "Le bailleur a rejeté l'offre",
     icon: XCircle,
-    nextSteps: [workflowStatuses.DRAFT, workflowStatuses.INTERNAL_REVIEW],
-    color: "red"
+    color: "text-red-500",
+    bgColor: "bg-red-100"
   }
 ];
 
-function getNextStepOptions(currentStatus: string) {
-  const currentStep = workflowSteps.find(step => step.id === currentStatus);
-  if (!currentStep) return [];
+// Helper function to get the next step options based on the current status
+const getNextStepOptions = (currentStatus: string) => {
+  const predefinedFlows: Record<string, string[]> = {
+    [DRAFT]: [CLIENT_WAITING, INTERNAL_REVIEW, NEED_INFO],
+    [CLIENT_WAITING]: [CLIENT_APPROVED, CLIENT_NO_RESPONSE, NEED_INFO],
+    [CLIENT_APPROVED]: [INTERNAL_REVIEW, NEED_INFO],
+    [CLIENT_NO_RESPONSE]: [CLIENT_WAITING, INTERNAL_REJECTED],
+    [INTERNAL_REVIEW]: [LEASER_SENT, NEED_INFO, INTERNAL_REJECTED],
+    [NEED_INFO]: [CLIENT_WAITING, INTERNAL_REVIEW],
+    [INTERNAL_REJECTED]: [],
+    [LEASER_SENT]: [LEASER_REVIEW, NEED_INFO],
+    [LEASER_REVIEW]: [LEASER_APPROVED, LEASER_REJECTED, NEED_INFO],
+    [LEASER_APPROVED]: [],
+    [LEASER_REJECTED]: [INTERNAL_REVIEW, CLIENT_WAITING]
+  };
 
-  return currentStep.nextSteps.map(nextStepId => {
-    const nextStep = workflowSteps.find(step => step.id === nextStepId);
-    if (!nextStep) return { id: nextStepId, label: "Inconnu", description: "" };
+  const options = predefinedFlows[currentStatus] || [];
+  return options.map(stepId => workflowSteps.find(step => step.id === stepId)).filter(Boolean);
+};
 
-    let description = "";
-    switch (nextStepId) {
-      case workflowStatuses.CLIENT_WAITING:
-        description = "Le devis est prêt à être envoyé au client";
-        break;
-      case workflowStatuses.CLIENT_APPROVED:
-        description = "Le client a approuvé le devis";
-        break;
-      case workflowStatuses.CLIENT_NO_RESPONSE:
-        description = "Le client n'a pas répondu";
-        break;
-      case workflowStatuses.INTERNAL_REVIEW:
-        description = "Le devis doit être révisé en interne";
-        break;
-      case workflowStatuses.NEED_INFO:
-        description = "Des informations supplémentaires sont nécessaires";
-        break;
-      case workflowStatuses.INTERNAL_REJECTED:
-        description = "Le devis a été rejeté en interne";
-        break;
-      case workflowStatuses.LEASER_SENT:
-        description = "Le devis est envoyé au bailleur";
-        break;
-      case workflowStatuses.LEASER_REVIEW:
-        description = "Le devis est en cours de révision par le bailleur";
-        break;
-      case workflowStatuses.LEASER_APPROVED:
-        description = "Le bailleur a approuvé le devis";
-        break;
-      case workflowStatuses.LEASER_REJECTED:
-        description = "Le bailleur a rejeté le devis";
-        break;
-      default:
-        description = "Passer à cette étape";
-    }
-
-    return {
-      id: nextStepId,
-      label: nextStep.label,
-      description
-    };
-  });
-}
-
+// Component props interface
 interface OfferWorkflowProps {
   currentStatus: string;
   onStatusChange: (status: string, reason?: string) => Promise<void>;
@@ -183,58 +168,40 @@ interface OfferWorkflowProps {
   isConverted?: boolean;
 }
 
-const OfferWorkflow: React.FC<OfferWorkflowProps> = ({ 
-  currentStatus, 
+const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
+  currentStatus,
   onStatusChange,
   isUpdating,
   offerId,
   isConverted = false
 }) => {
-  const [selectedStep, setSelectedStep] = useState<string | null>(null);
-  const [reason, setReason] = useState("");
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'visual' | 'simple'>('simple');
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [changeReason, setChangeReason] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
   // Validate if the current status is a valid workflow status
-  const isValidStatus = Object.values(workflowStatuses).includes(currentStatus);
-  const validStatus = isValidStatus ? currentStatus : 'draft';
+  const allStatuses = workflowSteps.map(step => step.id);
+  const isValidStatus = allStatuses.includes(currentStatus);
+  const validStatus = isValidStatus ? currentStatus : DRAFT;
 
-  const currentStepInfo = workflowSteps.find(step => step.id === validStatus);
+  // Find the current step info and possible next steps
+  const currentStepInfo = workflowSteps.find(step => step.id === validStatus) || workflowSteps[0];
   const nextStepOptions = isConverted ? [] : getNextStepOptions(validStatus);
   
+  console.log("OfferWorkflow - currentStatus:", currentStatus);
+  console.log("OfferWorkflow - validStatus:", validStatus);
+  console.log("OfferWorkflow - isConverted:", isConverted);
+  console.log("OfferWorkflow - nextStepOptions:", nextStepOptions.map(o => o?.id));
+
+  // Fetch workflow logs when the component mounts or offerId changes
   useEffect(() => {
-    console.log("OfferWorkflow - Current status (raw):", currentStatus);
-    console.log("OfferWorkflow - Valid status used:", validStatus);
-    console.log("OfferWorkflow - Current step info:", currentStepInfo);
-    console.log("OfferWorkflow - Next step options:", nextStepOptions);
-    console.log("OfferWorkflow - Offer ID:", offerId);
-    console.log("OfferWorkflow - Is converted:", isConverted);
-  }, [currentStatus, validStatus, currentStepInfo, nextStepOptions, offerId, isConverted]);
-
-  const handleNextStepSelect = (nextStepId: string) => {
-    console.log("Next step selected:", nextStepId);
-    setSelectedStep(nextStepId);
-    setConfirmOpen(true);
-  };
-
-  const confirmStatusChange = async () => {
-    if (selectedStep) {
-      console.log("Confirming status change to:", selectedStep);
-      try {
-        await onStatusChange(selectedStep, reason || undefined);
-        setReason("");
-        setConfirmOpen(false);
-      } catch (error) {
-        console.error("Error changing status:", error);
-        toast.error("Erreur lors du changement de statut");
-      }
+    if (offerId) {
+      fetchWorkflowLogs();
     }
-  };
+  }, [offerId]);
 
-  const loadWorkflowHistory = async () => {
+  const fetchWorkflowLogs = async () => {
     if (!offerId) return;
     
     setIsLoadingLogs(true);
@@ -242,317 +209,228 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
       const logs = await getWorkflowLogs(offerId);
       setWorkflowLogs(logs);
     } catch (error) {
-      console.error("Error loading workflow history:", error);
+      console.error("Error fetching workflow logs:", error);
     } finally {
       setIsLoadingLogs(false);
     }
   };
 
-  useEffect(() => {
-    if (historyOpen) {
-      loadWorkflowHistory();
-    }
-  }, [historyOpen, offerId]);
-
-  const getStatusColor = (status: string) => {
-    const step = workflowSteps.find(s => s.id === status);
-    if (!step) return "bg-gray-100 border-gray-300 text-gray-600";
+  const handleStatusSelection = async (newStatus: string) => {
+    console.log(`OfferWorkflow - Selected new status: ${newStatus}`);
     
-    switch (step.color) {
-      case "blue": return "bg-blue-100 border-blue-500 text-blue-600";
-      case "green": return "bg-green-100 border-green-500 text-green-600";
-      case "red": return "bg-red-100 border-red-500 text-red-600";
-      case "yellow": return "bg-yellow-100 border-yellow-500 text-yellow-600";
-      case "purple": return "bg-purple-100 border-purple-500 text-purple-600";
-      case "orange": return "bg-orange-100 border-orange-500 text-orange-600";
-      default: return "bg-gray-100 border-gray-300 text-gray-600";
+    // Skip if status is unchanged
+    if (newStatus === validStatus) {
+      toast.info("Le statut est déjà à cette valeur");
+      return;
+    }
+    
+    // For most transitions, we can change directly
+    if (!["client_no_response", "internal_rejected", "leaser_rejected"].includes(newStatus)) {
+      await onStatusChange(newStatus);
+      setSelectedStatus(null);
+      return;
+    }
+    
+    // For rejection statuses, we'll prompt for a reason
+    setSelectedStatus(newStatus);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!selectedStatus) return;
+    
+    await onStatusChange(selectedStatus, changeReason);
+    setSelectedStatus(null);
+    setChangeReason("");
+  };
+
+  const cancelStatusChange = () => {
+    setSelectedStatus(null);
+    setChangeReason("");
+  };
+
+  const formatLogDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy à HH:mm", { locale: fr });
+    } catch (error) {
+      return "Date incorrecte";
     }
   };
 
-  const isAvailableNextStep = (stepId: string) => {
-    return nextStepOptions.some(option => option.id === stepId);
-  };
-
-  const handleStepClick = (stepId: string) => {
-    if (stepId === validStatus) {
-      return; // Ne rien faire si c'est l'étape actuelle
-    }
+  // Render the rejection reason modal
+  const renderReasonModal = () => {
+    if (!selectedStatus) return null;
     
-    if (isAvailableNextStep(stepId)) {
-      handleNextStepSelect(stepId);
-    } else {
-      toast.error("Cette étape n'est pas disponible comme prochaine étape");
-    }
+    const statusInfo = workflowSteps.find(step => step.id === selectedStatus);
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 className="text-lg font-medium mb-2">Changer le statut</h3>
+          <p className="text-muted-foreground mb-4">
+            Vous allez changer le statut vers "{statusInfo?.title}". 
+            Veuillez indiquer la raison de ce changement.
+          </p>
+          
+          <Textarea
+            value={changeReason}
+            onChange={(e) => setChangeReason(e.target.value)}
+            placeholder="Raison du changement de statut..."
+            className="min-h-[100px] mb-4"
+          />
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={cancelStatusChange}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={confirmStatusChange}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Mise à jour...
+                </>
+              ) : (
+                "Confirmer"
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="mt-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-sm font-medium">
-          {isConverted ? "Historique du workflow" : "Gestion du workflow"}
-        </h3>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => setHistoryOpen(true)}
-          className="flex items-center gap-1"
-        >
-          <History className="h-4 w-4" />
-          <span>Historique</span>
-        </Button>
+    <div className="mt-4">
+      <h3 className="text-sm font-medium mb-2">Progression du workflow</h3>
+      
+      {/* Current status display */}
+      <div className={cn(
+        "flex items-center p-3 mb-3 rounded-md",
+        currentStepInfo.bgColor
+      )}>
+        <currentStepInfo.icon className={cn("h-5 w-5 mr-2", currentStepInfo.color)} />
+        <div>
+          <p className="font-medium">{currentStepInfo.title}</p>
+          <p className="text-xs text-muted-foreground">{currentStepInfo.description}</p>
+        </div>
       </div>
       
+      {/* Converted to contract notice */}
       {isConverted && (
-        <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md">
-          Cette offre a été convertie en contrat et ne peut plus être modifiée.
+        <div className="p-3 mb-3 bg-green-100 text-green-800 rounded-md">
+          <p className="flex items-center">
+            <CheckCircle className="h-5 w-5 mr-2" />
+            Cette offre a été convertie en contrat. 
+            Les modifications de statut sont désactivées.
+          </p>
         </div>
       )}
       
-      <Tabs defaultValue="simple" onValueChange={(value) => setViewMode(value as 'visual' | 'simple')}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="simple">Mode Simple</TabsTrigger>
-          <TabsTrigger value="visual">Mode Visuel</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="simple" className="mt-2">
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className={cn(
-                "flex items-center px-3 py-2 rounded-md border-2",
-                getStatusColor(validStatus)
-              )}>
-                {currentStepInfo ? (
-                  <>
-                    <currentStepInfo.icon className="h-5 w-5 mr-2" />
-                    <span className="font-medium">{currentStepInfo.label}</span>
-                  </>
-                ) : (
-                  <span className="font-medium">Statut: {validStatus || "Non défini"}</span>
+      {/* Next step options */}
+      {!isConverted && nextStepOptions.length > 0 && (
+        <div className="mb-4">
+          <h4 className="text-xs font-medium mb-2 text-muted-foreground">
+            Prochaines étapes possibles:
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {nextStepOptions.map((step) => (
+              <Button
+                key={step?.id}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "flex items-center",
+                  step?.color,
+                  "hover:bg-gray-100"
                 )}
-              </div>
-            </div>
-            
-            {!isConverted && nextStepOptions.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-500">Passer à l'étape suivante:</p>
-                <Select onValueChange={handleNextStepSelect}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sélectionner la prochaine étape" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {nextStepOptions.map(option => (
-                      <SelectItem key={option.id} value={option.id}>
-                        <div className="py-1">
-                          <span className="font-medium">{option.label}</span>
-                          <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                {isConverted 
-                  ? "Cette offre a atteint son statut final et a été convertie en contrat." 
-                  : "Aucune étape suivante disponible pour ce statut."}
-              </div>
-            )}
+                onClick={() => handleStatusSelection(step?.id || "")}
+                disabled={isUpdating}
+              >
+                {isUpdating ? (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                ) : (
+                  <step.icon className="h-3 w-3 mr-1" />
+                )}
+                {step?.title}
+              </Button>
+            ))}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="visual" className="mt-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {workflowSteps.map((step, index) => {
-              const Icon = step.icon;
-              const isActive = step.id === validStatus;
-              const isClickable = !isConverted && (isAvailableNextStep(step.id) || isActive);
-              
-              return (
-                <React.Fragment key={step.id}>
-                  {index > 0 && (
-                    <div className="h-px w-4 bg-gray-200" />
-                  )}
-                  <div
-                    className={cn(
-                      "flex flex-col items-center",
-                      isActive && "relative",
-                      isClickable && !isActive && "cursor-pointer hover:opacity-80",
-                      (!isClickable && !isActive) || isConverted ? "opacity-50" : ""
-                    )}
-                    onClick={() => isClickable && !isConverted ? handleStepClick(step.id) : null}
-                    title={!isActive && isClickable && !isConverted ? "Cliquer pour passer à cette étape" : ""}
-                  >
-                    <div 
-                      className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center border-2",
-                        getStatusColor(step.id),
-                        isActive && "ring-2 ring-offset-2 ring-primary/30",
-                        isClickable && !isActive && !isConverted && "ring-1 ring-offset-1 ring-primary/30"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <span 
-                      className={cn(
-                        "text-xs mt-1 text-center max-w-[80px] truncate",
-                        isActive ? "font-medium text-primary" : "text-gray-500"
-                      )}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                </React.Fragment>
-              );
-            })}
-          </div>
-          
-          {!isConverted && nextStepOptions.length > 0 && (
-            <div className="mt-6 space-y-2">
-              <p className="text-sm font-medium text-gray-500">Passer à l'étape suivante:</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {nextStepOptions.map(option => {
-                  const targetStep = workflowSteps.find(s => s.id === option.id);
-                  const TargetIcon = targetStep?.icon || File;
-                  
-                  return (
-                    <Button
-                      key={option.id}
-                      variant="outline"
-                      className={cn(
-                        "justify-start text-left h-auto py-3",
-                        getStatusColor(option.id)
-                      )}
-                      onClick={() => handleNextStepSelect(option.id)}
-                      disabled={isConverted}
-                    >
-                      <div className="flex items-start">
-                        <TargetIcon className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <div className="font-medium">{option.label}</div>
-                          <div className="text-xs mt-1">{option.description}</div>
-                        </div>
-                      </div>
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Historique des changements</DialogTitle>
-            <DialogDescription>
-              Tous les changements de statut pour cette offre
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            {isLoadingLogs ? (
-              <div className="py-12 flex justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Chargement...</span>
-              </div>
-            ) : workflowLogs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Aucun historique disponible
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {workflowLogs.map((log) => {
-                  const fromStep = workflowSteps.find(s => s.id === log.previous_status);
-                  const toStep = workflowSteps.find(s => s.id === log.new_status);
-                  const FromIcon = fromStep?.icon || File;
-                  const ToIcon = toStep?.icon || File;
-                  const date = new Date(log.created_at);
-                  const profile = log.profiles || {};
-                  const userName = profile.first_name && profile.last_name 
-                    ? `${profile.first_name} ${profile.last_name}`
-                    : profile.email || "Utilisateur inconnu";
-                  
-                  return (
-                    <div key={log.id} className="border rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={profile.avatar_url} />
-                          <AvatarFallback>{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{userName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(date, "dd MMMM yyyy à HH:mm", { locale: fr })}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 my-2">
-                        <div className={cn(
-                          "flex items-center px-2 py-1 rounded text-xs",
-                          getStatusColor(log.previous_status)
-                        )}>
-                          <FromIcon className="h-3 w-3 mr-1" />
-                          <span>{fromStep?.label || log.previous_status}</span>
-                        </div>
-                        <span className="text-muted-foreground">→</span>
-                        <div className={cn(
-                          "flex items-center px-2 py-1 rounded text-xs",
-                          getStatusColor(log.new_status)
-                        )}>
-                          <ToIcon className="h-3 w-3 mr-1" />
-                          <span>{toStep?.label || log.new_status}</span>
-                        </div>
-                      </div>
-                      
-                      {log.reason && (
-                        <div className="mt-2 text-sm bg-muted p-3 rounded-md">
-                          {log.reason}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Changer le statut de l'offre ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedStep && (
-                <>
-                  Vous allez changer le statut vers <strong>{workflowSteps.find(s => s.id === selectedStep)?.label}</strong>. 
-                  Voulez-vous ajouter un commentaire?
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-2">
-            <Textarea
-              placeholder="Ajouter un commentaire (optionnel)"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <Button onClick={confirmStatusChange} disabled={isUpdating}>
-              {isUpdating ? "Mise à jour..." : "Confirmer"}
+        </div>
+      )}
+      
+      {/* Workflow history */}
+      <div className="mt-4">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center text-muted-foreground"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Historique des statuts
+              <ChevronDown className="h-4 w-4 ml-2" />
             </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 p-0">
+            <div className="p-4 border-b">
+              <h3 className="font-medium">Historique des changements</h3>
+            </div>
+            <div className="max-h-80 overflow-auto p-2">
+              {isLoadingLogs ? (
+                <div className="flex justify-center items-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : workflowLogs.length === 0 ? (
+                <p className="text-center py-4 text-muted-foreground">
+                  Aucun historique disponible
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {workflowLogs.map((log, index) => {
+                    const prevStatus = workflowSteps.find(s => s.id === log.previous_status);
+                    const newStatus = workflowSteps.find(s => s.id === log.new_status);
+                    
+                    return (
+                      <div key={index} className="p-2 border-b last:border-0">
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium">
+                            {log.profiles?.first_name || 'Utilisateur'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatLogDate(log.created_at)}
+                          </span>
+                        </div>
+                        <div className="flex items-center mt-1 text-sm">
+                          <span className={cn("inline-flex items-center", prevStatus?.color || "text-gray-500")}>
+                            <prevStatus?.icon className="h-3 w-3 mr-1" />
+                            {prevStatus?.title || log.previous_status}
+                          </span>
+                          <ArrowRight className="h-3 w-3 mx-2 text-muted-foreground" />
+                          <span className={cn("inline-flex items-center", newStatus?.color || "text-gray-500")}>
+                            <newStatus?.icon className="h-3 w-3 mr-1" />
+                            {newStatus?.title || log.new_status}
+                          </span>
+                        </div>
+                        {log.reason && (
+                          <p className="text-xs text-muted-foreground mt-1 ml-1">
+                            Raison: {log.reason}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+      
+      {/* Reason modal */}
+      {renderReasonModal()}
     </div>
   );
 };

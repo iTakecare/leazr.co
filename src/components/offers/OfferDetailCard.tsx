@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { workflowStatuses } from "@/hooks/useOffers";
 
 interface OfferDetailCardProps {
   offer: {
@@ -43,15 +43,20 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [comment, setComment] = useState("");
-  const [localWorkflowStatus, setLocalWorkflowStatus] = useState(offer.workflow_status || 'draft');
+  const [localWorkflowStatus, setLocalWorkflowStatus] = useState(offer.workflow_status || workflowStatuses.DRAFT);
   const navigate = useNavigate();
   
-  // Update local status when offer changes
+  // Update local status whenever offer changes
   useEffect(() => {
+    console.log("OfferDetailCard - offer updated:", offer.id);
+    console.log("Current local status:", localWorkflowStatus);
+    console.log("New offer status:", offer.workflow_status);
+    
     if (offer.workflow_status && offer.workflow_status !== localWorkflowStatus) {
+      console.log("Updating local workflow status to:", offer.workflow_status);
       setLocalWorkflowStatus(offer.workflow_status);
     }
-  }, [offer.workflow_status]);
+  }, [offer, offer.workflow_status]);
   
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -66,11 +71,9 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
   };
 
   const handleStatusChange = async (newStatus: string, reason?: string) => {
-    console.log(`Changing status for offer ${offer.id} to ${newStatus}`, {
-      current: localWorkflowStatus,
-      new: newStatus
-    });
+    console.log(`OfferDetailCard - Changing status for offer ${offer.id} from ${localWorkflowStatus} to ${newStatus}`);
     
+    // Skip if status is unchanged
     if (localWorkflowStatus === newStatus) {
       console.log("Status unchanged, skipping update");
       toast.info("Le statut est déjà à cette valeur");
@@ -78,10 +81,19 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
     }
     
     try {
+      // Update status through parent component
       await onStatusChange(offer.id, newStatus, reason);
-      // Update local status immediately for better reactivity
+      
+      // Update local status immediately for better UX
+      console.log("Updating local status to:", newStatus);
       setLocalWorkflowStatus(newStatus);
-      toast.success(`Statut changé avec succès vers ${newStatus}`);
+      
+      // For conversion to contract, show appropriate message
+      if (newStatus === workflowStatuses.LEASER_APPROVED) {
+        toast.success("L'offre a été approuvée et convertie en contrat");
+      } else {
+        toast.success(`Statut mis à jour vers ${newStatus}`);
+      }
     } catch (error) {
       console.error("Error changing status:", error);
       toast.error("Erreur lors du changement de statut");
@@ -100,7 +112,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
     navigate(`/create-offer?id=${offer.id}`);
   };
   
-  console.log("OfferDetailCard - localWorkflowStatus:", localWorkflowStatus);
+  console.log("OfferDetailCard - Render with localWorkflowStatus:", localWorkflowStatus);
   console.log("OfferDetailCard - original offer.workflow_status:", offer.workflow_status);
   console.log("OfferDetailCard - converted_to_contract:", offer.converted_to_contract);
 

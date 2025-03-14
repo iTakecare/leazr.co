@@ -56,6 +56,7 @@ export const useOffers = () => {
     setLoadingError(null);
     
     try {
+      console.log("Fetching offers with includeConverted =", includeConverted);
       const offersData = await getOffers(includeConverted);
       
       if (Array.isArray(offersData)) {
@@ -90,6 +91,9 @@ export const useOffers = () => {
           return offer;
         });
         
+        console.log(`Loaded ${offersWithType.length} offers. Includes converted: ${includeConverted}`);
+        console.log("Converted offers:", offersWithType.filter(o => o.converted_to_contract).length);
+        
         setOffers(offersWithType);
       } else {
         console.error("Offers data is not an array:", offersData);
@@ -121,58 +125,66 @@ export const useOffers = () => {
     setIsUpdatingStatus(true);
     
     try {
+      // Find the current offer
       const currentOffer = offers.find(offer => offer.id === offerId);
       if (!currentOffer) {
         console.error(`Offer with ID ${offerId} not found`);
         toast.error("Erreur: offre introuvable");
         setIsUpdatingStatus(false);
-        return;
+        return false;
       }
       
-      // Ensure we are using the workflow_status field, not the offer's ID
-      const currentStatus = currentOffer.workflow_status || 'draft';
+      // Get the current status from the workflow_status field
+      const currentStatus = currentOffer.workflow_status || workflowStatuses.DRAFT;
       console.log(`Current status: ${currentStatus}, New status: ${newStatus}`);
       
+      // Skip update if status hasn't changed
       if (currentStatus === newStatus) {
         console.log("Status unchanged, skipping update");
         toast.info("Le statut est déjà à cette valeur");
         setIsUpdatingStatus(false);
-        return;
+        return false;
       }
       
+      // Update the status in the database
       const success = await updateOfferStatus(offerId, newStatus, currentStatus, reason);
       
       if (success) {
         console.log(`Status update successful for offer ${offerId} to ${newStatus}`);
         
-        // Mettre à jour immédiatement l'état local pour une meilleure réactivité
+        // Update the local state immediately for better reactivity
         setOffers(prevOffers => 
           prevOffers.map(offer => 
             offer.id === offerId 
               ? { 
                   ...offer, 
                   workflow_status: newStatus,
-                  // Si c'est approuvé par le bailleur, on marque comme converti en contrat
+                  // Mark as converted to contract if approved by leaser
                   converted_to_contract: newStatus === workflowStatuses.LEASER_APPROVED ? true : offer.converted_to_contract
                 } 
               : offer
           )
         );
         
+        // Show appropriate toast based on the status change
         if (newStatus === workflowStatuses.LEASER_APPROVED) {
           toast.success("L'offre a été approuvée et convertie en contrat");
-          // Fetch offers again to ensure we get the latest status
-          setTimeout(fetchOffers, 1000);
+          // Refresh offers to ensure we get the latest data including conversion status
+          setTimeout(() => fetchOffers(), 1000);
         } else {
           toast.success("Statut de l'offre mis à jour");
         }
+        
+        return true;
       } else {
         console.error(`Status update failed for offer ${offerId}`);
         toast.error("Erreur lors de la mise à jour du statut");
+        return false;
       }
     } catch (error) {
       console.error("Error updating offer status:", error);
       toast.error("Erreur lors de la mise à jour du statut");
+      return false;
     } finally {
       setIsUpdatingStatus(false);
     }
