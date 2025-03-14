@@ -35,7 +35,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
   const [clientError, setClientError] = React.useState<string | null>(null);
   const [retryCount, setRetryCount] = React.useState(0);
 
-  // Vérifier d'abord le flux de réinitialisation de mot de passe - avant toute autre redirection
+  // Vérifier d'abord le flux de réinitialisation de mot de passe - priorité absolue
   useEffect(() => {
     const hash = window.location.hash || location.hash;
     if (hash && hash.includes('type=recovery')) {
@@ -48,6 +48,12 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkClientAssociation = async () => {
       if (!user) return;
+      
+      // Vérifier à nouveau le hash pour ne pas exécuter cette logique en cas de réinitialisation
+      const hash = window.location.hash || location.hash;
+      if (hash && hash.includes('type=recovery')) {
+        return;
+      }
       
       try {
         setCheckingClient(true);
@@ -104,7 +110,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
     } else {
       setCheckingClient(false);
     }
-  }, [user, isLoading, retryCount]);
+  }, [user, isLoading, retryCount, location, navigate]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -135,7 +141,7 @@ const ClientRoutes = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Vérifier d'abord le flux de réinitialisation de mot de passe - avant les redirections
+  // Vérifier d'abord le flux de réinitialisation de mot de passe - priorité absolue
   useEffect(() => {
     const hash = location.hash || window.location.hash;
     

@@ -34,11 +34,14 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
       return existingClientByUserId.id;
     }
     
-    // 2. Vérifier s'il existe des clients avec le même email que l'utilisateur
+    // Normaliser l'email pour la recherche (insensible à la casse)
+    const normalizedEmail = userEmail.toLowerCase().trim();
+    
+    // 2. Vérifier s'il existe des clients avec le même email que l'utilisateur (recherche insensible à la casse)
     const { data: existingClientsByEmail, error: emailError } = await supabase
       .from('clients')
       .select('id, name, user_id, email, has_user_account, status, created_at')
-      .or(`email.eq.${userEmail},email.ilike.${userEmail}`)
+      .ilike('email', normalizedEmail)
       .order('created_at', { ascending: true });
       
     if (emailError) {
@@ -48,7 +51,7 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
     
     // Si des clients avec cet email existent
     if (existingClientsByEmail && existingClientsByEmail.length > 0) {
-      console.log(`${existingClientsByEmail.length} clients trouvés avec l'email ${userEmail}`);
+      console.log(`${existingClientsByEmail.length} clients trouvés avec l'email ${normalizedEmail}`);
       
       // Choisir le client le plus pertinent :
       // 1. Préférer un client actif sans user_id
@@ -230,11 +233,12 @@ export const associateAllClientsWithUsers = async (): Promise<void> => {
 
 /**
  * Récupère l'ID du client associé à un utilisateur
- * Fonction améliorée pour une meilleure gestion des cas problématiques
- * Utilise les nouveaux champs de suivi du compte utilisateur
+ * Fonction améliorée pour une meilleure gestion des cas problématiques et des doublons
  */
 export const getClientIdForUser = async (userId: string, userEmail: string | null): Promise<string | null> => {
   try {
+    console.log(`Recherche du client associé à l'utilisateur ${userId} (${userEmail || 'email inconnu'})`);
+    
     // Vérifier d'abord le cache local
     const cachedClientId = localStorage.getItem(`client_id_${userId}`);
     if (cachedClientId) {
@@ -250,6 +254,7 @@ export const getClientIdForUser = async (userId: string, userEmail: string | nul
       if (cacheError) {
         console.error("Erreur lors de la vérification du client en cache:", cacheError);
       } else if (cachedClient && cachedClient.user_id === userId && cachedClient.has_user_account && cachedClient.status === 'active') {
+        console.log("Client vérifié avec succès depuis le cache");
         return cachedClientId;
       } else {
         console.log("Client en cache invalide, mal associé ou inactif, recherche d'un nouveau client");
@@ -300,9 +305,11 @@ export const getClientIdForUser = async (userId: string, userEmail: string | nul
     
     // Si l'email est disponible, essayer de lier
     if (userEmail) {
+      console.log(`Tentative de liaison par email: ${userEmail}`);
       return await linkUserToClient(userId, userEmail);
     }
     
+    console.log("Aucun client trouvé pour cet utilisateur");
     return null;
   } catch (error) {
     console.error("Erreur dans getClientIdForUser:", error);

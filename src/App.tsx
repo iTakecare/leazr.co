@@ -51,7 +51,7 @@ const ProtectedRoute = ({
   const isPasswordResetFlow = () => {
     // Vérifier à la fois dans location.hash et window.location.hash pour être sûr
     const hash = location.hash || window.location.hash;
-    return hash.includes('type=recovery');
+    return hash && hash.includes('type=recovery');
   };
   
   // Journaliser si nous sommes dans un flux de réinitialisation
@@ -66,13 +66,7 @@ const ProtectedRoute = ({
     return <div>Chargement...</div>;
   }
   
-  // Si nous sommes dans un flux de réinitialisation et sur la page de connexion, autoriser l'accès
-  if (isPasswordResetFlow() && location.pathname === '/login') {
-    console.log("Autorisation d'accès à login pour la réinitialisation de mot de passe");
-    return <>{children}</>;
-  }
-  
-  // Rediriger vers la page de connexion pour la réinitialisation si nous ne sommes pas déjà là
+  // Si nous sommes dans un flux de réinitialisation, rediriger vers la page de connexion
   if (isPasswordResetFlow()) {
     console.log("Redirection vers login pour la réinitialisation de mot de passe");
     return <Navigate to="/login" replace />;
@@ -103,6 +97,14 @@ const ProtectedRoute = ({
 function App() {
   const location = useLocation();
 
+  // Vérifier si nous sommes dans un flux de réinitialisation de mot de passe
+  useEffect(() => {
+    const hash = location.hash || window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      console.log("Flux de réinitialisation de mot de passe détecté dans App.tsx");
+    }
+  }, [location]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="medease-theme">
@@ -110,6 +112,8 @@ function App() {
           <SonnerToaster position="top-right" />
           <Routes>
             <Route path="/" element={<Index />} />
+            
+            {/* Page de connexion - toujours accessible */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             
