@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, Mail, MoreHorizontal, X, User, Eye } from "lucide-react";
+import { Download, Mail, MoreHorizontal, Trash2, User, Eye } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { useNavigate } from "react-router-dom";
 
@@ -76,7 +76,17 @@ const OfferTableRow = ({ offer, onDelete, onResend, onDownload }: OfferTableRowP
         <OfferStatusBadge status={offer.status} />
       </TableCell>
       <TableCell>{formatDate(offer.created_at)}</TableCell>
-      <TableCell>
+      <TableCell className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 p-0 text-red-500 hover:bg-red-100 hover:text-red-700"
+          onClick={() => onDelete(offer.id)}
+          title="Supprimer l'offre"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -98,10 +108,6 @@ const OfferTableRow = ({ offer, onDelete, onResend, onDownload }: OfferTableRowP
                 Voir le client
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={() => onDelete(offer.id)} className="text-red-600">
-              <X className="mr-2 h-4 w-4" />
-              Supprimer
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
