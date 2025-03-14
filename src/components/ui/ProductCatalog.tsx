@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import ProductGrid from "@/components/catalog/ProductGrid";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ProductCatalogProps {
   isOpen: boolean;
@@ -100,9 +100,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           </div>
           
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+            <div className="flex flex-col gap-4 my-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-40 rounded-lg bg-gray-100 animate-pulse" />
+                <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : error ? (
@@ -111,7 +111,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             </div>
           ) : (
             <ScrollArea className="h-[400px] pr-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+              <div className="flex flex-col gap-4 my-4">
                 {filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
                     <div key={product.id} onClick={() => onSelectProduct(product)}>
@@ -119,7 +119,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                     </div>
                   ))
                 ) : (
-                  <div className="col-span-2 text-center py-10 text-muted-foreground">
+                  <div className="text-center py-10 text-muted-foreground">
                     Aucun produit trouvé
                   </div>
                 )}
@@ -161,9 +161,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
       </div>
       
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="h-48 rounded-lg bg-gray-100 animate-pulse" />
+        <div className="flex flex-col gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />
           ))}
         </div>
       ) : error ? (
@@ -172,7 +172,41 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           <div className="text-sm text-muted-foreground mt-2">Veuillez réessayer plus tard ou contactez l'administrateur.</div>
         </div>
       ) : (
-        <ProductGrid products={filteredProducts} />
+        <div className="flex flex-col gap-4">
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map((product) => (
+              <Card key={product.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-0">
+                  <div className="flex p-4" onClick={() => onSelectProduct(product)}>
+                    <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden flex items-center justify-center mr-4">
+                      <img 
+                        src={product.image_url || "/placeholder.svg"} 
+                        alt={product.name}
+                        className="object-contain max-h-20 max-w-20"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium mb-1">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Catégorie: {product.category || "Non catégorisé"}
+                      </p>
+                      <p className="text-sm font-medium">
+                        Mensualité: {product.monthly_price ? (product.monthly_price + "€/mois") : "Non définie"}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-10 border rounded-lg">
+              <div className="text-muted-foreground">Aucun produit trouvé</div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

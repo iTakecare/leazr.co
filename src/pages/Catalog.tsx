@@ -1,13 +1,12 @@
 
 import React, { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
 import { deleteAllProducts, deleteProduct } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Plus, Trash2 } from "lucide-react";
-import CollapsibleProductList from "@/components/catalog/CollapsibleProductList";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "sonner";
 import { 
@@ -24,25 +23,7 @@ import {
 import CategoryManager from "@/components/catalog/CategoryManager";
 import ProductCatalog from "@/components/ui/ProductCatalog";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
-
-// Map for translating category names to French
-const categoryTranslations: Record<string, string> = {
-  "all": "Tous",
-  "laptop": "Ordinateur portable",
-  "desktop": "Ordinateur de bureau",
-  "tablet": "Tablette",
-  "smartphone": "Smartphone",
-  "accessories": "Accessoires",
-  "printer": "Imprimante",
-  "monitor": "Écran",
-  "software": "Logiciel",
-  "networking": "Réseau",
-  "server": "Serveur",
-  "storage": "Stockage",
-  "other": "Autre"
-};
 
 const Catalog = () => {
   const navigate = useNavigate();
@@ -52,7 +33,6 @@ const Catalog = () => {
   const { refetch } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
-    enabled: false
   });
 
   const deleteAllProductsMutation = useMutation({
@@ -67,18 +47,6 @@ const Catalog = () => {
     }
   });
 
-  const deleteProductMutation = useMutation({
-    mutationFn: (productId: string) => deleteProduct(productId),
-    onSuccess: () => {
-      refetch();
-      toast.success("Le produit a été supprimé");
-    },
-    onError: (err: Error) => {
-      console.error("Erreur lors de la suppression du produit:", err);
-      toast.error("Impossible de supprimer le produit");
-    }
-  });
-
   const onProductAdded = () => {
     setIsAddProductOpen(false);
     refetch();
@@ -87,10 +55,6 @@ const Catalog = () => {
 
   const handleDeleteAllProducts = () => {
     deleteAllProductsMutation.mutate();
-  };
-
-  const handleDeleteProduct = (productId: string) => {
-    deleteProductMutation.mutate(productId);
   };
 
   const handleSelectProduct = (product: Product) => {
@@ -133,12 +97,10 @@ const Catalog = () => {
         <Tabs defaultValue="browse" className="mb-6">
           <TabsList>
             <TabsTrigger value="browse">Parcourir</TabsTrigger>
-            <TabsTrigger value="manage">Gérer</TabsTrigger>
             <TabsTrigger value="categories">Catégories</TabsTrigger>
           </TabsList>
           
           <TabsContent value="browse" className="space-y-4">
-            {/* Utiliser le composant ProductCatalog réutilisable ici en mode page (isSheet=false) */}
             <ProductCatalog 
               isOpen={true} 
               onClose={() => {}}
@@ -149,20 +111,8 @@ const Catalog = () => {
             />
           </TabsContent>
           
-          <TabsContent value="manage">
-            <div className="border rounded-md p-4">
-              <h2 className="text-xl font-semibold mb-4">Gestion du catalogue</h2>
-              <CollapsibleProductList 
-                onDeleteProduct={handleDeleteProduct}
-              />
-            </div>
-          </TabsContent>
-          
           <TabsContent value="categories">
-            <CategoryManager 
-              categories={Object.keys(categoryTranslations).filter(cat => cat !== "all")}
-              categoryTranslations={categoryTranslations}
-            />
+            <CategoryManager />
           </TabsContent>
         </Tabs>
       </div>

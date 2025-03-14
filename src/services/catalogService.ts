@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -61,13 +60,11 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
   try {
     const supabase = getSupabaseClient();
     
-    // Correction: renommer imageUrl en image_url pour correspondre au schéma
     const productData = {
       ...product,
-      image_url: product.imageUrl, // Mapper imageUrl vers image_url
+      image_url: product.imageUrl,
     };
     
-    // Supprimer la propriété imageUrl pour éviter les erreurs
     delete (productData as any).imageUrl;
     
     const { data, error } = await supabase
@@ -96,10 +93,8 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
     console.log(`Updating product with ID: ${id}`, updates);
     const supabase = getSupabaseClient();
     
-    // Handle imageUrl to image_url conversion for DB compatibility
     const updateData = { ...updates };
     if ('imageUrl' in updateData) {
-      // @ts-ignore - We know imageUrl exists because we just checked
       updateData.image_url = updateData.imageUrl;
       delete updateData.imageUrl;
     }
@@ -126,55 +121,43 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 
 export async function uploadProductImage(file: File, productId: string, isMainImage: boolean = true): Promise<string> {
   try {
-    // Get product name for SEO-optimized alt texts
     const product = await getProductById(productId);
     const productName = product?.name || '';
     
-    // Use our image service
     const { uploadImage } = await import("@/services/imageService");
     
-    // Generate a unique path for the image
     const timestamp = Date.now();
     const extension = file.name.split('.').pop() || 'jpg';
     const path = `${productId}/${isMainImage ? 'main' : `additional_${timestamp}`}_${timestamp}.${extension}`;
     
-    // Upload the image with preservation of original name for SEO
     const result = await uploadImage(file, path, 'product-images', true);
     
     if (!result || !result.url) {
       throw new Error("Failed to upload image");
     }
     
-    // Update the product with the image URL and alt text
     if (product) {
       if (isMainImage) {
-        // Use image_url for database compatibility
         await updateProduct(productId, { 
           image_url: result.url,
-          // Use optional property
           ...(result.altText ? { image_alt: result.altText } : {})
         });
       } else {
-        // Get existing additional images or initialize an empty array
         const imageUrls = product.image_urls || [];
-        // Get existing alt texts or initialize an empty array
         const imageAlts = product.image_alts || [];
         
-        // Limit to 4 additional images (5 total with main image)
         if (imageUrls.length >= 4) {
-          imageUrls.pop(); // Remove the oldest additional image
+          imageUrls.pop();
           if (imageAlts.length > 0) {
-            imageAlts.pop(); // Remove corresponding alt text
+            imageAlts.pop();
           }
         }
         
-        // Add the new image at the beginning
         imageUrls.unshift(result.url);
         imageAlts.unshift(result.altText);
         
         await updateProduct(productId, { 
           image_urls: imageUrls,
-          // Use optional property
           ...(imageAlts.length > 0 ? { image_alts: imageAlts } : {})
         });
       }
@@ -193,33 +176,25 @@ export async function uploadMultipleProductImages(files: File[], productId: stri
       return [];
     }
     
-    // Get product name for SEO-optimized alt texts
     const product = await getProductById(productId);
     const productName = product?.name || '';
     
-    // Use our image service
     const { uploadProductImages } = await import("@/services/imageService");
     
-    // Upload all images
     const uploadedImages = await uploadProductImages(files, productId, productName);
     
     if (uploadedImages.length === 0) {
       throw new Error("No images were uploaded successfully");
     }
     
-    // Extract URLs and alt texts
     const uploadedUrls = uploadedImages.map(img => img.url);
     const uploadedAlts = uploadedImages.map(img => img.altText);
     
-    // Update the product with the first image as main image and the rest as additional images
     if (uploadedUrls.length > 0) {
       await updateProduct(productId, { 
         image_url: uploadedUrls[0],
-        // Use optional property for imageAlt
         ...(uploadedAlts[0] ? { image_alt: uploadedAlts[0] } : {}),
-        // If there are additional images, include them
         ...(uploadedUrls.length > 1 ? { image_urls: uploadedUrls.slice(1, 5) } : {}),
-        // Use optional property for imageAlts
         ...(uploadedAlts.length > 1 ? { image_alts: uploadedAlts.slice(1, 5) } : {})
       });
     }
@@ -254,7 +229,6 @@ export async function deleteProduct(productId: string): Promise<void> {
   try {
     const supabase = getSupabaseClient();
     
-    // Delete the product
     const { error } = await supabase
       .from('products')
       .delete()
@@ -264,7 +238,6 @@ export async function deleteProduct(productId: string): Promise<void> {
       throw new Error(`Error deleting product: ${error.message}`);
     }
     
-    // Check if it's a parent product and delete children if necessary
     const { data: children, error: childrenError } = await supabase
       .from('products')
       .delete()
@@ -278,5 +251,145 @@ export async function deleteProduct(productId: string): Promise<void> {
   } catch (error) {
     console.error("Error in deleteProduct:", error);
     return Promise.reject(error);
+  }
+}
+
+export async function getCategories() {
+  try {
+    console.log("Fetching categories from API");
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      if (error.code === '42P01') {
+        console.log("Categories table does not exist yet. Using default categories.");
+        return [
+          { name: "laptop", translation: "Ordinateur portable" },
+          { name: "desktop", translation: "Ordinateur de bureau" },
+          { name: "tablet", translation: "Tablette" },
+          { name: "smartphone", translation: "Smartphone" },
+          { name: "accessories", translation: "Accessoires" },
+          { name: "other", translation: "Autre" }
+        ];
+      }
+      
+      console.error("Error fetching categories from API:", error);
+      throw new Error(`API Error: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      console.log("No categories found in API, using defaults");
+      return [
+        { name: "laptop", translation: "Ordinateur portable" },
+        { name: "desktop", translation: "Ordinateur de bureau" },
+        { name: "tablet", translation: "Tablette" },
+        { name: "smartphone", translation: "Smartphone" },
+        { name: "accessories", translation: "Accessoires" },
+        { name: "other", translation: "Autre" }
+      ];
+    }
+
+    console.log(`Retrieved ${data.length} categories from API`);
+    return data;
+  } catch (error) {
+    console.error("Error in getCategories:", error);
+    return [
+      { name: "laptop", translation: "Ordinateur portable" },
+      { name: "desktop", translation: "Ordinateur de bureau" },
+      { name: "tablet", translation: "Tablette" },
+      { name: "smartphone", translation: "Smartphone" },
+      { name: "accessories", translation: "Accessoires" },
+      { name: "other", translation: "Autre" }
+    ];
+  }
+}
+
+export async function addCategory({ name, translation }: { name: string, translation: string }) {
+  try {
+    console.log(`Adding category: ${name} (${translation})`);
+    const supabase = getSupabaseClient();
+    
+    const { error: tableCheckError } = await supabase.rpc('check_table_exists', { table_name: 'categories' });
+    
+    if (tableCheckError && tableCheckError.message.includes('does not exist')) {
+      const adminSupabase = getAdminSupabaseClient();
+      await adminSupabase.rpc('create_categories_table');
+    }
+
+    const { data, error } = await supabase
+      .from('categories')
+      .insert([{ name, translation }])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error(`Error adding category ${name}:`, error);
+      throw new Error(`Error adding category: ${error.message}`);
+    }
+
+    console.log(`Successfully added category ${name}`);
+    return data;
+  } catch (error) {
+    console.error("Error in addCategory:", error);
+    throw error;
+  }
+}
+
+export async function updateCategory({ 
+  originalName, 
+  name, 
+  translation 
+}: { 
+  originalName: string, 
+  name: string, 
+  translation: string 
+}) {
+  try {
+    console.log(`Updating category: ${originalName} -> ${name} (${translation})`);
+    const supabase = getSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .update({ name, translation })
+      .eq('name', originalName)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error(`Error updating category ${originalName}:`, error);
+      throw new Error(`Error updating category: ${error.message}`);
+    }
+
+    console.log(`Successfully updated category ${originalName} to ${name}`);
+    return data;
+  } catch (error) {
+    console.error("Error in updateCategory:", error);
+    throw error;
+  }
+}
+
+export async function deleteCategory({ name }: { name: string }) {
+  try {
+    console.log(`Deleting category: ${name}`);
+    const supabase = getSupabaseClient();
+    
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('name', name);
+
+    if (error) {
+      console.error(`Error deleting category ${name}:`, error);
+      throw new Error(`Error deleting category: ${error.message}`);
+    }
+
+    console.log(`Successfully deleted category ${name}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error in deleteCategory:", error);
+    throw error;
   }
 }
