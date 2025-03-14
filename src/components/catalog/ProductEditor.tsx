@@ -169,6 +169,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       monthly_price: monthlyPrice ? parseFloat(monthlyPrice) : undefined,
       description,
       brand: brand || "",
+      // Utiliser imageUrl pour la compatibilité avec le type Product, mais sera converti en image_url dans le service
       imageUrl: "",
       specifications: {}
     });
@@ -261,7 +262,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price" className="required">Prix d'achat (€)</Label>
+              <Label htmlFor="price" className="required">Prix (€)</Label>
               <div className="relative">
                 <Input
                   id="price"

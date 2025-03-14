@@ -155,7 +155,7 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
                   >
                     <div className="aspect-square w-full overflow-hidden bg-muted mb-3 rounded-md">
                       <img
-                        src={product.imageUrl || '/placeholder.svg'}
+                        src={product.image_url || '/placeholder.svg'}
                         alt={product.name}
                         className="h-full w-full object-cover"
                         loading="lazy"
@@ -172,13 +172,12 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
                           {product.price?.toLocaleString("fr-FR", {
                             style: "currency",
                             currency: "EUR",
-                          })}<span className="text-xs font-normal text-muted-foreground">/mois</span>
-                        </p>
+                          })}</p>
                         <p className="text-xs text-muted-foreground">
-                          Prix d'achat: {product.monthly_price?.toLocaleString("fr-FR", {
+                          Mensualité: {product.monthly_price?.toLocaleString("fr-FR", {
                             style: "currency",
                             currency: "EUR",
-                          })}
+                          })}/mois
                         </p>
                       </div>
                       <Button size="sm" variant="ghost" className="rounded-full h-8 w-8 p-0">

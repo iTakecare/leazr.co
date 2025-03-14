@@ -1,3 +1,4 @@
+
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -59,9 +60,19 @@ export async function getProductById(id: string): Promise<Product | null> {
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: string }> {
   try {
     const supabase = getSupabaseClient();
+    
+    // Correction ici: renommer imageUrl en image_url pour correspondre au schéma
+    const productData = {
+      ...product,
+      image_url: product.imageUrl, // Mapper imageUrl vers image_url
+    };
+    
+    // Supprimer la propriété imageUrl pour éviter les erreurs
+    delete (productData as any).imageUrl;
+    
     const { data, error } = await supabase
       .from('products')
-      .insert([product])
+      .insert([productData])
       .select('id')
       .single();
 
