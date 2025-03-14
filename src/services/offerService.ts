@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -71,20 +72,28 @@ export interface OfferData {
   user_id: string;
   type?: string;
   additional_info?: string;
+  remarks?: string; // Support for remarks field
 }
 
 export const createOffer = async (offerData: OfferData): Promise<string | null> => {
   try {
-    const validData = {
+    // Préparer les données en standardisant les champs remarks et additional_info
+    const dataToSend = {
       ...offerData,
       type: offerData.type || 'admin_offer',
       user_id: offerData.user_id === 'user-123' ? 
-        '00000000-0000-0000-0000-000000000000' : offerData.user_id
+        '00000000-0000-0000-0000-000000000000' : offerData.user_id,
+      additional_info: offerData.additional_info || offerData.remarks
     };
+    
+    // Supprimer le champ remarks s'il existe pour éviter des erreurs de colonne inconnue
+    if ('remarks' in dataToSend) {
+      delete dataToSend.remarks;
+    }
     
     const { data, error } = await supabase
       .from('offers')
-      .insert(validData)
+      .insert(dataToSend)
       .select();
     
     if (error) throw error;
@@ -369,14 +378,23 @@ export const getOfferById = async (offerId: string) => {
 
 export const updateOffer = async (offerId: string, offerData: any) => {
   try {
+    // Préparer les données en standardisant les champs remarks et additional_info
+    const dataToSend = { ...offerData };
+    
+    // Si remarks existe, l'utiliser pour additional_info
+    if (dataToSend.remarks !== undefined) {
+      dataToSend.additional_info = dataToSend.remarks;
+      delete dataToSend.remarks;
+    }
+    
     const { data, error } = await supabase
       .from('offers')
-      .update(offerData)
+      .update(dataToSend)
       .eq('id', offerId);
 
     if (error) {
       console.error('Error updating offer:', error);
-      return null;
+      throw error;
     }
 
     return offerId;
