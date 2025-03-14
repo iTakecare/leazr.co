@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -26,7 +27,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     newMonthly: 0,
     currentCoef: 0,
     newCoef: 0,
-    adaptMonthlyPayment: true,
+    adaptMonthlyPayment: false,  // Changed from true to false
     marginDifference: 0
   });
   const [editingId, setEditingId] = useState<string | null>(null);
