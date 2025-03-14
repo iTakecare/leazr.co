@@ -51,23 +51,27 @@ const CollaboratorForm = ({ clientId, onSuccess }: CollaboratorFormProps) => {
   const onSubmit = async (values: CollaboratorFormValues) => {
     setLoading(true);
     try {
-      // Ensure name and role are required fields
+      // Prepare data for API call
       const collaboratorData = {
-        name: values.name,  // This is now required by schema
-        role: values.role,  // This is now required by schema
-        email: values.email || undefined,
-        phone: values.phone || undefined,
-        department: values.department || undefined,
+        name: values.name,
+        role: values.role,
+        email: values.email || "",
+        phone: values.phone,
+        department: values.department,
       };
+      
+      console.log("Submitting collaborator:", collaboratorData);
       
       const collaborator = await addCollaborator(clientId, collaboratorData);
       if (collaborator) {
+        console.log("Collaborator added successfully:", collaborator);
         toast.success("Collaborateur ajouté avec succès");
         form.reset();
         if (onSuccess) {
           onSuccess(collaborator);
         }
       } else {
+        console.error("Failed to add collaborator, null response");
         toast.error("Erreur lors de l'ajout du collaborateur");
       }
     } catch (error) {

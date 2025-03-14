@@ -24,7 +24,7 @@ export interface Client {
   postal_code?: string;
   country?: string;
   collaborators?: Collaborator[];
-  user_id?: string; // Added user_id property to fix the type errors
+  user_id?: string;
 }
 
 export interface CreateClientData {
@@ -34,7 +34,7 @@ export interface CreateClientData {
   phone?: string;
   address?: string;
   notes?: string;
-  user_id?: string; // Rendons user_id optionnel ici car il sera ajouté par le service
+  user_id?: string;
   status?: 'active' | 'inactive' | 'lead';
   vat_number?: string;
   city?: string;

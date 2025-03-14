@@ -45,30 +45,30 @@ const ClientDetail: React.FC = () => {
   const [isCollaboratorFormOpen, setIsCollaboratorFormOpen] = useState(false);
   const navigate = useNavigate();
 
+  const fetchClientData = async () => {
+    if (!id) {
+      setError("Client ID is missing.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const clientData = await getClientById(id);
+      if (clientData) {
+        setClient(clientData);
+      } else {
+        setError("Client not found.");
+      }
+    } catch (e) {
+      setError("Failed to fetch client.");
+      console.error("Error fetching client:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchClient = async () => {
-      if (!id) {
-        setError("Client ID is missing.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const clientData = await getClientById(id);
-        if (clientData) {
-          setClient(clientData);
-        } else {
-          setError("Client not found.");
-        }
-      } catch (e) {
-        setError("Failed to fetch client.");
-        console.error("Error fetching client:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClient();
+    fetchClientData();
   }, [id]);
 
   const handleDeleteClick = async () => {
@@ -112,14 +112,17 @@ const ClientDetail: React.FC = () => {
     }
   };
 
-  const handleCollaboratorAdded = () => {
+  const handleCollaboratorAdded = async () => {
     if (id) {
-      getClientById(id).then(updatedClient => {
-        if (updatedClient) {
-          setClient(updatedClient);
-          setIsCollaboratorFormOpen(false);
-        }
-      });
+      setLoading(true);
+      try {
+        await fetchClientData();
+        setIsCollaboratorFormOpen(false);
+      } catch (e) {
+        console.error("Error refreshing client data:", e);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -319,7 +322,7 @@ const ClientDetail: React.FC = () => {
                 </Dialog>
               </CardHeader>
               <CardContent>
-                {client.collaborators && client.collaborators.length > 0 ? (
+                {client?.collaborators && client.collaborators.length > 0 ? (
                   <div className="space-y-4">
                     {client.collaborators.map(collaborator => (
                       <div key={collaborator.id} className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
