@@ -26,8 +26,9 @@ console.log("=== Function Edge send-document-request initialisée ===");
 
 serve(async (req) => {
   console.log("===== NOUVELLE REQUÊTE REÇUE =====");
-  console.log("Méthode: ", req.method);
-  console.log("URL: ", req.url);
+  console.log("Méthode:", req.method);
+  console.log("URL:", req.url);
+  console.log("Headers:", JSON.stringify(Object.fromEntries(req.headers.entries()), null, 2));
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -36,11 +37,48 @@ serve(async (req) => {
   }
 
   try {
-    // Récupérer les données de la requête
-    const requestBody = await req.text();
-    console.log("Corps de la requête brut:", requestBody);
+    // Afficher le type de contenu
+    console.log("Content-Type:", req.headers.get("content-type"));
     
-    const requestData = JSON.parse(requestBody);
+    // Récupérer le corps de la requête selon le Content-Type
+    let requestData: RequestDocumentsData;
+    
+    if (req.headers.get("content-type")?.includes("application/json")) {
+      const bodyText = await req.text();
+      console.log("Corps de la requête brut:", bodyText);
+      
+      try {
+        requestData = JSON.parse(bodyText);
+      } catch (parseError) {
+        console.error("Erreur lors du parsing JSON:", parseError);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: `Erreur de parsing JSON: ${parseError.message}`,
+            receivedBody: bodyText
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+    } else {
+      // Fallback pour d'autres types de contenu
+      console.error("Type de contenu non supporté:", req.headers.get("content-type"));
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Type de contenu non supporté. Utilisez application/json",
+          contentType: req.headers.get("content-type")
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
     console.log("Données de la requête parsed:", JSON.stringify(requestData, null, 2));
     
     const { 
@@ -49,15 +87,46 @@ serve(async (req) => {
       clientName,
       requestedDocs,
       customMessage
-    } = requestData as RequestDocumentsData;
+    } = requestData;
     
-    if (!offerId || !clientEmail || !clientName || !requestedDocs) {
-      console.error("Données manquantes dans la requête");
+    // Validation des données
+    if (!offerId) {
+      console.error("Offre ID manquant");
       return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Données manquantes: offerId, clientEmail, clientName et requestedDocs sont requis",
-        }),
+        JSON.stringify({ success: false, message: "Offre ID manquant" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    if (!clientEmail) {
+      console.error("Email client manquant");
+      return new Response(
+        JSON.stringify({ success: false, message: "Email client manquant" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    if (!clientName) {
+      console.error("Nom client manquant");
+      return new Response(
+        JSON.stringify({ success: false, message: "Nom client manquant" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    if (!requestedDocs || !Array.isArray(requestedDocs) || requestedDocs.length === 0) {
+      console.error("Documents demandés manquants ou invalides");
+      return new Response(
+        JSON.stringify({ success: false, message: "Documents demandés manquants ou invalides" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -169,11 +238,6 @@ serve(async (req) => {
       const fromField = `"${smtpConfig.from_name}" <${smtpConfig.from_email}>`;
       console.log("From field format:", fromField);
       
-      // Vérifier que toutes les propriétés nécessaires sont définies
-      if (!clientEmail || !fromField || !emailSubject || !emailBody) {
-        throw new Error("Propriétés d'email manquantes");
-      }
-      
       console.log("Tentative d'envoi d'email...");
       
       // Envoi de l'email avec des options simples pour maximiser la compatibilité
@@ -181,7 +245,7 @@ serve(async (req) => {
         from: fromField,
         to: clientEmail,
         subject: emailSubject,
-        // Inclure les deux formats: text et html
+        content: "text/plain; charset=utf-8",
         text: emailBody,
         html: htmlBody,
         // Ajouter des en-têtes supplémentaires pour éviter le spam

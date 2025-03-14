@@ -6,7 +6,6 @@ export interface RequestInfoData {
   offerId: string;
   requestedDocs: string[];
   customMessage?: string;
-  previousStatus: string;
 }
 
 export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> => {
@@ -61,8 +60,6 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
     }
     
     // 3. Mettre à jour le statut de l'offre
-    // Attention: le champ 'previous_status' n'existe pas dans la table 'offers' selon l'erreur des logs
-    // Nous allons donc mettre à jour uniquement le workflow_status
     await supabase
       .from('offers')
       .update({ 
@@ -71,7 +68,7 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
       .eq('id', data.offerId);
     
     // 4. Envoyer l'email via la fonction Edge
-    console.log("Appel de la fonction Edge avec les données:", {
+    console.log("Préparation des données pour l'envoi:", {
       offerId: data.offerId,
       clientEmail,
       clientName,
@@ -79,15 +76,26 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
       customMessage: data.customMessage
     });
     
-    const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-document-request', {
-      body: {
-        offerId: data.offerId,
-        clientEmail,
-        clientName,
-        requestedDocs: data.requestedDocs,
-        customMessage: data.customMessage
+    const payload = {
+      offerId: data.offerId,
+      clientEmail,
+      clientName,
+      requestedDocs: data.requestedDocs,
+      customMessage: data.customMessage || ""
+    };
+    
+    console.log("Payload JSON:", JSON.stringify(payload));
+    
+    // Appel à la fonction Edge avec un timeout plus long
+    const { data: emailResult, error: emailError } = await supabase.functions.invoke(
+      'send-document-request', 
+      {
+        body: payload,
+        headers: {
+          "Content-Type": "application/json"
+        }
       }
-    });
+    );
     
     console.log("Résultat de l'appel à la fonction Edge:", emailResult);
     
@@ -97,7 +105,7 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
       return false;
     }
     
-    if (!emailResult.success) {
+    if (emailResult && !emailResult.success) {
       console.error("Échec de l'envoi de l'email:", emailResult.message);
       toast.error(`Erreur: ${emailResult.message}`);
       return false;
@@ -118,7 +126,6 @@ export const processInfoResponse = async (
 ): Promise<boolean> => {
   try {
     // Mettre à jour le statut de l'offre
-    // Comme le champ previous_status n'existe pas, nous définissons directement le nouveau statut
     const newStatus = approve 
       ? 'leaser_review' // Approuvé, donc envoyé au bailleur
       : 'rejected';     // Refusé
