@@ -175,12 +175,21 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
             </div>
             
             {!globalMarginAdjustment.adaptMonthlyPayment && globalMarginAdjustment.marginDifference !== 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Différence de marge :</span>
-                <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(globalMarginAdjustment.marginDifference)}
-                </span>
-              </div>
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Différence de marge :</span>
+                  <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(globalMarginAdjustment.marginDifference)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Total marge avec différence :</span>
+                  <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-blue-600'}`}>
+                    {formatCurrency(globalMarginAdjustment.amount + globalMarginAdjustment.marginDifference)}
+                  </span>
+                </div>
+              </>
             )}
             
             <div className="flex items-center justify-between py-2 border-t border-b mt-2">
