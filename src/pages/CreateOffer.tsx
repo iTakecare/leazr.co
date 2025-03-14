@@ -113,13 +113,14 @@ const CreateOffer = () => {
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
     
-    const coef = findCoefficient(product.monthly_price || 0);
+    const purchasePrice = product.price || 0;
+    const coef = findCoefficient(purchasePrice);
     const margin = 20; // Default margin
     
     setEquipment({
       id: crypto.randomUUID(),
       title: `${product.name}`,
-      purchasePrice: product.monthly_price || 0,
+      purchasePrice: purchasePrice,
       quantity: 1,
       margin: Number(margin),
     });
@@ -289,4 +290,3 @@ const CreateOffer = () => {
 };
 
 export default CreateOffer;
-

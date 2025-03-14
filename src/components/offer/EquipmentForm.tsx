@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -90,7 +89,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const handleChange = (field: keyof Equipment, value: string | number) => {
     setEquipment({ ...equipment, [field]: value });
     
-    // Clear error for this field if it was previously marked as error
     if (errors[field as keyof typeof errors]) {
       setErrors({ ...errors, [field]: false });
     }
@@ -114,8 +112,9 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   };
 
   const handleProductSelect = (product: any) => {
+    const purchasePrice = product.price || 0;
     handleChange('title', product.name);
-    handleChange('purchasePrice', product.monthly_price || 0);
+    handleChange('purchasePrice', purchasePrice);
     setIsQuickCatalogOpen(false);
   };
 
