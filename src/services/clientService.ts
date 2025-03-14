@@ -173,6 +173,19 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     }
     
     console.log("Client created successfully:", data);
+    
+    // Automatiquement créer un compte utilisateur pour le client si un email est fourni
+    if (data && data.email) {
+      console.log("Creating user account for new client...");
+      const accountCreated = await createAccountForClient(mapDbClientToClient(data));
+      
+      if (accountCreated) {
+        console.log("User account created and invitation sent for the new client");
+      } else {
+        console.log("Failed to create user account for the new client");
+      }
+    }
+    
     return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error creating client:", error);
@@ -350,36 +363,100 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
+    // Vérifier si un compte utilisateur existe déjà
     const { data: existingClients, error: checkError } = await supabase
       .from('clients')
-      .select('user_id')
+      .select('user_id, has_user_account')
       .eq('email', client.email);
       
     if (checkError) {
       console.error("Error checking existing client:", checkError);
-    } else if (existingClients && existingClients.length > 0 && existingClients[0].user_id) {
-      console.log("Client already has a user account:", existingClients[0].user_id);
-      toast.warning("Ce client a déjà un compte utilisateur associé");
-      return false;
+    } else if (existingClients && existingClients.length > 0) {
+      const existingClient = existingClients[0];
+      
+      if (existingClient.user_id || existingClient.has_user_account) {
+        console.log("Client already has a user account:", existingClient.user_id);
+        toast.warning("Ce client a déjà un compte utilisateur associé");
+        
+        // Si le client a un compte mais qu'il doit réinitialiser son mot de passe
+        if (existingClient.user_id) {
+          console.log("Resending password reset for existing user");
+          return await resetClientPassword(client.email);
+        }
+        return false;
+      }
     }
     
-    const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+    // Générer un mot de passe temporaire fort
+    const generateStrongPassword = () => {
+      const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
+      const numberChars = '0123456789';
+      const specialChars = '!@#$%^&*()-_=+';
+      
+      const getRandomChar = (charSet: string) => charSet.charAt(Math.floor(Math.random() * charSet.length));
+      
+      let password = getRandomChar(uppercaseChars) + getRandomChar(lowercaseChars) + 
+                    getRandomChar(numberChars) + getRandomChar(specialChars);
+      
+      for (let i = 0; i < 12; i++) {
+        const allChars = uppercaseChars + lowercaseChars + numberChars + specialChars;
+        password += allChars.charAt(Math.floor(Math.random() * allChars.length));
+      }
+      
+      // Mélanger le mot de passe
+      return password.split('').sort(() => 0.5 - Math.random()).join('');
+    };
     
+    const tempPassword = generateStrongPassword();
+    
+    // Obtenir l'URL du site pour la redirection
     const siteUrl = window.location.origin;
     console.log("Using site URL for redirect:", siteUrl);
     
+    // Créer l'utilisateur avec des données de profil
     try {
-      const { data: userData, error: signupError } = await adminSupabase.auth.admin.createUser({
-        email: client.email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
-          first_name: client.name.split(' ')[0],
-          last_name: client.name.split(' ').slice(1).join(' '),
-          role: 'client',
-          company: client.company || null
-        }
-      });
+      console.log("Creating user account with admin auth...");
+      
+      let userData;
+      let signupError;
+      
+      try {
+        const adminResult = await adminSupabase.auth.admin.createUser({
+          email: client.email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: {
+            first_name: client.name.split(' ')[0],
+            last_name: client.name.split(' ').slice(1).join(' '),
+            role: 'client',
+            company: client.company || null
+          }
+        });
+        
+        userData = adminResult.data;
+        signupError = adminResult.error;
+      } catch (adminError) {
+        console.error("Error using admin auth:", adminError);
+        
+        // Fallback: utiliser l'inscription normale
+        console.log("Fallback to regular signup...");
+        const signupResult = await supabase.auth.signUp({
+          email: client.email,
+          password: tempPassword,
+          options: {
+            data: {
+              first_name: client.name.split(' ')[0],
+              last_name: client.name.split(' ').slice(1).join(' '),
+              role: 'client',
+              company: client.company || null
+            }
+          }
+        });
+        
+        userData = signupResult.data;
+        signupError = signupResult.error;
+      }
       
       if (signupError) {
         console.log("Sign up error:", signupError.message);
@@ -388,10 +465,15 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       
       console.log("New user created successfully:", userData?.user?.id);
       
+      // Mettre à jour le client avec l'ID utilisateur
       if (userData && userData.user) {
         const { error: updateError } = await supabase
           .from('clients')
-          .update({ user_id: userData.user.id })
+          .update({ 
+            user_id: userData.user.id,
+            has_user_account: true,
+            user_account_created_at: new Date().toISOString()
+          })
           .eq('id', client.id);
           
         if (updateError) {
@@ -401,6 +483,8 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
         }
       }
       
+      // Envoyer l'email de réinitialisation avec les bonnes redirections
+      console.log("Sending password reset email for new account");
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(client.email, {
         redirectTo: `${siteUrl}/login`
       });
