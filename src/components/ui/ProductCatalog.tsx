@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProductCard from "./ProductCard";
+import { useQuery } from "@tanstack/react-query";
+import { getProducts } from "@/services/catalogService";
+import { Product } from "@/types/catalog";
 
 interface ProductCatalogProps {
   isOpen: boolean;
@@ -24,39 +27,16 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   title = "Catalogue de produits",
   description = "Sélectionnez un produit à ajouter à votre offre"
 }) => {
-  const [products, setProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
+  
+  // Utiliser useQuery pour récupérer les produits réels depuis la base de données
+  const { data: products = [], isLoading, error } = useQuery({
+    queryKey: ["products"],
+    queryFn: getProducts,
+    enabled: isOpen, // Ne récupère les produits que lorsque le catalogue est ouvert
+  });
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        // Mock data for demonstration
-        const mockProducts = [
-          { id: "1", name: "Laptop HP ProBook", monthly_price: 1200, image_url: "/placeholder.svg" },
-          { id: "2", name: "Imprimante Canon MF445", monthly_price: 800, image_url: "/placeholder.svg" },
-          { id: "3", name: "Serveur Dell PowerEdge", monthly_price: 3500, image_url: "/placeholder.svg" },
-          { id: "4", name: "Microsoft Office Suite", monthly_price: 350, image_url: "/placeholder.svg" },
-          { id: "5", name: "NAS Synology", monthly_price: 950, image_url: "/placeholder.svg" },
-        ];
-        
-        setTimeout(() => {
-          setProducts(mockProducts);
-          setLoading(false);
-        }, 500);
-      } catch (error) {
-        console.error("Error fetching products", error);
-        setLoading(false);
-      }
-    };
-
-    if (isOpen) {
-      fetchProducts();
-    }
-  }, [isOpen]);
-
-  const filteredProducts = products.filter(product =>
+  const filteredProducts = products.filter((product: Product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -67,7 +47,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const DescriptionComponent = isSheet ? SheetDescription : DialogDescription;
 
   return (
-    <DialogOrSheet open={isOpen} onOpenChange={() => !loading && onClose()}>
+    <DialogOrSheet open={isOpen} onOpenChange={() => !isLoading && onClose()}>
       <ContentComponent className={isSheet ? "sm:max-w-md" : "sm:max-w-[700px]"}>
         <HeaderComponent>
           <TitleComponent>{title}</TitleComponent>
@@ -84,11 +64,15 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           />
         </div>
         
-        {loading ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-40 rounded-lg bg-gray-100 animate-pulse" />
             ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-6 text-red-500">
+            Une erreur est survenue lors du chargement des produits.
           </div>
         ) : (
           <ScrollArea className="h-[400px] pr-4">
