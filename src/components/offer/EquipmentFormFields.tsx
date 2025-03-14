@@ -64,7 +64,6 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
             Prix d'achat (€)
           </Label>
           <div className="mt-1 relative">
-            <span className="absolute left-3 top-3 text-gray-500">€</span>
             <Input
               id="purchase-price"
               type="number"
@@ -75,6 +74,7 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
               className={`pl-8 ${errors?.purchasePrice ? "border-destructive" : ""}`}
               placeholder="0.00"
             />
+            <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">€</span>
             {errors?.purchasePrice && (
               <p className="text-destructive text-xs mt-1">Prix invalide</p>
             )}
@@ -86,17 +86,17 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
             Marge (%)
           </Label>
           <div className="mt-1 relative">
-            <span className="absolute left-3 top-3 text-gray-500">%</span>
             <Input
               id="margin"
               type="number"
               min="0"
               step="0.1"
-              value={equipment.margin || ''}
+              value={showCalculatedMargin ? calculatedMargin.percentage.toFixed(2) : (equipment.margin || '')}
               onChange={(e) => handleChange('margin', parseFloat(e.target.value) || 0)}
               className={`pl-8 ${errors?.margin ? "border-destructive" : ""} ${showCalculatedMargin ? 'border-green-500 bg-green-50' : ''}`}
-              placeholder={showCalculatedMargin ? calculatedMargin.percentage.toFixed(2) : "20.00"}
+              placeholder="20.00"
             />
+            <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">%</span>
             {errors?.margin && (
               <p className="text-destructive text-xs mt-1">Marge invalide</p>
             )}

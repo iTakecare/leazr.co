@@ -80,7 +80,6 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
           <div>
             <Label htmlFor="target-monthly" className="font-medium text-gray-700">Mensualité souhaitée (€)</Label>
             <div className="mt-1 relative">
-              <span className="absolute left-3 top-3 text-gray-500">€</span>
               <Input
                 id="target-monthly"
                 type="number"
@@ -93,6 +92,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
                 className="pl-8"
                 placeholder="0.00"
               />
+              <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">€</span>
             </div>
           </div>
 
