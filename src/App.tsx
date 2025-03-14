@@ -1,4 +1,3 @@
-
 import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -126,6 +125,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/clients" element={<Clients />} />
               <Route path="/clients/new" element={<ClientForm />} />
+              <Route path="/clients/create" element={<ClientForm />} />
               <Route path="/clients/:id" element={<ClientDetail />} />
               <Route path="/clients/edit/:id" element={<ClientForm />} />
               <Route path="/catalog" element={<Catalog />} />

@@ -108,29 +108,35 @@ export const getClients = async (): Promise<Client[]> => {
 
 export const getClientById = async (id: string): Promise<Client | null> => {
   try {
-    // IMPORTANT: Special routes handling - return null IMMEDIATELY for special routes
-    // Ceci est crucial pour éviter toute tentative de récupération de client pour les routes spéciales
+    console.log(`getClientById called with id: ${id}`);
+    
+    // Handle special routes - IMPORTANT: Return null for routes like "new", "create", etc.
     const specialRoutes = ['new', 'create'];
-    if (!id || specialRoutes.includes(id)) {
-      console.log(`Skipping fetch for special route: ${id}`);
+    if (!id || specialRoutes.includes(id.toLowerCase())) {
+      console.log(`Special route detected: ${id} - Skipping client fetch`);
       return null;
     }
     
     // UUID validation regex
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
-      console.log(`Invalid UUID format for client ID: ${id}`);
+      console.log(`Invalid UUID format for client ID: ${id} - Returning null`);
       return null;
     }
     
+    console.log(`Fetching client with ID: ${id}`);
     const { data, error } = await supabase
       .from('clients')
       .select('*')
       .eq('id', id)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error from Supabase:", error);
+      throw error;
+    }
     
+    console.log(`Client data retrieved:`, data);
     return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error fetching client by ID:", error);

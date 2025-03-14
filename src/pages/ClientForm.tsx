@@ -66,33 +66,33 @@ const ClientForm = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   
-  // Déterminer explicitement le mode (création ou édition)
+  // Determine explicitly whether we're in create mode
   const isCreateMode = !id || id === "new" || id === "create";
+  console.log(`ClientForm initialized with id: "${id}", isCreateMode: ${isCreateMode}`);
   
   const [isLoading, setIsLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(!isCreateMode);
+  const [dataLoading, setDataLoading] = useState(false);
   const [verifyingVat, setVerifyingVat] = useState(false);
   const [vatValid, setVatValid] = useState<boolean | null>(null);
 
-  // Configuration du formulaire
+  // Configuration du formulaire - Always initialize with defaultValues
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
-    defaultValues: isCreateMode ? defaultValues : undefined, // N'utiliser defaultValues qu'en mode création
+    defaultValues: defaultValues,
   });
 
-  // Charger les données du client uniquement en mode édition
+  // Load client data only in edit mode
   useEffect(() => {
     const loadClientData = async () => {
-      if (!isCreateMode && id) {
+      if (!isCreateMode) {
         try {
           setDataLoading(true);
-          console.log("Chargement des données du client avec ID:", id);
+          console.log(`Loading client data for ID: ${id}`);
           
-          const clientData = await getClientById(id);
+          const clientData = await getClientById(id!);
           
           if (clientData) {
-            console.log("Données client chargées:", clientData);
-            // Remplir le formulaire avec les données du client
+            console.log("Client data loaded:", clientData);
             form.reset({
               name: clientData.name,
               email: clientData.email || "",
@@ -107,19 +107,19 @@ const ClientForm = () => {
               status: clientData.status || "active",
             });
           } else {
+            console.error("Client not found");
             toast.error("Client non trouvé");
             navigate("/clients");
           }
         } catch (error) {
-          console.error("Erreur lors du chargement du client:", error);
+          console.error("Error loading client:", error);
           toast.error("Erreur lors du chargement du client");
           navigate("/clients");
         } finally {
           setDataLoading(false);
         }
       } else {
-        // En mode création, utiliser les valeurs par défaut
-        form.reset(defaultValues);
+        console.log("Create mode - using default values");
         setDataLoading(false);
       }
     };
@@ -184,7 +184,7 @@ const ClientForm = () => {
     try {
       if (isCreateMode) {
         // Mode création
-        console.log("Création d'un nouveau client avec les données:", data);
+        console.log("Creating new client with data:", data);
         const newClient = await createClient(data as CreateClientData);
         
         if (newClient) {
@@ -195,7 +195,7 @@ const ClientForm = () => {
         }
       } else if (id) {
         // Mode édition
-        console.log("Mise à jour du client", id, "avec les données:", data);
+        console.log("Updating client", id, "with data:", data);
         const updatedClient = await updateClient(id, data as CreateClientData);
         
         if (updatedClient) {
@@ -206,7 +206,7 @@ const ClientForm = () => {
         }
       }
     } catch (error) {
-      console.error("Erreur lors de la soumission:", error);
+      console.error("Error submitting form:", error);
       toast.error("Une erreur s'est produite");
     } finally {
       setIsLoading(false);
