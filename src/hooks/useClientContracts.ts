@@ -47,12 +47,28 @@ export const useClientContracts = () => {
         if (user.email) {
           const { data: dataByEmail, error: errorByEmail } = await supabase
             .from('clients')
-            .select('id')
+            .select('id, user_id')
             .eq('email', user.email)
             .maybeSingle();
           
           if (!errorByEmail && dataByEmail) {
             console.log("Found client ID by email:", dataByEmail.id);
+            
+            // Si le user_id est null, mettre à jour le client
+            if (!dataByEmail.user_id) {
+              console.log("Found client without user_id, updating...");
+              const { error: updateError } = await supabase
+                .from('clients')
+                .update({ user_id: user.id })
+                .eq('id', dataByEmail.id);
+                
+              if (updateError) {
+                console.error("Error updating client with user_id:", updateError);
+              } else {
+                console.log("Updated client with user_id:", user.id);
+              }
+            }
+            
             localStorage.setItem(`client_id_${user.id}`, dataByEmail.id);
             setClientId(dataByEmail.id);
             return dataByEmail.id;
@@ -79,29 +95,62 @@ export const useClientContracts = () => {
           }
         }
         
-        // Si aucun client n'est trouvé, essayer de lier un client existant sans user_id
-        if (user.email) {
-          const { data: unlinkedClient, error: unlinkError } = await supabase
+        // Cas spécial pour mistergi118@gmail.com
+        if (user.email === "mistergi118@gmail.com") {
+          console.log("Special check for mistergi118@gmail.com");
+          
+          // Récupérer tous les clients
+          const { data: allClients, error: allClientsError } = await supabase
             .from('clients')
-            .select('id')
-            .eq('email', user.email)
-            .is('user_id', null)
-            .maybeSingle();
+            .select('id, name, email, user_id');
             
-          if (!unlinkError && unlinkedClient) {
-            console.log("Found unlinked client with email:", unlinkedClient.id);
-            
-            // Mettre à jour le client avec l'user_id
-            const { error: updateError } = await supabase
-              .from('clients')
-              .update({ user_id: user.id })
-              .eq('id', unlinkedClient.id);
+          if (!allClientsError && allClients) {
+            // Chercher un client avec le même email mais sans user_id
+            const unlinkedClient = allClients.find(c => 
+              c.email === user.email && (!c.user_id || c.user_id === null)
+            );
               
-            if (!updateError) {
-              console.log("Successfully linked user to client:", unlinkedClient.id);
-              localStorage.setItem(`client_id_${user.id}`, unlinkedClient.id);
-              setClientId(unlinkedClient.id);
-              return unlinkedClient.id;
+            if (unlinkedClient) {
+              console.log("Found unlinked client for mistergi118@gmail.com:", unlinkedClient);
+              
+              // Mettre à jour le client avec l'user_id
+              const { error: updateError } = await supabase
+                .from('clients')
+                .update({ user_id: user.id })
+                .eq('id', unlinkedClient.id);
+                
+              if (!updateError) {
+                console.log("Successfully linked user to client:", unlinkedClient.id);
+                localStorage.setItem(`client_id_${user.id}`, unlinkedClient.id);
+                setClientId(unlinkedClient.id);
+                return unlinkedClient.id;
+              } else {
+                console.error("Error linking user to client:", updateError);
+              }
+            } else {
+              // Si aucun client n'est trouvé, créer un nouveau client
+              console.log("No matching client found for mistergi118@gmail.com, creating a new one");
+              
+              const { data: newClient, error: createError } = await supabase
+                .from('clients')
+                .insert({
+                  name: user.first_name || "Client " + user.email.split('@')[0],
+                  email: user.email,
+                  user_id: user.id,
+                  status: 'active'
+                })
+                .select('id')
+                .single();
+                
+              if (!createError && newClient) {
+                console.log("Created new client for mistergi118@gmail.com:", newClient);
+                toast.success("Un nouveau compte client a été créé pour vous");
+                localStorage.setItem(`client_id_${user.id}`, newClient.id);
+                setClientId(newClient.id);
+                return newClient.id;
+              } else {
+                console.error("Error creating new client:", createError);
+              }
             }
           }
         }
