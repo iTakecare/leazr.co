@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ProductGrid from "@/components/catalog/ProductGrid";
 
 interface ProductCatalogProps {
   isOpen: boolean;
@@ -55,21 +56,86 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     return matchesSearch && matchesCategory;
   });
 
+  // Components for modal/sheet version
   const DialogOrSheet = isSheet ? Sheet : Dialog;
   const ContentComponent = isSheet ? SheetContent : DialogContent;
   const HeaderComponent = isSheet ? SheetHeader : DialogHeader;
   const TitleComponent = isSheet ? SheetTitle : DialogTitle;
   const DescriptionComponent = isSheet ? SheetDescription : DialogDescription;
 
+  // For modal/dialog display (calculator or client requests)
+  if (isSheet || (isOpen !== true)) {
+    return (
+      <DialogOrSheet open={isOpen} onOpenChange={() => !isLoading && onClose()}>
+        <ContentComponent className={isSheet ? "sm:max-w-md" : "sm:max-w-[700px]"}>
+          <HeaderComponent>
+            <TitleComponent>{title}</TitleComponent>
+            <DescriptionComponent>{description}</DescriptionComponent>
+          </HeaderComponent>
+          
+          <div className="relative my-4">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher un produit..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="my-4">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner une catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category === "all" ? "Toutes les catégories" : 
+                      category.charAt(0).toUpperCase() + category.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-40 rounded-lg bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-6 text-red-500">
+              Une erreur est survenue lors du chargement des produits.
+            </div>
+          ) : (
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map((product) => (
+                    <div key={product.id} onClick={() => onSelectProduct(product)}>
+                      <ProductCard product={product} />
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-10 text-muted-foreground">
+                    Aucun produit trouvé
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+        </ContentComponent>
+      </DialogOrSheet>
+    );
+  }
+
+  // For regular catalog display (full page)
   return (
-    <DialogOrSheet open={isOpen} onOpenChange={() => !isLoading && onClose()}>
-      <ContentComponent className={isSheet ? "sm:max-w-md" : "sm:max-w-[700px]"}>
-        <HeaderComponent>
-          <TitleComponent>{title}</TitleComponent>
-          <DescriptionComponent>{description}</DescriptionComponent>
-        </HeaderComponent>
-        
-        <div className="relative my-4">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="relative w-full md:w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher un produit..."
@@ -78,52 +144,37 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
-        <div className="my-4">
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner une catégorie" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category === "all" ? "Toutes les catégories" : 
-                    category.charAt(0).toUpperCase() + category.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-40 rounded-lg bg-gray-100 animate-pulse" />
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-full md:w-60">
+            <SelectValue placeholder="Sélectionner une catégorie" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category === "all" ? "Toutes les catégories" : 
+                  category.charAt(0).toUpperCase() + category.slice(1)}
+              </SelectItem>
             ))}
-          </div>
-        ) : error ? (
-          <div className="text-center py-6 text-red-500">
-            Une erreur est survenue lors du chargement des produits.
-          </div>
-        ) : (
-          <ScrollArea className="h-[400px] pr-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <div key={product.id} onClick={() => onSelectProduct(product)}>
-                    <ProductCard product={product} />
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-2 text-center py-10 text-muted-foreground">
-                  Aucun produit trouvé
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        )}
-      </ContentComponent>
-    </DialogOrSheet>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="h-48 rounded-lg bg-gray-100 animate-pulse" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="text-center py-10 border rounded-lg">
+          <div className="text-red-500 font-medium">Une erreur est survenue lors du chargement des produits.</div>
+          <div className="text-sm text-muted-foreground mt-2">Veuillez réessayer plus tard ou contactez l'administrateur.</div>
+        </div>
+      ) : (
+        <ProductGrid products={filteredProducts} />
+      )}
+    </div>
   );
 };
 
