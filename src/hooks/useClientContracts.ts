@@ -43,38 +43,47 @@ export const useClientContracts = () => {
           return cachedClientId;
         }
         
+        // Récupérer l'email directement depuis l'API Auth de Supabase
+        const { data: userData } = await supabase.auth.getUser();
+        const userEmail = userData?.user?.email || user.email;
+        
+        if (!userEmail) {
+          console.error("No email found for user");
+          return null;
+        }
+        
+        console.log("Looking for client with email:", userEmail);
+        
         // Première tentative: chercher par email
-        if (user.email) {
-          const { data: dataByEmail, error: errorByEmail } = await supabase
-            .from('clients')
-            .select('id, user_id')
-            .eq('email', user.email)
-            .maybeSingle();
+        const { data: dataByEmail, error: errorByEmail } = await supabase
+          .from('clients')
+          .select('id, user_id')
+          .eq('email', userEmail)
+          .maybeSingle();
+        
+        if (!errorByEmail && dataByEmail) {
+          console.log("Found client ID by email:", dataByEmail.id);
           
-          if (!errorByEmail && dataByEmail) {
-            console.log("Found client ID by email:", dataByEmail.id);
-            
-            // Si le user_id est null, mettre à jour le client
-            if (!dataByEmail.user_id) {
-              console.log("Found client without user_id, updating...");
-              const { error: updateError } = await supabase
-                .from('clients')
-                .update({ user_id: user.id })
-                .eq('id', dataByEmail.id);
-                
-              if (updateError) {
-                console.error("Error updating client with user_id:", updateError);
-              } else {
-                console.log("Updated client with user_id:", user.id);
-              }
+          // Si le user_id est null, mettre à jour le client
+          if (!dataByEmail.user_id) {
+            console.log("Found client without user_id, updating...");
+            const { error: updateError } = await supabase
+              .from('clients')
+              .update({ user_id: user.id })
+              .eq('id', dataByEmail.id);
+              
+            if (updateError) {
+              console.error("Error updating client with user_id:", updateError);
+            } else {
+              console.log("Updated client with user_id:", user.id);
             }
-            
-            localStorage.setItem(`client_id_${user.id}`, dataByEmail.id);
-            setClientId(dataByEmail.id);
-            return dataByEmail.id;
-          } else {
-            console.log("No client found for email:", user.email);
           }
+          
+          localStorage.setItem(`client_id_${user.id}`, dataByEmail.id);
+          setClientId(dataByEmail.id);
+          return dataByEmail.id;
+        } else {
+          console.log("No client found for email:", userEmail);
         }
         
         // Deuxième tentative: chercher par user_id
@@ -92,66 +101,6 @@ export const useClientContracts = () => {
             return dataByUserId.id;
           } else {
             console.log("No client found for user_id:", user.id);
-          }
-        }
-        
-        // Cas spécial pour mistergi118@gmail.com
-        if (user.email === "mistergi118@gmail.com") {
-          console.log("Special check for mistergi118@gmail.com");
-          
-          // Récupérer tous les clients
-          const { data: allClients, error: allClientsError } = await supabase
-            .from('clients')
-            .select('id, name, email, user_id');
-            
-          if (!allClientsError && allClients) {
-            // Chercher un client avec le même email mais sans user_id
-            const unlinkedClient = allClients.find(c => 
-              c.email === user.email && (!c.user_id || c.user_id === null)
-            );
-              
-            if (unlinkedClient) {
-              console.log("Found unlinked client for mistergi118@gmail.com:", unlinkedClient);
-              
-              // Mettre à jour le client avec l'user_id
-              const { error: updateError } = await supabase
-                .from('clients')
-                .update({ user_id: user.id })
-                .eq('id', unlinkedClient.id);
-                
-              if (!updateError) {
-                console.log("Successfully linked user to client:", unlinkedClient.id);
-                localStorage.setItem(`client_id_${user.id}`, unlinkedClient.id);
-                setClientId(unlinkedClient.id);
-                return unlinkedClient.id;
-              } else {
-                console.error("Error linking user to client:", updateError);
-              }
-            } else {
-              // Si aucun client n'est trouvé, créer un nouveau client
-              console.log("No matching client found for mistergi118@gmail.com, creating a new one");
-              
-              const { data: newClient, error: createError } = await supabase
-                .from('clients')
-                .insert({
-                  name: user.first_name || "Client " + user.email.split('@')[0],
-                  email: user.email,
-                  user_id: user.id,
-                  status: 'active'
-                })
-                .select('id')
-                .single();
-                
-              if (!createError && newClient) {
-                console.log("Created new client for mistergi118@gmail.com:", newClient);
-                toast.success("Un nouveau compte client a été créé pour vous");
-                localStorage.setItem(`client_id_${user.id}`, newClient.id);
-                setClientId(newClient.id);
-                return newClient.id;
-              } else {
-                console.error("Error creating new client:", createError);
-              }
-            }
           }
         }
         
@@ -179,17 +128,29 @@ export const useClientContracts = () => {
         
         console.log("Fetching contracts for client ID:", id);
         
+        // Récupérer tous les contrats pour afficher les données brutes dans la console
+        const { data: allContracts, error: allContractsError } = await supabase
+          .from('contracts')
+          .select('*');
+          
+        if (allContractsError) {
+          console.error("Error fetching all contracts:", allContractsError);
+        } else {
+          console.log("All contracts in database:", allContracts);
+        }
+        
+        // Récupérer les contrats du client
         const { data, error: contractsError } = await supabase
           .from('contracts')
           .select('*')
           .eq('client_id', id);
           
         if (contractsError) {
-          console.error("Error fetching contracts:", contractsError);
+          console.error("Error fetching contracts for client:", contractsError);
           setError("Erreur lors de la récupération des contrats");
           toast.error("Erreur lors du chargement des contrats");
         } else {
-          console.log("Fetched contracts:", data);
+          console.log("Fetched contracts for client:", data);
           setContracts(data || []);
         }
       } catch (error) {
