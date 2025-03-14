@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Alert } from "@/components/ui/alert";
 import { toast } from "sonner";
+import ProductCard from "./ProductCard";
 
 // Map for translating category names to French
 const categoryTranslations: Record<string, string> = {
@@ -43,9 +44,19 @@ interface ProductCatalogProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectProduct: (product: Product) => void;
+  isSheet?: boolean; // New prop to determine if we should use Sheet component
+  title?: string; // Optional title override
+  description?: string; // Optional description override
 }
 
-const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProps) => {
+const ProductCatalog = ({ 
+  isOpen, 
+  onClose, 
+  onSelectProduct, 
+  isSheet = true, // Default to Sheet view (for client requests)
+  title = "Catalogue de produits",
+  description = "Sélectionnez un produit pour l'ajouter à votre offre"
+}: ProductCatalogProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   
@@ -62,9 +73,9 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
     queryKey: ["products"],
     queryFn: async () => {
       try {
-        console.log("Fetching products for client catalog...");
+        console.log("Fetching products for catalog...");
         const productsData = await getProducts();
-        console.log(`Retrieved ${productsData.length} products for client catalog`);
+        console.log(`Retrieved ${productsData.length} products for catalog`);
         
         // Fallback to mock data if API returns empty array
         if (productsData.length === 0) {
@@ -91,13 +102,10 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
         return mockProducts;
       }
     },
-    enabled: isOpen, // Only load data when the catalog is open
+    enabled: isOpen || !isSheet, // Load data when catalog is open OR when not in sheet mode
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 3, // Retry 3 times if the request fails
   });
-  
-  console.log("Products from server:", products.length);
-  if (error) console.error("Error loading products:", error);
   
   // Filter products based on search term and category
   const filteredProducts = React.useMemo(() => {
@@ -110,129 +118,103 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
     });
   }, [products, searchTerm, selectedCategory]);
   
-  console.log("Filtered products:", filteredProducts.length);
-  
-  const handleSelectProduct = (product: Product) => {
-    console.log("Selected product:", product.name);
-    onSelectProduct(product);
-    onClose();
-  };
-  
   // Reset search and category when closing
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen && isSheet) {
       setSearchTerm("");
       setSelectedCategory("all");
-    } else {
-      // Force refetch when opened
+    } else if (isOpen || !isSheet) {
+      // Force refetch when opened or when in page mode
       refetch();
     }
-  }, [isOpen, refetch]);
-  
-  return (
-    <Sheet open={isOpen} onOpenChange={() => onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Catalogue de produits</SheetTitle>
-          <SheetDescription>
-            Sélectionnez un produit pour l'ajouter à votre offre
-          </SheetDescription>
-        </SheetHeader>
+  }, [isOpen, isSheet, refetch]);
 
-        <div className="mt-6 space-y-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher un produit..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          
-          {isError && (
-            <Alert variant="destructive" className="my-2">
-              <AlertCircle className="h-4 w-4" />
-              <p className="ml-2">Erreur lors du chargement des produits. Utilisation des données de démonstration.</p>
-            </Alert>
-          )}
-          
-          <div className="flex flex-wrap gap-2">
-            {React.useMemo(() => {
-              const categories = ["all", ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
-              return categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category === "all" ? "Tous" : translateCategory(category)}
-                </Button>
-              ));
-            }, [products, selectedCategory])}
-          </div>
-          
-          {isLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="border rounded-lg p-4 h-[200px] animate-pulse bg-muted"></div>
-              ))}
-            </div>
+  // The catalog content (search, categories, product grid)
+  const CatalogContent = () => (
+    <div className="mt-6 space-y-6">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Rechercher un produit..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+      
+      {isError && (
+        <Alert variant="destructive" className="my-2">
+          <AlertCircle className="h-4 w-4" />
+          <p className="ml-2">Erreur lors du chargement des produits. Utilisation des données de démonstration.</p>
+        </Alert>
+      )}
+      
+      <div className="flex flex-wrap gap-2">
+        {React.useMemo(() => {
+          const categories = ["all", ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
+          return categories.map((category) => (
+            <Button
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory(category)}
+            >
+              {category === "all" ? "Tous" : translateCategory(category)}
+            </Button>
+          ));
+        }, [products, selectedCategory])}
+      </div>
+      
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="border rounded-lg p-4 h-[200px] animate-pulse bg-muted"></div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map((product) => (
+              <div
+                key={product.id}
+                className="cursor-pointer"
+                onClick={() => onSelectProduct(product)}
+              >
+                <ProductCard 
+                  product={product} 
+                  onClick={() => onSelectProduct(product)} 
+                />
+              </div>
+            ))
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    whileHover={{ y: -5 }}
-                    className="border rounded-lg p-4 cursor-pointer hover:border-primary"
-                    onClick={() => handleSelectProduct(product)}
-                  >
-                    <div className="aspect-square w-full overflow-hidden bg-muted mb-3 rounded-md">
-                      <img
-                        src={product.image_url || product.imageUrl || '/placeholder.svg'}
-                        alt={product.name}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    </div>
-                    <h3 className="font-medium line-clamp-1">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground">{translateCategory(product.category || 'other')}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <div>
-                        <p className="font-bold">
-                          {(product.price || 0)?.toLocaleString("fr-FR", {
-                            style: "currency",
-                            currency: "EUR",
-                          })}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Mensualité: {(product.monthly_price || 0)?.toLocaleString("fr-FR", {
-                            style: "currency",
-                            currency: "EUR",
-                          })}/mois
-                        </p>
-                      </div>
-                      <Button size="sm" variant="ghost" className="rounded-full h-8 w-8 p-0">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="col-span-2 py-8 text-center">
-                  <p className="text-muted-foreground">Aucun produit trouvé</p>
-                </div>
-              )}
+            <div className="col-span-full py-8 text-center">
+              <p className="text-muted-foreground">Aucun produit trouvé</p>
             </div>
           )}
         </div>
+      )}
+    </div>
+  );
+  
+  // Render as Sheet or regular page content
+  return isSheet ? (
+    <Sheet open={isOpen} onOpenChange={() => onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>
+            {description}
+          </SheetDescription>
+        </SheetHeader>
+        <CatalogContent />
       </SheetContent>
     </Sheet>
+  ) : (
+    <div className="container py-6">
+      <h1 className="text-3xl font-bold mb-4">{title}</h1>
+      <p className="text-muted-foreground mb-6">{description}</p>
+      <CatalogContent />
+    </div>
   );
 };
 

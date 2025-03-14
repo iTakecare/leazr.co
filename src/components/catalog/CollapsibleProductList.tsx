@@ -1,287 +1,125 @@
-import React, { useState } from "react";
+
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { formatCurrency } from "@/utils/formatters";
-import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-
-const categoryTranslations: Record<string, string> = {
-  "laptop": "Ordinateur portable",
-  "desktop": "Ordinateur de bureau",
-  "tablet": "Tablette",
-  "smartphone": "Smartphone",
-  "accessories": "Accessoires",
-  "printer": "Imprimante",
-  "monitor": "Écran",
-  "software": "Logiciel",
-  "networking": "Réseau",
-  "server": "Serveur",
-  "storage": "Stockage",
-  "other": "Autre"
-};
-
-const translateCategory = (category: string): string => {
-  return categoryTranslations[category?.toLowerCase()] || category;
-};
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronsUpDown, Trash2 } from "lucide-react";
+import { formatCurrency } from "@/utils/formatters";
 
 interface CollapsibleProductListProps {
-  products: Product[];
-  onDeleteProduct?: (productId: string) => void;
+  products?: Product[];
+  onDeleteProduct: (productId: string) => void;
 }
 
-const CollapsibleProductList: React.FC<CollapsibleProductListProps> = ({ products, onDeleteProduct }) => {
-  const navigate = useNavigate();
-  const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
+const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }: CollapsibleProductListProps) => {
+  // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
+  const { data: fetchedProducts = [], isLoading } = useQuery({
+    queryKey: ["products"],
+    queryFn: getProducts,
+    enabled: !providedProducts, // Ne récupère les produits que s'ils ne sont pas déjà fournis
+  });
 
-  const groupedProducts = products.reduce((acc: Record<string, Product[]>, product) => {
-    if (product.parent_id) {
-      if (!acc[product.parent_id]) {
-        acc[product.parent_id] = [];
-      }
-      acc[product.parent_id].push(product);
-    } 
-    else {
-      if (!acc[product.id]) {
-        acc[product.id] = [];
-      }
-    }
-    return acc;
-  }, {});
+  const products = providedProducts || fetchedProducts;
 
-  const parentProducts = products.filter(p => !p.parent_id);
-
-  const toggleExpand = (productId: string) => {
-    setExpandedProducts(prev => ({
-      ...prev,
-      [productId]: !prev[productId]
-    }));
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
   };
 
-  const navigateToProduct = (productId: string) => {
-    navigate(`/products/${productId}`);
-  };
-
-  const renderAttributes = (product: Product) => {
-    if (!product.variation_attributes) return null;
-    
+  if (isLoading && !providedProducts) {
     return (
-      <div className="flex flex-wrap gap-1 mt-1">
-        {Object.entries(product.variation_attributes).map(([key, value]) => (
-          <Badge key={key} variant="outline" className="text-xs">
-            {key}: {value}
-          </Badge>
+      <div className="space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
         ))}
       </div>
     );
-  };
+  }
 
-  const handleDeleteProduct = (productId: string) => {
-    if (onDeleteProduct) {
-      onDeleteProduct(productId);
-    }
-  };
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Aucun produit trouvé.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="border rounded-md overflow-hidden">
-      <div className="bg-muted px-4 py-3 flex items-center justify-between border-b">
-        <div className="grid grid-cols-5 w-full text-sm font-medium text-muted-foreground">
-          <div className="col-span-2">Produit</div>
-          <div>Prix d'achat</div>
-          <div>Mensualité</div>
-          <div className="text-right">Actions</div>
-        </div>
-      </div>
-
-      <div className="divide-y">
-        {parentProducts.map((product) => {
-          const hasVariations = groupedProducts[product.id]?.length > 0 || product.is_parent;
-          
-          return (
-            <div key={product.id} className="bg-white">
-              <div className="px-4 py-3 grid grid-cols-5 items-center">
-                <div className="col-span-2 flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-md bg-muted overflow-hidden flex-shrink-0">
-                    {product.imageUrl ? (
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.name} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-muted">
-                        <span className="text-xs text-muted-foreground">No image</span>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-medium">{product.name}</h3>
-                    <div className="text-sm text-muted-foreground">
-                      {product.category && 
-                        <span className="inline-block mr-2">{translateCategory(product.category)}</span>
-                      }
-                      {hasVariations && (
-                        <Badge className="bg-primary/20 text-primary hover:bg-primary/30 border-0">
-                          {groupedProducts[product.id]?.length || 0} variantes
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+    <div className="space-y-4">
+      {products.map((product, index) => (
+        <motion.div
+          key={product.id}
+          variants={itemVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: index * 0.05 }}
+        >
+          <Collapsible className="border rounded-md">
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-muted rounded overflow-hidden">
+                  <img
+                    src={product.image_url || product.imageUrl || '/placeholder.svg'}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "/placeholder.svg";
+                    }}
+                  />
                 </div>
                 <div>
-                  {product.monthly_price ? "-" : "-"}
-                </div>
-                <div>
-                  {product.price ? `${formatCurrency(product.price)}/mois` : "-"}
-                </div>
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigateToProduct(product.id)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Êtes-vous sûr de vouloir supprimer ce produit ? Cette action ne peut pas être annulée.
-                          {hasVariations && " Toutes les variantes seront également supprimées."}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
-                          Supprimer
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                  {hasVariations && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleExpand(product.id)}
-                      className="gap-1"
-                    >
-                      {expandedProducts[product.id] ? (
-                        <>
-                          <ChevronUp className="h-4 w-4" />
-                          Masquer
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-4 w-4" />
-                          Afficher
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  <h3 className="font-medium">{product.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {product.category} • 
+                    {formatCurrency(product.price || 0)}
+                  </p>
                 </div>
               </div>
-
-              {hasVariations && expandedProducts[product.id] && (
-                <div className="bg-muted/30 border-t">
-                  {groupedProducts[product.id]?.map((variation) => (
-                    <div
-                      key={variation.id}
-                      className="px-4 py-3 grid grid-cols-5 items-center border-b last:border-b-0 hover:bg-muted/50"
-                    >
-                      <div className="col-span-2 flex items-center gap-3 pl-6">
-                        <div className="w-10 h-10 rounded-md bg-muted overflow-hidden flex-shrink-0">
-                          {variation.imageUrl ? (
-                            <img 
-                              src={variation.imageUrl} 
-                              alt={variation.name} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/placeholder.svg";
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-muted">
-                              <span className="text-xs text-muted-foreground">No image</span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-sm">{variation.name}</h4>
-                          {renderAttributes(variation)}
-                        </div>
-                      </div>
-                      <div>
-                        {variation.monthly_price ? "-" : "-"}
-                      </div>
-                      <div>
-                        {variation.price ? `${formatCurrency(variation.price)}/mois` : "-"}
-                      </div>
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigateToProduct(variation.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Êtes-vous sûr de vouloir supprimer cette variante ? Cette action ne peut pas être annulée.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteProduct(variation.id)}>
-                                Supprimer
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="flex items-center space-x-2">
+                <Link to={`/products/${product.id}`}>
+                  <Button variant="outline" size="sm">Modifier</Button>
+                </Link>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => onDeleteProduct(product.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <ChevronsUpDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
             </div>
-          );
-        })}
-      </div>
+            <CollapsibleContent>
+              <div className="p-4 pt-0 border-t">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Description</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {product.description || "Aucune description disponible"}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Détails</h4>
+                    <ul className="text-sm space-y-1">
+                      <li><span className="text-muted-foreground">Marque:</span> {product.brand || "Non spécifiée"}</li>
+                      <li><span className="text-muted-foreground">Prix:</span> {formatCurrency(product.price || 0)}</li>
+                      <li><span className="text-muted-foreground">Mensualité:</span> {formatCurrency(product.monthly_price || 0)}/mois</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </motion.div>
+      ))}
     </div>
   );
 };

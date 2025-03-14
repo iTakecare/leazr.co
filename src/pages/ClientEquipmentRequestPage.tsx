@@ -2,8 +2,6 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowRight, Package, Send, ShoppingBasket, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -215,10 +213,14 @@ const ClientEquipmentRequestPage = () => {
         </div>
       </div>
 
+      {/* Utilisation du composant ProductCatalog amélioré en mode Sheet */}
       <ProductCatalog
         isOpen={isCatalogOpen}
         onClose={handleCloseCatalog}
         onSelectProduct={handleSelectProduct}
+        isSheet={true}
+        title="Catalogue de produits"
+        description="Sélectionnez un produit pour l'ajouter à votre demande"
       />
     </div>
   );

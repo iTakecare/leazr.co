@@ -1,19 +1,15 @@
 
 import React, { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
-import { getProducts, deleteAllProducts, deleteProduct } from "@/services/catalogService";
+import { deleteAllProducts, deleteProduct } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Search, Plus, Filter, AlertCircle, Trash2 } from "lucide-react";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Plus, Trash2 } from "lucide-react";
 import CollapsibleProductList from "@/components/catalog/CollapsibleProductList";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "sonner";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -26,58 +22,31 @@ import {
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 import CategoryManager from "@/components/catalog/CategoryManager";
-
-const categoryTranslations: Record<string, string> = {
-  "all": "Tous",
-  "laptop": "Ordinateur portable",
-  "desktop": "Ordinateur de bureau",
-  "tablet": "Tablette",
-  "smartphone": "Smartphone",
-  "accessories": "Accessoires",
-  "printer": "Imprimante",
-  "monitor": "Écran",
-  "software": "Logiciel",
-  "networking": "Réseau",
-  "server": "Serveur",
-  "storage": "Stockage",
-  "other": "Autre"
-};
-
-const translateCategory = (category: string): string => {
-  return categoryTranslations[category.toLowerCase()] || category;
-};
+import ProductCatalog from "@/components/ui/ProductCatalog";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getProducts } from "@/services/catalogService";
 
 const Catalog = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   
-  const { 
-    data: products = [], 
-    isLoading, 
-    isError, 
-    error, 
-    refetch 
-  } = useQuery({
+  // Cette requête est juste pour avoir un refetch à transmettre au ProductCatalog
+  const { refetch } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
-    meta: {
-      onError: (err: Error) => {
-        console.error("Error loading products:", err);
-        toast.error("Unable to load products");
-      }
-    }
+    enabled: false
   });
 
   const deleteAllProductsMutation = useMutation({
     mutationFn: deleteAllProducts,
     onSuccess: () => {
       refetch();
-      toast.success("All products have been deleted");
+      toast.success("Tous les produits ont été supprimés");
     },
     onError: (err: Error) => {
-      console.error("Error deleting all products:", err);
-      toast.error("Unable to delete all products");
+      console.error("Erreur lors de la suppression des produits:", err);
+      toast.error("Impossible de supprimer tous les produits");
     }
   });
 
@@ -85,47 +54,18 @@ const Catalog = () => {
     mutationFn: (productId: string) => deleteProduct(productId),
     onSuccess: () => {
       refetch();
-      toast.success("Product has been deleted");
+      toast.success("Le produit a été supprimé");
     },
     onError: (err: Error) => {
-      console.error("Error deleting product:", err);
-      toast.error("Unable to delete product");
+      console.error("Erreur lors de la suppression du produit:", err);
+      toast.error("Impossible de supprimer le produit");
     }
   });
-
-  const filteredProducts = products.filter((product: Product) => {
-    const matchesSearch = 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesCategory = !selectedCategory || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const categories = Array.from(
-    new Set(products.map((product: Product) => product.category))
-  ).filter(Boolean);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { 
-        staggerChildren: 0.05
-      }
-    }
-  };
 
   const onProductAdded = () => {
     setIsAddProductOpen(false);
     refetch();
-    toast.success("Product added successfully");
-  };
-
-  const handleRetry = () => {
-    refetch();
-    toast.info("Attempting to reload products...");
+    toast.success("Produit ajouté avec succès");
   };
 
   const handleDeleteAllProducts = () => {
@@ -134,6 +74,10 @@ const Catalog = () => {
 
   const handleDeleteProduct = (productId: string) => {
     deleteProductMutation.mutate(productId);
+  };
+
+  const handleSelectProduct = (product: Product) => {
+    navigate(`/products/${product.id}`);
   };
 
   return (
@@ -169,19 +113,6 @@ const Catalog = () => {
           </div>
         </div>
 
-        {isError && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription className="flex flex-col gap-2">
-              <p>Une erreur s'est produite lors du chargement des produits: {error instanceof Error ? error.message : "Erreur inconnue"}</p>
-              <Button onClick={handleRetry} variant="outline" size="sm" className="self-start">
-                Réessayer
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
         <Tabs defaultValue="browse" className="mb-6">
           <TabsList>
             <TabsTrigger value="browse">Parcourir</TabsTrigger>
@@ -190,118 +121,28 @@ const Catalog = () => {
           </TabsList>
           
           <TabsContent value="browse" className="space-y-4">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un produit..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="icon">
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {categories.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Button
-                  variant={!selectedCategory ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  Tous
-                </Button>
-                {categories.map((category) => (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(category)}
-                  >
-                    {translateCategory(category)}
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
-                ))}
-              </div>
-            ) : filteredProducts.length > 0 ? (
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                <CollapsibleProductList 
-                  products={filteredProducts} 
-                  onDeleteProduct={handleDeleteProduct}
-                />
-              </motion.div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Aucun produit trouvé. {searchTerm && "Essayez de modifier votre recherche."}</p>
-              </div>
-            )}
+            {/* Utiliser le composant ProductCatalog réutilisable ici en mode page (isSheet=false) */}
+            <ProductCatalog 
+              isOpen={true} 
+              onClose={() => {}}
+              onSelectProduct={handleSelectProduct}
+              isSheet={false}
+              title="Catalogue de produits"
+              description="Parcourez notre catalogue complet de produits technologiques"
+            />
           </TabsContent>
           
           <TabsContent value="manage">
             <div className="border rounded-md p-4">
               <h2 className="text-xl font-semibold mb-4">Gestion du catalogue</h2>
-              {isLoading ? (
-                <div className="h-32 flex items-center justify-center">
-                  <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-                </div>
-              ) : products.length > 0 ? (
-                <div className="space-y-4">
-                  {products.map((product: Product) => (
-                    <div key={product.id} className="border-b pb-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium">{product.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {product.brand && <span className="font-semibold">{product.brand}</span>}
-                            {product.brand && product.category && <span> • </span>}
-                            {product.category && translateCategory(product.category)}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Link to={`/products/${product.id}`}>
-                            <Button variant="outline" size="sm">Modifier</Button>
-                          </Link>
-                          <Button 
-                            variant="destructive" 
-                            size="sm" 
-                            onClick={() => handleDeleteProduct(product.id)}
-                          >
-                            Supprimer
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Aucun produit dans le catalogue. Ajoutez des produits ou importez-les depuis WooCommerce.</p>
-                </div>
-              )}
+              <CollapsibleProductList 
+                onDeleteProduct={handleDeleteProduct}
+              />
             </div>
           </TabsContent>
           
           <TabsContent value="categories">
-            <CategoryManager 
-              categories={categories} 
-              categoryTranslations={categoryTranslations}
-            />
+            <CategoryManager />
           </TabsContent>
         </Tabs>
       </div>
