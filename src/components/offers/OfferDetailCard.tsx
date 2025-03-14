@@ -75,10 +75,11 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">{offer.client_name}</h3>
-            <div className="ml-2">
+            <div className="ml-2 max-w-[200px]">
               <OfferStatusBadge 
                 status={offer.workflow_status}
                 isConverted={offer.converted_to_contract}
+                showProgress={true}
               />
             </div>
           </div>
