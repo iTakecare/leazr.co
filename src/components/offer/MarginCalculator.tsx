@@ -42,12 +42,14 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
   };
 
   const handleApplyMargin = () => {
-    applyCalculatedMargin();
-    // When applying the margin, also update the targetMonthlyPayment to ensure
-    // the displayed monthly payment in the parent component gets updated
-    if (targetMonthlyPayment > 0) {
-      setTargetMonthlyPayment(targetMonthlyPayment);
+    // First set the target monthly payment explicitly to ensure it's updated
+    const numValue = parseFloat(inputValue);
+    if (!isNaN(numValue) && numValue > 0) {
+      setTargetMonthlyPayment(numValue);
     }
+    
+    // Then apply the calculated margin
+    applyCalculatedMargin();
   };
 
   return (

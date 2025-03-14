@@ -149,7 +149,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
     setIsQuickCatalogOpen(false);
   };
 
-  const displayMonthlyPayment = productMonthlyPrice || monthlyPayment;
+  // Determine which monthly payment to display
+  // Give priority to targetMonthlyPayment if it exists, otherwise use the equipment's monthlyPayment or the calculated monthlyPayment
+  const displayMonthlyPayment = targetMonthlyPayment > 0 
+    ? targetMonthlyPayment 
+    : (equipment.monthlyPayment || monthlyPayment);
 
   return (
     <Card className="shadow-sm border-gray-200 rounded-lg">

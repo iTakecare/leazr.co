@@ -171,17 +171,25 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       console.log("Applying calculated margin:", calculatedMargin.percentage);
       
       // Update the equipment with the calculated margin
-      setEquipment(prev => ({
-        ...prev,
-        margin: Number(calculatedMargin.percentage.toFixed(2))
-      }));
-      
-      // If we have a targetMonthlyPayment, update the equipment's monthly payment
-      if (targetMonthlyPayment > 0) {
-        setEquipment(prev => ({
+      setEquipment(prev => {
+        const updatedEquipment = {
           ...prev,
-          monthlyPayment: targetMonthlyPayment
-        }));
+          margin: Number(calculatedMargin.percentage.toFixed(2))
+        };
+        
+        // If we have a targetMonthlyPayment, update the equipment's monthly payment
+        if (targetMonthlyPayment > 0) {
+          updatedEquipment.monthlyPayment = targetMonthlyPayment;
+          // This ensures the applied monthly payment is immediately visible
+          console.log("Setting monthly payment to target:", targetMonthlyPayment);
+        }
+        
+        return updatedEquipment;
+      });
+      
+      // Force a recalculation of the monthly payment based on the new margin
+      if (targetMonthlyPayment <= 0) {
+        calculateMonthlyPayment();
       }
     }
   };
@@ -226,6 +234,11 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     if (equipmentToEdit) {
       setEquipment(equipmentToEdit);
       setEditingId(id);
+      
+      // If the equipment has a monthly payment, set it as the target
+      if (equipmentToEdit.monthlyPayment && equipmentToEdit.monthlyPayment > 0) {
+        setTargetMonthlyPayment(equipmentToEdit.monthlyPayment);
+      }
     }
   };
 
