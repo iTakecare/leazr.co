@@ -29,33 +29,37 @@ export const useClientContracts = () => {
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
 
+  // Cette fonction récupère les contrats, soit pour l'utilisateur connecté,
+  // soit pour un ID client spécifique (ex: dans la page de détail client)
   const fetchContracts = async (forceClientId?: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      if (!user && !forceClientId) {
+      // Si forceClientId est fourni, nous l'utilisons directement
+      // (utile pour afficher les contrats d'un client spécifique dans la page de détail)
+      if (forceClientId) {
+        console.log("Fetching contracts with forced client ID:", forceClientId);
+        setClientId(forceClientId);
+        await fetchContractsByClientId(forceClientId);
+        return;
+      }
+      
+      // Pour un utilisateur non connecté sans ID client spécifié, afficher une erreur
+      if (!user && !clientId) {
         setLoading(false);
         setError("Utilisateur non connecté");
         return;
       }
-      
-      const targetClientId = forceClientId || clientId;
-      console.log("Fetching contracts with parameters:", { 
-        userEmail: user?.email, 
-        clientId: targetClientId,
-        forceClientId
-      });
-      
-      // 1. Si un ID client est fourni directement (par URL ou autre), utiliser cet ID
-      if (targetClientId) {
-        console.log("Direct fetch by client ID:", targetClientId);
-        setClientId(targetClientId); // S'assurer que l'état est à jour
-        await fetchContractsByClientId(targetClientId);
+
+      // Si un ID client est déjà stocké dans l'état, l'utiliser
+      if (clientId) {
+        console.log("Using cached client ID:", clientId);
+        await fetchContractsByClientId(clientId);
         return;
       }
       
-      // 2. Sinon, essayer de trouver l'ID client à partir de l'utilisateur connecté
+      // Sinon, essayer de trouver l'ID client à partir de l'utilisateur connecté
       if (!user?.email) {
         console.error("No user email found");
         setLoading(false);
@@ -337,10 +341,19 @@ export const useClientContracts = () => {
         }
       }
       
+      // Vérifier également si des contrats sont disponibles pour le client actuellement consulté
+      // (important pour la page de détail client)
+      if (clientId && allContracts) {
+        const currentClientIdMatches = allContracts.filter(c => c.client_id === clientId);
+        console.log(`Contracts for currently viewed client (${clientId}):`, currentClientIdMatches);
+      }
+      
       toast.success("Diagnostic terminé, consultez la console");
+      return { success: true };
     } catch (error) {
       console.error("Diagnostic error:", error);
       toast.error("Erreur lors du diagnostic");
+      return { success: false, error };
     }
   };
 
@@ -370,6 +383,7 @@ export const useClientContracts = () => {
     error,
     clientId,
     refresh,
-    debug: runDiagnostics
+    debug: runDiagnostics,
+    fetchContracts // Export cette fonction pour permettre à d'autres composants de forcer le chargement des contrats
   };
 };

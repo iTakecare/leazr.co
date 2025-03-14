@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -23,7 +24,9 @@ import {
   Users,
   UserPlus,
   LoaderCircle,
-  KeyRound
+  KeyRound,
+  Ticket,
+  LucideFiles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +40,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { useClientContracts } from "@/hooks/useClientContracts";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import ClientEditDialog from "@/components/clients/ClientEditDialog";
 
@@ -49,10 +53,16 @@ const ClientDetail = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [resetingPassword, setResetingPassword] = useState(false);
+  const [showContractDialog, setShowContractDialog] = useState(false);
+
+  // Utiliser le hook useClientContracts pour récupérer les contrats de ce client spécifique
+  const { contracts, loading: contractsLoading, error: contractsError, refresh: refreshContracts, fetchContracts } = useClientContracts();
 
   useEffect(() => {
     if (id) {
       fetchClient(id);
+      // Charger les contrats spécifiques à ce client
+      fetchContracts(id);
     }
   }, [id]);
 
@@ -321,6 +331,68 @@ const ClientDetail = () => {
                 </CardContent>
               </Card>
 
+              {/* Nouvelle section pour les contrats du client */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <LucideFiles className="h-5 w-5 text-primary" />
+                    <CardTitle>Contrats</CardTitle>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => setShowContractDialog(true)}
+                    >
+                      <Ticket className="h-4 w-4" />
+                      Voir les détails
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => refreshContracts(id)}
+                    >
+                      <LoaderCircle className="h-4 w-4" />
+                      Rafraîchir
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {contractsLoading ? (
+                    <div className="text-center py-4">
+                      <LoaderCircle className="h-6 w-6 animate-spin mx-auto" />
+                      <p className="mt-2 text-sm text-muted-foreground">Chargement des contrats...</p>
+                    </div>
+                  ) : contractsError ? (
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <p className="text-red-600">{contractsError}</p>
+                    </div>
+                  ) : contracts.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <p>Aucun contrat trouvé pour ce client.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {contracts.map((contract) => (
+                        <div key={contract.id} className="border rounded-lg p-3">
+                          <div className="flex justify-between">
+                            <div>
+                              <h4 className="font-medium">{contract.equipment_description || "Contrat #" + contract.id.substring(0, 8)}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Paiement mensuel: {contract.monthly_payment} €
+                              </p>
+                            </div>
+                            <Badge>{contract.status}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -429,6 +501,83 @@ const ClientDetail = () => {
           onClose={() => setIsEditDialogOpen(false)}
           onClientUpdated={handleClientUpdated}
         />
+
+        {/* Dialog pour afficher les détails des contrats du client */}
+        <Dialog open={showContractDialog} onOpenChange={setShowContractDialog}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Contrats de {client.name}</DialogTitle>
+              <DialogDescription>
+                Liste complète des contrats associés à ce client (ID: {id})
+              </DialogDescription>
+            </DialogHeader>
+            
+            {contractsLoading ? (
+              <div className="py-8 text-center">
+                <LoaderCircle className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <p>Chargement des contrats...</p>
+              </div>
+            ) : contracts.length === 0 ? (
+              <div className="py-8 text-center border rounded-lg">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p>Aucun contrat trouvé pour ce client</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => refreshContracts(id)}
+                >
+                  Rafraîchir les données
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {contracts.map((contract) => (
+                  <Card key={contract.id}>
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">ID du contrat</p>
+                          <p className="font-mono text-xs">{contract.id}</p>
+                          
+                          <p className="text-sm font-medium text-muted-foreground mt-4">Description</p>
+                          <p>{contract.equipment_description || "Non spécifié"}</p>
+                          
+                          <p className="text-sm font-medium text-muted-foreground mt-4">Paiement mensuel</p>
+                          <p className="font-bold">{contract.monthly_payment} €</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Client</p>
+                          <div className="flex items-center gap-2">
+                            <p>{contract.client_name}</p>
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {contract.client_id === id ? "ID correspondant" : "ID différent !"}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-sm font-medium text-muted-foreground mt-4">Statut</p>
+                          <Badge className="mt-1">{contract.status}</Badge>
+                          
+                          <p className="text-sm font-medium text-muted-foreground mt-4">Créé le</p>
+                          <p>{new Date(contract.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setShowContractDialog(false)}>
+                Fermer
+              </Button>
+              <Button onClick={() => refreshContracts(id)}>
+                Rafraîchir
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </Container>
     </PageTransition>
   );
