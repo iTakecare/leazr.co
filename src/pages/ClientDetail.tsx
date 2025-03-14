@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash, MapPin, Mail, Phone, Building2, FileText, Users2, Info } from "lucide-react";
-import { getClientById, deleteClient } from "@/services/clientService";
+import { Pencil, Trash, MapPin, Mail, Phone, Building2, FileText, Users2, Info, KeyRound, UserPlus } from "lucide-react";
+import { getClientById, deleteClient, resetClientPassword } from "@/services/clientService";
 import { Client } from "@/types/client";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/utils/formatters";
 import Container from "@/components/layout/Container";
+import CollaboratorForm from "@/components/clients/CollaboratorForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const getStatusVariant = (status: string) => {
   switch (status) {
@@ -40,6 +42,8 @@ const ClientDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("details");
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [isCollaboratorFormOpen, setIsCollaboratorFormOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -86,6 +90,38 @@ const ClientDetail: React.FC = () => {
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!client?.email) {
+      toast.error("L'adresse email du client est manquante.");
+      return;
+    }
+
+    try {
+      setResetPasswordLoading(true);
+      const success = await resetClientPassword(client.email);
+      if (success) {
+        toast.success("Email de réinitialisation envoyé avec succès.");
+      }
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast.error("Erreur lors de la réinitialisation du mot de passe.");
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  };
+
+  const handleCollaboratorAdded = () => {
+    // Refresh client data to show the new collaborator
+    if (id) {
+      getClientById(id).then(updatedClient => {
+        if (updatedClient) {
+          setClient(updatedClient);
+          setIsCollaboratorFormOpen(false);
+        }
+      });
     }
   };
 
@@ -150,6 +186,17 @@ const ClientDetail: React.FC = () => {
                 Modifier
               </Link>
             </Button>
+            {client.email && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleResetPassword} 
+                disabled={resetPasswordLoading}
+              >
+                <KeyRound className="h-4 w-4 mr-2" />
+                {resetPasswordLoading ? "Envoi en cours..." : "Réinitialiser le mot de passe"}
+              </Button>
+            )}
             <ClientCleanupButton />
             <Button variant="destructive" size="sm" onClick={handleDeleteClick}>
               <Trash className="h-4 w-4 mr-2" />
@@ -253,9 +300,25 @@ const ClientDetail: React.FC = () => {
           
           <TabsContent value="collaborators">
             <Card>
-              <CardHeader>
-                <CardTitle>Collaborateurs</CardTitle>
-                <CardDescription>Liste des personnes associées à ce client</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Collaborateurs</CardTitle>
+                  <CardDescription>Liste des personnes associées à ce client</CardDescription>
+                </div>
+                <Dialog open={isCollaboratorFormOpen} onOpenChange={setIsCollaboratorFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Ajouter un collaborateur
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Ajouter un collaborateur</DialogTitle>
+                    </DialogHeader>
+                    <CollaboratorForm clientId={id || ''} onSuccess={handleCollaboratorAdded} />
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent>
                 {client.collaborators && client.collaborators.length > 0 ? (
