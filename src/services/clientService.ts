@@ -367,8 +367,8 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
-    // Utilisation d'une condition plus stricte: vérifier à la fois has_user_account et user_id
-    if (client.has_user_account && client.user_id) {
+    // Vérifie explicitement si has_user_account est true pour déterminer si un compte existe déjà
+    if (client.has_user_account === true) {
       console.log("Client already has a user account with ID:", client.user_id);
       toast.warning("Ce client a déjà un compte utilisateur associé");
       
@@ -422,7 +422,7 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       console.log("New user created successfully:", signUpData?.user?.id);
       
       if (signUpData && signUpData.user) {
-        // Mise à jour explicite de la base de données pour s'assurer que les deux champs sont correctement définis
+        // Mise à jour explicite de la base de données pour s'assurer que has_user_account est true
         const { data: updatedClient, error: updateError } = await supabase
           .from('clients')
           .update({ 

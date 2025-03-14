@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -35,7 +34,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
   const [clientError, setClientError] = React.useState<string | null>(null);
   const [retryCount, setRetryCount] = React.useState(0);
 
-  // Vérifier d'abord le flux de réinitialisation de mot de passe - priorité absolue
   useEffect(() => {
     const hash = window.location.hash || location.hash;
     if (hash && hash.includes('type=recovery')) {
@@ -49,7 +47,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
     const checkClientAssociation = async () => {
       if (!user) return;
       
-      // Vérifier à nouveau le hash pour ne pas exécuter cette logique en cas de réinitialisation
       const hash = window.location.hash || location.hash;
       if (hash && hash.includes('type=recovery')) {
         return;
@@ -66,97 +63,27 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           console.log("Cache client ID effacé pour la nouvelle tentative");
         }
         
-        // Première étape: Vérifier si le client existe déjà dans la base de données
-        const { data: existingClients, error: clientsError } = await supabase
+        const { data: associatedClient, error: clientError } = await supabase
           .from('clients')
           .select('id, name, email, user_id, status')
-          .or(`email.ilike.${user.email},user_id.eq.${user.id}`);
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle();
         
-        if (clientsError) {
-          console.error("Erreur lors de la vérification des clients existants:", clientsError);
+        if (clientError) {
+          console.error("Erreur lors de la vérification des clients existants:", clientError);
           setClientError("Erreur lors de la vérification des clients");
           setCheckingClient(false);
           return;
         }
         
-        console.log("Clients existants trouvés:", existingClients);
-        
-        // Si des clients sont trouvés, choisir le plus pertinent
-        if (existingClients && existingClients.length > 0) {
-          // Priorité 1: Client avec le même user_id
-          const clientWithUserId = existingClients.find(client => 
-            client.user_id === user.id && client.status === 'active'
-          );
-          
-          // Priorité 2: Client actif avec le même email (insensible à la casse)
-          const clientWithEmail = existingClients.find(client => 
-            client.email && client.email.toLowerCase() === user.email.toLowerCase() && 
-            client.status === 'active' && !client.user_id
-          );
-          
-          // Priorité 3: Premier client actif trouvé
-          const activeClient = existingClients.find(client => client.status === 'active');
-          
-          const selectedClient = clientWithUserId || clientWithEmail || activeClient || existingClients[0];
-          
-          if (selectedClient) {
-            console.log("Client sélectionné:", selectedClient);
-            
-            // Si le client n'a pas encore d'user_id, l'associer
-            if (selectedClient.user_id !== user.id) {
-              console.log("Association du client avec l'utilisateur");
-              const { error: updateError } = await supabase
-                .from('clients')
-                .update({ 
-                  user_id: user.id,
-                  has_user_account: true,
-                  user_account_created_at: new Date().toISOString(),
-                  status: 'active'
-                })
-                .eq('id', selectedClient.id);
-                
-              if (updateError) {
-                console.error("Erreur lors de l'association:", updateError);
-              }
-            }
-            
-            // Stocker l'ID client en cache
-            localStorage.setItem(`client_id_${user.id}`, selectedClient.id);
-            setCheckingClient(false);
-            return;
-          }
+        if (associatedClient) {
+          console.log("Client déjà associé trouvé:", associatedClient);
+          localStorage.setItem(`client_id_${user.id}`, associatedClient.id);
+          setCheckingClient(false);
+          return;
         }
         
-        // Pas de client trouvé, essayer d'en créer un automatiquement à partir du profil utilisateur
-        if (user.email) {
-          console.log("Tentative de création automatique d'un client");
-          
-          const { data: newClient, error: createError } = await supabase
-            .from('clients')
-            .insert({
-              name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
-              email: user.email,
-              company: user.company || null,
-              user_id: user.id,
-              has_user_account: true,
-              user_account_created_at: new Date().toISOString(),
-              status: 'active'
-            })
-            .select()
-            .single();
-            
-          if (createError) {
-            console.error("Erreur lors de la création du client:", createError);
-            setClientError("Impossible de créer un client automatiquement");
-          } else if (newClient) {
-            console.log("Client créé automatiquement:", newClient);
-            localStorage.setItem(`client_id_${user.id}`, newClient.id);
-            setCheckingClient(false);
-            return;
-          }
-        }
-        
-        // En dernier recours, essayer d'utiliser linkUserToClient
         if (user.email) {
           const clientId = await linkUserToClient(user.id, user.email);
           if (clientId) {
@@ -166,7 +93,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           }
         }
         
-        // Si on arrive ici, c'est qu'on n'a pas pu trouver ou créer de client
         setClientError(`Aucun client trouvé pour votre compte utilisateur (${user.email}). Veuillez contacter l'assistance.`);
         console.error("Aucun client associé à l'utilisateur:", user.id, user.email);
       } catch (error) {
@@ -213,7 +139,6 @@ const ClientRoutes = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Vérifier d'abord le flux de réinitialisation de mot de passe - priorité absolue
   useEffect(() => {
     const hash = location.hash || window.location.hash;
     
@@ -223,14 +148,12 @@ const ClientRoutes = () => {
       return;
     }
     
-    // Rediriger uniquement les utilisateurs authentifiés qui ne sont pas des clients vers le tableau de bord
     if (!isLoading && user && !isClient()) {
       console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
       navigate('/dashboard', { replace: true });
     }
   }, [isLoading, user, isClient, navigate, location]);
 
-  // Ne rien afficher pendant un flux de réinitialisation de mot de passe
   if (location.hash && location.hash.includes('type=recovery')) {
     return null;
   }

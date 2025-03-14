@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -125,8 +126,7 @@ export default function ClientDetail() {
     );
   }
 
-  // Correction de la vérification du compte utilisateur
-  // On vérifie explicitement le champ has_user_account sans condition supplémentaire
+  // Utilisez has_user_account pour déterminer si le client a un compte utilisateur
   const hasUserAccount = client.has_user_account === true;
   
   console.log("Client account status complete check:", { 
