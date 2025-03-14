@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -62,6 +61,7 @@ const CreateOffer = () => {
     setEquipmentList,
     totalMonthlyPayment,
     globalMarginAdjustment,
+    setGlobalMarginAdjustment,
     editingId,
     applyCalculatedMargin,
     addToList,
@@ -70,8 +70,7 @@ const CreateOffer = () => {
     removeFromList,
     updateQuantity,
     findCoefficient,
-    toggleAdaptMonthlyPayment,
-    setGlobalMarginAdjustment
+    toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
 
   useEffect(() => {
@@ -123,22 +122,20 @@ const CreateOffer = () => {
           
           const offer = await getOfferById(offerId);
           if (offer) {
-            // Remplir les champs avec les données de l'offre
             setClientId(offer.client_id || null);
             setClientName(offer.client_name || '');
             setClientEmail(offer.client_email || '');
             setClientCompany(offer.clients?.company || '');
             setRemarks(offer.remarks || '');
             
-            // Définir le montant total et le coefficient
             if (offer.coefficient && offer.amount) {
-              setGlobalMarginAdjustment({
+              setGlobalMarginAdjustment(prev => ({
+                ...prev,
                 amount: offer.amount,
                 newCoef: offer.coefficient
-              });
+              }));
             }
             
-            // Créer un équipement factice à partir de la description
             if (offer.equipment_description) {
               const equipmentItems = offer.equipment_description.split(',').map(item => {
                 const match = item.trim().match(/(.+) \((\d+)x\)/);
@@ -146,8 +143,6 @@ const CreateOffer = () => {
                   const title = match[1].trim();
                   const quantity = parseInt(match[2], 10);
                   
-                  // Calculer le prix d'achat approximatif
-                  // Note: C'est une approximation puisque nous n'avons pas les prix individuels
                   const totalCost = offer.amount || 0;
                   const approxPricePerItem = totalCost / (quantity || 1);
                   
@@ -156,7 +151,7 @@ const CreateOffer = () => {
                     title,
                     purchasePrice: approxPricePerItem,
                     quantity,
-                    margin: 20 // Marge par défaut
+                    margin: 20
                   };
                 }
                 return null;
@@ -191,7 +186,7 @@ const CreateOffer = () => {
     const purchasePrice = product.price || 0;
     const monthlyPrice = product.monthly_price || 0;
     const coef = findCoefficient(purchasePrice);
-    const margin = 20; // Default margin
+    const margin = 20;
     
     setEquipment({
       id: crypto.randomUUID(),
@@ -257,7 +252,6 @@ const CreateOffer = () => {
       let result;
       
       if (isEditMode && offerId) {
-        // Mise à jour de l'offre existante
         result = await updateOffer(offerId, offerData);
         if (result) {
           toast.success("Offre mise à jour avec succès !");
@@ -265,7 +259,6 @@ const CreateOffer = () => {
           throw new Error("Failed to update offer");
         }
       } else {
-        // Création d'une nouvelle offre
         result = await createOffer(offerData);
         if (result) {
           toast.success("Offre créée avec succès !");

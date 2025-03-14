@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -269,6 +270,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     setEquipmentList,
     totalMonthlyPayment,
     globalMarginAdjustment,
+    setGlobalMarginAdjustment, // Add the missing function here
     editingId,
     applyCalculatedMargin,
     addToList,
