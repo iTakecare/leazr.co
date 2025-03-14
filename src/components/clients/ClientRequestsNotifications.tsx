@@ -19,7 +19,7 @@ const ClientRequestsNotifications = () => {
     setError(null);
     
     try {
-      // Requête corrigée pour filtrer explicitement par type='client_request' et status='pending'
+      // Requête pour récupérer uniquement les demandes clients en attente
       const { data, error } = await supabase
         .from('offers')
         .select(`
@@ -117,7 +117,7 @@ const ClientRequestsNotifications = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Demandes à traiter
+            Demandes clients à traiter
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -135,7 +135,7 @@ const ClientRequestsNotifications = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Demandes à traiter
+            Demandes clients à traiter
           </CardTitle>
         </CardHeader>
         <CardContent>
