@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
@@ -15,6 +14,7 @@ export interface UserProfile {
   company: string | null;
   avatar_url: string | null;
   email?: string;
+  client_id?: string | null; // Add client_id property
 }
 
 interface AuthContextType {
@@ -50,10 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        // Vérifier le flux de réinitialisation de mot de passe
         const hash = window.location.hash;
         
-        // Si nous sommes dans un flux de réinitialisation, ne pas rediriger et ne pas définir la session
         if (hash && hash.includes('type=recovery')) {
           console.log("Flux de réinitialisation de mot de passe détecté, maintien de l'utilisateur sur la page de connexion");
           setIsLoading(false);
@@ -66,14 +64,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchUserProfile(currentSession.user.id);
           
           if (currentSession.user.email) {
-            // Nettoyer les doublons avant d'associer l'utilisateur (pour les admins)
             if (isAdmin()) {
               await cleanupDuplicateClients();
             }
             
             await linkUserToClient(currentSession.user.id, currentSession.user.email);
             
-            // Exécuter un diagnostic pour détecter et corriger les problèmes
             await verifyClientUserAssociation(currentSession.user.id, currentSession.user.email);
           }
         } else {
@@ -84,7 +80,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           async (_event, newSession) => {
             console.log("Changement d'état d'authentification:", _event, newSession ? "session existe" : "pas de session");
             
-            // Si le hash contient le type recovery, ne pas définir la session ou rediriger
             const currentHash = window.location.hash;
             
             if (currentHash && currentHash.includes('type=recovery') && _event !== 'PASSWORD_RECOVERY') {
@@ -99,14 +94,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await fetchUserProfile(newSession.user.id);
               
               if (newSession.user.email) {
-                // Nettoyer les doublons lors de la connexion (pour les admins)
                 if (_event === 'SIGNED_IN' && user?.role === 'admin') {
                   await cleanupDuplicateClients();
                 }
                 
                 await linkUserToClient(newSession.user.id, newSession.user.email);
                 
-                // Diagnostic après connexion
                 if (_event === 'SIGNED_IN') {
                   await verifyClientUserAssociation(newSession.user.id, newSession.user.email);
                 }
@@ -135,7 +128,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       console.log("Récupération du profil utilisateur pour l'ID:", userId);
       
-      // Récupérer l'email de l'utilisateur depuis la session
       const { data: userData } = await supabase.auth.getUser();
       const userEmail = userData?.user?.email;
       
@@ -163,7 +155,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!profileData && session) {
         console.log("Aucun profil trouvé, création d'un profil par défaut");
         
-        // Obtenir les métadonnées de l'utilisateur depuis l'authentification
         const { data: authUser } = await supabase.auth.getUser();
         const userMetadata = authUser?.user?.user_metadata;
         
@@ -176,7 +167,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatar_url: null
         };
         
-        // Essayer de créer le profil
         try {
           const { error: insertError } = await supabase
             .from('profiles')
@@ -230,27 +220,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("Connexion réussie, session établie");
         
         if (data.user) {
-          // Nettoyer les doublons lors de la connexion (pour les admins)
-          const { data: userProfile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.user.id)
-            .single();
+          if (data.user.email) {
+            if (isAdmin()) {
+              await cleanupDuplicateClients();
+            }
             
-          if (userProfile?.role === 'admin') {
-            await cleanupDuplicateClients();
+            await linkUserToClient(data.user.id, email);
           }
-          
-          await linkUserToClient(data.user.id, email);
         }
         
-        // Vérifier s'il y a un hash de récupération de mot de passe
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const type = hashParams.get('type');
         
-        // Ne pas naviguer si nous sommes dans un flux de réinitialisation de mot de passe
         if (type !== 'recovery') {
-          // Naviguer vers le tableau de bord approprié en fonction du rôle
           const { data: profile } = await supabase
             .from('profiles')
             .select('role')
@@ -270,7 +252,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.error('Erreur de connexion: aucune session retournée');
       }
       
-      return {}; // Succès
+      return {};
     } catch (error: any) {
       console.error('Erreur lors de la connexion:', error);
       const errorMessage = error.message === 'Invalid login credentials' 
@@ -381,15 +363,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
   
-  /**
-   * Créer un compte utilisateur pour un client existant
-   * Utile pour les clients importés ou créés manuellement
-   */
   async function createUserAccountForClient(email: string): Promise<boolean> {
     try {
       console.log(`Création d'un compte utilisateur pour le client avec l'email ${email}`);
       
-      // Vérifier si un compte utilisateur existe déjà
       const checkUserFunction = async () => {
         try {
           const { data: authUsers } = await supabase.auth.admin.listUsers();
@@ -398,7 +375,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
           console.error("Error checking users with admin:", e);
           
-          // Fallback to RPC call
           try {
             const { data: exists } = await supabase.rpc('check_user_exists_by_email', {
               user_email: email
@@ -425,7 +401,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
       
-      // Récupérer les infos du client
       const { data: client, error: clientError } = await supabase
         .from('clients')
         .select('*')
@@ -443,7 +418,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       
-      // Générer un mot de passe temporaire
       const generatePassword = () => {
         const randomPart = Math.random().toString(36).slice(-10);
         const uppercasePart = Math.random().toString(36).toUpperCase().slice(-2);
@@ -452,7 +426,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const tempPassword = generatePassword();
       
-      // Créer le compte utilisateur
       const createUserFunction = async () => {
         try {
           return await supabase.auth.admin.createUser({
@@ -469,7 +442,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
           console.error("Error creating user with admin:", e);
           
-          // Fallback to signUp
           return await supabase.auth.signUp({
             email: email,
             password: tempPassword,
@@ -494,7 +466,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       
-      // Associer l'utilisateur au client
       if (newUser?.user) {
         const { error: updateError } = await supabase
           .from('clients')
@@ -509,7 +480,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Error linking user to client:", updateError);
         }
         
-        // Envoyer l'email de réinitialisation de mot de passe
         const siteUrl = window.location.origin;
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${siteUrl}/login`
