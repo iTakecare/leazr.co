@@ -3,13 +3,28 @@ import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { HeartHandshake, MoreHorizontal, Mail, Phone, ReceiptEuro } from "lucide-react";
+import { HeartHandshake, MoreHorizontal, Mail, Phone, ReceiptEuro, AlertCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/utils/formatters";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import AmbassadorModal from './modals/AmbassadorModal';
+import AmbassadorDetail from './detail/AmbassadorDetail';
+import ClientsView from './detail/ClientsView';
+import CommissionsView from './detail/CommissionsView';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AmbassadorFormValues } from './forms/AmbassadorForm';
 
-// Ceci est une liste statique pour le moment, elle pourrait être remplacée par des données réelles plus tard
+// Données statiques pour démo
 const ambassadors = [
   {
     id: '1',
@@ -46,31 +61,97 @@ const ambassadors = [
   }
 ];
 
+// Données des clients de démonstration
+const mockClients = {
+  '1': [
+    { id: 'c1', name: 'ACME SAS', company: 'ACME', status: 'active', createdAt: '2023-05-12T10:30:00' },
+    { id: 'c2', name: 'Dubois Équipements', company: 'Dubois Équipements', status: 'active', createdAt: '2023-06-22T14:15:00' },
+    { id: 'c3', name: 'Centre Médical Rivière', company: 'Centre Médical Rivière', status: 'active', createdAt: '2023-08-05T09:45:00' },
+  ],
+  '2': [
+    { id: 'c4', name: 'Clinique du Sport', company: 'Clinique du Sport', status: 'active', createdAt: '2023-07-15T11:20:00' },
+    { id: 'c5', name: 'PhysioCare', company: 'PhysioCare', status: 'inactive', createdAt: '2023-09-30T16:00:00' },
+  ],
+  '3': [
+    { id: 'c6', name: 'Cabinet Martin', company: 'Cabinet Martin', status: 'inactive', createdAt: '2023-04-10T08:30:00' },
+  ]
+};
+
+// Données des commissions de démonstration
+const mockCommissions = {
+  '1': [
+    { id: 'co1', amount: 2500, status: 'paid', client: 'ACME SAS', date: '2023-06-15T10:30:00', description: 'Commission sur vente de matériel' },
+    { id: 'co2', amount: 1800, status: 'paid', client: 'Dubois Équipements', date: '2023-07-22T14:15:00', description: 'Commission sur contrat annuel' },
+    { id: 'co3', amount: 3200, status: 'paid', client: 'Centre Médical Rivière', date: '2023-09-05T09:45:00', description: 'Commission sur équipement complet' },
+    { id: 'co4', amount: 1250, status: 'pending', client: 'ACME SAS', date: '2023-10-18T15:30:00', description: 'Renouvellement contrat' },
+  ],
+  '2': [
+    { id: 'co5', amount: 2100, status: 'paid', client: 'Clinique du Sport', date: '2023-08-12T11:20:00', description: 'Commission sur vente de matériel' },
+    { id: 'co6', amount: 2240, status: 'paid', client: 'PhysioCare', date: '2023-09-25T16:00:00', description: 'Commission sur contrat annuel' },
+    { id: 'co7', amount: 980, status: 'pending', client: 'Clinique du Sport', date: '2023-10-30T14:45:00', description: 'Extension de contrat' },
+  ],
+  '3': [
+    { id: 'co8', amount: 1650, status: 'paid', client: 'Cabinet Martin', date: '2023-05-05T08:30:00', description: 'Commission sur vente de matériel' },
+    { id: 'co9', amount: 1500, status: 'paid', client: 'Cabinet Martin', date: '2023-07-10T13:15:00', description: 'Renouvellement contrat' },
+  ]
+};
+
 const AmbassadorsList = () => {
   const navigate = useNavigate();
   const [ambassadorsList, setAmbassadorsList] = useState(ambassadors);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentAmbassador, setCurrentAmbassador] = useState<any>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isClientsViewOpen, setIsClientsViewOpen] = useState(false);
+  const [isCommissionsViewOpen, setIsCommissionsViewOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const handleViewProfile = (id) => {
-    toast.info(`Affichage du profil de l'ambassadeur #${id}`);
-    // navigate(`/ambassadors/${id}`); // À implémenter plus tard
+  const handleAddAmbassador = () => {
+    setCurrentAmbassador(null);
+    setIsAddModalOpen(true);
   };
 
-  const handleEdit = (id) => {
-    toast.info(`Modification de l'ambassadeur #${id}`);
-    // navigate(`/ambassadors/edit/${id}`); // À implémenter plus tard
+  const handleEditAmbassador = (id: string) => {
+    const ambassador = ambassadorsList.find(a => a.id === id);
+    if (ambassador) {
+      setCurrentAmbassador(ambassador);
+      setIsEditModalOpen(true);
+    }
   };
 
-  const handleViewClients = (id) => {
-    toast.info(`Affichage des clients de l'ambassadeur #${id}`);
-    // navigate(`/ambassadors/${id}/clients`); // À implémenter plus tard
+  const handleViewProfile = (id: string) => {
+    const ambassador = ambassadorsList.find(a => a.id === id);
+    if (ambassador) {
+      setCurrentAmbassador(ambassador);
+      setIsDetailOpen(true);
+    }
   };
 
-  const handleViewCommissions = (id) => {
-    toast.info(`Affichage des commissions de l'ambassadeur #${id}`);
-    // navigate(`/ambassadors/${id}/commissions`); // À implémenter plus tard
+  const handleViewClients = (id: string) => {
+    const ambassador = ambassadorsList.find(a => a.id === id);
+    if (ambassador) {
+      setCurrentAmbassador({
+        ...ambassador,
+        clients: mockClients[id] || []
+      });
+      setIsClientsViewOpen(true);
+    }
   };
 
-  const handleToggleStatus = (id) => {
+  const handleViewCommissions = (id: string) => {
+    const ambassador = ambassadorsList.find(a => a.id === id);
+    if (ambassador) {
+      setCurrentAmbassador({
+        ...ambassador,
+        commissions: mockCommissions[id] || []
+      });
+      setIsCommissionsViewOpen(true);
+    }
+  };
+
+  const handleToggleStatus = (id: string) => {
     setAmbassadorsList(prevList => 
       prevList.map(ambassador => 
         ambassador.id === id 
@@ -85,9 +166,55 @@ const AmbassadorsList = () => {
     toast.success(`Le statut de l'ambassadeur ${ambassador.name} a été changé en "${newStatus === 'active' ? 'Actif' : 'Inactif'}"`);
   };
 
-  const handleAddAmbassador = () => {
-    toast.info("Ouverture du formulaire d'ajout d'ambassadeur");
-    // navigate('/ambassadors/create'); // À implémenter plus tard
+  const handleDeleteAmbassador = (id: string) => {
+    const ambassador = ambassadorsList.find(a => a.id === id);
+    if (ambassador) {
+      setCurrentAmbassador(ambassador);
+      setIsDeleteDialogOpen(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (currentAmbassador) {
+      setAmbassadorsList(prevList => prevList.filter(a => a.id !== currentAmbassador.id));
+      toast.success(`L'ambassadeur ${currentAmbassador.name} a été supprimé`);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  const handleSaveAmbassador = (data: AmbassadorFormValues) => {
+    setIsSubmitting(true);
+    
+    setTimeout(() => {
+      if (currentAmbassador?.id) {
+        // Mise à jour d'un ambassadeur existant
+        setAmbassadorsList(prevList => 
+          prevList.map(ambassador => 
+            ambassador.id === currentAmbassador.id
+              ? { ...ambassador, ...data }
+              : ambassador
+          )
+        );
+        toast.success(`L'ambassadeur ${data.name} a été mis à jour`);
+        setIsEditModalOpen(false);
+      } else {
+        // Ajout d'un nouvel ambassadeur
+        const newAmbassador = {
+          id: `${ambassadorsList.length + 1}`,
+          ...data,
+          clientsCount: 0,
+          commissionsTotal: 0,
+          lastCommission: 0,
+          status: 'active'
+        };
+        
+        setAmbassadorsList(prevList => [...prevList, newAmbassador]);
+        toast.success(`L'ambassadeur ${data.name} a été ajouté`);
+        setIsAddModalOpen(false);
+      }
+      
+      setIsSubmitting(false);
+    }, 600);
   };
 
   return (
@@ -128,12 +255,26 @@ const AmbassadorsList = () => {
                 </div>
               </TableCell>
               <TableCell>{ambassador.region}</TableCell>
-              <TableCell>{ambassador.clientsCount} clients</TableCell>
+              <TableCell>
+                <Button 
+                  variant="ghost" 
+                  className="h-8 px-2 text-xs"
+                  onClick={() => handleViewClients(ambassador.id)}
+                >
+                  {ambassador.clientsCount} clients
+                </Button>
+              </TableCell>
               <TableCell>
                 <div className="flex flex-col">
-                  <div className="font-medium text-sm">
-                    {formatCurrency(ambassador.commissionsTotal)}
-                  </div>
+                  <Button
+                    variant="ghost"
+                    className="h-8 px-2 text-xs justify-start"
+                    onClick={() => handleViewCommissions(ambassador.id)}
+                  >
+                    <div className="font-medium text-sm">
+                      {formatCurrency(ambassador.commissionsTotal)}
+                    </div>
+                  </Button>
                   {ambassador.lastCommission > 0 && (
                     <div className="text-xs text-muted-foreground flex items-center">
                       <ReceiptEuro className="h-3 w-3 mr-1" />
@@ -165,7 +306,7 @@ const AmbassadorsList = () => {
                     <DropdownMenuItem onClick={() => handleViewProfile(ambassador.id)}>
                       Afficher le profil
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEdit(ambassador.id)}>
+                    <DropdownMenuItem onClick={() => handleEditAmbassador(ambassador.id)}>
                       Modifier
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleViewClients(ambassador.id)}>
@@ -177,9 +318,15 @@ const AmbassadorsList = () => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => handleToggleStatus(ambassador.id)} 
-                      className="text-red-600"
+                      className={ambassador.status === 'active' ? "text-amber-600" : "text-green-600"}
                     >
                       {ambassador.status === 'active' ? 'Désactiver' : 'Activer'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleDeleteAmbassador(ambassador.id)} 
+                      className="text-red-600"
+                    >
+                      Supprimer
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -188,6 +335,75 @@ const AmbassadorsList = () => {
           ))}
         </TableBody>
       </Table>
+
+      {/* Modales et dialogs */}
+      <AmbassadorModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSubmit={handleSaveAmbassador}
+        isSubmitting={isSubmitting}
+      />
+
+      <AmbassadorModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)} 
+        ambassador={currentAmbassador}
+        onSubmit={handleSaveAmbassador}
+        isSubmitting={isSubmitting}
+      />
+
+      <AmbassadorDetail 
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        ambassador={currentAmbassador}
+        onEdit={() => {
+          setIsDetailOpen(false);
+          handleEditAmbassador(currentAmbassador.id);
+        }}
+      />
+
+      <ClientsView 
+        isOpen={isClientsViewOpen}
+        onClose={() => setIsClientsViewOpen(false)}
+        owner={{ 
+          id: currentAmbassador?.id || '', 
+          name: currentAmbassador?.name || '', 
+          type: 'ambassador' 
+        }}
+        clients={currentAmbassador?.clients || []}
+      />
+
+      <CommissionsView 
+        isOpen={isCommissionsViewOpen}
+        onClose={() => setIsCommissionsViewOpen(false)}
+        owner={{ 
+          id: currentAmbassador?.id || '', 
+          name: currentAmbassador?.name || '', 
+          type: 'ambassador' 
+        }}
+        commissions={currentAmbassador?.commissions || []}
+      />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmez la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l'ambassadeur <strong>{currentAmbassador?.name}</strong> ? 
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
