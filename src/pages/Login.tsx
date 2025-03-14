@@ -40,6 +40,8 @@ export default function Login() {
   const [resetLoading, setResetLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
   const navigate = useNavigate();
   const supabase = getSupabaseClient();
   const adminSupabase = getAdminSupabaseClient();
@@ -59,9 +61,51 @@ export default function Login() {
     },
   });
 
+  const toggleDebugMode = () => {
+    setDebugMode(!debugMode);
+  };
+
+  const testConnection = async () => {
+    try {
+      setLoginError(null);
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error("Test connection error:", error);
+        setLoginError(`Erreur de connexion à Supabase: ${error.message}`);
+        return;
+      }
+      
+      toast.success("Connexion à Supabase réussie!");
+      console.log("Session test:", data);
+    } catch (error: any) {
+      console.error("Test connection exception:", error);
+      setLoginError(`Exception: ${error.message}`);
+    }
+  };
+
   const onSubmitLogin = async (data: LoginFormValues) => {
     try {
       setLoading(true);
+      setLoginError(null);
+      console.log("Attempting signin with email:", data.email);
+      
+      const { data: authData, error } = await supabase.auth.signInWithPassword({ 
+        email: data.email, 
+        password: data.password 
+      });
+      
+      if (error) {
+        console.error("Sign in error:", error);
+        setLoginError(error.message === 'Invalid login credentials' 
+          ? 'Email ou mot de passe incorrect' 
+          : `Erreur: ${error.message}`);
+        return;
+      }
+      
+      console.log("Sign in successful, session established");
+      
+      // Simuler un signIn réussi pour mettre à jour le contexte d'auth
       await signIn(data.email, data.password);
       
       // Redirect to appropriate dashboard based on role
@@ -74,9 +118,9 @@ export default function Login() {
         navigate("/dashboard");
       }
       
-    } catch (error) {
-      console.error("Login error:", error);
-      // Error is handled by the signIn function in AuthContext
+    } catch (error: any) {
+      console.error("Error signing in:", error);
+      setLoginError(error.message || "Erreur lors de la connexion");
     } finally {
       setLoading(false);
     }
@@ -142,6 +186,18 @@ export default function Login() {
     }
   };
 
+  // Compte de démonstration pour faciliter les tests
+  const loginWithTestAccount = async () => {
+    loginForm.setValue('email', 'admin@test.com');
+    loginForm.setValue('password', 'admintest123');
+    
+    // Soumettre le formulaire
+    await onSubmitLogin({
+      email: 'admin@test.com',
+      password: 'admintest123'
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Formulaire à gauche */}
@@ -154,9 +210,19 @@ export default function Login() {
 
           <Card className="border-none shadow-md">
             <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold">
-                {resetPassword ? "Réinitialiser le mot de passe" : "Connexion"}
-              </CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-2xl font-bold">
+                  {resetPassword ? "Réinitialiser le mot de passe" : "Connexion"}
+                </CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={toggleDebugMode}
+                  className="text-xs text-muted-foreground"
+                >
+                  {debugMode ? "Masquer debug" : "Debug"}
+                </Button>
+              </div>
               <CardDescription>
                 {resetPassword 
                   ? "Entrez votre adresse e-mail pour recevoir un lien de réinitialisation"
@@ -234,6 +300,14 @@ export default function Login() {
               <CardContent>
                 <Form {...loginForm}>
                   <form onSubmit={loginForm.handleSubmit(onSubmitLogin)} className="space-y-4">
+                    {loginError && (
+                      <Alert className="mb-4 bg-destructive/10 border-destructive/20">
+                        <AlertTriangle className="h-4 w-4 text-destructive mr-2" />
+                        <AlertDescription className="text-destructive">
+                          {loginError}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <FormField
                       control={loginForm.control}
                       name="email"
@@ -301,6 +375,34 @@ export default function Login() {
                     <Button type="submit" className="w-full" disabled={loading}>
                       {loading ? "Connexion en cours..." : "Se connecter"}
                     </Button>
+                    
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      className="w-full"
+                      onClick={loginWithTestAccount}
+                    >
+                      Connexion avec compte démo
+                    </Button>
+                    
+                    {debugMode && (
+                      <div className="space-y-2 mt-4 p-4 bg-muted/50 rounded-md">
+                        <h3 className="text-sm font-medium">Mode Debug</h3>
+                        <Button 
+                          type="button" 
+                          variant="secondary" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={testConnection}
+                        >
+                          Tester la connexion à Supabase
+                        </Button>
+                        <div className="text-xs text-muted-foreground mt-2">
+                          <p>Compte démo: admin@test.com / admintest123</p>
+                          <p>URL Supabase: {import.meta.env.VITE_SUPABASE_URL || "Non défini"}</p>
+                        </div>
+                      </div>
+                    )}
                   </form>
                 </Form>
               </CardContent>
