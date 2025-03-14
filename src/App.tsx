@@ -17,6 +17,9 @@ import Offers from "./pages/Offers";
 import OfferDetail from "./pages/OfferDetail";
 import Contracts from "./pages/Contracts";
 import CreateTestUsers from "./pages/CreateTestUsers";
+import PartnerDashboard from "./pages/PartnerDashboard";
+import PartnerCreateOffer from "./pages/PartnerCreateOffer";
+import PartnerOfferDetail from "./pages/PartnerOfferDetail";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -38,12 +41,14 @@ const queryClient = new QueryClient({
 
 const ProtectedRoute = ({ 
   children, 
-  requireAdmin = false 
+  requireAdmin = false,
+  requirePartner = false
 }: { 
   children: React.ReactNode, 
-  requireAdmin?: boolean 
+  requireAdmin?: boolean,
+  requirePartner?: boolean
 }) => {
-  const { user, isLoading, isAdmin, isClient } = useAuth();
+  const { user, isLoading, isAdmin, isClient, isPartner } = useAuth();
   const location = useLocation();
 
   const isPasswordResetFlow = () => {
@@ -73,15 +78,50 @@ const ProtectedRoute = ({
 
   if (requireAdmin && !isAdmin()) {
     console.log("Accès admin requis mais utilisateur non admin, redirection");
+    if (isPartner()) {
+      return <Navigate to="/partner/dashboard" />;
+    }
     return <Navigate to="/client/dashboard" />;
   }
 
-  if (!requireAdmin && isClient() && !window.location.pathname.startsWith('/client')) {
+  if (requirePartner && !isPartner()) {
+    console.log("Accès partenaire requis mais utilisateur non partenaire, redirection");
+    if (isAdmin()) {
+      return <Navigate to="/dashboard" />;
+    }
+    return <Navigate to="/client/dashboard" />;
+  }
+
+  if (!requireAdmin && !requirePartner && isClient() && !window.location.pathname.startsWith('/client')) {
     console.log("Client tentant d'accéder à une route admin, redirection");
     return <Navigate to="/client/dashboard" />;
   }
 
   return <>{children}</>;
+};
+
+// Partner specific layout
+const PartnerLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold">iTakecare Partner</h1>
+          </div>
+          
+          <nav className="flex items-center gap-6">
+            <a href="/partner/dashboard" className="text-gray-700 hover:text-blue-700">Tableau de bord</a>
+            <a href="/partner/create-offer" className="text-gray-700 hover:text-blue-700">Nouvelle offre</a>
+            <a href="/logout" className="text-gray-700 hover:text-blue-700">Déconnexion</a>
+          </nav>
+        </div>
+      </header>
+      <main className="container mx-auto px-4 py-6">
+        {children}
+      </main>
+    </div>
+  );
 };
 
 function App() {
@@ -125,6 +165,17 @@ function App() {
               <Route path="/offers/:id" element={<OfferDetail />} />
               <Route path="/contracts" element={<Contracts />} />
               <Route path="/create-test-users" element={<CreateTestUsers />} />
+            </Route>
+            
+            {/* Partner Routes */}
+            <Route path="/partner" element={
+              <ProtectedRoute requirePartner={true}>
+                <PartnerLayout />
+              </ProtectedRoute>
+            }>
+              <Route path="dashboard" element={<PartnerDashboard />} />
+              <Route path="create-offer" element={<PartnerCreateOffer />} />
+              <Route path="offers/:id" element={<PartnerOfferDetail />} />
             </Route>
             
             <Route path="/client/*" element={
