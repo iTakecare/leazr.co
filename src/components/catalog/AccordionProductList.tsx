@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getProducts, deleteProduct, getBrands } from "@/services/catalogService";
@@ -326,12 +327,11 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
         </DropdownMenu>
       </div>
       
-      <TabsContent value="model" className="pt-4">
-        <Accordion type="multiple" className="space-y-4">
+      <TabsContent value="model" className="mt-0">
+        <div className="space-y-4">
           {parentProducts.map((parentProduct) => {
             const variants = sortProducts(variantsByParentId[parentProduct.id] || []);
             const hasVariants = variants.length > 0;
-            const variantCount = variants.length;
             
             if (!hasVariants) {
               return null; // Skip parent products without variants
@@ -339,8 +339,8 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
             
             return (
               <motion.div key={parentProduct.id} variants={itemVariants}>
-                <AccordionItem value={parentProduct.id} className="border rounded-lg overflow-hidden">
-                  <AccordionTrigger className="px-4 py-3 bg-muted/50 hover:bg-muted">
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 bg-muted/50">
                     <div className="flex items-center">
                       <div className="w-10 h-10 bg-muted rounded overflow-hidden mr-3">
                         <img
@@ -352,80 +352,73 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
                           }}
                         />
                       </div>
-                      <div className="text-left">
-                        <span className="font-medium">{parentProduct.name}</span>
-                        {hasVariants && (
-                          <span className="ml-2 text-sm text-muted-foreground">
-                            ({variantCount} variante{variantCount > 1 ? 's' : ''})
-                          </span>
-                        )}
+                      <div className="text-left font-medium">
+                        {parentProduct.name}
                       </div>
                     </div>
-                  </AccordionTrigger>
+                  </div>
                   
-                  <AccordionContent className="p-0">
-                    <div className="bg-muted/10 rounded-b-lg">
-                      <div className="p-3 border-t border-muted">
-                        <div className="space-y-2">
-                          {variants.map((variant) => (
-                            <div key={variant.id} className="p-3 bg-white rounded border border-muted hover:bg-muted/20 transition-colors">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-8 h-8 bg-muted rounded overflow-hidden">
-                                    <img
-                                      src={variant.image_url || variant.imageUrl || '/placeholder.svg'}
-                                      alt={variant.name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = "/placeholder.svg";
-                                      }}
-                                    />
-                                  </div>
-                                  <div>
-                                    <h3 className="font-medium">{variant.name}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                      {formatCurrency(variant.price || 0)}
-                                      {variant.variation_attributes && (
-                                        <span className="ml-2">
-                                          {Object.entries(variant.variation_attributes)
-                                            .map(([key, value]) => `${key}: ${value}`)
-                                            .join(', ')}
-                                        </span>
-                                      )}
-                                    </p>
-                                  </div>
+                  <div className="bg-muted/10 rounded-b-lg">
+                    <div className="p-3 border-t border-muted">
+                      <div className="space-y-2">
+                        {variants.map((variant) => (
+                          <div key={variant.id} className="p-3 bg-white rounded border border-muted hover:bg-muted/20 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-muted rounded overflow-hidden">
+                                  <img
+                                    src={variant.image_url || variant.imageUrl || '/placeholder.svg'}
+                                    alt={variant.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                    }}
+                                  />
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <Link to={`/products/${variant.id}`}>
-                                    <Button variant="outline" size="sm">
-                                      <Edit className="h-4 w-4 mr-1" />
-                                      Modifier
-                                    </Button>
-                                  </Link>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => setProductToDelete(variant.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                <div>
+                                  <h3 className="font-medium">{variant.name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    {formatCurrency(variant.price || 0)}
+                                    {variant.variation_attributes && (
+                                      <span className="ml-2">
+                                        {Object.entries(variant.variation_attributes)
+                                          .map(([key, value]) => `${key}: ${value}`)
+                                          .join(', ')}
+                                      </span>
+                                    )}
+                                  </p>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2">
+                                <Link to={`/products/${variant.id}`}>
+                                  <Button variant="outline" size="sm">
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Modifier
+                                  </Button>
+                                </Link>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => setProductToDelete(variant.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
+                </div>
               </motion.div>
             );
           })}
-        </Accordion>
+        </div>
       </TabsContent>
       
-      <TabsContent value="brand" className="pt-4">
-        <Accordion type="multiple" className="space-y-4">
+      <TabsContent value="brand" className="mt-0">
+        <div className="space-y-4">
           {Object.entries(brandGroups).map(([brandName, brandProducts]) => {
             if (brandProducts.length === 0) return null;
             
@@ -433,77 +426,72 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
             
             return (
               <motion.div key={brandName} variants={itemVariants}>
-                <AccordionItem value={brandName} className="border rounded-lg overflow-hidden">
-                  <AccordionTrigger className="px-4 py-3 bg-muted/50 hover:bg-muted">
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 bg-muted/50">
                     <div className="flex items-center">
-                      <div className="text-left">
-                        <span className="font-medium">{getBrandTranslation(brandName)}</span>
-                        <span className="ml-2 text-sm text-muted-foreground">
-                          ({sortedBrandProducts.length} produit{sortedBrandProducts.length > 1 ? 's' : ''})
-                        </span>
+                      <div className="text-left font-medium">
+                        {getBrandTranslation(brandName)}
                       </div>
                     </div>
-                  </AccordionTrigger>
+                  </div>
                   
-                  <AccordionContent className="p-0">
-                    <div className="bg-muted/10 rounded-b-lg">
-                      <div className="p-3 border-t border-muted">
-                        <div className="space-y-2">
-                          {sortedBrandProducts.map((product) => (
-                            <div key={product.id} className="p-3 bg-white rounded border border-muted hover:bg-muted/20 transition-colors">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-8 h-8 bg-muted rounded overflow-hidden">
-                                    <img
-                                      src={product.image_url || product.imageUrl || '/placeholder.svg'}
-                                      alt={product.name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = "/placeholder.svg";
-                                      }}
-                                    />
-                                  </div>
-                                  <div>
-                                    <h3 className="font-medium">{product.name}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                      {formatCurrency(product.price || 0)}
-                                      {product.variation_attributes && (
-                                        <span className="ml-2">
-                                          {Object.entries(product.variation_attributes)
-                                            .map(([key, value]) => `${key}: ${value}`)
-                                            .join(', ')}
-                                        </span>
-                                      )}
-                                    </p>
-                                  </div>
+                  <div className="bg-muted/10 rounded-b-lg">
+                    <div className="p-3 border-t border-muted">
+                      <div className="space-y-2">
+                        {sortedBrandProducts.map((product) => (
+                          <div key={product.id} className="p-3 bg-white rounded border border-muted hover:bg-muted/20 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-muted rounded overflow-hidden">
+                                  <img
+                                    src={product.image_url || product.imageUrl || '/placeholder.svg'}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                    }}
+                                  />
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <Link to={`/products/${product.id}`}>
-                                    <Button variant="outline" size="sm">
-                                      <Edit className="h-4 w-4 mr-1" />
-                                      Modifier
-                                    </Button>
-                                  </Link>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => setProductToDelete(product.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                <div>
+                                  <h3 className="font-medium">{product.name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    {formatCurrency(product.price || 0)}
+                                    {product.variation_attributes && (
+                                      <span className="ml-2">
+                                        {Object.entries(product.variation_attributes)
+                                          .map(([key, value]) => `${key}: ${value}`)
+                                          .join(', ')}
+                                      </span>
+                                    )}
+                                  </p>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2">
+                                <Link to={`/products/${product.id}`}>
+                                  <Button variant="outline" size="sm">
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Modifier
+                                  </Button>
+                                </Link>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => setProductToDelete(product.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
+                </div>
               </motion.div>
             );
           })}
-        </Accordion>
+        </div>
       </TabsContent>
     </motion.div>
   );
