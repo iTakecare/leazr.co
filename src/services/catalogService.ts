@@ -1,3 +1,4 @@
+
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { products as defaultProducts } from "@/data/products";
@@ -13,7 +14,8 @@ export async function getProducts(): Promise<Product[]> {
 
     if (error) {
       console.error("Error fetching products from API:", error);
-      throw new Error(`Error fetching products: ${error.message}`);
+      console.log("Using default products due to API error");
+      return defaultProducts;
     }
 
     if (!data || data.length === 0) {
@@ -21,8 +23,18 @@ export async function getProducts(): Promise<Product[]> {
       return defaultProducts;
     }
 
-    console.log(`Retrieved ${data.length} products from API`);
-    return data || [];
+    // Enhance API data with default monthly prices if not present
+    const enhancedData = data.map(product => {
+      if (!product.monthly_price && product.price) {
+        // Calcul approximatif d'une mensualité si elle n'est pas définie
+        const coefficient = 0.033; // Coefficient mensuel approximatif sur 36 mois
+        product.monthly_price = parseFloat((product.price * coefficient).toFixed(2));
+      }
+      return product;
+    });
+
+    console.log(`Retrieved ${enhancedData.length} products from API`);
+    return enhancedData;
   } catch (error) {
     console.error("Error in getProducts:", error);
     console.log("Returning default products due to error");

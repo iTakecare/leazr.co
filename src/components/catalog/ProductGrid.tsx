@@ -87,10 +87,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
               
               <div className="mt-auto pt-2 flex flex-col">
                 <p className="font-bold text-primary">
-                  Prix d'achat: {product.monthly_price ? formatCurrency(product.monthly_price) : "-"}
+                  Prix d'achat: {formatCurrency(product.price)}
                 </p>
                 <p className="text-sm">
-                  Mensualité: {product.price ? formatCurrency(product.price) + "/mois" : "-"}
+                  Mensualité: {formatCurrency(product.monthly_price || 0)}/mois
                 </p>
               </div>
             </div>

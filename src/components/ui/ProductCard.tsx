@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
-import { Laptop, PcCase, Smartphone, Monitor, Package } from "lucide-react";
+import { Laptop, PcCase, Smartphone, Monitor, Package, Tablet } from "lucide-react";
 
 type ProductCardProps = {
   product: Product;
@@ -28,6 +28,8 @@ function getCategoryIcon(category: string) {
       return <PcCase className="h-4 w-4" />;
     case 'smartphone':
       return <Smartphone className="h-4 w-4" />;
+    case 'tablet':
+      return <Tablet className="h-4 w-4" />;
     case 'display':
       return <Monitor className="h-4 w-4" />;
     default:
@@ -41,8 +43,8 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
     e.currentTarget.src = '/placeholder.svg';
   };
 
-  // Get image source from image_url property (don't use imageUrl anymore)
-  const imageSource = product.image_url || '/placeholder.svg';
+  // Get image source from image_url or imageUrl property
+  const imageSource = product.image_url || product.imageUrl || '/placeholder.svg';
 
   // Get the alt text
   const imageAlt = product.image_alt || `${product.name} image`;
@@ -74,8 +76,13 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         </p>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
-        <div className="font-bold text-lg">
-          {formatCurrency(product.price)}
+        <div>
+          <div className="font-bold text-lg">
+            {formatCurrency(product.monthly_price || 0)}<span className="text-xs font-normal text-muted-foreground">/mois</span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Prix d'achat: {formatCurrency(product.price)}
+          </div>
         </div>
         <Button 
           size="sm" 

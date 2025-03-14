@@ -181,12 +181,20 @@ const ProductCatalog = ({ isOpen, onClose, onSelectProduct }: ProductCatalogProp
                     <h3 className="font-medium line-clamp-1">{product.name}</h3>
                     <p className="text-sm text-muted-foreground">{translateCategory(product.category)}</p>
                     <div className="mt-2 flex items-center justify-between">
-                      <p className="font-bold">
-                        {product.price.toLocaleString("fr-FR", {
-                          style: "currency",
-                          currency: "EUR",
-                        })}
-                      </p>
+                      <div>
+                        <p className="font-bold">
+                          {product.monthly_price?.toLocaleString("fr-FR", {
+                            style: "currency",
+                            currency: "EUR",
+                          })}<span className="text-xs font-normal text-muted-foreground">/mois</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Prix d'achat: {product.price?.toLocaleString("fr-FR", {
+                            style: "currency",
+                            currency: "EUR",
+                          })}
+                        </p>
+                      </div>
                       <Button size="sm" variant="ghost" className="rounded-full h-8 w-8 p-0">
                         <Plus className="h-4 w-4" />
                       </Button>
