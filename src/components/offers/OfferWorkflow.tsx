@@ -13,7 +13,9 @@ import {
   Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Popover } from "@/components/ui/popover";
+import { PopoverTrigger } from "@/components/ui/popover";
+import { PopoverContent } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { workflowStatuses } from "@/hooks/useOffers";
 import { toast } from "sonner";
@@ -214,8 +216,8 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
   const handleStatusSelection = async (newStatus: string) => {
     console.log(`OfferWorkflow - Selected new status: ${newStatus}`);
     
-    // Skip if status is unchanged
-    if (newStatus === validStatus) {
+    // Skip if status is unchanged or invalid
+    if (!newStatus || newStatus === validStatus) {
       toast.info("Le statut est déjà à cette valeur");
       return;
     }
@@ -347,7 +349,7 @@ const OfferWorkflow: React.FC<OfferWorkflowProps> = ({
                     step.color,
                     "hover:bg-gray-100"
                   )}
-                  onClick={() => handleStatusSelection(step.id || "")}
+                  onClick={() => handleStatusSelection(step.id)}
                   disabled={isUpdating}
                 >
                   {isUpdating ? (

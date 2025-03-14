@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { getOffers, deleteOffer, updateOfferStatus } from "@/services/offerService";
 import { toast } from "sonner";
@@ -135,7 +134,11 @@ export const useOffers = () => {
       }
       
       // Get the current status from the workflow_status field
-      const currentStatus = currentOffer.workflow_status || workflowStatuses.DRAFT;
+      const currentStatus = 
+        currentOffer.workflow_status && 
+        Object.values(workflowStatuses).includes(currentOffer.workflow_status) ? 
+          currentOffer.workflow_status : workflowStatuses.DRAFT;
+      
       console.log(`Current status: ${currentStatus}, New status: ${newStatus}`);
       
       // Skip update if status hasn't changed

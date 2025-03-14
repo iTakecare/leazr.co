@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -43,20 +44,25 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [comment, setComment] = useState("");
-  const [localWorkflowStatus, setLocalWorkflowStatus] = useState(offer.workflow_status || workflowStatuses.DRAFT);
+  const [localWorkflowStatus, setLocalWorkflowStatus] = useState<string>("");
   const navigate = useNavigate();
   
   // Update local status whenever offer changes
   useEffect(() => {
     console.log("OfferDetailCard - offer updated:", offer.id);
+    
+    // Vérifier si workflow_status est une valeur valide
+    const isValidStatus = Object.values(workflowStatuses).includes(offer.workflow_status || "");
+    const newStatus = isValidStatus 
+      ? offer.workflow_status
+      : workflowStatuses.DRAFT;
+    
     console.log("Current local status:", localWorkflowStatus);
     console.log("New offer status:", offer.workflow_status);
+    console.log("Setting status to:", newStatus);
     
-    if (offer.workflow_status && offer.workflow_status !== localWorkflowStatus) {
-      console.log("Updating local workflow status to:", offer.workflow_status);
-      setLocalWorkflowStatus(offer.workflow_status);
-    }
-  }, [offer, offer.workflow_status]);
+    setLocalWorkflowStatus(newStatus || workflowStatuses.DRAFT);
+  }, [offer]);
   
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -199,7 +205,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
           )}
           
           <OfferWorkflow 
-            currentStatus={localWorkflowStatus} 
+            currentStatus={localWorkflowStatus}
             onStatusChange={handleStatusChange}
             isUpdating={isUpdatingStatus}
             offerId={offer.id}
