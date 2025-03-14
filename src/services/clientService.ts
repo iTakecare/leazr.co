@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -366,8 +367,9 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
     console.log("Creating account for client:", client.email);
     
-    if (client.has_user_account === true && client.user_id) {
-      console.log("Client already has a user account");
+    // Utilisation d'une condition plus stricte: vérifier à la fois has_user_account et user_id
+    if (client.has_user_account && client.user_id) {
+      console.log("Client already has a user account with ID:", client.user_id);
       toast.warning("Ce client a déjà un compte utilisateur associé");
       
       return await resetClientPassword(client.email);
@@ -420,19 +422,24 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       console.log("New user created successfully:", signUpData?.user?.id);
       
       if (signUpData && signUpData.user) {
-        const { error: updateError } = await supabase
+        // Mise à jour explicite de la base de données pour s'assurer que les deux champs sont correctement définis
+        const { data: updatedClient, error: updateError } = await supabase
           .from('clients')
           .update({ 
             user_id: signUpData.user.id,
             has_user_account: true,
             user_account_created_at: new Date().toISOString()
           })
-          .eq('id', client.id);
+          .eq('id', client.id)
+          .select('*')
+          .single();
           
         if (updateError) {
           console.error("Error updating client with user_id:", updateError);
+          toast.error("Erreur lors de la mise à jour du client");
+          return false;
         } else {
-          console.log("Client updated with user_id:", signUpData.user.id);
+          console.log("Client updated with user account info:", updatedClient);
         }
       }
       
