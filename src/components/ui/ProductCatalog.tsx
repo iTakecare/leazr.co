@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Alert } from "@/components/ui/alert";
 import ProductCard from "./ProductCard";
+import { toast } from "sonner";
 
 // Map for translating category names to French
 const categoryTranslations: Record<string, string> = {
@@ -75,9 +76,23 @@ const ProductCatalog = ({
         console.log("Fetching products for catalog...");
         const productsData = await getProducts();
         console.log(`Retrieved ${productsData.length} products for catalog`);
+        
+        // Si aucun produit n'est trouvé, avertir l'utilisateur mais ne pas tomber en fallback
+        if (productsData.length === 0) {
+          console.log("Aucun produit trouvé dans la base de données");
+          toast.warning("Aucun produit trouvé", {
+            description: "Veuillez ajouter des produits au catalogue",
+            duration: 5000,
+          });
+        }
+        
         return productsData;
       } catch (error) {
         console.error("Error fetching products:", error);
+        toast.error("Erreur lors du chargement des produits", {
+          description: "Veuillez réessayer plus tard",
+          duration: 5000,
+        });
         throw error;
       }
     },
