@@ -261,25 +261,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="monthly_price">Mensualité (€)</Label>
-              <div className="relative">
-                <Input
-                  id="monthly_price"
-                  type="number"
-                  value={monthlyPrice}
-                  onChange={(e) => setMonthlyPrice(e.target.value)}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  className="pl-8"
-                />
-                <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-              <p className="text-xs text-muted-foreground">Mensualité pour le leasing du produit</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="price" className="required">Prix d'achat (€)</Label>
+              <Label htmlFor="price" className="required">Mensualité (€)</Label>
               <div className="relative">
                 <Input
                   id="price"
@@ -290,6 +272,24 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                   step="0.01"
                   min="0"
                   required
+                  className="pl-8"
+                />
+                <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground">Mensualité pour le leasing du produit</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="monthly_price">Prix d'achat (€)</Label>
+              <div className="relative">
+                <Input
+                  id="monthly_price"
+                  type="number"
+                  value={monthlyPrice}
+                  onChange={(e) => setMonthlyPrice(e.target.value)}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
                   className="pl-8"
                 />
                 <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
