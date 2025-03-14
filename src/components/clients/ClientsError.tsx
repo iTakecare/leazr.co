@@ -1,26 +1,18 @@
 
 import React from "react";
-import { AlertTriangle, Info, RefreshCw, UserPlus } from "lucide-react";
+import { AlertTriangle, Info, RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Link } from "react-router-dom";
-import { linkUserToClient } from "@/utils/clientUserAssociation";
 
 interface ClientsErrorProps {
   errorMessage: string;
   onRetry?: () => void;
   email?: string | null;
   userId?: string | null;
-  onForceLink?: () => Promise<void>;
 }
 
-const ClientsError = ({ errorMessage, onRetry, email, userId, onForceLink }: ClientsErrorProps) => {
-  const handleForceLink = async () => {
-    if (userId && email && onForceLink) {
-      await onForceLink();
-    }
-  };
-
+const ClientsError = ({ errorMessage, onRetry, email }: ClientsErrorProps) => {
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
       <Alert className="my-8 border-red-300 bg-red-50 dark:bg-red-950/20">
@@ -36,7 +28,7 @@ const ClientsError = ({ errorMessage, onRetry, email, userId, onForceLink }: Cli
               </p>
             </div>
           )}
-          <p>Veuillez vérifier que votre compte utilisateur est bien associé à un client existant dans le système.</p>
+          <p>Une erreur s'est produite lors de la vérification de votre compte client.</p>
           <p>Si le problème persiste, contactez votre administrateur.</p>
         </div>
       </Alert>
@@ -49,17 +41,6 @@ const ClientsError = ({ errorMessage, onRetry, email, userId, onForceLink }: Cli
           >
             <RefreshCw className="h-4 w-4" />
             Réessayer
-          </Button>
-        )}
-        
-        {userId && email && (
-          <Button 
-            onClick={handleForceLink}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <UserPlus className="h-4 w-4" />
-            Forcer l'association du compte
           </Button>
         )}
         

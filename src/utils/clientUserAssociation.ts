@@ -52,33 +52,35 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
       }
     }
     
-    // Cas spécial pour mistergi118@gmail.com - créer un client s'il n'existe pas
-    if (userEmail === "mistergi118@gmail.com") {
-      console.log("Création d'un nouveau client pour mistergi118@gmail.com");
+    // Créer automatiquement un nouveau client si aucun n'existe
+    console.log("Aucun client trouvé pour cet email, création automatique");
+    
+    // Extraire le nom d'affichage à partir de l'email
+    const displayName = userEmail.split('@')[0];
+    // Transformer en format nom plus lisible (première lettre en majuscule)
+    const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1).replace(/[._-]/g, ' ');
+    
+    const { data: newClient, error: createError } = await supabase
+      .from('clients')
+      .insert({
+        name: formattedName,
+        email: userEmail,
+        user_id: userId,
+        status: 'active'
+      })
+      .select('id, name')
+      .single();
       
-      const { data: newClient, error: createError } = await supabase
-        .from('clients')
-        .insert({
-          name: "GI Test Client",
-          email: userEmail,
-          user_id: userId,
-          status: 'active'
-        })
-        .select('id, name')
-        .single();
-        
-      if (createError) {
-        console.error("Erreur lors de la création du client:", createError);
-        return null;
-      }
-      
-      console.log("Nouveau client créé:", newClient);
-      toast.success("Un nouveau compte client a été créé pour vous");
-      localStorage.setItem(`client_id_${userId}`, newClient.id);
-      return newClient.id;
+    if (createError) {
+      console.error("Erreur lors de la création du client:", createError);
+      return null;
     }
     
-    return null;
+    console.log("Nouveau client créé:", newClient);
+    toast.success(`Un nouveau compte client a été créé pour vous (${newClient.name})`);
+    localStorage.setItem(`client_id_${userId}`, newClient.id);
+    return newClient.id;
+    
   } catch (error) {
     console.error("Erreur dans linkUserToClient:", error);
     return null;

@@ -57,7 +57,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
             return;
           } else {
             console.error("No client found for this user");
-            setClientError(`Compte client non trouvé. L'utilisateur n'est associé à aucun client dans le système.`);
+            setClientError(`Erreur lors de la vérification du compte client. Veuillez réessayer ou contacter l'assistance.`);
           }
         } else {
           setClientError("L'utilisateur n'a pas d'email associé.");
@@ -81,45 +81,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
     setRetryCount(prev => prev + 1);
   };
 
-  const handleForceLink = async () => {
-    if (!user || !user.email) return;
-    
-    try {
-      setCheckingClient(true);
-      
-      const { data: newClient, error: createError } = await supabase
-        .from('clients')
-        .insert({
-          name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email.split('@')[0],
-          email: user.email,
-          user_id: user.id,
-          status: 'active'
-        })
-        .select('id, name')
-        .single();
-        
-      if (createError) {
-        console.error("Error creating new client:", createError);
-        toast.error("Erreur lors de la création du client");
-        return;
-      }
-      
-      console.log("New client created:", newClient);
-      toast.success(`Un nouveau compte client a été créé pour vous (${newClient.name})`);
-      
-      if (user.id) {
-        localStorage.setItem(`client_id_${user.id}`, newClient.id);
-      }
-      
-      setRetryCount(prev => prev + 1);
-    } catch (error) {
-      console.error("Error in force link:", error);
-      toast.error("Erreur lors de la création du client");
-    } finally {
-      setCheckingClient(false);
-    }
-  };
-
   if (isLoading || checkingClient) {
     return <ClientLayout><ClientsLoading /></ClientLayout>;
   }
@@ -132,7 +93,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           onRetry={handleRetry}
           email={user?.email}
           userId={user?.id}
-          onForceLink={handleForceLink}
         />
       </ClientLayout>
     );
