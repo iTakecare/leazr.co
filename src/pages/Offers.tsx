@@ -1,26 +1,14 @@
 
-import React, { useState } from "react";
-import Container from "@/components/layout/Container";
-import PageTransition from "@/components/layout/PageTransition";
-import { formatCurrency } from "@/utils/formatters";
-import { motion } from "framer-motion";
+import React, { useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
-// Import des composants
 import OffersHeader from "@/components/offers/OffersHeader";
-import OffersSearch from "@/components/offers/OffersSearch";
 import OffersFilter from "@/components/offers/OffersFilter";
+import OffersSearch from "@/components/offers/OffersSearch";
+import OffersTable from "@/components/offers/OffersTable";
 import OffersLoading from "@/components/offers/OffersLoading";
 import OffersError from "@/components/offers/OffersError";
-import OfferDetailCard from "@/components/offers/OfferDetailCard";
+import { useLocation, useNavigate } from "react-router-dom";
+import { PageTransition } from "@/components/layout/PageTransition";
 
 const Offers = () => {
   const {
@@ -31,150 +19,85 @@ const Offers = () => {
     setSearchTerm,
     activeTab,
     setActiveTab,
-    isUpdatingStatus,
-    fetchOffers,
+    activeType,
+    setActiveType,
     handleDeleteOffer,
     handleResendOffer,
     handleDownloadPdf,
-    handleUpdateWorkflowStatus
+    fetchOffers
   } = useOffers();
-
-  const [displayMode, setDisplayMode] = useState<'list' | 'card'>('card');
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        when: "beforeChildren",
-        staggerChildren: 0.05,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
-  };
-
-  // Display loading state
-  if (loading) {
-    return <OffersLoading />;
-  }
-
-  // Display error state if there are no offers
-  if (loadingError && filteredOffers.length === 0) {
-    return <OffersError errorMessage={loadingError} onRetry={fetchOffers} />;
-  }
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Vérifier si des filtres sont spécifiés dans l'URL
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const statusFilter = searchParams.get('status');
+    const typeFilter = searchParams.get('type');
+    
+    if (statusFilter) {
+      setActiveTab(statusFilter);
+    }
+    
+    if (typeFilter) {
+      setActiveType(typeFilter);
+    }
+  }, [location.search]);
+  
+  // Mise à jour de l'URL quand les filtres changent
+  useEffect(() => {
+    const searchParams = new URLSearchParams();
+    
+    if (activeTab !== 'all') {
+      searchParams.set('status', activeTab);
+    }
+    
+    if (activeType !== 'all') {
+      searchParams.set('type', activeType);
+    }
+    
+    const newSearch = searchParams.toString();
+    const currentSearch = location.search.startsWith('?') 
+      ? location.search.substring(1) 
+      : location.search;
+    
+    if (newSearch !== currentSearch) {
+      navigate({ pathname: location.pathname, search: newSearch }, { replace: true });
+    }
+  }, [activeTab, activeType, navigate, location.pathname, location.search]);
 
   return (
     <PageTransition>
-      <Container>
-        <motion.div
-          className="py-4"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <OffersHeader itemVariants={itemVariants} />
-
-          <motion.div variants={itemVariants}>
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <CardTitle>Liste des offres</CardTitle>
-                    <CardDescription>
-                      {filteredOffers.length} offre(s) trouvée(s)
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <OffersSearch 
-                      searchTerm={searchTerm} 
-                      setSearchTerm={setSearchTerm} 
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {displayMode === 'list' ? (
-                  <OffersFilter 
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    filteredOffers={filteredOffers}
-                    onDeleteOffer={handleDeleteOffer}
-                    onResendOffer={handleResendOffer}
-                    onDownloadPdf={handleDownloadPdf}
-                  />
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex space-x-2">
-                        <button
-                          className={`px-3 py-1 text-sm rounded-md ${activeTab === 'all' ? 'bg-primary text-white' : 'bg-muted'}`}
-                          onClick={() => setActiveTab('all')}
-                        >
-                          Toutes
-                        </button>
-                        <button
-                          className={`px-3 py-1 text-sm rounded-md ${activeTab === 'accepted' ? 'bg-primary text-white' : 'bg-muted'}`}
-                          onClick={() => setActiveTab('accepted')}
-                        >
-                          Acceptées
-                        </button>
-                        <button
-                          className={`px-3 py-1 text-sm rounded-md ${activeTab === 'pending' ? 'bg-primary text-white' : 'bg-muted'}`}
-                          onClick={() => setActiveTab('pending')}
-                        >
-                          En attente
-                        </button>
-                        <button
-                          className={`px-3 py-1 text-sm rounded-md ${activeTab === 'rejected' ? 'bg-primary text-white' : 'bg-muted'}`}
-                          onClick={() => setActiveTab('rejected')}
-                        >
-                          Refusées
-                        </button>
-                      </div>
-                      <div>
-                        <button
-                          className={`px-3 py-1 text-sm rounded-md bg-muted`}
-                          onClick={() => setDisplayMode(displayMode === 'card' ? 'list' : 'card')}
-                        >
-                          {displayMode === 'card' ? 'Vue tableau' : 'Vue cartes'}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {filteredOffers.map(offer => (
-                      <OfferDetailCard 
-                        key={offer.id} 
-                        offer={offer} 
-                        onStatusChange={handleUpdateWorkflowStatus}
-                        isUpdatingStatus={isUpdatingStatus}
-                        onDelete={handleDeleteOffer}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Montant total des commissions:{" "}
-                  <span className="font-medium text-foreground">
-                    {formatCurrency(
-                      filteredOffers.reduce(
-                        (total, offer) => total + offer.commission,
-                        0
-                      )
-                    )}
-                  </span>
-                </p>
-              </CardFooter>
-            </Card>
-          </motion.div>
-        </motion.div>
-      </Container>
+      <div className="w-full p-4 md:p-8">
+        <OffersHeader count={filteredOffers.length} />
+        
+        <div className="mb-6">
+          <OffersFilter 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab}
+            activeType={activeType}
+            onTypeChange={setActiveType}
+          />
+        </div>
+        
+        <div className="mb-6">
+          <OffersSearch searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+        </div>
+        
+        {loading ? (
+          <OffersLoading />
+        ) : loadingError ? (
+          <OffersError error={loadingError} onRetry={fetchOffers} />
+        ) : (
+          <OffersTable
+            offers={filteredOffers}
+            onDeleteOffer={handleDeleteOffer}
+            onResendOffer={handleResendOffer}
+            onDownloadPdf={handleDownloadPdf}
+          />
+        )}
+      </div>
     </PageTransition>
   );
 };

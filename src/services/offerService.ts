@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -14,7 +13,8 @@ const mockOffers = [
     commission: 1250,
     status: "accepted",
     workflow_status: "client_approved",
-    created_at: "2025-03-01T09:30:00Z"
+    created_at: "2025-03-01T09:30:00Z",
+    type: "admin_offer"
   },
   {
     id: "2",
@@ -24,7 +24,8 @@ const mockOffers = [
     commission: 925,
     status: "pending",
     workflow_status: "client_waiting",
-    created_at: "2025-03-05T14:15:00Z"
+    created_at: "2025-03-05T14:15:00Z",
+    type: "admin_offer"
   },
   {
     id: "3",
@@ -34,7 +35,8 @@ const mockOffers = [
     commission: 1600,
     status: "rejected",
     workflow_status: "client_no_response",
-    created_at: "2025-02-22T11:20:00Z"
+    created_at: "2025-02-22T11:20:00Z",
+    type: "admin_offer"
   },
   {
     id: "4",
@@ -44,7 +46,8 @@ const mockOffers = [
     commission: 2250,
     status: "accepted",
     workflow_status: "leaser_approved",
-    created_at: "2025-02-15T10:00:00Z"
+    created_at: "2025-02-15T10:00:00Z",
+    type: "admin_offer"
   }
 ];
 
@@ -66,12 +69,14 @@ export interface OfferData {
   monthly_payment: number;
   commission: number;
   user_id: string;
+  type?: string;
 }
 
 export const createOffer = async (offerData: OfferData): Promise<string | null> => {
   try {
     const validData = {
       ...offerData,
+      type: offerData.type || 'admin_offer',
       user_id: offerData.user_id === 'user-123' ? 
         '00000000-0000-0000-0000-000000000000' : offerData.user_id
     };
@@ -115,7 +120,11 @@ export const getOffers = async (): Promise<any[]> => {
     return data || [];
   } catch (error) {
     console.error("Error fetching offers:", error);
-    return mockOffers;
+    const mockOffersWithType = mockOffers.map(offer => ({
+      ...offer,
+      type: 'admin_offer'
+    }));
+    return mockOffersWithType;
   }
 };
 
@@ -123,7 +132,6 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
   try {
     console.log("Fetching offers for client ID:", clientId);
     
-    // Récupérer les offres par client_id
     const { data, error } = await supabase
       .from('offers')
       .select('*')
@@ -135,9 +143,7 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
     
     console.log(`Retrieved ${data?.length || 0} offers by client_id for client ${clientId}`);
     
-    // Si aucune offre n'est trouvée avec client_id, essayer avec client_name et client_email
     if (!data || data.length === 0) {
-      // Récupérer le nom et l'email du client
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('name, email')
@@ -151,7 +157,6 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
       
       console.log("Looking for offers by client name/email:", clientData.name, clientData.email);
       
-      // Rechercher les offres par nom de client (insensible à la casse)
       const { data: nameOffers, error: nameError } = await supabase
         .from('offers')
         .select('*')
@@ -166,7 +171,6 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
       
       console.log(`Found ${nameOffers?.length || 0} offers by client_name`);
       
-      // Rechercher aussi par email client si disponible
       let emailOffers: any[] = [];
       if (clientData.email) {
         const { data: emailData, error: emailError } = await supabase
@@ -184,7 +188,6 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
         }
       }
       
-      // Combiner tous les résultats et supprimer les doublons
       const combinedOffers = [...(nameOffers || []), ...emailOffers];
       const uniqueOffers = combinedOffers.filter((offer, index, self) =>
         index === self.findIndex((o) => o.id === offer.id)
@@ -192,7 +195,6 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
       
       console.log(`Found ${uniqueOffers.length} unique offers in total`);
       
-      // Mettre à jour client_id pour ces offres
       for (const offer of uniqueOffers) {
         const { error: updateError } = await supabase
           .from('offers')
@@ -308,5 +310,30 @@ export const getWorkflowLogs = async (offerId: string): Promise<any[]> => {
   } catch (error) {
     console.error("Error fetching workflow logs:", error);
     return [];
+  }
+};
+
+export const createClientRequest = async (requestData: OfferData): Promise<string | null> => {
+  try {
+    const validData = {
+      ...requestData,
+      type: 'client_request',
+      status: 'pending',
+      workflow_status: 'client_waiting',
+      user_id: requestData.user_id === 'user-123' ? 
+        '00000000-0000-0000-0000-000000000000' : requestData.user_id
+    };
+    
+    const { data, error } = await supabase
+      .from('offers')
+      .insert(validData)
+      .select();
+    
+    if (error) throw error;
+    
+    return data?.[0]?.id || null;
+  } catch (error) {
+    console.error("Error creating client request:", error);
+    return null;
   }
 };

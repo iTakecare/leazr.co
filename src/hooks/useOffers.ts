@@ -18,6 +18,7 @@ interface Offer {
   status: string;
   workflow_status?: string;
   created_at: string;
+  type: string;
 }
 
 // Statuts de workflow disponibles
@@ -41,6 +42,7 @@ export const useOffers = () => {
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [activeType, setActiveType] = useState("all");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   useEffect(() => {
@@ -78,7 +80,18 @@ export const useOffers = () => {
           return offer;
         });
         
-        setOffers(offersWithWorkflow);
+        // S'assurer que toutes les offres ont un type (par compatibilité)
+        const offersWithType = offersWithWorkflow.map(offer => {
+          if (!offer.type) {
+            return {
+              ...offer,
+              type: offer.client_id ? 'client_request' : 'admin_offer'
+            };
+          }
+          return offer;
+        });
+        
+        setOffers(offersWithType);
       } else {
         console.error("Offers data is not an array:", offersData);
         setLoadingError("Format de données incorrect");
@@ -156,7 +169,9 @@ export const useOffers = () => {
     
     const matchesTab = activeTab === "all" || offer.status === activeTab;
     
-    return matchesSearch && matchesTab;
+    const matchesType = activeType === "all" || offer.type === activeType;
+    
+    return matchesSearch && matchesTab && matchesType;
   });
 
   return {
@@ -168,6 +183,8 @@ export const useOffers = () => {
     setSearchTerm,
     activeTab,
     setActiveTab,
+    activeType,
+    setActiveType,
     isUpdatingStatus,
     fetchOffers,
     handleDeleteOffer,

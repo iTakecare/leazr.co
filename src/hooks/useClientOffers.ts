@@ -14,6 +14,7 @@ export interface ClientOffer {
   created_at: string;
   status: string;
   workflow_status?: string;
+  type: string;
 }
 
 export const useClientOffers = () => {
@@ -29,6 +30,7 @@ export const useClientOffers = () => {
       const { data, error } = await supabase
         .from('offers')
         .select('*')
+        .eq('type', 'client_request')
         .order('created_at', { ascending: false });
 
       if (error) {
