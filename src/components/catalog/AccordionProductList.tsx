@@ -62,6 +62,11 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
   });
 
   const products = providedProducts || fetchedProducts;
+  
+  console.log("Products loaded:", products.length, "items");
+  if (products.length > 0) {
+    console.log("Sample product:", products[0]);
+  }
 
   const deleteMutation = useMutation({
     mutationFn: deleteProduct,
@@ -131,22 +136,28 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
     );
   }
 
-  if (products.length === 0) {
+  if (!products || products.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Aucun produit trouvé.</p>
+      <div className="text-center py-12 border rounded-lg">
+        <p className="text-muted-foreground mb-2">Aucun produit trouvé.</p>
+        <p className="text-sm text-muted-foreground">
+          Ajoutez des produits en cliquant sur le bouton "Ajouter un produit" ou importez-les depuis WooCommerce.
+        </p>
       </div>
     );
   }
 
+  // Check if a product is a parent product
   const isParentProduct = (product: Product) => {
     return product.is_parent || (!product.parent_id && !product.is_variation);
   };
 
+  // Group products by model
   const groupProductsByModel = () => {
     const parentProducts: Product[] = [];
     const variantsByParentId: Record<string, Product[]> = {};
     
+    // First gather all parent products
     products.forEach(product => {
       if (isParentProduct(product)) {
         parentProducts.push(product);
@@ -154,11 +165,13 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
       }
     });
     
+    // Then assign variants to their parents
     products.forEach(product => {
       if (product.parent_id && variantsByParentId[product.parent_id]) {
         variantsByParentId[product.parent_id].push(product);
       } 
       else if (product.parent_id) {
+        // If parent exists in products but wasn't processed yet
         const parentExists = products.find(p => p.id === product.parent_id);
         if (parentExists) {
           if (!variantsByParentId[parentExists.id]) {
@@ -166,11 +179,13 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
           }
           variantsByParentId[parentExists.id].push(product);
         } else {
+          // If parent doesn't exist, treat as standalone
           parentProducts.push(product);
           variantsByParentId[product.id] = [];
         }
       }
       else if (product.is_variation) {
+        // Try to find parent by name
         const baseProductName = product.name.split(/\s+\d+\s*GB|\s+\d+Go|\s+\d+\s*To|\(/).shift()?.trim();
         if (baseProductName) {
           const potentialParent = parentProducts.find(
@@ -179,6 +194,7 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
           if (potentialParent) {
             variantsByParentId[potentialParent.id].push(product);
           } else {
+            // If no matching parent, treat as standalone
             parentProducts.push(product);
             variantsByParentId[product.id] = [];
           }
@@ -189,6 +205,7 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
       }
     });
     
+    // Assign remaining products that might be variants
     const unassignedProducts = products.filter(
       p => !isParentProduct(p) && !Object.values(variantsByParentId).flat().includes(p)
     );
@@ -204,6 +221,7 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
         if (matchingParent) {
           variantsByParentId[matchingParent.id].push(product);
         } else {
+          // If no matching parent, treat as standalone
           parentProducts.push(product);
           variantsByParentId[product.id] = [];
         }
@@ -213,6 +231,7 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
       }
     });
     
+    // Make sure we include explicit variants
     parentProducts.forEach(parent => {
       if (parent.variants_ids && Array.isArray(parent.variants_ids)) {
         const variantsToAdd = products.filter(
@@ -228,24 +247,28 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
     return { parentProducts, variantsByParentId };
   };
 
+  // Group products by brand
   const groupProductsByBrand = () => {
     const brandGroups: Record<string, Product[]> = {};
     const sortedProducts = sortProducts(products);
     
+    // Initialize brand groups including "other"
     brands.forEach(brand => {
       brandGroups[brand.name] = [];
     });
     
+    // Add "other" category
     brandGroups["other"] = [];
     
+    // Sort products into brand groups
     sortedProducts.forEach(product => {
-      if (!product.is_parent && (product.is_variation || product.parent_id)) {
-        const brandKey = product.brand || "other";
-        if (brandGroups[brandKey]) {
-          brandGroups[brandKey].push(product);
-        } else {
-          brandGroups[brandKey] = [product];
-        }
+      // Assign to appropriate brand
+      const brandKey = product.brand || "other";
+      if (brandGroups[brandKey]) {
+        brandGroups[brandKey].push(product);
+      } else {
+        // If brand doesn't exist in our groups, add it
+        brandGroups[brandKey] = [product];
       }
     });
     
@@ -254,6 +277,17 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
 
   const { parentProducts, variantsByParentId } = groupProductsByModel();
   const brandGroups = groupProductsByBrand();
+
+  // Log grouping results for debugging
+  console.log("Grouping by model:", 
+    parentProducts.length, "parent products", 
+    Object.values(variantsByParentId).flat().length, "variants"
+  );
+  
+  console.log("Grouping by brand:", 
+    Object.keys(brandGroups).length, "brands", 
+    Object.values(brandGroups).flat().length, "products"
+  );
 
   const getBrandTranslation = (brandName: string) => {
     const brand = brands.find(b => b.name === brandName);
@@ -333,8 +367,51 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
             const variants = sortProducts(variantsByParentId[parentProduct.id] || []);
             const hasVariants = variants.length > 0;
             
+            // Skip parent products without variants for cleaner display
             if (!hasVariants) {
-              return null; // Skip parent products without variants
+              return (
+                <motion.div key={parentProduct.id} variants={itemVariants}>
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="p-3 bg-white rounded hover:bg-muted/20 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-muted rounded overflow-hidden">
+                            <img
+                              src={parentProduct.image_url || parentProduct.imageUrl || '/placeholder.svg'}
+                              alt={parentProduct.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">{parentProduct.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {formatCurrency(parentProduct.price || 0)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Link to={`/products/${parentProduct.id}`}>
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4 mr-1" />
+                              Modifier
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setProductToDelete(parentProduct.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
             }
             
             return (

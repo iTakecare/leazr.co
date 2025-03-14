@@ -1,9 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
-import { deleteAllProducts, deleteProduct } from "@/services/catalogService";
+import { deleteAllProducts, deleteProduct, getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Plus, Trash2, Tag, Award, List, Grid3X3 } from "lucide-react";
 import ProductEditor from "@/components/catalog/ProductEditor";
@@ -21,12 +21,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import ProductCatalog from "@/components/ui/ProductCatalog";
 import { useNavigate } from "react-router-dom";
-import { getProducts } from "@/services/catalogService";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import BrandManager from "@/components/catalog/BrandManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AccordionProductList from "@/components/catalog/AccordionProductList";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import ProductGrid from "@/components/catalog/ProductGrid";
 
 const Catalog = () => {
   const navigate = useNavigate();
@@ -34,11 +34,19 @@ const Catalog = () => {
   const [activeTab, setActiveTab] = useState("catalog");
   const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
   
-  // Cette requête est juste pour avoir un refetch à transmettre au ProductCatalog
-  const { refetch } = useQuery({
+  // Fetch products for refetching on changes
+  const { data: products = [], refetch, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
   });
+
+  // Load sample data if no products are found
+  useEffect(() => {
+    if (!isLoading && products.length === 0) {
+      console.log("No products found, loading sample data would go here");
+      // This is where you could load sample data if needed
+    }
+  }, [isLoading, products]);
 
   const deleteAllProductsMutation = useMutation({
     mutationFn: deleteAllProducts,
@@ -119,7 +127,7 @@ const Catalog = () => {
           <TabsContent value="catalog">
             <div className="mb-4 flex justify-end">
               <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "grid" | "accordion")}>
-                <ToggleGroupItem value="accordion" aria-label="Voir en accordéon">
+                <ToggleGroupItem value="accordion" aria-label="Voir en liste">
                   <List className="h-4 w-4" />
                 </ToggleGroupItem>
                 <ToggleGroupItem value="grid" aria-label="Voir en grille">
@@ -128,17 +136,16 @@ const Catalog = () => {
               </ToggleGroup>
             </div>
             
-            {viewMode === "accordion" ? (
-              <AccordionProductList onProductDeleted={handleProductDeleted} />
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
+                ))}
+              </div>
+            ) : viewMode === "accordion" ? (
+              <AccordionProductList products={products} onProductDeleted={handleProductDeleted} />
             ) : (
-              <ProductCatalog 
-                isOpen={true} 
-                onClose={() => {}}
-                onSelectProduct={handleSelectProduct}
-                isSheet={false}
-                title="Catalogue de produits"
-                description="Parcourez notre catalogue complet de produits technologiques"
-              />
+              <ProductGrid products={products} />
             )}
           </TabsContent>
           
