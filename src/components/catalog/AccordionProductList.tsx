@@ -34,21 +34,22 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AccordionProductListProps {
   products?: Product[];
   onProductDeleted?: () => void;
+  groupingOption: "model" | "brand";
 }
 
 type SortOption = "name-asc" | "name-desc" | "price-asc" | "price-desc";
-type GroupingOption = "model" | "brand";
 
-const AccordionProductList = ({ products: providedProducts, onProductDeleted }: AccordionProductListProps) => {
+const AccordionProductList = ({ 
+  products: providedProducts, 
+  onProductDeleted,
+  groupingOption = "model" 
+}: AccordionProductListProps) => {
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
-  const [openVariants, setOpenVariants] = useState<Record<string, boolean>>({});
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
-  const [groupingOption, setGroupingOption] = useState<GroupingOption>("model");
   
   const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
     queryKey: ["products"],
@@ -87,25 +88,18 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
     setProductToDelete(null);
   };
   
-  const toggleVariants = (productId: string) => {
-    setOpenVariants(prev => ({
-      ...prev,
-      [productId]: !prev[productId]
-    }));
-  };
-  
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1,
       transition: { 
-        staggerChildren: 0.1
+        staggerChildren: 0.05
       }
     }
   };
   
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0 }
   };
 
@@ -147,7 +141,7 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
     );
   }
 
-  // Check if a product is a parent product
+  // Function to check if a product is a parent product
   const isParentProduct = (product: Product) => {
     return product.is_parent || (!product.parent_id && !product.is_variation);
   };
@@ -184,8 +178,8 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
           variantsByParentId[product.id] = [];
         }
       }
-      else if (product.is_variation) {
-        // Try to find parent by name
+      else if (!isParentProduct(product)) {
+        // If it's a variant without a parent, add it to a parent with similar name
         const baseProductName = product.name.split(/\s+\d+\s*GB|\s+\d+Go|\s+\d+\s*To|\(/).shift()?.trim();
         if (baseProductName) {
           const potentialParent = parentProducts.find(
@@ -205,52 +199,27 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
       }
     });
     
-    // Assign remaining products that might be variants
-    const unassignedProducts = products.filter(
-      p => !isParentProduct(p) && !Object.values(variantsByParentId).flat().includes(p)
+    // Add products that weren't added as parents or variants
+    const processedProductIds = [
+      ...parentProducts.map(p => p.id),
+      ...Object.values(variantsByParentId).flat().map(v => v.id)
+    ];
+    
+    const remainingProducts = products.filter(
+      p => !processedProductIds.includes(p.id)
     );
     
-    unassignedProducts.forEach(product => {
-      const baseProductName = product.name.split(/\s+\d+\s*GB|\s+\d+Go|\s+\d+\s*To|\(/).shift()?.trim();
-      
-      if (baseProductName) {
-        const matchingParent = parentProducts.find(
-          p => p.name.toLowerCase().includes(baseProductName.toLowerCase())
-        );
-        
-        if (matchingParent) {
-          variantsByParentId[matchingParent.id].push(product);
-        } else {
-          // If no matching parent, treat as standalone
-          parentProducts.push(product);
-          variantsByParentId[product.id] = [];
-        }
-      } else {
-        parentProducts.push(product);
-        variantsByParentId[product.id] = [];
-      }
+    remainingProducts.forEach(product => {
+      parentProducts.push(product);
+      variantsByParentId[product.id] = [];
     });
     
-    // Make sure we include explicit variants
-    parentProducts.forEach(parent => {
-      if (parent.variants_ids && Array.isArray(parent.variants_ids)) {
-        const variantsToAdd = products.filter(
-          p => parent.variants_ids?.includes(p.id) && !variantsByParentId[parent.id].some(v => v.id === p.id)
-        );
-        
-        if (variantsToAdd.length > 0) {
-          variantsByParentId[parent.id] = [...variantsByParentId[parent.id], ...variantsToAdd];
-        }
-      }
-    });
-    
-    return { parentProducts, variantsByParentId };
+    return { parentProducts: sortProducts(parentProducts), variantsByParentId };
   };
 
   // Group products by brand
   const groupProductsByBrand = () => {
     const brandGroups: Record<string, Product[]> = {};
-    const sortedProducts = sortProducts(products);
     
     // Initialize brand groups including "other"
     brands.forEach(brand => {
@@ -261,7 +230,7 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
     brandGroups["other"] = [];
     
     // Sort products into brand groups
-    sortedProducts.forEach(product => {
+    products.forEach(product => {
       // Assign to appropriate brand
       const brandKey = product.brand || "other";
       if (brandGroups[brandKey]) {
@@ -272,7 +241,20 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
       }
     });
     
-    return brandGroups;
+    // Sort products in each brand
+    Object.keys(brandGroups).forEach(brandKey => {
+      brandGroups[brandKey] = sortProducts(brandGroups[brandKey]);
+    });
+    
+    // Filter out empty brand groups
+    const filteredBrandGroups: Record<string, Product[]> = {};
+    Object.entries(brandGroups).forEach(([brandKey, brandProducts]) => {
+      if (brandProducts.length > 0) {
+        filteredBrandGroups[brandKey] = brandProducts;
+      }
+    });
+    
+    return filteredBrandGroups;
   };
 
   const { parentProducts, variantsByParentId } = groupProductsByModel();
@@ -293,6 +275,53 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
     const brand = brands.find(b => b.name === brandName);
     return brand ? brand.translation : brandName;
   };
+
+  const renderProductItem = (product: Product) => (
+    <motion.div key={product.id} variants={itemVariants}>
+      <div className="border rounded-md p-3 mb-2 bg-white hover:bg-gray-50 transition-colors">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gray-100 rounded-md overflow-hidden">
+              <img
+                src={product.image_url || '/placeholder.svg'}
+                alt={product.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/placeholder.svg";
+                }}
+              />
+            </div>
+            <div>
+              <h3 className="font-medium text-sm">{product.name}</h3>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <span className="mr-2">{formatCurrency(product.price || 0)}</span>
+                {product.monthly_price ? (
+                  <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full text-xs">
+                    {formatCurrency(product.monthly_price)}/mois
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to={`/products/${product.id}`}>
+              <Button variant="outline" size="sm">
+                <Edit className="h-3.5 w-3.5 mr-1" />
+                Modifier
+              </Button>
+            </Link>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setProductToDelete(product.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 
   return (
     <motion.div 
@@ -318,14 +347,7 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
         </AlertDialogContent>
       </AlertDialog>
       
-      <div className="flex justify-between items-center mb-4">
-        <Tabs value={groupingOption} onValueChange={(value) => setGroupingOption(value as GroupingOption)}>
-          <TabsList>
-            <TabsTrigger value="model">Par modèle</TabsTrigger>
-            <TabsTrigger value="brand">Par marque</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        
+      <div className="flex justify-end items-center mb-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
@@ -360,68 +382,25 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      
-      <TabsContent value="model" className="mt-0">
-        <div className="space-y-4">
+
+      {groupingOption === "model" ? (
+        <div className="space-y-6">
           {parentProducts.map((parentProduct) => {
-            const variants = sortProducts(variantsByParentId[parentProduct.id] || []);
+            const variants = variantsByParentId[parentProduct.id] || [];
             const hasVariants = variants.length > 0;
             
-            // Skip parent products without variants for cleaner display
             if (!hasVariants) {
-              return (
-                <motion.div key={parentProduct.id} variants={itemVariants}>
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="p-3 bg-white rounded hover:bg-muted/20 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-muted rounded overflow-hidden">
-                            <img
-                              src={parentProduct.image_url || parentProduct.imageUrl || '/placeholder.svg'}
-                              alt={parentProduct.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/placeholder.svg";
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <h3 className="font-medium">{parentProduct.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {formatCurrency(parentProduct.price || 0)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Link to={`/products/${parentProduct.id}`}>
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4 mr-1" />
-                              Modifier
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setProductToDelete(parentProduct.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
+              return renderProductItem(parentProduct);
             }
             
             return (
-              <motion.div key={parentProduct.id} variants={itemVariants}>
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="px-4 py-3 bg-muted/50">
+              <motion.div key={parentProduct.id} variants={itemVariants} className="mb-4">
+                <div className="border rounded-md overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-3 border-b">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-muted rounded overflow-hidden mr-3">
+                      <div className="w-8 h-8 bg-white rounded-md overflow-hidden mr-3 border">
                         <img
-                          src={parentProduct.image_url || parentProduct.imageUrl || '/placeholder.svg'}
+                          src={parentProduct.image_url || '/placeholder.svg'}
                           alt={parentProduct.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -435,56 +414,9 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
                     </div>
                   </div>
                   
-                  <div className="bg-muted/10 rounded-b-lg">
-                    <div className="p-3 border-t border-muted">
-                      <div className="space-y-2">
-                        {variants.map((variant) => (
-                          <div key={variant.id} className="p-3 bg-white rounded border border-muted hover:bg-muted/20 transition-colors">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-muted rounded overflow-hidden">
-                                  <img
-                                    src={variant.image_url || variant.imageUrl || '/placeholder.svg'}
-                                    alt={variant.name}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src = "/placeholder.svg";
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <h3 className="font-medium">{variant.name}</h3>
-                                  <p className="text-sm text-muted-foreground">
-                                    {formatCurrency(variant.price || 0)}
-                                    {variant.variation_attributes && (
-                                      <span className="ml-2">
-                                        {Object.entries(variant.variation_attributes)
-                                          .map(([key, value]) => `${key}: ${value}`)
-                                          .join(', ')}
-                                      </span>
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Link to={`/products/${variant.id}`}>
-                                  <Button variant="outline" size="sm">
-                                    <Edit className="h-4 w-4 mr-1" />
-                                    Modifier
-                                  </Button>
-                                </Link>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => setProductToDelete(variant.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                  <div className="p-3">
+                    <div className="space-y-2">
+                      {variants.map(renderProductItem)}
                     </div>
                   </div>
                 </div>
@@ -492,84 +424,30 @@ const AccordionProductList = ({ products: providedProducts, onProductDeleted }: 
             );
           })}
         </div>
-      </TabsContent>
-      
-      <TabsContent value="brand" className="mt-0">
-        <div className="space-y-4">
-          {Object.entries(brandGroups).map(([brandName, brandProducts]) => {
-            if (brandProducts.length === 0) return null;
-            
-            const sortedBrandProducts = sortProducts(brandProducts);
-            
-            return (
-              <motion.div key={brandName} variants={itemVariants}>
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="px-4 py-3 bg-muted/50">
-                    <div className="flex items-center">
-                      <div className="text-left font-medium">
-                        {getBrandTranslation(brandName)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-muted/10 rounded-b-lg">
-                    <div className="p-3 border-t border-muted">
-                      <div className="space-y-2">
-                        {sortedBrandProducts.map((product) => (
-                          <div key={product.id} className="p-3 bg-white rounded border border-muted hover:bg-muted/20 transition-colors">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-muted rounded overflow-hidden">
-                                  <img
-                                    src={product.image_url || product.imageUrl || '/placeholder.svg'}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src = "/placeholder.svg";
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <h3 className="font-medium">{product.name}</h3>
-                                  <p className="text-sm text-muted-foreground">
-                                    {formatCurrency(product.price || 0)}
-                                    {product.variation_attributes && (
-                                      <span className="ml-2">
-                                        {Object.entries(product.variation_attributes)
-                                          .map(([key, value]) => `${key}: ${value}`)
-                                          .join(', ')}
-                                      </span>
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Link to={`/products/${product.id}`}>
-                                  <Button variant="outline" size="sm">
-                                    <Edit className="h-4 w-4 mr-1" />
-                                    Modifier
-                                  </Button>
-                                </Link>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => setProductToDelete(product.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(brandGroups).map(([brandName, brandProducts]) => (
+            <motion.div key={brandName} variants={itemVariants} className="mb-4">
+              <div className="border rounded-md overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b">
+                  <div className="flex items-center">
+                    <span className="font-medium">{getBrandTranslation(brandName)}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      ({brandProducts.length} produit{brandProducts.length > 1 ? 's' : ''})
+                    </span>
                   </div>
                 </div>
-              </motion.div>
-            );
-          })}
+                
+                <div className="p-3">
+                  <div className="space-y-2">
+                    {brandProducts.map(renderProductItem)}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
-      </TabsContent>
+      )}
     </motion.div>
   );
 };

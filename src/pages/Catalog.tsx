@@ -19,7 +19,6 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
-import ProductCatalog from "@/components/ui/ProductCatalog";
 import { useNavigate } from "react-router-dom";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import BrandManager from "@/components/catalog/BrandManager";
@@ -33,12 +32,17 @@ const Catalog = () => {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
   const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
+  const [groupingOption, setGroupingOption] = useState<"model" | "brand">("model");
   
   // Fetch products for refetching on changes
-  const { data: products = [], refetch, isLoading } = useQuery({
+  const { data: products = [], refetch, isLoading, error } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
   });
+
+  useEffect(() => {
+    console.log(`Loaded ${products.length} products:`, products);
+  }, [products]);
 
   // Load sample data if no products are found
   useEffect(() => {
@@ -125,27 +129,60 @@ const Catalog = () => {
           </TabsList>
           
           <TabsContent value="catalog">
-            <div className="mb-4 flex justify-end">
-              <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "grid" | "accordion")}>
-                <ToggleGroupItem value="accordion" aria-label="Voir en liste">
-                  <List className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="grid" aria-label="Voir en grille">
-                  <Grid3X3 className="h-4 w-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-            
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
-                ))}
+            {error ? (
+              <div className="text-center p-4 bg-red-50 text-red-600 rounded-md border border-red-200">
+                Une erreur s'est produite lors du chargement des produits. Veuillez réessayer.
               </div>
-            ) : viewMode === "accordion" ? (
-              <AccordionProductList products={products} onProductDeleted={handleProductDeleted} />
             ) : (
-              <ProductGrid products={products} />
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex space-x-2 bg-gray-100 p-1 rounded-md">
+                    <Button 
+                      variant={groupingOption === "model" ? "secondary" : "ghost"} 
+                      size="sm"
+                      onClick={() => setGroupingOption("model")}
+                      className="rounded-md"
+                    >
+                      Par modèle
+                    </Button>
+                    <Button 
+                      variant={groupingOption === "brand" ? "secondary" : "ghost"} 
+                      size="sm"
+                      onClick={() => setGroupingOption("brand")}
+                      className="rounded-md"
+                    >
+                      Par marque
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "grid" | "accordion")}>
+                      <ToggleGroupItem value="accordion" aria-label="Voir en liste">
+                        <List className="h-4 w-4" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="grid" aria-label="Voir en grille">
+                        <Grid3X3 className="h-4 w-4" />
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                </div>
+                
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
+                    ))}
+                  </div>
+                ) : viewMode === "accordion" ? (
+                  <AccordionProductList 
+                    products={products} 
+                    onProductDeleted={handleProductDeleted} 
+                    groupingOption={groupingOption} 
+                  />
+                ) : (
+                  <ProductGrid products={products} />
+                )}
+              </>
             )}
           </TabsContent>
           
