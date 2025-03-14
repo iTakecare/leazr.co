@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -126,7 +127,8 @@ const CreateOffer = () => {
             setClientName(offer.client_name || '');
             setClientEmail(offer.client_email || '');
             setClientCompany(offer.clients?.company || '');
-            setRemarks(offer.additional_info || '');
+            // Update field name from additional_info to remarks
+            setRemarks(offer.remarks || '');
             
             if (offer.coefficient && offer.amount) {
               setGlobalMarginAdjustment(prev => ({
@@ -246,7 +248,8 @@ const CreateOffer = () => {
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
-        additional_info: remarks
+        // Change field name from additional_info to remarks
+        remarks: remarks
       };
 
       let result;
