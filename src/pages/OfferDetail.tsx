@@ -232,6 +232,7 @@ const OfferDetail = () => {
     // Email sending functionality to be implemented here
   };
   
+  // Fixed missing function - This handles sending information requests
   const handleRequestInfo = async (requestedDocs: string[], customMessage: string) => {
     if (!offer) return;
     
@@ -250,6 +251,7 @@ const OfferDetail = () => {
       if (success) {
         toast.success("Demande d'informations envoyée avec succès");
         fetchOfferDetails();
+        setInfoRequestDialogOpen(false);
       } else {
         toast.error("Erreur lors de l'envoi de la demande");
       }
@@ -984,7 +986,7 @@ const OfferDetail = () => {
       <RequestInfoModal
         isOpen={infoRequestDialogOpen}
         onClose={() => setInfoRequestDialogOpen(false)}
-        onSendRequest={handleInfoRequest}
+        onSendRequest={handleRequestInfo}
         offerId={offer?.id || ''}
       />
     </PageTransition>
