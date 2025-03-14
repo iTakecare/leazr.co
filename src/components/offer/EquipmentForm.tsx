@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Equipment, Leaser } from "@/types/equipment";
@@ -141,8 +140,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
     setIsQuickCatalogOpen(false);
   };
 
-  // Determine which monthly payment to display
-  // Give priority to targetMonthlyPayment if it exists, otherwise use the equipment's monthlyPayment or the calculated monthlyPayment
   const displayMonthlyPayment = targetMonthlyPayment > 0 
     ? targetMonthlyPayment 
     : (equipment.monthlyPayment || monthlyPayment);
@@ -159,6 +156,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             handleChange={handleChange}
             errors={errors}
             onOpenCatalog={() => setIsQuickCatalogOpen(true)}
+            calculatedMargin={calculatedMargin}
           />
 
           <PriceDetailsDisplay
@@ -174,7 +172,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             cancelEditing={cancelEditing}
           />
 
-          {/* Add MarginCalculator component with coefficient prop */}
           <div className="mt-4 pt-4 border-t">
             <MarginCalculator 
               targetMonthlyPayment={targetMonthlyPayment}

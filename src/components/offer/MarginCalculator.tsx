@@ -101,13 +101,13 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
               <span className="text-gray-600">Coefficient appliqué :</span>
               <span className="font-medium">{formatPercentage(coefficient)}</span>
             </div>
-            <div className="flex justify-between py-1">
-              <span className="text-gray-600">Marge nécessaire :</span>
-              <span className="font-medium">{formatPercentage(calculatedMargin.percentage)}</span>
+            <div className="flex justify-between py-1 border border-green-200 bg-green-50 p-2 rounded">
+              <span className="text-gray-700 font-medium">Marge calculée :</span>
+              <span className="font-bold text-green-700">{formatPercentage(calculatedMargin.percentage)}</span>
             </div>
-            <div className="flex justify-between py-1 text-blue-600">
-              <span className="font-medium">Marge en euros :</span>
-              <span className="font-bold">{formatCurrency(calculatedMargin.amount)}</span>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">Marge en euros :</span>
+              <span className="font-medium">{formatCurrency(calculatedMargin.amount)}</span>
             </div>
           </div>
 

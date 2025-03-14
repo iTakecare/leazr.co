@@ -15,14 +15,19 @@ interface EquipmentFormFieldsProps {
     margin: boolean;
   };
   onOpenCatalog: () => void;
+  calculatedMargin?: { percentage: number; amount: number };
 }
 
 const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
   equipment,
   handleChange,
   errors,
-  onOpenCatalog
+  onOpenCatalog,
+  calculatedMargin
 }) => {
+  // Déterminer si on doit afficher la marge calculée
+  const showCalculatedMargin = calculatedMargin && calculatedMargin.percentage > 0;
+  
   return (
     <>
       <div>
@@ -89,11 +94,16 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
               step="0.1"
               value={equipment.margin || ''}
               onChange={(e) => handleChange('margin', parseFloat(e.target.value) || 0)}
-              className={`pl-8 ${errors?.margin ? "border-destructive" : ""}`}
-              placeholder="20.00"
+              className={`pl-8 ${errors?.margin ? "border-destructive" : ""} ${showCalculatedMargin ? 'border-green-500 bg-green-50' : ''}`}
+              placeholder={showCalculatedMargin ? calculatedMargin.percentage.toFixed(2) : "20.00"}
             />
             {errors?.margin && (
               <p className="text-destructive text-xs mt-1">Marge invalide</p>
+            )}
+            {showCalculatedMargin && (
+              <p className="text-green-600 text-xs mt-1">
+                Marge calculée disponible: {calculatedMargin.percentage.toFixed(2)}%
+              </p>
             )}
           </div>
         </div>
