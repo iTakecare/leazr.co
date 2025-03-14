@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -26,7 +27,8 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     newMonthly: 0,
     currentCoef: 0,
     newCoef: 0,
-    adaptMonthlyPayment: true
+    adaptMonthlyPayment: true,
+    marginDifference: 0
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -111,7 +113,8 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         newMonthly: 0,
         currentCoef: 0,
         newCoef: 0,
-        adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment
+        adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
+        marginDifference: 0
       });
       return;
     }
@@ -128,13 +131,21 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     const currentMonthly = (totalFinancedAmount * currentCoef) / 100;
     const newCoef = findCoefficient(totalFinancedAmount);
     
-    let newMonthly;
+    let newMonthly, marginDifference = 0;
+    
     if (globalMarginAdjustment.adaptMonthlyPayment) {
       newMonthly = (totalFinancedAmount * newCoef) / 100;
+      // No margin difference in this case as we're using the new coefficient
+      marginDifference = 0;
     } else {
+      // Using original monthly payments
       newMonthly = equipmentList.reduce((sum, eq) => {
         return sum + (eq.monthlyPayment || 0) * eq.quantity;
       }, 0);
+      
+      // Calculate margin difference between adapted and non-adapted
+      const adaptedMonthly = (totalFinancedAmount * newCoef) / 100;
+      marginDifference = newMonthly - adaptedMonthly;
     }
 
     const marginAmount = totalFinancedAmount - totalBaseAmount;
@@ -146,7 +157,8 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       newMonthly: newMonthly,
       currentCoef: currentCoef,
       newCoef: newCoef,
-      adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment
+      adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
+      marginDifference: marginDifference
     });
 
     setTotalMonthlyPayment(newMonthly);

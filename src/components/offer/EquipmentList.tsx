@@ -174,6 +174,15 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
               <span className="font-medium">{formatCurrency(globalMarginAdjustment.amount)}</span>
             </div>
             
+            {!globalMarginAdjustment.adaptMonthlyPayment && globalMarginAdjustment.marginDifference !== 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Différence de marge :</span>
+                <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(globalMarginAdjustment.marginDifference)}
+                </span>
+              </div>
+            )}
+            
             <div className="flex items-center justify-between py-2 border-t border-b mt-2">
               <div className="flex items-center space-x-2">
                 <Switch 
