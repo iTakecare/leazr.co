@@ -24,6 +24,7 @@ export interface Client {
   postal_code?: string;
   country?: string;
   collaborators?: Collaborator[];
+  user_id?: string; // Added user_id property to fix the type errors
 }
 
 export interface CreateClientData {
