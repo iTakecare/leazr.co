@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,13 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [comment, setComment] = useState("");
+  const [localWorkflowStatus, setLocalWorkflowStatus] = useState(offer.workflow_status || 'draft');
   const navigate = useNavigate();
+  
+  // Mettre à jour le statut local quand l'offre change
+  useEffect(() => {
+    setLocalWorkflowStatus(offer.workflow_status || 'draft');
+  }, [offer.workflow_status]);
   
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -58,11 +64,11 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
 
   const handleStatusChange = async (newStatus: string, reason?: string) => {
     console.log(`Changing status for offer ${offer.id} to ${newStatus}`, {
-      current: offer.workflow_status,
+      current: localWorkflowStatus,
       new: newStatus
     });
     
-    if (offer.workflow_status === newStatus) {
+    if (localWorkflowStatus === newStatus) {
       console.log("Status unchanged, skipping update");
       toast.info("Le statut est déjà à cette valeur");
       return;
@@ -70,6 +76,8 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
     
     try {
       await onStatusChange(offer.id, newStatus, reason);
+      // Mettre à jour le statut local immédiatement pour une réactivité plus rapide
+      setLocalWorkflowStatus(newStatus);
       toast.success(`Statut changé avec succès vers ${newStatus}`);
     } catch (error) {
       console.error("Error changing status:", error);
@@ -88,11 +96,8 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
   const handleEditOffer = () => {
     navigate(`/create-offer?id=${offer.id}`);
   };
-
-  // Si le workflow_status n'est pas défini, utilisez un statut par défaut
-  const workflowStatus = offer.workflow_status || 'draft';
   
-  console.log("OfferDetailCard - workflowStatus:", workflowStatus);
+  console.log("OfferDetailCard - localWorkflowStatus:", localWorkflowStatus);
   console.log("OfferDetailCard - original offer.workflow_status:", offer.workflow_status);
 
   return (
@@ -101,11 +106,9 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">{offer.client_name}</h3>
-            {offer.workflow_status && (
-              <div className="ml-2">
-                <OfferStatusBadge status={offer.workflow_status} />
-              </div>
-            )}
+            <div className="ml-2">
+              <OfferStatusBadge status={localWorkflowStatus} />
+            </div>
           </div>
           
           {offer.clients?.company && (
@@ -171,7 +174,7 @@ const OfferDetailCard: React.FC<OfferDetailCardProps> = ({
       {isExpanded && (
         <CardContent className="p-4 pt-0 border-t">
           <OfferWorkflow 
-            currentStatus={workflowStatus} 
+            currentStatus={localWorkflowStatus} 
             onStatusChange={handleStatusChange}
             isUpdating={isUpdatingStatus}
             offerId={offer.id}

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { getOffers, deleteOffer, updateOfferStatus } from "@/services/offerService";
 import { toast } from "sonner";
@@ -141,6 +142,7 @@ export const useOffers = () => {
       if (success) {
         console.log(`Status update successful for offer ${offerId}`);
         
+        // Mettre à jour immédiatement l'état local pour une meilleure réactivité
         setOffers(prevOffers => 
           prevOffers.map(offer => 
             offer.id === offerId 
