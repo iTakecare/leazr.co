@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { Calculator as CalcIcon, Loader2, Plus } from "lucide-react";
+import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -44,7 +43,6 @@ const CreateOffer = () => {
   const [clientId, setClientId] = useState<string | null>(null);
   
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
-  const [isQuickCatalogOpen, setIsQuickCatalogOpen] = useState(false);
   const [isClientSelectorOpen, setIsClientSelectorOpen] = useState(false);
   const [isLeaserSelectorOpen, setIsLeaserSelectorOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -125,13 +123,6 @@ const CreateOffer = () => {
       quantity: 1,
       margin: Number(margin),
     });
-    
-    // Close the quick catalog modal after product selection
-    setIsQuickCatalogOpen(false);
-  };
-
-  const handleQuickCatalogOpen = () => {
-    setIsQuickCatalogOpen(true);
   };
 
   const handleClientSelect = (client: { id: string; name: string; email: string; company: string }) => {
@@ -221,21 +212,6 @@ const CreateOffer = () => {
                     onOpen={() => setIsLeaserSelectorOpen(true)} 
                   />
                   
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">Équipement</label>
-                    <Button 
-                      variant="outline" 
-                      className="w-full flex justify-start items-center gap-2 h-auto p-4 bg-white border-dashed border-2"
-                      onClick={handleQuickCatalogOpen}
-                    >
-                      <Plus className="h-5 w-5 text-blue-600" />
-                      <div className="text-left">
-                        <p className="font-medium">Ajouter un équipement du catalogue</p>
-                        <p className="text-sm text-muted-foreground">Sélectionnez un produit pour l'ajouter à votre offre</p>
-                      </div>
-                    </Button>
-                  </div>
-                  
                   <EquipmentForm
                     equipment={equipment}
                     setEquipment={setEquipment}
@@ -290,15 +266,9 @@ const CreateOffer = () => {
           isOpen={isCatalogOpen}
           onClose={() => setIsCatalogOpen(false)}
           onSelectProduct={handleProductSelect}
-        />
-
-        {/* Quick catalog modal for the "+" button */}
-        <ProductCatalog
-          isOpen={isQuickCatalogOpen}
-          onClose={() => setIsQuickCatalogOpen(false)}
-          onSelectProduct={handleProductSelect}
-          title="Sélectionner un équipement"
-          description="Choisissez un produit du catalogue à ajouter à votre offre"
+          isSheet={true}
+          title="Ajouter un équipement"
+          description="Sélectionnez un produit du catalogue à ajouter à votre offre"
         />
 
         <ClientSelector
@@ -319,3 +289,4 @@ const CreateOffer = () => {
 };
 
 export default CreateOffer;
+
