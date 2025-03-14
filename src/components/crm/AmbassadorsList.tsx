@@ -38,6 +38,14 @@ interface Ambassador {
   notes?: string;
 }
 
+interface AmbassadorWithClients extends Ambassador {
+  clients: any[];
+}
+
+interface AmbassadorWithCommissions extends Ambassador {
+  commissions: any[];
+}
+
 // Données statiques pour démo
 const ambassadors: Ambassador[] = [
   {
@@ -121,6 +129,8 @@ const AmbassadorsList = () => {
   const [isCommissionsViewOpen, setIsCommissionsViewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentAmbassadorWithClients, setCurrentAmbassadorWithClients] = useState<AmbassadorWithClients | null>(null);
+  const [currentAmbassadorWithCommissions, setCurrentAmbassadorWithCommissions] = useState<AmbassadorWithCommissions | null>(null);
 
   const handleAddAmbassador = () => {
     setCurrentAmbassador(null);
@@ -146,10 +156,10 @@ const AmbassadorsList = () => {
   const handleViewClients = (id: string) => {
     const ambassador = ambassadorsList.find(a => a.id === id);
     if (ambassador) {
-      setCurrentAmbassador({
+      setCurrentAmbassadorWithClients({
         ...ambassador,
         clients: mockClients[id] || []
-      } as Ambassador & { clients: any[] });
+      });
       setIsClientsViewOpen(true);
     }
   };
@@ -157,10 +167,10 @@ const AmbassadorsList = () => {
   const handleViewCommissions = (id: string) => {
     const ambassador = ambassadorsList.find(a => a.id === id);
     if (ambassador) {
-      setCurrentAmbassador({
+      setCurrentAmbassadorWithCommissions({
         ...ambassador,
         commissions: mockCommissions[id] || []
-      } as Ambassador & { commissions: any[] });
+      });
       setIsCommissionsViewOpen(true);
     }
   };
@@ -175,9 +185,9 @@ const AmbassadorsList = () => {
     );
     
     const ambassador = ambassadorsList.find(a => a.id === id);
-    const newStatus = ambassador.status === 'active' ? 'inactive' : 'active';
+    const newStatus = ambassador?.status === 'active' ? 'inactive' : 'active';
     
-    toast.success(`Le statut de l'ambassadeur ${ambassador.name} a été changé en "${newStatus === 'active' ? 'Actif' : 'Inactif'}"`);
+    toast.success(`Le statut de l'ambassadeur ${ambassador?.name} a été changé en "${newStatus === 'active' ? 'Actif' : 'Inactif'}"`);
   };
 
   const handleDeleteAmbassador = (id: string) => {
@@ -391,22 +401,22 @@ const AmbassadorsList = () => {
         isOpen={isClientsViewOpen}
         onClose={() => setIsClientsViewOpen(false)}
         owner={{ 
-          id: currentAmbassador?.id || '', 
-          name: currentAmbassador?.name || '', 
+          id: currentAmbassadorWithClients?.id || '', 
+          name: currentAmbassadorWithClients?.name || '', 
           type: 'ambassador' 
         }}
-        clients={currentAmbassador?.clients || []}
+        clients={currentAmbassadorWithClients?.clients || []}
       />
 
       <CommissionsView 
         isOpen={isCommissionsViewOpen}
         onClose={() => setIsCommissionsViewOpen(false)}
         owner={{ 
-          id: currentAmbassador?.id || '', 
-          name: currentAmbassador?.name || '', 
+          id: currentAmbassadorWithCommissions?.id || '', 
+          name: currentAmbassadorWithCommissions?.name || '', 
           type: 'ambassador' 
         }}
-        commissions={currentAmbassador?.commissions || []}
+        commissions={currentAmbassadorWithCommissions?.commissions || []}
       />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

@@ -38,6 +38,18 @@ interface Partner {
   notes?: string;
 }
 
+interface PartnerWithClients extends Partner {
+  clients: any[];
+}
+
+interface PartnerWithCommissions extends Partner {
+  commissions: any[];
+}
+
+interface PartnerWithOffers extends Partner {
+  offers: any[];
+}
+
 // Ceci est une liste statique pour le moment, elle pourrait être remplacée par des données réelles plus tard
 const partners: Partner[] = [
   {
@@ -137,6 +149,9 @@ const PartnersList = () => {
   const [isOffersViewOpen, setIsOffersViewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentPartnerWithClients, setCurrentPartnerWithClients] = useState<PartnerWithClients | null>(null);
+  const [currentPartnerWithCommissions, setCurrentPartnerWithCommissions] = useState<PartnerWithCommissions | null>(null);
+  const [currentPartnerWithOffers, setCurrentPartnerWithOffers] = useState<PartnerWithOffers | null>(null);
 
   const handleAddPartner = () => {
     setCurrentPartner(null);
@@ -146,16 +161,6 @@ const PartnersList = () => {
   const handleEditPartner = (id: string) => {
     const partner = partnersList.find(p => p.id === id);
     if (partner) {
-      // Préparer les données pour le formulaire
-      const formData = {
-        name: partner.name,
-        contactName: partner.contactName,
-        email: partner.email,
-        phone: partner.phone,
-        type: partner.type as any,
-        notes: partner.notes || '',
-      };
-      
       setCurrentPartner(partner);
       setIsEditModalOpen(true);
     }
@@ -172,10 +177,10 @@ const PartnersList = () => {
   const handleViewClients = (id: string) => {
     const partner = partnersList.find(p => p.id === id);
     if (partner) {
-      setCurrentPartner({
+      setCurrentPartnerWithClients({
         ...partner,
         clients: mockClients[id] || []
-      } as Partner & { clients: any[] });
+      });
       setIsClientsViewOpen(true);
     }
   };
@@ -183,10 +188,10 @@ const PartnersList = () => {
   const handleViewCommissions = (id: string) => {
     const partner = partnersList.find(p => p.id === id);
     if (partner) {
-      setCurrentPartner({
+      setCurrentPartnerWithCommissions({
         ...partner,
         commissions: mockCommissions[id] || []
-      } as Partner & { commissions: any[] });
+      });
       setIsCommissionsViewOpen(true);
     }
   };
@@ -194,10 +199,10 @@ const PartnersList = () => {
   const handleViewOffers = (id: string) => {
     const partner = partnersList.find(p => p.id === id);
     if (partner) {
-      setCurrentPartner({
+      setCurrentPartnerWithOffers({
         ...partner,
         offers: mockOffers[id] || []
-      } as Partner & { offers: any[] });
+      });
       setIsOffersViewOpen(true);
     }
   };
@@ -212,9 +217,9 @@ const PartnersList = () => {
     );
     
     const partner = partnersList.find(p => p.id === id);
-    const newStatus = partner.status === 'active' ? 'inactive' : 'active';
+    const newStatus = partner?.status === 'active' ? 'inactive' : 'active';
     
-    toast.success(`Le statut du partenaire ${partner.name} a été changé en "${newStatus === 'active' ? 'Actif' : 'Inactif'}"`);
+    toast.success(`Le statut du partenaire ${partner?.name} a été changé en "${newStatus === 'active' ? 'Actif' : 'Inactif'}"`);
   };
 
   const handleDeletePartner = (id: string) => {
@@ -414,33 +419,33 @@ const PartnersList = () => {
         isOpen={isClientsViewOpen}
         onClose={() => setIsClientsViewOpen(false)}
         owner={{ 
-          id: currentPartner?.id || '', 
-          name: currentPartner?.name || '', 
+          id: currentPartnerWithClients?.id || '', 
+          name: currentPartnerWithClients?.name || '', 
           type: 'partner' 
         }}
-        clients={currentPartner?.clients || []}
+        clients={currentPartnerWithClients?.clients || []}
       />
 
       <CommissionsView 
         isOpen={isCommissionsViewOpen}
         onClose={() => setIsCommissionsViewOpen(false)}
         owner={{ 
-          id: currentPartner?.id || '', 
-          name: currentPartner?.name || '', 
+          id: currentPartnerWithCommissions?.id || '', 
+          name: currentPartnerWithCommissions?.name || '', 
           type: 'partner' 
         }}
-        commissions={currentPartner?.commissions || []}
+        commissions={currentPartnerWithCommissions?.commissions || []}
       />
 
       <OffersView 
         isOpen={isOffersViewOpen}
         onClose={() => setIsOffersViewOpen(false)}
         owner={{ 
-          id: currentPartner?.id || '', 
-          name: currentPartner?.name || '', 
+          id: currentPartnerWithOffers?.id || '', 
+          name: currentPartnerWithOffers?.name || '', 
           type: 'partner' 
         }}
-        offers={currentPartner?.offers || []}
+        offers={currentPartnerWithOffers?.offers || []}
       />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
