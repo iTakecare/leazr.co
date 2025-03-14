@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
@@ -72,12 +71,7 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signUp(email, password, {
-      first_name: firstName,
-      last_name: lastName,
-      role: role,
-      company: company || null,
-    });
+    await signUp(email, password);
   };
 
   return (

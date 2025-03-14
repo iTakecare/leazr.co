@@ -1,5 +1,4 @@
-
-import { Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -100,7 +99,6 @@ const ProtectedRoute = ({
   return <>{children}</>;
 };
 
-// Partner specific layout
 const PartnerLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -167,10 +165,11 @@ function App() {
               <Route path="/create-test-users" element={<CreateTestUsers />} />
             </Route>
             
-            {/* Partner Routes */}
             <Route path="/partner" element={
               <ProtectedRoute requirePartner={true}>
-                <PartnerLayout />
+                <PartnerLayout>
+                  <Outlet />
+                </PartnerLayout>
               </ProtectedRoute>
             }>
               <Route path="dashboard" element={<PartnerDashboard />} />

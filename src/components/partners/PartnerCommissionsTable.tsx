@@ -140,7 +140,7 @@ const PartnerCommissionsTable = () => {
                     {formatCurrency(item.commission)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={item.isPaid ? "success" : "outline"} className={
+                    <Badge variant={item.isPaid ? "default" : "outline"} className={
                       item.isPaid 
                         ? "bg-green-50 text-green-700 border-green-200" 
                         : "bg-amber-50 text-amber-700 border-amber-200"

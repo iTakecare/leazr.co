@@ -1,11 +1,8 @@
+
 import { createContext, useContext, useState, useEffect } from "react";
-import {
-  Session,
-  User,
-  useSession,
-  useSupabaseClient,
-} from "@supabase/auth-helpers-react";
-import { useRouter } from "next/navigation";
+import { User, Session } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
@@ -34,17 +31,29 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const supabaseClient = useSupabaseClient();
-  const session = useSession();
-  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkSession = async () => {
       setIsLoading(true);
       try {
-        if (session) {
-          // You can add additional checks here if needed
-        }
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
+        setUser(data.session?.user || null);
+
+        // Set up auth state listener
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+          (_event, session) => {
+            setSession(session);
+            setUser(session?.user || null);
+          }
+        );
+
+        return () => {
+          authListener.subscription.unsubscribe();
+        };
       } catch (error) {
         console.error("Session check error:", error);
       } finally {
@@ -53,12 +62,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     checkSession();
-  }, [session]);
+  }, []);
 
   const signUp = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabaseClient.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -77,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -93,8 +102,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       setIsLoading(true);
-      await supabaseClient.auth.signOut();
-      router.push("/login");
+      await supabase.auth.signOut();
+      navigate("/login");
     } catch (error: any) {
       console.error("Signout error", error);
     } finally {
@@ -104,7 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetPassword = async (email: string) => {
      try {
-          const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
                redirectTo: `${window.location.origin}/update-password`,
           });
           return { data, error };
@@ -116,25 +125,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const isAdmin = () => {
     // Add a check to see if the email is admin@test.com
-    return session?.user?.email === "admin@test.com" || 
-           session?.user?.email === "alex@test.com" ||
-           session?.user?.email === "admin@itakecare.com";
+    return user?.email === "admin@test.com" || 
+           user?.email === "alex@test.com" ||
+           user?.email === "admin@itakecare.com";
   };
 
   const isClient = () => {
-    return session?.user?.email === "client@test.com" || 
-          (session?.user && !isAdmin() && !isPartner());
+    return user?.email === "client@test.com" || 
+          (user && !isAdmin() && !isPartner());
   };
 
   const isPartner = () => {
-    return session?.user?.email === "partner@test.com" || 
-           session?.user?.email?.includes("partner");
+    return user?.email === "partner@test.com" || 
+           user?.email?.includes("partner");
   };
 
   return (
     <AuthContext.Provider
       value={{
-        user: session?.user ?? null,
+        user,
         session,
         isLoading,
         signUp,
@@ -150,4 +159,3 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     </AuthContext.Provider>
   );
 };
-
