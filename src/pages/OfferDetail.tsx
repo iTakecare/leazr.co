@@ -15,6 +15,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 import { contractStatuses, updateContractStatus, getContractWorkflowLogs, addTrackingNumber } from "@/services/contractService";
 import { Progress } from "@/components/ui/progress";
+import { generateOfferPdf } from "@/utils/pdfGenerator";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +34,7 @@ const OfferDetail = () => {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [carrier, setCarrier] = useState('');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   
   const fetchOfferDetails = async () => {
     if (!id) return;
@@ -204,13 +206,27 @@ const OfferDetail = () => {
   };
   
   const handleGeneratePdf = () => {
-    toast.success("Génération du PDF en cours...");
-    // Logique de génération PDF à implémenter ici
+    if (!offer) return;
+    
+    try {
+      setIsGeneratingPdf(true);
+      toast.success("Génération du PDF en cours...");
+      
+      setTimeout(() => {
+        const filename = generateOfferPdf(offer);
+        toast.success(`Le PDF a été généré sous le nom ${filename}`);
+        setIsGeneratingPdf(false);
+      }, 100);
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+      setIsGeneratingPdf(false);
+    }
   };
   
   const handleSendEmail = () => {
     toast.success("L'offre a été envoyée par email au client");
-    // Logique d'envoi d'email à implémenter ici
+    // Email sending functionality to be implemented here
   };
   
   const getAvailableActions = () => {
@@ -274,6 +290,7 @@ const OfferDetail = () => {
             icon: Download,
             onClick: handleGeneratePdf,
             variant: "secondary",
+            disabled: isGeneratingPdf,
           });
           
           actions.push({
