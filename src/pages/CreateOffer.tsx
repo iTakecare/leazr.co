@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -141,6 +140,11 @@ const CreateOffer = () => {
 
   const handleLeaserSelect = (leaser: Leaser) => {
     setSelectedLeaser(leaser);
+    setIsLeaserSelectorOpen(false);
+  };
+
+  const handleOpenLeaserSelector = () => {
+    setIsLeaserSelectorOpen(true);
   };
 
   const handleSaveOffer = async () => {
@@ -213,21 +217,28 @@ const CreateOffer = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div>
-                <EquipmentForm
-                  equipment={equipment}
-                  setEquipment={setEquipment}
+                <LeaserButton
                   selectedLeaser={selectedLeaser}
-                  addToList={addToList}
-                  editingId={editingId}
-                  cancelEditing={cancelEditing}
-                  onOpenCatalog={() => setIsCatalogOpen(true)}
-                  coefficient={coefficient}
-                  monthlyPayment={monthlyPayment}
-                  targetMonthlyPayment={targetMonthlyPayment}
-                  setTargetMonthlyPayment={setTargetMonthlyPayment}
-                  calculatedMargin={calculatedMargin}
-                  applyCalculatedMargin={applyCalculatedMargin}
+                  onOpen={handleOpenLeaserSelector}
                 />
+
+                <div className="mt-6">
+                  <EquipmentForm
+                    equipment={equipment}
+                    setEquipment={setEquipment}
+                    selectedLeaser={selectedLeaser}
+                    addToList={addToList}
+                    editingId={editingId}
+                    cancelEditing={cancelEditing}
+                    onOpenCatalog={() => setIsCatalogOpen(true)}
+                    coefficient={coefficient}
+                    monthlyPayment={monthlyPayment}
+                    targetMonthlyPayment={targetMonthlyPayment}
+                    setTargetMonthlyPayment={setTargetMonthlyPayment}
+                    calculatedMargin={calculatedMargin}
+                    applyCalculatedMargin={applyCalculatedMargin}
+                  />
+                </div>
               </div>
 
               <div className="space-y-8">
