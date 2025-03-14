@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -74,6 +73,11 @@ export default function ClientDetail() {
 
   const handleCreateAccount = async () => {
     if (!client) return;
+    
+    if (!client.email) {
+      toast.error("Ce client n'a pas d'adresse email");
+      return;
+    }
     
     setIsCreatingAccount(true);
     try {
@@ -232,10 +236,10 @@ export default function ClientDetail() {
             <CardDescription>Accès au portail client</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            {client.user_id ? (
+            {client.user_id || client.has_user_account ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
+                  <Badge variant="success" className="bg-green-100 text-green-800 hover:bg-green-200">
                     Compte actif
                   </Badge>
                   {client.user_account_created_at && (
@@ -267,7 +271,7 @@ export default function ClientDetail() {
                     disabled={isCreatingAccount}
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
-                    {isCreatingAccount ? "Création en cours..." : "Créer un compte"}
+                    {isCreatingAccount ? "Création en cours..." : "Créer un compte client"}
                   </Button>
                 ) : (
                   <div className="text-sm text-muted-foreground">

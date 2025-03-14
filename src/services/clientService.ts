@@ -173,29 +173,7 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     console.log("Client created successfully:", data);
     
-    let updatedData = data;
-    if (data && data.email) {
-      console.log("Creating user account for new client...");
-      const accountCreated = await createAccountForClient(mapDbClientToClient(data));
-      
-      if (accountCreated) {
-        console.log("User account created and invitation sent for the new client");
-        
-        const { data: refreshedData } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('id', data.id)
-          .single();
-          
-        if (refreshedData) {
-          updatedData = refreshedData;
-        }
-      } else {
-        console.log("Failed to create user account for the new client");
-      }
-    }
-    
-    return updatedData ? mapDbClientToClient(updatedData) : null;
+    return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error creating client:", error);
     toast.error("Erreur lors de la création du client");
@@ -432,12 +410,10 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
     const siteUrl = window.location.origin;
     console.log("Using site URL for redirect:", siteUrl);
     
-    const adminSupabaseClient = getAdminSupabaseClient();
-    
     try {
       console.log("Creating user account with admin auth...");
       
-      const adminResult = await adminSupabaseClient.auth.admin.createUser({
+      const adminResult = await adminSupabase.auth.admin.createUser({
         email: client.email,
         password: tempPassword,
         email_confirm: true,
@@ -457,7 +433,7 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       console.log("New user created successfully:", adminResult.data?.user?.id);
       
       if (adminResult.data && adminResult.data.user) {
-        const { error: updateError } = await adminSupabaseClient
+        const { error: updateError } = await adminSupabase
           .from('clients')
           .update({ 
             user_id: adminResult.data.user.id,
@@ -474,7 +450,7 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
       }
       
       console.log("Sending password reset email for new account");
-      const { error: resetError } = await adminSupabaseClient.auth.resetPasswordForEmail(client.email, {
+      const { error: resetError } = await adminSupabase.auth.resetPasswordForEmail(client.email, {
         redirectTo: `${siteUrl}/login`
       });
       
