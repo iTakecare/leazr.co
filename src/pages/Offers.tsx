@@ -7,6 +7,7 @@ import { Plus, Grid, List, Filter, Search, ChevronLeft, ChevronRight } from "luc
 import { useLocation, useNavigate } from "react-router-dom";
 import PageTransition from "@/components/layout/PageTransition";
 import OffersKanban from "@/components/offers/OffersKanban";
+import OffersTable from "@/components/offers/OffersTable";
 import OffersHeader from "@/components/offers/OffersHeader";
 import OffersSearch from "@/components/offers/OffersSearch";
 import OffersFilter from "@/components/offers/OffersFilter";
@@ -38,10 +39,12 @@ const Offers = () => {
     isUpdatingStatus,
     includeConverted,
     setIncludeConverted,
-    fetchOffers
+    fetchOffers,
+    handleResendOffer,
+    handleDownloadPdf
   } = useOffers();
   
-  const [viewMode, setViewMode] = useState<'kanban'>('kanban');
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -104,45 +107,78 @@ const Offers = () => {
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* Sélecteur de vue */}
+            <div className="flex items-center border rounded-md overflow-hidden">
+              <Button 
+                variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                size="sm"
+                onClick={() => setViewMode('list')} 
+                className="rounded-none px-3"
+              >
+                <List className="h-4 w-4 mr-2" />
+                Liste
+              </Button>
+              <Button 
+                variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
+                size="sm"
+                onClick={() => setViewMode('kanban')} 
+                className="rounded-none px-3"
+              >
+                <Grid className="h-4 w-4 mr-2" />
+                Kanban
+              </Button>
+            </div>
           </div>
         </div>
         
-        {/* Contrôles de navigation du Kanban */}
-        <div className="flex justify-between items-center mb-2">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={scrollLeft}
-            className="rounded-full"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={scrollRight}
-            className="rounded-full"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div ref={scrollContainer} className="overflow-hidden">
-          {loading ? (
-            <OffersLoading />
-          ) : loadingError ? (
-            <OffersError message={loadingError} onRetry={fetchOffers} />
-          ) : (
-            <OffersKanban
-              offers={filteredOffers}
-              onStatusChange={handleUpdateWorkflowStatus}
-              isUpdatingStatus={isUpdatingStatus}
-              onDeleteOffer={handleDeleteOffer}
-              includeConverted={includeConverted}
-            />
-          )}
-        </div>
+        {loading ? (
+          <OffersLoading />
+        ) : loadingError ? (
+          <OffersError message={loadingError} onRetry={fetchOffers} />
+        ) : viewMode === 'kanban' ? (
+          <>
+            {/* Contrôles de navigation du Kanban */}
+            <div className="flex justify-between items-center mb-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={scrollLeft}
+                className="rounded-full"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={scrollRight}
+                className="rounded-full"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div ref={scrollContainer} className="overflow-hidden">
+              <OffersKanban
+                offers={filteredOffers}
+                onStatusChange={handleUpdateWorkflowStatus}
+                isUpdatingStatus={isUpdatingStatus}
+                onDeleteOffer={handleDeleteOffer}
+                includeConverted={includeConverted}
+              />
+            </div>
+          </>
+        ) : (
+          <OffersTable 
+            offers={filteredOffers} 
+            onStatusChange={handleUpdateWorkflowStatus}
+            onDeleteOffer={handleDeleteOffer}
+            onResendOffer={handleResendOffer}
+            onDownloadPdf={handleDownloadPdf}
+            isUpdatingStatus={isUpdatingStatus}
+          />
+        )}
       </div>
     </PageTransition>
   );
