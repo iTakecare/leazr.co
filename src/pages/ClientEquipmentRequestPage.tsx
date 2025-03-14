@@ -82,7 +82,7 @@ const ClientEquipmentRequestPage = () => {
       };
 
       const requestId = await createClientRequest(requestData);
-
+      
       if (requestId) {
         toast.success("Votre demande a été soumise avec succès");
         navigate("/client/requests");
