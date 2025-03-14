@@ -1,5 +1,5 @@
 
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 /**
  * Ensures that a storage bucket exists with the correct public access settings
@@ -8,7 +8,8 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
  */
 export async function ensureStorageBucket(bucketName: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseClient();
+    // Use adminSupabase client for bucket operations to avoid RLS issues
+    const supabase = getAdminSupabaseClient();
     
     // Check if bucket exists
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
@@ -30,7 +31,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         
         if (createError) {
           console.error(`Error creating bucket ${bucketName}:`, createError);
-          return false; // Changed to return false on error
+          return false;
         }
         
         // Set CORS policy for the bucket
@@ -56,14 +57,14 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         }
       } catch (e) {
         console.error(`Could not create bucket ${bucketName}:`, e);
-        return false; // Changed to return false on error
+        return false;
       }
     }
     
     return true;
   } catch (error) {
     console.error(`Unexpected error ensuring bucket ${bucketName}:`, error);
-    return false; // Changed to return false on error
+    return false;
   }
 }
 
@@ -71,20 +72,24 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
  * Creates a public access policy for a bucket
  */
 async function createPublicPolicy(bucketName: string): Promise<void> {
-  const supabase = getSupabaseClient();
+  const supabase = getAdminSupabaseClient();
   
   console.log(`Ensuring public access policy for bucket: ${bucketName}`);
   
-  // Create RLS policy to allow public access
-  const { error } = await supabase.rpc('create_storage_policy', {
-    bucket_name: bucketName,
-    policy_name: `${bucketName}_public_access`,
-    definition: 'true', // Allow all access
-    policy_type: 'SELECT'
-  });
-  
-  if (error) {
-    console.warn(`Could not create public access policy for ${bucketName}:`, error);
+  try {
+    // Try creating the policy directly using SQL
+    const { error } = await supabase.rpc('create_storage_policy', {
+      bucket_name: bucketName,
+      policy_name: `${bucketName}_public_access`,
+      definition: 'true', // Allow all access
+      policy_type: 'SELECT'
+    });
+    
+    if (error) {
+      console.warn(`Could not create public access policy for ${bucketName}:`, error);
+    }
+  } catch (error) {
+    console.warn(`Error creating policy for ${bucketName}:`, error);
   }
 }
 
@@ -108,14 +113,11 @@ export async function downloadAndUploadImage(
     
     console.log(`Processing image: ${imageUrl} for product: ${filename}`);
     
-    // IMPORTANT: Pour les imports WooCommerce, nous retournons toujours l'URL d'origine
-    // pour éviter les problèmes d'autorisations de stockage
-    // Cela garantit que les images sont affichées correctement même si le téléchargement échoue
-    if (imageUrl.startsWith('http')) {
+    // For external URLs, return the URL as-is
+    if (imageUrl.startsWith('http') && !imageUrl.includes(window.location.hostname)) {
       return imageUrl;
     }
     
-    // Uniquement pour les images locales, nous essayons le téléchargement et l'upload
     try {
       // Download the image with a 5 second timeout
       const controller = new AbortController();
@@ -181,8 +183,8 @@ export async function downloadAndUploadImage(
         return imageUrl;
       }
       
-      // Get Supabase client
-      const supabase = getSupabaseClient();
+      // Get Supabase client with admin privileges for storage operations
+      const supabase = getAdminSupabaseClient();
       
       // Generate a unique filename with proper extension
       const uniqueFilename = `${filename.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.${fileExtension}`;

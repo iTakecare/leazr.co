@@ -60,7 +60,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
     e.currentTarget.src = '/placeholder.svg';
   };
 
-  // Get image source from image_url or imageUrl property
+  // Get image source from image_url or imageUrl property - handle both for backward compatibility
   const imageSource = product.image_url || product.imageUrl || '/placeholder.svg';
 
   // Get the alt text

@@ -1,5 +1,5 @@
 
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
 export async function getProducts(): Promise<Product[]> {
@@ -61,7 +61,7 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
   try {
     const supabase = getSupabaseClient();
     
-    // Correction ici: renommer imageUrl en image_url pour correspondre au schéma
+    // Correction: renommer imageUrl en image_url pour correspondre au schéma
     const productData = {
       ...product,
       image_url: product.imageUrl, // Mapper imageUrl vers image_url
@@ -95,9 +95,18 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
   try {
     console.log(`Updating product with ID: ${id}`, updates);
     const supabase = getSupabaseClient();
+    
+    // Handle imageUrl to image_url conversion for DB compatibility
+    const updateData = { ...updates };
+    if ('imageUrl' in updateData) {
+      // @ts-ignore - We know imageUrl exists because we just checked
+      updateData.image_url = updateData.imageUrl;
+      delete updateData.imageUrl;
+    }
+    
     const { data, error } = await supabase
       .from('products')
-      .update(updates)
+      .update(updateData)
       .eq('id', id)
       .select('*')
       .maybeSingle();
@@ -139,16 +148,17 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
     // Update the product with the image URL and alt text
     if (product) {
       if (isMainImage) {
+        // Use image_url for database compatibility
         await updateProduct(productId, { 
-          imageUrl: result.url,
+          image_url: result.url,
           // Use optional property
-          ...(result.altText ? { imageAlt: result.altText } : {})
+          ...(result.altText ? { image_alt: result.altText } : {})
         });
       } else {
         // Get existing additional images or initialize an empty array
-        const imageUrls = product.imageUrls || [];
+        const imageUrls = product.image_urls || [];
         // Get existing alt texts or initialize an empty array
-        const imageAlts = product.imageAlts || [];
+        const imageAlts = product.image_alts || [];
         
         // Limit to 4 additional images (5 total with main image)
         if (imageUrls.length >= 4) {
@@ -163,9 +173,9 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
         imageAlts.unshift(result.altText);
         
         await updateProduct(productId, { 
-          imageUrls,
+          image_urls: imageUrls,
           // Use optional property
-          ...(imageAlts.length > 0 ? { imageAlts } : {})
+          ...(imageAlts.length > 0 ? { image_alts: imageAlts } : {})
         });
       }
     }
@@ -205,12 +215,12 @@ export async function uploadMultipleProductImages(files: File[], productId: stri
     // Update the product with the first image as main image
     if (uploadedUrls.length > 0) {
       await updateProduct(productId, { 
-        imageUrl: uploadedUrls[0],
+        image_url: uploadedUrls[0],
         // Use optional property for imageAlt
-        ...(uploadedAlts[0] ? { imageAlt: uploadedAlts[0] } : {}),
-        imageUrls: uploadedUrls.slice(1, 5), // Max 4 additional images
+        ...(uploadedAlts[0] ? { image_alt: uploadedAlts[0] } : {}),
+        image_urls: uploadedUrls.slice(1, 5), // Max 4 additional images
         // Use optional property for imageAlts
-        ...(uploadedAlts.length > 1 ? { imageAlts: uploadedAlts.slice(1, 5) } : {})
+        ...(uploadedAlts.length > 1 ? { image_alts: uploadedAlts.slice(1, 5) } : {})
       });
     }
     

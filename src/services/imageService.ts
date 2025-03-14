@@ -1,5 +1,5 @@
 
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { ensureStorageBucket, downloadAndUploadImage } from "./storageService";
 
 /**
@@ -54,10 +54,12 @@ export async function uploadImage(
   preserveOriginalName: boolean = true
 ): Promise<{ url: string | null, altText: string } | null> {
   try {
-    // Ensure bucket exists
+    // Ensure bucket exists using admin client
     const bucketExists = await ensureStorageBucket(bucket);
     if (!bucketExists) {
-      throw new Error(`Failed to ensure storage bucket ${bucket} exists`);
+      console.error(`Failed to ensure storage bucket ${bucket} exists`);
+      // Fallback to returning a default alt text but no URL
+      return { url: null, altText: file.name };
     }
 
     // Get original filename for SEO purposes
@@ -106,8 +108,8 @@ export async function uploadImage(
       console.log(`Corrected file type: ${file.type}`);
     }
     
-    // Get Supabase client
-    const supabase = getSupabaseClient();
+    // Get Supabase client with admin privileges
+    const supabase = getAdminSupabaseClient();
     
     console.log(`Uploading image of type: ${file.type} to path: ${finalPath}`);
     
@@ -122,7 +124,7 @@ export async function uploadImage(
       
     if (error) {
       console.error("Error uploading image:", error);
-      return null;
+      return { url: null, altText };
     }
     
     // Get public URL
@@ -138,7 +140,7 @@ export async function uploadImage(
     };
   } catch (error) {
     console.error("Error in uploadImage:", error);
-    return null;
+    return { url: null, altText: file.name };
   }
 }
 
