@@ -13,6 +13,7 @@ import { getProducts, getCategories, getBrands } from "@/services/catalogService
 import { useQuery } from "@tanstack/react-query";
 import ProductCard from "@/components/ui/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MarginCalculator from "./MarginCalculator";
 
 interface EquipmentFormProps {
   equipment: Equipment;
@@ -24,6 +25,10 @@ interface EquipmentFormProps {
   onOpenCatalog: () => void;
   coefficient: number;
   monthlyPayment: number;
+  targetMonthlyPayment: number;
+  setTargetMonthlyPayment: (value: number) => void;
+  calculatedMargin: { percentage: number; amount: number };
+  applyCalculatedMargin: () => void;
 }
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({
@@ -35,7 +40,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   cancelEditing,
   onOpenCatalog,
   coefficient,
-  monthlyPayment
+  monthlyPayment,
+  targetMonthlyPayment,
+  setTargetMonthlyPayment,
+  calculatedMargin,
+  applyCalculatedMargin
 }) => {
   const [errors, setErrors] = useState({
     title: false,
@@ -113,6 +122,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
 
   const handleSubmit = () => {
     if (validateForm()) {
+      // Set monthly price before adding to list
+      console.log("Submitting with monthly payment:", displayMonthlyPayment);
       addToList();
       setProductMonthlyPrice(null);
     }
@@ -133,6 +144,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
     // Set monthly price if available
     if (product.monthly_price) {
       setProductMonthlyPrice(product.monthly_price);
+      setTargetMonthlyPayment(product.monthly_price);
     }
     
     setIsQuickCatalogOpen(false);
@@ -288,42 +300,12 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
       </Card>
 
       <div className="mt-8">
-        <h3 className="font-medium text-base mb-4">Calcul de la marge à partir de la mensualité souhaitée</h3>
-
-        <div className="space-y-5">
-          <div>
-            <Label htmlFor="target-monthly" className="font-medium text-gray-700">Mensualité souhaitée (€)</Label>
-            <div className="mt-1 relative">
-              <span className="absolute left-3 top-3 text-gray-500">€</span>
-              <Input
-                id="target-monthly"
-                type="number"
-                min="0"
-                step="0.01"
-                className="pl-8"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between py-1">
-              <span className="text-gray-600">Marge nécessaire :</span>
-              <span className="font-medium">0.00%</span>
-            </div>
-            <div className="flex justify-between py-1 text-blue-600">
-              <span className="font-medium">Marge en euros :</span>
-              <span className="font-bold">{formatCurrency(0)}</span>
-            </div>
-          </div>
-
-          <Button 
-            variant="default" 
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            Appliquer cette marge
-          </Button>
-        </div>
+        <MarginCalculator 
+          targetMonthlyPayment={targetMonthlyPayment}
+          setTargetMonthlyPayment={setTargetMonthlyPayment}
+          calculatedMargin={calculatedMargin}
+          applyCalculatedMargin={applyCalculatedMargin}
+        />
       </div>
 
       <Dialog open={isQuickCatalogOpen} onOpenChange={setIsQuickCatalogOpen}>

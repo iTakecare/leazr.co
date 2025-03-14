@@ -17,7 +17,6 @@ import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
 
 import EquipmentForm from "@/components/offer/EquipmentForm";
-import MarginCalculator from "@/components/offer/MarginCalculator";
 import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
 import LeaserButton from "@/components/offer/LeaserButton";
@@ -128,6 +127,7 @@ const CreateOffer = () => {
     });
 
     if (monthlyPrice > 0) {
+      console.log("Setting target monthly payment:", monthlyPrice);
       setTargetMonthlyPayment(monthlyPrice);
     }
   };
@@ -223,6 +223,10 @@ const CreateOffer = () => {
                   onOpenCatalog={() => setIsCatalogOpen(true)}
                   coefficient={coefficient}
                   monthlyPayment={monthlyPayment}
+                  targetMonthlyPayment={targetMonthlyPayment}
+                  setTargetMonthlyPayment={setTargetMonthlyPayment}
+                  calculatedMargin={calculatedMargin}
+                  applyCalculatedMargin={applyCalculatedMargin}
                 />
               </div>
 

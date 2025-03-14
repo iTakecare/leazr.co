@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -50,7 +51,9 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     const financedAmount = calculateFinancedAmount(equipment);
     const coef = findCoefficient(financedAmount);
     setCoefficient(coef);
-    setMonthlyPayment((financedAmount * coef) / 100);
+    const calculated = (financedAmount * coef) / 100;
+    console.log("Calculated monthly payment:", calculated);
+    setMonthlyPayment(calculated);
   };
 
   const calculateMarginFromMonthlyPayment = () => {
@@ -119,14 +122,20 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   };
 
   const applyCalculatedMargin = () => {
-    setEquipment({
-      ...equipment,
-      margin: Number(calculatedMargin.percentage.toFixed(2))
-    });
+    if (calculatedMargin.percentage > 0) {
+      console.log("Applying calculated margin:", calculatedMargin.percentage);
+      setEquipment({
+        ...equipment,
+        margin: Number(calculatedMargin.percentage.toFixed(2))
+      });
+    }
   };
 
   const addToList = () => {
     if (equipment.title && equipment.purchasePrice > 0) {
+      const currentMonthly = targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment;
+      console.log("Adding to list with monthly payment:", currentMonthly);
+      
       if (editingId) {
         setEquipmentList(equipmentList.map(eq => 
           eq.id === editingId ? { ...equipment, margin: Number(equipment.margin.toFixed(2)), id: editingId } : eq
@@ -137,6 +146,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         setEquipmentList([...equipmentList, newEquipment]);
       }
       
+      // Reset the equipment form
       setEquipment({
         id: crypto.randomUUID(),
         title: '',
@@ -144,6 +154,9 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         quantity: 1,
         margin: 20,
       });
+      
+      // Reset target monthly payment after adding to list
+      setTargetMonthlyPayment(0);
     }
   };
 
@@ -164,6 +177,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       quantity: 1,
       margin: 20,
     });
+    setTargetMonthlyPayment(0);
   };
 
   const removeFromList = (id: string) => {
