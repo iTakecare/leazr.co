@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { clientService } from "@/services/clientService";
+import * as clientService from "@/services/clientService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { AlertTriangle, UserCircle2, Building2, Phone, MapPin, FileText, RefreshCw, Search } from "lucide-react";
+import { AlertTriangle, UserCircle2, Building2, Phone, MapPin, FileText, RefreshCw, Search, Plus } from "lucide-react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import ClientEditDialog from "@/components/clients/ClientEditDialog";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ContractStatusBadge } from "@/components/contracts/ContractStatusBadge";
+import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { verifyClientUserAssociation } from "@/utils/clientDiagnostics";
 import { useAuth } from "@/context/AuthContext";
@@ -55,7 +55,6 @@ const ClientDetail = () => {
       setLoadingOffers(true);
 
       try {
-        // Fetch contracts
         const { data: contractsData, error: contractsError } = await supabase
           .from('contracts')
           .select('*')
@@ -68,7 +67,6 @@ const ClientDetail = () => {
           setContracts(contractsData || []);
         }
 
-        // Fetch offers
         const { data: offersData, error: offersError } = await supabase
           .from('offers')
           .select('*')
@@ -136,7 +134,6 @@ const ClientDetail = () => {
 
         try {
           console.log(`Attempting to merge client ${id} into ${targetClientId}`);
-          // Simulate the merge operation
           toast.success(`Client ${id} successfully merged into ${targetClientId}!`);
           return true;
         } catch (mergeError) {
@@ -417,7 +414,7 @@ const ClientDetail = () => {
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           client={client}
-          onClientUpdated={refetch}
+          onClientUpdated={() => refetch()}
         />
       </Container>
     </PageTransition>
