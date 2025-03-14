@@ -303,6 +303,14 @@ const OfferDetail = () => {
           
         case OFFER_STATUSES.SENT.id:
           actions.push({
+            label: "Marquer comme validée ITC",
+            icon: CheckCircle,
+            onClick: () => openStatusChangeDialog(OFFER_STATUSES.VALID_ITC.id),
+          });
+          break;
+          
+        case OFFER_STATUSES.VALID_ITC.id:
+          actions.push({
             label: "Marquer comme approuvée",
             icon: Building,
             onClick: () => openStatusChangeDialog(OFFER_STATUSES.APPROVED.id),
@@ -508,59 +516,77 @@ const OfferDetail = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <ProgressStep 
-                  label="Brouillon" 
-                  isActive={offer.workflow_status === OFFER_STATUSES.DRAFT.id}
-                  isCompleted={[
-                    OFFER_STATUSES.SENT.id, 
-                    OFFER_STATUSES.APPROVED.id,
-                    OFFER_STATUSES.LEASER_REVIEW.id,
-                    OFFER_STATUSES.FINANCED.id
-                  ].includes(offer.workflow_status || '')}
-                  status={OFFER_STATUSES.DRAFT.id}
-                  onClick={handleStepClick}
-                />
-                <ProgressLine />
-                <ProgressStep 
-                  label="Envoyée" 
-                  isActive={offer.workflow_status === OFFER_STATUSES.SENT.id}
-                  isCompleted={[
-                    OFFER_STATUSES.APPROVED.id,
-                    OFFER_STATUSES.LEASER_REVIEW.id,
-                    OFFER_STATUSES.FINANCED.id
-                  ].includes(offer.workflow_status || '')}
-                  status={OFFER_STATUSES.SENT.id}
-                  onClick={handleStepClick}
-                />
-                <ProgressLine />
-                <ProgressStep 
-                  label="Approuvée" 
-                  isActive={offer.workflow_status === OFFER_STATUSES.APPROVED.id}
-                  isCompleted={[
-                    OFFER_STATUSES.LEASER_REVIEW.id,
-                    OFFER_STATUSES.FINANCED.id
-                  ].includes(offer.workflow_status || '')}
-                  status={OFFER_STATUSES.APPROVED.id}
-                  onClick={handleStepClick}
-                />
-                <ProgressLine />
-                <ProgressStep 
-                  label="Valid. bailleur" 
-                  isActive={offer.workflow_status === OFFER_STATUSES.LEASER_REVIEW.id}
-                  isCompleted={[
-                    OFFER_STATUSES.FINANCED.id
-                  ].includes(offer.workflow_status || '')}
-                  status={OFFER_STATUSES.LEASER_REVIEW.id}
-                  onClick={handleStepClick}
-                />
-                <ProgressLine />
-                <ProgressStep 
-                  label="Financée" 
-                  isActive={offer.workflow_status === OFFER_STATUSES.FINANCED.id}
-                  isCompleted={false}
-                  status={OFFER_STATUSES.FINANCED.id}
-                  onClick={handleStepClick}
-                />
+                {!offer.converted_to_contract && (
+                  <div className="flex items-center justify-between">
+                    <ProgressStep 
+                      label="Brouillon" 
+                      isActive={offer.workflow_status === OFFER_STATUSES.DRAFT.id}
+                      isCompleted={[
+                        OFFER_STATUSES.SENT.id, 
+                        OFFER_STATUSES.VALID_ITC.id,
+                        OFFER_STATUSES.APPROVED.id,
+                        OFFER_STATUSES.LEASER_REVIEW.id,
+                        OFFER_STATUSES.FINANCED.id
+                      ].includes(offer.workflow_status || '')}
+                      status={OFFER_STATUSES.DRAFT.id}
+                      onClick={handleStepClick}
+                    />
+                    <ProgressLine />
+                    <ProgressStep 
+                      label="Envoyée" 
+                      isActive={offer.workflow_status === OFFER_STATUSES.SENT.id}
+                      isCompleted={[
+                        OFFER_STATUSES.VALID_ITC.id,
+                        OFFER_STATUSES.APPROVED.id,
+                        OFFER_STATUSES.LEASER_REVIEW.id,
+                        OFFER_STATUSES.FINANCED.id
+                      ].includes(offer.workflow_status || '')}
+                      status={OFFER_STATUSES.SENT.id}
+                      onClick={handleStepClick}
+                    />
+                    <ProgressLine />
+                    <ProgressStep 
+                      label="Valid. ITC" 
+                      isActive={offer.workflow_status === OFFER_STATUSES.VALID_ITC.id}
+                      isCompleted={[
+                        OFFER_STATUSES.APPROVED.id,
+                        OFFER_STATUSES.LEASER_REVIEW.id,
+                        OFFER_STATUSES.FINANCED.id
+                      ].includes(offer.workflow_status || '')}
+                      status={OFFER_STATUSES.VALID_ITC.id}
+                      onClick={handleStepClick}
+                    />
+                    <ProgressLine />
+                    <ProgressStep 
+                      label="Approuvée" 
+                      isActive={offer.workflow_status === OFFER_STATUSES.APPROVED.id}
+                      isCompleted={[
+                        OFFER_STATUSES.LEASER_REVIEW.id,
+                        OFFER_STATUSES.FINANCED.id
+                      ].includes(offer.workflow_status || '')}
+                      status={OFFER_STATUSES.APPROVED.id}
+                      onClick={handleStepClick}
+                    />
+                    <ProgressLine />
+                    <ProgressStep 
+                      label="Valid. bailleur" 
+                      isActive={offer.workflow_status === OFFER_STATUSES.LEASER_REVIEW.id}
+                      isCompleted={[
+                        OFFER_STATUSES.FINANCED.id
+                      ].includes(offer.workflow_status || '')}
+                      status={OFFER_STATUSES.LEASER_REVIEW.id}
+                      onClick={handleStepClick}
+                    />
+                    <ProgressLine />
+                    <ProgressStep 
+                      label="Financée" 
+                      isActive={offer.workflow_status === OFFER_STATUSES.FINANCED.id}
+                      isCompleted={false}
+                      status={OFFER_STATUSES.FINANCED.id}
+                      onClick={handleStepClick}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

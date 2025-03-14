@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Check, Clock, FileText, AlertCircle, 
   Info, X, PenLine, User, Building, 
-  ArrowRight, CreditCard
+  ArrowRight, CreditCard, CheckCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
@@ -24,8 +24,16 @@ export const OFFER_STATUSES = {
     label: 'Envoyée',
     color: 'bg-orange-100',
     textColor: 'text-orange-700',
-    progressValue: 30,
+    progressValue: 20,
     icon: ArrowRight,
+  },
+  VALID_ITC: {
+    id: 'valid_itc',
+    label: 'Valid. ITC',
+    color: 'bg-purple-100',
+    textColor: 'text-purple-700',
+    progressValue: 40,
+    icon: CheckCircle,
   },
   APPROVED: {
     id: 'approved',

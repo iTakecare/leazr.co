@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   Table, 
@@ -16,7 +15,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, FileText, RefreshCw, Trash2, Download, Building, Send } from "lucide-react";
+import { MoreHorizontal, FileText, RefreshCw, Trash2, Download, Building, Send, CheckCircle } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Offer } from "@/hooks/offers/useFetchOffers";
@@ -66,18 +65,15 @@ const OffersTable: React.FC<OffersTableProps> = ({
     }
   };
   
-  // Déterminer les actions disponibles en fonction du statut de l'offre
   const getAvailableActions = (offer: Offer) => {
     const actions = [];
     
-    // Action: Voir détails
     actions.push({
       label: "Voir détails",
       icon: FileText,
       onClick: () => navigate(`/offers/${offer.id}`),
     });
     
-    // Actions spécifiques aux statuts
     switch (offer.workflow_status) {
       case OFFER_STATUSES.DRAFT.id:
         actions.push({
@@ -89,14 +85,22 @@ const OffersTable: React.FC<OffersTableProps> = ({
         
       case OFFER_STATUSES.SENT.id:
         actions.push({
-          label: "Marquer comme approuvée",
-          icon: Building,
-          onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.APPROVED.id),
+          label: "Marquer comme validée ITC",
+          icon: CheckCircle,
+          onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.VALID_ITC.id),
         });
         actions.push({
           label: "Renvoyer l'offre",
           icon: RefreshCw,
           onClick: () => onResendOffer(offer.id),
+        });
+        break;
+        
+      case OFFER_STATUSES.VALID_ITC.id:
+        actions.push({
+          label: "Marquer comme approuvée",
+          icon: Building,
+          onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.APPROVED.id),
         });
         break;
         
@@ -122,14 +126,12 @@ const OffersTable: React.FC<OffersTableProps> = ({
         break;
     }
     
-    // Actions communes
     actions.push({
       label: "Télécharger PDF",
       icon: Download,
       onClick: () => onDownloadPdf(offer.id),
     });
     
-    // Action de suppression (sauf si convertie en contrat)
     if (!offer.converted_to_contract) {
       actions.push({
         label: "Supprimer",
@@ -224,7 +226,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
         </Table>
       </div>
       
-      {/* Dialog pour le changement de statut avec raison */}
       <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <DialogContent>
           <DialogHeader>
