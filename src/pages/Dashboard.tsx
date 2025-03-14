@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { 
   TrendingUp, 
@@ -16,7 +17,6 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TimeFilterSelector } from "@/components/dashboard/TimeFilterSelector";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import AdminOffersNotifications from "@/components/offers/AdminOffersNotifications";
 
 const Dashboard = () => {
@@ -166,12 +166,8 @@ const Dashboard = () => {
         </motion.div>
       </motion.div>
       
-      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid gap-6 mb-8 lg:grid-cols-7">
-        <motion.div variants={itemVariants} className="lg:col-span-4">
-          <PerformanceChart isLoading={isLoading} />
-        </motion.div>
-        
-        <motion.div variants={itemVariants} className="lg:col-span-3">
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid gap-6 mb-8">
+        <motion.div variants={itemVariants}>
           <ActivityFeed activities={recentActivity} isLoading={isLoading} />
         </motion.div>
       </motion.div>
