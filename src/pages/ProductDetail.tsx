@@ -48,6 +48,25 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
+const popularBrands = [
+  "Apple",
+  "Samsung",
+  "HP",
+  "Dell",
+  "Lenovo",
+  "Asus",
+  "Acer",
+  "Microsoft",
+  "Sony",
+  "LG",
+  "Huawei",
+  "Canon",
+  "Xerox",
+  "Logitech",
+  "Brother",
+  "Autre"
+];
+
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -351,12 +370,21 @@ const ProductDetail = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="brand">Marque</Label>
-                    <Input
-                      id="brand"
-                      name="brand"
+                    <Select
                       value={formData.brand || ""}
-                      onChange={handleInputChange}
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, brand: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionner une marque" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {popularBrands.map((brand) => (
+                          <SelectItem key={brand} value={brand}>
+                            {brand}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="space-y-2">
@@ -379,6 +407,22 @@ const ProductDetail = () => {
                   </div>
                   
                   <div className="space-y-2">
+                    <Label htmlFor="monthly_price">Mensualité (€)</Label>
+                    <div className="relative">
+                      <Input
+                        id="monthly_price"
+                        name="monthly_price"
+                        type="number"
+                        value={formData.monthly_price || ""}
+                        onChange={handleInputChange}
+                        className="pl-8"
+                      />
+                      <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Mensualité pour le leasing du produit</p>
+                  </div>
+                  
+                  <div className="space-y-2">
                     <Label htmlFor="price">Prix d'achat (€)</Label>
                     <div className="relative">
                       <Input
@@ -392,22 +436,6 @@ const ProductDetail = () => {
                       />
                       <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="monthly_price">Mensualité (€)</Label>
-                    <div className="relative">
-                      <Input
-                        id="monthly_price"
-                        name="monthly_price"
-                        type="number"
-                        value={formData.monthly_price || ""}
-                        onChange={handleInputChange}
-                        className="pl-8"
-                      />
-                      <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Si laissé vide, sera calculé automatiquement à partir du prix d'achat</p>
                   </div>
                   
                   <div className="space-y-2">
@@ -680,5 +708,4 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
-
 
