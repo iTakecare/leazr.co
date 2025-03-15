@@ -27,6 +27,9 @@ export interface Client {
   user_id?: string;
   has_user_account?: boolean;
   user_account_created_at?: string | Date;
+  // Add properties used in AmbassadorDetail.tsx
+  createdAt?: string;
+  totalValue?: number;
 }
 
 export interface CreateClientData {

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -55,9 +54,12 @@ interface Partner {
   notes?: string;
 }
 
+interface PartnerEditFormProps {
+  partnerData: Partner | null;
+}
+
 // Dummy function to simulate API call to get partner data
 const getPartnerById = (id: string): Promise<Partner> => {
-  // This would be replaced with an actual API call
   return new Promise((resolve) => {
     setTimeout(() => {
       const mockPartners: Record<string, Partner> = {
@@ -112,11 +114,9 @@ const getPartnerById = (id: string): Promise<Partner> => {
 
 // Dummy function to simulate API call to update partner data
 const updatePartner = (id: string, data: PartnerFormData): Promise<Partner> => {
-  // This would be replaced with an actual API call
   return new Promise((resolve) => {
     setTimeout(() => {
       console.log('Updating partner:', id, data);
-      // Create an updated partner object with all required fields explicitly defined
       const updatedPartner: Partner = {
         id,
         name: data.name,
@@ -125,7 +125,7 @@ const updatePartner = (id: string, data: PartnerFormData): Promise<Partner> => {
         phone: data.phone,
         type: data.type,
         status: data.status,
-        commissionsTotal: 0, // This would come from the server
+        commissionsTotal: 0,
         notes: data.notes
       };
       toast.success(`Le partenaire ${data.name} a été mis à jour avec succès`);
@@ -134,28 +134,32 @@ const updatePartner = (id: string, data: PartnerFormData): Promise<Partner> => {
   });
 };
 
-const PartnerEditForm = () => {
+const PartnerEditForm: React.FC<PartnerEditFormProps> = ({ partnerData }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [partner, setPartner] = useState<Partner | null>(null);
+  const [partner, setPartner] = useState<Partner | null>(partnerData);
 
   const form = useForm<PartnerFormData>({
     resolver: zodResolver(partnerSchema),
     defaultValues: {
-      name: "",
-      contactName: "",
-      email: "",
-      phone: "",
-      type: "Revendeur",
-      status: "active",
-      notes: "",
+      name: partnerData?.name || "",
+      contactName: partnerData?.contactName || "",
+      email: partnerData?.email || "",
+      phone: partnerData?.phone || "",
+      type: (partnerData?.type as PartnerType) || "Revendeur",
+      status: partnerData?.status as "active" | "inactive" || "active",
+      notes: partnerData?.notes || "",
     },
   });
 
   React.useEffect(() => {
     if (!id) return;
+    if (partnerData) {
+      setIsLoading(false);
+      return;
+    }
 
     const fetchPartner = async () => {
       setIsLoading(true);
@@ -163,7 +167,6 @@ const PartnerEditForm = () => {
         const data = await getPartnerById(id);
         setPartner(data);
         
-        // Update form values
         form.reset({
           name: data.name,
           contactName: data.contactName,
@@ -182,7 +185,7 @@ const PartnerEditForm = () => {
     };
 
     fetchPartner();
-  }, [id, form]);
+  }, [id, form, partnerData]);
 
   const onSubmit = async (data: PartnerFormData) => {
     if (!id) return;

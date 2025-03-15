@@ -385,8 +385,8 @@ export default function AmbassadorDetail() {
                         <TableCell className="font-medium">{client.name}</TableCell>
                         <TableCell>{client.email}</TableCell>
                         <TableCell>{client.company || "-"}</TableCell>
-                        <TableCell>{client.createdAt}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.totalValue)}</TableCell>
+                        <TableCell>{client.createdAt || formatDate(client.created_at)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(client.totalValue || 0)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
