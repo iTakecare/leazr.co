@@ -32,11 +32,12 @@ export const createUserAccount = async (
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
     // Check if user exists by email with adminSupabase
-    const { data, error: findError } = await adminSupabase
-      .from('profiles')
-      .select('id')
-      .eq('email', entity.email)
-      .maybeSingle();
+    const { data, error: findError } = await adminSupabase.auth.admin
+      .listUsers({ 
+        filter: { 
+          email: entity.email 
+        } 
+      });
     
     if (findError) {
       console.error("Erreur lors de la vérification de l'utilisateur:", findError);
@@ -44,7 +45,7 @@ export const createUserAccount = async (
       return false;
     }
     
-    if (data) {
+    if (data && data.users && data.users.length > 0) {
       console.log(`Un compte existe déjà avec l'email ${entity.email}`);
       toast.error(`Un compte existe déjà avec cette adresse email`);
       return false;
