@@ -116,11 +116,17 @@ const updatePartner = (id: string, data: PartnerFormData): Promise<Partner> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       console.log('Updating partner:', id, data);
-      // Merge the update data with existing data
+      // Create an updated partner object with all required fields explicitly defined
       const updatedPartner: Partner = {
         id,
-        ...data,
+        name: data.name,
+        contactName: data.contactName,
+        email: data.email,
+        phone: data.phone,
+        type: data.type,
+        status: data.status,
         commissionsTotal: 0, // This would come from the server
+        notes: data.notes
       };
       toast.success(`Le partenaire ${data.name} a été mis à jour avec succès`);
       resolve(updatedPartner);
@@ -183,7 +189,8 @@ const PartnerEditForm = () => {
     
     setIsSaving(true);
     try {
-      await updatePartner(id, data);
+      const updatedPartner = await updatePartner(id, data);
+      setPartner(updatedPartner);
       navigate(`/partners/${id}`);
     } catch (error) {
       console.error("Error updating partner:", error);
