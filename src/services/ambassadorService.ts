@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AmbassadorFormValues } from "@/components/crm/forms/AmbassadorForm";
@@ -66,7 +67,12 @@ export const getAmbassadorById = async (id: string): Promise<Ambassador | null> 
     
     console.log("Ambassador data from db:", data);
     
-    return data ? mapDbAmbassadorToAmbassador(data) : null;
+    if (!data) {
+      console.log("No ambassador found with ID:", id);
+      return null;
+    }
+    
+    return mapDbAmbassadorToAmbassador(data);
   } catch (error) {
     console.error("Error fetching ambassador by ID:", error);
     throw error;

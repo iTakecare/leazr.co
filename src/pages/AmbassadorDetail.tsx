@@ -12,7 +12,7 @@ import {
   AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAmbassadorById } from "@/services/ambassadorService";
+import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
 
 interface Ambassador {
   id: string;
