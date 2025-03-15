@@ -112,23 +112,23 @@ serve(async (req) => {
     // Generate a secure random password
     const tempPassword = Math.random().toString(36).slice(-12);
     
-    // Define a valid role value - role must be a simple string value
-    const validRole = role === "partner" ? "partner" : "ambassador";
+    // Simplify role handling - just use 'partner' or 'ambassador' as a string value
+    const roleValue = userType; // Use the userType directly as the role value
     
-    console.log(`Creating user with role: ${validRole}`);
+    console.log(`Creating user with role: ${roleValue}`);
     
-    // Create the user with the correct role format
+    // Create the user with simplified app_metadata
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: tempPassword,
-      email_confirm: true,
+      email_confirm: true, 
       user_metadata: { 
         name,
-        role: validRole,
-        [validRole === "partner" ? "partner_id" : "ambassador_id"]: entityId
+        role: roleValue,
+        [roleValue === "partner" ? "partner_id" : "ambassador_id"]: entityId
       },
       app_metadata: { 
-        role: validRole // This must be a simple string, not an object!
+        role: roleValue // Simple string, not an object
       }
     });
     
