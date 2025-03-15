@@ -15,6 +15,7 @@ export interface Partner {
   lastTransaction: number;
   status: string;
   notes?: string;
+  user_id?: string;
 }
 
 // Function to map database record to our Partner interface
@@ -30,7 +31,8 @@ const mapDbPartnerToPartner = (record: any): Partner => {
     revenueTotal: record.revenue_total || 0,
     lastTransaction: record.last_transaction || 0,
     status: record.status || "active",
-    notes: record.notes
+    notes: record.notes,
+    user_id: record.user_id
   };
 };
 
@@ -73,7 +75,19 @@ export const getPartnerById = async (id: string): Promise<Partner | null> => {
 export const createPartner = async (partnerData: PartnerFormValues): Promise<Partner | null> => {
   try {
     // Get the current authenticated user
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error("Error getting authenticated user:", userError);
+      toast.error("Erreur d'authentification. Veuillez vous reconnecter.");
+      throw userError;
+    }
+    
+    if (!userData.user) {
+      console.error("No authenticated user found");
+      toast.error("Vous devez être connecté pour créer un partenaire");
+      throw new Error("No authenticated user");
+    }
     
     // Convert form data to database structure with user_id
     const dbPartner = {
@@ -87,10 +101,12 @@ export const createPartner = async (partnerData: PartnerFormValues): Promise<Par
       clients_count: 0,
       revenue_total: 0,
       last_transaction: 0,
-      user_id: userData.user?.id, // Ajout de l'ID utilisateur pour RLS
+      user_id: userData.user.id,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+    
+    console.log("Creating partner with data:", dbPartner);
     
     const { data, error } = await supabase
       .from('partners')
@@ -104,9 +120,11 @@ export const createPartner = async (partnerData: PartnerFormValues): Promise<Par
       throw error;
     }
     
+    toast.success("Partenaire créé avec succès!");
     return data ? mapDbPartnerToPartner(data) : null;
   } catch (error) {
     console.error("Error creating partner:", error);
+    toast.error("Erreur lors de la création du partenaire");
     throw error;
   }
 };
@@ -135,11 +153,17 @@ export const updatePartner = async (id: string, partnerData: Partial<PartnerForm
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error updating partner:", error);
+      toast.error(`Erreur: ${error.message}`);
+      throw error;
+    }
     
+    toast.success("Partenaire mis à jour avec succès!");
     return data ? mapDbPartnerToPartner(data) : null;
   } catch (error) {
     console.error("Error updating partner:", error);
+    toast.error("Erreur lors de la mise à jour du partenaire");
     throw error;
   }
 };
@@ -152,11 +176,17 @@ export const deletePartner = async (id: string): Promise<boolean> => {
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error deleting partner:", error);
+      toast.error(`Erreur: ${error.message}`);
+      throw error;
+    }
     
+    toast.success("Partenaire supprimé avec succès!");
     return true;
   } catch (error) {
     console.error("Error deleting partner:", error);
+    toast.error("Erreur lors de la suppression du partenaire");
     throw error;
   }
 };

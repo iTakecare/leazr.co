@@ -673,6 +673,7 @@ export type Database = {
           status: string
           type: string
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           clients_count?: number | null
@@ -688,6 +689,7 @@ export type Database = {
           status?: string
           type: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           clients_count?: number | null
@@ -703,6 +705,7 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
