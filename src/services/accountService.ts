@@ -44,10 +44,15 @@ export const createUserAccount = async (
     }
     
     // Manual filter by email since there's no query parameter in the API
+    // Check that the data structure is as expected and has the users array
     const existingUser = data?.users && Array.isArray(data.users) 
       ? data.users.find(user => {
-          // Properly type check that user has an email property before accessing it
-          return user && typeof user === 'object' && 'email' in user && user.email === entity.email;
+          // Use type guards to ensure user has the email property
+          if (!user || typeof user !== 'object') return false;
+          
+          // Type assertion to ensure TypeScript understands we're checking for email
+          const userObj = user as { email?: string };
+          return userObj.email === entity.email;
         }) 
       : undefined;
     
