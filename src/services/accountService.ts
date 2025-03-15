@@ -44,7 +44,9 @@ export const createUserAccount = async (
     }
     
     // Manual filter by email since there's no query parameter in the API
-    const existingUser = data?.users?.find(user => user.email === entity.email);
+    const existingUser = data?.users && Array.isArray(data.users) 
+      ? data.users.find(user => user.email === entity.email) 
+      : undefined;
     
     if (existingUser) {
       console.log(`Un compte existe déjà avec l'email ${entity.email}`);

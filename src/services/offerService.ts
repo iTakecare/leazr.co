@@ -408,7 +408,8 @@ export const getOfferById = async (offerId: string) => {
       return null;
     }
 
-    let resultData = { ...data, equipment_data: null };
+    // Create a copy of data with the equipment_data property
+    let resultData = { ...data, equipment_data: null, additional_info: data.additional_info || "" };
 
     if (data && data.equipment_description) {
       try {
@@ -527,10 +528,10 @@ export const processInfoResponse = async (
   try {
     console.log(`Processing info response for offer ${offerId}: ${approve ? 'Approved' : 'Rejected'}`);
     
-    // Récupérer le statut précédent
+    // Fetch the offer to get its current status
     const { data: offerData, error: fetchError } = await supabase
       .from('offers')
-      .select('previous_status, workflow_status')
+      .select('workflow_status, previous_status')
       .eq('id', offerId)
       .single();
       
@@ -539,14 +540,14 @@ export const processInfoResponse = async (
       throw fetchError;
     }
     
-    // Déterminer le nouveau statut
+    // Determine the new status
     const newStatus = approve 
-      ? 'leaser_review'  // Si approuvé, on passe directement à la validation bailleur
-      : 'rejected';      // Sinon rejeté
+      ? 'leaser_review'  // If approved, go directly to leaser review
+      : 'rejected';      // Otherwise rejected
     
     const previousStatus = offerData?.workflow_status || 'info_requested';
     
-    // Journaliser le changement
+    // Log the status change
     const { error: logError } = await supabase
       .from('offer_workflow_logs')
       .insert({
@@ -564,7 +565,7 @@ export const processInfoResponse = async (
       return false;
     }
     
-    // Mettre à jour le statut
+    // Update the status
     const { error: updateError } = await supabase
       .from('offers')
       .update({ 

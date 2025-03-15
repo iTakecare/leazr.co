@@ -129,16 +129,17 @@ const CreateOffer = () => {
             setClientCompany(offer.clients?.company || '');
             
             const additionalInfo = offer.additional_info || "";
+            setRemarks(additionalInfo);
             
-            const amount = String(offer.amount || 0);
-            const monthlyPayment = String(offer.monthly_payment || 0);
-            const coefficient = String(offer.coefficient || 0);
+            const amount = parseFloat(String(offer.amount || 0));
+            const monthlyPayment = parseFloat(String(offer.monthly_payment || 0));
+            const coefficient = parseFloat(String(offer.coefficient || 0));
             
             setGlobalMarginAdjustment(prev => ({
               ...prev,
-              amount: parseFloat(amount),
-              newCoef: parseFloat(coefficient),
-              newMonthly: parseFloat(monthlyPayment)
+              amount: amount,
+              newCoef: coefficient,
+              newMonthly: monthlyPayment
             }));
             
             if (offer.equipment_description) {
@@ -275,6 +276,8 @@ const CreateOffer = () => {
         .map(eq => `${eq.title} (${eq.quantity}x)`)
         .join(", ");
 
+      const offerAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0) + globalMarginAdjustment.amount;
+      
       const offerData = {
         user_id: user.id,
         client_name: clientName,
@@ -282,7 +285,7 @@ const CreateOffer = () => {
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
         equipment_text: equipmentDescription,
-        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
+        amount: offerAmount,
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
