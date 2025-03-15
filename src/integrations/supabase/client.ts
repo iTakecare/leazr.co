@@ -35,10 +35,6 @@ export const adminSupabase = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_K
   },
 });
 
-// For backwards compatibility - provide getter functions
-export const getSupabaseClient = () => supabase;
-export const getAdminSupabaseClient = () => adminSupabase;
-
 // Export storage URL and key properly as constants instead of properties
 export const STORAGE_URL = `${SUPABASE_URL}/storage/v1`;
 export const SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY;

@@ -127,43 +127,46 @@ const CreateOffer = () => {
             setClientName(offer.client_name || '');
             setClientEmail(offer.client_email || '');
             setClientCompany(offer.clients?.company || '');
+            setRemarks(offer.additional_info || '');
             
-            const additionalInfo = offer.additional_info || "";
-            setRemarks(additionalInfo);
-            
-            const amount = parseFloat(String(offer.amount || 0));
-            const monthlyPayment = parseFloat(String(offer.monthly_payment || 0));
-            const coefficient = parseFloat(String(offer.coefficient || 0));
-            
-            setGlobalMarginAdjustment(prev => ({
-              ...prev,
-              amount: amount,
-              newCoef: coefficient,
-              newMonthly: monthlyPayment
-            }));
+            // Si coefficient et amount sont définis dans l'offre
+            if (offer.coefficient && offer.amount) {
+              const coefficient = parseFloat(offer.coefficient) || 0;
+              const amount = parseFloat(offer.amount) || 0;
+              const monthlyPayment = parseFloat(offer.monthly_payment) || 0;
+              
+              setGlobalMarginAdjustment(prev => ({
+                ...prev,
+                amount: amount,
+                newCoef: coefficient,
+                newMonthly: monthlyPayment
+              }));
+            }
             
             if (offer.equipment_description) {
               try {
+                // Essayer d'abord de parser comme JSON si c'est un JSON
                 const equipmentData = JSON.parse(offer.equipment_description);
                 if (Array.isArray(equipmentData) && equipmentData.length > 0) {
                   console.log("Found JSON equipment data:", equipmentData);
                   const formattedEquipment = equipmentData.map(item => ({
                     id: item.id || crypto.randomUUID(),
                     title: item.title,
-                    purchasePrice: parseFloat(String(item.purchasePrice)) || 0,
-                    quantity: parseInt(String(item.quantity), 10) || 1,
-                    margin: parseFloat(String(item.margin)) || 20,
-                    monthlyPayment: parseFloat(String(item.monthlyPayment || 0))
+                    purchasePrice: parseFloat(item.purchasePrice) || 0,
+                    quantity: parseInt(item.quantity, 10) || 1,
+                    margin: parseFloat(item.margin) || 20,
+                    monthlyPayment: parseFloat(item.monthlyPayment || 0)
                   }));
                   
                   console.log("Formatted equipment with preserved margins:", formattedEquipment);
                   setEquipmentList(formattedEquipment);
                   
                   if (offer.monthly_payment) {
-                    setTargetMonthlyPayment(parseFloat(String(offer.monthly_payment)) || 0);
+                    setTargetMonthlyPayment(parseFloat(offer.monthly_payment) || 0);
                   }
                 }
               } catch (e) {
+                // Si ce n'est pas un JSON, utiliser la méthode de parsing original
                 console.log("Parsing equipment_description as string format:", offer.equipment_description);
                 const equipmentItems = offer.equipment_description.split(',').map(item => {
                   const match = item.trim().match(/(.+) \((\d+)x\)/);
@@ -187,7 +190,7 @@ const CreateOffer = () => {
                 
                 if (equipmentItems.length > 0) {
                   setEquipmentList(equipmentItems);
-                  setTargetMonthlyPayment(parseFloat(String(offer.monthly_payment)) || 0);
+                  setTargetMonthlyPayment(parseFloat(offer.monthly_payment) || 0);
                 }
               }
             }
@@ -261,6 +264,7 @@ const CreateOffer = () => {
     setIsSubmitting(true);
 
     try {
+      // Ensure all equipment data is properly preserved with correct types
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
@@ -272,20 +276,19 @@ const CreateOffer = () => {
       
       console.log("Saving equipment data with preserved margins:", equipmentData);
       
+      // Garder aussi le format texte pour compatibilité
       const equipmentDescription = equipmentList
         .map(eq => `${eq.title} (${eq.quantity}x)`)
         .join(", ");
 
-      const offerAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0) + globalMarginAdjustment.amount;
-      
       const offerData = {
         user_id: user.id,
         client_name: clientName,
         client_email: clientEmail,
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
-        equipment_text: equipmentDescription,
-        amount: offerAmount,
+        equipment_text: equipmentDescription,  // Format texte pour compatibilité
+        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,

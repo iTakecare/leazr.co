@@ -32,10 +32,12 @@ export const createUserAccount = async (
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
     // Check if user exists by email with adminSupabase
-    const { data, error: findError } = await adminSupabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000  // Use a reasonable limit to get all users
-    });
+    const { data, error: findError } = await adminSupabase.auth.admin
+      .listUsers({ 
+        filter: { 
+          email: entity.email 
+        } 
+      });
     
     if (findError) {
       console.error("Erreur lors de la vérification de l'utilisateur:", findError);
@@ -43,20 +45,7 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Manual filter by email since there's no query parameter in the API
-    // Check that the data structure is as expected and has the users array
-    const existingUser = data?.users && Array.isArray(data.users) 
-      ? data.users.find(user => {
-          // Use type guards to ensure user has the email property
-          if (!user || typeof user !== 'object') return false;
-          
-          // Type assertion to ensure TypeScript understands we're checking for email
-          const userObj = user as { email?: string };
-          return userObj.email === entity.email;
-        }) 
-      : undefined;
-    
-    if (existingUser) {
+    if (data && data.users && data.users.length > 0) {
       console.log(`Un compte existe déjà avec l'email ${entity.email}`);
       toast.error(`Un compte existe déjà avec cette adresse email`);
       return false;

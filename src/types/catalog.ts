@@ -1,6 +1,4 @@
 
-import { Json } from "@/integrations/supabase/types";
-
 export interface Product {
   id: string;
   name: string;
@@ -16,12 +14,12 @@ export interface Product {
   image_alt?: string;
   imageAlts?: string[];
   image_alts?: string[];
-  specifications?: Record<string, string> | Json;
+  specifications?: Record<string, string>;
   sku?: string;
   parent_id?: string;
   is_variation?: boolean;
   is_parent?: boolean;
-  variation_attributes?: Record<string, string> | Json;
+  variation_attributes?: Record<string, string>;
   variants_ids?: string[];
   variants?: ProductVariant[];
   monthly_price?: number;
@@ -53,7 +51,7 @@ export interface ProductCreateInput {
   image_alt?: string;
   imageAlts?: string[];
   image_alts?: string[];
-  specifications?: Record<string, string> | Json;
+  specifications?: Record<string, string>;
 }
 
 export interface ProductUpdateInput {
@@ -70,7 +68,7 @@ export interface ProductUpdateInput {
   image_alt?: string;
   imageAlts?: string[];
   image_alts?: string[];
-  specifications?: Record<string, string> | Json;
+  specifications?: Record<string, string>;
   sku?: string;
   active?: boolean;
 }
