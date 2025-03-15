@@ -80,7 +80,11 @@ const AmbassadorEditPage = () => {
     );
   }
 
-  return <AmbassadorEditForm initialData={ambassador} />;
+  return (
+    <div className="container py-6">
+      <AmbassadorEditForm initialData={ambassador} />
+    </div>
+  );
 };
 
 export default AmbassadorEditPage;

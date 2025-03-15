@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,15 +9,12 @@ import PartnersList from "@/components/crm/PartnersList";
 
 const AmbassadorsListPage = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("ambassadors");
   
   const handleTabChange = (value: string) => {
+    setActiveTab(value);
     if (value === "clients") {
       navigate("/clients");
-    } else if (value === "partners") {
-      navigate("/partners");
-    } else if (value === "ambassadors") {
-      // Reste sur la page actuelle, mais assure que l'URL est correcte
-      navigate("/ambassadors");
     }
   };
 
@@ -25,7 +22,7 @@ const AmbassadorsListPage = () => {
     <div className="container py-6">
       <Card className="border-none shadow-sm">
         <CardHeader className="pb-3">
-          <Tabs defaultValue="ambassadors" onValueChange={handleTabChange} className="w-full">
+          <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid grid-cols-3 mb-4">
               <TabsTrigger value="clients" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -64,14 +61,8 @@ const AmbassadorsListPage = () => {
           </Tabs>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="ambassadors" className="w-full">
-            <TabsContent value="ambassadors">
-              <AmbassadorsList />
-            </TabsContent>
-            <TabsContent value="partners">
-              <PartnersList />
-            </TabsContent>
-          </Tabs>
+          {activeTab === "ambassadors" && <AmbassadorsList />}
+          {activeTab === "partners" && <PartnersList />}
         </CardContent>
       </Card>
     </div>

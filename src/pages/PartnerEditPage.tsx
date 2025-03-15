@@ -16,7 +16,7 @@ const PartnerEditPage = () => {
   useEffect(() => {
     if (!id) {
       toast.error("ID de partenaire manquant");
-      navigate("/clients");
+      navigate("/partners");
       return;
     }
 
@@ -25,7 +25,7 @@ const PartnerEditPage = () => {
         const partnerData = await getPartnerById(id);
         if (!partnerData) {
           toast.error("Partenaire introuvable");
-          navigate("/clients");
+          navigate("/partners");
           return;
         }
         setPartner(partnerData);
@@ -34,7 +34,7 @@ const PartnerEditPage = () => {
         console.error("Erreur lors du chargement du partenaire:", error);
         setError("Erreur lors du chargement du partenaire");
         toast.error("Erreur lors du chargement du partenaire");
-        navigate("/clients");
+        navigate("/partners");
       }
     };
 
@@ -57,7 +57,7 @@ const PartnerEditPage = () => {
         <p className="text-muted-foreground mb-4">{error}</p>
         <button 
           className="px-4 py-2 bg-primary text-white rounded-md" 
-          onClick={() => navigate("/clients")}
+          onClick={() => navigate("/partners")}
         >
           Retour à la liste
         </button>
@@ -72,7 +72,7 @@ const PartnerEditPage = () => {
         <p className="text-muted-foreground mb-4">Le partenaire demandé n'existe pas ou n'est plus disponible.</p>
         <button 
           className="px-4 py-2 bg-primary text-white rounded-md" 
-          onClick={() => navigate("/clients")}
+          onClick={() => navigate("/partners")}
         >
           Retour à la liste
         </button>
@@ -80,7 +80,11 @@ const PartnerEditPage = () => {
     );
   }
 
-  return <PartnerEditForm initialData={partner} />;
+  return (
+    <div className="container py-6">
+      <PartnerEditForm initialData={partner} />
+    </div>
+  );
 };
 
 export default PartnerEditPage;

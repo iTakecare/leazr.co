@@ -3,14 +3,13 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { Plus, UserSearch, Building2, Phone, Mail, Filter, Users, HeartHandshake, BadgePercent } from "lucide-react";
+import { Plus, UserSearch, Filter, Users, HeartHandshake, BadgePercent } from "lucide-react";
 import { motion } from "framer-motion";
 import { useClients } from "@/hooks/useClients";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -75,6 +74,15 @@ const Clients = () => {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === "ambassadors") {
+      navigate("/ambassadors");
+    } else if (value === "partners") {
+      navigate("/partners");
+    }
+  };
+
   // Display loading state
   if (loading) {
     return <ClientsLoading />;
@@ -112,7 +120,7 @@ const Clients = () => {
           <motion.div variants={itemVariants}>
             <Card>
               <CardHeader className="pb-2">
-                <Tabs defaultValue="clients" onValueChange={setActiveTab} className="w-full">
+                <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="w-full">
                   <TabsList className="grid grid-cols-3 mb-4">
                     <TabsTrigger value="clients" className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
@@ -210,14 +218,6 @@ const Clients = () => {
                     onEditClient={(id) => navigate(`/clients/edit/${id}`)}
                     onViewClient={(id) => navigate(`/clients/${id}`)}
                   />
-                )}
-                
-                {activeTab === "ambassadors" && (
-                  <AmbassadorsList />
-                )}
-                
-                {activeTab === "partners" && (
-                  <PartnersList />
                 )}
               </CardContent>
             </Card>
