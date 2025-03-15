@@ -1,3 +1,4 @@
+
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -19,6 +20,8 @@ import CreateTestUsers from "./pages/CreateTestUsers";
 import PartnerDashboard from "./pages/PartnerDashboard";
 import PartnerCreateOffer from "./pages/PartnerCreateOffer";
 import PartnerOfferDetail from "./pages/PartnerOfferDetail";
+import PartnerDetail from "./pages/PartnerDetail"; // Nouvelle page de détail des partenaires
+import AmbassadorDetail from "./pages/AmbassadorDetail"; // Nouvelle page de détail des ambassadeurs
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -163,6 +166,9 @@ function App() {
               <Route path="/offers/:id" element={<OfferDetail />} />
               <Route path="/contracts" element={<Contracts />} />
               <Route path="/create-test-users" element={<CreateTestUsers />} />
+              {/* Nouvelles routes pour les détails des ambassadeurs et partenaires */}
+              <Route path="/partners/:id" element={<PartnerDetail />} />
+              <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
             </Route>
             
             <Route path="/partner" element={
