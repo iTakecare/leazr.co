@@ -1,4 +1,3 @@
-
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -25,6 +24,7 @@ import PartnerEditPage from "./pages/PartnerEditPage";
 import AmbassadorDetail from "./pages/AmbassadorDetail";
 import AmbassadorEditPage from "./pages/AmbassadorEditPage";
 import AmbassadorsListPage from "./pages/AmbassadorsList";
+import ContractDetail from "./pages/ContractDetail";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -168,6 +168,7 @@ function App() {
               <Route path="/offers" element={<Offers />} />
               <Route path="/offers/:id" element={<OfferDetail />} />
               <Route path="/contracts" element={<Contracts />} />
+              <Route path="/contracts/:id" element={<ContractDetail />} />
               <Route path="/create-test-users" element={<CreateTestUsers />} />
               {/* Routes for partners */}
               <Route path="/partners" element={<AmbassadorsListPage />} />

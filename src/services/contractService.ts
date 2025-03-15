@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,20 +15,26 @@ export interface Contract {
   offer_id: string;
   client_name: string;
   client_id?: string;
+  client_email?: string;
+  client_phone?: string;
   clients?: {
     name: string;
     email: string;
     company: string;
   } | null;
   monthly_payment: number;
+  amount?: number;
+  lease_duration?: number;
   equipment_description?: string;
   status: string;
   leaser_name: string;
   leaser_logo?: string;
   created_at: string;
+  updated_at?: string;
   tracking_number?: string;
   estimated_delivery?: string;
   delivery_status?: string;
+  delivery_carrier?: string;
 }
 
 export interface ContractCreateData {
