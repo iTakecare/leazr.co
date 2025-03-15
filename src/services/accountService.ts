@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Partner } from "./partnerService";
 import { Ambassador } from "./ambassadorService";
@@ -31,45 +31,92 @@ export const createUserAccount = async (
   try {
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
-    // Create simplified parameters for better clarity
-    const params: CreateAccountParams = {
-      email: entity.email,
-      name: entity.name,
-      role: userType, // Just use the string value
-      userType,
-      entityId: entity.id
-    };
-
-    console.log("Sending request to create-user-account with params:", params);
-
-    // Call the Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke("create-user-account", {
-      body: params
-    });
+    // Premièrement, vérifier si l'utilisateur existe déjà
+    const { data: existingUsers, error: checkError } = await adminSupabase.auth.admin.listUsers();
     
-    if (error) {
-      console.error(`Error calling create-user-account function:`, error);
-      toast.error(`Erreur lors de la création du compte : ${error.message}`);
+    if (checkError) {
+      console.error("Erreur lors de la vérification des utilisateurs existants:", checkError);
+      toast.error(`Erreur lors de la vérification: ${checkError.message}`);
       return false;
     }
     
-    console.log("Response from create-user-account function:", data);
+    const existingUser = existingUsers.users.find(user => user.email === entity.email);
     
-    if (data?.error) {
-      console.error(`Error from edge function:`, data.error);
-      
-      if (data.userExists) {
-        toast.error(`Un compte existe déjà avec cette adresse email`);
-      } else {
-        toast.error(`Erreur: ${data.error}`);
-      }
+    if (existingUser) {
+      console.log(`Un compte existe déjà avec l'email ${entity.email}`);
+      toast.error(`Un compte existe déjà avec cette adresse email`);
       return false;
+    }
+    
+    // Générer un mot de passe aléatoire
+    const tempPassword = Math.random().toString(36).slice(-12);
+    
+    // Créer l'utilisateur avec le serviceRole
+    const { data: userData, error: createError } = await adminSupabase.auth.admin.createUser({
+      email: entity.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { 
+        name: entity.name,
+        role: userType,
+        [userType === "partner" ? "partner_id" : "ambassador_id"]: entity.id
+      },
+      app_metadata: { 
+        role: userType
+      }
+    });
+    
+    if (createError) {
+      console.error("Erreur lors de la création de l'utilisateur:", createError);
+      toast.error(`Erreur: ${createError.message}`);
+      return false;
+    }
+    
+    if (!userData || !userData.user) {
+      console.error("Création de l'utilisateur n'a pas retourné les données attendues");
+      toast.error("Erreur lors de la création du compte");
+      return false;
+    }
+    
+    console.log("Utilisateur créé avec succès:", userData.user.id);
+    
+    // Mettre à jour le partenaire ou ambassadeur dans la base de données
+    const tableName = userType === "partner" ? "partners" : "ambassadors";
+    
+    const { error: updateError } = await supabase
+      .from(tableName)
+      .update({
+        has_user_account: true,
+        user_account_created_at: new Date().toISOString(),
+        user_id: userData.user.id
+      })
+      .eq('id', entity.id);
+    
+    if (updateError) {
+      console.error(`Erreur lors de la mise à jour du ${userType}:`, updateError);
+      toast.error(`Erreur lors de la mise à jour: ${updateError.message}`);
+      return false;
+    }
+    
+    // Envoyer l'email de réinitialisation de mot de passe
+    const { error: resetError } = await adminSupabase.auth.admin.generateLink({
+      type: "recovery",
+      email: entity.email,
+      options: {
+        redirectTo: `${window.location.origin}/update-password`,
+      }
+    });
+    
+    if (resetError) {
+      console.error("Erreur lors de l'envoi de l'email de réinitialisation:", resetError);
+      toast.warning("Compte créé mais problème d'envoi de l'email de réinitialisation");
+      // On continue malgré cette erreur
     }
     
     toast.success(`Compte ${userType} créé et email de configuration envoyé`);
     return true;
   } catch (error) {
-    console.error(`Error in createUserAccount:`, error);
+    console.error(`Erreur dans createUserAccount:`, error);
     toast.error(`Erreur lors de la création du compte ${userType}`);
     return false;
   }
