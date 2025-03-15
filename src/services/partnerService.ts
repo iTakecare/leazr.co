@@ -72,7 +72,10 @@ export const getPartnerById = async (id: string): Promise<Partner | null> => {
 // Create a new partner
 export const createPartner = async (partnerData: PartnerFormValues): Promise<Partner | null> => {
   try {
-    // Convert form data to database structure
+    // Get the current authenticated user
+    const { data: userData } = await supabase.auth.getUser();
+    
+    // Convert form data to database structure with user_id
     const dbPartner = {
       name: partnerData.name,
       contact_name: partnerData.contactName,
@@ -83,7 +86,10 @@ export const createPartner = async (partnerData: PartnerFormValues): Promise<Par
       status: partnerData.status || "active",
       clients_count: 0,
       revenue_total: 0,
-      last_transaction: 0
+      last_transaction: 0,
+      user_id: userData.user?.id, // Ajout de l'ID utilisateur pour RLS
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     
     const { data, error } = await supabase
@@ -92,7 +98,11 @@ export const createPartner = async (partnerData: PartnerFormValues): Promise<Par
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating partner:", error);
+      toast.error(`Erreur: ${error.message}`);
+      throw error;
+    }
     
     return data ? mapDbPartnerToPartner(data) : null;
   } catch (error) {

@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription
 } from "@/components/ui/dialog";
 import PartnerForm, { PartnerFormValues } from "../forms/PartnerForm";
 
@@ -30,6 +31,12 @@ const PartnerModal = ({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {partner?.id 
+              ? "Modifiez les informations du partenaire ci-dessous"
+              : "Remplissez le formulaire pour ajouter un nouveau partenaire"
+            }
+          </DialogDescription>
         </DialogHeader>
         <PartnerForm
           initialData={partner}
