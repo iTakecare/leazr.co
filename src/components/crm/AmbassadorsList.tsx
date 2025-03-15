@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -193,9 +194,17 @@ const AmbassadorsList = () => {
 
   const confirmDelete = () => {
     if (currentAmbassador) {
+      // Supprimer l'ambassadeur de la liste
       setAmbassadorsList(prevList => prevList.filter(a => a.id !== currentAmbassador.id));
+      
+      // Notification de succès
       toast.success(`L'ambassadeur ${currentAmbassador.name} a été supprimé`);
+      
+      // Fermer la boîte de dialogue de confirmation
       setIsDeleteDialogOpen(false);
+      
+      // Vider l'ambassadeur actuel pour éviter toute référence à un objet supprimé
+      setCurrentAmbassador(null);
     }
   };
 
@@ -222,7 +231,7 @@ const AmbassadorsList = () => {
         setIsEditModalOpen(false);
       } else {
         const newAmbassador: Ambassador = {
-          id: `${ambassadorsList.length + 1}`,
+          id: `${Date.now()}`, // Utiliser timestamp pour assurer l'unicité
           name: data.name,
           email: data.email,
           phone: data.phone,
@@ -265,106 +274,125 @@ const AmbassadorsList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {ambassadorsList.map((ambassador) => (
-            <TableRow key={ambassador.id} className="cursor-pointer" onClick={() => handleViewProfile(ambassador.id)}>
-              <TableCell className="font-medium">{ambassador.name}</TableCell>
-              <TableCell>
-                <div className="flex flex-col space-y-1">
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Mail className="h-3 w-3 mr-1" />
-                    {ambassador.email}
+          {ambassadorsList.length > 0 ? (
+            ambassadorsList.map((ambassador) => (
+              <TableRow key={ambassador.id} className="cursor-pointer" onClick={() => handleViewProfile(ambassador.id)}>
+                <TableCell className="font-medium">{ambassador.name}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col space-y-1">
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Mail className="h-3 w-3 mr-1" />
+                      {ambassador.email}
+                    </div>
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Phone className="h-3 w-3 mr-1" />
+                      {ambassador.phone}
+                    </div>
                   </div>
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Phone className="h-3 w-3 mr-1" />
-                    {ambassador.phone}
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>{ambassador.region}</TableCell>
-              <TableCell>
-                <Button 
-                  variant="ghost" 
-                  className="h-8 px-2 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleViewClients(ambassador.id);
-                  }}
-                >
-                  {ambassador.clientsCount} clients
-                </Button>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col">
-                  <Button
-                    variant="ghost"
-                    className="h-8 px-2 text-xs justify-start"
+                </TableCell>
+                <TableCell>{ambassador.region}</TableCell>
+                <TableCell>
+                  <Button 
+                    variant="ghost" 
+                    className="h-8 px-2 text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleViewCommissions(ambassador.id);
+                      handleViewClients(ambassador.id);
                     }}
                   >
-                    <div className="font-medium text-sm">
-                      {formatCurrency(ambassador.commissionsTotal)}
-                    </div>
+                    {ambassador.clientsCount} clients
                   </Button>
-                  {ambassador.lastCommission > 0 && (
-                    <div className="text-xs text-muted-foreground flex items-center">
-                      <ReceiptEuro className="h-3 w-3 mr-1" />
-                      Dernière: {formatCurrency(ambassador.lastCommission)}
-                    </div>
-                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <Button
+                      variant="ghost"
+                      className="h-8 px-2 text-xs justify-start"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewCommissions(ambassador.id);
+                      }}
+                    >
+                      <div className="font-medium text-sm">
+                        {formatCurrency(ambassador.commissionsTotal)}
+                      </div>
+                    </Button>
+                    {ambassador.lastCommission > 0 && (
+                      <div className="text-xs text-muted-foreground flex items-center">
+                        <ReceiptEuro className="h-3 w-3 mr-1" />
+                        Dernière: {formatCurrency(ambassador.lastCommission)}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <Badge variant={ambassador.status === 'active' ? 'default' : 'secondary'} className={
+                    ambassador.status === 'active' 
+                      ? "bg-green-100 text-green-800 hover:bg-green-100" 
+                      : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                  }>
+                    {ambassador.status === 'active' ? 'Actif' : 'Inactif'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleViewProfile(ambassador.id)}>
+                        Afficher le profil
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditAmbassador(ambassador.id)}>
+                        Modifier
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleViewClients(ambassador.id)}>
+                        Voir les clients
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleViewCommissions(ambassador.id)}>
+                        Voir les commissions
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleToggleStatus(ambassador.id)} 
+                        className={ambassador.status === 'active' ? "text-amber-600" : "text-green-600"}
+                      >
+                        {ambassador.status === 'active' ? 'Désactiver' : 'Activer'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteAmbassador(ambassador.id)} 
+                        className="text-red-600"
+                      >
+                        Supprimer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8">
+                <div className="flex flex-col items-center justify-center text-muted-foreground">
+                  <AlertCircle className="h-12 w-12 mb-2 text-gray-300" />
+                  <p>Aucun ambassadeur trouvé</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleAddAmbassador} 
+                    className="mt-4 gap-2"
+                  >
+                    <HeartHandshake className="h-4 w-4" />
+                    Ajouter un ambassadeur
+                  </Button>
                 </div>
               </TableCell>
-              <TableCell onClick={(e) => e.stopPropagation()}>
-                <Badge variant={ambassador.status === 'active' ? 'default' : 'secondary'} className={
-                  ambassador.status === 'active' 
-                    ? "bg-green-100 text-green-800 hover:bg-green-100" 
-                    : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-                }>
-                  {ambassador.status === 'active' ? 'Actif' : 'Inactif'}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleViewProfile(ambassador.id)}>
-                      Afficher le profil
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEditAmbassador(ambassador.id)}>
-                      Modifier
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleViewClients(ambassador.id)}>
-                      Voir les clients
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleViewCommissions(ambassador.id)}>
-                      Voir les commissions
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => handleToggleStatus(ambassador.id)} 
-                      className={ambassador.status === 'active' ? "text-amber-600" : "text-green-600"}
-                    >
-                      {ambassador.status === 'active' ? 'Désactiver' : 'Activer'}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => handleDeleteAmbassador(ambassador.id)} 
-                      className="text-red-600"
-                    >
-                      Supprimer
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
 

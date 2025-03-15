@@ -1,11 +1,12 @@
 
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowLeft, Home, Package, User, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.error(
@@ -44,6 +45,10 @@ const NotFound = () => {
 
   // If we have a product ID, use it for both routes
   const productOrCatalogId = productId || catalogId;
+
+  const goBack = () => {
+    navigate(-1);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -136,13 +141,11 @@ const NotFound = () => {
           <div className="flex gap-3 justify-center">
             <Button 
               variant="default" 
-              asChild
+              onClick={goBack}
               className="flex items-center gap-2"
             >
-              <Link to="/">
-                <Home className="h-4 w-4" /> 
-                Accueil
-              </Link>
+              <ArrowLeft className="h-4 w-4" /> 
+              Retour
             </Button>
             <Button 
               variant="outline" 
@@ -150,7 +153,7 @@ const NotFound = () => {
               className="flex items-center gap-2"
             >
               <Link to="/dashboard">
-                <ArrowLeft className="h-4 w-4" /> 
+                <Home className="h-4 w-4" /> 
                 Tableau de bord
               </Link>
             </Button>
