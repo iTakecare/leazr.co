@@ -4,23 +4,30 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PartnerFormValues } from "@/components/crm/forms/PartnerForm";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
-  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, Trash, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, BadgePercent, Users, Receipt, FileText2, ReceiptText
+  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
+  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Building
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Définir l'interface Partner pour la page de détail
-interface Partner extends PartnerFormValues {
+interface Partner {
   id: string;
-  commissionsTotal: number;
+  name: string;
+  email: string;
+  phone: string;
+  type: "Revendeur" | "Intégrateur" | "Consultant";
+  contactName: string;
   status: string;
+  clientsCount: number;
+  commissionsTotal: number;
+  lastCommission: number;
+  notes?: string;
   collaborators?: Collaborator[];
   clients?: Client[];
   commissions?: Commission[];
@@ -62,12 +69,11 @@ interface Commission {
 
 interface Offer {
   id: string;
-  date: string;
   client: string;
-  equipment: string;
   amount: number;
-  commission: number;
   status: string;
+  date: string;
+  description: string;
 }
 
 // Services mock pour partenaires
@@ -90,134 +96,136 @@ const getPartnerById = async (id: string): Promise<Partner | null> => {
   const mockPartners: Partner[] = [
     {
       id: '1',
-      name: 'TechSolutions SAS',
-      contactName: 'Alexandre Martin',
-      email: 'contact@techsolutions.com',
+      name: 'TechMed Solutions',
+      email: 'contact@techmed.fr',
       phone: '+33 1 23 45 67 89',
       type: 'Revendeur',
-      commissionsTotal: 12500,
+      contactName: 'Sophie Martin',
       status: 'active',
-      created_at: '2023-01-15T10:00:00Z',
-      updated_at: '2023-01-15T10:00:00Z',
-      notes: 'Partenaire depuis janvier 2023. Spécialisé dans les équipements médicaux.',
+      clientsCount: 15,
+      commissionsTotal: 12500,
+      lastCommission: 850,
+      created_at: '2023-01-15T09:30:00Z',
+      updated_at: '2023-09-10T14:20:00Z',
+      notes: 'Partenaire spécialisé dans la vente d\'équipements médicaux de diagnostic.',
       collaborators: [
         {
           id: 'c1',
-          name: 'Sophie Dubois',
-          role: 'Responsable Commercial',
-          email: 'sophie.dubois@techsolutions.com',
-          phone: '+33 6 12 34 56 78',
-          department: 'Commercial'
+          name: 'Marc Dupont',
+          role: 'Commercial',
+          email: 'marc.dupont@techmed.fr',
+          phone: '+33 6 11 22 33 44',
+          department: 'Ventes'
+        },
+        {
+          id: 'c2',
+          name: 'Julie Lenoir',
+          role: 'Support Technique',
+          email: 'julie.lenoir@techmed.fr',
+          phone: '+33 6 22 33 44 55',
+          department: 'Technique'
         }
       ],
       clients: [
         {
           id: 'cl1',
-          name: 'Hôpital Saint-Louis',
-          email: 'direction@hopital-stlouis.fr',
+          name: 'Clinique Saint-Joseph',
+          email: 'contact@clinique-sj.fr',
           status: 'active',
-          company: 'Hôpital Saint-Louis',
-          createdAt: '2023-02-10',
-          totalValue: 5500
+          company: 'Clinique Saint-Joseph',
+          createdAt: '2023-02-15',
+          totalValue: 5800
         },
         {
           id: 'cl2',
-          name: 'Clinique du Parc',
-          email: 'contact@clinique-parc.fr',
+          name: 'Centre Médical Parisien',
+          email: 'contact@cm-paris.fr',
           status: 'active',
-          company: 'Clinique du Parc',
-          createdAt: '2023-03-15',
+          company: 'Centre Médical Parisien',
+          createdAt: '2023-04-22',
           totalValue: 4200
-        },
-        {
-          id: 'cl3',
-          name: 'Centre Médical des Alpes',
-          email: 'info@centre-alpes.fr',
-          status: 'active',
-          company: 'Centre Médical des Alpes',
-          createdAt: '2023-04-20',
-          totalValue: 2800
         }
       ],
       commissions: [
         {
           id: 'com1',
-          date: '2023-02-25',
-          client: 'Hôpital Saint-Louis',
-          amount: 550,
+          date: '2023-03-10',
+          client: 'Clinique Saint-Joseph',
+          amount: 580,
           status: 'Payée',
           isPaid: true
         },
         {
           id: 'com2',
-          date: '2023-03-30',
-          client: 'Clinique du Parc',
+          date: '2023-05-12',
+          client: 'Centre Médical Parisien',
           amount: 420,
           status: 'Payée',
           isPaid: true
         },
         {
           id: 'com3',
-          date: '2023-05-05',
-          client: 'Centre Médical des Alpes',
-          amount: 280,
+          date: '2023-09-05',
+          client: 'Hôpital de Lyon',
+          amount: 850,
           status: 'En attente',
           isPaid: false
         }
       ],
       offers: [
         {
-          id: 'off1',
-          date: '2023-02-05',
-          client: 'Hôpital Saint-Louis',
-          equipment: 'Scanner médical haute résolution',
-          amount: 5500,
-          commission: 550,
-          status: 'Validée'
+          id: 'o1',
+          client: 'Clinique Saint-Joseph',
+          amount: 12500,
+          status: 'Acceptée',
+          date: '2023-02-10',
+          description: 'Équipement complet de moniteurs cardiaques'
         },
         {
-          id: 'off2',
-          date: '2023-03-10',
-          client: 'Clinique du Parc',
-          equipment: 'Équipement d\'imagerie médicale',
-          amount: 4200,
-          commission: 420,
-          status: 'Validée'
+          id: 'o2',
+          client: 'Centre Médical Parisien',
+          amount: 9800,
+          status: 'Acceptée',
+          date: '2023-04-18',
+          description: 'Échographes de dernière génération'
         },
         {
-          id: 'off3',
-          date: '2023-04-15',
-          client: 'Centre Médical des Alpes',
-          equipment: 'Système de monitoring patient',
-          amount: 2800,
-          commission: 280,
-          status: 'En cours'
+          id: 'o3',
+          client: 'Hôpital de Lyon',
+          amount: 15600,
+          status: 'En attente',
+          date: '2023-08-25',
+          description: 'Système de surveillance des patients'
         }
       ]
     },
     {
       id: '2',
-      name: 'Digital Partners',
-      contactName: 'Sophie Dubois',
-      email: 'info@digitalpartners.com',
-      phone: '+33 1 34 56 78 90',
+      name: 'MedIntegra',
+      email: 'info@medintegra.com',
+      phone: '+33 2 34 56 78 90',
       type: 'Intégrateur',
-      commissionsTotal: 8750,
+      contactName: 'Thomas Bernard',
       status: 'active',
-      created_at: '2023-02-20T14:30:00Z',
-      updated_at: '2023-02-20T14:30:00Z'
+      clientsCount: 8,
+      commissionsTotal: 7200,
+      lastCommission: 650,
+      created_at: '2023-03-20T11:15:00Z',
+      updated_at: '2023-08-05T16:40:00Z'
     },
     {
       id: '3',
-      name: 'Innov IT',
-      contactName: 'Thomas Petit',
-      email: 'contact@innovit.fr',
-      phone: '+33 1 45 67 89 01',
+      name: 'ConsultSanté',
+      email: 'contact@consultsante.fr',
+      phone: '+33 3 45 67 89 01',
       type: 'Consultant',
-      commissionsTotal: 5300,
+      contactName: 'Émilie Durand',
       status: 'inactive',
-      created_at: '2023-03-10T09:15:00Z',
-      updated_at: '2023-03-10T09:15:00Z'
+      clientsCount: 4,
+      commissionsTotal: 3200,
+      lastCommission: 0,
+      created_at: '2023-04-05T10:00:00Z',
+      updated_at: '2023-07-18T09:25:00Z'
     }
   ];
   
@@ -348,7 +356,7 @@ export default function PartnerDetail() {
       <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{partner.name}</h1>
-          <p className="text-muted-foreground text-lg">{partner.contactName} - {partner.type}</p>
+          <p className="text-muted-foreground text-lg">Partenaire - {partner.type}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate("/partners")} className="flex items-center">
@@ -365,8 +373,8 @@ export default function PartnerDetail() {
         <TabsList className="grid grid-cols-5 w-full md:w-auto">
           <TabsTrigger value="profile">Profil</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
-          <TabsTrigger value="offers">Offres</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
+          <TabsTrigger value="offers">Offres</TabsTrigger>
           <TabsTrigger value="collaborators">Collaborateurs</TabsTrigger>
         </TabsList>
         
@@ -375,7 +383,7 @@ export default function PartnerDetail() {
             <Card className="md:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
               <CardHeader className="bg-muted/50 pb-4 border-b">
                 <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
+                  <User className="h-5 w-5 text-primary" />
                   Informations générales
                 </CardTitle>
                 <CardDescription>Coordonnées et détails du partenaire</CardDescription>
@@ -403,10 +411,18 @@ export default function PartnerDetail() {
                   )}
                   
                   <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                    <BadgePercent className="h-5 w-5 text-primary mt-0.5" />
+                    <Building className="h-5 w-5 text-primary mt-0.5" />
                     <div>
-                      <h3 className="text-sm font-medium">Type de partenaire</h3>
+                      <h3 className="text-sm font-medium">Type</h3>
                       <p className="text-sm">{partner.type}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                    <User className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium">Contact principal</h3>
+                      <p className="text-sm">{partner.contactName}</p>
                     </div>
                   </div>
                   
@@ -550,59 +566,6 @@ export default function PartnerDetail() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="offers" className="space-y-6">
-          <Card className="shadow-md border-none">
-            <CardHeader className="bg-muted/50 pb-4 border-b">
-              <CardTitle className="flex items-center gap-2">
-                <FileText2 className="h-5 w-5 text-primary" />
-                Offres
-              </CardTitle>
-              <CardDescription>Offres créées par ce partenaire</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {partner.offers && partner.offers.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Équipement</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
-                      <TableHead className="text-right">Commission</TableHead>
-                      <TableHead>Statut</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {partner.offers.map((offer) => (
-                      <TableRow key={offer.id}>
-                        <TableCell>{offer.date}</TableCell>
-                        <TableCell>{offer.client}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{offer.equipment}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(offer.amount)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(offer.commission)}</TableCell>
-                        <TableCell>
-                          <Badge variant={offer.status === 'Validée' ? "default" : "outline"} className={
-                            offer.status === 'Validée'
-                              ? "bg-green-50 text-green-700 border-green-200" 
-                              : "bg-amber-50 text-amber-700 border-amber-200"
-                          }>
-                            {offer.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-10">
-                  <FileText2 className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
-                  <p className="text-muted-foreground">Aucune offre enregistrée</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
         <TabsContent value="commissions" className="space-y-6">
           <Card className="shadow-md border-none">
             <CardHeader className="bg-muted/50 pb-4 border-b">
@@ -652,6 +615,57 @@ export default function PartnerDetail() {
           </Card>
         </TabsContent>
         
+        <TabsContent value="offers" className="space-y-6">
+          <Card className="shadow-md border-none">
+            <CardHeader className="bg-muted/50 pb-4 border-b">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Offres
+              </CardTitle>
+              <CardDescription>Offres créées par ce partenaire</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {partner.offers && partner.offers.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
+                      <TableHead>Statut</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {partner.offers.map((offer) => (
+                      <TableRow key={offer.id}>
+                        <TableCell>{offer.date}</TableCell>
+                        <TableCell>{offer.client}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{offer.description}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(offer.amount)}</TableCell>
+                        <TableCell>
+                          <Badge variant={offer.status === 'Acceptée' ? "default" : "outline"} className={
+                            offer.status === 'Acceptée'
+                              ? "bg-green-50 text-green-700 border-green-200" 
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }>
+                            {offer.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-10">
+                  <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-muted-foreground">Aucune offre pour ce partenaire</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
         <TabsContent value="collaborators" className="space-y-6">
           <Card className="shadow-md border-none">
             <CardHeader className="bg-muted/50 pb-4 border-b">
@@ -659,7 +673,7 @@ export default function PartnerDetail() {
                 <UserPlus className="h-5 w-5 text-primary" />
                 Collaborateurs
               </CardTitle>
-              <CardDescription>Personnes à contacter chez ce partenaire</CardDescription>
+              <CardDescription>Personnes associées à ce partenaire</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <CollaboratorForm clientId={id!} />

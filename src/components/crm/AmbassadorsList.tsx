@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import { formatCurrency } from "@/utils/formatters";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import AmbassadorModal from './modals/AmbassadorModal';
-import AmbassadorDetail from './detail/AmbassadorDetail';
 import ClientsView from './detail/ClientsView';
 import CommissionsView from './detail/CommissionsView';
 import { 
@@ -124,7 +122,6 @@ const AmbassadorsList = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentAmbassador, setCurrentAmbassador] = useState<Ambassador | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isClientsViewOpen, setIsClientsViewOpen] = useState(false);
   const [isCommissionsViewOpen, setIsCommissionsViewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,11 +143,7 @@ const AmbassadorsList = () => {
   };
 
   const handleViewProfile = (id: string) => {
-    const ambassador = ambassadorsList.find(a => a.id === id);
-    if (ambassador) {
-      setCurrentAmbassador(ambassador);
-      setIsDetailOpen(true);
-    }
+    navigate(`/ambassadors/${id}`);
   };
 
   const handleViewClients = (id: string) => {
@@ -211,7 +204,6 @@ const AmbassadorsList = () => {
     
     setTimeout(() => {
       if (currentAmbassador?.id) {
-        // Mise à jour d'un ambassadeur existant
         setAmbassadorsList(prevList => 
           prevList.map(ambassador => 
             ambassador.id === currentAmbassador.id
@@ -229,7 +221,6 @@ const AmbassadorsList = () => {
         toast.success(`L'ambassadeur ${data.name} a été mis à jour`);
         setIsEditModalOpen(false);
       } else {
-        // Ajout d'un nouvel ambassadeur
         const newAmbassador: Ambassador = {
           id: `${ambassadorsList.length + 1}`,
           name: data.name,
@@ -275,7 +266,7 @@ const AmbassadorsList = () => {
         </TableHeader>
         <TableBody>
           {ambassadorsList.map((ambassador) => (
-            <TableRow key={ambassador.id}>
+            <TableRow key={ambassador.id} className="cursor-pointer" onClick={() => handleViewProfile(ambassador.id)}>
               <TableCell className="font-medium">{ambassador.name}</TableCell>
               <TableCell>
                 <div className="flex flex-col space-y-1">
@@ -294,7 +285,10 @@ const AmbassadorsList = () => {
                 <Button 
                   variant="ghost" 
                   className="h-8 px-2 text-xs"
-                  onClick={() => handleViewClients(ambassador.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewClients(ambassador.id);
+                  }}
                 >
                   {ambassador.clientsCount} clients
                 </Button>
@@ -304,7 +298,10 @@ const AmbassadorsList = () => {
                   <Button
                     variant="ghost"
                     className="h-8 px-2 text-xs justify-start"
-                    onClick={() => handleViewCommissions(ambassador.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewCommissions(ambassador.id);
+                    }}
                   >
                     <div className="font-medium text-sm">
                       {formatCurrency(ambassador.commissionsTotal)}
@@ -318,7 +315,7 @@ const AmbassadorsList = () => {
                   )}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <Badge variant={ambassador.status === 'active' ? 'default' : 'secondary'} className={
                   ambassador.status === 'active' 
                     ? "bg-green-100 text-green-800 hover:bg-green-100" 
@@ -327,7 +324,7 @@ const AmbassadorsList = () => {
                   {ambassador.status === 'active' ? 'Actif' : 'Inactif'}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
@@ -371,7 +368,6 @@ const AmbassadorsList = () => {
         </TableBody>
       </Table>
 
-      {/* Modales et dialogs */}
       <AmbassadorModal 
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
@@ -385,16 +381,6 @@ const AmbassadorsList = () => {
         ambassador={currentAmbassador}
         onSubmit={handleSaveAmbassador}
         isSubmitting={isSubmitting}
-      />
-
-      <AmbassadorDetail 
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        ambassador={currentAmbassador}
-        onEdit={() => {
-          setIsDetailOpen(false);
-          handleEditAmbassador(currentAmbassador.id);
-        }}
       />
 
       <ClientsView 
