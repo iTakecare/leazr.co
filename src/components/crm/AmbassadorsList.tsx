@@ -194,17 +194,24 @@ const AmbassadorsList = () => {
 
   const confirmDelete = () => {
     if (currentAmbassador) {
-      // Supprimer l'ambassadeur de la liste
-      setAmbassadorsList(prevList => prevList.filter(a => a.id !== currentAmbassador.id));
-      
-      // Notification de succès
-      toast.success(`L'ambassadeur ${currentAmbassador.name} a été supprimé`);
-      
-      // Fermer la boîte de dialogue de confirmation
-      setIsDeleteDialogOpen(false);
-      
-      // Vider l'ambassadeur actuel pour éviter toute référence à un objet supprimé
-      setCurrentAmbassador(null);
+      try {
+        // Supprimer l'ambassadeur de la liste
+        setAmbassadorsList(prevList => prevList.filter(a => a.id !== currentAmbassador.id));
+        
+        // Notification de succès
+        toast.success(`L'ambassadeur ${currentAmbassador.name} a été supprimé`);
+        console.log("Ambassadeur supprimé avec succès:", currentAmbassador.id);
+        
+        // Fermer la boîte de dialogue de confirmation
+        setIsDeleteDialogOpen(false);
+        
+        // Vider l'ambassadeur actuel pour éviter toute référence à un objet supprimé
+        setCurrentAmbassador(null);
+
+      } catch (error) {
+        console.error("Erreur lors de la suppression de l'ambassadeur:", error);
+        toast.error("Une erreur est survenue lors de la suppression de l'ambassadeur");
+      }
     }
   };
 
