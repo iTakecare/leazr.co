@@ -99,11 +99,16 @@ const updateAmbassador = (id: string, data: AmbassadorFormData): Promise<Ambassa
   return new Promise((resolve) => {
     setTimeout(() => {
       console.log('Updating ambassador:', id, data);
-      // Merge the update data with existing data
+      // Create an updated ambassador object with all required fields
       const updatedAmbassador: Ambassador = {
         id,
-        ...data,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        region: data.region,
+        status: data.status,
         commissionsTotal: 0, // This would come from the server
+        notes: data.notes
       };
       toast.success(`L'ambassadeur ${data.name} a été mis à jour avec succès`);
       resolve(updatedAmbassador);
@@ -164,7 +169,8 @@ const AmbassadorEditForm = () => {
     
     setIsSaving(true);
     try {
-      await updateAmbassador(id, data);
+      const updatedAmbassador = await updateAmbassador(id, data);
+      setAmbassador(updatedAmbassador);
       navigate(`/ambassadors/${id}`);
     } catch (error) {
       console.error("Error updating ambassador:", error);
