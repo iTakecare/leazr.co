@@ -408,7 +408,7 @@ export const getOfferById = async (offerId: string) => {
       return null;
     }
 
-    // Create a copy of data with the equipment_data property and ensure additional_info exists
+    // Create a copy of data with an explicit additional_info property if it doesn't exist
     let resultData = { 
       ...data, 
       equipment_data: null, 

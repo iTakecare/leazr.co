@@ -187,7 +187,7 @@ const CreateOffer = () => {
                 
                 if (equipmentItems.length > 0) {
                   setEquipmentList(equipmentItems);
-                  setTargetMonthlyPayment(parseFloat(offer.monthly_payment) || 0);
+                  setTargetMonthlyPayment(parseFloat(String(offer.monthly_payment)) || 0);
                 }
               }
             }

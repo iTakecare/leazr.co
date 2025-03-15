@@ -1,3 +1,4 @@
+
 import { adminSupabase, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Partner } from "./partnerService";
@@ -44,7 +45,10 @@ export const createUserAccount = async (
     
     // Manual filter by email since there's no query parameter in the API
     const existingUser = data?.users && Array.isArray(data.users) 
-      ? data.users.find(user => user.email === entity.email) 
+      ? data.users.find(user => {
+          // Properly type check that user has an email property before accessing it
+          return user && typeof user === 'object' && 'email' in user && user.email === entity.email;
+        }) 
       : undefined;
     
     if (existingUser) {
