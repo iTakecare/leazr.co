@@ -11,8 +11,9 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, Trash, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, Map
+  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText
 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Définir l'interface Ambassador pour la page de détail
 interface Ambassador {
@@ -27,6 +28,8 @@ interface Ambassador {
   lastCommission: number;
   notes?: string;
   collaborators?: Collaborator[];
+  clients?: Client[];
+  commissions?: Commission[];
   user_id?: string;
   has_user_account?: boolean;
   user_account_created_at?: string;
@@ -41,6 +44,25 @@ interface Collaborator {
   email: string;
   phone?: string;
   department?: string;
+}
+
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  company?: string;
+  createdAt: string;
+  totalValue: number;
+}
+
+interface Commission {
+  id: string;
+  date: string;
+  client: string;
+  amount: number;
+  status: string;
+  isPaid: boolean;
 }
 
 // Services mock pour ambassadeurs
@@ -83,6 +105,61 @@ const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
           phone: '+33 6 22 33 44 55',
           department: 'Support'
         }
+      ],
+      clients: [
+        {
+          id: 'cl1',
+          name: 'Cabinet Médical Santé Plus',
+          email: 'contact@santeplus.fr',
+          status: 'active',
+          company: 'Santé Plus',
+          createdAt: '2023-03-15',
+          totalValue: 4500
+        },
+        {
+          id: 'cl2',
+          name: 'Dr. Philippe Martin',
+          email: 'p.martin@gmail.com',
+          status: 'active',
+          company: 'Cabinet Dr. Martin',
+          createdAt: '2023-05-20',
+          totalValue: 2800
+        },
+        {
+          id: 'cl3',
+          name: 'Centre Dentaire Sourire',
+          email: 'contact@centresourire.fr',
+          status: 'active',
+          company: 'Centre Sourire',
+          createdAt: '2023-07-10',
+          totalValue: 3200
+        }
+      ],
+      commissions: [
+        {
+          id: 'com1',
+          date: '2023-04-15',
+          client: 'Cabinet Médical Santé Plus',
+          amount: 350,
+          status: 'Payée',
+          isPaid: true
+        },
+        {
+          id: 'com2',
+          date: '2023-06-22',
+          client: 'Dr. Philippe Martin',
+          amount: 280,
+          status: 'Payée',
+          isPaid: true
+        },
+        {
+          id: 'com3',
+          date: '2023-08-05',
+          client: 'Centre Dentaire Sourire',
+          amount: 320,
+          status: 'En attente',
+          isPaid: false
+        }
       ]
     },
     {
@@ -121,6 +198,7 @@ export default function AmbassadorDetail() {
   const navigate = useNavigate();
   const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("profile");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
@@ -252,153 +330,258 @@ export default function AmbassadorDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
-          <CardHeader className="bg-muted/50 pb-4 border-b">
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              Informations générales
-            </CardTitle>
-            <CardDescription>Coordonnées et détails de l'ambassadeur</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {ambassador.email && (
-                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                  <Mail className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium">Email</h3>
-                    <p className="text-sm">{ambassador.email}</p>
+      <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid grid-cols-4 w-full md:w-auto">
+          <TabsTrigger value="profile">Profil</TabsTrigger>
+          <TabsTrigger value="clients">Clients</TabsTrigger>
+          <TabsTrigger value="commissions">Commissions</TabsTrigger>
+          <TabsTrigger value="collaborators">Collaborateurs</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="profile" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
+              <CardHeader className="bg-muted/50 pb-4 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  Informations générales
+                </CardTitle>
+                <CardDescription>Coordonnées et détails de l'ambassadeur</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {ambassador.email && (
+                    <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                      <Mail className="h-5 w-5 text-primary mt-0.5" />
+                      <div>
+                        <h3 className="text-sm font-medium">Email</h3>
+                        <p className="text-sm">{ambassador.email}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {ambassador.phone && (
+                    <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                      <Phone className="h-5 w-5 text-primary mt-0.5" />
+                      <div>
+                        <h3 className="text-sm font-medium">Téléphone</h3>
+                        <p className="text-sm">{ambassador.phone}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                    <MapPin className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium">Région</h3>
+                      <p className="text-sm">{ambassador.region}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                    <BadgePercent className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium">Commissions totales</h3>
+                      <p className="text-sm">{formatCurrency(ambassador.commissionsTotal)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                    <Clock className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium">Créé le</h3>
+                      <p className="text-sm">{formatDate(ambassador.created_at)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                    <Clock className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium">Dernière mise à jour</h3>
+                      <p className="text-sm">{formatDate(ambassador.updated_at)}</p>
+                    </div>
                   </div>
                 </div>
-              )}
-              
-              {ambassador.phone && (
-                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                  <Phone className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium">Téléphone</h3>
-                    <p className="text-sm">{ambassador.phone}</p>
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                <Map className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium">Région</h3>
-                  <p className="text-sm">{ambassador.region}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                <BadgePercent className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium">Commissions totales</h3>
-                  <p className="text-sm">{formatCurrency(ambassador.commissionsTotal)}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                <Clock className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium">Créé le</h3>
-                  <p className="text-sm">{formatDate(ambassador.created_at)}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                <Clock className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium">Dernière mise à jour</h3>
-                  <p className="text-sm">{formatDate(ambassador.updated_at)}</p>
-                </div>
-              </div>
-            </div>
-            
-            {ambassador.notes && (
-              <div className="mt-6 border-t pt-4">
-                <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                  <Info className="h-4 w-4 text-primary" />
-                  Notes
-                </h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line bg-muted/30 p-4 rounded-md">{ambassador.notes}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
-          <CardHeader className="bg-muted/50 pb-4 border-b">
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              Compte utilisateur
-            </CardTitle>
-            <CardDescription>Accès au portail ambassadeur</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            {hasUserAccount ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 bg-green-50 p-4 rounded-md border border-green-200">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <div>
-                    <div className="font-medium text-green-800">Compte actif</div>
-                    {ambassador.user_account_created_at && (
-                      <span className="text-xs text-green-700">
-                        Créé le {formatDate(ambassador.user_account_created_at)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="w-full flex items-center justify-center"
-                  onClick={handleResetPassword}
-                  disabled={isResettingPassword || !ambassador.email}
-                >
-                  <KeyRound className="h-4 w-4 mr-2" />
-                  {isResettingPassword ? "Envoi en cours..." : "Réinitialiser le mot de passe"}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">Cet ambassadeur n'a pas encore de compte utilisateur pour accéder au portail.</p>
-                </div>
-                {ambassador.email ? (
-                  <Button 
-                    className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
-                    onClick={handleCreateAccount}
-                    disabled={isCreatingAccount}
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    {isCreatingAccount ? "Création en cours..." : "Créer un compte ambassadeur"}
-                  </Button>
-                ) : (
-                  <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-md">
-                    Une adresse email est nécessaire pour créer un compte utilisateur.
+                
+                {ambassador.notes && (
+                  <div className="mt-6 border-t pt-4">
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Info className="h-4 w-4 text-primary" />
+                      Notes
+                    </h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line bg-muted/30 p-4 rounded-md">{ambassador.notes}</p>
                   </div>
                 )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        <Card className="md:col-span-3 shadow-md border-none bg-gradient-to-br from-card to-background">
-          <CardHeader className="bg-muted/50 border-b">
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-primary" />
-              Collaborateurs
-            </CardTitle>
-            <CardDescription>Personnes associées à cet ambassadeur</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <CollaboratorForm clientId={id!} />
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+              <CardHeader className="bg-muted/50 pb-4 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  Compte utilisateur
+                </CardTitle>
+                <CardDescription>Accès au portail ambassadeur</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {hasUserAccount ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 bg-green-50 p-4 rounded-md border border-green-200">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <div>
+                        <div className="font-medium text-green-800">Compte actif</div>
+                        {ambassador.user_account_created_at && (
+                          <span className="text-xs text-green-700">
+                            Créé le {formatDate(ambassador.user_account_created_at)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full flex items-center justify-center"
+                      onClick={handleResetPassword}
+                      disabled={isResettingPassword || !ambassador.email}
+                    >
+                      <KeyRound className="h-4 w-4 mr-2" />
+                      {isResettingPassword ? "Envoi en cours..." : "Réinitialiser le mot de passe"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm">Cet ambassadeur n'a pas encore de compte utilisateur pour accéder au portail.</p>
+                    </div>
+                    {ambassador.email ? (
+                      <Button 
+                        className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
+                        onClick={handleCreateAccount}
+                        disabled={isCreatingAccount}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {isCreatingAccount ? "Création en cours..." : "Créer un compte ambassadeur"}
+                      </Button>
+                    ) : (
+                      <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-md">
+                        Une adresse email est nécessaire pour créer un compte utilisateur.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="clients" className="space-y-6">
+          <Card className="shadow-md border-none">
+            <CardHeader className="bg-muted/50 pb-4 border-b">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Clients
+              </CardTitle>
+              <CardDescription>Clients amenés par cet ambassadeur</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {ambassador.clients && ambassador.clients.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Entreprise</TableHead>
+                      <TableHead>Date d'acquisition</TableHead>
+                      <TableHead className="text-right">Valeur totale</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ambassador.clients.map((client) => (
+                      <TableRow key={client.id}>
+                        <TableCell className="font-medium">{client.name}</TableCell>
+                        <TableCell>{client.email}</TableCell>
+                        <TableCell>{client.company || "-"}</TableCell>
+                        <TableCell>{client.createdAt}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(client.totalValue)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-10">
+                  <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-muted-foreground">Aucun client pour cet ambassadeur</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="commissions" className="space-y-6">
+          <Card className="shadow-md border-none">
+            <CardHeader className="bg-muted/50 pb-4 border-b">
+              <CardTitle className="flex items-center gap-2">
+                <ReceiptText className="h-5 w-5 text-primary" />
+                Commissions
+              </CardTitle>
+              <CardDescription>Historique des commissions</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {ambassador.commissions && ambassador.commissions.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
+                      <TableHead>Statut</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ambassador.commissions.map((commission) => (
+                      <TableRow key={commission.id}>
+                        <TableCell>{commission.date}</TableCell>
+                        <TableCell>{commission.client}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(commission.amount)}</TableCell>
+                        <TableCell>
+                          <Badge variant={commission.isPaid ? "default" : "outline"} className={
+                            commission.isPaid 
+                              ? "bg-green-50 text-green-700 border-green-200" 
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }>
+                            {commission.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-10">
+                  <Receipt className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-muted-foreground">Aucune commission enregistrée</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="collaborators" className="space-y-6">
+          <Card className="shadow-md border-none">
+            <CardHeader className="bg-muted/50 pb-4 border-b">
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-primary" />
+                Collaborateurs
+              </CardTitle>
+              <CardDescription>Personnes associées à cet ambassadeur</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <CollaboratorForm clientId={id!} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
