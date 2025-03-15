@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -138,7 +138,7 @@ const AmbassadorsList = () => {
   const handleEditAmbassador = (id: string) => {
     const ambassador = ambassadorsList.find(a => a.id === id);
     if (ambassador) {
-      setCurrentAmbassador(ambassador);
+      setCurrentAmbassador({...ambassador});
       setIsEditModalOpen(true);
     }
   };
@@ -187,33 +187,43 @@ const AmbassadorsList = () => {
   const handleDeleteAmbassador = (id: string) => {
     const ambassador = ambassadorsList.find(a => a.id === id);
     if (ambassador) {
-      setCurrentAmbassador(ambassador);
+      setCurrentAmbassador({...ambassador});
       setIsDeleteDialogOpen(true);
     }
   };
 
-  const confirmDelete = () => {
-    if (currentAmbassador) {
-      try {
-        // Supprimer l'ambassadeur de la liste
-        setAmbassadorsList(prevList => prevList.filter(a => a.id !== currentAmbassador.id));
-        
-        // Notification de succès
-        toast.success(`L'ambassadeur ${currentAmbassador.name} a été supprimé`);
-        console.log("Ambassadeur supprimé avec succès:", currentAmbassador.id);
-        
-        // Fermer la boîte de dialogue de confirmation
-        setIsDeleteDialogOpen(false);
-        
-        // Vider l'ambassadeur actuel pour éviter toute référence à un objet supprimé
-        setCurrentAmbassador(null);
-
-      } catch (error) {
-        console.error("Erreur lors de la suppression de l'ambassadeur:", error);
-        toast.error("Une erreur est survenue lors de la suppression de l'ambassadeur");
-      }
+  const confirmDelete = useCallback(() => {
+    if (!currentAmbassador) return;
+    
+    try {
+      const ambassadorToDelete = {...currentAmbassador};
+      
+      // First, reset all states to prevent any stuck references
+      setCurrentAmbassador(null);
+      setCurrentAmbassadorWithClients(null);
+      setCurrentAmbassadorWithCommissions(null);
+      
+      // Close all dialogs/modals
+      setIsDeleteDialogOpen(false);
+      setIsEditModalOpen(false);
+      setIsClientsViewOpen(false);
+      setIsCommissionsViewOpen(false);
+      
+      // Then update the list
+      setAmbassadorsList(prevList => prevList.filter(a => a.id !== ambassadorToDelete.id));
+      
+      // Show success notification
+      toast.success(`L'ambassadeur ${ambassadorToDelete.name} a été supprimé`);
+      console.log("Ambassadeur supprimé avec succès:", ambassadorToDelete.id);
+      
+    } catch (error) {
+      console.error("Erreur lors de la suppression de l'ambassadeur:", error);
+      toast.error("Une erreur est survenue lors de la suppression de l'ambassadeur");
+      
+      // Make sure dialogs are closed even on error
+      setIsDeleteDialogOpen(false);
     }
-  };
+  }, [currentAmbassador]);
 
   const handleSaveAmbassador = (data: AmbassadorFormValues) => {
     setIsSubmitting(true);
@@ -256,8 +266,20 @@ const AmbassadorsList = () => {
       }
       
       setIsSubmitting(false);
+      setCurrentAmbassador(null);
     }, 600);
   };
+
+  const closeAllModals = useCallback(() => {
+    setIsAddModalOpen(false);
+    setIsEditModalOpen(false);
+    setIsClientsViewOpen(false);
+    setIsCommissionsViewOpen(false);
+    setIsDeleteDialogOpen(false);
+    setCurrentAmbassador(null);
+    setCurrentAmbassadorWithClients(null);
+    setCurrentAmbassadorWithCommissions(null);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -405,14 +427,20 @@ const AmbassadorsList = () => {
 
       <AmbassadorModal 
         isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setCurrentAmbassador(null);
+        }} 
         onSubmit={handleSaveAmbassador}
         isSubmitting={isSubmitting}
       />
 
       <AmbassadorModal 
         isOpen={isEditModalOpen} 
-        onClose={() => setIsEditModalOpen(false)} 
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setCurrentAmbassador(null);
+        }} 
         ambassador={currentAmbassador}
         onSubmit={handleSaveAmbassador}
         isSubmitting={isSubmitting}
@@ -420,7 +448,10 @@ const AmbassadorsList = () => {
 
       <ClientsView 
         isOpen={isClientsViewOpen}
-        onClose={() => setIsClientsViewOpen(false)}
+        onClose={() => {
+          setIsClientsViewOpen(false);
+          setCurrentAmbassadorWithClients(null);
+        }}
         owner={{ 
           id: currentAmbassadorWithClients?.id || '', 
           name: currentAmbassadorWithClients?.name || '', 
@@ -431,7 +462,10 @@ const AmbassadorsList = () => {
 
       <CommissionsView 
         isOpen={isCommissionsViewOpen}
-        onClose={() => setIsCommissionsViewOpen(false)}
+        onClose={() => {
+          setIsCommissionsViewOpen(false);
+          setCurrentAmbassadorWithCommissions(null);
+        }}
         owner={{ 
           id: currentAmbassadorWithCommissions?.id || '', 
           name: currentAmbassadorWithCommissions?.name || '', 
@@ -440,7 +474,15 @@ const AmbassadorsList = () => {
         commissions={currentAmbassadorWithCommissions?.commissions || []}
       />
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog 
+        open={isDeleteDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsDeleteDialogOpen(false);
+            setCurrentAmbassador(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmez la suppression</AlertDialogTitle>
@@ -450,7 +492,12 @@ const AmbassadorsList = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              setIsDeleteDialogOpen(false);
+              setCurrentAmbassador(null);
+            }}>
+              Annuler
+            </AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmDelete}
               className="bg-red-600 hover:bg-red-700 text-white"
