@@ -36,9 +36,9 @@ export const createUserAccount = async (
       .from('profiles')
       .select('id')
       .eq('email', entity.email)
-      .single();
+      .maybeSingle();
     
-    if (findError && findError.code !== 'PGRST116') {
+    if (findError) {
       console.error("Erreur lors de la vérification de l'utilisateur:", findError);
       toast.error(`Erreur lors de la vérification: ${findError.message}`);
       return false;
