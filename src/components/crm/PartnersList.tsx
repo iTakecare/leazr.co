@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -166,11 +167,7 @@ const PartnersList = () => {
   };
 
   const handleViewProfile = (id: string) => {
-    const partner = partnersList.find(p => p.id === id);
-    if (partner) {
-      setCurrentPartner(partner);
-      setIsDetailOpen(true);
-    }
+    navigate(`/partners/${id}`);
   };
 
   const handleViewClients = (id: string) => {
@@ -305,7 +302,7 @@ const PartnersList = () => {
         </TableHeader>
         <TableBody>
           {partnersList.map((partner) => (
-            <TableRow key={partner.id}>
+            <TableRow key={partner.id} className="cursor-pointer" onClick={() => handleViewProfile(partner.id)}>
               <TableCell>
                 <div className="font-medium">{partner.name}</div>
                 <div className="text-xs text-muted-foreground">{partner.contactName}</div>
@@ -327,12 +324,15 @@ const PartnersList = () => {
                 <Button
                   variant="ghost"
                   className="h-8 px-2 text-xs"
-                  onClick={() => handleViewCommissions(partner.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewCommissions(partner.id);
+                  }}
                 >
                   {formatCurrency(partner.commissionsTotal)}
                 </Button>
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <Badge variant={partner.status === 'active' ? 'default' : 'secondary'} className={
                   partner.status === 'active' 
                     ? "bg-green-100 text-green-800 hover:bg-green-100" 
@@ -341,7 +341,7 @@ const PartnersList = () => {
                   {partner.status === 'active' ? 'Actif' : 'Inactif'}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
