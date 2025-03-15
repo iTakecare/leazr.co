@@ -181,3 +181,48 @@ export const getPartnerClients = async (partnerId: string): Promise<any[]> => {
     throw error;
   }
 };
+
+// Get partner's commissions summary
+export const getPartnerCommissionsSummary = async (partnerId: string): Promise<{ pending: number; paid: number; total: number }> => {
+  try {
+    const { data, error } = await supabase
+      .from('partner_commissions')
+      .select('amount, status')
+      .eq('partner_id', partnerId);
+    
+    if (error) throw error;
+    
+    let pending = 0;
+    let paid = 0;
+    
+    if (data) {
+      data.forEach(commission => {
+        if (commission.status === 'pending') {
+          pending += Number(commission.amount);
+        } else if (commission.status === 'paid') {
+          paid += Number(commission.amount);
+        }
+      });
+    }
+    
+    // Mettre à jour les totaux dans la table partners
+    await supabase
+      .from('partners')
+      .update({
+        revenue_total: paid + pending,
+        last_transaction: data && data.length > 0 
+          ? Math.max(...data.map(c => Number(c.amount)))
+          : 0
+      })
+      .eq('id', partnerId);
+    
+    return {
+      pending,
+      paid,
+      total: pending + paid
+    };
+  } catch (error) {
+    console.error("Error calculating partner commissions:", error);
+    return { pending: 0, paid: 0, total: 0 };
+  }
+};

@@ -1,120 +1,55 @@
 
-import React from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { ReceiptEuro, User } from "lucide-react";
-import { formatCurrency, formatDateToFrench } from "@/utils/formatters";
+import React from 'react';
+import PartnerCommissionsTable from '@/components/partners/PartnerCommissionsTable';
 
 interface CommissionsViewProps {
   isOpen: boolean;
   onClose: () => void;
-  owner: { id: string; name: string; type: "ambassador" | "partner" };
-  commissions: Array<{
+  owner: {
     id: string;
-    amount: number;
-    status: "pending" | "paid";
-    client?: string;
-    date: string;
-    description?: string;
-  }>;
+    name: string;
+    type: 'partner' | 'ambassador';
+  };
 }
 
-const CommissionsView = ({
-  isOpen,
-  onClose,
-  owner,
-  commissions,
-}: CommissionsViewProps) => {
-  const title = owner.type === "ambassador" 
-    ? `Commissions de ${owner.name}` 
-    : `Commissions du partenaire ${owner.name}`;
-    
-  const totalCommissions = commissions.reduce((sum, item) => sum + item.amount, 0);
-  const pendingCommissions = commissions
-    .filter(c => c.status === "pending")
-    .reduce((sum, item) => sum + item.amount, 0);
+const CommissionsView: React.FC<CommissionsViewProps> = ({ isOpen, onClose, owner }) => {
+  if (!isOpen) return null;
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="overflow-y-auto sm:max-w-xl">
-        <SheetHeader className="pb-6">
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>
-            Historique des commissions
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="mb-6 grid grid-cols-2 gap-3">
-          <div className="flex flex-col rounded-lg border p-3">
-            <span className="text-sm text-muted-foreground">Total des commissions</span>
-            <span className="text-xl font-bold text-primary">{formatCurrency(totalCommissions)}</span>
-          </div>
-          <div className="flex flex-col rounded-lg border p-3">
-            <span className="text-sm text-muted-foreground">Commissions en attente</span>
-            <span className="text-lg font-bold text-amber-500">{formatCurrency(pendingCommissions)}</span>
-          </div>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="p-4 border-b flex justify-between items-center">
+          <h2 className="text-xl font-semibold">
+            Commissions - {owner.name}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ×
+          </button>
         </div>
-
-        {commissions.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Montant</TableHead>
-                <TableHead>Statut</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {commissions.map((commission) => (
-                <TableRow key={commission.id}>
-                  <TableCell>
-                    {formatDateToFrench(new Date(commission.date))}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <User className="h-3 w-3 mr-1" />
-                      {commission.client || "Client non spécifié"}
-                    </div>
-                    {commission.description && (
-                      <div className="text-xs text-muted-foreground">
-                        {commission.description}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">
-                      {formatCurrency(commission.amount)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={commission.status === 'paid' ? 'default' : 'secondary'} className={
-                      commission.status === 'paid' 
-                        ? "bg-green-100 text-green-800 hover:bg-green-100" 
-                        : "bg-amber-100 text-amber-800 hover:bg-amber-100"
-                    }>
-                      {commission.status === 'paid' ? 'Payée' : 'En attente'}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="text-center py-8">
-            <ReceiptEuro className="mx-auto h-12 w-12 text-gray-300" />
-            <p className="text-muted-foreground mt-2">Aucune commission enregistrée</p>
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
+        
+        <div className="p-4 overflow-auto flex-grow">
+          {owner.type === 'partner' ? (
+            <PartnerCommissionsTable partnerId={owner.id} />
+          ) : (
+            <div className="p-4 text-center">
+              <p className="text-gray-500">Commissions ambassadeur en cours de développement</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="p-4 border-t flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

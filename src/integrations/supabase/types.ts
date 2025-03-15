@@ -607,6 +607,57 @@ export type Database = {
           },
         ]
       }
+      partner_commissions: {
+        Row: {
+          amount: number
+          client_id: string | null
+          client_name: string
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string
+          partner_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          client_id?: string | null
+          client_name: string
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          partner_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          client_name?: string
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          partner_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_commissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_commissions_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partners: {
         Row: {
           clients_count: number | null
