@@ -676,7 +676,6 @@ export type Database = {
           contact_name: string
           created_at: string | null
           email: string
-          has_user_account: boolean | null
           id: string
           last_transaction: number | null
           name: string
@@ -686,7 +685,6 @@ export type Database = {
           status: string
           type: string
           updated_at: string | null
-          user_account_created_at: string | null
           user_id: string | null
         }
         Insert: {
@@ -694,7 +692,6 @@ export type Database = {
           contact_name: string
           created_at?: string | null
           email: string
-          has_user_account?: boolean | null
           id?: string
           last_transaction?: number | null
           name: string
@@ -704,7 +701,6 @@ export type Database = {
           status?: string
           type: string
           updated_at?: string | null
-          user_account_created_at?: string | null
           user_id?: string | null
         }
         Update: {
@@ -712,7 +708,6 @@ export type Database = {
           contact_name?: string
           created_at?: string | null
           email?: string
-          has_user_account?: boolean | null
           id?: string
           last_transaction?: number | null
           name?: string
@@ -722,7 +717,6 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string | null
-          user_account_created_at?: string | null
           user_id?: string | null
         }
         Relationships: []

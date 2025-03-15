@@ -15,7 +15,6 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Partner, getPartnerById } from "@/services/partnerService";
 import { createUserAccount, resetPassword } from "@/services/accountService";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Collaborator {
   id: string;
@@ -62,51 +61,21 @@ export default function PartnerDetail() {
   const [activeTab, setActiveTab] = useState("profile");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
-  const [accountCreated, setAccountCreated] = useState(false);
 
   const fetchPartner = async () => {
     if (!id) return;
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('partners')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const partnerData = await getPartnerById(id);
       
-      if (error) {
-        throw error;
-      }
-      
-      if (!data) {
+      if (!partnerData) {
         toast.error("Partenaire introuvable");
         navigate("/partners");
         return;
       }
       
-      console.log("Partner data from database:", data);
-      const partnerData: Partner = {
-        id: data.id,
-        name: data.name,
-        contactName: data.contact_name,
-        email: data.email,
-        phone: data.phone || "",
-        type: data.type,
-        clientsCount: data.clients_count || 0,
-        revenueTotal: data.revenue_total || 0,
-        lastTransaction: data.last_transaction || 0,
-        status: data.status || "active",
-        notes: data.notes,
-        user_id: data.user_id,
-        commissionsTotal: data.commissions_total || 0,
-        created_at: data.created_at ? new Date(data.created_at) : undefined,
-        updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
-        has_user_account: data.has_user_account || false,
-        user_account_created_at: data.user_account_created_at,
-      };
-      
-      console.log("Mapped partner data:", partnerData);
+      console.log("Partner data loaded:", partnerData);
       setPartner(partnerData);
     } catch (error) {
       console.error("Error fetching partner:", error);
@@ -118,7 +87,7 @@ export default function PartnerDetail() {
 
   useEffect(() => {
     fetchPartner();
-  }, [id, navigate, accountCreated]);
+  }, [id, navigate]);
 
   const handleResetPassword = async () => {
     if (!partner?.email) {
@@ -149,8 +118,6 @@ export default function PartnerDetail() {
     try {
       const success = await createUserAccount(partner, "partner");
       if (success) {
-        toast.success("Compte créé avec succès!");
-        setAccountCreated(prev => !prev);
         await fetchPartner();
       }
     } catch (error) {
@@ -194,12 +161,7 @@ export default function PartnerDetail() {
     );
   }
 
-  console.log("Partner account status:", {
-    has_user_account: partner?.has_user_account,
-    user_account_created_at: partner?.user_account_created_at
-  });
-  
-  const hasUserAccount = Boolean(partner?.has_user_account);
+  const hasUserAccount = Boolean(partner.has_user_account);
 
   return (
     <div className="container py-8 space-y-6">
