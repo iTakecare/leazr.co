@@ -32,8 +32,8 @@ export const createUserAccount = async (
   try {
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
-    // Vérifier si l'utilisateur existe déjà avec cette adresse email
-    const { data, error: checkError } = await supabase.auth.admin.listUsers({
+    // Vérifier si l'utilisateur existe déjà avec cette adresse email - using adminSupabase
+    const { data, error: checkError } = await adminSupabase.auth.admin.listUsers({
       email: entity.email
     });
     
@@ -52,8 +52,8 @@ export const createUserAccount = async (
     // Générer un mot de passe aléatoire
     const tempPassword = Math.random().toString(36).slice(-12);
     
-    // Créer l'utilisateur avec le serviceRole
-    const { data: userData, error: createError } = await supabase.auth.admin.createUser({
+    // Créer l'utilisateur avec le serviceRole - using adminSupabase
+    const { data: userData, error: createError } = await adminSupabase.auth.admin.createUser({
       email: entity.email,
       password: tempPassword,
       email_confirm: true,
@@ -96,8 +96,8 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Envoyer l'email de réinitialisation de mot de passe
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
+    // Envoyer l'email de réinitialisation de mot de passe - using adminSupabase for auth operations
+    const { error: resetError } = await adminSupabase.auth.resetPasswordForEmail(entity.email, {
       redirectTo: `${window.location.origin}/update-password`,
     });
     
