@@ -1,9 +1,9 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { HeartHandshake, MoreHorizontal, Mail, Phone, ReceiptEuro, AlertCircle } from "lucide-react";
+import { HeartHandshake, MoreHorizontal, Mail, Phone, ReceiptEuro, AlertCircle, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/utils/formatters";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AmbassadorFormValues } from './forms/AmbassadorForm';
+import { getAmbassadors, createAmbassador, updateAmbassador, deleteAmbassador, getAmbassadorCommissions, getAmbassadorClients } from '@/services/ambassadorService';
 
 // Define the interface for ambassador data structure to ensure type consistency
 interface Ambassador {
@@ -45,81 +46,9 @@ interface AmbassadorWithCommissions extends Ambassador {
   commissions: any[];
 }
 
-// Données statiques pour démo
-const ambassadors: Ambassador[] = [
-  {
-    id: '1',
-    name: 'Jean Dupont',
-    email: 'jean.dupont@example.com',
-    phone: '+33 6 12 34 56 78',
-    region: 'Île-de-France',
-    clientsCount: 12,
-    commissionsTotal: 8750,
-    lastCommission: 1250,
-    status: 'active'
-  },
-  {
-    id: '2',
-    name: 'Marie Martin',
-    email: 'marie.martin@example.com',
-    phone: '+33 6 23 45 67 89',
-    region: 'Auvergne-Rhône-Alpes',
-    clientsCount: 8,
-    commissionsTotal: 5320,
-    lastCommission: 980,
-    status: 'active'
-  },
-  {
-    id: '3',
-    name: 'Pierre Bernard',
-    email: 'pierre.bernard@example.com',
-    phone: '+33 6 34 56 78 90',
-    region: 'Nouvelle-Aquitaine',
-    clientsCount: 5,
-    commissionsTotal: 3150,
-    lastCommission: 0,
-    status: 'inactive'
-  }
-];
-
-// Données des clients de démonstration
-const mockClients = {
-  '1': [
-    { id: 'c1', name: 'ACME SAS', company: 'ACME', status: 'active', createdAt: '2023-05-12T10:30:00' },
-    { id: 'c2', name: 'Dubois Équipements', company: 'Dubois Équipements', status: 'active', createdAt: '2023-06-22T14:15:00' },
-    { id: 'c3', name: 'Centre Médical Rivière', company: 'Centre Médical Rivière', status: 'active', createdAt: '2023-08-05T09:45:00' },
-  ],
-  '2': [
-    { id: 'c4', name: 'Clinique du Sport', company: 'Clinique du Sport', status: 'active', createdAt: '2023-07-15T11:20:00' },
-    { id: 'c5', name: 'PhysioCare', company: 'PhysioCare', status: 'inactive', createdAt: '2023-09-30T16:00:00' },
-  ],
-  '3': [
-    { id: 'c6', name: 'Cabinet Martin', company: 'Cabinet Martin', status: 'inactive', createdAt: '2023-04-10T08:30:00' },
-  ]
-};
-
-// Données des commissions de démonstration
-const mockCommissions = {
-  '1': [
-    { id: 'co1', amount: 2500, status: 'paid', client: 'ACME SAS', date: '2023-06-15T10:30:00', description: 'Commission sur vente de matériel' },
-    { id: 'co2', amount: 1800, status: 'paid', client: 'Dubois Équipements', date: '2023-07-22T14:15:00', description: 'Commission sur contrat annuel' },
-    { id: 'co3', amount: 3200, status: 'paid', client: 'Centre Médical Rivière', date: '2023-09-05T09:45:00', description: 'Commission sur équipement complet' },
-    { id: 'co4', amount: 1250, status: 'pending', client: 'ACME SAS', date: '2023-10-18T15:30:00', description: 'Renouvellement contrat' },
-  ],
-  '2': [
-    { id: 'co5', amount: 2100, status: 'paid', client: 'Clinique du Sport', date: '2023-08-12T11:20:00', description: 'Commission sur vente de matériel' },
-    { id: 'co6', amount: 2240, status: 'paid', client: 'PhysioCare', date: '2023-09-25T16:00:00', description: 'Commission sur contrat annuel' },
-    { id: 'co7', amount: 980, status: 'pending', client: 'Clinique du Sport', date: '2023-10-30T14:45:00', description: 'Extension de contrat' },
-  ],
-  '3': [
-    { id: 'co8', amount: 1650, status: 'paid', client: 'Cabinet Martin', date: '2023-05-05T08:30:00', description: 'Commission sur vente de matériel' },
-    { id: 'co9', amount: 1500, status: 'paid', client: 'Cabinet Martin', date: '2023-07-10T13:15:00', description: 'Renouvellement contrat' },
-  ]
-};
-
 const AmbassadorsList = () => {
   const navigate = useNavigate();
-  const [ambassadorsList, setAmbassadorsList] = useState<Ambassador[]>(ambassadors);
+  const [ambassadorsList, setAmbassadorsList] = useState<Ambassador[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentAmbassador, setCurrentAmbassador] = useState<Ambassador | null>(null);
@@ -129,6 +58,28 @@ const AmbassadorsList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentAmbassadorWithClients, setCurrentAmbassadorWithClients] = useState<AmbassadorWithClients | null>(null);
   const [currentAmbassadorWithCommissions, setCurrentAmbassadorWithCommissions] = useState<AmbassadorWithCommissions | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch ambassadors on component mount
+  useEffect(() => {
+    fetchAmbassadors();
+  }, []);
+
+  const fetchAmbassadors = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getAmbassadors();
+      setAmbassadorsList(data);
+    } catch (err) {
+      console.error("Error fetching ambassadors:", err);
+      setError("Erreur lors du chargement des ambassadeurs");
+      toast.error("Erreur lors du chargement des ambassadeurs");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddAmbassador = () => {
     setCurrentAmbassador(null);
@@ -147,41 +98,70 @@ const AmbassadorsList = () => {
     navigate(`/ambassadors/${id}`);
   };
 
-  const handleViewClients = (id: string) => {
-    const ambassador = ambassadorsList.find(a => a.id === id);
-    if (ambassador) {
+  const handleViewClients = async (id: string) => {
+    try {
+      const ambassador = ambassadorsList.find(a => a.id === id);
+      if (!ambassador) {
+        toast.error("Ambassadeur introuvable");
+        return;
+      }
+      
+      const clients = await getAmbassadorClients(id);
       setCurrentAmbassadorWithClients({
         ...ambassador,
-        clients: mockClients[id] || []
+        clients: clients
       });
       setIsClientsViewOpen(true);
+    } catch (err) {
+      console.error("Error fetching ambassador clients:", err);
+      toast.error("Erreur lors du chargement des clients de l'ambassadeur");
     }
   };
 
-  const handleViewCommissions = (id: string) => {
-    const ambassador = ambassadorsList.find(a => a.id === id);
-    if (ambassador) {
+  const handleViewCommissions = async (id: string) => {
+    try {
+      const ambassador = ambassadorsList.find(a => a.id === id);
+      if (!ambassador) {
+        toast.error("Ambassadeur introuvable");
+        return;
+      }
+
+      const commissions = await getAmbassadorCommissions(id);
       setCurrentAmbassadorWithCommissions({
         ...ambassador,
-        commissions: mockCommissions[id] || []
+        commissions: commissions
       });
       setIsCommissionsViewOpen(true);
+    } catch (err) {
+      console.error("Error fetching ambassador commissions:", err);
+      toast.error("Erreur lors du chargement des commissions de l'ambassadeur");
     }
   };
 
-  const handleToggleStatus = (id: string) => {
-    setAmbassadorsList(prevList => 
-      prevList.map(ambassador => 
-        ambassador.id === id 
-          ? { ...ambassador, status: ambassador.status === 'active' ? 'inactive' : 'active' } 
-          : ambassador
-      )
-    );
-    
-    const ambassador = ambassadorsList.find(a => a.id === id);
-    const newStatus = ambassador?.status === 'active' ? 'inactive' : 'active';
-    
-    toast.success(`Le statut de l'ambassadeur ${ambassador?.name} a été changé en "${newStatus === 'active' ? 'Actif' : 'Inactif'}"`);
+  const handleToggleStatus = async (id: string) => {
+    try {
+      const ambassador = ambassadorsList.find(a => a.id === id);
+      if (!ambassador) {
+        toast.error("Ambassadeur introuvable");
+        return;
+      }
+      
+      const newStatus = ambassador.status === 'active' ? 'inactive' : 'active';
+      await updateAmbassador(id, { status: newStatus });
+      
+      setAmbassadorsList(prevList => 
+        prevList.map(a => 
+          a.id === id 
+            ? { ...a, status: newStatus } 
+            : a
+        )
+      );
+      
+      toast.success(`Le statut de l'ambassadeur ${ambassador?.name} a été changé en "${newStatus === 'active' ? 'Actif' : 'Inactif'}"`);
+    } catch (err) {
+      console.error("Error updating ambassador status:", err);
+      toast.error("Erreur lors de la mise à jour du statut de l'ambassadeur");
+    }
   };
 
   const handleDeleteAmbassador = (id: string) => {
@@ -192,7 +172,7 @@ const AmbassadorsList = () => {
     }
   };
 
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = useCallback(async () => {
     if (!currentAmbassador) return;
     
     try {
@@ -208,6 +188,9 @@ const AmbassadorsList = () => {
       setIsEditModalOpen(false);
       setIsClientsViewOpen(false);
       setIsCommissionsViewOpen(false);
+      
+      // Delete from database
+      await deleteAmbassador(ambassadorToDelete.id);
       
       // Then update the list
       setAmbassadorsList(prevList => prevList.filter(a => a.id !== ambassadorToDelete.id));
@@ -225,11 +208,14 @@ const AmbassadorsList = () => {
     }
   }, [currentAmbassador]);
 
-  const handleSaveAmbassador = (data: AmbassadorFormValues) => {
+  const handleSaveAmbassador = async (data: AmbassadorFormValues) => {
     setIsSubmitting(true);
     
-    setTimeout(() => {
+    try {
       if (currentAmbassador?.id) {
+        // Update existing ambassador
+        await updateAmbassador(currentAmbassador.id, data);
+        
         setAmbassadorsList(prevList => 
           prevList.map(ambassador => 
             ambassador.id === currentAmbassador.id
@@ -237,7 +223,7 @@ const AmbassadorsList = () => {
                   ...ambassador, 
                   name: data.name,
                   email: data.email,
-                  phone: data.phone,
+                  phone: data.phone || "",
                   region: data.region,
                   notes: data.notes
                 }
@@ -247,27 +233,22 @@ const AmbassadorsList = () => {
         toast.success(`L'ambassadeur ${data.name} a été mis à jour`);
         setIsEditModalOpen(false);
       } else {
-        const newAmbassador: Ambassador = {
-          id: `${Date.now()}`, // Utiliser timestamp pour assurer l'unicité
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          region: data.region,
-          notes: data.notes,
-          clientsCount: 0,
-          commissionsTotal: 0,
-          lastCommission: 0,
-          status: 'active'
-        };
+        // Create new ambassador
+        const newAmbassador = await createAmbassador(data);
         
-        setAmbassadorsList(prevList => [...prevList, newAmbassador]);
-        toast.success(`L'ambassadeur ${data.name} a été ajouté`);
-        setIsAddModalOpen(false);
+        if (newAmbassador) {
+          setAmbassadorsList(prevList => [...prevList, newAmbassador]);
+          toast.success(`L'ambassadeur ${data.name} a été ajouté`);
+          setIsAddModalOpen(false);
+        }
       }
-      
+    } catch (err) {
+      console.error("Error saving ambassador:", err);
+      toast.error("Erreur lors de l'enregistrement de l'ambassadeur");
+    } finally {
       setIsSubmitting(false);
       setCurrentAmbassador(null);
-    }, 600);
+    }
   };
 
   const closeAllModals = useCallback(() => {
@@ -280,6 +261,25 @@ const AmbassadorsList = () => {
     setCurrentAmbassadorWithClients(null);
     setCurrentAmbassadorWithCommissions(null);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Chargement des ambassadeurs...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-muted-foreground mb-4">{error}</p>
+        <Button onClick={fetchAmbassadors}>Réessayer</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

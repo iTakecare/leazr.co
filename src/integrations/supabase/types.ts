@@ -9,6 +9,138 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ambassador_clients: {
+        Row: {
+          ambassador_id: string
+          client_id: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          ambassador_id: string
+          client_id: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          ambassador_id?: string
+          client_id?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_clients_ambassador_id_fkey"
+            columns: ["ambassador_id"]
+            isOneToOne: false
+            referencedRelation: "ambassadors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassador_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ambassador_commissions: {
+        Row: {
+          ambassador_id: string
+          amount: number
+          client_id: string | null
+          client_name: string
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string
+          status: string
+        }
+        Insert: {
+          ambassador_id: string
+          amount: number
+          client_id?: string | null
+          client_name: string
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+        }
+        Update: {
+          ambassador_id?: string
+          amount?: number
+          client_id?: string | null
+          client_name?: string
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_commissions_ambassador_id_fkey"
+            columns: ["ambassador_id"]
+            isOneToOne: false
+            referencedRelation: "ambassadors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassador_commissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ambassadors: {
+        Row: {
+          clients_count: number | null
+          commissions_total: number | null
+          created_at: string | null
+          email: string
+          id: string
+          last_commission: number | null
+          name: string
+          notes: string | null
+          phone: string | null
+          region: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          clients_count?: number | null
+          commissions_total?: number | null
+          created_at?: string | null
+          email: string
+          id?: string
+          last_commission?: number | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          region?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          clients_count?: number | null
+          commissions_total?: number | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          last_commission?: number | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          region?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           created_at: string
@@ -438,6 +570,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      partner_clients: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          id: string
+          partner_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          id?: string
+          partner_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          partner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_clients_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partners: {
+        Row: {
+          clients_count: number | null
+          contact_name: string
+          created_at: string | null
+          email: string
+          id: string
+          last_transaction: number | null
+          name: string
+          notes: string | null
+          phone: string | null
+          revenue_total: number | null
+          status: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          clients_count?: number | null
+          contact_name: string
+          created_at?: string | null
+          email: string
+          id?: string
+          last_transaction?: number | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          revenue_total?: number | null
+          status?: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          clients_count?: number | null
+          contact_name?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          last_transaction?: number | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          revenue_total?: number | null
+          status?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       products: {
         Row: {
