@@ -82,7 +82,7 @@ const PartnerEditPage = () => {
 
   return (
     <div className="container py-6">
-      <PartnerEditForm initialData={partner} />
+      <PartnerEditForm partner={partner} />
     </div>
   );
 };

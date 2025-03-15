@@ -1,6 +1,6 @@
 
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Plus, UserSearch, Filter, Users, HeartHandshake, BadgePercent } from "lucide-react";
@@ -29,11 +29,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AmbassadorsList from "@/components/crm/AmbassadorsList";
-import PartnersList from "@/components/crm/PartnersList";
 
 const Clients = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("clients");
   const {
     filteredClients,
@@ -76,10 +75,14 @@ const Clients = () => {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    
+    // Handle navigation based on tab selection
     if (value === "ambassadors") {
       navigate("/ambassadors");
     } else if (value === "partners") {
       navigate("/partners");
+    } else if (value === "clients") {
+      navigate("/clients");
     }
   };
 

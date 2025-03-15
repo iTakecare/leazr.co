@@ -4,17 +4,24 @@ import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, HeartHandshake, BadgePercent } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import PartnersList from "@/components/crm/PartnersList";
 
 const AmbassadorsListPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("ambassadors");
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    
+    // Handle navigation based on tab selection
     if (value === "clients") {
       navigate("/clients");
+    } else if (value === "partners") {
+      navigate("/partners");
+    } else if (value === "ambassadors") {
+      navigate("/ambassadors");
     }
   };
 
