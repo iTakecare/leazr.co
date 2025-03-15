@@ -21,22 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PartnerFormValues } from './forms/PartnerForm';
-import { getPartners, createPartner, updatePartner, deletePartner, getPartnerClients } from '@/services/partnerService';
-
-// Define the interface for partner data structure to ensure type consistency
-interface Partner {
-  id: string;
-  name: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  type: string;
-  clientsCount: number;
-  revenueTotal: number;
-  lastTransaction: number;
-  status: string;
-  notes?: string;
-}
+import { getPartners, createPartner, updatePartner, deletePartner, getPartnerClients, Partner } from '@/services/partnerService';
 
 interface PartnerWithClients extends Partner {
   clients: any[];
@@ -121,7 +106,13 @@ const PartnersList = () => {
       }
       
       const newStatus = partner.status === 'active' ? 'inactive' : 'active';
-      await updatePartner(id, { status: newStatus });
+      
+      // Créer un objet qui correspond au type PartialPartnerFormValues avec le status
+      const updateData: Partial<PartnerFormValues> = { 
+        status: newStatus as 'active' | 'inactive'
+      };
+      
+      await updatePartner(id, updateData);
       
       setPartnersList(prevList => 
         prevList.map(p => 
@@ -231,6 +222,19 @@ const PartnersList = () => {
     setCurrentPartner(null);
     setCurrentPartnerWithClients(null);
   }, []);
+
+  // Fonction pour convertir un Partner en PartnerFormValues pour le formulaire
+  const convertPartnerToFormValues = (partner: Partner): PartnerFormValues => {
+    return {
+      name: partner.name,
+      contactName: partner.contactName,
+      email: partner.email,
+      phone: partner.phone,
+      type: partner.type as "Revendeur" | "Intégrateur" | "Consultant",
+      status: partner.status as "active" | "inactive",
+      notes: partner.notes
+    };
+  };
 
   if (loading) {
     return (
@@ -407,7 +411,7 @@ const PartnersList = () => {
           setIsEditModalOpen(false);
           setCurrentPartner(null);
         }} 
-        partner={currentPartner}
+        partner={currentPartner ? convertPartnerToFormValues(currentPartner) : undefined}
         onSubmit={handleSavePartner}
         isSubmitting={isSubmitting}
       />

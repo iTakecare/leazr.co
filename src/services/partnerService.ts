@@ -80,7 +80,7 @@ export const createPartner = async (partnerData: PartnerFormValues): Promise<Par
       phone: partnerData.phone || "",
       type: partnerData.type,
       notes: partnerData.notes || "",
-      status: "active",
+      status: partnerData.status || "active",
       clients_count: 0,
       revenue_total: 0,
       last_transaction: 0

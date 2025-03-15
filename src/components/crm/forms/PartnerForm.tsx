@@ -33,6 +33,7 @@ const partnerSchema = z.object({
   email: z.string().email("Veuillez entrer un email valide"),
   phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
   type: z.enum(partnerTypes),
+  status: z.enum(["active", "inactive"]).optional(),
   notes: z.string().optional(),
 });
 
@@ -59,6 +60,7 @@ const PartnerForm = ({
       email: "",
       phone: "",
       type: "Revendeur",
+      status: "active",
       notes: "",
     },
   });

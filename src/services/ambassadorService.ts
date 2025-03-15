@@ -77,7 +77,7 @@ export const createAmbassador = async (ambassadorData: AmbassadorFormValues): Pr
       phone: ambassadorData.phone || "",
       region: ambassadorData.region,
       notes: ambassadorData.notes || "",
-      status: "active",
+      status: ambassadorData.status || "active",
       clients_count: 0,
       commissions_total: 0,
       last_commission: 0

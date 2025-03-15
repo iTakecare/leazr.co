@@ -22,21 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AmbassadorFormValues } from './forms/AmbassadorForm';
-import { getAmbassadors, createAmbassador, updateAmbassador, deleteAmbassador, getAmbassadorCommissions, getAmbassadorClients } from '@/services/ambassadorService';
-
-// Define the interface for ambassador data structure to ensure type consistency
-interface Ambassador {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  region: string;
-  clientsCount: number;
-  commissionsTotal: number;
-  lastCommission: number;
-  status: string;
-  notes?: string;
-}
+import { getAmbassadors, createAmbassador, updateAmbassador, deleteAmbassador, getAmbassadorCommissions, getAmbassadorClients, Ambassador } from '@/services/ambassadorService';
 
 interface AmbassadorWithClients extends Ambassador {
   clients: any[];
@@ -147,7 +133,13 @@ const AmbassadorsList = () => {
       }
       
       const newStatus = ambassador.status === 'active' ? 'inactive' : 'active';
-      await updateAmbassador(id, { status: newStatus });
+      
+      // Créer un objet qui correspond au type PartialAmbassadorFormValues avec le status
+      const updateData: Partial<AmbassadorFormValues> = { 
+        status: newStatus as 'active' | 'inactive'
+      };
+      
+      await updateAmbassador(id, updateData);
       
       setAmbassadorsList(prevList => 
         prevList.map(a => 
@@ -261,6 +253,18 @@ const AmbassadorsList = () => {
     setCurrentAmbassadorWithClients(null);
     setCurrentAmbassadorWithCommissions(null);
   }, []);
+
+  // Fonction pour convertir un Ambassador en AmbassadorFormValues pour le formulaire
+  const convertAmbassadorToFormValues = (ambassador: Ambassador): AmbassadorFormValues => {
+    return {
+      name: ambassador.name,
+      email: ambassador.email,
+      phone: ambassador.phone,
+      region: ambassador.region,
+      status: ambassador.status as "active" | "inactive",
+      notes: ambassador.notes
+    };
+  };
 
   if (loading) {
     return (
@@ -441,7 +445,7 @@ const AmbassadorsList = () => {
           setIsEditModalOpen(false);
           setCurrentAmbassador(null);
         }} 
-        ambassador={currentAmbassador}
+        ambassador={currentAmbassador ? convertAmbassadorToFormValues(currentAmbassador) : undefined}
         onSubmit={handleSaveAmbassador}
         isSubmitting={isSubmitting}
       />

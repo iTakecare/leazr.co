@@ -22,6 +22,7 @@ const ambassadorSchema = z.object({
   email: z.string().email("Veuillez entrer un email valide"),
   phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
   region: z.string().min(2, "La région est requise"),
+  status: z.enum(["active", "inactive"]).optional(),
   notes: z.string().optional(),
 });
 
@@ -47,6 +48,7 @@ const AmbassadorForm = ({
       email: "",
       phone: "",
       region: "",
+      status: "active",
       notes: "",
     },
   });
