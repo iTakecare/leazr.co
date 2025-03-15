@@ -31,16 +31,14 @@ export const createUserAccount = async (
   try {
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
-    // Premièrement, vérifier si l'utilisateur existe déjà
-    const { data: existingUsers, error: checkError } = await adminSupabase.auth.admin.listUsers();
+    // Vérifier si l'utilisateur existe déjà avec cette adresse email
+    const { data: { user: existingUser }, error: checkError } = await supabase.auth.admin.getUserByEmail(entity.email);
     
-    if (checkError) {
-      console.error("Erreur lors de la vérification des utilisateurs existants:", checkError);
+    if (checkError && checkError.message !== "User not found") {
+      console.error("Erreur lors de la vérification de l'utilisateur:", checkError);
       toast.error(`Erreur lors de la vérification: ${checkError.message}`);
       return false;
     }
-    
-    const existingUser = existingUsers.users.find(user => user.email === entity.email);
     
     if (existingUser) {
       console.log(`Un compte existe déjà avec l'email ${entity.email}`);
@@ -52,7 +50,7 @@ export const createUserAccount = async (
     const tempPassword = Math.random().toString(36).slice(-12);
     
     // Créer l'utilisateur avec le serviceRole
-    const { data: userData, error: createError } = await adminSupabase.auth.admin.createUser({
+    const { data: userData, error: createError } = await supabase.auth.admin.createUser({
       email: entity.email,
       password: tempPassword,
       email_confirm: true,
@@ -60,9 +58,6 @@ export const createUserAccount = async (
         name: entity.name,
         role: userType,
         [userType === "partner" ? "partner_id" : "ambassador_id"]: entity.id
-      },
-      app_metadata: { 
-        role: userType
       }
     });
     
@@ -99,12 +94,8 @@ export const createUserAccount = async (
     }
     
     // Envoyer l'email de réinitialisation de mot de passe
-    const { error: resetError } = await adminSupabase.auth.admin.generateLink({
-      type: "recovery",
-      email: entity.email,
-      options: {
-        redirectTo: `${window.location.origin}/update-password`,
-      }
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
+      redirectTo: `${window.location.origin}/update-password`,
     });
     
     if (resetError) {
