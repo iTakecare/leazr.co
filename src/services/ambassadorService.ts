@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AmbassadorFormValues } from "@/components/crm/forms/AmbassadorForm";
@@ -17,23 +16,23 @@ export interface Ambassador {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  region: string;
+  phone?: string;
+  region?: string;
+  status: string;
+  notes?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
   clientsCount: number;
   commissionsTotal: number;
   lastCommission: number;
-  status: string;
-  notes?: string;
-  created_at?: string | Date;
-  updated_at?: string | Date;
+  clients?: any[];
+  commissions?: any[];
+  collaborators?: any[];
   has_user_account?: boolean;
-  user_account_created_at?: string | Date;
-  clients?: Client[];
-  commissions?: Commission[];
-  collaborators?: Collaborator[];
+  user_account_created_at?: string;
+  user_id?: string;
 }
 
-// Function to map database record to our Ambassador interface
 const mapDbAmbassadorToAmbassador = (record: any): Ambassador => {
   return {
     id: record.id,
@@ -53,7 +52,6 @@ const mapDbAmbassadorToAmbassador = (record: any): Ambassador => {
   };
 };
 
-// Get all ambassadors
 export const getAmbassadors = async (): Promise<Ambassador[]> => {
   try {
     const { data, error } = await supabase
@@ -70,7 +68,6 @@ export const getAmbassadors = async (): Promise<Ambassador[]> => {
   }
 };
 
-// Get ambassador by ID
 export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
   try {
     console.log("Requesting ambassador with ID:", id);
@@ -79,7 +76,7 @@ export const getAmbassadorById = async (id: string): Promise<Ambassador | null> 
       .from('ambassadors')
       .select('*')
       .eq('id', id)
-      .maybeSingle(); // Using maybeSingle instead of single to avoid errors
+      .maybeSingle();
     
     if (error) {
       console.error("Supabase error fetching ambassador:", error);
@@ -100,10 +97,8 @@ export const getAmbassadorById = async (id: string): Promise<Ambassador | null> 
   }
 };
 
-// Create a new ambassador
 export const createAmbassador = async (ambassadorData: AmbassadorFormValues): Promise<Ambassador | null> => {
   try {
-    // Convert form data to database structure
     const dbAmbassador = {
       name: ambassadorData.name,
       email: ambassadorData.email,
@@ -131,10 +126,8 @@ export const createAmbassador = async (ambassadorData: AmbassadorFormValues): Pr
   }
 };
 
-// Update an ambassador
 export const updateAmbassador = async (id: string, ambassadorData: Partial<AmbassadorFormValues>): Promise<Ambassador | null> => {
   try {
-    // Convert form data to database structure
     const dbAmbassador: Record<string, any> = {};
     
     if (ambassadorData.name !== undefined) dbAmbassador.name = ambassadorData.name;
@@ -144,7 +137,6 @@ export const updateAmbassador = async (id: string, ambassadorData: Partial<Ambas
     if (ambassadorData.notes !== undefined) dbAmbassador.notes = ambassadorData.notes;
     if (ambassadorData.status !== undefined) dbAmbassador.status = ambassadorData.status;
     
-    // Add updated_at timestamp
     dbAmbassador.updated_at = new Date().toISOString();
     
     const { data, error } = await supabase
@@ -163,7 +155,6 @@ export const updateAmbassador = async (id: string, ambassadorData: Partial<Ambas
   }
 };
 
-// Delete an ambassador
 export const deleteAmbassador = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -180,10 +171,8 @@ export const deleteAmbassador = async (id: string): Promise<boolean> => {
   }
 };
 
-// Get ambassador's clients
 export const getAmbassadorClients = async (ambassadorId: string): Promise<any[]> => {
   try {
-    // First get the ambassador-client relationships
     const { data: relations, error: relationsError } = await supabase
       .from('ambassador_clients')
       .select('client_id')
@@ -193,10 +182,8 @@ export const getAmbassadorClients = async (ambassadorId: string): Promise<any[]>
     
     if (!relations || relations.length === 0) return [];
     
-    // Get the client IDs
     const clientIds = relations.map(rel => rel.client_id);
     
-    // Get the actual clients
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
       .select('*')
@@ -211,7 +198,6 @@ export const getAmbassadorClients = async (ambassadorId: string): Promise<any[]>
   }
 };
 
-// Get ambassador's commissions
 export const getAmbassadorCommissions = async (ambassadorId: string): Promise<any[]> => {
   try {
     const { data, error } = await supabase

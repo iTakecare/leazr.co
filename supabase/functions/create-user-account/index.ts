@@ -66,19 +66,19 @@ serve(async (req) => {
     // Generate a random password (they'll reset it via email)
     const tempPassword = Math.random().toString(36).slice(-10);
     
-    // Check if the user already exists
-    const { data: existingUsers, error: checkError } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
+    // Check if the user already exists - checking auth.users directly
+    const { data: existingUsers, error: checkError } = await supabaseAdmin.auth.admin.listUsers({
+      filter: {
+        email: email
+      }
+    });
       
     if (checkError) {
       console.error("Error checking existing user:", checkError);
       throw checkError;
     }
     
-    if (existingUsers) {
+    if (existingUsers && existingUsers.users.length > 0) {
       return new Response(
         JSON.stringify({ 
           error: "User already exists", 
