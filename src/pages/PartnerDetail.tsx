@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,8 +14,8 @@ import {
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Partner, getPartnerById } from "@/services/partnerService";
+import { createUserAccount, resetPassword } from "@/services/accountService";
 
-// Définir les interfaces pour les données affichées dans le composant
 interface Collaborator {
   id: string;
   name: string;
@@ -54,19 +53,6 @@ interface Offer {
   description: string;
 }
 
-// Services mock pour partenaires
-const resetPartnerPassword = async (email: string): Promise<boolean> => {
-  // Simuler la réinitialisation du mot de passe
-  await new Promise(resolve => setTimeout(resolve, 800));
-  return true;
-};
-
-const createAccountForPartner = async (partner: Partner): Promise<boolean> => {
-  // Simuler la création d'un compte
-  await new Promise(resolve => setTimeout(resolve, 1200));
-  return true;
-};
-
 export default function PartnerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -76,7 +62,6 @@ export default function PartnerDetail() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
-  // Fonction pour charger les données du partenaire
   const fetchPartner = async () => {
     if (!id) return;
     
@@ -112,12 +97,7 @@ export default function PartnerDetail() {
 
     setIsResettingPassword(true);
     try {
-      const success = await resetPartnerPassword(partner.email);
-      if (success) {
-        toast.success("Email de réinitialisation envoyé avec succès");
-      } else {
-        toast.error("Échec de l'envoi de l'email de réinitialisation");
-      }
+      await resetPassword(partner.email);
     } catch (error) {
       console.error("Error resetting password:", error);
       toast.error("Erreur lors de la réinitialisation du mot de passe");
@@ -136,11 +116,9 @@ export default function PartnerDetail() {
     
     setIsCreatingAccount(true);
     try {
-      const success = await createAccountForPartner(partner);
+      const success = await createUserAccount(partner, "partner");
       if (success) {
-        // Recharger les données du partenaire pour afficher les changements
         await fetchPartner();
-        toast.success("Compte utilisateur créé et email de configuration envoyé");
       }
     } catch (error) {
       console.error("Error creating account:", error);
@@ -183,7 +161,6 @@ export default function PartnerDetail() {
     );
   }
 
-  // Un compte est considéré comme actif uniquement si has_user_account est true
   const hasUserAccount = Boolean(partner.has_user_account);
 
   return (

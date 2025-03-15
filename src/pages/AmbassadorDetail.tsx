@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAmbassadorById, Ambassador as AmbassadorType } from "@/services/ambassadorService";
+import { createUserAccount, resetPassword } from "@/services/accountService";
 
 interface Collaborator {
   id: string;
@@ -115,12 +116,7 @@ export default function AmbassadorDetail() {
 
     setIsResettingPassword(true);
     try {
-      const success = await resetAmbassadorPassword(ambassador.email);
-      if (success) {
-        toast.success("Email de réinitialisation envoyé avec succès");
-      } else {
-        toast.error("Échec de l'envoi de l'email de réinitialisation");
-      }
+      await resetPassword(ambassador.email);
     } catch (error) {
       console.error("Error resetting password:", error);
       toast.error("Erreur lors de la réinitialisation du mot de passe");
@@ -139,11 +135,10 @@ export default function AmbassadorDetail() {
     
     setIsCreatingAccount(true);
     try {
-      const success = await createAccountForAmbassador(ambassador);
+      const success = await createUserAccount(ambassador, "ambassador");
       if (success) {
         // Recharger les données de l'ambassadeur pour afficher les changements
         await fetchAmbassador();
-        toast.success("Compte utilisateur créé et email de configuration envoyé");
       }
     } catch (error) {
       console.error("Error creating account:", error);
