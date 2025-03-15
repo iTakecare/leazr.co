@@ -96,7 +96,9 @@ const PartnerDetail = ({
             <div className="bg-muted/20 p-3 rounded-lg">
               <div className="flex items-center justify-between mb-3">
                 <span className="font-medium">Status du compte</span>
-                <Badge variant={hasUserAccount ? "success" : "outline"}>
+                <Badge variant={hasUserAccount ? "default" : "outline"} className={
+                  hasUserAccount ? "bg-green-100 text-green-800 border-green-300" : ""
+                }>
                   {hasUserAccount ? "Actif" : "Non créé"}
                 </Badge>
               </div>

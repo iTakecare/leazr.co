@@ -99,6 +99,9 @@ export const createUserAccount = async (
     // Mettre à jour le partenaire ou ambassadeur dans la base de données
     const tableName = userType === "partner" ? "partners" : "ambassadors";
     
+    // Log pour débogage
+    console.log(`Mise à jour de ${tableName} avec id=${entity.id}, user_id=${userId}, has_user_account=true`);
+    
     const { error: updateError } = await supabase
       .from(tableName)
       .update({
