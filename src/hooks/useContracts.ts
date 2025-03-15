@@ -10,7 +10,7 @@ export const useContracts = () => {
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [activeStatusFilter, setActiveStatusFilter] = useState("all");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list'); // Changed default from 'kanban' to 'list'
   const [includeCompleted, setIncludeCompleted] = useState(true);
 
   useEffect(() => {

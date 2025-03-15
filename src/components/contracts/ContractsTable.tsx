@@ -15,16 +15,24 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter 
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, FileText, Trash2, Package, CheckCircle, Truck, Play, AlarmClock } from "lucide-react";
+import { MoreHorizontal, FileText, Trash2, Package, CheckCircle, Truck, Play, AlarmClock, BarChart2 } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Contract, contractStatuses } from "@/services/contractService";
 import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ContractsTableProps {
   contracts: Contract[];
@@ -50,10 +58,12 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [carrier, setCarrier] = useState('');
   
-  const handleRowClick = (contractId: string) => {
-    // Navigation vers les détails du contrat à implémenter
-    // navigate(`/contracts/${contractId}`);
-    console.log("Contrat sélectionné:", contractId);
+  // Add state for contract details dialog
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  
+  const handleRowClick = (contract: Contract) => {
+    setSelectedContract(contract);
+    setDetailsDialogOpen(true);
   };
   
   const openStatusChangeDialog = (contract: Contract, status: string) => {
@@ -91,7 +101,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     actions.push({
       label: "Voir détails",
       icon: FileText,
-      onClick: () => handleRowClick(contract.id),
+      onClick: () => handleRowClick(contract),
     });
     
     switch (contract.status) {
@@ -173,10 +183,10 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
               const availableActions = getAvailableActions(contract);
               
               return (
-                <TableRow key={contract.id}>
+                <TableRow key={contract.id} className="cursor-pointer hover:bg-muted/50">
                   <TableCell 
-                    className="font-medium cursor-pointer"
-                    onClick={() => handleRowClick(contract.id)}
+                    className="font-medium"
+                    onClick={() => handleRowClick(contract)}
                   >
                     {`CON-${contract.id.slice(0, 8)}`}
                     {contract.tracking_number && (
@@ -185,10 +195,10 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>{contract.client_name}</TableCell>
-                  <TableCell>{formatCurrency(contract.monthly_payment || 0)}</TableCell>
-                  <TableCell>{formatDate(contract.created_at)}</TableCell>
-                  <TableCell>
+                  <TableCell onClick={() => handleRowClick(contract)}>{contract.client_name}</TableCell>
+                  <TableCell onClick={() => handleRowClick(contract)}>{formatCurrency(contract.monthly_payment || 0)}</TableCell>
+                  <TableCell onClick={() => handleRowClick(contract)}>{formatDate(contract.created_at)}</TableCell>
+                  <TableCell onClick={() => handleRowClick(contract)}>
                     <ContractStatusBadge status={contract.status} />
                   </TableCell>
                   <TableCell className="text-right">
@@ -221,6 +231,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         </Table>
       </div>
       
+      {/* Status Change Dialog */}
       <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -250,6 +261,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Tracking Dialog */}
       <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -302,6 +314,214 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             >
               Ajouter
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contract Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Détails du contrat</DialogTitle>
+            <DialogDescription>
+              Informations détaillées sur le contrat 
+              {selectedContract && ` CON-${selectedContract.id.slice(0, 8)}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedContract && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Informations client</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt className="text-muted-foreground">Nom</dt>
+                        <dd className="font-medium">{selectedContract.client_name}</dd>
+                      </div>
+                      {selectedContract.client_email && (
+                        <div>
+                          <dt className="text-muted-foreground">Email</dt>
+                          <dd className="font-medium">{selectedContract.client_email}</dd>
+                        </div>
+                      )}
+                      {selectedContract.client_phone && (
+                        <div>
+                          <dt className="text-muted-foreground">Téléphone</dt>
+                          <dd className="font-medium">{selectedContract.client_phone}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Informations financières</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt className="text-muted-foreground">Mensualité</dt>
+                        <dd className="font-medium">{formatCurrency(selectedContract.monthly_payment || 0)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Montant total</dt>
+                        <dd className="font-medium">{formatCurrency(selectedContract.amount || 0)}</dd>
+                      </div>
+                      {selectedContract.lease_duration && (
+                        <div>
+                          <dt className="text-muted-foreground">Durée</dt>
+                          <dd className="font-medium">{selectedContract.lease_duration} mois</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Equipement</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm">{selectedContract.equipment_description || "Non spécifié"}</p>
+                </CardContent>
+              </Card>
+
+              {selectedContract.tracking_number && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Informations de livraison</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt className="text-muted-foreground">Numéro de suivi</dt>
+                        <dd className="font-medium">{selectedContract.tracking_number}</dd>
+                      </div>
+                      {selectedContract.estimated_delivery && (
+                        <div>
+                          <dt className="text-muted-foreground">Livraison estimée</dt>
+                          <dd className="font-medium">{selectedContract.estimated_delivery}</dd>
+                        </div>
+                      )}
+                      {selectedContract.delivery_carrier && (
+                        <div>
+                          <dt className="text-muted-foreground">Transporteur</dt>
+                          <dd className="font-medium">{selectedContract.delivery_carrier}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Statut et dates</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-2 text-sm">
+                    <div>
+                      <dt className="text-muted-foreground">Statut</dt>
+                      <dd className="font-medium">
+                        <ContractStatusBadge status={selectedContract.status} showProgress />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Créé le</dt>
+                      <dd className="font-medium">{formatDate(selectedContract.created_at)}</dd>
+                    </div>
+                    {selectedContract.updated_at && (
+                      <div>
+                        <dt className="text-muted-foreground">Dernière mise à jour</dt>
+                        <dd className="font-medium">{formatDate(selectedContract.updated_at)}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setDetailsDialogOpen(false)}>Fermer</Button>
+            {selectedContract && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary">
+                    Actions <MoreHorizontal className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {selectedContract.status === contractStatuses.CONTRACT_SENT && (
+                    <DropdownMenuItem onClick={() => {
+                      setDetailsDialogOpen(false);
+                      openStatusChangeDialog(selectedContract, contractStatuses.CONTRACT_SIGNED);
+                    }}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Marquer comme signé
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {selectedContract.status === contractStatuses.CONTRACT_SIGNED && (
+                    <DropdownMenuItem onClick={() => {
+                      setDetailsDialogOpen(false);
+                      openStatusChangeDialog(selectedContract, contractStatuses.EQUIPMENT_ORDERED);
+                    }}>
+                      <Package className="mr-2 h-4 w-4" />
+                      Marquer comme commandé
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {selectedContract.status === contractStatuses.EQUIPMENT_ORDERED && (
+                    <>
+                      <DropdownMenuItem onClick={() => {
+                        setDetailsDialogOpen(false);
+                        openTrackingDialog(selectedContract);
+                      }}>
+                        <Truck className="mr-2 h-4 w-4" />
+                        Ajouter numéro de suivi
+                      </DropdownMenuItem>
+                      
+                      {selectedContract.tracking_number && (
+                        <DropdownMenuItem onClick={() => {
+                          setDetailsDialogOpen(false);
+                          openStatusChangeDialog(selectedContract, contractStatuses.DELIVERED);
+                        }}>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Marquer comme livré
+                        </DropdownMenuItem>
+                      )}
+                    </>
+                  )}
+                  
+                  {selectedContract.status === contractStatuses.DELIVERED && (
+                    <DropdownMenuItem onClick={() => {
+                      setDetailsDialogOpen(false);
+                      openStatusChangeDialog(selectedContract, contractStatuses.ACTIVE);
+                    }}>
+                      <Play className="mr-2 h-4 w-4" />
+                      Marquer comme actif
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {selectedContract.status === contractStatuses.ACTIVE && (
+                    <DropdownMenuItem onClick={() => {
+                      setDetailsDialogOpen(false);
+                      openStatusChangeDialog(selectedContract, contractStatuses.COMPLETED);
+                    }}>
+                      <AlarmClock className="mr-2 h-4 w-4" />
+                      Marquer comme terminé
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
