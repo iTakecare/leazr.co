@@ -5,7 +5,7 @@ import { z } from "zod";
 
 // Define the allowed partner types as a literal union type
 const partnerTypes = ["Revendeur", "Intégrateur", "Consultant"] as const;
-type PartnerType = typeof partnerTypes[number];
+export type PartnerType = typeof partnerTypes[number];
 
 // Partner form values schema with Zod
 export const partnerSchema = z.object({
@@ -34,7 +34,7 @@ export interface Partner {
   clientsCount?: number;
   revenueTotal?: number;
   lastTransaction?: number;
-  commissionsTotal: number; // Cette propriété est requise
+  commissionsTotal: number;
   collaborators?: any[];
   created_at?: Date;
   updated_at?: Date;

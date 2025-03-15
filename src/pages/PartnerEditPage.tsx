@@ -82,7 +82,6 @@ const PartnerEditPage = () => {
 
   return (
     <div className="container py-6">
-      {/* Nous utilisons la technique de spread pour passer toutes les propriétés du partenaire */}
       <PartnerEditForm partnerData={partner} />
     </div>
   );
