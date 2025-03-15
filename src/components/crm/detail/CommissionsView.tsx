@@ -10,9 +10,10 @@ interface CommissionsViewProps {
     name: string;
     type: 'partner' | 'ambassador';
   };
+  commissions?: any[]; // Ajout du prop optionnel commissions
 }
 
-const CommissionsView: React.FC<CommissionsViewProps> = ({ isOpen, onClose, owner }) => {
+const CommissionsView: React.FC<CommissionsViewProps> = ({ isOpen, onClose, owner, commissions }) => {
   if (!isOpen) return null;
 
   return (

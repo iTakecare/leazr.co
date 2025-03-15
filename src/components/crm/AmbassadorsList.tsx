@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -73,11 +72,7 @@ const AmbassadorsList = () => {
   };
 
   const handleEditAmbassador = (id: string) => {
-    const ambassador = ambassadorsList.find(a => a.id === id);
-    if (ambassador) {
-      setCurrentAmbassador({...ambassador});
-      setIsEditModalOpen(true);
-    }
+    navigate(`/ambassadors/edit/${id}`);
   };
 
   const handleViewProfile = (id: string) => {
