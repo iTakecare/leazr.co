@@ -130,7 +130,7 @@ serve(async (req) => {
     // Add the appropriate ID field based on userType
     if (userType === "partner") {
       userMetadata.partner_id = entityId;
-    } else {
+    } else if (userType === "ambassador") {
       userMetadata.ambassador_id = entityId;
     }
     
@@ -142,7 +142,10 @@ serve(async (req) => {
       email,
       password: tempPassword,
       email_confirm: true,
-      user_metadata: userMetadata
+      user_metadata: userMetadata,
+      app_metadata: { // Use app_metadata for role information
+        role: role
+      }
     });
     
     if (createError) {

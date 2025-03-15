@@ -33,7 +33,7 @@ export const createUserAccount = async (
     
     const params: CreateAccountParams = {
       email: entity.email,
-      name: userType === "partner" ? entity.name : entity.name,
+      name: entity.name,
       role: userType,
       userType,
       entityId: entity.id
@@ -41,7 +41,7 @@ export const createUserAccount = async (
 
     console.log("Sending request to create-user-account with params:", params);
 
-    // Call the Supabase Edge Function
+    // Call the Supabase Edge Function with a timeout
     const { data, error } = await supabase.functions.invoke("create-user-account", {
       body: params
     });

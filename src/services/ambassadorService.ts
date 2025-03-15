@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AmbassadorFormValues } from "@/components/crm/forms/AmbassadorForm";
@@ -47,8 +48,9 @@ const mapDbAmbassadorToAmbassador = (record: any): Ambassador => {
     notes: record.notes,
     created_at: record.created_at,
     updated_at: record.updated_at,
-    has_user_account: record.has_user_account,
-    user_account_created_at: record.user_account_created_at
+    has_user_account: record.has_user_account || false,
+    user_account_created_at: record.user_account_created_at,
+    user_id: record.user_id
   };
 };
 
