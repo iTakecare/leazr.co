@@ -1,57 +1,97 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { contractStatuses } from "@/services/contractService";
+import { 
+  CheckCircle, Send, Package, Truck, Play, AlarmClock
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import { contractStatuses } from "@/services/contractService";
+
+// Définition des statuts
+export const CONTRACT_STATUSES = {
+  CONTRACT_SENT: {
+    id: contractStatuses.CONTRACT_SENT,
+    label: 'Contrat envoyé',
+    color: 'bg-blue-100',
+    textColor: 'text-blue-700',
+    progressValue: 16,
+    icon: Send,
+  },
+  CONTRACT_SIGNED: {
+    id: contractStatuses.CONTRACT_SIGNED,
+    label: 'Contrat signé',
+    color: 'bg-indigo-100',
+    textColor: 'text-indigo-700',
+    progressValue: 33,
+    icon: CheckCircle,
+  },
+  EQUIPMENT_ORDERED: {
+    id: contractStatuses.EQUIPMENT_ORDERED,
+    label: 'Matériel commandé',
+    color: 'bg-purple-100',
+    textColor: 'text-purple-700',
+    progressValue: 50,
+    icon: Package,
+  },
+  DELIVERED: {
+    id: contractStatuses.DELIVERED,
+    label: 'Livré',
+    color: 'bg-orange-100',
+    textColor: 'text-orange-700',
+    progressValue: 66,
+    icon: Truck,
+  },
+  ACTIVE: {
+    id: contractStatuses.ACTIVE,
+    label: 'Actif',
+    color: 'bg-green-100',
+    textColor: 'text-green-700',
+    progressValue: 83,
+    icon: Play,
+  },
+  COMPLETED: {
+    id: contractStatuses.COMPLETED,
+    label: 'Terminé',
+    color: 'bg-gray-100',
+    textColor: 'text-gray-700',
+    progressValue: 100,
+    icon: AlarmClock,
+  }
+};
 
 interface ContractStatusBadgeProps {
-  status: string;
-  className?: string;
+  status?: string;
+  showProgress?: boolean;
 }
 
-const ContractStatusBadge: React.FC<ContractStatusBadgeProps> = ({ status, className }) => {
-  const getStatusConfig = () => {
-    switch (status) {
-      case contractStatuses.CONTRACT_SENT:
-        return { label: "Contrat envoyé", variant: "secondary" };
-      case contractStatuses.CONTRACT_SIGNED:
-        return { label: "Contrat signé", variant: "outline" };
-      case contractStatuses.EQUIPMENT_ORDERED:
-        return { label: "Matériel commandé", variant: "default" };
-      case contractStatuses.DELIVERED:
-        return { label: "Livré", variant: "success" };
-      case contractStatuses.ACTIVE:
-        return { label: "Actif", variant: "primary" };
-      case contractStatuses.COMPLETED:
-        return { label: "Terminé", variant: "muted" };
-      default:
-        return { label: status, variant: "default" };
-    }
-  };
-
-  const { label, variant } = getStatusConfig();
-
-  const getVariantClass = () => {
-    switch (variant) {
-      case "primary":
-        return "bg-primary text-primary-foreground hover:bg-primary/80";
-      case "success":
-        return "bg-green-100 text-green-800 border-green-500";
-      case "secondary":
-        return "bg-blue-100 text-blue-800 border-blue-500";
-      case "outline":
-        return "bg-background text-foreground border";
-      case "muted":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-primary/10 text-primary";
-    }
-  };
+const ContractStatusBadge: React.FC<ContractStatusBadgeProps> = ({ 
+  status = 'contract_sent', 
+  showProgress = false
+}) => {
+  // Récupérer les informations du statut
+  const statusInfo = Object.values(CONTRACT_STATUSES).find(s => s.id === status) || CONTRACT_STATUSES.CONTRACT_SENT;
+  const Icon = statusInfo.icon;
 
   return (
-    <Badge className={cn(getVariantClass(), className)}>
-      {label}
-    </Badge>
+    <div className="flex flex-col gap-1 w-full">
+      <Badge className={cn(
+        statusInfo.color,
+        statusInfo.textColor,
+        "hover:bg-opacity-80"
+      )}>
+        <Icon className="h-3 w-3 mr-1" />
+        {statusInfo.label}
+      </Badge>
+      {showProgress && (
+        <Progress 
+          value={statusInfo.progressValue} 
+          className={cn("h-2", 
+            statusInfo.progressValue === 100 ? "bg-green-100" : "bg-gray-100"
+          )} 
+        />
+      )}
+    </div>
   );
 };
 

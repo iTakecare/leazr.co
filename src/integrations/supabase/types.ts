@@ -528,6 +528,7 @@ export type Database = {
           equipment_description: string | null
           id: string
           monthly_payment: number
+          previous_status: string | null
           status: string
           type: string | null
           updated_at: string | null
@@ -546,6 +547,7 @@ export type Database = {
           equipment_description?: string | null
           id?: string
           monthly_payment?: number
+          previous_status?: string | null
           status?: string
           type?: string | null
           updated_at?: string | null
@@ -564,6 +566,7 @@ export type Database = {
           equipment_description?: string | null
           id?: string
           monthly_payment?: number
+          previous_status?: string | null
           status?: string
           type?: string | null
           updated_at?: string | null
@@ -715,6 +718,57 @@ export type Database = {
           type?: string
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      pdf_templates: {
+        Row: {
+          companyAddress: string
+          companyContact: string
+          companyName: string
+          companySiret: string
+          created_at: string
+          fields: Json
+          footerText: string
+          headerText: string
+          id: string
+          logoURL: string | null
+          name: string
+          primaryColor: string
+          secondaryColor: string
+          updated_at: string
+        }
+        Insert: {
+          companyAddress: string
+          companyContact: string
+          companyName: string
+          companySiret: string
+          created_at?: string
+          fields: Json
+          footerText: string
+          headerText: string
+          id: string
+          logoURL?: string | null
+          name: string
+          primaryColor: string
+          secondaryColor: string
+          updated_at?: string
+        }
+        Update: {
+          companyAddress?: string
+          companyContact?: string
+          companyName?: string
+          companySiret?: string
+          created_at?: string
+          fields?: Json
+          footerText?: string
+          headerText?: string
+          id?: string
+          logoURL?: string | null
+          name?: string
+          primaryColor?: string
+          secondaryColor?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -982,6 +1036,12 @@ export type Database = {
           brand_name: string
         }
         Returns: boolean
+      }
+      execute_sql: {
+        Args: {
+          sql: string
+        }
+        Returns: undefined
       }
       get_brands: {
         Args: Record<PropertyKey, never>

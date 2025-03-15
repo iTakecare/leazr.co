@@ -106,12 +106,18 @@ export const createContractFromOffer = async (
 };
 
 // Récupérer tous les contrats
-export const getContracts = async (): Promise<Contract[]> => {
+export const getContracts = async (includeCompleted = true): Promise<Contract[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('contracts')
       .select('*, clients(name, email, company)')
       .order('created_at', { ascending: false });
+      
+    if (!includeCompleted) {
+      query = query.neq('status', contractStatuses.COMPLETED);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 

@@ -4,7 +4,6 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 
 const supabase = getSupabaseClient();
 
-// Assurez-vous que le type ClientOffer inclut les champs status et workflow_status
 export interface ClientOffer {
   id: string;
   client_name: string;
@@ -17,7 +16,7 @@ export interface ClientOffer {
   type: string;
 }
 
-export const useClientOffers = () => {
+export const useClientOffers = (includeActive = true) => {
   const [offers, setOffers] = useState<ClientOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,11 +26,17 @@ export const useClientOffers = () => {
     setError(null);
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('offers')
         .select('*')
         .eq('type', 'client_request')
         .order('created_at', { ascending: false });
+
+      if (!includeActive) {
+        query = query.eq('converted_to_contract', false);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         throw new Error(error.message);
@@ -48,7 +53,7 @@ export const useClientOffers = () => {
 
   useEffect(() => {
     fetchOffers();
-  }, []);
+  }, [includeActive]);
 
   const refresh = () => {
     fetchOffers();

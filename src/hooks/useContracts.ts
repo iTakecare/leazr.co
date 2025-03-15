@@ -10,17 +10,19 @@ export const useContracts = () => {
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [activeStatusFilter, setActiveStatusFilter] = useState("all");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [includeCompleted, setIncludeCompleted] = useState(true);
 
   useEffect(() => {
     fetchContracts();
-  }, []);
+  }, [includeCompleted]);
 
   const fetchContracts = async () => {
     setLoading(true);
     setLoadingError(null);
     
     try {
-      const contractsData = await getContracts();
+      const contractsData = await getContracts(includeCompleted);
       
       if (Array.isArray(contractsData)) {
         setContracts(contractsData);
@@ -125,6 +127,10 @@ export const useContracts = () => {
     isUpdatingStatus,
     fetchContracts,
     handleUpdateContractStatus,
-    handleAddTrackingInfo
+    handleAddTrackingInfo,
+    viewMode,
+    setViewMode,
+    includeCompleted,
+    setIncludeCompleted
   };
 };

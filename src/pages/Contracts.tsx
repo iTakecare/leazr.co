@@ -4,13 +4,24 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { formatCurrency } from "@/utils/formatters";
 import { useContracts } from "@/hooks/useContracts";
-import { FileText, Search } from "lucide-react";
+import { FileText, Search, Filter, Grid, List, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import ContractsKanban from "@/components/contracts/ContractsKanban";
 import { contractStatuses } from "@/services/contractService";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ContractsFilter from "@/components/contracts/ContractsFilter";
+import ContractsSearch from "@/components/contracts/ContractsSearch";
+import ContractsTable from "@/components/contracts/ContractsTable";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const Contracts = () => {
   const {
@@ -24,8 +35,28 @@ const Contracts = () => {
     isUpdatingStatus,
     fetchContracts,
     handleUpdateContractStatus,
-    handleAddTrackingInfo
+    handleAddTrackingInfo,
+    viewMode,
+    setViewMode,
+    includeCompleted,
+    setIncludeCompleted
   } = useContracts();
+
+  // Référence pour le défilement horizontal
+  const scrollContainer = React.useRef<HTMLDivElement>(null);
+  
+  // Fonctions pour faire défiler le kanban horizontalement
+  const scrollLeft = () => {
+    if (scrollContainer.current) {
+      scrollContainer.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+  
+  const scrollRight = () => {
+    if (scrollContainer.current) {
+      scrollContainer.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
 
   // Animation variants
   const containerVariants = {
@@ -133,39 +164,103 @@ const Contracts = () => {
             </p>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="mb-6 flex justify-between items-center">
-            <Tabs
-              value={activeStatusFilter}
-              onValueChange={setActiveStatusFilter}
-              className="w-auto"
-            >
-              <TabsList>
-                <TabsTrigger value="all">Tous</TabsTrigger>
-                <TabsTrigger value={contractStatuses.CONTRACT_SENT}>Envoyés</TabsTrigger>
-                <TabsTrigger value={contractStatuses.CONTRACT_SIGNED}>Signés</TabsTrigger>
-                <TabsTrigger value={contractStatuses.ACTIVE}>Actifs</TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <motion.div variants={itemVariants} className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
+            <ContractsFilter
+              activeStatus={activeStatusFilter}
+              onStatusChange={setActiveStatusFilter}
+            />
             
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Rechercher un contrat..."
-                className="pl-8 w-[200px] sm:w-[300px]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+            <div className="flex items-center gap-2">
+              <ContractsSearch 
+                value={searchTerm} 
+                onChange={setSearchTerm} 
               />
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="flex items-center justify-between p-2">
+                    <Label htmlFor="show-completed" className="flex items-center cursor-pointer">
+                      <span>Inclure les contrats terminés</span>
+                    </Label>
+                    <Switch 
+                      id="show-completed"
+                      checked={includeCompleted}
+                      onCheckedChange={setIncludeCompleted}
+                    />
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Sélecteur de vue */}
+              <div className="flex items-center border rounded-md overflow-hidden">
+                <Button 
+                  variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setViewMode('list')} 
+                  className="rounded-none px-3"
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  Liste
+                </Button>
+                <Button 
+                  variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setViewMode('kanban')} 
+                  className="rounded-none px-3"
+                >
+                  <Grid className="h-4 w-4 mr-2" />
+                  Kanban
+                </Button>
+              </div>
             </div>
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <ContractsKanban 
-              contracts={filteredContracts}
-              onStatusChange={handleUpdateContractStatus}
-              onAddTrackingInfo={handleAddTrackingInfo}
-              isUpdatingStatus={isUpdatingStatus}
-            />
+            {viewMode === 'kanban' ? (
+              <>
+                {/* Contrôles de navigation du Kanban */}
+                <div className="flex justify-between items-center mb-2">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={scrollLeft}
+                    className="rounded-full"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={scrollRight}
+                    className="rounded-full"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div ref={scrollContainer} className="overflow-hidden">
+                  <ContractsKanban 
+                    contracts={filteredContracts}
+                    onStatusChange={handleUpdateContractStatus}
+                    onAddTrackingInfo={handleAddTrackingInfo}
+                    isUpdatingStatus={isUpdatingStatus}
+                  />
+                </div>
+              </>
+            ) : (
+              <ContractsTable 
+                contracts={filteredContracts}
+                onStatusChange={handleUpdateContractStatus}
+                onAddTrackingInfo={handleAddTrackingInfo}
+                isUpdatingStatus={isUpdatingStatus}
+              />
+            )}
           </motion.div>
           
           <motion.div variants={itemVariants} className="mt-6 text-sm text-muted-foreground">
