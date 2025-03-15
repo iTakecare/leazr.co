@@ -122,14 +122,18 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Effectuer la mise à jour
-    const { error: updateError } = await supabase
+    // Effectuer la mise à jour avec le client adminSupabase pour s'assurer que les mises à jour sont immédiates
+    const updateData = {
+      has_user_account: true,
+      user_account_created_at: new Date().toISOString(),
+      user_id: userId
+    };
+    
+    console.log(`Données de mise à jour:`, updateData);
+    
+    const { error: updateError } = await adminSupabase
       .from(tableName)
-      .update({
-        has_user_account: true,
-        user_account_created_at: new Date().toISOString(),
-        user_id: userId
-      })
+      .update(updateData)
       .eq('id', entity.id);
     
     if (updateError) {
@@ -139,7 +143,7 @@ export const createUserAccount = async (
     }
     
     // Vérifier que la mise à jour a bien été effectuée
-    const { data: updatedEntity, error: verifyError } = await supabase
+    const { data: updatedEntity, error: verifyError } = await adminSupabase
       .from(tableName)
       .select('*')
       .eq('id', entity.id)
@@ -147,8 +151,14 @@ export const createUserAccount = async (
       
     if (verifyError) {
       console.error(`Erreur lors de la vérification de la mise à jour:`, verifyError);
+      toast.warning("La mise à jour du statut du compte pourrait ne pas être immédiatement visible.");
     } else {
       console.log(`État mis à jour du ${userType}:`, updatedEntity);
+      
+      if (!updatedEntity.has_user_account) {
+        console.error("⚠️ La mise à jour du statut du compte n'a pas été enregistrée!");
+        toast.warning("Problème avec la mise à jour du statut du compte, veuillez actualiser la page.");
+      }
     }
     
     // Envoyer l'email de réinitialisation de mot de passe - en utilisant le client standard

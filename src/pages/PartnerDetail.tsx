@@ -62,6 +62,7 @@ export default function PartnerDetail() {
   const [activeTab, setActiveTab] = useState("profile");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
 
   const fetchPartner = async () => {
     if (!id) return;
@@ -117,7 +118,7 @@ export default function PartnerDetail() {
 
   useEffect(() => {
     fetchPartner();
-  }, [id, navigate]);
+  }, [id, navigate, accountCreated]);
 
   const handleResetPassword = async () => {
     if (!partner?.email) {
@@ -149,6 +150,7 @@ export default function PartnerDetail() {
       const success = await createUserAccount(partner, "partner");
       if (success) {
         toast.success("Compte créé avec succès!");
+        setAccountCreated(prev => !prev);
         await fetchPartner();
       }
     } catch (error) {
@@ -193,11 +195,11 @@ export default function PartnerDetail() {
   }
 
   console.log("Partner account status:", {
-    has_user_account: partner.has_user_account,
-    user_account_created_at: partner.user_account_created_at
+    has_user_account: partner?.has_user_account,
+    user_account_created_at: partner?.user_account_created_at
   });
   
-  const hasUserAccount = Boolean(partner.has_user_account);
+  const hasUserAccount = Boolean(partner?.has_user_account);
 
   return (
     <div className="container py-8 space-y-6">
