@@ -31,31 +31,26 @@ export const createUserAccount = async (
   try {
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
-    // Check if user exists by email with adminSupabase
-    const { data, error: findError } = await adminSupabase.auth.admin
-      .listUsers({ 
-        filter: { 
-          email: entity.email 
-        } 
-      });
+    // Vérifier si l'utilisateur existe déjà avec cette adresse email
+    const { data: { user: existingUser }, error: checkError } = await supabase.auth.admin.getUserByEmail(entity.email);
     
-    if (findError) {
-      console.error("Erreur lors de la vérification de l'utilisateur:", findError);
-      toast.error(`Erreur lors de la vérification: ${findError.message}`);
+    if (checkError && checkError.message !== "User not found") {
+      console.error("Erreur lors de la vérification de l'utilisateur:", checkError);
+      toast.error(`Erreur lors de la vérification: ${checkError.message}`);
       return false;
     }
     
-    if (data && data.users && data.users.length > 0) {
+    if (existingUser) {
       console.log(`Un compte existe déjà avec l'email ${entity.email}`);
       toast.error(`Un compte existe déjà avec cette adresse email`);
       return false;
     }
     
-    // Generate a random password
+    // Générer un mot de passe aléatoire
     const tempPassword = Math.random().toString(36).slice(-12);
     
-    // Create user account with admin client
-    const { data: userData, error: createError } = await adminSupabase.auth.admin.createUser({
+    // Créer l'utilisateur avec le serviceRole
+    const { data: userData, error: createError } = await supabase.auth.admin.createUser({
       email: entity.email,
       password: tempPassword,
       email_confirm: true,
@@ -80,7 +75,7 @@ export const createUserAccount = async (
     
     console.log("Utilisateur créé avec succès:", userData.user.id);
     
-    // Update the partner or ambassador in the database
+    // Mettre à jour le partenaire ou ambassadeur dans la base de données
     const tableName = userType === "partner" ? "partners" : "ambassadors";
     
     const { error: updateError } = await supabase
@@ -98,19 +93,15 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Send password reset email with admin client
-    const { error: resetError } = await adminSupabase.auth.admin.generateLink({
-      type: "recovery",
-      email: entity.email,
-      options: {
-        redirectTo: `${window.location.origin}/update-password`,
-      }
+    // Envoyer l'email de réinitialisation de mot de passe
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
+      redirectTo: `${window.location.origin}/update-password`,
     });
     
     if (resetError) {
       console.error("Erreur lors de l'envoi de l'email de réinitialisation:", resetError);
       toast.warning("Compte créé mais problème d'envoi de l'email de réinitialisation");
-      // We continue despite this error
+      // On continue malgré cette erreur
     }
     
     toast.success(`Compte ${userType} créé et email de configuration envoyé`);
