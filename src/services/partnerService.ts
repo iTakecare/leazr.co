@@ -1,8 +1,6 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { PartnerFormValues } from "@/components/crm/forms/PartnerForm";
-
+// Ajouter l'interface Partner complète dans ce fichier si elle n'existe pas déjà
+// ou mettre à jour l'interface existante pour inclure commissionsTotal
 export interface Partner {
   id: string;
   name: string;
@@ -10,12 +8,17 @@ export interface Partner {
   email: string;
   phone: string;
   type: string;
-  clientsCount: number;
-  revenueTotal: number;
-  lastTransaction: number;
   status: string;
   notes?: string;
-  user_id?: string;
+  clientsCount?: number;
+  revenueTotal?: number;
+  lastTransaction?: number;
+  commissionsTotal: number; // Cette propriété est requise
+  collaborators?: any[];
+  created_at?: Date;
+  updated_at?: Date;
+  has_user_account?: boolean;
+  user_account_created_at?: string | Date;
 }
 
 // Function to map database record to our Partner interface
