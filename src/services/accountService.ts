@@ -35,8 +35,7 @@ export const createUserAccount = async (
     const { data, error: findError } = await adminSupabase.auth.admin
       .listUsers({ 
         page: 1, 
-        perPage: 1,
-        query: entity.email
+        perPage: 1
       });
     
     if (findError) {
@@ -45,7 +44,10 @@ export const createUserAccount = async (
       return false;
     }
     
-    if (data && data.users && data.users.length > 0) {
+    // Manual filter by email since there's no query parameter in the API
+    const existingUser = data?.users?.find(user => user.email === entity.email);
+    
+    if (existingUser) {
       console.log(`Un compte existe déjà avec l'email ${entity.email}`);
       toast.error(`Un compte existe déjà avec cette adresse email`);
       return false;

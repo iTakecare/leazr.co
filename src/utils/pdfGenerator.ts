@@ -2,85 +2,72 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { getSupabaseClient } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
-// Fonction pour vérifier et créer la table pdf_templates si nécessaire
-const ensurePDFTemplateTableExists = async () => {
-  const supabase = getSupabaseClient();
-  
-  try {
-    // Vérifier si la table existe
-    const { data: tableExists, error: tableCheckError } = await supabase.rpc(
-      'check_table_exists',
-      { table_name: 'pdf_templates' }
-    );
-    
-    if (tableCheckError || !tableExists) {
-      // La table n'existe pas, la créer
-      const { error: createError } = await supabase.rpc('execute_sql', {
-        sql: `
-          CREATE TABLE IF NOT EXISTS public.pdf_templates (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            "companyName" TEXT NOT NULL,
-            "companyAddress" TEXT NOT NULL,
-            "companyContact" TEXT NOT NULL,
-            "companySiret" TEXT NOT NULL,
-            "logoURL" TEXT,
-            "primaryColor" TEXT NOT NULL,
-            "secondaryColor" TEXT NOT NULL,
-            "headerText" TEXT NOT NULL,
-            "footerText" TEXT NOT NULL,
-            fields JSONB NOT NULL,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-          );
-        `
-      });
-      
-      if (createError) {
-        console.error("Erreur lors de la création de la table pdf_templates:", createError);
-        return null;
-      }
-      
-      return null;
-    }
-    
-    return tableExists;
-  } catch (error) {
-    console.error("Erreur lors de la vérification de la table pdf_templates:", error);
-    return null;
-  }
+// Default template to use if no custom template is found
+const DEFAULT_PDF_TEMPLATE = {
+  id: 'default',
+  name: 'Default template',
+  companyName: 'iTakeCare',
+  companyAddress: '123 Avenue de la République - 75011 Paris',
+  companyContact: 'contact@itakecare.fr - www.itakecare.fr',
+  companySiret: 'SIRET: 123 456 789 00011',
+  logoURL: null,
+  primaryColor: '#2C3E50',
+  secondaryColor: '#3498DB',
+  headerText: 'OFFRE N° {offer_id}',
+  footerText: 'Cette offre est valable 30 jours à compter de sa date d\'émission. Cette offre est soumise à l\'acceptation finale du bailleur.',
+  fields: [
+    { id: 'created_at', isVisible: true, position: { x: 170, y: 40 } },
+    { id: 'client_name', isVisible: true, position: { x: 14, y: 60 }, value: '{client_name}' },
+    { id: 'client_email', isVisible: true, position: { x: 14, y: 70 }, value: '{client_email}' },
+    { id: 'client_company', isVisible: true, position: { x: 14, y: 80 }, value: '{clients.company}' },
+    { id: 'amount', isVisible: true, position: { x: 14, y: 100 }, value: 'Montant total: {amount}' },
+    { id: 'monthly_payment', isVisible: true, position: { x: 14, y: 110 }, value: 'Paiement mensuel: {monthly_payment}' },
+    { id: 'coefficient', isVisible: true, position: { x: 14, y: 120 }, value: 'Coefficient: {coefficient}' },
+    { id: 'equipment_table', isVisible: true, position: { x: 14, y: 135 } }
+  ]
 };
 
-// Récupérer le modèle PDF depuis la base de données
+// Fonction pour récupérer le modèle PDF depuis la base de données
 const getPDFTemplate = async () => {
-  const supabase = getSupabaseClient();
-  
   try {
-    // S'assurer que la table existe
-    await ensurePDFTemplateTableExists();
+    // Check if table exists
+    const { data: tableExists, error: tableCheckError } = await supabase
+      .rpc('check_table_exists', { table_name: 'pdf_templates' });
     
-    const { data, error } = await supabase
-      .from('pdf_templates')
-      .select('*')
-      .eq('id', 'default')
-      .single();
-    
-    if (error) {
-      console.error("Erreur lors de la récupération du modèle PDF:", error);
-      return null;
+    if (tableCheckError || !tableExists) {
+      console.log("Table pdf_templates doesn't exist or error checking it");
+      return DEFAULT_PDF_TEMPLATE;
     }
     
-    return data || null;
+    // Try to get template
+    try {
+      // Use custom SQL query since the table may not exist in the Supabase types
+      const { data, error } = await supabase
+        .from('pdf_templates')
+        .select()
+        .eq('id', 'default')
+        .maybeSingle();
+      
+      if (error || !data) {
+        console.log("No custom template found, using default");
+        return DEFAULT_PDF_TEMPLATE;
+      }
+      
+      return data;
+    } catch (err) {
+      console.error("Error fetching template:", err);
+      return DEFAULT_PDF_TEMPLATE;
+    }
   } catch (error) {
-    console.error("Erreur lors de la récupération du modèle PDF:", error);
-    return null;
+    console.error("Error in getPDFTemplate:", error);
+    return DEFAULT_PDF_TEMPLATE;
   }
 };
 
 export const generateOfferPdf = async (offer: any) => {
-  // Récupérer le modèle personnalisé
+  // Récupérer le modèle personnalisé ou utiliser le modèle par défaut
   const template = await getPDFTemplate();
   
   // Créer un nouveau document PDF
@@ -137,22 +124,7 @@ export const generateOfferPdf = async (offer: any) => {
   
   // Ajouter les champs selon le modèle personnalisé
   if (template?.fields) {
-    // Fonction pour ajouter un champ s'il est visible
-    const addField = (fieldId: string, formatFn?: (value: any) => string) => {
-      const field = template.fields.find(f => f.id === fieldId);
-      if (field && field.isVisible) {
-        const value = field.value.replace(/\{([^}]+)\}/g, (match, key) => {
-          let fieldValue = key.split('.').reduce((o: any, i: string) => o?.[i], offer);
-          return formatFn ? formatFn(fieldValue) : (fieldValue || 'Non renseigné');
-        });
-        
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        doc.text(value, field.position.x, field.position.y);
-      }
-    };
-    
-    // Ajouter la date
+    // Add date field
     const dateField = template.fields.find(f => f.id === 'created_at');
     if (dateField && dateField.isVisible) {
       doc.setFontSize(10);
@@ -160,36 +132,76 @@ export const generateOfferPdf = async (offer: any) => {
       doc.text(`Date: ${formatDate(offer.created_at)}`, dateField.position.x, dateField.position.y, { align: 'right' });
     }
     
-    // Ajouter la section d'information client
-    if (template.fields.some(f => ['client_name', 'client_email', 'client_company'].includes(f.id) && f.isVisible)) {
+    // Client information section
+    const clientNameField = template.fields.find(f => f.id === 'client_name');
+    const clientEmailField = template.fields.find(f => f.id === 'client_email');
+    const clientCompanyField = template.fields.find(f => f.id === 'client_company');
+    
+    if ((clientNameField || clientEmailField || clientCompanyField) && 
+        (clientNameField?.isVisible || clientEmailField?.isVisible || clientCompanyField?.isVisible)) {
       doc.setFontSize(12);
       doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
       doc.text('CLIENT', 14, 50);
       
-      addField('client_name');
-      addField('client_email');
+      // Client name
+      if (clientNameField?.isVisible) {
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(offer.client_name || 'Non renseigné', 14, 60);
+      }
       
-      // Ajouter l'information de la société si elle existe
-      if (offer.clients && offer.clients.company) {
-        addField('client_company');
+      // Client email
+      if (clientEmailField?.isVisible) {
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(offer.client_email || 'Non renseigné', 14, 70);
+      }
+      
+      // Client company
+      if (clientCompanyField?.isVisible && offer.clients && offer.clients.company) {
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(offer.clients.company, 14, 80);
       }
     }
     
-    // Ajouter la section détails de l'offre
-    if (template.fields.some(f => ['amount', 'monthly_payment', 'coefficient'].includes(f.id) && f.isVisible)) {
+    // Offer details section
+    const amountField = template.fields.find(f => f.id === 'amount');
+    const monthlyPaymentField = template.fields.find(f => f.id === 'monthly_payment');
+    const coefficientField = template.fields.find(f => f.id === 'coefficient');
+    
+    if ((amountField || monthlyPaymentField || coefficientField) &&
+        (amountField?.isVisible || monthlyPaymentField?.isVisible || coefficientField?.isVisible)) {
       doc.setFontSize(12);
       doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
       doc.text('DÉTAILS DE L\'OFFRE', 14, 90);
       
-      addField('amount', (value) => `Montant total: ${formatCurrency(value || 0)}`);
-      addField('monthly_payment', (value) => `Paiement mensuel: ${formatCurrency(value || 0)}`);
-      addField('coefficient', (value) => `Coefficient: ${value || 0}`);
+      // Amount
+      if (amountField?.isVisible) {
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Montant total: ${formatCurrency(Number(offer.amount) || 0)}`, 14, 100);
+      }
+      
+      // Monthly payment
+      if (monthlyPaymentField?.isVisible) {
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Paiement mensuel: ${formatCurrency(Number(offer.monthly_payment) || 0)}`, 14, 110);
+      }
+      
+      // Coefficient
+      if (coefficientField?.isVisible) {
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Coefficient: ${Number(offer.coefficient) || 0}`, 14, 120);
+      }
     }
     
-    // Ajouter le tableau des équipements
+    // Equipment table
     const equipmentTableField = template.fields.find(f => f.id === 'equipment_table');
-    if (equipmentTableField && equipmentTableField.isVisible) {
-      // Analyser les éléments d'équipement
+    if (equipmentTableField?.isVisible) {
+      // Parse equipment items
       let equipmentItems = [];
       try {
         if (offer.equipment_description) {
@@ -247,8 +259,8 @@ export const generateOfferPdf = async (offer: any) => {
   
   doc.setFontSize(11);
   doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
-  doc.text(`Montant total: ${formatCurrency(offer.amount || 0)}`, 150, finalY);
-  doc.text(`Mensualité: ${formatCurrency(offer.monthly_payment || 0)}`, 150, finalY + 7);
+  doc.text(`Montant total: ${formatCurrency(Number(offer.amount) || 0)}`, 150, finalY);
+  doc.text(`Mensualité: ${formatCurrency(Number(offer.monthly_payment) || 0)}`, 150, finalY + 7);
   
   // Ajouter les conditions générales
   doc.setFontSize(9);

@@ -528,6 +528,7 @@ export type Database = {
           equipment_description: string | null
           id: string
           monthly_payment: number
+          previous_status: string | null
           status: string
           type: string | null
           updated_at: string | null
@@ -546,6 +547,7 @@ export type Database = {
           equipment_description?: string | null
           id?: string
           monthly_payment?: number
+          previous_status?: string | null
           status?: string
           type?: string | null
           updated_at?: string | null
@@ -564,6 +566,7 @@ export type Database = {
           equipment_description?: string | null
           id?: string
           monthly_payment?: number
+          previous_status?: string | null
           status?: string
           type?: string | null
           updated_at?: string | null

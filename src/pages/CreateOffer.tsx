@@ -129,7 +129,6 @@ const CreateOffer = () => {
             setClientCompany(offer.clients?.company || '');
             setRemarks(offer.additional_info || '');
             
-            // Si coefficient et amount sont définis dans l'offre
             if (offer.coefficient && offer.amount) {
               const coefficient = parseFloat(String(offer.coefficient)) || 0;
               const amount = parseFloat(String(offer.amount)) || 0;
@@ -145,7 +144,6 @@ const CreateOffer = () => {
             
             if (offer.equipment_description) {
               try {
-                // Essayer d'abord de parser comme JSON si c'est un JSON
                 const equipmentData = JSON.parse(offer.equipment_description);
                 if (Array.isArray(equipmentData) && equipmentData.length > 0) {
                   console.log("Found JSON equipment data:", equipmentData);
@@ -166,7 +164,6 @@ const CreateOffer = () => {
                   }
                 }
               } catch (e) {
-                // Si ce n'est pas un JSON, utiliser la méthode de parsing original
                 console.log("Parsing equipment_description as string format:", offer.equipment_description);
                 const equipmentItems = offer.equipment_description.split(',').map(item => {
                   const match = item.trim().match(/(.+) \((\d+)x\)/);
@@ -264,7 +261,6 @@ const CreateOffer = () => {
     setIsSubmitting(true);
 
     try {
-      // Ensure all equipment data is properly preserved with correct types
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
@@ -276,7 +272,6 @@ const CreateOffer = () => {
       
       console.log("Saving equipment data with preserved margins:", equipmentData);
       
-      // Garder aussi le format texte pour compatibilité
       const equipmentDescription = equipmentList
         .map(eq => `${eq.title} (${eq.quantity}x)`)
         .join(", ");
@@ -287,7 +282,7 @@ const CreateOffer = () => {
         client_email: clientEmail,
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
-        equipment_text: equipmentDescription,  // Format texte pour compatibilité
+        equipment_text: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,

@@ -1,5 +1,5 @@
 
-import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
+import { supabase, adminSupabase } from "@/integrations/supabase/client";
 
 /**
  * Ensures that a storage bucket exists with the correct public access settings
@@ -9,10 +9,9 @@ import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supaba
 export async function ensureStorageBucket(bucketName: string): Promise<boolean> {
   try {
     // Use adminSupabase client for bucket operations to avoid RLS issues
-    const supabase = getAdminSupabaseClient();
     
     // Check if bucket exists
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    const { data: buckets, error: listError } = await adminSupabase.storage.listBuckets();
     
     if (listError) {
       console.error(`Error checking if bucket ${bucketName} exists:`, listError);
@@ -24,7 +23,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
     if (!bucketExists) {
       console.log(`Creating storage bucket: ${bucketName}`);
       try {
-        const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        const { error: createError } = await adminSupabase.storage.createBucket(bucketName, {
           public: true,
           fileSizeLimit: 10485760, // 10MB limit
         });
@@ -36,7 +35,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         
         // Set CORS policy for the bucket
         try {
-          const { error: corsError } = await supabase.storage.updateBucket(bucketName, {
+          const { error: corsError } = await adminSupabase.storage.updateBucket(bucketName, {
             public: true,
             fileSizeLimit: 10485760,
             allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
@@ -49,11 +48,32 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
           console.warn(`Error setting CORS policy for ${bucketName}:`, corsError);
         }
         
-        // Create public access policy
+        // Try to create public access directly since the RPC function doesn't exist
         try {
-          await createPublicPolicy(bucketName);
+          // Create a dummy file to get the bucket URLs public
+          const dummyFile = new Blob(['test'], { type: 'text/plain' });
+          
+          // Upload a test file to get the bucket public
+          await adminSupabase.storage
+            .from(bucketName)
+            .upload('test-public-access.txt', dummyFile, {
+              cacheControl: '1',
+              upsert: true
+            });
+            
+          // Get public URL to verify it works and make the bucket public
+          const { data } = adminSupabase.storage
+            .from(bucketName)
+            .getPublicUrl('test-public-access.txt');
+            
+          console.log(`Public access verified for ${bucketName}`);
+          
+          // Clean up the test file
+          await adminSupabase.storage
+            .from(bucketName)
+            .remove(['test-public-access.txt']);
         } catch (policyError) {
-          console.warn(`Could not create policy for ${bucketName}:`, policyError);
+          console.warn(`Could not verify public access for ${bucketName}:`, policyError);
         }
       } catch (e) {
         console.error(`Could not create bucket ${bucketName}:`, e);
@@ -65,37 +85,6 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
   } catch (error) {
     console.error(`Unexpected error ensuring bucket ${bucketName}:`, error);
     return false;
-  }
-}
-
-/**
- * Creates a public access policy for a bucket
- */
-async function createPublicPolicy(bucketName: string): Promise<void> {
-  const supabase = getAdminSupabaseClient();
-  
-  console.log(`Ensuring public access policy for bucket: ${bucketName}`);
-  
-  try {
-    // Try creating the policy directly using SQL
-    const { error } = await supabase.rpc('create_storage_policy', {
-      bucket_name: bucketName,
-      policy_name: `${bucketName}_public_access`,
-      definition: 'true', // Allow all access
-      policy_type: 'SELECT'
-    });
-    
-    if (error) {
-      console.warn(`Could not create public access policy for ${bucketName}:`, error);
-      
-      // Fallback: Try to directly make the bucket objects public through storage API
-      const { error: policyError } = await supabase.storage.from(bucketName).getPublicUrl('test');
-      if (policyError) {
-        console.warn(`Could not verify public access for ${bucketName}:`, policyError);
-      }
-    }
-  } catch (error) {
-    console.warn(`Error creating policy for ${bucketName}:`, error);
   }
 }
 
@@ -189,14 +178,11 @@ export async function downloadAndUploadImage(
         return imageUrl;
       }
       
-      // Get Supabase client with admin privileges for storage operations
-      const supabase = getAdminSupabaseClient();
-      
       // Generate a unique filename with proper extension
       const uniqueFilename = `${filename.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.${fileExtension}`;
       
       // Upload to Supabase Storage with explicit content type
-      const { error } = await supabase.storage
+      const { error } = await adminSupabase.storage
         .from(bucketName)
         .upload(uniqueFilename, imageFile, {
           cacheControl: '3600',
@@ -210,7 +196,7 @@ export async function downloadAndUploadImage(
       }
       
       // Get public URL
-      const { data: publicUrlData } = supabase.storage
+      const { data: publicUrlData } = adminSupabase.storage
         .from(bucketName)
         .getPublicUrl(uniqueFilename);
         

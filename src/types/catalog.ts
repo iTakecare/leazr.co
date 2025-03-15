@@ -1,4 +1,6 @@
 
+import { Json } from "@/integrations/supabase/types";
+
 export interface Product {
   id: string;
   name: string;
@@ -14,12 +16,12 @@ export interface Product {
   image_alt?: string;
   imageAlts?: string[];
   image_alts?: string[];
-  specifications?: Record<string, string>;
+  specifications?: Record<string, string> | Json;
   sku?: string;
   parent_id?: string;
   is_variation?: boolean;
   is_parent?: boolean;
-  variation_attributes?: Record<string, string>;
+  variation_attributes?: Record<string, string> | Json;
   variants_ids?: string[];
   variants?: ProductVariant[];
   monthly_price?: number;
