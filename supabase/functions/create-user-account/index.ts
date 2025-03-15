@@ -112,7 +112,7 @@ serve(async (req) => {
     // Generate a secure random password
     const tempPassword = Math.random().toString(36).slice(-12);
     
-    // Define a valid role value
+    // Define a valid role value - role must be a simple string value
     const validRole = role === "partner" ? "partner" : "ambassador";
     
     console.log(`Creating user with role: ${validRole}`);
@@ -127,8 +127,9 @@ serve(async (req) => {
         role: validRole,
         [validRole === "partner" ? "partner_id" : "ambassador_id"]: entityId
       },
-      // IMPORTANT: Specify role as a string, not an object
-      app_metadata: { role: validRole }
+      app_metadata: { 
+        role: validRole // This must be a simple string, not an object!
+      }
     });
     
     if (createError) {
