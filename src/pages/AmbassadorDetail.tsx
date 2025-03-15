@@ -3,7 +3,6 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -13,6 +12,7 @@ import {
   AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getAmbassadorById } from "@/services/ambassadorService";
 
 interface Ambassador {
   id: string;
@@ -283,17 +283,27 @@ export default function AmbassadorDetail() {
   const [activeTab, setActiveTab] = useState("profile");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAmbassador = async () => {
-    if (!id) return;
+    if (!id) {
+      toast.error("ID d'ambassadeur manquant");
+      navigate("/ambassadors");
+      return;
+    }
     
     setLoading(true);
+    setError(null);
+    
     try {
+      console.log("Fetching ambassador with ID:", id);
       const ambassadorData = await getAmbassadorById(id);
       
       if (!ambassadorData) {
+        console.error("Ambassador not found for ID:", id);
+        setError("Ambassadeur introuvable");
         toast.error("Ambassadeur introuvable");
-        navigate("/ambassadors");
+        setLoading(false);
         return;
       }
       
@@ -301,6 +311,7 @@ export default function AmbassadorDetail() {
       setAmbassador(ambassadorData);
     } catch (error) {
       console.error("Error fetching ambassador:", error);
+      setError("Erreur lors du chargement des données de l'ambassadeur");
       toast.error("Erreur lors du chargement des données de l'ambassadeur");
     } finally {
       setLoading(false);
@@ -379,13 +390,17 @@ export default function AmbassadorDetail() {
     );
   }
 
-  if (!ambassador) {
+  if (error || !ambassador) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-3xl font-bold text-gray-400">Ambassadeur introuvable</div>
-        <Button variant="default" onClick={() => navigate("/ambassadors")}>
-          Retour à la liste
-        </Button>
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <AlertCircle className="h-16 w-16 text-destructive" />
+          <div className="text-3xl font-bold text-gray-400">{error || "Ambassadeur introuvable"}</div>
+          <p className="text-muted-foreground">L'ambassadeur que vous recherchez n'existe pas ou n'est plus disponible.</p>
+          <Button variant="default" onClick={() => navigate("/ambassadors")}>
+            Retour à la liste des ambassadeurs
+          </Button>
+        </div>
       </div>
     );
   }
@@ -697,3 +712,4 @@ export default function AmbassadorDetail() {
     </div>
   );
 }
+

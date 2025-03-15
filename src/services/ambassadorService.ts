@@ -52,13 +52,20 @@ export const getAmbassadors = async (): Promise<Ambassador[]> => {
 // Get ambassador by ID
 export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
   try {
+    console.log("Requesting ambassador with ID:", id);
+    
     const { data, error } = await supabase
       .from('ambassadors')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle(); // Using maybeSingle instead of single to avoid errors
     
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error fetching ambassador:", error);
+      throw error;
+    }
+    
+    console.log("Ambassador data from db:", data);
     
     return data ? mapDbAmbassadorToAmbassador(data) : null;
   } catch (error) {
