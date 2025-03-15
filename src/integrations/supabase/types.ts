@@ -102,6 +102,7 @@ export type Database = {
           commissions_total: number | null
           created_at: string | null
           email: string
+          has_user_account: boolean | null
           id: string
           last_commission: number | null
           name: string
@@ -110,12 +111,15 @@ export type Database = {
           region: string | null
           status: string
           updated_at: string | null
+          user_account_created_at: string | null
+          user_id: string | null
         }
         Insert: {
           clients_count?: number | null
           commissions_total?: number | null
           created_at?: string | null
           email: string
+          has_user_account?: boolean | null
           id?: string
           last_commission?: number | null
           name: string
@@ -124,12 +128,15 @@ export type Database = {
           region?: string | null
           status?: string
           updated_at?: string | null
+          user_account_created_at?: string | null
+          user_id?: string | null
         }
         Update: {
           clients_count?: number | null
           commissions_total?: number | null
           created_at?: string | null
           email?: string
+          has_user_account?: boolean | null
           id?: string
           last_commission?: number | null
           name?: string
@@ -138,6 +145,8 @@ export type Database = {
           region?: string | null
           status?: string
           updated_at?: string | null
+          user_account_created_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

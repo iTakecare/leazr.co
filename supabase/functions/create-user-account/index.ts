@@ -78,19 +78,8 @@ serve(async (req) => {
     
     console.log(`Creating user account for ${email} as ${role}`);
     
-    // Check if the user already exists first
-    console.log("Fetching existing users to check for email:", email);
-    const { data: existingUser, error: userCheckError } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
-      
-    if (userCheckError) {
-      console.error("Error checking existing profiles:", userCheckError);
-    }
-    
-    // Check auth users directly
+    // Check auth users directly - don't try to query profiles.email since it doesn't exist
+    console.log("Checking if user already exists with email:", email);
     const { data: authUsers, error: authCheckError } = await supabaseAdmin.auth.admin.listUsers();
     
     if (authCheckError) {
