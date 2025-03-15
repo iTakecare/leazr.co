@@ -136,16 +136,14 @@ serve(async (req) => {
     
     console.log("User metadata prepared:", JSON.stringify(userMetadata));
     
-    // Create the user account
+    // Create the user account - NOTE: We're setting user_metadata, not raw_user_meta_data
     console.log("Creating user with email:", email);
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: tempPassword,
       email_confirm: true,
       user_metadata: userMetadata,
-      app_metadata: { // Use app_metadata for role information
-        role: role
-      }
+      app_metadata: { role }  // Store role in app_metadata
     });
     
     if (createError) {

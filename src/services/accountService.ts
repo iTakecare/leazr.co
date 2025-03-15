@@ -41,7 +41,7 @@ export const createUserAccount = async (
 
     console.log("Sending request to create-user-account with params:", params);
 
-    // Call the Supabase Edge Function with a timeout
+    // Call the Supabase Edge Function
     const { data, error } = await supabase.functions.invoke("create-user-account", {
       body: params
     });
@@ -79,7 +79,7 @@ export const createUserAccount = async (
  */
 export const resetPassword = async (email: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/update-password`,
     });
     
