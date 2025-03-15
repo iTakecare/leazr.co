@@ -32,18 +32,19 @@ export const createUserAccount = async (
   try {
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
-    // Vérifier si l'utilisateur existe déjà avec cette adresse email - using adminSupabase
-    const { data, error: checkError } = await adminSupabase.auth.admin.listUsers({
-      email: entity.email
-    });
+    // Vérifier si l'utilisateur existe déjà avec cette adresse email en utilisant supabase standard
+    const { data: userList, error: fetchError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', entity.email);
     
-    if (checkError) {
-      console.error("Erreur lors de la vérification de l'utilisateur:", checkError);
-      toast.error(`Erreur lors de la vérification: ${checkError.message}`);
+    if (fetchError) {
+      console.error("Erreur lors de la vérification de l'utilisateur:", fetchError);
+      toast.error(`Erreur lors de la vérification: ${fetchError.message}`);
       return false;
     }
     
-    if (data?.users && data.users.length > 0) {
+    if (userList && userList.length > 0) {
       console.log(`Un compte existe déjà avec l'email ${entity.email}`);
       toast.error(`Un compte existe déjà avec cette adresse email`);
       return false;
@@ -52,15 +53,16 @@ export const createUserAccount = async (
     // Générer un mot de passe aléatoire
     const tempPassword = Math.random().toString(36).slice(-12);
     
-    // Créer l'utilisateur avec le serviceRole - using adminSupabase
-    const { data: userData, error: createError } = await adminSupabase.auth.admin.createUser({
+    // Créer l'utilisateur avec le client standard - le service_role est configuré côté serveur
+    const { data: userData, error: createError } = await supabase.auth.signUp({
       email: entity.email,
       password: tempPassword,
-      email_confirm: true,
-      user_metadata: { 
-        name: entity.name,
-        role: userType,
-        [userType === "partner" ? "partner_id" : "ambassador_id"]: entity.id
+      options: {
+        data: { 
+          name: entity.name,
+          role: userType,
+          [userType === "partner" ? "partner_id" : "ambassador_id"]: entity.id
+        }
       }
     });
     
@@ -96,8 +98,8 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Envoyer l'email de réinitialisation de mot de passe - using adminSupabase for auth operations
-    const { error: resetError } = await adminSupabase.auth.resetPasswordForEmail(entity.email, {
+    // Envoyer l'email de réinitialisation de mot de passe - en utilisant le client standard
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
       redirectTo: `${window.location.origin}/update-password`,
     });
     
