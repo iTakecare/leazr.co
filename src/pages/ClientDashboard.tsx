@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +39,7 @@ const ClientDashboard = () => {
         }
         
         // Récupérer l'ID client
-        const id = await getClientIdForUser(user.id, user.email || null);
+        const id = await getClientIdForUser(user.id);
         
         if (id) {
           console.log("Found client ID:", id);

@@ -79,7 +79,7 @@ export const getDashboardStats = async (timeFilter: TimeFilter = 'month'): Promi
     // Group by month and sum
     const revenueByMonth = groupRevenueByMonth(monthlyRevenue || []);
     
-    // Get top products
+    // Instead of calling a non-existent RPC, let's use a regular query for top products
     const { data: products, error: productsError } = await supabase
       .from('products')
       .select('name, id')

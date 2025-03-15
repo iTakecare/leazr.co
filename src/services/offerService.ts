@@ -408,8 +408,12 @@ export const getOfferById = async (offerId: string) => {
       return null;
     }
 
-    // Create a copy of data with the equipment_data property
-    let resultData = { ...data, equipment_data: null, additional_info: data.additional_info || "" };
+    // Create a copy of data with the equipment_data property and ensure additional_info exists
+    let resultData = { 
+      ...data, 
+      equipment_data: null, 
+      additional_info: data.additional_info || ""
+    };
 
     if (data && data.equipment_description) {
       try {
