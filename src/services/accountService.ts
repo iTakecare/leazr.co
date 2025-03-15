@@ -17,16 +17,14 @@ interface CreateAccountParams {
  * Create a user account for a partner or ambassador
  */
 export const createUserAccount = async (
-  entity: Partner | Ambassador | Client,
-  userType: "partner" | "ambassador" | "client" = "partner"
+  entity: Partner | Ambassador,
+  userType: "partner" | "ambassador"
 ): Promise<boolean> => {
   if (!entity.email) {
     toast.error(
       userType === "partner"
         ? "Ce partenaire n'a pas d'adresse email"
-        : userType === "ambassador"
-        ? "Cet ambassadeur n'a pas d'adresse email"
-        : "Ce client n'a pas d'adresse email"
+        : "Cet ambassadeur n'a pas d'adresse email"
     );
     return false;
   }
@@ -78,7 +76,7 @@ export const createUserAccount = async (
           data: { 
             name: entity.name,
             role: userType,
-            [userType === "partner" ? "partner_id" : userType === "ambassador" ? "ambassador_id" : "client_id"]: entity.id
+            [userType === "partner" ? "partner_id" : "ambassador_id"]: entity.id
           }
         }
       });
@@ -99,31 +97,52 @@ export const createUserAccount = async (
       console.log("Utilisateur créé avec succès:", userId);
     }
     
-    // Mettre à jour le partenaire, ambassadeur ou client dans la base de données
-    const tableName = userType === "partner" ? "partners" : userType === "ambassador" ? "ambassadors" : "clients";
+    // Mettre à jour le partenaire ou ambassadeur dans la base de données
+    const tableName = userType === "partner" ? "partners" : "ambassadors";
     
-    // MODIFICATION IMPORTANTE: Utiliser directement adminSupabase pour la mise à jour
-    // et définir explicitement les champs has_user_account et user_account_created_at
-    const currentTimestamp = new Date().toISOString();
-    console.log(`MISE À JOUR CRITIQUE de la table ${tableName}: id=${entity.id}, user_id=${userId}, has_user_account=true, timestamp=${currentTimestamp}`);
+    // Log pour débogage
+    console.log(`Mise à jour de ${tableName} avec id=${entity.id}, user_id=${userId}, has_user_account=true`);
     
-    // Effectuer la mise à jour directement sans vérification préalable
+    // Vérifier d'abord si l'entité existe
+    const { data: entityCheck, error: checkEntityError } = await supabase
+      .from(tableName)
+      .select('id')
+      .eq('id', entity.id)
+      .single();
+      
+    if (checkEntityError) {
+      console.error(`Erreur lors de la vérification de l'existence du ${userType}:`, checkEntityError);
+      toast.error(`Erreur: ${checkEntityError.message}`);
+      return false;
+    }
+    
+    if (!entityCheck) {
+      console.error(`${userType} avec ID ${entity.id} non trouvé dans la base de données`);
+      toast.error(`${userType} non trouvé`);
+      return false;
+    }
+    
+    // Effectuer la mise à jour avec le client adminSupabase pour s'assurer que les mises à jour sont immédiates
+    const updateData = {
+      has_user_account: true,
+      user_account_created_at: new Date().toISOString(),
+      user_id: userId
+    };
+    
+    console.log(`Données de mise à jour:`, updateData);
+    
     const { error: updateError } = await adminSupabase
       .from(tableName)
-      .update({
-        has_user_account: true,
-        user_account_created_at: currentTimestamp,
-        user_id: userId
-      })
+      .update(updateData)
       .eq('id', entity.id);
     
     if (updateError) {
-      console.error(`ERREUR CRITIQUE lors de la mise à jour du ${userType}:`, updateError);
+      console.error(`Erreur lors de la mise à jour du ${userType}:`, updateError);
       toast.error(`Erreur lors de la mise à jour: ${updateError.message}`);
       return false;
     }
     
-    // Vérification immédiate après la mise à jour
+    // Vérifier que la mise à jour a bien été effectuée
     const { data: updatedEntity, error: verifyError } = await adminSupabase
       .from(tableName)
       .select('*')
@@ -134,14 +153,10 @@ export const createUserAccount = async (
       console.error(`Erreur lors de la vérification de la mise à jour:`, verifyError);
       toast.warning("La mise à jour du statut du compte pourrait ne pas être immédiatement visible.");
     } else {
-      console.log(`VÉRIFICATION: État mis à jour du ${userType}:`, {
-        id: updatedEntity.id,
-        has_user_account: updatedEntity.has_user_account,
-        user_account_created_at: updatedEntity.user_account_created_at
-      });
+      console.log(`État mis à jour du ${userType}:`, updatedEntity);
       
       if (!updatedEntity.has_user_account) {
-        console.error("⚠️ ERREUR CRITIQUE: La mise à jour du statut du compte n'a pas été enregistrée!");
+        console.error("⚠️ La mise à jour du statut du compte n'a pas été enregistrée!");
         toast.warning("Problème avec la mise à jour du statut du compte, veuillez actualiser la page.");
       }
     }
@@ -161,12 +176,9 @@ export const createUserAccount = async (
     await sendWelcomeEmail(entity.email, entity.name, userType);
     
     toast.success(`Compte ${userType} créé et emails envoyés`);
-    
-    // Force return true pour éviter tout problème éventuel
-    console.log("Création de compte terminée avec succès");
     return true;
   } catch (error) {
-    console.error(`Erreur critique dans createUserAccount:`, error);
+    console.error(`Erreur dans createUserAccount:`, error);
     toast.error(`Erreur lors de la création du compte ${userType}`);
     return false;
   }

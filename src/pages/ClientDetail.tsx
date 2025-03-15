@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import { toast } from "sonner";
@@ -12,21 +12,17 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
-  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, Loader2
+  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, Trash, ChevronLeft, User, CheckCircle, 
+  AlertCircle, Info
 } from "lucide-react";
-import { adminSupabase } from "@/integrations/supabase/client";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
-  const [refreshedClient, setRefreshedClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
-  const [refreshCounter, setRefreshCounter] = useState(0);
 
   // Fonction pour charger les données du client
   const fetchClient = async () => {
@@ -52,61 +48,9 @@ export default function ClientDetail() {
     }
   };
 
-  // Fonction pour récupérer les données fraîches directement depuis la base de données
-  const fetchFreshClientData = async () => {
-    if (!id) return;
-    
-    setIsRefreshing(true);
-    try {
-      console.log("Récupération des données fraîches du client avec ID:", id);
-      
-      // Utiliser adminSupabase pour garantir des données fraîches sans mise en cache
-      const { data, error } = await adminSupabase
-        .from('clients')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error("Erreur lors de la récupération des données fraîches du client:", error);
-        return;
-      }
-      
-      console.log("Données fraîches du client depuis la base de données:", data);
-      console.log("Statut du compte utilisateur:", {
-        has_user_account: data.has_user_account,
-        user_account_created_at: data.user_account_created_at
-      });
-      
-      setRefreshedClient(data);
-    } catch (err) {
-      console.error("Exception lors de la récupération des données fraîches du client:", err);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   useEffect(() => {
     fetchClient();
   }, [id, navigate]);
-
-  // Effet pour rafraîchir les données après création de compte ou à intervalles réguliers
-  useEffect(() => {
-    if (id) {
-      fetchFreshClientData();
-    }
-  }, [id, refreshCounter, isCreatingAccount]);
-  
-  // Rafraîchir les données après un délai suivant la création de compte
-  useEffect(() => {
-    if (!isCreatingAccount && id) {
-      const timer = setTimeout(() => {
-        setRefreshCounter(prev => prev + 1);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isCreatingAccount]);
 
   const handleResetPassword = async () => {
     if (!client?.email) {
@@ -142,8 +86,8 @@ export default function ClientDetail() {
     try {
       const success = await createAccountForClient(client);
       if (success) {
-        // Forcer le rafraîchissement des données pour afficher les changements
-        setRefreshCounter(prev => prev + 1);
+        // Recharger les données du client pour afficher les changements
+        await fetchClient();
         toast.success("Compte utilisateur créé et emails de configuration envoyés");
       }
     } catch (error) {
@@ -183,27 +127,24 @@ export default function ClientDetail() {
     );
   }
 
-  // Utiliser les données rafraîchies si disponibles, sinon utiliser les données originales
-  const currentClient = refreshedClient || client;
-
   // Afficher les informations de débogage complètes
   console.log("Client account status debug:", { 
-    client_id: currentClient.id,
-    has_user_account: currentClient.has_user_account,
-    user_id: currentClient.user_id,
-    user_account_created_at: currentClient.user_account_created_at
+    client_id: client.id,
+    has_user_account: client.has_user_account,
+    user_id: client.user_id,
+    user_account_created_at: client.user_account_created_at
   });
 
   // Un compte est considéré comme actif uniquement si has_user_account est true
-  const hasUserAccount = Boolean(currentClient.has_user_account);
+  const hasUserAccount = Boolean(client.has_user_account);
 
   return (
     <div className="container py-8 space-y-6">
       <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{currentClient.name}</h1>
-          {currentClient.company && (
-            <p className="text-muted-foreground text-lg">{currentClient.company}</p>
+          <h1 className="text-3xl font-bold tracking-tight">{client.name}</h1>
+          {client.company && (
+            <p className="text-muted-foreground text-lg">{client.company}</p>
           )}
         </div>
         <div className="flex gap-2">
@@ -228,47 +169,47 @@ export default function ClientDetail() {
           </CardHeader>
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {currentClient.email && (
+              {client.email && (
                 <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
                   <Mail className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="text-sm font-medium">Email</h3>
-                    <p className="text-sm">{currentClient.email}</p>
+                    <p className="text-sm">{client.email}</p>
                   </div>
                 </div>
               )}
               
-              {currentClient.phone && (
+              {client.phone && (
                 <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
                   <Phone className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="text-sm font-medium">Téléphone</h3>
-                    <p className="text-sm">{currentClient.phone}</p>
+                    <p className="text-sm">{client.phone}</p>
                   </div>
                 </div>
               )}
               
-              {currentClient.vat_number && (
+              {client.vat_number && (
                 <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
                   <FileText className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="text-sm font-medium">Numéro de TVA</h3>
-                    <p className="text-sm">{currentClient.vat_number}</p>
+                    <p className="text-sm">{client.vat_number}</p>
                   </div>
                 </div>
               )}
               
-              {currentClient.address && (
+              {client.address && (
                 <div className="flex items-start space-x-3 md:col-span-2 bg-muted/20 p-3 rounded-md">
                   <MapPin className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="text-sm font-medium">Adresse</h3>
                     <p className="text-sm">
-                      {currentClient.address}
-                      {(currentClient.postal_code || currentClient.city) && (
-                        <>, {currentClient.postal_code} {currentClient.city}</>
+                      {client.address}
+                      {(client.postal_code || client.city) && (
+                        <>, {client.postal_code} {client.city}</>
                       )}
-                      {currentClient.country && <>, {currentClient.country}</>}
+                      {client.country && <>, {client.country}</>}
                     </p>
                   </div>
                 </div>
@@ -278,7 +219,7 @@ export default function ClientDetail() {
                 <Clock className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium">Créé le</h3>
-                  <p className="text-sm">{formatDate(currentClient.created_at)}</p>
+                  <p className="text-sm">{formatDate(client.created_at)}</p>
                 </div>
               </div>
               
@@ -286,18 +227,18 @@ export default function ClientDetail() {
                 <Clock className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium">Dernière mise à jour</h3>
-                  <p className="text-sm">{formatDate(currentClient.updated_at)}</p>
+                  <p className="text-sm">{formatDate(client.updated_at)}</p>
                 </div>
               </div>
             </div>
             
-            {currentClient.notes && (
+            {client.notes && (
               <div className="mt-6 border-t pt-4">
                 <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <Info className="h-4 w-4 text-primary" />
                   Notes
                 </h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line bg-muted/30 p-4 rounded-md">{currentClient.notes}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-line bg-muted/30 p-4 rounded-md">{client.notes}</p>
               </div>
             )}
           </CardContent>
@@ -312,22 +253,15 @@ export default function ClientDetail() {
             <CardDescription>Accès au portail client</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            {isRefreshing && (
-              <div className="p-2 text-center text-sm text-muted-foreground flex items-center justify-center gap-2 mb-4">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Rafraîchissement des données...
-              </div>
-            )}
-            
             {hasUserAccount ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 bg-green-50 p-4 rounded-md border border-green-200">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   <div>
                     <div className="font-medium text-green-800">Compte actif</div>
-                    {currentClient.user_account_created_at && (
+                    {client.user_account_created_at && (
                       <span className="text-xs text-green-700">
-                        Créé le {formatDate(currentClient.user_account_created_at)}
+                        Créé le {formatDate(client.user_account_created_at)}
                       </span>
                     )}
                   </div>
@@ -337,7 +271,7 @@ export default function ClientDetail() {
                   size="sm"
                   className="w-full flex items-center justify-center"
                   onClick={handleResetPassword}
-                  disabled={isResettingPassword || !currentClient.email}
+                  disabled={isResettingPassword || !client.email}
                 >
                   <KeyRound className="h-4 w-4 mr-2" />
                   {isResettingPassword ? "Envoi en cours..." : "Réinitialiser le mot de passe"}
@@ -349,7 +283,7 @@ export default function ClientDetail() {
                   <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
                   <p className="text-sm">Ce client n'a pas encore de compte utilisateur pour accéder au portail.</p>
                 </div>
-                {currentClient.email ? (
+                {client.email ? (
                   <Button 
                     className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
                     onClick={handleCreateAccount}

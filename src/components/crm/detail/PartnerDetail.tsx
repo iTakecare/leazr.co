@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Sheet,
   SheetContent,
@@ -10,9 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
-import { Mail, Phone, Building2, User, BadgePercent, KeyRound, UserPlus, AlertCircle, Loader2 } from "lucide-react";
+import { Mail, Phone, Building2, User, BadgePercent, KeyRound, UserPlus, AlertCircle } from "lucide-react";
 import { resetPassword } from "@/services/accountService";
-import { adminSupabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface PartnerDetailProps {
@@ -38,73 +38,51 @@ const PartnerDetail = ({
 }: PartnerDetailProps) => {
   const [refreshedPartner, setRefreshedPartner] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [refreshCounter, setRefreshCounter] = React.useState(0);
 
-  // Fonction de rafraîchissement des données
+  React.useEffect(() => {
+    if (isOpen && partner?.id) {
+      fetchFreshPartnerData();
+    }
+  }, [isOpen, partner?.id]);
+
   const fetchFreshPartnerData = async () => {
     if (!partner?.id) return;
     
     setIsLoading(true);
     try {
-      console.log("Récupération des données fraîches du partenaire avec ID:", partner.id);
-      
-      // Utiliser adminSupabase pour garantir des données fraîches sans mise en cache
-      const { data, error } = await adminSupabase
+      console.log("Fetching fresh partner data for ID:", partner.id);
+      const { data, error } = await supabase
         .from('partners')
         .select('*')
         .eq('id', partner.id)
         .single();
       
       if (error) {
-        console.error("Erreur lors de la récupération des données du partenaire:", error);
+        console.error("Error fetching partner data:", error);
         toast.error("Erreur lors du chargement des données du partenaire");
         return;
       }
       
-      console.log("Données fraîches du partenaire depuis la base de données:", data);
-      console.log("Statut du compte utilisateur:", {
-        has_user_account: data.has_user_account,
-        user_account_created_at: data.user_account_created_at
-      });
-      
+      console.log("Fresh partner data from database:", data);
       setRefreshedPartner(data);
     } catch (err) {
-      console.error("Exception lors de la récupération des données du partenaire:", err);
+      console.error("Exception fetching partner data:", err);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  // Rafraîchir les données quand le partner change, le modal s'ouvre, ou après création de compte
-  useEffect(() => {
-    if (isOpen && partner?.id) {
-      fetchFreshPartnerData();
-    }
-  }, [isOpen, partner?.id, refreshCounter, isCreatingAccount]);
-  
-  // Rafraîchir les données après un délai suivant la création de compte
-  useEffect(() => {
-    if (!isCreatingAccount && partner?.id) {
-      const timer = setTimeout(() => {
-        setRefreshCounter(prev => prev + 1);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isCreatingAccount]);
 
-  // Utiliser les données rafraîchies si disponibles, sinon utiliser les données originales
+  // Use the refreshed partner data if available, otherwise fall back to the original partner
   const currentPartner = refreshedPartner || partner;
 
   if (!currentPartner) return null;
 
-  // S'assurer d'utiliser une valeur booléenne
-  // Conversion explicite en booléen pour éviter les problèmes de type
-  const hasUserAccount = Boolean(refreshedPartner?.has_user_account);
+  // Make sure we're using a boolean value
+  const hasUserAccount = Boolean(currentPartner.has_user_account);
   
-  console.log("PartnerDetail - Statut du compte après traitement:", { 
+  console.log("PartnerDetail - Account status:", { 
     hasUserAccount,
-    has_user_account_raw: currentPartner.has_user_account,
+    has_user_account: currentPartner.has_user_account,
     user_account_created_at: currentPartner.user_account_created_at,
     isRefreshedData: !!refreshedPartner
   });
@@ -167,19 +145,15 @@ const PartnerDetail = ({
             <div className="bg-muted/20 p-3 rounded-lg">
               <div className="flex items-center justify-between mb-3">
                 <span className="font-medium">Status du compte</span>
-                <Badge 
-                  variant={hasUserAccount ? "default" : "outline"} 
-                  className={
-                    hasUserAccount ? "bg-green-100 text-green-800 border-green-300" : ""
-                  }
-                >
+                <Badge variant={hasUserAccount ? "default" : "outline"} className={
+                  hasUserAccount ? "bg-green-100 text-green-800 border-green-300" : ""
+                }>
                   {hasUserAccount ? "Actif" : "Non créé"}
                 </Badge>
               </div>
               
               {isLoading && (
-                <div className="p-2 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="p-2 text-center text-sm text-muted-foreground">
                   Chargement des données...
                 </div>
               )}

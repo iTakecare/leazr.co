@@ -215,28 +215,3 @@ export const getAmbassadorCommissions = async (ambassadorId: string): Promise<an
     throw error;
   }
 };
-
-/**
- * Réinitialiser le mot de passe d'un ambassadeur
- * @param ambassadorId ID de l'ambassadeur
- */
-export const resetAmbassadorPassword = async (email: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
-    });
-    
-    if (error) {
-      console.error("Erreur lors de l'envoi de l'email de réinitialisation:", error);
-      toast.error(`Erreur: ${error.message}`);
-      return false;
-    }
-    
-    toast.success("Email de réinitialisation envoyé avec succès");
-    return true;
-  } catch (error) {
-    console.error("Erreur lors de la réinitialisation du mot de passe:", error);
-    toast.error("Erreur lors de l'envoi de l'email de réinitialisation");
-    return false;
-  }
-};
