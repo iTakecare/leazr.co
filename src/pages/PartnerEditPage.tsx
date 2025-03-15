@@ -80,7 +80,7 @@ const PartnerEditPage = () => {
     );
   }
 
-  return <PartnerEditForm partner={partner} />;
+  return <PartnerEditForm initialData={partner} />;
 };
 
 export default PartnerEditPage;

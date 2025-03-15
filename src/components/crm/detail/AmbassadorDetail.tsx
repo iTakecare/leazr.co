@@ -9,12 +9,13 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
-import { Mail, Phone, MapPin, User, UsersRound, ReceiptEuro } from "lucide-react";
+import { Mail, Phone, MapPin, User, UsersRound, ReceiptEuro, AlertCircle } from "lucide-react";
+import { Ambassador } from "@/services/ambassadorService";
 
 interface AmbassadorDetailProps {
   isOpen: boolean;
   onClose: () => void;
-  ambassador: any;
+  ambassador: Ambassador | null;
   onEdit: () => void;
 }
 
@@ -24,7 +25,25 @@ const AmbassadorDetail = ({
   ambassador,
   onEdit,
 }: AmbassadorDetailProps) => {
-  if (!ambassador) return null;
+  if (!ambassador) {
+    return (
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader className="pb-6">
+            <SheetTitle className="text-2xl">Ambassadeur introuvable</SheetTitle>
+            <SheetDescription>
+              L'ambassadeur demandé n'existe pas ou n'est plus disponible.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col items-center justify-center space-y-4 py-8">
+            <AlertCircle className="h-16 w-16 text-destructive" />
+            <p className="text-muted-foreground">Désolé, nous n'avons pas pu trouver cet ambassadeur.</p>
+            <Button onClick={onClose}>Fermer</Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>

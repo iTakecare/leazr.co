@@ -12,28 +12,7 @@ import {
   AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
-
-interface Ambassador {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  region: string;
-  status: string;
-  clientsCount: number;
-  commissionsTotal: number;
-  lastCommission: number;
-  notes?: string;
-  collaborators?: Collaborator[];
-  clients?: Client[];
-  commissions?: Commission[];
-  user_id?: string;
-  has_user_account?: boolean;
-  user_account_created_at?: string;
-  created_at?: Date | string;
-  updated_at?: Date | string;
-}
+import { getAmbassadorById, Ambassador as AmbassadorType } from "@/services/ambassadorService";
 
 interface Collaborator {
   id: string;
@@ -70,7 +49,7 @@ const resetAmbassadorPassword = async (email: string): Promise<boolean> => {
   return true;
 };
 
-const createAccountForAmbassador = async (ambassador: Ambassador): Promise<boolean> => {
+const createAccountForAmbassador = async (ambassador: AmbassadorType): Promise<boolean> => {
   // Simuler la création d'un compte
   await new Promise(resolve => setTimeout(resolve, 1200));
   console.log(`Création de compte pour l'ambassadeur: ${ambassador.name}`);
@@ -84,7 +63,7 @@ const createAccountForAmbassador = async (ambassador: Ambassador): Promise<boole
 export default function AmbassadorDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
+  const [ambassador, setAmbassador] = useState<AmbassadorType | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
