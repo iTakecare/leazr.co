@@ -2,6 +2,16 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AmbassadorFormValues } from "@/components/crm/forms/AmbassadorForm";
+import { Collaborator, Client } from "@/types/client";
+
+export interface Commission {
+  id: string;
+  date: string;
+  client: string;
+  amount: number;
+  status: string;
+  isPaid: boolean;
+}
 
 export interface Ambassador {
   id: string;
@@ -14,6 +24,13 @@ export interface Ambassador {
   lastCommission: number;
   status: string;
   notes?: string;
+  created_at?: string | Date;
+  updated_at?: string | Date;
+  has_user_account?: boolean;
+  user_account_created_at?: string | Date;
+  clients?: Client[];
+  commissions?: Commission[];
+  collaborators?: Collaborator[];
 }
 
 // Function to map database record to our Ambassador interface
@@ -28,7 +45,11 @@ const mapDbAmbassadorToAmbassador = (record: any): Ambassador => {
     commissionsTotal: record.commissions_total || 0,
     lastCommission: record.last_commission || 0,
     status: record.status || "active",
-    notes: record.notes
+    notes: record.notes,
+    created_at: record.created_at,
+    updated_at: record.updated_at,
+    has_user_account: record.has_user_account,
+    user_account_created_at: record.user_account_created_at
   };
 };
 
