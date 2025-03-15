@@ -10,13 +10,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
-import { Mail, Phone, Building2, User, BadgePercent } from "lucide-react";
+import { Mail, Phone, Building2, User, BadgePercent, KeyRound, UserPlus } from "lucide-react";
+import { resetPassword } from "@/services/accountService";
 
 interface PartnerDetailProps {
   isOpen: boolean;
   onClose: () => void;
   partner: any;
   onEdit: () => void;
+  onResetPassword?: () => void;
+  onCreateAccount?: () => void;
+  isResettingPassword?: boolean;
+  isCreatingAccount?: boolean;
 }
 
 const PartnerDetail = ({
@@ -24,8 +29,14 @@ const PartnerDetail = ({
   onClose,
   partner,
   onEdit,
+  onResetPassword,
+  onCreateAccount,
+  isResettingPassword = false,
+  isCreatingAccount = false,
 }: PartnerDetailProps) => {
   if (!partner) return null;
+
+  const hasUserAccount = Boolean(partner.has_user_account);
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -77,6 +88,40 @@ const PartnerDetail = ({
                 <div className="font-medium">Commissions totales</div>
               </div>
               <div className="text-xl font-bold">{formatCurrency(partner.commissionsTotal)}</div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Accès utilisateur</h3>
+            <div className="bg-muted/20 p-3 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium">Status du compte</span>
+                <Badge variant={hasUserAccount ? "success" : "outline"}>
+                  {hasUserAccount ? "Actif" : "Non créé"}
+                </Badge>
+              </div>
+              
+              {hasUserAccount ? (
+                <Button 
+                  variant="outline" 
+                  className="w-full flex gap-2 items-center"
+                  onClick={onResetPassword}
+                  disabled={isResettingPassword}
+                >
+                  <KeyRound className="h-4 w-4" />
+                  {isResettingPassword ? "Envoi en cours..." : "Réinitialiser le mot de passe"}
+                </Button>
+              ) : (
+                <Button 
+                  variant="default" 
+                  className="w-full flex gap-2 items-center"
+                  onClick={onCreateAccount}
+                  disabled={!partner.email || isCreatingAccount}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  {isCreatingAccount ? "Création en cours..." : "Créer un compte"}
+                </Button>
+              )}
             </div>
           </div>
 

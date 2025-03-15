@@ -44,41 +44,57 @@ export const createUserAccount = async (
       return false;
     }
     
+    let userId = null;
+    
     if (userExists) {
       console.log(`Un compte existe déjà avec l'email ${entity.email}`);
-      toast.error(`Un compte existe déjà avec cette adresse email`);
-      return false;
-    }
-    
-    // Générer un mot de passe aléatoire
-    const tempPassword = Math.random().toString(36).slice(-12);
-    
-    // Créer l'utilisateur avec le client standard - le service_role est configuré côté serveur
-    const { data: userData, error: createError } = await supabase.auth.signUp({
-      email: entity.email,
-      password: tempPassword,
-      options: {
-        data: { 
-          name: entity.name,
-          role: userType,
-          [userType === "partner" ? "partner_id" : "ambassador_id"]: entity.id
-        }
+      
+      // Récupérer l'ID de l'utilisateur existant
+      const { data: existingUserId, error: userIdError } = await supabase.rpc(
+        'get_user_id_by_email',
+        { user_email: entity.email }
+      );
+      
+      if (userIdError) {
+        console.error("Erreur lors de la récupération de l'ID utilisateur:", userIdError);
+        toast.error(`Erreur: ${userIdError.message}`);
+        return false;
       }
-    });
-    
-    if (createError) {
-      console.error("Erreur lors de la création de l'utilisateur:", createError);
-      toast.error(`Erreur: ${createError.message}`);
-      return false;
+      
+      userId = existingUserId;
+      console.log(`Utilisateur existant trouvé: ${userId}`);
+    } else {
+      // Générer un mot de passe aléatoire
+      const tempPassword = Math.random().toString(36).slice(-12);
+      
+      // Créer l'utilisateur avec le client standard - le service_role est configuré côté serveur
+      const { data: userData, error: createError } = await supabase.auth.signUp({
+        email: entity.email,
+        password: tempPassword,
+        options: {
+          data: { 
+            name: entity.name,
+            role: userType,
+            [userType === "partner" ? "partner_id" : "ambassador_id"]: entity.id
+          }
+        }
+      });
+      
+      if (createError) {
+        console.error("Erreur lors de la création de l'utilisateur:", createError);
+        toast.error(`Erreur: ${createError.message}`);
+        return false;
+      }
+      
+      if (!userData || !userData.user) {
+        console.error("Création de l'utilisateur n'a pas retourné les données attendues");
+        toast.error("Erreur lors de la création du compte");
+        return false;
+      }
+      
+      userId = userData.user.id;
+      console.log("Utilisateur créé avec succès:", userId);
     }
-    
-    if (!userData || !userData.user) {
-      console.error("Création de l'utilisateur n'a pas retourné les données attendues");
-      toast.error("Erreur lors de la création du compte");
-      return false;
-    }
-    
-    console.log("Utilisateur créé avec succès:", userData.user.id);
     
     // Mettre à jour le partenaire ou ambassadeur dans la base de données
     const tableName = userType === "partner" ? "partners" : "ambassadors";
@@ -88,7 +104,7 @@ export const createUserAccount = async (
       .update({
         has_user_account: true,
         user_account_created_at: new Date().toISOString(),
-        user_id: userData.user.id
+        user_id: userId
       })
       .eq('id', entity.id);
     
