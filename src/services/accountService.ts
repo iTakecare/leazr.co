@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Partner } from "./partnerService";
@@ -31,12 +30,11 @@ export const createUserAccount = async (
   try {
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
-    // Simplify parameters for better clarity
+    // Create simplified parameters for better clarity
     const params: CreateAccountParams = {
       email: entity.email,
       name: entity.name,
-      // Use simple string roles, not objects
-      role: userType,
+      role: userType, // Just use the string value
       userType,
       entityId: entity.id
     };

@@ -78,17 +78,25 @@ serve(async (req) => {
     
     console.log(`Creating user account for ${email} as ${role}`);
     
-    // Generate a random password (they'll reset it via email)
-    const tempPassword = Math.random().toString(36).slice(-10);
-    
-    // Check if the user already exists
+    // Check if the user already exists first
     console.log("Fetching existing users to check for email:", email);
-    const { data: existingUsersData, error: checkError } = await supabaseAdmin.auth.admin.listUsers();
+    const { data: existingUser, error: userCheckError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+      
+    if (userCheckError) {
+      console.error("Error checking existing profiles:", userCheckError);
+    }
     
-    if (checkError) {
-      console.error("Error checking existing users:", checkError);
+    // Check auth users directly
+    const { data: authUsers, error: authCheckError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (authCheckError) {
+      console.error("Error checking auth users:", authCheckError);
       return new Response(
-        JSON.stringify({ error: `Error checking existing users: ${checkError.message}` }),
+        JSON.stringify({ error: "Error checking existing users" }),
         { 
           status: 500, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -96,12 +104,10 @@ serve(async (req) => {
       );
     }
     
-    // Find if the user with this email already exists
-    console.log("Total users found:", existingUsersData?.users.length);
-    const userExists = existingUsersData?.users.some(user => user.email === email);
+    const existingAuthUser = authUsers?.users.find(user => user.email === email);
     
-    if (userExists) {
-      console.log(`User with email ${email} already exists, returning 400`);
+    if (existingAuthUser) {
+      console.log(`User with email ${email} already exists in auth.users, ID: ${existingAuthUser.id}`);
       return new Response(
         JSON.stringify({ 
           error: "User already exists", 
@@ -114,34 +120,30 @@ serve(async (req) => {
       );
     }
     
-    // Create simplified user metadata
-    const userMetadata = {
-      name,
-      role
-    };
+    // Generate a secure random password
+    const tempPassword = Math.random().toString(36).slice(-12);
     
-    // Add entity ID based on user type
-    if (userType === "partner") {
-      userMetadata["partner_id"] = entityId;
-    } else if (userType === "ambassador") {
-      userMetadata["ambassador_id"] = entityId;
-    }
+    // Define a valid role value
+    const validRole = role === "partner" ? "partner" : "ambassador";
     
-    console.log("Creating user with metadata:", JSON.stringify(userMetadata));
+    console.log(`Creating user with role: ${validRole}`);
     
-    // Important: Set a valid app_metadata with just the role string
-    // Create the user account
+    // Create the user with the correct role format
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: tempPassword,
       email_confirm: true,
-      user_metadata: userMetadata,
-      // Set allowed roles directly in the proper format
-      app_metadata: { role: role === "partner" ? "partner" : "ambassador" }
+      user_metadata: { 
+        name,
+        role: validRole,
+        [validRole === "partner" ? "partner_id" : "ambassador_id"]: entityId
+      },
+      // IMPORTANT: Specify role as a string, not an object
+      app_metadata: { role: validRole }
     });
     
     if (createError) {
-      console.error("Error creating user:", createError);
+      console.error("Error creating user:", createError.message);
       return new Response(
         JSON.stringify({ error: `Error creating user: ${createError.message}` }),
         { 
