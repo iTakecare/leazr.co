@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PartnerFormValues } from './forms/PartnerForm';
 
-// Define the interface for partner data structure
 interface Partner {
   id: string;
   name: string;
@@ -50,7 +48,6 @@ interface PartnerWithOffers extends Partner {
   offers: any[];
 }
 
-// Ceci est une liste statique pour le moment, elle pourrait être remplacée par des données réelles plus tard
 const partners: Partner[] = [
   {
     id: '1',
@@ -84,7 +81,6 @@ const partners: Partner[] = [
   }
 ];
 
-// Données des clients de démonstration
 const mockClients = {
   '1': [
     { id: 'c1', name: 'Hôpital Saint-Louis', company: 'Hôpital Saint-Louis', status: 'active', createdAt: '2023-04-12T10:30:00' },
@@ -100,7 +96,6 @@ const mockClients = {
   ]
 };
 
-// Données des commissions de démonstration
 const mockCommissions = {
   '1': [
     { id: 'co1', amount: 3500, status: 'paid', client: 'Hôpital Saint-Louis', date: '2023-05-15T10:30:00', description: 'Commission sur vente initiale' },
@@ -119,7 +114,6 @@ const mockCommissions = {
   ]
 };
 
-// Données des offres de démonstration
 const mockOffers = {
   '1': [
     { id: 'o1', title: 'Équipement Salle Kiné', clientName: 'Hôpital Saint-Louis', amount: 45000, status: 'signed', createdAt: '2023-04-15T10:30:00' },
@@ -159,11 +153,7 @@ const PartnersList = () => {
   };
 
   const handleEditPartner = (id: string) => {
-    const partner = partnersList.find(p => p.id === id);
-    if (partner) {
-      setCurrentPartner(partner);
-      setIsEditModalOpen(true);
-    }
+    navigate(`/partners/edit/${id}`);
   };
 
   const handleViewProfile = (id: string) => {
@@ -239,7 +229,6 @@ const PartnersList = () => {
     
     setTimeout(() => {
       if (currentPartner?.id) {
-        // Mise à jour d'un partenaire existant
         setPartnersList(prevList => 
           prevList.map(partner => 
             partner.id === currentPartner.id
@@ -258,7 +247,6 @@ const PartnersList = () => {
         toast.success(`Le partenaire ${data.name} a été mis à jour`);
         setIsEditModalOpen(false);
       } else {
-        // Ajout d'un nouveau partenaire
         const newPartner: Partner = {
           id: `${partnersList.length + 1}`,
           name: data.name,

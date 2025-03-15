@@ -1,7 +1,7 @@
 
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
-import { ArrowLeft, Home, Package } from "lucide-react";
+import { ArrowLeft, Home, Package, User, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
@@ -18,6 +18,8 @@ const NotFound = () => {
   const isClientEditAttempt = location.pathname.includes('/clients/edit/');
   const isProductDetailAttempt = location.pathname.includes('/products/');
   const isCatalogDetailAttempt = location.pathname.includes('/catalog/');
+  const isPartnerEditAttempt = location.pathname.includes('/partners/edit/');
+  const isAmbassadorEditAttempt = location.pathname.includes('/ambassadors/edit/');
   
   const clientId = isClientEditAttempt ? 
     location.pathname.split('/clients/edit/')[1] : null;
@@ -27,6 +29,12 @@ const NotFound = () => {
     
   const catalogId = isCatalogDetailAttempt ?
     location.pathname.split('/catalog/')[1] : null;
+
+  const partnerId = isPartnerEditAttempt ?
+    location.pathname.split('/partners/edit/')[1] : null;
+    
+  const ambassadorId = isAmbassadorEditAttempt ?
+    location.pathname.split('/ambassadors/edit/')[1] : null;
 
   // If we have a product ID, use it for both routes
   const productOrCatalogId = productId || catalogId;
@@ -49,6 +57,32 @@ const NotFound = () => {
               <Link to={`/clients/${clientId}`}>
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2">
                   <ArrowLeft className="h-4 w-4" /> Voir la fiche client
+                </Button>
+              </Link>
+            </div>
+          )}
+          
+          {isPartnerEditAttempt && partnerId && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-amber-700 text-sm mb-4">
+                Si vous essayez de modifier le partenaire, veuillez utiliser le lien ci-dessous:
+              </p>
+              <Link to={`/partners/${partnerId}`}>
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <Building className="h-4 w-4" /> Voir la fiche partenaire
+                </Button>
+              </Link>
+            </div>
+          )}
+          
+          {isAmbassadorEditAttempt && ambassadorId && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-amber-700 text-sm mb-4">
+                Si vous essayez de modifier l'ambassadeur, veuillez utiliser le lien ci-dessous:
+              </p>
+              <Link to={`/ambassadors/${ambassadorId}`}>
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <User className="h-4 w-4" /> Voir la fiche ambassadeur
                 </Button>
               </Link>
             </div>
