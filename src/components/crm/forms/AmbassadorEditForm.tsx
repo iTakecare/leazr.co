@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -17,6 +16,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
@@ -93,13 +99,14 @@ const getAmbassadorById = (id: string): Promise<Ambassador> => {
   });
 };
 
-// Dummy function to simulate API call to update ambassador data
+// Updated function to simulate API call to update ambassador data
 const updateAmbassador = (id: string, data: AmbassadorFormData): Promise<Ambassador> => {
   // This would be replaced with an actual API call
   return new Promise((resolve) => {
     setTimeout(() => {
       console.log('Updating ambassador:', id, data);
-      // Create an updated ambassador object with all required fields
+      
+      // Create an updated ambassador object with all required fields explicitly defined
       const updatedAmbassador: Ambassador = {
         id,
         name: data.name,
@@ -107,9 +114,10 @@ const updateAmbassador = (id: string, data: AmbassadorFormData): Promise<Ambassa
         phone: data.phone,
         region: data.region,
         status: data.status,
-        commissionsTotal: 0, // This would come from the server
+        commissionsTotal: 0, // This would come from the server in a real implementation
         notes: data.notes
       };
+      
       toast.success(`L'ambassadeur ${data.name} a été mis à jour avec succès`);
       resolve(updatedAmbassador);
     }, 800);
@@ -277,14 +285,20 @@ const AmbassadorEditForm = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Statut</FormLabel>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={field.value}
-                        onChange={field.onChange}
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
                       >
-                        <option value="active">Actif</option>
-                        <option value="inactive">Inactif</option>
-                      </select>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez un statut" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">Actif</SelectItem>
+                          <SelectItem value="inactive">Inactif</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -316,7 +330,7 @@ const AmbassadorEditForm = () => {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={handleCancel}
+                  onClick={() => navigate(`/ambassadors/${id}`)}
                   disabled={isSaving}
                 >
                   Annuler
