@@ -3,6 +3,7 @@ import { adminSupabase, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Partner } from "./partnerService";
 import { Ambassador } from "./ambassadorService";
+import { sendWelcomeEmail } from "./emailService";
 
 interface CreateAccountParams {
   email: string;
@@ -104,7 +105,10 @@ export const createUserAccount = async (
       // On continue malgré cette erreur
     }
     
-    toast.success(`Compte ${userType} créé et email de configuration envoyé`);
+    // Envoyer l'email de bienvenue via notre système SMTP
+    await sendWelcomeEmail(entity.email, entity.name, userType);
+    
+    toast.success(`Compte ${userType} créé et emails envoyés`);
     return true;
   } catch (error) {
     console.error(`Erreur dans createUserAccount:`, error);

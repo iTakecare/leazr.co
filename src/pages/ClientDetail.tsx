@@ -88,7 +88,7 @@ export default function ClientDetail() {
       if (success) {
         // Recharger les données du client pour afficher les changements
         await fetchClient();
-        toast.success("Compte utilisateur créé et email de configuration envoyé");
+        toast.success("Compte utilisateur créé et emails de configuration envoyés");
       }
     } catch (error) {
       console.error("Error creating account:", error);
