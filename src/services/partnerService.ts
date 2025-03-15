@@ -20,8 +20,7 @@ export const partnerSchema = z.object({
 
 export type PartnerFormValues = z.infer<typeof partnerSchema>;
 
-// Ajouter l'interface Partner complète dans ce fichier si elle n'existe pas déjà
-// ou mettre à jour l'interface existante pour inclure commissionsTotal
+// Interface Partner complète
 export interface Partner {
   id: string;
   name: string;
@@ -36,6 +35,9 @@ export interface Partner {
   lastTransaction?: number;
   commissionsTotal: number;
   collaborators?: any[];
+  clients?: any[];
+  commissions?: any[];
+  offers?: any[];
   created_at?: Date;
   updated_at?: Date;
   has_user_account?: boolean;
@@ -86,14 +88,19 @@ export const getPartners = async (): Promise<Partner[]> => {
 // Get partner by ID
 export const getPartnerById = async (id: string): Promise<Partner | null> => {
   try {
+    console.log("Fetching partner with ID:", id);
     const { data, error } = await supabase
       .from('partners')
       .select('*')
       .eq('id', id)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error in getPartnerById:", error);
+      throw error;
+    }
     
+    console.log("Partner data loaded:", data);
     return data ? mapDbPartnerToPartner(data) : null;
   } catch (error) {
     console.error("Error fetching partner by ID:", error);

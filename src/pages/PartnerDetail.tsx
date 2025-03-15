@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -11,34 +11,12 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Building
+  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Building, Loader2
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Partner, getPartnerById } from "@/services/partnerService";
 
-// Définir l'interface Partner pour la page de détail
-interface Partner {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  type: "Revendeur" | "Intégrateur" | "Consultant";
-  contactName: string;
-  status: string;
-  clientsCount: number;
-  commissionsTotal: number;
-  lastCommission: number;
-  notes?: string;
-  collaborators?: Collaborator[];
-  clients?: Client[];
-  commissions?: Commission[];
-  offers?: Offer[];
-  user_id?: string;
-  has_user_account?: boolean;
-  user_account_created_at?: string;
-  created_at?: Date | string;
-  updated_at?: Date | string;
-}
-
+// Définir les interfaces pour les données affichées dans le composant
 interface Collaborator {
   id: string;
   name: string;
@@ -87,149 +65,6 @@ const createAccountForPartner = async (partner: Partner): Promise<boolean> => {
   // Simuler la création d'un compte
   await new Promise(resolve => setTimeout(resolve, 1200));
   return true;
-};
-
-const getPartnerById = async (id: string): Promise<Partner | null> => {
-  // Simuler le chargement des données du partenaire
-  await new Promise(resolve => setTimeout(resolve, 600));
-  
-  const mockPartners: Partner[] = [
-    {
-      id: '1',
-      name: 'TechMed Solutions',
-      email: 'contact@techmed.fr',
-      phone: '+33 1 23 45 67 89',
-      type: 'Revendeur',
-      contactName: 'Sophie Martin',
-      status: 'active',
-      clientsCount: 15,
-      commissionsTotal: 12500,
-      lastCommission: 850,
-      created_at: '2023-01-15T09:30:00Z',
-      updated_at: '2023-09-10T14:20:00Z',
-      notes: 'Partenaire spécialisé dans la vente d\'équipements médicaux de diagnostic.',
-      collaborators: [
-        {
-          id: 'c1',
-          name: 'Marc Dupont',
-          role: 'Commercial',
-          email: 'marc.dupont@techmed.fr',
-          phone: '+33 6 11 22 33 44',
-          department: 'Ventes'
-        },
-        {
-          id: 'c2',
-          name: 'Julie Lenoir',
-          role: 'Support Technique',
-          email: 'julie.lenoir@techmed.fr',
-          phone: '+33 6 22 33 44 55',
-          department: 'Technique'
-        }
-      ],
-      clients: [
-        {
-          id: 'cl1',
-          name: 'Clinique Saint-Joseph',
-          email: 'contact@clinique-sj.fr',
-          status: 'active',
-          company: 'Clinique Saint-Joseph',
-          createdAt: '2023-02-15',
-          totalValue: 5800
-        },
-        {
-          id: 'cl2',
-          name: 'Centre Médical Parisien',
-          email: 'contact@cm-paris.fr',
-          status: 'active',
-          company: 'Centre Médical Parisien',
-          createdAt: '2023-04-22',
-          totalValue: 4200
-        }
-      ],
-      commissions: [
-        {
-          id: 'com1',
-          date: '2023-03-10',
-          client: 'Clinique Saint-Joseph',
-          amount: 580,
-          status: 'Payée',
-          isPaid: true
-        },
-        {
-          id: 'com2',
-          date: '2023-05-12',
-          client: 'Centre Médical Parisien',
-          amount: 420,
-          status: 'Payée',
-          isPaid: true
-        },
-        {
-          id: 'com3',
-          date: '2023-09-05',
-          client: 'Hôpital de Lyon',
-          amount: 850,
-          status: 'En attente',
-          isPaid: false
-        }
-      ],
-      offers: [
-        {
-          id: 'o1',
-          client: 'Clinique Saint-Joseph',
-          amount: 12500,
-          status: 'Acceptée',
-          date: '2023-02-10',
-          description: 'Équipement complet de moniteurs cardiaques'
-        },
-        {
-          id: 'o2',
-          client: 'Centre Médical Parisien',
-          amount: 9800,
-          status: 'Acceptée',
-          date: '2023-04-18',
-          description: 'Échographes de dernière génération'
-        },
-        {
-          id: 'o3',
-          client: 'Hôpital de Lyon',
-          amount: 15600,
-          status: 'En attente',
-          date: '2023-08-25',
-          description: 'Système de surveillance des patients'
-        }
-      ]
-    },
-    {
-      id: '2',
-      name: 'MedIntegra',
-      email: 'info@medintegra.com',
-      phone: '+33 2 34 56 78 90',
-      type: 'Intégrateur',
-      contactName: 'Thomas Bernard',
-      status: 'active',
-      clientsCount: 8,
-      commissionsTotal: 7200,
-      lastCommission: 650,
-      created_at: '2023-03-20T11:15:00Z',
-      updated_at: '2023-08-05T16:40:00Z'
-    },
-    {
-      id: '3',
-      name: 'ConsultSanté',
-      email: 'contact@consultsante.fr',
-      phone: '+33 3 45 67 89 01',
-      type: 'Consultant',
-      contactName: 'Émilie Durand',
-      status: 'inactive',
-      clientsCount: 4,
-      commissionsTotal: 3200,
-      lastCommission: 0,
-      created_at: '2023-04-05T10:00:00Z',
-      updated_at: '2023-07-18T09:25:00Z'
-    }
-  ];
-  
-  return mockPartners.find(p => p.id === id) || null;
 };
 
 export default function PartnerDetail() {
@@ -331,8 +166,8 @@ export default function PartnerDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        <span className="ml-3 text-lg">Chargement...</span>
+        <Loader2 className="h-12 w-12 animate-spin text-primary mr-3" />
+        <span className="text-lg">Chargement...</span>
       </div>
     );
   }
@@ -430,7 +265,7 @@ export default function PartnerDetail() {
                     <BadgePercent className="h-5 w-5 text-primary mt-0.5" />
                     <div>
                       <h3 className="text-sm font-medium">Commissions totales</h3>
-                      <p className="text-sm">{formatCurrency(partner.commissionsTotal)}</p>
+                      <p className="text-sm">{formatCurrency(partner.commissionsTotal || 0)}</p>
                     </div>
                   </div>
                   
