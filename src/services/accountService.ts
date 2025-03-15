@@ -44,6 +44,7 @@ export const createUserAccount = async (
       return false;
     }
     
+    console.log("User exists check result:", userExists);
     let userId = null;
     
     if (userExists) {
@@ -102,6 +103,26 @@ export const createUserAccount = async (
     // Log pour débogage
     console.log(`Mise à jour de ${tableName} avec id=${entity.id}, user_id=${userId}, has_user_account=true`);
     
+    // Vérifier d'abord si l'entité existe
+    const { data: entityCheck, error: checkEntityError } = await supabase
+      .from(tableName)
+      .select('id')
+      .eq('id', entity.id)
+      .single();
+      
+    if (checkEntityError) {
+      console.error(`Erreur lors de la vérification de l'existence du ${userType}:`, checkEntityError);
+      toast.error(`Erreur: ${checkEntityError.message}`);
+      return false;
+    }
+    
+    if (!entityCheck) {
+      console.error(`${userType} avec ID ${entity.id} non trouvé dans la base de données`);
+      toast.error(`${userType} non trouvé`);
+      return false;
+    }
+    
+    // Effectuer la mise à jour
     const { error: updateError } = await supabase
       .from(tableName)
       .update({
@@ -115,6 +136,19 @@ export const createUserAccount = async (
       console.error(`Erreur lors de la mise à jour du ${userType}:`, updateError);
       toast.error(`Erreur lors de la mise à jour: ${updateError.message}`);
       return false;
+    }
+    
+    // Vérifier que la mise à jour a bien été effectuée
+    const { data: updatedEntity, error: verifyError } = await supabase
+      .from(tableName)
+      .select('*')
+      .eq('id', entity.id)
+      .single();
+      
+    if (verifyError) {
+      console.error(`Erreur lors de la vérification de la mise à jour:`, verifyError);
+    } else {
+      console.log(`État mis à jour du ${userType}:`, updatedEntity);
     }
     
     // Envoyer l'email de réinitialisation de mot de passe - en utilisant le client standard

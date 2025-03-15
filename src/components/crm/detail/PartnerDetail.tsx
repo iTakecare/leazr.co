@@ -36,7 +36,14 @@ const PartnerDetail = ({
 }: PartnerDetailProps) => {
   if (!partner) return null;
 
+  // Make sure we're using a boolean value
   const hasUserAccount = Boolean(partner.has_user_account);
+  
+  console.log("PartnerDetail - Account status:", { 
+    hasUserAccount,
+    has_user_account: partner.has_user_account,
+    user_account_created_at: partner.user_account_created_at
+  });
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
