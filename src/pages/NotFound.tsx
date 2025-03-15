@@ -1,7 +1,7 @@
 
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { ArrowLeft, Home, Package, User, Building } from "lucide-react";
+import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
@@ -106,7 +106,7 @@ const NotFound = () => {
               </p>
               <Link to="/ambassadors">
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <User className="h-4 w-4" /> Liste des ambassadeurs
+                  <HeartHandshake className="h-4 w-4" /> Liste des ambassadeurs
                 </Button>
               </Link>
             </div>
@@ -138,25 +138,61 @@ const NotFound = () => {
             </div>
           )}
           
-          <div className="flex gap-3 justify-center">
+          <div className="flex flex-col gap-3 justify-center">
             <Button 
               variant="default" 
               onClick={goBack}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-full"
             >
               <ArrowLeft className="h-4 w-4" /> 
               Retour
             </Button>
+            
             <Button 
               variant="outline" 
               asChild
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-full"
             >
               <Link to="/dashboard">
                 <Home className="h-4 w-4" /> 
                 Tableau de bord
               </Link>
             </Button>
+            
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <Button 
+                variant="outline" 
+                asChild
+                className="flex items-center gap-2"
+              >
+                <Link to="/clients">
+                  <Users className="h-4 w-4" /> 
+                  Clients
+                </Link>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                asChild
+                className="flex items-center gap-2"
+              >
+                <Link to="/ambassadors">
+                  <HeartHandshake className="h-4 w-4" /> 
+                  Ambassadeurs
+                </Link>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                asChild
+                className="flex items-center gap-2"
+              >
+                <Link to="/partners">
+                  <BadgePercent className="h-4 w-4" /> 
+                  Partenaires
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
