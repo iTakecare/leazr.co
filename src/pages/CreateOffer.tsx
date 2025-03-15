@@ -127,20 +127,19 @@ const CreateOffer = () => {
             setClientName(offer.client_name || '');
             setClientEmail(offer.client_email || '');
             setClientCompany(offer.clients?.company || '');
-            setRemarks(offer.additional_info || '');
             
-            if (offer.coefficient && offer.amount) {
-              const coefficient = parseFloat(String(offer.coefficient)) || 0;
-              const amount = parseFloat(String(offer.amount)) || 0;
-              const monthlyPayment = parseFloat(String(offer.monthly_payment)) || 0;
-              
-              setGlobalMarginAdjustment(prev => ({
-                ...prev,
-                amount: amount,
-                newCoef: coefficient,
-                newMonthly: monthlyPayment
-              }));
-            }
+            const additionalInfo = offer.additional_info || "";
+            
+            const amount = String(offer.amount || 0);
+            const monthlyPayment = String(offer.monthly_payment || 0);
+            const coefficient = String(offer.coefficient || 0);
+            
+            setGlobalMarginAdjustment(prev => ({
+              ...prev,
+              amount: parseFloat(amount),
+              newCoef: parseFloat(coefficient),
+              newMonthly: parseFloat(monthlyPayment)
+            }));
             
             if (offer.equipment_description) {
               try {

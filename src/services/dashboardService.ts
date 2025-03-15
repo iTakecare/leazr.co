@@ -1,208 +1,271 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency } from "@/utils/formatters";
 
-export type TimeFilter = "month" | "year" | "quarter" | "all";
+export type TimeFilter = 'all' | 'month' | 'quarter' | 'year';
 
-export type DashboardStats = {
-  pendingOffers: number;
-  pendingRequests: number;
+export interface DashboardStats {
   totalRevenue: number;
-  formattedRevenue: string;
-  clientsCount: number;
   grossMargin: number;
-  formattedGrossMargin: string;
-  marginPercentage: number;
-  acceptedOffers: number;
-};
+  clientsCount: number;
+  offersCount: number;
+  offersAccepted: number;
+  offersPending: number;
+  contractsCount: number;
+  contractsActive: number;
+  avgCommission: number;
+  conversionRate: number;
+  revenueByMonth: Array<{
+    month: string;
+    revenue: number;
+  }>;
+  topProducts: Array<{
+    name: string;
+    count: number;
+  }>;
+}
 
-export const getDashboardStats = async (
-  timeFilter: TimeFilter = "month"
-): Promise<DashboardStats> => {
+export const getDashboardStats = async (timeFilter: TimeFilter = 'month'): Promise<DashboardStats> => {
   try {
-    console.log("Fetching dashboard stats with filter:", timeFilter);
-    let timeConstraint;
-    
-    // Définir la contrainte de temps en fonction du filtre
-    switch (timeFilter) {
-      case "month":
-        timeConstraint = "created_at >= date_trunc('month', now())";
-        break;
-      case "quarter":
-        timeConstraint = "created_at >= date_trunc('quarter', now())";
-        break;
-      case "year":
-        timeConstraint = "created_at >= date_trunc('year', now())";
-        break;
-      case "all":
-      default:
-        timeConstraint = "TRUE";
-        break;
-    }
-
-    // Obtenir le nombre d'offres en attente
-    const { count: pendingOffersCount, error: pendingOffersError } = await supabase
-      .from('offers')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending')
-      .eq('converted_to_contract', false);
-
-    if (pendingOffersError) throw pendingOffersError;
-
-    // Obtenir le nombre de demandes clients en attente
-    const { count: pendingRequestsCount, error: pendingRequestsError } = await supabase
-      .from('offers')
-      .select('*', { count: 'exact', head: true })
-      .eq('type', 'client_request')
-      .eq('status', 'pending');
-
-    if (pendingRequestsError) throw pendingRequestsError;
-
-    // Obtenir le nombre d'offres acceptées
-    const { count: acceptedOffersCount, error: acceptedOffersError } = await supabase
-      .from('offers')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'accepted')
-      .or('workflow_status.eq.client_approved,workflow_status.eq.leaser_approved');
-
-    if (acceptedOffersError) throw acceptedOffersError;
-
-    // Obtenir le chiffre d'affaire des contrats signés
+    // Get financial data using the database function
     const { data: revenueData, error: revenueError } = await supabase
       .rpc('calculate_total_revenue', { time_filter: timeFilter });
-
-    if (revenueError) {
-      console.error("Error calculating revenue:", revenueError);
-      // Utiliser une requête alternative si la RPC n'est pas disponible
-      const { data: contractsData, error: contractsError } = await supabase
-        .from('contracts')
-        .select('monthly_payment')
-        .filter(timeConstraint);
-
-      if (contractsError) throw contractsError;
-
-      const totalRevenue = contractsData?.reduce((sum, contract) => sum + (contract.monthly_payment || 0), 0) || 0;
+    
+    if (revenueError) throw revenueError;
+    
+    const totalRevenue = revenueData?.[0]?.total_revenue || 0;
+    const grossMargin = revenueData?.[0]?.gross_margin || 0;
+    const clientsCount = revenueData?.[0]?.clients_count || 0;
+    
+    // Get offers data
+    const { data: offers, error: offersError } = await supabase
+      .from('offers')
+      .select('id, status')
+      .order('created_at', { ascending: false });
       
-      // Obtenir la marge brute (commission totale)
-      const { data: offersData, error: offersError } = await supabase
-        .from('offers')
-        .select('commission')
-        .eq('status', 'accepted')
-        .filter(timeConstraint);
-
-      if (offersError) throw offersError;
-
-      const grossMargin = offersData?.reduce((sum, offer) => sum + (offer.commission || 0), 0) || 0;
+    if (offersError) throw offersError;
+    
+    const offersCount = offers ? offers.length : 0;
+    const offersAccepted = offers ? offers.filter(o => o.status === 'accepted').length : 0;
+    const offersPending = offers ? offers.filter(o => o.status === 'pending' || o.status === 'sent').length : 0;
+    
+    // Get contracts data
+    const { data: contracts, error: contractsError } = await supabase
+      .from('contracts')
+      .select('id, status')
+      .order('created_at', { ascending: false });
       
-      // Obtenir le nombre total de clients
-      const { count: clientsCount, error: clientsError } = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true });
-
-      if (clientsError) throw clientsError;
-
-      // Calculer le pourcentage de marge
-      const marginPercentage = totalRevenue > 0 ? (grossMargin / totalRevenue) * 100 : 0;
-
-      return {
-        pendingOffers: pendingOffersCount || 0,
-        pendingRequests: pendingRequestsCount || 0,
-        totalRevenue: totalRevenue,
-        formattedRevenue: formatCurrency(totalRevenue),
-        clientsCount: clientsCount || 0,
-        grossMargin: grossMargin,
-        formattedGrossMargin: formatCurrency(grossMargin),
-        marginPercentage: parseFloat(marginPercentage.toFixed(2)),
-        acceptedOffers: acceptedOffersCount || 0
-      };
+    if (contractsError) throw contractsError;
+    
+    const contractsCount = contracts ? contracts.length : 0;
+    const contractsActive = contracts ? contracts.filter(c => c.status === 'active' || c.status === 'signed').length : 0;
+    
+    // Calculate conversion rate (offers accepted / total offers)
+    const conversionRate = offersCount > 0 ? (offersAccepted / offersCount) * 100 : 0;
+    
+    // Get revenue by month (last 6 months)
+    const { data: monthlyRevenue, error: monthlyError } = await supabase
+      .from('contracts')
+      .select('created_at, monthly_payment')
+      .gte('created_at', new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString())
+      .order('created_at', { ascending: true });
+      
+    if (monthlyError) throw monthlyError;
+    
+    // Group by month and sum
+    const revenueByMonth = groupRevenueByMonth(monthlyRevenue || []);
+    
+    // Get top products
+    const { data: products, error: productsError } = await supabase
+      .rpc('get_top_products', { limit_count: 5 });
+      
+    if (productsError) {
+      console.warn('Error fetching top products:', productsError);
+      // Continue despite this error
     }
-
-    // Si la RPC a fonctionné, utiliser ses résultats
-    const totalRevenue = revenueData?.total_revenue || 0;
-    const grossMargin = revenueData?.gross_margin || 0;
-    const clientsCount = revenueData?.clients_count || 0;
-    const marginPercentage = totalRevenue > 0 ? (grossMargin / totalRevenue) * 100 : 0;
-
+    
+    // Calculate average commission
+    const { data: commissions, error: commissionsError } = await supabase
+      .from('partner_commissions')
+      .select('amount')
+      .eq('status', 'paid');
+      
+    if (commissionsError) throw commissionsError;
+    
+    const totalCommission = commissions ? commissions.reduce((sum, c) => sum + Number(c.amount), 0) : 0;
+    const avgCommission = commissions && commissions.length > 0 ? totalCommission / commissions.length : 0;
+    
     return {
-      pendingOffers: pendingOffersCount || 0,
-      pendingRequests: pendingRequestsCount || 0,
-      totalRevenue: totalRevenue,
-      formattedRevenue: formatCurrency(totalRevenue),
-      clientsCount: clientsCount || 0,
-      grossMargin: grossMargin,
-      formattedGrossMargin: formatCurrency(grossMargin),
-      marginPercentage: parseFloat(marginPercentage.toFixed(2)),
-      acceptedOffers: acceptedOffersCount || 0
+      totalRevenue: Number(totalRevenue),
+      grossMargin: Number(grossMargin),
+      clientsCount: Number(clientsCount),
+      offersCount,
+      offersAccepted,
+      offersPending,
+      contractsCount,
+      contractsActive,
+      avgCommission,
+      conversionRate,
+      revenueByMonth,
+      topProducts: products ? products.map((p: any) => ({
+        name: p.product_name,
+        count: p.count
+      })) : []
     };
   } catch (error) {
-    console.error("Error fetching dashboard stats:", error);
-    // Retourner des données par défaut en cas d'erreur
+    console.error('Error getting dashboard stats:', error);
+    // Return default values
     return {
-      pendingOffers: 0,
-      pendingRequests: 0,
       totalRevenue: 0,
-      formattedRevenue: formatCurrency(0),
-      clientsCount: 0,
       grossMargin: 0,
-      formattedGrossMargin: formatCurrency(0),
-      marginPercentage: 0,
-      acceptedOffers: 0
+      clientsCount: 0,
+      offersCount: 0,
+      offersAccepted: 0,
+      offersPending: 0,
+      contractsCount: 0,
+      contractsActive: 0,
+      avgCommission: 0,
+      conversionRate: 0,
+      revenueByMonth: [],
+      topProducts: []
     };
   }
 };
 
-export const getRecentActivity = async (limit: number = 10) => {
+// Helper function to group contracts by month
+const groupRevenueByMonth = (contracts: any[]): Array<{ month: string; revenue: number }> => {
+  const months: Record<string, number> = {};
+  
+  contracts.forEach(contract => {
+    const date = new Date(contract.created_at);
+    const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+    const monthName = date.toLocaleString('default', { month: 'short' });
+    const displayKey = `${monthName} ${date.getFullYear()}`;
+    
+    if (!months[displayKey]) {
+      months[displayKey] = 0;
+    }
+    
+    months[displayKey] += Number(contract.monthly_payment) || 0;
+  });
+  
+  // Convert to array and limit to last 6 months
+  return Object.entries(months)
+    .map(([month, revenue]) => ({ month, revenue }))
+    .slice(-6);
+};
+
+// Function to get recent activity
+export const getRecentActivity = async (limit: number = 20): Promise<any[]> => {
   try {
-    // Récupérer les activités récentes à partir des logs de workflow des offres
-    const { data: offerLogs, error: offerLogsError } = await supabase
-      .from('offer_workflow_logs')
-      .select(`
-        id,
-        created_at,
-        offer_id,
-        previous_status,
-        new_status,
-        profiles:user_id (first_name, last_name, avatar_url)
-      `)
+    // Get recent offers
+    const { data: offers, error: offersError } = await supabase
+      .from('offers')
+      .select('id, client_name, created_at, amount, status')
       .order('created_at', { ascending: false })
       .limit(limit);
-
-    if (offerLogsError) throw offerLogsError;
-
-    // Récupérer les activités récentes à partir des logs de workflow des contrats
-    const { data: contractLogs, error: contractLogsError } = await supabase
-      .from('contract_workflow_logs')
-      .select(`
-        id,
-        created_at,
-        contract_id,
-        previous_status,
-        new_status,
-        profiles:user_id (first_name, last_name, avatar_url)
-      `)
+      
+    if (offersError) throw offersError;
+    
+    // Get recent contracts
+    const { data: contracts, error: contractsError } = await supabase
+      .from('contracts')
+      .select('id, client_name, created_at, monthly_payment, status')
       .order('created_at', { ascending: false })
       .limit(limit);
-
-    if (contractLogsError) throw contractLogsError;
-
-    // Combiner les deux types de logs
-    const allLogs = [
-      ...(offerLogs || []).map(log => ({
-        ...log,
-        type: 'offer' as const
+      
+    if (contractsError) throw contractsError;
+    
+    // Combine and format activities
+    const activities = [
+      ...(offers || []).map(offer => ({
+        id: offer.id,
+        type: 'offer',
+        name: offer.client_name,
+        amount: Number(offer.amount),
+        status: offer.status,
+        date: offer.created_at,
+        message: `Nouvelle offre créée pour ${offer.client_name}`
       })),
-      ...(contractLogs || []).map(log => ({
-        ...log,
-        type: 'contract' as const
+      ...(contracts || []).map(contract => ({
+        id: contract.id,
+        type: 'contract',
+        name: contract.client_name,
+        amount: Number(contract.monthly_payment),
+        status: contract.status,
+        date: contract.created_at,
+        message: `Nouveau contrat pour ${contract.client_name}`
       }))
     ];
-
-    // Trier par date
-    return allLogs.sort((a, b) => {
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    }).slice(0, limit);
+    
+    // Sort by date
+    const sortedActivities = activities.sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    
+    return sortedActivities.slice(0, limit);
   } catch (error) {
-    console.error("Error fetching recent activity:", error);
+    console.error('Error getting recent activity:', error);
     return [];
+  }
+};
+
+// Function to get partner performance
+export const getPartnerPerformance = async (partnerId: string): Promise<any> => {
+  try {
+    // Get partner details
+    const { data: partner, error: partnerError } = await supabase
+      .from('partners')
+      .select('*')
+      .eq('id', partnerId)
+      .single();
+      
+    if (partnerError) throw partnerError;
+    
+    // Get partner commissions
+    const { data: commissions, error: commissionsError } = await supabase
+      .from('partner_commissions')
+      .select('*')
+      .eq('partner_id', partnerId)
+      .order('date', { ascending: false });
+      
+    if (commissionsError) throw commissionsError;
+    
+    // Get partner clients
+    const { data: clientRelations, error: clientsError } = await supabase
+      .from('partner_clients')
+      .select('client_id')
+      .eq('partner_id', partnerId);
+      
+    if (clientsError) throw clientsError;
+    
+    const clientIds = clientRelations ? clientRelations.map(r => r.client_id) : [];
+    
+    // Get offers from partner's clients
+    const { data: offers, error: offersError } = await supabase
+      .from('offers')
+      .select('*')
+      .in('client_id', clientIds)
+      .order('created_at', { ascending: false });
+      
+    if (offersError) throw offersError;
+    
+    return {
+      partner,
+      commissions: commissions || [],
+      clientsCount: clientIds.length,
+      offersCount: offers ? offers.length : 0,
+      totalCommission: commissions ? commissions.reduce((sum, c) => sum + Number(c.amount), 0) : 0,
+      recentOffers: offers ? offers.slice(0, 5) : []
+    };
+  } catch (error) {
+    console.error('Error getting partner performance:', error);
+    return {
+      partner: null,
+      commissions: [],
+      clientsCount: 0,
+      offersCount: 0,
+      totalCommission: 0,
+      recentOffers: []
+    };
   }
 };

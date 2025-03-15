@@ -53,7 +53,7 @@ export interface ProductCreateInput {
   image_alt?: string;
   imageAlts?: string[];
   image_alts?: string[];
-  specifications?: Record<string, string>;
+  specifications?: Record<string, string> | Json;
 }
 
 export interface ProductUpdateInput {
@@ -70,7 +70,7 @@ export interface ProductUpdateInput {
   image_alt?: string;
   imageAlts?: string[];
   image_alts?: string[];
-  specifications?: Record<string, string>;
+  specifications?: Record<string, string> | Json;
   sku?: string;
   active?: boolean;
 }

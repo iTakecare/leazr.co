@@ -721,6 +721,57 @@ export type Database = {
         }
         Relationships: []
       }
+      pdf_templates: {
+        Row: {
+          companyAddress: string
+          companyContact: string
+          companyName: string
+          companySiret: string
+          created_at: string
+          fields: Json
+          footerText: string
+          headerText: string
+          id: string
+          logoURL: string | null
+          name: string
+          primaryColor: string
+          secondaryColor: string
+          updated_at: string
+        }
+        Insert: {
+          companyAddress: string
+          companyContact: string
+          companyName: string
+          companySiret: string
+          created_at?: string
+          fields: Json
+          footerText: string
+          headerText: string
+          id: string
+          logoURL?: string | null
+          name: string
+          primaryColor: string
+          secondaryColor: string
+          updated_at?: string
+        }
+        Update: {
+          companyAddress?: string
+          companyContact?: string
+          companyName?: string
+          companySiret?: string
+          created_at?: string
+          fields?: Json
+          footerText?: string
+          headerText?: string
+          id?: string
+          logoURL?: string | null
+          name?: string
+          primaryColor?: string
+          secondaryColor?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           active: boolean | null
@@ -985,6 +1036,12 @@ export type Database = {
           brand_name: string
         }
         Returns: boolean
+      }
+      execute_sql: {
+        Args: {
+          sql: string
+        }
+        Returns: undefined
       }
       get_brands: {
         Args: Record<PropertyKey, never>

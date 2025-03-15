@@ -32,11 +32,10 @@ export const createUserAccount = async (
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
     // Check if user exists by email with adminSupabase
-    const { data, error: findError } = await adminSupabase.auth.admin
-      .listUsers({ 
-        page: 1, 
-        perPage: 1
-      });
+    const { data, error: findError } = await adminSupabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000  // Use a reasonable limit to get all users
+    });
     
     if (findError) {
       console.error("Erreur lors de la vérification de l'utilisateur:", findError);

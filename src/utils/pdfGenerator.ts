@@ -4,8 +4,29 @@ import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define the PDF template interface
+interface PDFTemplate {
+  id: string;
+  name: string;
+  companyName: string;
+  companyAddress: string;
+  companyContact: string;
+  companySiret: string;
+  logoURL: string | null;
+  primaryColor: string;
+  secondaryColor: string;
+  headerText: string;
+  footerText: string;
+  fields: Array<{
+    id: string;
+    isVisible: boolean;
+    position: { x: number; y: number };
+    value?: string;
+  }>;
+}
+
 // Default template to use if no custom template is found
-const DEFAULT_PDF_TEMPLATE = {
+const DEFAULT_PDF_TEMPLATE: PDFTemplate = {
   id: 'default',
   name: 'Default template',
   companyName: 'iTakeCare',
@@ -29,10 +50,10 @@ const DEFAULT_PDF_TEMPLATE = {
   ]
 };
 
-// Fonction pour récupérer le modèle PDF depuis la base de données
-const getPDFTemplate = async () => {
+// Function to retrieve the PDF template from the database
+const getPDFTemplate = async (): Promise<PDFTemplate> => {
   try {
-    // Check if table exists
+    // Check if table exists using SQL function
     const { data: tableExists, error: tableCheckError } = await supabase
       .rpc('check_table_exists', { table_name: 'pdf_templates' });
     
@@ -41,12 +62,11 @@ const getPDFTemplate = async () => {
       return DEFAULT_PDF_TEMPLATE;
     }
     
-    // Try to get template
     try {
-      // Use custom SQL query since the table may not exist in the Supabase types
+      // Use the custom query method since the table might not be in TypeScript types
       const { data, error } = await supabase
         .from('pdf_templates')
-        .select()
+        .select('*')
         .eq('id', 'default')
         .maybeSingle();
       
@@ -55,7 +75,7 @@ const getPDFTemplate = async () => {
         return DEFAULT_PDF_TEMPLATE;
       }
       
-      return data;
+      return data as unknown as PDFTemplate;
     } catch (err) {
       console.error("Error fetching template:", err);
       return DEFAULT_PDF_TEMPLATE;
@@ -67,13 +87,13 @@ const getPDFTemplate = async () => {
 };
 
 export const generateOfferPdf = async (offer: any) => {
-  // Récupérer le modèle personnalisé ou utiliser le modèle par défaut
+  // Get the custom template or use the default template
   const template = await getPDFTemplate();
   
-  // Créer un nouveau document PDF
+  // Create a new PDF document
   const doc = new jsPDF();
   
-  // Définir les propriétés du document
+  // Set the document properties
   doc.setProperties({
     title: `Offre ${offer.id.slice(0, 8)}`,
     subject: 'Offre commerciale',
@@ -82,11 +102,11 @@ export const generateOfferPdf = async (offer: any) => {
     creator: template?.companyName || 'iTakeCare Plateforme'
   });
   
-  // Définir les couleurs principales en fonction du modèle
+  // Set the main colors according to the template
   const primaryColor = template?.primaryColor || '#2C3E50';
   const secondaryColor = template?.secondaryColor || '#3498DB';
   
-  // Convertir les couleurs hexadécimales en RGB pour jsPDF
+  // Convert hexadecimal colors to RGB for jsPDF
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
@@ -99,7 +119,7 @@ export const generateOfferPdf = async (offer: any) => {
   const primaryRgb = hexToRgb(primaryColor);
   const secondaryRgb = hexToRgb(secondaryColor);
   
-  // Ajouter le logo de l'entreprise s'il existe
+  // Add the company logo if it exists
   if (template?.logoURL) {
     try {
       const img = new Image();
@@ -111,18 +131,18 @@ export const generateOfferPdf = async (offer: any) => {
       
       doc.addImage(template.logoURL, 'PNG', 10, 10, 40, 20);
     } catch (error) {
-      console.error("Erreur lors du chargement du logo:", error);
+      console.error("Error loading logo:", error);
     }
   }
   
-  // Ajouter le titre du document
+  // Add the document title
   doc.setFontSize(20);
   doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
   const headerText = template?.headerText?.replace('{offer_id}', `OFF-${offer.id.slice(0, 8)}`) || 
                     `OFFRE N° OFF-${offer.id.slice(0, 8)}`;
   doc.text(headerText, 105, 30, { align: 'center' });
   
-  // Ajouter les champs selon le modèle personnalisé
+  // Add fields according to the custom template
   if (template?.fields) {
     // Add date field
     const dateField = template.fields.find(f => f.id === 'created_at');
@@ -210,7 +230,7 @@ export const generateOfferPdf = async (offer: any) => {
             : offer.equipment_description;
         }
       } catch (e) {
-        console.error("Erreur lors de l'analyse des données d'équipement:", e);
+        console.error("Error parsing equipment data:", e);
       }
       
       if (equipmentItems && equipmentItems.length > 0) {
@@ -254,7 +274,7 @@ export const generateOfferPdf = async (offer: any) => {
     }
   }
   
-  // Ajouter le résumé en bas
+  // Add summary at the bottom
   const finalY = (doc as any).lastAutoTable?.finalY + 20 || 200;
   
   doc.setFontSize(11);
@@ -262,7 +282,7 @@ export const generateOfferPdf = async (offer: any) => {
   doc.text(`Montant total: ${formatCurrency(Number(offer.amount) || 0)}`, 150, finalY);
   doc.text(`Mensualité: ${formatCurrency(Number(offer.monthly_payment) || 0)}`, 150, finalY + 7);
   
-  // Ajouter les conditions générales
+  // Add general terms
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
   doc.text(
@@ -271,13 +291,13 @@ export const generateOfferPdf = async (offer: any) => {
     14, 270
   );
   
-  // Ajouter le pied de page avec les informations de l'entreprise
+  // Add footer with company information
   doc.setFontSize(8);
   doc.setTextColor(120, 120, 120);
   doc.text(`${template?.companyName || 'iTakeCare SAS'} - ${template?.companyAddress || '123 Avenue de la République - 75011 Paris'}`, 105, 280, { align: 'center' });
   doc.text(`${template?.companySiret || 'SIRET: 123 456 789 00011'} - ${template?.companyContact || 'contact@itakecare.fr - www.itakecare.fr'}`, 105, 285, { align: 'center' });
   
-  // Enregistrer le PDF avec un nom de fichier approprié
+  // Save the PDF with an appropriate filename
   const filename = `Offre_${offer.id.slice(0, 8)}_${offer.client_name.replace(/\s+/g, '_')}.pdf`;
   doc.save(filename);
   
