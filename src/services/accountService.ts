@@ -53,7 +53,7 @@ export const createUserAccount = async (
     // Generate a random password
     const tempPassword = Math.random().toString(36).slice(-12);
     
-    // Create user account
+    // Create user account with admin client
     const { data: userData, error: createError } = await adminSupabase.auth.admin.createUser({
       email: entity.email,
       password: tempPassword,
@@ -97,7 +97,7 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Send password reset email
+    // Send password reset email with admin client
     const { error: resetError } = await adminSupabase.auth.admin.generateLink({
       type: "recovery",
       email: entity.email,

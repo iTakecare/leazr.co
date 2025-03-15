@@ -30,13 +30,13 @@ export const getSupabaseClient = () => {
   return supabaseInstance;
 };
 
-// Function to get admin supabase client
+// Function to get admin supabase client with service role
 export const getAdminSupabaseClient = () => {
   if (!adminSupabaseInstance) {
     adminSupabaseInstance = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
+        persistSession: false,
       },
       global: {
         headers: {
