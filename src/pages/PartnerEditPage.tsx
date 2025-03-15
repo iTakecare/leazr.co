@@ -11,6 +11,7 @@ const PartnerEditPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [partner, setPartner] = useState<any>(null);
 
   useEffect(() => {
     if (!id) {
@@ -21,14 +22,17 @@ const PartnerEditPage = () => {
 
     const loadPartner = async () => {
       try {
-        const partner = await getPartnerById(id);
-        if (!partner) {
+        const partnerData = await getPartnerById(id);
+        if (!partnerData) {
           toast.error("Partenaire introuvable");
           navigate("/clients");
+          return;
         }
+        setPartner(partnerData);
         setLoading(false);
       } catch (error) {
         console.error("Erreur lors du chargement du partenaire:", error);
+        setError("Erreur lors du chargement du partenaire");
         toast.error("Erreur lors du chargement du partenaire");
         navigate("/clients");
       }
@@ -61,7 +65,7 @@ const PartnerEditPage = () => {
     );
   }
 
-  return <PartnerEditForm partnerId={id} />;
+  return <PartnerEditForm partner={partner} />;
 };
 
 export default PartnerEditPage;
