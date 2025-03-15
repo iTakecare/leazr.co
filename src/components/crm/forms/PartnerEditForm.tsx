@@ -25,169 +25,33 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-
-// Define the allowed partner types as a literal union type
-const partnerTypes = ["Revendeur", "Intégrateur", "Consultant"] as const;
-type PartnerType = typeof partnerTypes[number];
-
-const partnerSchema = z.object({
-  name: z.string().min(2, "Le nom de la société doit contenir au moins 2 caractères"),
-  contactName: z.string().min(2, "Le nom du contact doit contenir au moins 2 caractères"),
-  email: z.string().email("Veuillez entrer un email valide"),
-  phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
-  type: z.enum(partnerTypes),
-  status: z.enum(["active", "inactive"]),
-  notes: z.string().optional(),
-});
-
-export type PartnerFormData = z.infer<typeof partnerSchema>;
-
-interface Partner {
-  id: string;
-  name: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  type: "Revendeur" | "Intégrateur" | "Consultant";
-  commissionsTotal: number;
-  status: string;
-  notes?: string;
-}
+import { Partner, partnerSchema, updatePartner, PartnerFormValues } from "@/services/partnerService";
 
 interface PartnerEditFormProps {
   partnerData: Partner | null;
 }
 
-// Dummy function to simulate API call to get partner data
-const getPartnerById = (id: string): Promise<Partner> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const mockPartners: Record<string, Partner> = {
-        "1": {
-          id: '1',
-          name: 'TechSolutions SAS',
-          contactName: 'Alexandre Martin',
-          email: 'contact@techsolutions.com',
-          phone: '+33 1 23 45 67 89',
-          type: 'Revendeur',
-          commissionsTotal: 12500,
-          status: 'active',
-          notes: 'Partenaire de longue date spécialisé dans les solutions médicales.'
-        },
-        "2": {
-          id: '2',
-          name: 'Digital Partners',
-          contactName: 'Sophie Dubois',
-          email: 'info@digitalpartners.com',
-          phone: '+33 1 34 56 78 90',
-          type: 'Intégrateur',
-          commissionsTotal: 8750,
-          status: 'active',
-          notes: 'Expertise en intégration de solutions complexes.'
-        },
-        "3": {
-          id: '3',
-          name: 'Innov IT',
-          contactName: 'Thomas Petit',
-          email: 'contact@innovit.fr',
-          phone: '+33 1 45 67 89 01',
-          type: 'Consultant',
-          commissionsTotal: 5300,
-          status: 'inactive',
-          notes: 'Spécialiste en conseil pour le secteur médical.'
-        }
-      };
-      
-      resolve(mockPartners[id] || {
-        id,
-        name: 'Partenaire inconnu',
-        contactName: '',
-        email: '',
-        phone: '',
-        type: 'Revendeur',
-        commissionsTotal: 0,
-        status: 'inactive'
-      });
-    }, 500);
-  });
-};
-
-// Dummy function to simulate API call to update partner data
-const updatePartner = (id: string, data: PartnerFormData): Promise<Partner> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log('Updating partner:', id, data);
-      const updatedPartner: Partner = {
-        id,
-        name: data.name,
-        contactName: data.contactName,
-        email: data.email,
-        phone: data.phone,
-        type: data.type,
-        status: data.status,
-        commissionsTotal: 0,
-        notes: data.notes
-      };
-      toast.success(`Le partenaire ${data.name} a été mis à jour avec succès`);
-      resolve(updatedPartner);
-    }, 800);
-  });
-};
-
 const PartnerEditForm: React.FC<PartnerEditFormProps> = ({ partnerData }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [partner, setPartner] = useState<Partner | null>(partnerData);
 
-  const form = useForm<PartnerFormData>({
+  const form = useForm<PartnerFormValues>({
     resolver: zodResolver(partnerSchema),
     defaultValues: {
       name: partnerData?.name || "",
       contactName: partnerData?.contactName || "",
       email: partnerData?.email || "",
       phone: partnerData?.phone || "",
-      type: (partnerData?.type as PartnerType) || "Revendeur",
+      type: partnerData?.type || "Revendeur",
       status: partnerData?.status as "active" | "inactive" || "active",
       notes: partnerData?.notes || "",
     },
   });
 
-  React.useEffect(() => {
-    if (!id) return;
-    if (partnerData) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchPartner = async () => {
-      setIsLoading(true);
-      try {
-        const data = await getPartnerById(id);
-        setPartner(data);
-        
-        form.reset({
-          name: data.name,
-          contactName: data.contactName,
-          email: data.email,
-          phone: data.phone,
-          type: data.type,
-          status: data.status as "active" | "inactive",
-          notes: data.notes || "",
-        });
-      } catch (error) {
-        console.error("Error fetching partner:", error);
-        toast.error("Erreur lors du chargement des données du partenaire");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPartner();
-  }, [id, form, partnerData]);
-
-  const onSubmit = async (data: PartnerFormData) => {
+  const onSubmit = async (data: PartnerFormValues) => {
     if (!id) return;
     
     setIsSaving(true);

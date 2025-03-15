@@ -1,4 +1,25 @@
 
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { z } from "zod";
+
+// Define the allowed partner types as a literal union type
+const partnerTypes = ["Revendeur", "Intégrateur", "Consultant"] as const;
+type PartnerType = typeof partnerTypes[number];
+
+// Partner form values schema with Zod
+export const partnerSchema = z.object({
+  name: z.string().min(2, "Le nom de la société doit contenir au moins 2 caractères"),
+  contactName: z.string().min(2, "Le nom du contact doit contenir au moins 2 caractères"),
+  email: z.string().email("Veuillez entrer un email valide"),
+  phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
+  type: z.enum(partnerTypes),
+  status: z.enum(["active", "inactive"]).optional(),
+  notes: z.string().optional(),
+});
+
+export type PartnerFormValues = z.infer<typeof partnerSchema>;
+
 // Ajouter l'interface Partner complète dans ce fichier si elle n'existe pas déjà
 // ou mettre à jour l'interface existante pour inclure commissionsTotal
 export interface Partner {
@@ -7,7 +28,7 @@ export interface Partner {
   contactName: string;
   email: string;
   phone: string;
-  type: string;
+  type: PartnerType;
   status: string;
   notes?: string;
   clientsCount?: number;
@@ -19,6 +40,7 @@ export interface Partner {
   updated_at?: Date;
   has_user_account?: boolean;
   user_account_created_at?: string | Date;
+  user_id?: string;
 }
 
 // Function to map database record to our Partner interface
@@ -29,13 +51,18 @@ const mapDbPartnerToPartner = (record: any): Partner => {
     contactName: record.contact_name,
     email: record.email,
     phone: record.phone || "",
-    type: record.type,
+    type: record.type as PartnerType,
     clientsCount: record.clients_count || 0,
     revenueTotal: record.revenue_total || 0,
     lastTransaction: record.last_transaction || 0,
     status: record.status || "active",
     notes: record.notes,
-    user_id: record.user_id
+    user_id: record.user_id,
+    commissionsTotal: record.commissions_total || 0,
+    created_at: record.created_at ? new Date(record.created_at) : undefined,
+    updated_at: record.updated_at ? new Date(record.updated_at) : undefined,
+    has_user_account: record.has_user_account || false,
+    user_account_created_at: record.user_account_created_at,
   };
 };
 
@@ -104,6 +131,7 @@ export const createPartner = async (partnerData: PartnerFormValues): Promise<Par
       clients_count: 0,
       revenue_total: 0,
       last_transaction: 0,
+      commissions_total: 0,
       user_id: userData.user.id,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
