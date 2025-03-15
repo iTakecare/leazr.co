@@ -31,9 +31,11 @@ export const createUserAccount = async (
   try {
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
+    // Simplify parameters for better clarity
     const params: CreateAccountParams = {
       email: entity.email,
       name: entity.name,
+      // Use simple string roles, not objects
       role: userType,
       userType,
       entityId: entity.id

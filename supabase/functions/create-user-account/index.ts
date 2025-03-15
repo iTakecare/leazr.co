@@ -81,10 +81,10 @@ serve(async (req) => {
     // Generate a random password (they'll reset it via email)
     const tempPassword = Math.random().toString(36).slice(-10);
     
-    // Check if the user already exists using admin.listUsers
+    // Check if the user already exists
     console.log("Fetching existing users to check for email:", email);
     const { data: existingUsersData, error: checkError } = await supabaseAdmin.auth.admin.listUsers();
-      
+    
     if (checkError) {
       console.error("Error checking existing users:", checkError);
       return new Response(
@@ -98,13 +98,7 @@ serve(async (req) => {
     
     // Find if the user with this email already exists
     console.log("Total users found:", existingUsersData?.users.length);
-    const userExists = existingUsersData?.users.some(user => {
-      const matches = user.email === email;
-      if (matches) {
-        console.log(`Found existing user with email ${email}, user ID: ${user.id}`);
-      }
-      return matches;
-    });
+    const userExists = existingUsersData?.users.some(user => user.email === email);
     
     if (userExists) {
       console.log(`User with email ${email} already exists, returning 400`);
@@ -120,30 +114,30 @@ serve(async (req) => {
       );
     }
     
-    // Prepare user metadata based on role
-    console.log("Preparing user metadata for role:", role);
-    const userMetadata: Record<string, any> = {
+    // Create simplified user metadata
+    const userMetadata = {
       name,
       role
     };
     
-    // Add the appropriate ID field based on userType
+    // Add entity ID based on user type
     if (userType === "partner") {
-      userMetadata.partner_id = entityId;
+      userMetadata["partner_id"] = entityId;
     } else if (userType === "ambassador") {
-      userMetadata.ambassador_id = entityId;
+      userMetadata["ambassador_id"] = entityId;
     }
     
-    console.log("User metadata prepared:", JSON.stringify(userMetadata));
+    console.log("Creating user with metadata:", JSON.stringify(userMetadata));
     
-    // Create the user account - NOTE: We're setting user_metadata, not raw_user_meta_data
-    console.log("Creating user with email:", email);
+    // Important: Set a valid app_metadata with just the role string
+    // Create the user account
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: tempPassword,
       email_confirm: true,
       user_metadata: userMetadata,
-      app_metadata: { role }  // Store role in app_metadata
+      // Set allowed roles directly in the proper format
+      app_metadata: { role: role === "partner" ? "partner" : "ambassador" }
     });
     
     if (createError) {
