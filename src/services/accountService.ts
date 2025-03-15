@@ -34,9 +34,9 @@ export const createUserAccount = async (
     // Check if user exists by email with adminSupabase
     const { data, error: findError } = await adminSupabase.auth.admin
       .listUsers({ 
-        filter: { 
-          email: entity.email 
-        } 
+        page: 1, 
+        perPage: 1,
+        query: entity.email
       });
     
     if (findError) {

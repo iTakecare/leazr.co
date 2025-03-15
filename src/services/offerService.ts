@@ -408,6 +408,8 @@ export const getOfferById = async (offerId: string) => {
       return null;
     }
 
+    let resultData = { ...data, equipment_data: null };
+
     if (data && data.equipment_description) {
       try {
         // Better parsing of equipment data with explicit type conversion
@@ -416,24 +418,24 @@ export const getOfferById = async (offerId: string) => {
         
         // Ensure all numeric values are properly parsed as numbers
         if (Array.isArray(equipmentData)) {
-          data.equipment_data = equipmentData.map(item => ({
+          resultData.equipment_data = equipmentData.map(item => ({
             ...item,
-            purchasePrice: parseFloat(item.purchasePrice) || 0,
-            quantity: parseInt(item.quantity, 10) || 1,
-            margin: parseFloat(item.margin) || 20,
-            monthlyPayment: parseFloat(item.monthlyPayment || 0)
+            purchasePrice: parseFloat(String(item.purchasePrice)) || 0,
+            quantity: parseInt(String(item.quantity), 10) || 1,
+            margin: parseFloat(String(item.margin)) || 20,
+            monthlyPayment: parseFloat(String(item.monthlyPayment || 0))
           }));
         } else {
-          data.equipment_data = equipmentData;
+          resultData.equipment_data = equipmentData;
         }
         
-        console.log("Processed equipment data with preserved values:", data.equipment_data);
+        console.log("Processed equipment data with preserved values:", resultData.equipment_data);
       } catch (e) {
         console.log("Equipment description is not valid JSON:", data.equipment_description);
       }
     }
 
-    return data;
+    return resultData;
   } catch (error) {
     console.error('Error fetching offer:', error);
     return null;
@@ -473,7 +475,6 @@ export const updateOffer = async (offerId: string, offerData: any) => {
   }
 };
 
-// Ajouter une fonction pour envoyer une demande d'informations
 export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> => {
   try {
     console.log("Sending information request for offer:", data.offerId);
@@ -519,7 +520,6 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
   }
 };
 
-// Traiter la réponse après réception des informations
 export const processInfoResponse = async (
   offerId: string,
   approve: boolean
@@ -544,7 +544,7 @@ export const processInfoResponse = async (
       ? 'leaser_review'  // Si approuvé, on passe directement à la validation bailleur
       : 'rejected';      // Sinon rejeté
     
-    const previousStatus = offerData.workflow_status || 'info_requested';
+    const previousStatus = offerData?.workflow_status || 'info_requested';
     
     // Journaliser le changement
     const { error: logError } = await supabase

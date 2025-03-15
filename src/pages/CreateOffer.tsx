@@ -131,9 +131,9 @@ const CreateOffer = () => {
             
             // Si coefficient et amount sont définis dans l'offre
             if (offer.coefficient && offer.amount) {
-              const coefficient = parseFloat(offer.coefficient) || 0;
-              const amount = parseFloat(offer.amount) || 0;
-              const monthlyPayment = parseFloat(offer.monthly_payment) || 0;
+              const coefficient = parseFloat(String(offer.coefficient)) || 0;
+              const amount = parseFloat(String(offer.amount)) || 0;
+              const monthlyPayment = parseFloat(String(offer.monthly_payment)) || 0;
               
               setGlobalMarginAdjustment(prev => ({
                 ...prev,
@@ -152,17 +152,17 @@ const CreateOffer = () => {
                   const formattedEquipment = equipmentData.map(item => ({
                     id: item.id || crypto.randomUUID(),
                     title: item.title,
-                    purchasePrice: parseFloat(item.purchasePrice) || 0,
-                    quantity: parseInt(item.quantity, 10) || 1,
-                    margin: parseFloat(item.margin) || 20,
-                    monthlyPayment: parseFloat(item.monthlyPayment || 0)
+                    purchasePrice: parseFloat(String(item.purchasePrice)) || 0,
+                    quantity: parseInt(String(item.quantity), 10) || 1,
+                    margin: parseFloat(String(item.margin)) || 20,
+                    monthlyPayment: parseFloat(String(item.monthlyPayment || 0))
                   }));
                   
                   console.log("Formatted equipment with preserved margins:", formattedEquipment);
                   setEquipmentList(formattedEquipment);
                   
                   if (offer.monthly_payment) {
-                    setTargetMonthlyPayment(parseFloat(offer.monthly_payment) || 0);
+                    setTargetMonthlyPayment(parseFloat(String(offer.monthly_payment)) || 0);
                   }
                 }
               } catch (e) {
