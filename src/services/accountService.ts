@@ -17,14 +17,16 @@ interface CreateAccountParams {
  * Create a user account for a partner or ambassador
  */
 export const createUserAccount = async (
-  entity: Partner | Ambassador,
-  userType: "partner" | "ambassador"
+  entity: Partner | Ambassador | Client,
+  userType: "partner" | "ambassador" | "client" = "partner"
 ): Promise<boolean> => {
   if (!entity.email) {
     toast.error(
       userType === "partner"
         ? "Ce partenaire n'a pas d'adresse email"
-        : "Cet ambassadeur n'a pas d'adresse email"
+        : userType === "ambassador"
+        ? "Cet ambassadeur n'a pas d'adresse email"
+        : "Ce client n'a pas d'adresse email"
     );
     return false;
   }
@@ -76,7 +78,7 @@ export const createUserAccount = async (
           data: { 
             name: entity.name,
             role: userType,
-            [userType === "partner" ? "partner_id" : "ambassador_id"]: entity.id
+            [userType === "partner" ? "partner_id" : userType === "ambassador" ? "ambassador_id" : "client_id"]: entity.id
           }
         }
       });
@@ -97,8 +99,8 @@ export const createUserAccount = async (
       console.log("Utilisateur créé avec succès:", userId);
     }
     
-    // Mettre à jour le partenaire ou ambassadeur dans la base de données
-    const tableName = userType === "partner" ? "partners" : "ambassadors";
+    // Mettre à jour le partenaire, ambassadeur ou client dans la base de données
+    const tableName = userType === "partner" ? "partners" : userType === "ambassador" ? "ambassadors" : "clients";
     
     // MODIFICATION IMPORTANTE: Utiliser directement adminSupabase pour la mise à jour
     // et définir explicitement les champs has_user_account et user_account_created_at
