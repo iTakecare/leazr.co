@@ -1,8 +1,7 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import { toast } from "sonner";
@@ -10,12 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
-  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, Trash, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText
+  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
+  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-// Définir l'interface Ambassador pour la page de détail
 interface Ambassador {
   id: string;
   name: string;
@@ -65,132 +63,216 @@ interface Commission {
   isPaid: boolean;
 }
 
-// Services mock pour ambassadeurs
+const mockAmbassadors: Record<string, Ambassador> = {
+  "1": {
+    id: '1',
+    name: 'Sophie Laurent',
+    email: 'sophie.laurent@example.com',
+    phone: '+33 6 12 34 56 78',
+    region: 'Île-de-France',
+    status: 'active',
+    clientsCount: 12,
+    commissionsTotal: 4500,
+    lastCommission: 750,
+    created_at: '2023-02-10T09:30:00Z',
+    updated_at: '2023-08-15T14:20:00Z',
+    notes: 'Ambassadrice très active dans le milieu hospitalier parisien.',
+    collaborators: [
+      {
+        id: 'c1',
+        name: 'Antoine Martin',
+        role: 'Assistant',
+        email: 'antoine.martin@example.com',
+        phone: '+33 6 22 33 44 55',
+        department: 'Support'
+      }
+    ],
+    clients: [
+      {
+        id: 'cl1',
+        name: 'Cabinet Médical Santé Plus',
+        email: 'contact@santeplus.fr',
+        status: 'active',
+        company: 'Santé Plus',
+        createdAt: '2023-03-15',
+        totalValue: 2500
+      },
+      {
+        id: 'cl2',
+        name: 'Dr. Philippe Martin',
+        email: 'p.martin@gmail.com',
+        status: 'active',
+        company: 'Cabinet Dr. Martin',
+        createdAt: '2023-05-20',
+        totalValue: 1800
+      }
+    ],
+    commissions: [
+      {
+        id: 'com1',
+        date: '2023-04-15',
+        client: 'Cabinet Médical Santé Plus',
+        amount: 250,
+        status: 'Payée',
+        isPaid: true
+      },
+      {
+        id: 'com2',
+        date: '2023-06-22',
+        client: 'Dr. Philippe Martin',
+        amount: 180,
+        status: 'Payée',
+        isPaid: true
+      },
+      {
+        id: 'com3',
+        date: '2023-09-05',
+        client: 'Cabinet Médical Santé Plus',
+        amount: 320,
+        status: 'En attente',
+        isPaid: false
+      }
+    ]
+  },
+  "2": {
+    id: '2',
+    name: 'Marc Dubois',
+    email: 'marc.dubois@example.com',
+    phone: '+33 6 23 45 67 89',
+    region: 'Auvergne-Rhône-Alpes',
+    status: 'active',
+    clientsCount: 8,
+    commissionsTotal: 3200,
+    lastCommission: 550,
+    created_at: '2023-03-15T11:45:00Z',
+    updated_at: '2023-09-20T10:15:00Z',
+    notes: 'Bonne connaissance du réseau de cliniques privées de Lyon.',
+    collaborators: [],
+    clients: [
+      {
+        id: 'cl4',
+        name: 'Clinique du Sport',
+        email: 'contact@clinique-sport.fr',
+        status: 'active',
+        company: 'Clinique du Sport',
+        createdAt: '2023-04-12',
+        totalValue: 1700
+      },
+      {
+        id: 'cl5',
+        name: 'Centre Médical Bellevue',
+        email: 'info@cm-bellevue.fr',
+        status: 'active',
+        company: 'CM Bellevue',
+        createdAt: '2023-06-18',
+        totalValue: 1500
+      }
+    ],
+    commissions: [
+      {
+        id: 'com4',
+        date: '2023-05-20',
+        client: 'Clinique du Sport',
+        amount: 170,
+        status: 'Payée',
+        isPaid: true
+      },
+      {
+        id: 'com5',
+        date: '2023-07-15',
+        client: 'Centre Médical Bellevue',
+        amount: 150,
+        status: 'Payée',
+        isPaid: true
+      },
+      {
+        id: 'com6',
+        date: '2023-10-10',
+        client: 'Clinique du Sport',
+        amount: 230,
+        status: 'En attente',
+        isPaid: false
+      }
+    ]
+  },
+  "3": {
+    id: '3',
+    name: 'Émilie Moreau',
+    email: 'emilie.moreau@example.com',
+    phone: '+33 6 34 56 78 90',
+    region: 'Provence-Alpes-Côte d\'Azur',
+    status: 'inactive',
+    clientsCount: 5,
+    commissionsTotal: 1800,
+    lastCommission: 0,
+    created_at: '2023-04-20T08:15:00Z',
+    updated_at: '2023-10-05T16:30:00Z',
+    notes: 'En pause temporaire pour congé maternité.',
+    has_user_account: true,
+    user_account_created_at: '2023-04-25T10:00:00Z'
+  },
+  "4": {
+    id: '4',
+    name: 'Thomas Bernard',
+    email: 'thomas.bernard@example.com',
+    phone: '+33 6 45 67 89 01',
+    region: 'Grand Est',
+    status: 'active',
+    clientsCount: 7,
+    commissionsTotal: 2800,
+    lastCommission: 420,
+    created_at: '2023-05-12T13:20:00Z',
+    updated_at: '2023-11-08T09:45:00Z',
+    notes: 'Spécialisé dans les équipements de rééducation.'
+  },
+  "5": {
+    id: '5',
+    name: 'Lucie Petit',
+    email: 'lucie.petit@example.com',
+    phone: '+33 6 56 78 90 12',
+    region: 'Bretagne',
+    status: 'active',
+    clientsCount: 6,
+    commissionsTotal: 2100,
+    lastCommission: 350,
+    created_at: '2023-06-18T15:30:00Z',
+    updated_at: '2023-12-02T11:10:00Z',
+    notes: 'Excellente connaissance du tissu médical local.'
+  }
+};
+
+const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      console.log(`Récupération des données de l'ambassadeur ID: ${id}`);
+      const ambassador = mockAmbassadors[id];
+      resolve(ambassador || null);
+    }, 600);
+  });
+};
+
 const resetAmbassadorPassword = async (email: string): Promise<boolean> => {
   // Simuler la réinitialisation du mot de passe
   await new Promise(resolve => setTimeout(resolve, 800));
+  console.log(`Demande de réinitialisation de mot de passe pour: ${email}`);
   return true;
 };
 
 const createAccountForAmbassador = async (ambassador: Ambassador): Promise<boolean> => {
   // Simuler la création d'un compte
   await new Promise(resolve => setTimeout(resolve, 1200));
+  console.log(`Création de compte pour l'ambassadeur: ${ambassador.name}`);
+  
+  // Mettre à jour l'ambassadeur dans la base de données mockée
+  if (mockAmbassadors[ambassador.id]) {
+    mockAmbassadors[ambassador.id] = {
+      ...mockAmbassadors[ambassador.id],
+      has_user_account: true,
+      user_account_created_at: new Date().toISOString()
+    };
+  }
+  
   return true;
-};
-
-const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
-  // Simuler le chargement des données de l'ambassadeur
-  await new Promise(resolve => setTimeout(resolve, 600));
-  
-  const mockAmbassadors: Ambassador[] = [
-    {
-      id: '1',
-      name: 'Caroline Dubois',
-      email: 'caroline.dubois@example.com',
-      phone: '+33 6 11 22 33 44',
-      region: 'Île-de-France',
-      status: 'active',
-      clientsCount: 12,
-      commissionsTotal: 8500,
-      lastCommission: 750,
-      created_at: '2023-02-10T09:30:00Z',
-      updated_at: '2023-08-15T14:20:00Z',
-      notes: 'Ambassadrice très active dans le secteur médical en Île-de-France.',
-      collaborators: [
-        {
-          id: 'c1',
-          name: 'Antoine Martin',
-          role: 'Assistant',
-          email: 'antoine.martin@example.com',
-          phone: '+33 6 22 33 44 55',
-          department: 'Support'
-        }
-      ],
-      clients: [
-        {
-          id: 'cl1',
-          name: 'Cabinet Médical Santé Plus',
-          email: 'contact@santeplus.fr',
-          status: 'active',
-          company: 'Santé Plus',
-          createdAt: '2023-03-15',
-          totalValue: 4500
-        },
-        {
-          id: 'cl2',
-          name: 'Dr. Philippe Martin',
-          email: 'p.martin@gmail.com',
-          status: 'active',
-          company: 'Cabinet Dr. Martin',
-          createdAt: '2023-05-20',
-          totalValue: 2800
-        },
-        {
-          id: 'cl3',
-          name: 'Centre Dentaire Sourire',
-          email: 'contact@centresourire.fr',
-          status: 'active',
-          company: 'Centre Sourire',
-          createdAt: '2023-07-10',
-          totalValue: 3200
-        }
-      ],
-      commissions: [
-        {
-          id: 'com1',
-          date: '2023-04-15',
-          client: 'Cabinet Médical Santé Plus',
-          amount: 350,
-          status: 'Payée',
-          isPaid: true
-        },
-        {
-          id: 'com2',
-          date: '2023-06-22',
-          client: 'Dr. Philippe Martin',
-          amount: 280,
-          status: 'Payée',
-          isPaid: true
-        },
-        {
-          id: 'com3',
-          date: '2023-08-05',
-          client: 'Centre Dentaire Sourire',
-          amount: 320,
-          status: 'En attente',
-          isPaid: false
-        }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Marc Lefevre',
-      email: 'marc.lefevre@example.com',
-      phone: '+33 6 33 44 55 66',
-      region: 'Auvergne-Rhône-Alpes',
-      status: 'active',
-      clientsCount: 8,
-      commissionsTotal: 6200,
-      lastCommission: 550,
-      created_at: '2023-03-15T11:45:00Z',
-      updated_at: '2023-09-20T10:15:00Z'
-    },
-    {
-      id: '3',
-      name: 'Julie Petit',
-      email: 'julie.petit@example.com',
-      phone: '+33 6 44 55 66 77',
-      region: 'Nouvelle-Aquitaine',
-      status: 'inactive',
-      clientsCount: 5,
-      commissionsTotal: 3800,
-      lastCommission: 0,
-      created_at: '2023-04-20T08:15:00Z',
-      updated_at: '2023-10-05T16:30:00Z'
-    }
-  ];
-  
-  return mockAmbassadors.find(a => a.id === id) || null;
 };
 
 export default function AmbassadorDetail() {
@@ -202,7 +284,6 @@ export default function AmbassadorDetail() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
-  // Fonction pour charger les données de l'ambassadeur
   const fetchAmbassador = async () => {
     if (!id) return;
     
@@ -220,7 +301,7 @@ export default function AmbassadorDetail() {
       setAmbassador(ambassadorData);
     } catch (error) {
       console.error("Error fetching ambassador:", error);
-      toast.error("Erreur lors du chargement de l'ambassadeur");
+      toast.error("Erreur lors du chargement des données de l'ambassadeur");
     } finally {
       setLoading(false);
     }
@@ -292,7 +373,7 @@ export default function AmbassadorDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <span className="ml-3 text-lg">Chargement...</span>
       </div>
     );
@@ -309,7 +390,6 @@ export default function AmbassadorDetail() {
     );
   }
 
-  // Un compte est considéré comme actif uniquement si has_user_account est true
   const hasUserAccount = Boolean(ambassador.has_user_account);
 
   return (
@@ -325,7 +405,10 @@ export default function AmbassadorDetail() {
             Retour
           </Button>
           <Link to={`/ambassadors/edit/${id}`}>
-            <Button className="shadow-sm">Modifier</Button>
+            <Button className="shadow-sm flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              Modifier
+            </Button>
           </Link>
         </div>
       </div>
@@ -577,7 +660,36 @@ export default function AmbassadorDetail() {
               <CardDescription>Personnes associées à cet ambassadeur</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <CollaboratorForm clientId={id!} />
+              {ambassador.collaborators && ambassador.collaborators.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Rôle</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Téléphone</TableHead>
+                      <TableHead>Département</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ambassador.collaborators.map((collab) => (
+                      <TableRow key={collab.id}>
+                        <TableCell className="font-medium">{collab.name}</TableCell>
+                        <TableCell>{collab.role}</TableCell>
+                        <TableCell>{collab.email}</TableCell>
+                        <TableCell>{collab.phone || "-"}</TableCell>
+                        <TableCell>{collab.department || "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-10">
+                  <UserPlus className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-muted-foreground">Aucun collaborateur pour cet ambassadeur</p>
+                  <p className="text-xs text-muted-foreground mt-2">Ajoutez des collaborateurs pour faciliter la communication</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

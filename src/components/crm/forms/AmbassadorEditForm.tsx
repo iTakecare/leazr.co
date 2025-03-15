@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -45,79 +46,119 @@ interface Ambassador {
   region: string;
   status: string;
   commissionsTotal: number;
+  clientsCount?: number;
+  lastCommission?: number;
   notes?: string;
 }
 
-// Dummy function to simulate API call to get ambassador data
+// Base de données mockée plus complète
+const mockAmbassadors: Record<string, Ambassador> = {
+  "1": {
+    id: '1',
+    name: 'Sophie Laurent',
+    email: 'sophie.laurent@example.com',
+    phone: '+33 6 12 34 56 78',
+    region: 'Île-de-France',
+    status: 'active',
+    commissionsTotal: 4500,
+    clientsCount: 12,
+    lastCommission: 750,
+    notes: 'Ambassadrice très active dans le milieu hospitalier parisien.'
+  },
+  "2": {
+    id: '2',
+    name: 'Marc Dubois',
+    email: 'marc.dubois@example.com',
+    phone: '+33 6 23 45 67 89',
+    region: 'Auvergne-Rhône-Alpes',
+    status: 'active',
+    commissionsTotal: 3200,
+    clientsCount: 8,
+    lastCommission: 550,
+    notes: 'Bonne connaissance du réseau de cliniques privées de Lyon.'
+  },
+  "3": {
+    id: '3',
+    name: 'Émilie Moreau',
+    email: 'emilie.moreau@example.com',
+    phone: '+33 6 34 56 78 90',
+    region: 'Provence-Alpes-Côte d\'Azur',
+    status: 'inactive',
+    commissionsTotal: 1800,
+    clientsCount: 5,
+    lastCommission: 0,
+    notes: 'En pause temporaire pour congé maternité.'
+  },
+  "4": {
+    id: '4',
+    name: 'Thomas Bernard',
+    email: 'thomas.bernard@example.com',
+    phone: '+33 6 45 67 89 01',
+    region: 'Grand Est',
+    status: 'active',
+    commissionsTotal: 2800,
+    clientsCount: 7,
+    lastCommission: 420,
+    notes: 'Spécialisé dans les équipements de rééducation.'
+  },
+  "5": {
+    id: '5',
+    name: 'Lucie Petit',
+    email: 'lucie.petit@example.com',
+    phone: '+33 6 56 78 90 12',
+    region: 'Bretagne',
+    status: 'active',
+    commissionsTotal: 2100,
+    clientsCount: 6,
+    lastCommission: 350,
+    notes: 'Excellente connaissance du tissu médical local.'
+  }
+};
+
+// Fonction pour récupérer un ambassadeur par son ID
 const getAmbassadorById = (id: string): Promise<Ambassador> => {
-  // This would be replaced with an actual API call
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const mockAmbassadors: Record<string, Ambassador> = {
-        "1": {
-          id: '1',
-          name: 'Sophie Laurent',
-          email: 'sophie.laurent@example.com',
-          phone: '+33 6 12 34 56 78',
-          region: 'Île-de-France',
-          status: 'active',
-          commissionsTotal: 4500,
-          notes: 'Ambassadrice très active dans le milieu hospitalier parisien.'
-        },
-        "2": {
-          id: '2',
-          name: 'Marc Dubois',
-          email: 'marc.dubois@example.com',
-          phone: '+33 6 23 45 67 89',
-          region: 'Auvergne-Rhône-Alpes',
-          status: 'active',
-          commissionsTotal: 3200,
-          notes: 'Bonne connaissance du réseau de cliniques privées de Lyon.'
-        },
-        "3": {
-          id: '3',
-          name: 'Émilie Moreau',
-          email: 'emilie.moreau@example.com',
-          phone: '+33 6 34 56 78 90',
-          region: 'Provence-Alpes-Côte d\'Azur',
-          status: 'inactive',
-          commissionsTotal: 1800,
-          notes: 'En pause temporaire pour congé maternité.'
-        }
-      };
-      
-      resolve(mockAmbassadors[id] || {
-        id,
-        name: 'Ambassadeur inconnu',
-        email: '',
-        phone: '',
-        region: '',
-        status: 'inactive',
-        commissionsTotal: 0
-      });
+      const ambassador = mockAmbassadors[id];
+      if (ambassador) {
+        console.log(`Récupération de l'ambassadeur ID: ${id}`, ambassador);
+        resolve(ambassador);
+      } else {
+        console.error(`Ambassadeur avec ID ${id} non trouvé`);
+        reject(new Error(`Ambassadeur avec ID ${id} non trouvé`));
+      }
     }, 500);
   });
 };
 
-// Updated function to simulate API call to update ambassador data
+// Fonction pour mettre à jour un ambassadeur
 const updateAmbassador = (id: string, data: AmbassadorFormData): Promise<Ambassador> => {
-  // This would be replaced with an actual API call
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     setTimeout(() => {
-      console.log('Updating ambassador:', id, data);
+      console.log('Mise à jour de l\'ambassadeur:', id, data);
       
-      // Create an updated ambassador object with all required fields explicitly defined
+      const existingAmbassador = mockAmbassadors[id];
+      if (!existingAmbassador) {
+        console.error(`Ambassadeur avec ID ${id} non trouvé lors de la mise à jour`);
+        reject(new Error(`Ambassadeur avec ID ${id} non trouvé`));
+        return;
+      }
+      
+      // Créer un objet ambassadeur mis à jour en conservant les données existantes
       const updatedAmbassador: Ambassador = {
-        id,
+        ...existingAmbassador,
         name: data.name,
         email: data.email,
         phone: data.phone,
         region: data.region,
         status: data.status,
-        commissionsTotal: 0, // This would come from the server in a real implementation
         notes: data.notes
       };
       
+      // Mettre à jour la base de données mockée
+      mockAmbassadors[id] = updatedAmbassador;
+      
+      console.log(`Ambassadeur ID ${id} mis à jour avec succès:`, updatedAmbassador);
       toast.success(`L'ambassadeur ${data.name} a été mis à jour avec succès`);
       resolve(updatedAmbassador);
     }, 800);
@@ -144,15 +185,22 @@ const AmbassadorEditForm = () => {
   });
 
   React.useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      console.error("Aucun ID d'ambassadeur fourni");
+      toast.error("Erreur: Ambassadeur non identifié");
+      navigate("/ambassadors");
+      return;
+    }
 
     const fetchAmbassador = async () => {
       setIsLoading(true);
       try {
         const data = await getAmbassadorById(id);
+        
+        console.log(`Données de l'ambassadeur ID ${id} chargées:`, data);
         setAmbassador(data);
         
-        // Update form values
+        // Mettre à jour les valeurs du formulaire
         form.reset({
           name: data.name,
           email: data.email,
@@ -162,34 +210,37 @@ const AmbassadorEditForm = () => {
           notes: data.notes || "",
         });
       } catch (error) {
-        console.error("Error fetching ambassador:", error);
+        console.error("Erreur lors du chargement de l'ambassadeur:", error);
         toast.error("Erreur lors du chargement des données de l'ambassadeur");
+        navigate("/");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchAmbassador();
-  }, [id, form]);
+  }, [id, form, navigate]);
 
   const onSubmit = async (data: AmbassadorFormData) => {
-    if (!id) return;
+    if (!id) {
+      console.error("Aucun ID d'ambassadeur fourni pour la sauvegarde");
+      return;
+    }
     
     setIsSaving(true);
     try {
       const updatedAmbassador = await updateAmbassador(id, data);
       setAmbassador(updatedAmbassador);
+      console.log(`Ambassadeur ID ${id} sauvegardé avec succès:`, updatedAmbassador);
+      
+      // Rediriger vers la page de détail après sauvegarde
       navigate(`/ambassadors/${id}`);
     } catch (error) {
-      console.error("Error updating ambassador:", error);
+      console.error("Erreur lors de la mise à jour de l'ambassadeur:", error);
       toast.error("Erreur lors de la mise à jour de l'ambassadeur");
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleCancel = () => {
-    navigate(`/ambassadors/${id}`);
   };
 
   if (isLoading) {

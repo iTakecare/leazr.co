@@ -20,6 +20,8 @@ const NotFound = () => {
   const isCatalogDetailAttempt = location.pathname.includes('/catalog/');
   const isPartnerEditAttempt = location.pathname.includes('/partners/edit/');
   const isAmbassadorEditAttempt = location.pathname.includes('/ambassadors/edit/');
+  const isAmbassadorAttempt = location.pathname.includes('/ambassadors/');
+  const isPartnerAttempt = location.pathname.includes('/partners/');
   
   const clientId = isClientEditAttempt ? 
     location.pathname.split('/clients/edit/')[1] : null;
@@ -35,6 +37,10 @@ const NotFound = () => {
     
   const ambassadorId = isAmbassadorEditAttempt ?
     location.pathname.split('/ambassadors/edit/')[1] : null;
+
+  // Si c'est une tentative d'accès à une route ambassadeur ou partenaire
+  const isSimpleAmbassadorAttempt = isAmbassadorAttempt && !isAmbassadorEditAttempt;
+  const isSimplePartnerAttempt = isPartnerAttempt && !isPartnerEditAttempt;
 
   // If we have a product ID, use it for both routes
   const productOrCatalogId = productId || catalogId;
@@ -88,6 +94,32 @@ const NotFound = () => {
             </div>
           )}
           
+          {isSimpleAmbassadorAttempt && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-amber-700 text-sm mb-4">
+                Si vous cherchez la liste des ambassadeurs, utilisez le lien ci-dessous:
+              </p>
+              <Link to="/ambassadors">
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <User className="h-4 w-4" /> Liste des ambassadeurs
+                </Button>
+              </Link>
+            </div>
+          )}
+          
+          {isSimplePartnerAttempt && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-amber-700 text-sm mb-4">
+                Si vous cherchez la liste des partenaires, utilisez le lien ci-dessous:
+              </p>
+              <Link to="/partners">
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <Building className="h-4 w-4" /> Liste des partenaires
+                </Button>
+              </Link>
+            </div>
+          )}
+          
           {productOrCatalogId && (isProductDetailAttempt || isCatalogDetailAttempt) && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
               <p className="text-amber-700 text-sm mb-4">
@@ -117,9 +149,9 @@ const NotFound = () => {
               asChild
               className="flex items-center gap-2"
             >
-              <Link to="/clients">
+              <Link to="/dashboard">
                 <ArrowLeft className="h-4 w-4" /> 
-                Liste des clients
+                Tableau de bord
               </Link>
             </Button>
           </div>

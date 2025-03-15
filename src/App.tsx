@@ -24,6 +24,7 @@ import PartnerDetail from "./pages/PartnerDetail";
 import PartnerEditPage from "./pages/PartnerEditPage";
 import AmbassadorDetail from "./pages/AmbassadorDetail";
 import AmbassadorEditPage from "./pages/AmbassadorEditPage";
+import AmbassadorsListPage from "./pages/AmbassadorsList";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -169,9 +170,11 @@ function App() {
               <Route path="/contracts" element={<Contracts />} />
               <Route path="/create-test-users" element={<CreateTestUsers />} />
               {/* Routes for partners */}
+              <Route path="/partners" element={<AmbassadorsListPage />} />
               <Route path="/partners/:id" element={<PartnerDetail />} />
               <Route path="/partners/edit/:id" element={<PartnerEditPage />} />
               {/* Routes for ambassadors */}
+              <Route path="/ambassadors" element={<AmbassadorsListPage />} />
               <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
               <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
             </Route>
