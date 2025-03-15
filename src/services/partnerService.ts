@@ -60,7 +60,7 @@ const mapDbPartnerToPartner = (record: any): Partner => {
     status: record.status || "active",
     notes: record.notes,
     user_id: record.user_id,
-    commissionsTotal: record.commissions_total || 0,
+    commissionsTotal: 0, // Set a default value instead of using the non-existent column
     created_at: record.created_at ? new Date(record.created_at) : undefined,
     updated_at: record.updated_at ? new Date(record.updated_at) : undefined,
     has_user_account: record.has_user_account || false,
@@ -138,7 +138,6 @@ export const createPartner = async (partnerData: PartnerFormValues): Promise<Par
       clients_count: 0,
       revenue_total: 0,
       last_transaction: 0,
-      commissions_total: 0,
       user_id: userData.user.id,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
