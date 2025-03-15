@@ -39,16 +39,20 @@ export const createUserAccount = async (
       entityId: entity.id
     };
 
+    console.log("Sending request to create-user-account with params:", params);
+
     // Call the Supabase Edge Function
     const { data, error } = await supabase.functions.invoke("create-user-account", {
       body: params
     });
     
     if (error) {
-      console.error(`Error creating ${userType} account:`, error);
+      console.error(`Error calling create-user-account function:`, error);
       toast.error(`Erreur lors de la création du compte : ${error.message}`);
       return false;
     }
+    
+    console.log("Response from create-user-account function:", data);
     
     if (data?.error) {
       console.error(`Error from edge function:`, data.error);
