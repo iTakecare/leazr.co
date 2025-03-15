@@ -1,7 +1,6 @@
-
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent } from "lucide-react";
+import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
@@ -15,7 +14,6 @@ const NotFound = () => {
     );
   }, [location.pathname]);
 
-  // Check if the path contains specific routes
   const isClientEditAttempt = location.pathname.includes('/clients/edit/');
   const isProductDetailAttempt = location.pathname.includes('/products/');
   const isCatalogDetailAttempt = location.pathname.includes('/catalog/');
@@ -39,11 +37,9 @@ const NotFound = () => {
   const ambassadorId = isAmbassadorEditAttempt ?
     location.pathname.split('/ambassadors/edit/')[1] : null;
 
-  // Si c'est une tentative d'accès à une route ambassadeur ou partenaire
   const isSimpleAmbassadorAttempt = isAmbassadorAttempt && !isAmbassadorEditAttempt;
   const isSimplePartnerAttempt = isPartnerAttempt && !isPartnerEditAttempt;
 
-  // If we have a product ID, use it for both routes
   const productOrCatalogId = productId || catalogId;
 
   const goBack = () => {
