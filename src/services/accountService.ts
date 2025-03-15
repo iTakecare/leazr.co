@@ -33,15 +33,17 @@ export const createUserAccount = async (
     console.log(`Creating account for ${userType} with email ${entity.email}`);
     
     // Vérifier si l'utilisateur existe déjà avec cette adresse email
-    const { data: { user: existingUser }, error: checkError } = await supabase.auth.admin.getUserByEmail(entity.email);
+    const { data, error: checkError } = await supabase.auth.admin.listUsers({
+      email: entity.email
+    });
     
-    if (checkError && checkError.message !== "User not found") {
+    if (checkError) {
       console.error("Erreur lors de la vérification de l'utilisateur:", checkError);
       toast.error(`Erreur lors de la vérification: ${checkError.message}`);
       return false;
     }
     
-    if (existingUser) {
+    if (data?.users && data.users.length > 0) {
       console.log(`Un compte existe déjà avec l'email ${entity.email}`);
       toast.error(`Un compte existe déjà avec cette adresse email`);
       return false;
