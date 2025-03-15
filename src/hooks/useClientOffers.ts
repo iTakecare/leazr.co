@@ -1,8 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { getSupabaseClient } from "@/integrations/supabase/client";
-
-const supabase = getSupabaseClient();
+import { supabase } from "@/integrations/supabase/client";
 
 // Assurez-vous que le type ClientOffer inclut les champs status et workflow_status
 export interface ClientOffer {
