@@ -1,37 +1,39 @@
 
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { Ambassador } from "@/services/ambassadorService";
-import { ArrowLeft, CheckCircle, AlertCircle, UserPlus, KeyRound, Loader2 } from "lucide-react";
-import { createUserAccount, resetPassword } from "@/services/accountService";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { 
+  User, Mail, Phone, MapPin, Calendar, Tag, FileText, 
+  UserPlus, KeyRound, Users, CreditCard, ChevronLeft 
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Card, CardContent, CardDescription, 
+  CardFooter, CardHeader, CardTitle 
+} from '@/components/ui/card';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { Ambassador } from '@/services/ambassadorService';
+import { createAccountForAmbassador, resetAmbassadorPassword } from '@/services/ambassadorService';
 
 interface AmbassadorDetailProps {
   ambassador: Ambassador;
-  onBackClick: () => void;
-  onRefresh: () => void;
+  onReloadData: () => void;
 }
 
-export default function AmbassadorDetail({ ambassador, onBackClick, onRefresh }: AmbassadorDetailProps) {
-  const navigate = useNavigate();
+const AmbassadorDetail = ({ ambassador, onReloadData }: AmbassadorDetailProps) => {
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const formatDate = (date: string | Date | undefined) => {
-    if (!date) return "N/A";
-    try {
-      return format(new Date(date), "dd MMMM yyyy", { locale: fr });
-    } catch (error) {
-      return "Date invalide";
-    }
+    if (!date) return 'N/A';
+    return format(new Date(date), 'dd MMMM yyyy', { locale: fr });
   };
 
   const handleCreateAccount = async () => {
+    if (!ambassador) return;
+    
     if (!ambassador.email) {
       toast.error("Cet ambassadeur n'a pas d'adresse email");
       return;
@@ -39,10 +41,10 @@ export default function AmbassadorDetail({ ambassador, onBackClick, onRefresh }:
     
     setIsCreatingAccount(true);
     try {
-      const success = await createUserAccount(ambassador, "ambassador");
+      const success = await createAccountForAmbassador(ambassador);
       if (success) {
-        onRefresh();
-        toast.success("Compte ambassadeur créé et emails de configuration envoyés");
+        onReloadData();
+        toast.success("Compte utilisateur créé et emails de configuration envoyés");
       }
     } catch (error) {
       console.error("Error creating account:", error);
@@ -53,14 +55,14 @@ export default function AmbassadorDetail({ ambassador, onBackClick, onRefresh }:
   };
 
   const handleResetPassword = async () => {
-    if (!ambassador.email) {
+    if (!ambassador?.email) {
       toast.error("Cet ambassadeur n'a pas d'adresse email");
       return;
     }
 
     setIsResettingPassword(true);
     try {
-      const success = await resetPassword(ambassador.email);
+      const success = await resetAmbassadorPassword(ambassador.email);
       if (success) {
         toast.success("Email de réinitialisation envoyé avec succès");
       } else {
@@ -74,127 +76,204 @@ export default function AmbassadorDetail({ ambassador, onBackClick, onRefresh }:
     }
   };
 
-  const hasUserAccount = Boolean(ambassador.has_user_account);
-
   return (
-    <>
-      <div className="flex items-center mb-8">
-        <Button variant="ghost" onClick={onBackClick} className="mr-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Retour
-        </Button>
-        <h1 className="text-3xl font-bold flex-1">{ambassador.name}</h1>
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Détails de l'ambassadeur</h1>
+        <div className="flex gap-2">
+          <Link to="/ambassadors">
+            <Button variant="outline" size="sm">
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Retour à la liste
+            </Button>
+          </Link>
+          <Link to={`/ambassadors/edit/${ambassador.id}`}>
+            <Button size="sm">Modifier</Button>
+          </Link>
+        </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Main info card */}
+        <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Informations de l'ambassadeur</CardTitle>
-            <CardDescription>Détails et coordonnées</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" />
+              Informations principales
+            </CardTitle>
+            <CardDescription>Coordonnées et informations générales</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-medium mb-2">Email</h3>
-                <p>{ambassador.email || "Non spécifié"}</p>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-2">
+                <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Email</p>
+                  <p className="text-sm text-muted-foreground">{ambassador.email || 'Non spécifié'}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium mb-2">Téléphone</h3>
-                <p>{ambassador.phone || "Non spécifié"}</p>
+              
+              <div className="flex items-start gap-2">
+                <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Téléphone</p>
+                  <p className="text-sm text-muted-foreground">{ambassador.phone || 'Non spécifié'}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium mb-2">Région</h3>
-                <p>{ambassador.region || "Non spécifiée"}</p>
+              
+              <div className="flex items-start gap-2">
+                <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Région</p>
+                  <p className="text-sm text-muted-foreground">{ambassador.region || 'Non spécifiée'}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium mb-2">Statut</h3>
-                <Badge variant={ambassador.status === "active" ? "success" : "secondary"}>
-                  {ambassador.status === "active" ? "Actif" : "Inactif"}
-                </Badge>
+              
+              <div className="flex items-start gap-2">
+                <Tag className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Statut</p>
+                  <Badge variant={ambassador.status === 'active' ? 'secondary' : 'outline'}>
+                    {ambassador.status === 'active' ? 'Actif' : 'Inactif'}
+                  </Badge>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium mb-2">Date de création</h3>
-                <p>{formatDate(ambassador.created_at)}</p>
+              
+              <div className="flex items-start gap-2">
+                <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Date de création</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(ambassador.created_at)}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium mb-2">Dernière mise à jour</h3>
-                <p>{formatDate(ambassador.updated_at)}</p>
+              
+              <div className="flex items-start gap-2">
+                <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Dernière mise à jour</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(ambassador.updated_at)}</p>
+                </div>
               </div>
             </div>
-
+            
             {ambassador.notes && (
-              <div className="mt-6">
-                <h3 className="font-medium mb-2">Notes</h3>
-                <p className="whitespace-pre-line bg-muted/20 p-4 rounded-md text-sm">
-                  {ambassador.notes}
-                </p>
+              <div className="mt-4 border-t pt-4">
+                <div className="flex items-start gap-2">
+                  <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Notes</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">{ambassador.notes}</p>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
-
+        
+        {/* Account card */}
         <Card>
           <CardHeader>
-            <CardTitle>Compte utilisateur</CardTitle>
-            <CardDescription>Accès au portail ambassadeur</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Compte utilisateur
+            </CardTitle>
+            <CardDescription>Accès à la plateforme</CardDescription>
           </CardHeader>
           <CardContent>
-            {hasUserAccount ? (
+            {ambassador.has_user_account ? (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 bg-green-50 p-4 rounded-md border border-green-200">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <div>
-                    <div className="font-medium text-green-800">Compte actif</div>
-                    {ambassador.user_account_created_at && (
-                      <span className="text-xs text-green-700">
-                        Créé le {formatDate(ambassador.user_account_created_at)}
-                      </span>
-                    )}
-                  </div>
+                <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                  <p className="text-sm text-green-800 font-medium">Compte actif</p>
+                  {ambassador.user_account_created_at && (
+                    <p className="text-xs text-green-700">
+                      Créé le {formatDate(ambassador.user_account_created_at)}
+                    </p>
+                  )}
                 </div>
+                
                 <Button 
                   variant="outline" 
-                  size="sm"
-                  className="w-full flex items-center justify-center"
+                  size="sm" 
+                  className="w-full" 
                   onClick={handleResetPassword}
-                  disabled={isResettingPassword || !ambassador.email}
+                  disabled={isResettingPassword}
                 >
                   <KeyRound className="h-4 w-4 mr-2" />
-                  {isResettingPassword ? "Envoi en cours..." : "Réinitialiser le mot de passe"}
+                  {isResettingPassword ? 'Envoi en cours...' : 'Réinitialiser le mot de passe'}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">Cet ambassadeur n'a pas encore de compte utilisateur pour accéder au portail.</p>
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                  <p className="text-sm text-amber-800">
+                    Cet ambassadeur n'a pas encore de compte utilisateur
+                  </p>
                 </div>
-                {ambassador.email ? (
-                  <Button 
-                    className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
-                    onClick={handleCreateAccount}
-                    disabled={isCreatingAccount}
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    {isCreatingAccount ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Création en cours...
-                      </>
-                    ) : (
-                      "Créer un compte ambassadeur"
-                    )}
-                  </Button>
-                ) : (
-                  <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-md">
-                    Une adresse email est nécessaire pour créer un compte utilisateur.
-                  </div>
-                )}
+                
+                <Button 
+                  className="w-full"
+                  onClick={handleCreateAccount}
+                  disabled={isCreatingAccount || !ambassador.email}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {isCreatingAccount ? 'Création en cours...' : 'Créer un compte'}
+                </Button>
               </div>
             )}
           </CardContent>
         </Card>
+        
+        {/* Stats card */}
+        <Card className="md:col-span-3">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" />
+              Performance
+            </CardTitle>
+            <CardDescription>Statistiques et commissions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-muted/30 rounded-md p-4">
+                <p className="text-sm text-muted-foreground">Clients</p>
+                <p className="text-2xl font-bold">{ambassador.clientsCount || 0}</p>
+                <div className="flex items-center mt-2">
+                  <Users className="h-4 w-4 text-muted-foreground mr-1" />
+                  <span className="text-xs text-muted-foreground">Nombre total de clients</span>
+                </div>
+              </div>
+              
+              <div className="bg-muted/30 rounded-md p-4">
+                <p className="text-sm text-muted-foreground">Commissions totales</p>
+                <p className="text-2xl font-bold">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ambassador.commissionsTotal || 0)}</p>
+                <div className="flex items-center mt-2">
+                  <CreditCard className="h-4 w-4 text-muted-foreground mr-1" />
+                  <span className="text-xs text-muted-foreground">Montant cumulé</span>
+                </div>
+              </div>
+              
+              <div className="bg-muted/30 rounded-md p-4">
+                <p className="text-sm text-muted-foreground">Dernière commission</p>
+                <p className="text-2xl font-bold">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ambassador.lastCommission || 0)}</p>
+                <div className="flex items-center mt-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground mr-1" />
+                  <span className="text-xs text-muted-foreground">Montant de la dernière transaction</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" className="w-full" asChild>
+              <Link to={`/ambassadors/${ambassador.id}/commissions`}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Voir toutes les commissions
+              </Link>
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
-    </>
+    </div>
   );
-}
+};
+
+export default AmbassadorDetail;

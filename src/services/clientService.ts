@@ -362,8 +362,9 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
 
 /**
  * Crée un compte utilisateur pour un client
+ * @deprecated Use imported createUserAccount from accountService.ts instead
  */
-export const createAccountForClient = async (client: Client): Promise<boolean> => {
+const _createAccountForClient = async (client: Client): Promise<boolean> => {
   try {
     if (!client.email) {
       toast.error("Ce client n'a pas d'adresse email");
@@ -481,8 +482,9 @@ export const createAccountForClient = async (client: Client): Promise<boolean> =
 
 /**
  * Réinitialise le mot de passe d'un client
+ * @deprecated Use imported resetPassword from accountService.ts instead
  */
-export const resetClientPassword = async (email: string): Promise<boolean> => {
+const _resetClientPassword = async (email: string): Promise<boolean> => {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/update-password`,
@@ -500,4 +502,5 @@ export const resetClientPassword = async (email: string): Promise<boolean> => {
   }
 };
 
+// Export the imported functions instead of the duplicated ones
 export { createUserAccount as createAccountForClient, resetPassword as resetClientPassword };

@@ -61,7 +61,9 @@ export const createUserAccount = async (
       options: {
         data: { 
           name: entity.name,
-          role: userType,
+          // Utiliser la valeur appropriée pour le champ role
+          // Important: Ce champ doit correspondre aux valeurs acceptées par la contrainte profiles_role_check
+          role: userType === "partner" ? "partner" : userType === "ambassador" ? "ambassador" : "client",
           [userType === "partner" ? "partner_id" : userType === "ambassador" ? "ambassador_id" : "client_id"]: entity.id
         }
       }
