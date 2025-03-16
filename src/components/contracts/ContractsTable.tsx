@@ -66,7 +66,10 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
       actions.push({
         label: "Supprimer",
         icon: Trash,
-        onClick: () => setContractToDelete(contract.id),
+        onClick: () => {
+          console.log("Demande de suppression pour:", contract.id);
+          setContractToDelete(contract.id);
+        },
         danger: true
       });
     }
@@ -77,13 +80,18 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   const handleDeleteConfirm = async () => {
     if (contractToDelete && onDeleteContract) {
       console.log("Confirmation de suppression pour:", contractToDelete);
-      const deleted = await onDeleteContract(contractToDelete);
-      if (deleted) {
-        console.log("Contrat supprimé avec succès, fermeture de la boîte de dialogue");
-      } else {
-        console.error("Échec de la suppression, mais fermeture quand même de la boîte de dialogue");
+      
+      try {
+        const deleted = await onDeleteContract(contractToDelete);
+        
+        console.log("Résultat de la suppression:", deleted ? "Succès" : "Échec");
+        
+        // Dans tous les cas, nous fermons la boîte de dialogue
+        setContractToDelete(null);
+      } catch (error) {
+        console.error("Erreur lors de la suppression:", error);
+        setContractToDelete(null);
       }
-      setContractToDelete(null);
     }
   };
 
@@ -135,23 +143,21 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" disabled={isDeleting}>
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
                         {availableActions.map((action, index) => (
-                          <React.Fragment key={action.label}>
-                            {index > 0 && index === availableActions.length - 1 && <DropdownMenuSeparator />}
-                            <DropdownMenuItem 
-                              onClick={action.onClick}
-                              disabled={isUpdatingStatus || isDeleting}
-                              className={action.danger ? "text-destructive focus:text-destructive" : ""}
-                            >
-                              <action.icon className="w-4 h-4 mr-2" />
-                              {action.label}
-                            </DropdownMenuItem>
-                          </React.Fragment>
+                          <DropdownMenuItem 
+                            key={action.label}
+                            onClick={action.onClick}
+                            disabled={isUpdatingStatus || isDeleting}
+                            className={action.danger ? "text-destructive focus:text-destructive" : ""}
+                          >
+                            <action.icon className="w-4 h-4 mr-2" />
+                            {action.label}
+                          </DropdownMenuItem>
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>

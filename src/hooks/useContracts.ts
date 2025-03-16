@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Contract, contractStatuses, getContracts, updateContractStatus, addTrackingNumber, deleteContract } from "@/services/contractService";
 import { toast } from "sonner";
 
@@ -14,11 +14,7 @@ export const useContracts = () => {
   const [includeCompleted, setIncludeCompleted] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchContracts();
-  }, [includeCompleted]);
-
-  const fetchContracts = async () => {
+  const fetchContracts = useCallback(async () => {
     setLoading(true);
     setLoadingError(null);
     
@@ -38,7 +34,11 @@ export const useContracts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [includeCompleted]);
+
+  useEffect(() => {
+    fetchContracts();
+  }, [fetchContracts]);
 
   const handleUpdateContractStatus = async (contractId: string, newStatus: string, reason?: string) => {
     setIsUpdatingStatus(true);
@@ -101,14 +101,18 @@ export const useContracts = () => {
   const handleDeleteContract = async (contractId: string) => {
     setIsDeleting(true);
     try {
-      console.log("Début de la suppression du contrat:", contractId);
+      console.log("Début de la suppression du contrat dans le hook:", contractId);
       const success = await deleteContract(contractId);
       
       if (success) {
-        console.log("Contrat supprimé avec succès, mise à jour de l'état");
-        setContracts(prevContracts => 
-          prevContracts.filter(contract => contract.id !== contractId)
-        );
+        console.log("Contrat supprimé avec succès, mise à jour de l'état local");
+        
+        // Mettre à jour l'état local en supprimant le contrat de la liste
+        setContracts(prevContracts => {
+          const newContracts = prevContracts.filter(contract => contract.id !== contractId);
+          console.log(`Contrats avant suppression: ${prevContracts.length}, après: ${newContracts.length}`);
+          return newContracts;
+        });
         
         toast.success("Contrat supprimé avec succès");
         return true;
@@ -118,10 +122,11 @@ export const useContracts = () => {
         return false;
       }
     } catch (error) {
-      console.error("Erreur lors de la suppression du contrat:", error);
+      console.error("Exception dans handleDeleteContract:", error);
       toast.error("Erreur lors de la suppression du contrat");
       return false;
     } finally {
+      console.log("Fin de la procédure de suppression, réinitialisation de isDeleting");
       setIsDeleting(false);
     }
   };

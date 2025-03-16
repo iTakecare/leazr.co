@@ -231,24 +231,17 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
   try {
     console.log("Début de la suppression du contrat:", contractId);
     
-    const { data: contract, error: checkError } = await supabase
+    const { data: contract, error: fetchError } = await supabase
       .from('contracts')
       .select('id, offer_id')
       .eq('id', contractId)
       .single();
     
-    if (checkError) {
-      console.error("Erreur lors de la vérification du contrat:", checkError);
-      throw checkError;
-    }
-    
-    if (!contract) {
-      console.error("Contrat introuvable");
-      toast.error("Contrat introuvable");
+    if (fetchError) {
+      console.error("Erreur lors de la récupération des informations du contrat:", fetchError);
       return false;
     }
     
-    console.log("Suppression des logs pour le contrat:", contractId);
     const { error: logsError } = await supabase
       .from('contract_workflow_logs')
       .delete()
@@ -258,34 +251,32 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       console.error("Erreur lors de la suppression des logs du contrat:", logsError);
     }
     
-    console.log("Suppression du contrat:", contractId);
     const { error: deleteError } = await supabase
       .from('contracts')
       .delete()
       .eq('id', contractId);
     
     if (deleteError) {
-      console.error("Erreur lors de la suppression du contrat:", deleteError);
-      throw deleteError;
+      console.error("Erreur critique lors de la suppression du contrat:", deleteError);
+      return false;
     }
     
     if (contract.offer_id) {
       console.log("Mise à jour de l'offre associée:", contract.offer_id);
-      const { error: updateError } = await supabase
+      const { error: offerError } = await supabase
         .from('offers')
         .update({ converted_to_contract: false })
         .eq('id', contract.offer_id);
       
-      if (updateError) {
-        console.error("Erreur lors de la mise à jour de l'offre associée:", updateError);
+      if (offerError) {
+        console.error("Erreur lors de la mise à jour de l'offre associée:", offerError);
       }
     }
     
     console.log("Contrat supprimé avec succès");
     return true;
   } catch (error) {
-    console.error("Erreur lors de la suppression du contrat:", error);
-    toast.error("Erreur lors de la suppression du contrat");
+    console.error("Exception non gérée lors de la suppression du contrat:", error);
     return false;
   }
 };
