@@ -12,6 +12,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ClientTableRow from "./ClientTableRow";
 import ClientsEmptyState from "./ClientsEmptyState";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ClientListProps {
   clients: Client[];
@@ -26,6 +29,8 @@ const ClientList = ({
   onEditClient,
   onViewClient
 }: ClientListProps) => {
+  const navigate = useNavigate();
+  
   // Count clients by status
   const activeClients = clients.filter(client => client.status === 'active').length;
   const inactiveClients = clients.filter(client => client.status === 'inactive').length;
@@ -34,16 +39,28 @@ const ClientList = ({
   return (
     <div className="rounded-md border">
       {clients.length > 0 && (
-        <div className="flex items-center gap-2 p-2 border-b">
-          <Badge variant="default" className="bg-green-500 hover:bg-green-600">
-            {activeClients} actifs
-          </Badge>
-          <Badge variant="secondary">
-            {inactiveClients} inactifs
-          </Badge>
-          <Badge variant="outline">
-            {leadClients} prospects
-          </Badge>
+        <div className="flex items-center justify-between p-2 border-b">
+          <div className="flex items-center gap-2">
+            <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+              {activeClients} actifs
+            </Badge>
+            <Badge variant="secondary">
+              {inactiveClients} inactifs
+            </Badge>
+            <Badge variant="outline">
+              {leadClients} prospects
+            </Badge>
+          </div>
+          
+          <Button 
+            onClick={() => navigate('/clients/create')} 
+            variant="outline" 
+            size="sm" 
+            className="gap-1"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Nouveau client
+          </Button>
         </div>
       )}
       <ScrollArea className="h-[calc(100vh-320px)]">

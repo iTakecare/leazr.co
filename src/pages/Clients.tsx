@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { Plus, UserSearch, Filter, Users, HeartHandshake, BadgePercent } from "lucide-react";
+import { UserSearch, Filter, Users, HeartHandshake, BadgePercent } from "lucide-react";
 import { motion } from "framer-motion";
 import { useClients } from "@/hooks/useClients";
 import {
@@ -13,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ClientList from "@/components/clients/ClientList";
 import ClientsLoading from "@/components/clients/ClientsLoading";
@@ -29,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -46,7 +45,6 @@ const Clients = () => {
     handleDeleteClient
   } = useClients();
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -63,7 +61,6 @@ const Clients = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
   };
 
-  // Get status filter label
   const getStatusFilterLabel = () => {
     switch(statusFilter) {
       case 'active': return 'Clients actifs';
@@ -76,7 +73,6 @@ const Clients = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     
-    // Handle navigation based on tab selection
     if (value === "ambassadors") {
       navigate("/ambassadors");
     } else if (value === "partners") {
@@ -86,12 +82,10 @@ const Clients = () => {
     }
   };
 
-  // Display loading state
   if (loading) {
     return <ClientsLoading />;
   }
 
-  // Display error state if there are no clients
   if (loadingError && filteredClients.length === 0) {
     return <ClientsError errorMessage={loadingError} onRetry={fetchClients} />;
   }
@@ -113,10 +107,6 @@ const Clients = () => {
                   Gérez vos clients, ambassadeurs et partenaires
                 </p>
               </div>
-              <Button onClick={() => navigate('/clients/create')} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Nouveau client
-              </Button>
             </div>
           </motion.div>
 
