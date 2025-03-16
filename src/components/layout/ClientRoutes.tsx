@@ -25,7 +25,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isClient, isPartner, userRoleChecked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [checkingClient, setCheckingClient] = React.useState(true);
@@ -133,7 +133,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientRoutes = () => {
-  const { user, isLoading, isClient } = useAuth();
+  const { user, isLoading, isClient, isPartner, userRoleChecked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -146,11 +146,19 @@ const ClientRoutes = () => {
       return;
     }
     
-    if (!isLoading && user && !isClient()) {
-      console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
-      navigate('/dashboard', { replace: true });
+    if (!isLoading && userRoleChecked && user) {
+      if (isPartner()) {
+        console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
+        navigate('/partner/dashboard', { replace: true });
+        return;
+      }
+      
+      if (!isClient()) {
+        console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [isLoading, user, isClient, navigate, location]);
+  }, [isLoading, user, isClient, isPartner, navigate, location, userRoleChecked]);
 
   if (location.hash && location.hash.includes('type=recovery')) {
     return null;

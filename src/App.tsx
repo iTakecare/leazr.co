@@ -1,3 +1,4 @@
+
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -53,7 +54,7 @@ const ProtectedRoute = ({
   requireAdmin?: boolean,
   requirePartner?: boolean
 }) => {
-  const { user, isLoading, isAdmin, isClient, isPartner } = useAuth();
+  const { user, isLoading, isAdmin, isClient, isPartner, userRoleChecked } = useAuth();
   const location = useLocation();
 
   const isPasswordResetFlow = () => {
@@ -67,8 +68,11 @@ const ProtectedRoute = ({
     }
   }, [location]);
 
-  if (isLoading) {
-    return <div>Chargement...</div>;
+  // Afficher un indicateur de chargement tant que les vérifications de rôle ne sont pas terminées
+  if (isLoading || !userRoleChecked) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    </div>;
   }
 
   if (isPasswordResetFlow()) {
@@ -80,6 +84,18 @@ const ProtectedRoute = ({
     console.log("Utilisateur non connecté, redirection vers login");
     return <Navigate to="/login" />;
   }
+
+  // Journalisons les informations pour le débogage
+  console.log("Vérification des accès:", {
+    email: user.email,
+    isAdmin: isAdmin(),
+    isPartner: isPartner(),
+    isClient: isClient(),
+    requireAdmin,
+    requirePartner,
+    userRoleChecked,
+    partner_id: user.partner_id
+  });
 
   if (requireAdmin && !isAdmin()) {
     console.log("Accès admin requis mais utilisateur non admin, redirection");
@@ -100,6 +116,12 @@ const ProtectedRoute = ({
   if (!requireAdmin && !requirePartner && isClient() && !window.location.pathname.startsWith('/client')) {
     console.log("Client tentant d'accéder à une route admin, redirection");
     return <Navigate to="/client/dashboard" />;
+  }
+
+  // Redirection automatique des partenaires vers leur tableau de bord
+  if (isPartner() && window.location.pathname === '/') {
+    console.log("Partenaire connecté sur la page d'accueil, redirection vers le tableau de bord partenaire");
+    return <Navigate to="/partner/dashboard" />;
   }
 
   return <>{children}</>;

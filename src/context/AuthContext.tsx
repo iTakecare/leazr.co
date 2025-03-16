@@ -9,6 +9,8 @@ type ExtendedUser = User & {
   first_name?: string;
   last_name?: string;
   company?: string;
+  role?: string;
+  partner_id?: string;
 };
 
 interface AuthContextType {
@@ -22,6 +24,7 @@ interface AuthContextType {
   isAdmin: () => boolean;
   isClient: () => boolean;
   isPartner: () => boolean;
+  userRoleChecked: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -40,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [userRoleChecked, setUserRoleChecked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,21 +57,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Get user profile data from profiles table if needed
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('first_name, last_name, company')
+            .select('first_name, last_name, company, role')
             .eq('id', data.session.user.id)
             .single();
+          
+          // Vérifier si l'utilisateur est lié à un partenaire
+          const { data: partnerData } = await supabase
+            .from('partners')
+            .select('id')
+            .eq('user_id', data.session.user.id)
+            .single();
             
-          // Merge user data with profile data
+          // Merge user data with profile data and partner info
           const extendedUser: ExtendedUser = {
             ...data.session.user,
             first_name: profileData?.first_name || '',
             last_name: profileData?.last_name || '',
-            company: profileData?.company || ''
+            company: profileData?.company || '',
+            role: profileData?.role || 'client',
+            partner_id: partnerData?.id || null
           };
           
           setUser(extendedUser);
+          setUserRoleChecked(true);
         } else {
           setUser(null);
+          setUserRoleChecked(true);
         }
 
         // Set up auth state listener
@@ -79,21 +94,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               // Get user profile data from profiles table if needed
               const { data: profileData } = await supabase
                 .from('profiles')
-                .select('first_name, last_name, company')
+                .select('first_name, last_name, company, role')
                 .eq('id', session.user.id)
                 .single();
                 
-              // Merge user data with profile data
+              // Vérifier si l'utilisateur est lié à un partenaire
+              const { data: partnerData } = await supabase
+                .from('partners')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+                
+              // Merge user data with profile data and partner info
               const extendedUser: ExtendedUser = {
                 ...session.user,
                 first_name: profileData?.first_name || '',
                 last_name: profileData?.last_name || '',
-                company: profileData?.company || ''
+                company: profileData?.company || '',
+                role: profileData?.role || 'client',
+                partner_id: partnerData?.id || null
               };
               
               setUser(extendedUser);
+              setUserRoleChecked(true);
             } else {
               setUser(null);
+              setUserRoleChecked(true);
             }
           }
         );
@@ -103,6 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       } catch (error) {
         console.error("Session check error:", error);
+        setUserRoleChecked(true);
       } finally {
         setIsLoading(false);
       }
@@ -206,13 +233,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const isClient = () => {
-    return user?.email === "client@test.com" || 
-          (user && !isAdmin() && !isPartner());
+    // Considéré comme client s'il n'est ni admin ni partenaire
+    return !isAdmin() && !isPartner();
   };
 
   const isPartner = () => {
-    return user?.email === "partner@test.com" || 
-           user?.email?.includes("partner");
+    // Considéré comme partenaire s'il a un partner_id associé
+    return !!user?.partner_id;
   };
 
   return (
@@ -227,7 +254,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         resetPassword,
         isAdmin,
         isClient,
-        isPartner
+        isPartner,
+        userRoleChecked
       }}
     >
       {children}

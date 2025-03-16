@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -9,13 +8,19 @@ import { useAuth } from "@/context/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isPartner, isAdmin, userRoleChecked } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      navigate("/dashboard");
+    if (user && userRoleChecked) {
+      if (isAdmin()) {
+        navigate("/dashboard");
+      } else if (isPartner()) {
+        navigate("/partner/dashboard");
+      } else {
+        navigate("/client/dashboard");
+      }
     }
-  }, [user, navigate]);
+  }, [user, navigate, isPartner, isAdmin, userRoleChecked]);
 
   return (
     <div className="min-h-screen flex flex-col">
