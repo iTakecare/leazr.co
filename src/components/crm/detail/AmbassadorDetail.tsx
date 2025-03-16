@@ -15,7 +15,7 @@ import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { Ambassador } from '@/services/ambassadorService';
-import { createAccountForAmbassador, resetAmbassadorPassword } from '@/services/ambassadorService';
+import { createUserAccount, resetPassword } from '@/services/accountService';
 
 interface AmbassadorDetailProps {
   ambassador: Ambassador;
@@ -41,7 +41,7 @@ const AmbassadorDetail = ({ ambassador, onReloadData }: AmbassadorDetailProps) =
     
     setIsCreatingAccount(true);
     try {
-      const success = await createAccountForAmbassador(ambassador);
+      const success = await createUserAccount(ambassador, "ambassador");
       if (success) {
         onReloadData();
         toast.success("Compte utilisateur créé et emails de configuration envoyés");
@@ -62,7 +62,7 @@ const AmbassadorDetail = ({ ambassador, onReloadData }: AmbassadorDetailProps) =
 
     setIsResettingPassword(true);
     try {
-      const success = await resetAmbassadorPassword(ambassador.email);
+      const success = await resetPassword(ambassador.email);
       if (success) {
         toast.success("Email de réinitialisation envoyé avec succès");
       } else {
