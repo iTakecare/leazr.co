@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { Contract, contractStatuses, getContracts, updateContractStatus, addTrackingNumber } from "@/services/contractService";
+import { Contract, contractStatuses, getContracts, updateContractStatus, addTrackingNumber, deleteContract } from "@/services/contractService";
 import { toast } from "sonner";
 
 export const useContracts = () => {
@@ -10,7 +9,7 @@ export const useContracts = () => {
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [activeStatusFilter, setActiveStatusFilter] = useState("all");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list'); // Changed default from 'kanban' to 'list'
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
   const [includeCompleted, setIncludeCompleted] = useState(true);
 
   useEffect(() => {
@@ -42,15 +41,12 @@ export const useContracts = () => {
   const handleUpdateContractStatus = async (contractId: string, newStatus: string, reason?: string) => {
     setIsUpdatingStatus(true);
     try {
-      // Obtenir le statut actuel pour pouvoir l'enregistrer dans l'historique
       const currentContract = contracts.find(contract => contract.id === contractId);
       const currentStatus = currentContract?.status || contractStatuses.CONTRACT_SENT;
       
-      // Appeler l'API pour mettre à jour le statut
       const success = await updateContractStatus(contractId, newStatus, currentStatus, reason);
       
       if (success) {
-        // Mettre à jour localement
         setContracts(prevContracts => 
           prevContracts.map(contract => 
             contract.id === contractId 
@@ -76,7 +72,6 @@ export const useContracts = () => {
       const success = await addTrackingNumber(contractId, trackingNumber, estimatedDelivery, carrier);
       
       if (success) {
-        // Mettre à jour localement
         setContracts(prevContracts => 
           prevContracts.map(contract => 
             contract.id === contractId 
@@ -101,8 +96,33 @@ export const useContracts = () => {
     }
   };
 
+  const handleDeleteContract = async (contractId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce contrat ? Cette action est irréversible.")) {
+      return false;
+    }
+    
+    try {
+      const success = await deleteContract(contractId);
+      
+      if (success) {
+        setContracts(prevContracts => 
+          prevContracts.filter(contract => contract.id !== contractId)
+        );
+        
+        toast.success("Contrat supprimé avec succès");
+        return true;
+      } else {
+        toast.error("Erreur lors de la suppression du contrat");
+        return false;
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression du contrat:", error);
+      toast.error("Erreur lors de la suppression du contrat");
+      return false;
+    }
+  };
+
   const filteredContracts = contracts.filter((contract) => {
-    // Rechercher dans le nom du client ou le nom de la société du client s'il est lié
     const clientName = contract.client_name.toLowerCase();
     const clientCompany = contract.clients?.company?.toLowerCase() || '';
     
@@ -128,6 +148,7 @@ export const useContracts = () => {
     fetchContracts,
     handleUpdateContractStatus,
     handleAddTrackingInfo,
+    handleDeleteContract,
     viewMode,
     setViewMode,
     includeCompleted,

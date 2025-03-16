@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -36,6 +35,7 @@ const Contracts = () => {
     fetchContracts,
     handleUpdateContractStatus,
     handleAddTrackingInfo,
+    handleDeleteContract,
     viewMode,
     setViewMode,
     includeCompleted,
@@ -258,6 +258,7 @@ const Contracts = () => {
                 contracts={filteredContracts}
                 onStatusChange={handleUpdateContractStatus}
                 onAddTrackingInfo={handleAddTrackingInfo}
+                onDeleteContract={handleDeleteContract}
                 isUpdatingStatus={isUpdatingStatus}
               />
             )}

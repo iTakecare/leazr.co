@@ -48,14 +48,12 @@ export interface ContractCreateData {
   user_id: string;
 }
 
-// Convertir une offre approuvée en contrat
 export const createContractFromOffer = async (
   offerId: string,
   leaserName: string,
   leaserLogo?: string
 ): Promise<string | null> => {
   try {
-    // 1. Récupérer les détails de l'offre
     const { data: offerData, error: offerError } = await supabase
       .from('offers')
       .select('*, clients(name, email, company)')
@@ -68,7 +66,6 @@ export const createContractFromOffer = async (
       return null;
     }
 
-    // 2. Créer le contrat
     const contractData = {
       offer_id: offerId,
       client_name: offerData.client_name,
@@ -92,7 +89,6 @@ export const createContractFromOffer = async (
       return null;
     }
 
-    // 3. Mettre à jour l'offre pour indiquer qu'elle a été convertie en contrat
     const { error: updateError } = await supabase
       .from('offers')
       .update({ converted_to_contract: true })
@@ -110,7 +106,6 @@ export const createContractFromOffer = async (
   }
 };
 
-// Récupérer tous les contrats
 export const getContracts = async (includeCompleted = true): Promise<Contract[]> => {
   try {
     let query = supabase
@@ -134,7 +129,6 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
   }
 };
 
-// Mettre à jour le statut d'un contrat
 export const updateContractStatus = async (
   contractId: string,
   newStatus: string,
@@ -150,7 +144,6 @@ export const updateContractStatus = async (
       throw new Error("Utilisateur non authentifié");
     }
 
-    // Ajouter un log d'historique
     const { error: logError } = await supabase
       .from('contract_workflow_logs')
       .insert({
@@ -165,7 +158,6 @@ export const updateContractStatus = async (
       console.error("Erreur lors de l'enregistrement du log :", logError);
     }
 
-    // Mettre à jour le statut du contrat
     const { error } = await supabase
       .from('contracts')
       .update({ status: newStatus })
@@ -183,7 +175,6 @@ export const updateContractStatus = async (
   }
 };
 
-// Ajouter un numéro de suivi à un contrat
 export const addTrackingNumber = async (
   contractId: string,
   trackingNumber: string,
@@ -213,7 +204,6 @@ export const addTrackingNumber = async (
   }
 };
 
-// Récupérer l'historique du workflow d'un contrat
 export const getContractWorkflowLogs = async (contractId: string): Promise<any[]> => {
   try {
     const { data, error } = await supabase
@@ -234,5 +224,61 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
   } catch (error) {
     console.error("Erreur lors de la récupération des logs:", error);
     return [];
+  }
+};
+
+export const deleteContract = async (contractId: string): Promise<boolean> => {
+  try {
+    const { data: contract, error: checkError } = await supabase
+      .from('contracts')
+      .select('id, offer_id')
+      .eq('id', contractId)
+      .single();
+    
+    if (checkError) {
+      console.error("Erreur lors de la vérification du contrat:", checkError);
+      throw checkError;
+    }
+    
+    if (!contract) {
+      toast.error("Contrat introuvable");
+      return false;
+    }
+    
+    const { error: logsError } = await supabase
+      .from('contract_workflow_logs')
+      .delete()
+      .eq('contract_id', contractId);
+    
+    if (logsError) {
+      console.error("Erreur lors de la suppression des logs du contrat:", logsError);
+    }
+    
+    const { error: deleteError } = await supabase
+      .from('contracts')
+      .delete()
+      .eq('id', contractId);
+    
+    if (deleteError) {
+      console.error("Erreur lors de la suppression du contrat:", deleteError);
+      throw deleteError;
+    }
+    
+    if (contract.offer_id) {
+      const { error: updateError } = await supabase
+        .from('offers')
+        .update({ converted_to_contract: false })
+        .eq('id', contract.offer_id);
+      
+      if (updateError) {
+        console.error("Erreur lors de la mise à jour de l'offre associée:", updateError);
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la suppression du contrat:", error);
+    toast.error("Erreur lors de la suppression du contrat");
+    return false;
   }
 };
