@@ -229,6 +229,8 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
 
 export const deleteContract = async (contractId: string): Promise<boolean> => {
   try {
+    console.log("Début de la suppression du contrat:", contractId);
+    
     const { data: contract, error: checkError } = await supabase
       .from('contracts')
       .select('id, offer_id')
@@ -241,10 +243,12 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     }
     
     if (!contract) {
+      console.error("Contrat introuvable");
       toast.error("Contrat introuvable");
       return false;
     }
     
+    console.log("Suppression des logs pour le contrat:", contractId);
     const { error: logsError } = await supabase
       .from('contract_workflow_logs')
       .delete()
@@ -254,6 +258,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       console.error("Erreur lors de la suppression des logs du contrat:", logsError);
     }
     
+    console.log("Suppression du contrat:", contractId);
     const { error: deleteError } = await supabase
       .from('contracts')
       .delete()
@@ -265,6 +270,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     }
     
     if (contract.offer_id) {
+      console.log("Mise à jour de l'offre associée:", contract.offer_id);
       const { error: updateError } = await supabase
         .from('offers')
         .update({ converted_to_contract: false })
@@ -275,6 +281,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       }
     }
     
+    console.log("Contrat supprimé avec succès");
     return true;
   } catch (error) {
     console.error("Erreur lors de la suppression du contrat:", error);

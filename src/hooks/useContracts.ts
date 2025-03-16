@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Contract, contractStatuses, getContracts, updateContractStatus, addTrackingNumber, deleteContract } from "@/services/contractService";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ export const useContracts = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
   const [includeCompleted, setIncludeCompleted] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchContracts();
@@ -97,14 +99,13 @@ export const useContracts = () => {
   };
 
   const handleDeleteContract = async (contractId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce contrat ? Cette action est irréversible.")) {
-      return false;
-    }
-    
+    setIsDeleting(true);
     try {
+      console.log("Début de la suppression du contrat:", contractId);
       const success = await deleteContract(contractId);
       
       if (success) {
+        console.log("Contrat supprimé avec succès, mise à jour de l'état");
         setContracts(prevContracts => 
           prevContracts.filter(contract => contract.id !== contractId)
         );
@@ -112,6 +113,7 @@ export const useContracts = () => {
         toast.success("Contrat supprimé avec succès");
         return true;
       } else {
+        console.error("Échec de la suppression du contrat");
         toast.error("Erreur lors de la suppression du contrat");
         return false;
       }
@@ -119,6 +121,8 @@ export const useContracts = () => {
       console.error("Erreur lors de la suppression du contrat:", error);
       toast.error("Erreur lors de la suppression du contrat");
       return false;
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -145,6 +149,7 @@ export const useContracts = () => {
     activeStatusFilter,
     setActiveStatusFilter,
     isUpdatingStatus,
+    isDeleting,
     fetchContracts,
     handleUpdateContractStatus,
     handleAddTrackingInfo,

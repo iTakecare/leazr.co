@@ -32,6 +32,7 @@ const Contracts = () => {
     activeStatusFilter,
     setActiveStatusFilter,
     isUpdatingStatus,
+    isDeleting,
     fetchContracts,
     handleUpdateContractStatus,
     handleAddTrackingInfo,
@@ -42,23 +43,20 @@ const Contracts = () => {
     setIncludeCompleted
   } = useContracts();
 
-  // Référence pour le défilement horizontal
   const scrollContainer = React.useRef<HTMLDivElement>(null);
-  
-  // Fonctions pour faire défiler le kanban horizontalement
+
   const scrollLeft = () => {
     if (scrollContainer.current) {
       scrollContainer.current.scrollBy({ left: -300, behavior: 'smooth' });
     }
   };
-  
+
   const scrollRight = () => {
     if (scrollContainer.current) {
       scrollContainer.current.scrollBy({ left: 300, behavior: 'smooth' });
     }
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -75,7 +73,6 @@ const Contracts = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
   };
 
-  // Loading state
   if (loading) {
     return (
       <PageTransition>
@@ -96,7 +93,6 @@ const Contracts = () => {
     );
   }
 
-  // Error state
   if (loadingError && filteredContracts.length === 0) {
     return (
       <PageTransition>
@@ -116,7 +112,6 @@ const Contracts = () => {
     );
   }
 
-  // Empty state
   if (filteredContracts.length === 0) {
     return (
       <PageTransition>
@@ -196,7 +191,6 @@ const Contracts = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              {/* Sélecteur de vue */}
               <div className="flex items-center border rounded-md overflow-hidden">
                 <Button 
                   variant={viewMode === 'list' ? 'default' : 'ghost'} 
@@ -223,7 +217,6 @@ const Contracts = () => {
           <motion.div variants={itemVariants}>
             {viewMode === 'kanban' ? (
               <>
-                {/* Contrôles de navigation du Kanban */}
                 <div className="flex justify-between items-center mb-2">
                   <Button 
                     variant="outline" 
@@ -260,6 +253,7 @@ const Contracts = () => {
                 onAddTrackingInfo={handleAddTrackingInfo}
                 onDeleteContract={handleDeleteContract}
                 isUpdatingStatus={isUpdatingStatus}
+                isDeleting={isDeleting}
               />
             )}
           </motion.div>

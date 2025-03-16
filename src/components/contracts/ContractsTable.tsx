@@ -39,6 +39,7 @@ interface ContractsTableProps {
   onAddTrackingInfo: (contractId: string, trackingNumber: string, estimatedDelivery?: string, carrier?: string) => Promise<void>;
   onDeleteContract?: (contractId: string) => Promise<boolean>;
   isUpdatingStatus: boolean;
+  isDeleting?: boolean;
 }
 
 const ContractsTable: React.FC<ContractsTableProps> = ({
@@ -46,7 +47,8 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   onStatusChange,
   onAddTrackingInfo,
   onDeleteContract,
-  isUpdatingStatus
+  isUpdatingStatus,
+  isDeleting = false
 }) => {
   const navigate = useNavigate();
   const [contractToDelete, setContractToDelete] = useState<string | null>(null);
@@ -74,7 +76,13 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
 
   const handleDeleteConfirm = async () => {
     if (contractToDelete && onDeleteContract) {
-      await onDeleteContract(contractToDelete);
+      console.log("Confirmation de suppression pour:", contractToDelete);
+      const deleted = await onDeleteContract(contractToDelete);
+      if (deleted) {
+        console.log("Contrat supprimé avec succès, fermeture de la boîte de dialogue");
+      } else {
+        console.error("Échec de la suppression, mais fermeture quand même de la boîte de dialogue");
+      }
       setContractToDelete(null);
     }
   };
@@ -137,7 +145,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                             {index > 0 && index === availableActions.length - 1 && <DropdownMenuSeparator />}
                             <DropdownMenuItem 
                               onClick={action.onClick}
-                              disabled={isUpdatingStatus}
+                              disabled={isUpdatingStatus || isDeleting}
                               className={action.danger ? "text-destructive focus:text-destructive" : ""}
                             >
                               <action.icon className="w-4 h-4 mr-2" />
@@ -169,12 +177,13 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
             >
-              Supprimer
+              {isDeleting ? "Suppression..." : "Supprimer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
