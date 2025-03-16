@@ -53,6 +53,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   const navigate = useNavigate();
   const [contractToDelete, setContractToDelete] = useState<string | null>(null);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const getAvailableActions = (contract: Contract) => {
     const actions = [];
@@ -70,6 +71,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         onClick: () => {
           console.log("Demande de suppression pour:", contract.id);
           setContractToDelete(contract.id);
+          setIsDialogOpen(true);
         },
         danger: true
       });
@@ -90,12 +92,14 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
     } finally {
+      setIsDialogOpen(false);
       setContractToDelete(null);
       setDeleteInProgress(false);
     }
   };
 
   const handleCancelDelete = () => {
+    setIsDialogOpen(false);
     setContractToDelete(null);
   };
 
@@ -175,7 +179,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
 
       {/* Confirmation Dialog */}
       <AlertDialog
-        open={!!contractToDelete}
+        open={isDialogOpen}
         onOpenChange={(open) => {
           if (!open && !deleteInProgress) {
             handleCancelDelete();
@@ -191,7 +195,12 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteInProgress || isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogCancel 
+              disabled={deleteInProgress || isDeleting}
+              onClick={handleCancelDelete}
+            >
+              Annuler
+            </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
