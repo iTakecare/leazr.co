@@ -1,4 +1,3 @@
-
 import { adminSupabase, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Partner } from "./partnerService";
@@ -145,6 +144,71 @@ export const resetPassword = async (email: string): Promise<boolean> => {
   } catch (error) {
     console.error("Error in resetPassword:", error);
     toast.error("Erreur lors de l'envoi de l'email de réinitialisation");
+    return false;
+  }
+};
+
+/**
+ * Delete a user account by ID
+ * This function first removes the profile record and then the user
+ */
+export const deleteUserAccount = async (userId: string): Promise<boolean> => {
+  try {
+    console.log(`Attempting to delete user with ID: ${userId}`);
+    
+    // First, check if the user exists
+    const { data: userExists, error: checkError } = await supabase.rpc(
+      'check_user_exists_by_id',
+      { user_id: userId }
+    );
+    
+    if (checkError) {
+      console.error("Error checking if user exists:", checkError);
+      toast.error(`Error checking user: ${checkError.message}`);
+      return false;
+    }
+    
+    if (!userExists) {
+      console.log(`User with ID ${userId} does not exist`);
+      toast.error("User not found");
+      return false;
+    }
+
+    // Check if the user is associated with any entities and remove the association
+    const tables = ['clients', 'partners', 'ambassadors'];
+    
+    for (const table of tables) {
+      const { error: updateError } = await supabase
+        .from(table)
+        .update({
+          user_id: null,
+          has_user_account: false,
+          user_account_created_at: null
+        })
+        .eq('user_id', userId);
+      
+      if (updateError) {
+        console.error(`Error removing user association from ${table}:`, updateError);
+        // Continue with the deletion process even if this fails
+      }
+    }
+    
+    // Use adminSupabase to delete the user
+    const { error: deleteError } = await adminSupabase.auth.admin.deleteUser(
+      userId
+    );
+    
+    if (deleteError) {
+      console.error("Error deleting user:", deleteError);
+      toast.error(`Error deleting user: ${deleteError.message}`);
+      return false;
+    }
+    
+    toast.success("User account deleted successfully");
+    return true;
+  } catch (error) {
+    console.error("Error in deleteUserAccount:", error);
+    toast.error("Error deleting user account");
     return false;
   }
 };
