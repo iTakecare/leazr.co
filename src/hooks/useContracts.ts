@@ -99,22 +99,29 @@ export const useContracts = () => {
   };
 
   const handleDeleteContract = async (contractId: string) => {
+    if (isDeleting) return false;
+    
     setIsDeleting(true);
+    console.log("Début de la suppression du contrat dans le hook:", contractId);
+    
     try {
-      console.log("Début de la suppression du contrat dans le hook:", contractId);
       const success = await deleteContract(contractId);
       
       if (success) {
         console.log("Contrat supprimé avec succès, mise à jour de l'état local");
         
-        // Mettre à jour l'état local en supprimant le contrat de la liste
+        // Mettre à jour l'état local immédiatement sans attendre un refetch
         setContracts(prevContracts => {
-          const newContracts = prevContracts.filter(contract => contract.id !== contractId);
-          console.log(`Contrats avant suppression: ${prevContracts.length}, après: ${newContracts.length}`);
-          return newContracts;
+          const filteredContracts = prevContracts.filter(contract => contract.id !== contractId);
+          console.log(`Contrats avant suppression: ${prevContracts.length}, après: ${filteredContracts.length}`);
+          return filteredContracts;
         });
         
-        toast.success("Contrat supprimé avec succès");
+        // Fetch de nouveau après un court délai pour s'assurer de la synchronisation avec le backend
+        setTimeout(() => {
+          fetchContracts();
+        }, 500);
+        
         return true;
       } else {
         console.error("Échec de la suppression du contrat");

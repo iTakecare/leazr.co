@@ -239,6 +239,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (fetchError) {
       console.error("Erreur lors de la récupération des informations du contrat:", fetchError);
+      toast.error("Erreur lors de la suppression du contrat");
       return false;
     }
     
@@ -258,6 +259,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (deleteError) {
       console.error("Erreur critique lors de la suppression du contrat:", deleteError);
+      toast.error("Erreur lors de la suppression du contrat");
       return false;
     }
     
@@ -274,9 +276,11 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     }
     
     console.log("Contrat supprimé avec succès");
+    toast.success("Contrat supprimé avec succès");
     return true;
   } catch (error) {
     console.error("Exception non gérée lors de la suppression du contrat:", error);
+    toast.error("Erreur lors de la suppression du contrat");
     return false;
   }
 };

@@ -52,6 +52,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
 }) => {
   const navigate = useNavigate();
   const [contractToDelete, setContractToDelete] = useState<string | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
   
   const getAvailableActions = (contract: Contract) => {
     const actions = [];
@@ -78,21 +79,24 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   };
 
   const handleDeleteConfirm = async () => {
-    if (contractToDelete && onDeleteContract) {
-      console.log("Confirmation de suppression pour:", contractToDelete);
-      
-      try {
-        const deleted = await onDeleteContract(contractToDelete);
-        
-        console.log("Résultat de la suppression:", deleted ? "Succès" : "Échec");
-        
-        // Dans tous les cas, nous fermons la boîte de dialogue
-        setContractToDelete(null);
-      } catch (error) {
-        console.error("Erreur lors de la suppression:", error);
-        setContractToDelete(null);
-      }
+    if (!contractToDelete || !onDeleteContract) return;
+    
+    console.log("Confirmation de suppression pour:", contractToDelete);
+    setDeleteInProgress(true);
+    
+    try {
+      const deleted = await onDeleteContract(contractToDelete);
+      console.log("Résultat de la suppression:", deleted ? "Succès" : "Échec");
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+    } finally {
+      setContractToDelete(null);
+      setDeleteInProgress(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setContractToDelete(null);
   };
 
   if (contracts.length === 0) {
@@ -143,7 +147,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" disabled={isDeleting}>
+                        <Button variant="ghost" size="icon" disabled={isDeleting || deleteInProgress}>
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -152,7 +156,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                           <DropdownMenuItem 
                             key={action.label}
                             onClick={action.onClick}
-                            disabled={isUpdatingStatus || isDeleting}
+                            disabled={isUpdatingStatus || isDeleting || deleteInProgress}
                             className={action.danger ? "text-destructive focus:text-destructive" : ""}
                           >
                             <action.icon className="w-4 h-4 mr-2" />
@@ -172,7 +176,11 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
       {/* Confirmation Dialog */}
       <AlertDialog
         open={!!contractToDelete}
-        onOpenChange={(open) => !open && setContractToDelete(null)}
+        onOpenChange={(open) => {
+          if (!open && !deleteInProgress) {
+            handleCancelDelete();
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -183,13 +191,13 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteInProgress || isDeleting}>Annuler</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isDeleting}
+              disabled={deleteInProgress || isDeleting}
             >
-              {isDeleting ? "Suppression..." : "Supprimer"}
+              {deleteInProgress || isDeleting ? "Suppression..." : "Supprimer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
