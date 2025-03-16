@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { UserSearch, Filter, Users, HeartHandshake, BadgePercent } from "lucide-react";
+import { UserSearch, Filter, Users, HeartHandshake, BadgePercent, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { useClients } from "@/hooks/useClients";
 import {
@@ -170,14 +171,25 @@ const Clients = () => {
                             </DropdownMenuGroup>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <div className="relative">
-                          <UserSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            placeholder="Rechercher un client..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 w-full md:w-[300px]"
-                          />
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <UserSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="Rechercher un client..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="pl-9 w-full md:w-[300px]"
+                            />
+                          </div>
+                          <Button 
+                            onClick={() => navigate('/clients/create')} 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-1"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Nouveau client
+                          </Button>
                         </div>
                       </div>
                     </div>
