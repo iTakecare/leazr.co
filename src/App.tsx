@@ -1,4 +1,3 @@
-
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -26,6 +25,7 @@ import AmbassadorDetail from "./pages/AmbassadorDetail";
 import AmbassadorEditPage from "./pages/AmbassadorEditPage";
 import AmbassadorsListPage from "./pages/AmbassadorsList";
 import ContractDetail from "./pages/ContractDetail";
+import Calculator from "./pages/Calculator";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -68,7 +68,6 @@ const ProtectedRoute = ({
     }
   }, [location]);
 
-  // Afficher un indicateur de chargement tant que les vérifications de rôle ne sont pas terminées
   if (isLoading || !userRoleChecked) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -85,7 +84,6 @@ const ProtectedRoute = ({
     return <Navigate to="/login" />;
   }
 
-  // Journalisons les informations pour le débogage
   console.log("Vérification des accès:", {
     email: user.email,
     isAdmin: isAdmin(),
@@ -118,7 +116,6 @@ const ProtectedRoute = ({
     return <Navigate to="/client/dashboard" />;
   }
 
-  // Redirection automatique des partenaires vers leur tableau de bord
   if (isPartner() && window.location.pathname === '/') {
     console.log("Partenaire connecté sur la page d'accueil, redirection vers le tableau de bord partenaire");
     return <Navigate to="/partner/dashboard" />;
@@ -192,11 +189,10 @@ function App() {
               <Route path="/contracts" element={<Contracts />} />
               <Route path="/contracts/:id" element={<ContractDetail />} />
               <Route path="/create-test-users" element={<CreateTestUsers />} />
-              {/* Routes for partners */}
+              <Route path="/calculator" element={<Calculator />} />
               <Route path="/partners" element={<AmbassadorsListPage />} />
               <Route path="/partners/:id" element={<PartnerDetail />} />
               <Route path="/partners/edit/:id" element={<PartnerEditPage />} />
-              {/* Routes for ambassadors */}
               <Route path="/ambassadors" element={<AmbassadorsListPage />} />
               <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
               <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
