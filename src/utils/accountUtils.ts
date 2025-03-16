@@ -13,7 +13,7 @@ export const deleteSpecificUserAccount = async (userId: string): Promise<void> =
       return;
     }
     
-    // First try to update related entities to remove user_id references
+    // First update related entities to remove user_id references
     const tables = ['clients', 'partners', 'ambassadors'];
     
     for (const table of tables) {
@@ -34,45 +34,42 @@ export const deleteSpecificUserAccount = async (userId: string): Promise<void> =
       }
     }
     
-    // Try to delete profile record directly (this might bypass the constraint issue)
-    const { error: deleteProfileError } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
+    // Try to delete profile record using SQL execution
+    try {
+      const { error: profileDeleteError } = await supabase.rpc(
+        'execute_sql',
+        { sql: `DELETE FROM public.profiles WHERE id = '${userId}'` }
+      );
       
-    if (deleteProfileError) {
-      console.error("Erreur lors de la suppression du profil:", deleteProfileError);
-      toast.error(`Erreur lors de la suppression du profil: ${deleteProfileError.message}`);
-    } else {
-      console.log("Profil supprimé avec succès");
+      if (profileDeleteError) {
+        console.error("Erreur lors de la suppression du profil via SQL:", profileDeleteError);
+        toast.error(`Erreur: ${profileDeleteError.message}`);
+        return;
+      } else {
+        console.log("Profil supprimé avec succès via SQL");
+      }
+    } catch (sqlExecError) {
+      console.error("Erreur lors de l'exécution SQL pour supprimer le profil:", sqlExecError);
+      toast.error("Erreur lors de la suppression du profil");
+      return;
     }
     
-    // Try to delete the user with adminSupabase
-    const { error: deleteError } = await adminSupabase.auth.admin.deleteUser(
-      userId
-    );
-    
-    if (deleteError) {
-      console.error("Erreur lors de la suppression de l'utilisateur:", deleteError);
-      toast.error(`Erreur: ${deleteError.message}`);
+    // Delete the user using SQL execution
+    try {
+      const { error: userDeleteError } = await supabase.rpc(
+        'execute_sql',
+        { sql: `DELETE FROM auth.users WHERE id = '${userId}'` }
+      );
       
-      // Try with execute_sql as a last resort if supported
-      try {
-        const { error: sqlError } = await supabase.rpc(
-          'execute_sql',
-          { sql: `DELETE FROM auth.users WHERE id = '${userId}'` }
-        );
-        
-        if (sqlError) {
-          console.error("Erreur lors de l'exécution SQL:", sqlError);
-        } else {
-          toast.success("Utilisateur supprimé avec succès via SQL");
-        }
-      } catch (sqlExecError) {
-        console.error("Erreur lors de l'exécution SQL:", sqlExecError);
+      if (userDeleteError) {
+        console.error("Erreur lors de la suppression de l'utilisateur via SQL:", userDeleteError);
+        toast.error(`Erreur: ${userDeleteError.message}`);
+      } else {
+        toast.success("Compte utilisateur supprimé avec succès");
       }
-    } else {
-      toast.success("Compte utilisateur supprimé avec succès");
+    } catch (sqlExecError) {
+      console.error("Erreur lors de l'exécution SQL pour supprimer l'utilisateur:", sqlExecError);
+      toast.error("Erreur lors de la suppression de l'utilisateur");
     }
   } catch (error) {
     console.error("Erreur dans deleteSpecificUserAccount:", error);

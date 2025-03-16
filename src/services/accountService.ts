@@ -1,3 +1,4 @@
+
 import { adminSupabase, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Partner } from "./partnerService";
@@ -150,7 +151,8 @@ export const resetPassword = async (email: string): Promise<boolean> => {
 
 /**
  * Delete a user account by ID
- * This function first removes the profile record and then the user
+ * This function first ensures all references to the user are removed,
+ * then deletes the profile record, and finally removes the user
  */
 export const deleteUserAccount = async (userId: string): Promise<boolean> => {
   try {
@@ -174,7 +176,7 @@ export const deleteUserAccount = async (userId: string): Promise<boolean> => {
       return false;
     }
 
-    // Check if the user is associated with any entities and remove the association
+    // Remove associations in related tables
     const tables = ['clients', 'partners', 'ambassadors'];
     
     for (const table of tables) {
@@ -193,19 +195,44 @@ export const deleteUserAccount = async (userId: string): Promise<boolean> => {
       }
     }
     
-    // Use adminSupabase to delete the user
-    const { error: deleteError } = await adminSupabase.auth.admin.deleteUser(
-      userId
-    );
-    
-    if (deleteError) {
-      console.error("Error deleting user:", deleteError);
-      toast.error(`Error deleting user: ${deleteError.message}`);
+    // Delete profile record using direct SQL (more reliable)
+    try {
+      const { error: profileDeleteError } = await supabase.rpc(
+        'execute_sql',
+        { sql: `DELETE FROM public.profiles WHERE id = '${userId}'` }
+      );
+      
+      if (profileDeleteError) {
+        console.error("Error deleting profile via SQL:", profileDeleteError);
+        toast.error(`Error: ${profileDeleteError.message}`);
+        return false;
+      }
+    } catch (sqlExecError) {
+      console.error("Error executing SQL to delete profile:", sqlExecError);
+      toast.error("Error deleting profile");
       return false;
     }
     
-    toast.success("User account deleted successfully");
-    return true;
+    // Delete user using direct SQL (more reliable than API)
+    try {
+      const { error: userDeleteError } = await supabase.rpc(
+        'execute_sql',
+        { sql: `DELETE FROM auth.users WHERE id = '${userId}'` }
+      );
+      
+      if (userDeleteError) {
+        console.error("Error deleting user via SQL:", userDeleteError);
+        toast.error(`Error: ${userDeleteError.message}`);
+        return false;
+      }
+      
+      toast.success("User account deleted successfully");
+      return true;
+    } catch (sqlExecError) {
+      console.error("Error executing SQL to delete user:", sqlExecError);
+      toast.error("Error deleting user");
+      return false;
+    }
   } catch (error) {
     console.error("Error in deleteUserAccount:", error);
     toast.error("Error deleting user account");
