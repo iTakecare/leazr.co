@@ -215,7 +215,7 @@ export type Database = {
           status: string | null
           updated_at: string
           user_account_created_at: string | null
-          user_id: string
+          user_id: string | null
           vat_number: string | null
         }
         Insert: {
@@ -234,7 +234,7 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_account_created_at?: string | null
-          user_id: string
+          user_id?: string | null
           vat_number?: string | null
         }
         Update: {
@@ -253,7 +253,7 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_account_created_at?: string | null
-          user_id?: string
+          user_id?: string | null
           vat_number?: string | null
         }
         Relationships: []

@@ -261,8 +261,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const isAdmin = () => {
-    // Add a check to see if the email is admin@test.com
-    return user?.email === "admin@test.com" || 
+    // Vérifier si le rôle est admin (nouvelle condition) ou l'email est dans la liste des admins
+    return user?.role === "admin" ||
+           user?.email === "admin@test.com" || 
            user?.email === "alex@test.com" ||
            user?.email === "admin@itakecare.com";
   };

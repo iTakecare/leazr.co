@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Container from "@/components/layout/Container";
 import { Mail, Lock, User, Building, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -16,7 +18,7 @@ const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
-  const [role, setRole] = useState<"client" | "partner">("client");
+  const [role, setRole] = useState<"client" | "partner" | "ambassador" | "admin">("client");
   const [isExistingClient, setIsExistingClient] = useState(false);
   const [clientInfo, setClientInfo] = useState<any>(null);
   const { signUp, isLoading } = useAuth();
@@ -71,7 +73,35 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signUp(email, password);
+    
+    try {
+      // Mise à jour pour inclure le rôle personnalisé lors de l'inscription
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            company,
+            role: role // Utiliser le rôle sélectionné
+          }
+        }
+      });
+      
+      if (error) {
+        console.error("Signup error:", error);
+        toast.error(`Erreur d'inscription: ${error.message}`);
+        return;
+      }
+      
+      if (data) {
+        toast.success("Compte créé avec succès! Vérifiez votre email pour confirmer votre inscription.");
+      }
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast.error(`Erreur: ${error.message}`);
+    }
   };
 
   return (
@@ -157,7 +187,7 @@ const Signup = () => {
               <Label htmlFor="role">Type de compte</Label>
               <Select 
                 value={role} 
-                onValueChange={(value) => setRole(value as "client" | "partner")}
+                onValueChange={(value) => setRole(value as "client" | "partner" | "ambassador" | "admin")}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionnez un type de compte" />
@@ -165,6 +195,8 @@ const Signup = () => {
                 <SelectContent>
                   <SelectItem value="client">Client</SelectItem>
                   <SelectItem value="partner">Partenaire</SelectItem>
+                  <SelectItem value="ambassador">Ambassadeur</SelectItem>
+                  <SelectItem value="admin">Administrateur</SelectItem>
                 </SelectContent>
               </Select>
             </div>
