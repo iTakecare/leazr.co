@@ -8,7 +8,8 @@ import {
   Laptop,
   Clock,
   Package,
-  LogOut
+  LogOut,
+  Calculator
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -105,6 +106,7 @@ const ClientSidebar = ({ className }: SidebarProps) => {
     { path: "/client/equipment", icon: Laptop, label: "Équipements" },
     { path: "/client/requests", icon: Clock, label: "Demandes en cours" },
     { path: "/client/catalog", icon: Package, label: "Catalogue" },
+    { path: "/client/calculator", icon: Calculator, label: "Calculateur" },
   ];
 
   return (

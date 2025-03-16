@@ -9,7 +9,8 @@ import {
   Settings,
   FileText,
   BookOpen,
-  LogOut
+  LogOut,
+  Calculator
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -117,7 +118,7 @@ const Sidebar = ({ className }: SidebarProps) => {
         <MenuItem
           to="/clients"
           icon={Users}
-          label="Clients"
+          label="CRM"
           active={isActive("/clients")}
         />
         <MenuItem
@@ -137,6 +138,12 @@ const Sidebar = ({ className }: SidebarProps) => {
           icon={BookOpen}
           label="Contrats"
           active={isActive("/contracts")}
+        />
+        <MenuItem
+          to="/calculator"
+          icon={Calculator}
+          label="Calculateur"
+          active={isActive("/calculator")}
         />
         <MenuItem
           to="/settings"
