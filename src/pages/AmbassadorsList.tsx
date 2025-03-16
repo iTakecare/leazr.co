@@ -9,8 +9,6 @@ import PartnersList from "@/components/crm/PartnersList";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const AmbassadorsListPage = () => {
@@ -65,10 +63,7 @@ const AmbassadorsListPage = () => {
                   Gérez vos clients, ambassadeurs et partenaires
                 </p>
               </div>
-              <Button onClick={() => navigate('/ambassadors/new')} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Nouvel ambassadeur
-              </Button>
+              {/* Le bouton "Nouvel ambassadeur" a été supprimé ici */}
             </div>
           </motion.div>
 
