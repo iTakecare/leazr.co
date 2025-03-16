@@ -4,27 +4,28 @@ import { toast } from "sonner";
 import { Partner } from "./partnerService";
 import { Ambassador } from "./ambassadorService";
 import { sendWelcomeEmail } from "./emailService";
+import { Client } from "@/types/client";
 
 interface CreateAccountParams {
   email: string;
   name: string;
   role: string;
-  userType: "partner" | "ambassador";
+  userType: "partner" | "ambassador" | "client";
   entityId: string;
 }
 
+type EntityType = Partner | Ambassador | Client;
+
 /**
- * Create a user account for a partner or ambassador
+ * Create a user account for a partner, ambassador or client
  */
 export const createUserAccount = async (
-  entity: Partner | Ambassador,
-  userType: "partner" | "ambassador"
+  entity: EntityType,
+  userType: "partner" | "ambassador" | "client"
 ): Promise<boolean> => {
   if (!entity.email) {
     toast.error(
-      userType === "partner"
-        ? "Ce partenaire n'a pas d'adresse email"
-        : "Cet ambassadeur n'a pas d'adresse email"
+      `Ce ${userType === "partner" ? "partenaire" : userType === "ambassador" ? "ambassadeur" : "client"} n'a pas d'adresse email`
     );
     return false;
   }
@@ -61,7 +62,7 @@ export const createUserAccount = async (
         data: { 
           name: entity.name,
           role: userType,
-          [userType === "partner" ? "partner_id" : "ambassador_id"]: entity.id
+          [userType === "partner" ? "partner_id" : userType === "ambassador" ? "ambassador_id" : "client_id"]: entity.id
         }
       }
     });
@@ -80,8 +81,8 @@ export const createUserAccount = async (
     
     console.log("Utilisateur créé avec succès:", userData.user.id);
     
-    // Mettre à jour le partenaire ou ambassadeur dans la base de données
-    const tableName = userType === "partner" ? "partners" : "ambassadors";
+    // Mettre à jour l'entité dans la base de données
+    const tableName = userType === "partner" ? "partners" : userType === "ambassador" ? "ambassadors" : "clients";
     
     const { error: updateError } = await supabase
       .from(tableName)

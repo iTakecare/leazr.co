@@ -2,6 +2,7 @@ import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
 import { sendWelcomeEmail } from "./emailService";
+import { createUserAccount, resetPassword } from "./accountService";
 
 const mockClients = [
   {
@@ -498,3 +499,5 @@ export const resetClientPassword = async (email: string): Promise<boolean> => {
     return false;
   }
 };
+
+export { createUserAccount as createAccountForClient, resetPassword as resetClientPassword };

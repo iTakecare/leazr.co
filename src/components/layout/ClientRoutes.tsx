@@ -25,7 +25,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isClient, isPartner, userRoleChecked } = useAuth();
+  const { user, isLoading, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [checkingClient, setCheckingClient] = React.useState(true);
@@ -133,7 +133,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientRoutes = () => {
-  const { user, isLoading, isClient, isPartner, userRoleChecked } = useAuth();
+  const { user, isLoading, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -153,12 +153,18 @@ const ClientRoutes = () => {
         return;
       }
       
+      if (isAmbassador()) {
+        console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
+        navigate('/ambassador/dashboard', { replace: true });
+        return;
+      }
+      
       if (!isClient()) {
         console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
         navigate('/dashboard', { replace: true });
       }
     }
-  }, [isLoading, user, isClient, isPartner, navigate, location, userRoleChecked]);
+  }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked]);
 
   if (location.hash && location.hash.includes('type=recovery')) {
     return null;

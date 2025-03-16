@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isPartner, isAdmin, userRoleChecked } = useAuth();
+  const { user, isPartner, isAdmin, isAmbassador, userRoleChecked } = useAuth();
 
   useEffect(() => {
     if (user && userRoleChecked) {
@@ -16,11 +16,13 @@ const Index = () => {
         navigate("/dashboard");
       } else if (isPartner()) {
         navigate("/partner/dashboard");
+      } else if (isAmbassador()) {
+        navigate("/ambassador/dashboard");
       } else {
         navigate("/client/dashboard");
       }
     }
-  }, [user, navigate, isPartner, isAdmin, userRoleChecked]);
+  }, [user, navigate, isPartner, isAdmin, isAmbassador, userRoleChecked]);
 
   return (
     <div className="min-h-screen flex flex-col">

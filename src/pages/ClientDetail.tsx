@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import { toast } from "sonner";
-import { getClientById, resetClientPassword, createAccountForClient } from "@/services/clientService";
+import { getClientById } from "@/services/clientService";
+import { resetPassword, createUserAccount } from "@/services/accountService";
 import { Client } from "@/types/client";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -60,7 +61,7 @@ export default function ClientDetail() {
 
     setIsResettingPassword(true);
     try {
-      const success = await resetClientPassword(client.email);
+      const success = await resetPassword(client.email);
       if (success) {
         toast.success("Email de réinitialisation envoyé avec succès");
       } else {
@@ -84,7 +85,7 @@ export default function ClientDetail() {
     
     setIsCreatingAccount(true);
     try {
-      const success = await createAccountForClient(client);
+      const success = await createUserAccount(client, "client");
       if (success) {
         // Recharger les données du client pour afficher les changements
         await fetchClient();

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -69,16 +68,46 @@ export const sendEmail = async (
 export const sendWelcomeEmail = async (
   email: string, 
   name: string, 
-  userType: "client" | "partner" | "ambassador",
-  isNewAccount: boolean = true
+  userType: "partner" | "ambassador" | "client"
 ): Promise<boolean> => {
   try {
-    const template = getWelcomeEmailTemplate(name, userType, isNewAccount);
+    const typeDisplay = 
+      userType === "partner" ? "partenaire" : 
+      userType === "ambassador" ? "ambassadeur" : 
+      "client";
+    
+    const subject = `Bienvenue sur votre compte ${typeDisplay} iTakecare`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Bienvenue ${name},</h2>
+        <p>Votre compte ${typeDisplay} a été créé avec succès sur la plateforme iTakecare.</p>
+        <p>Vous recevrez un email séparé pour définir votre mot de passe et accéder à votre espace ${typeDisplay}.</p>
+        <p>Une fois connecté, vous pourrez :</p>
+        <ul>
+          ${userType === "partner" ? `
+            <li>Créer et gérer des offres de leasing</li>
+            <li>Suivre vos commissions</li>
+            <li>Gérer vos clients</li>
+          ` : userType === "ambassador" ? `
+            <li>Suivre vos recommandations</li>
+            <li>Consulter vos commissions</li>
+            <li>Gérer votre profil</li>
+          ` : `
+            <li>Consulter vos contrats</li>
+            <li>Suivre vos équipements</li>
+            <li>Effectuer des demandes</li>
+          `}
+        </ul>
+        <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+        <p>Cordialement,<br>L'équipe iTakecare</p>
+      </div>
+    `;
     
     const success = await sendEmail(
       email,
-      template.subject,
-      template.body
+      subject,
+      html
     );
     
     if (success) {
@@ -89,7 +118,7 @@ export const sendWelcomeEmail = async (
     
     return success;
   } catch (error) {
-    console.error("Erreur lors de l'envoi de l'email de bienvenue:", error);
+    console.error("Error sending welcome email:", error);
     return false;
   }
 };

@@ -11,6 +11,8 @@ type ExtendedUser = User & {
   company?: string;
   role?: string;
   partner_id?: string;
+  ambassador_id?: string;
+  client_id?: string;
 };
 
 interface AuthContextType {
@@ -24,6 +26,7 @@ interface AuthContextType {
   isAdmin: () => boolean;
   isClient: () => boolean;
   isPartner: () => boolean;
+  isAmbassador: () => boolean;
   userRoleChecked: boolean;
 }
 
@@ -68,14 +71,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .eq('user_id', data.session.user.id)
             .single();
             
-          // Merge user data with profile data and partner info
+          // Vérifier si l'utilisateur est lié à un ambassadeur  
+          const { data: ambassadorData } = await supabase
+            .from('ambassadors')
+            .select('id')
+            .eq('user_id', data.session.user.id)
+            .single();
+            
+          // Vérifier si l'utilisateur est lié à un client
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('id')
+            .eq('user_id', data.session.user.id)
+            .single();
+            
+          // Merge user data with profile data and entity info
           const extendedUser: ExtendedUser = {
             ...data.session.user,
             first_name: profileData?.first_name || '',
             last_name: profileData?.last_name || '',
             company: profileData?.company || '',
             role: profileData?.role || 'client',
-            partner_id: partnerData?.id || null
+            partner_id: partnerData?.id || null,
+            ambassador_id: ambassadorData?.id || null,
+            client_id: clientData?.id || null
           };
           
           setUser(extendedUser);
@@ -105,14 +124,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .eq('user_id', session.user.id)
                 .single();
                 
-              // Merge user data with profile data and partner info
+              // Vérifier si l'utilisateur est lié à un ambassadeur  
+              const { data: ambassadorData } = await supabase
+                .from('ambassadors')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+                
+              // Vérifier si l'utilisateur est lié à un client
+              const { data: clientData } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+                
+              // Merge user data with profile data and entity info
               const extendedUser: ExtendedUser = {
                 ...session.user,
                 first_name: profileData?.first_name || '',
                 last_name: profileData?.last_name || '',
                 company: profileData?.company || '',
                 role: profileData?.role || 'client',
-                partner_id: partnerData?.id || null
+                partner_id: partnerData?.id || null,
+                ambassador_id: ambassadorData?.id || null,
+                client_id: clientData?.id || null
               };
               
               setUser(extendedUser);
@@ -233,13 +268,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const isClient = () => {
-    // Considéré comme client s'il n'est ni admin ni partenaire
-    return !isAdmin() && !isPartner();
+    // Considéré comme client s'il a un client_id associé
+    return !!user?.client_id;
   };
 
   const isPartner = () => {
     // Considéré comme partenaire s'il a un partner_id associé
     return !!user?.partner_id;
+  };
+
+  const isAmbassador = () => {
+    // Considéré comme ambassadeur s'il a un ambassador_id associé
+    return !!user?.ambassador_id;
   };
 
   return (
@@ -255,6 +295,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAdmin,
         isClient,
         isPartner,
+        isAmbassador,
         userRoleChecked
       }}
     >

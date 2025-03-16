@@ -215,3 +215,7 @@ export const getAmbassadorCommissions = async (ambassadorId: string): Promise<an
     throw error;
   }
 };
+
+import { createUserAccount, resetPassword } from "./accountService";
+
+export { createUserAccount as createAccountForAmbassador, resetPassword as resetAmbassadorPassword };
