@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -140,10 +139,10 @@ const Sidebar = ({ className }: SidebarProps) => {
           active={isActive("/contracts")}
         />
         <MenuItem
-          to="/calculator"
+          to="/create-offer"
           icon={Calculator}
           label="Calculateur"
-          active={isActive("/calculator")}
+          active={isActive("/create-offer")}
         />
         <MenuItem
           to="/settings"

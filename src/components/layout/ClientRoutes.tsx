@@ -188,7 +188,7 @@ const ClientRoutes = () => {
         <Route path="equipment" element={<ClientLayout><ClientEquipment /></ClientLayout>} />
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><ClientCatalog /></ClientLayout>} />
-        <Route path="calculator" element={<ClientLayout><ClientCalculator /></ClientLayout>} />
+        <Route path="calculator" element={<Navigate to="/client/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>
     </ClientCheck>
