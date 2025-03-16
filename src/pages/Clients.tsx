@@ -183,7 +183,7 @@ const Clients = () => {
                           </div>
                           <Button 
                             onClick={() => navigate('/clients/create')} 
-                            variant="outline" 
+                            variant="default" 
                             size="sm" 
                             className="gap-1"
                           >
