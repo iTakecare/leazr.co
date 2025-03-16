@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -39,7 +40,7 @@ const Index = () => {
             </div>
             <h1 className="text-4xl md:text-6xl font-bold leading-tight tracking-tight mb-6">
               Transformez votre infrastructure IT avec 
-              <span className="text-primary"> iTakecare Hub</span>
+              <span className="text-primary"> Hub iTakecare</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-xl mx-auto">
               Créez des offres de leasing pour du matériel informatique reconditionné, calculez vos commissions et gérez vos opportunités en toute simplicité.

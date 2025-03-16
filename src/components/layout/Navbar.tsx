@@ -26,7 +26,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
         </Button>
         
         <Link to="/" className="text-xl font-semibold text-primary hidden md:block">
-          iTakecare Hub
+          Hub iTakecare
         </Link>
         
         <div className="ml-auto flex items-center space-x-4">
