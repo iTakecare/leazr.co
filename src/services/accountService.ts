@@ -84,9 +84,10 @@ export const createUserAccount = async (
     console.log("Utilisateur créé avec succès:", userData.user.id);
     
     // Mettre à jour l'entité dans la base de données
+    // IMPORTANT: Utiliser adminSupabase pour contourner la politique RLS
     const tableName = userType === "partner" ? "partners" : userType === "ambassador" ? "ambassadors" : "clients";
     
-    const { error: updateError } = await supabase
+    const { error: updateError } = await adminSupabase
       .from(tableName)
       .update({
         has_user_account: true,
