@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Contract, contractStatuses, getContracts, updateContractStatus, addTrackingNumber, deleteContract } from "@/services/contractService";
 import { toast } from "sonner";
@@ -99,47 +98,37 @@ export const useContracts = () => {
   };
 
   const handleDeleteContract = async (contractId: string) => {
-    if (isDeleting) return false;
+    if (isDeleting) {
+      console.log("Une suppression est déjà en cours, opération ignorée");
+      return false;
+    }
     
     setIsDeleting(true);
     console.log("Début de la suppression du contrat dans le hook:", contractId);
     
     try {
-      // Optimistically update the UI immediately by removing the contract from the list
-      setContracts(prevContracts => {
-        console.log(`Mise à jour optimiste - Contrats avant suppression: ${prevContracts.length}`);
-        const filteredContracts = prevContracts.filter(contract => contract.id !== contractId);
-        console.log(`Contrats après suppression: ${filteredContracts.length}`);
-        return filteredContracts;
-      });
-      
-      // Then perform the actual deletion in the backend
       const success = await deleteContract(contractId);
       
       if (success) {
         console.log("Contrat supprimé avec succès dans le backend");
-        toast.success("Contrat supprimé avec succès");
         
-        // Force refresh after successful deletion
+        setContracts(prevContracts => 
+          prevContracts.filter(contract => contract.id !== contractId)
+        );
+        
         setTimeout(() => {
           fetchContracts();
-        }, 500);
+        }, 1000);
         
         return true;
       } else {
         console.error("Échec de la suppression du contrat dans le backend");
         toast.error("Erreur lors de la suppression du contrat");
-        
-        // Revert the optimistic update by fetching the current data
-        fetchContracts();
         return false;
       }
     } catch (error) {
       console.error("Exception dans handleDeleteContract:", error);
       toast.error("Erreur lors de la suppression du contrat");
-      
-      // Revert the optimistic update by fetching the current data
-      fetchContracts();
       return false;
     } finally {
       console.log("Fin de la procédure de suppression, réinitialisation de isDeleting");

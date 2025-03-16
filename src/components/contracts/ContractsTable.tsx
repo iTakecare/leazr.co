@@ -99,6 +99,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   };
 
   const handleCancelDelete = () => {
+    console.log("Annulation de la suppression");
     setIsDialogOpen(false);
     setContractToDelete(null);
   };
@@ -151,7 +152,11 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" disabled={isDeleting || deleteInProgress}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          disabled={isDeleting || deleteInProgress}
+                        >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -178,14 +183,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
       </div>
 
       {/* Confirmation Dialog */}
-      <AlertDialog
-        open={isDialogOpen}
-        onOpenChange={(open) => {
-          if (!open && !deleteInProgress) {
-            handleCancelDelete();
-          }
-        }}
-      >
+      <AlertDialog open={isDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le contrat ?</AlertDialogTitle>
@@ -196,17 +194,17 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel 
-              disabled={deleteInProgress || isDeleting}
               onClick={handleCancelDelete}
+              disabled={deleteInProgress}
             >
               Annuler
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteInProgress || isDeleting}
+              disabled={deleteInProgress}
             >
-              {deleteInProgress || isDeleting ? "Suppression..." : "Supprimer"}
+              {deleteInProgress ? "Suppression..." : "Supprimer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -231,6 +231,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
   try {
     console.log("Début de la suppression du contrat:", contractId);
     
+    // First, get the contract to find the associated offer
     const { data: contract, error: fetchError } = await supabase
       .from('contracts')
       .select('id, offer_id')
@@ -239,10 +240,10 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (fetchError) {
       console.error("Erreur lors de la récupération des informations du contrat:", fetchError);
-      toast.error("Erreur lors de la suppression du contrat");
       return false;
     }
     
+    // Delete workflow logs first (they have foreign key constraints)
     const { error: logsError } = await supabase
       .from('contract_workflow_logs')
       .delete()
@@ -250,8 +251,10 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (logsError) {
       console.error("Erreur lors de la suppression des logs du contrat:", logsError);
+      // Continue with deletion even if log deletion fails
     }
     
+    // Delete the actual contract
     const { error: deleteError } = await supabase
       .from('contracts')
       .delete()
@@ -259,11 +262,11 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (deleteError) {
       console.error("Erreur critique lors de la suppression du contrat:", deleteError);
-      toast.error("Erreur lors de la suppression du contrat");
       return false;
     }
     
-    if (contract.offer_id) {
+    // Update the associated offer if it exists
+    if (contract?.offer_id) {
       console.log("Mise à jour de l'offre associée:", contract.offer_id);
       const { error: offerError } = await supabase
         .from('offers')
@@ -272,15 +275,14 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       
       if (offerError) {
         console.error("Erreur lors de la mise à jour de l'offre associée:", offerError);
+        // We still consider the deletion successful even if the offer update fails
       }
     }
     
     console.log("Contrat supprimé avec succès");
-    toast.success("Contrat supprimé avec succès");
     return true;
   } catch (error) {
     console.error("Exception non gérée lors de la suppression du contrat:", error);
-    toast.error("Erreur lors de la suppression du contrat");
     return false;
   }
 };
