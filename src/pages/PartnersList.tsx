@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import PartnersList from "@/components/crm/PartnersList";
+import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
@@ -22,10 +22,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const AmbassadorsListPage = () => {
+const PartnersListPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState("ambassadors");
+  const [activeTab, setActiveTab] = useState("partners");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   
@@ -61,10 +61,9 @@ const AmbassadorsListPage = () => {
 
   const getStatusFilterLabel = () => {
     switch(statusFilter) {
-      case 'active': return 'Ambassadeurs actifs';
-      case 'inactive': return 'Ambassadeurs inactifs';
-      case 'lead': return 'Prospects';
-      default: return 'Tous les ambassadeurs';
+      case 'active': return 'Partenaires actifs';
+      case 'inactive': return 'Partenaires inactifs';
+      default: return 'Tous les partenaires';
     }
   };
 
@@ -107,12 +106,12 @@ const AmbassadorsListPage = () => {
                     </TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="ambassadors" className="mt-0">
+                  <TabsContent value="partners" className="mt-0">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
-                        <CardTitle className="text-xl">Ambassadeurs</CardTitle>
+                        <CardTitle className="text-xl">Partenaires</CardTitle>
                         <CardDescription>
-                          Gérez vos ambassadeurs et suivez leurs performances
+                          Gérez vos relations partenaires
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
@@ -122,7 +121,7 @@ const AmbassadorsListPage = () => {
                               <Filter className="h-4 w-4" />
                               {getStatusFilterLabel()}
                               <Badge variant="secondary" className="ml-1 text-xs">
-                                {/* Placeholder for ambassador count */}
+                                {/* Placeholder for partner count */}
                                 0
                               </Badge>
                             </Button>
@@ -132,16 +131,13 @@ const AmbassadorsListPage = () => {
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup>
                               <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-                                Tous les ambassadeurs
+                                Tous les partenaires
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setStatusFilter('active')}>
-                                Ambassadeurs actifs
+                                Partenaires actifs
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
-                                Ambassadeurs inactifs
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setStatusFilter('lead')}>
-                                Prospects
+                                Partenaires inactifs
                               </DropdownMenuItem>
                             </DropdownMenuGroup>
                           </DropdownMenuContent>
@@ -150,31 +146,31 @@ const AmbassadorsListPage = () => {
                           <div className="relative">
                             <UserSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                              placeholder="Rechercher un ambassadeur..."
+                              placeholder="Rechercher un partenaire..."
                               value={searchTerm}
                               onChange={(e) => setSearchTerm(e.target.value)}
                               className="pl-9 w-full md:w-[300px]"
                             />
                           </div>
                           <Button 
-                            onClick={() => navigate('/ambassadors/create')} 
+                            onClick={() => {/* Handle partner creation */}} 
                             variant="default" 
                             size="sm" 
                             className="gap-1"
                           >
                             <Plus className="h-3.5 w-3.5" />
-                            Nouvel ambassadeur
+                            Nouveau partenaire
                           </Button>
                         </div>
                       </div>
                     </div>
                   </TabsContent>
                   
-                  <TabsContent value="partners" className="mt-0">
+                  <TabsContent value="ambassadors" className="mt-0">
                     <div>
-                      <CardTitle className="text-xl">Partenaires</CardTitle>
+                      <CardTitle className="text-xl">Ambassadeurs</CardTitle>
                       <CardDescription>
-                        Gérez vos relations partenaires
+                        Gérez vos ambassadeurs et suivez leurs performances
                       </CardDescription>
                     </div>
                   </TabsContent>
@@ -190,8 +186,8 @@ const AmbassadorsListPage = () => {
                 </Tabs>
               </CardHeader>
               <CardContent>
-                {activeTab === "ambassadors" && <AmbassadorsList searchTerm={searchTerm} statusFilter={statusFilter} />}
-                {activeTab === "partners" && <PartnersList />}
+                {activeTab === "partners" && <PartnersList searchTerm={searchTerm} statusFilter={statusFilter} />}
+                {activeTab === "ambassadors" && <AmbassadorsList />}
               </CardContent>
             </Card>
           </motion.div>
@@ -201,4 +197,4 @@ const AmbassadorsListPage = () => {
   );
 };
 
-export default AmbassadorsListPage;
+export default PartnersListPage;

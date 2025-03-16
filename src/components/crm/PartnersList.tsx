@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,12 @@ interface PartnerWithClients extends Partner {
   clients: any[];
 }
 
-const PartnersList = () => {
+interface PartnersListProps {
+  searchTerm?: string;
+  statusFilter?: string;
+}
+
+const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilter = 'all' }) => {
   const navigate = useNavigate();
   const [partnersList, setPartnersList] = useState<Partner[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -59,6 +63,20 @@ const PartnersList = () => {
       setLoading(false);
     }
   };
+
+  // Filter partners based on search term and status filter
+  const filteredPartners = partnersList.filter(partner => {
+    // Filtre par terme de recherche
+    const matchesSearch = 
+      partner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (partner.email && partner.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (partner.contactName && partner.contactName.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // Filtre par statut
+    const matchesStatus = statusFilter === "all" || partner.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const handleAddPartner = () => {
     setCurrentPartner(null);
@@ -257,13 +275,6 @@ const PartnersList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={handleAddPartner} className="gap-2">
-          <BadgePercent className="h-4 w-4" />
-          Ajouter un partenaire
-        </Button>
-      </div>
-
       <Table>
         <TableHeader>
           <TableRow>
@@ -277,8 +288,8 @@ const PartnersList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {partnersList.length > 0 ? (
-            partnersList.map((partner) => (
+          {filteredPartners.length > 0 ? (
+            filteredPartners.map((partner) => (
               <TableRow key={partner.id} className="cursor-pointer" onClick={() => handleViewProfile(partner.id)}>
                 <TableCell className="font-medium">{partner.name}</TableCell>
                 <TableCell>
