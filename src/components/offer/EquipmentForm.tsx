@@ -58,7 +58,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const marginAmount = equipment.purchasePrice * (equipment.margin / 100);
   const priceWithMargin = equipment.purchasePrice + marginAmount;
 
-  const { data: products = [], isLoading } = useQuery({
+  const { data: allProducts = [], isLoading: isProductsLoading } = useQuery({
     queryKey: ["products", isQuickCatalogOpen],
     queryFn: getProducts,
     enabled: isQuickCatalogOpen,
@@ -77,25 +77,43 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   });
 
   const categories = React.useMemo(() => {
-    return [
-      { name: "all", translation: "Toutes les catégories" }, 
-      ...categoriesData
-    ];
+    return categoriesData.map(c => ({ name: c.name, translation: c.translation }));
   }, [categoriesData]);
 
   const brands = React.useMemo(() => {
-    return [
-      { name: "all", translation: "Toutes les marques" }, 
-      ...brandsData
-    ];
+    return brandsData.map(b => ({ name: b.name, translation: b.translation }));
   }, [brandsData]);
 
-  const filteredProducts = products.filter((product: any) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-    const matchesBrand = selectedBrand === "all" || product.brand === selectedBrand;
-    return matchesSearch && matchesCategory && matchesBrand;
-  });
+  const filteredProducts = React.useMemo(() => {
+    if (!allProducts || !Array.isArray(allProducts)) {
+      console.log("Products is not an array:", allProducts);
+      return [];
+    }
+    
+    return allProducts.filter((product: any) => {
+      // Search term filter - handle null values safely
+      const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      // Category filter - handle 'all' filter correctly
+      const categoryMatch = selectedCategory === "all" || (product.category && product.category === selectedCategory);
+      
+      // Brand filter - handle 'all' filter correctly  
+      const brandMatch = selectedBrand === "all" || (product.brand && product.brand === selectedBrand);
+      
+      return nameMatch && categoryMatch && brandMatch;
+    });
+  }, [allProducts, searchTerm, selectedCategory, selectedBrand]);
+
+  useEffect(() => {
+    if (isQuickCatalogOpen) {
+      console.log("Quick catalog opened, products count:", allProducts?.length || 0);
+      console.log("Filtered products count:", filteredProducts?.length || 0);
+      console.log("Categories count:", categories?.length || 0);
+      console.log("Brands count:", brands?.length || 0);
+      console.log("Selected category:", selectedCategory);
+      console.log("Selected brand:", selectedBrand);
+    }
+  }, [isQuickCatalogOpen, allProducts, filteredProducts, categories, brands, selectedCategory, selectedBrand]);
 
   const handleChange = (field: keyof Equipment, value: string | number) => {
     setEquipment({ ...equipment, [field]: value });
@@ -204,7 +222,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
         categories={categories}
         brands={brands}
         filteredProducts={filteredProducts}
-        isLoading={isLoading}
+        isLoading={isProductsLoading}
       />
     </Card>
   );

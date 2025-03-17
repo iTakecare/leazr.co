@@ -73,11 +73,11 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les catégories</SelectItem>
-              {categories.map((category) => (
+              {categories && categories.length > 0 ? categories.map((category) => (
                 <SelectItem key={category.name} value={category.name}>
                   {category.translation}
                 </SelectItem>
-              ))}
+              )) : null}
             </SelectContent>
           </Select>
 
@@ -87,11 +87,11 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les marques</SelectItem>
-              {brands.map((brand) => (
+              {brands && brands.length > 0 ? brands.map((brand) => (
                 <SelectItem key={brand.name} value={brand.name}>
                   {brand.translation}
                 </SelectItem>
-              ))}
+              )) : null}
             </SelectContent>
           </Select>
         </div>

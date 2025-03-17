@@ -61,6 +61,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
       console.log("Brands:", brandsData);
       console.log("Selected category:", selectedCategory);
       console.log("Selected brand:", selectedBrand);
+      console.log("Products count:", products?.length || 0);
     }
   }, [isOpen, products, categoriesData, brandsData, selectedCategory, selectedBrand]);
 
@@ -81,18 +82,30 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     }
     
     return products.filter((product: Product) => {
-      // Search term filter
-      const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-      // Category filter
-      const categoryMatch = selectedCategory === "all" || (product.category && product.category === selectedCategory);
-      
-      // Brand filter
-      const brandMatch = selectedBrand === "all" || (product.brand && product.brand === selectedBrand);
-      
-      return nameMatch && categoryMatch && brandMatch;
+      try {
+        // Search term filter
+        const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        // Category filter
+        const categoryMatch = selectedCategory === "all" || (product.category && product.category === selectedCategory);
+        
+        // Brand filter
+        const brandMatch = selectedBrand === "all" || (product.brand && product.brand === selectedBrand);
+        
+        return nameMatch && categoryMatch && brandMatch;
+      } catch (error) {
+        console.error("Error filtering product:", error, product);
+        return false;
+      }
     });
   }, [products, searchTerm, selectedCategory, selectedBrand]);
+
+  useEffect(() => {
+    if (isOpen) {
+      console.log("Filtered products:", filteredProducts);
+      console.log("Filter criteria - searchTerm:", searchTerm, "category:", selectedCategory, "brand:", selectedBrand);
+    }
+  }, [isOpen, filteredProducts, searchTerm, selectedCategory, selectedBrand]);
 
   // Components for modal/sheet version
   const DialogOrSheet = isSheet ? Sheet : Dialog;
@@ -128,11 +141,11 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les catégories</SelectItem>
-                {categories.map((category) => (
+                {categories && categories.length > 0 ? categories.map((category) => (
                   <SelectItem key={category.name} value={category.name}>
                     {category.translation}
                   </SelectItem>
-                ))}
+                )) : null}
               </SelectContent>
             </Select>
 
@@ -142,11 +155,11 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les marques</SelectItem>
-                {brands.map((brand) => (
+                {brands && brands.length > 0 ? brands.map((brand) => (
                   <SelectItem key={brand.name} value={brand.name}>
                     {brand.translation}
                   </SelectItem>
-                ))}
+                )) : null}
               </SelectContent>
             </Select>
           </div>
@@ -204,11 +217,11 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les catégories</SelectItem>
-              {categories.map((category) => (
+              {categories && categories.length > 0 ? categories.map((category) => (
                 <SelectItem key={category.name} value={category.name}>
                   {category.translation}
                 </SelectItem>
-              ))}
+              )) : null}
             </SelectContent>
           </Select>
           
@@ -218,11 +231,11 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les marques</SelectItem>
-              {brands.map((brand) => (
+              {brands && brands.length > 0 ? brands.map((brand) => (
                 <SelectItem key={brand.name} value={brand.name}>
                   {brand.translation}
                 </SelectItem>
-              ))}
+              )) : null}
             </SelectContent>
           </Select>
         </div>

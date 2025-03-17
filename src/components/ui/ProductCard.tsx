@@ -7,7 +7,10 @@ interface ProductCardProps {
   product: {
     id: string;
     name: string;
-    monthly_price?: number; // Changed from required to optional
+    monthly_price?: number;
+    price?: number;
+    category?: string;
+    brand?: string;
     image_url?: string;
   };
 }
@@ -20,15 +23,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center">
             <img 
               src={product.image_url || "/placeholder.svg"} 
-              alt={product.name}
+              alt={product.name || "Produit"}
               className="object-contain h-24 w-24"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/placeholder.svg";
+              }}
             />
           </div>
           <div className="w-2/3 p-4">
-            <h3 className="font-medium text-sm mb-1 line-clamp-2">{product.name}</h3>
-            <p className="text-sm text-muted-foreground">
-              Mensualité: {product.monthly_price ? formatCurrency(product.monthly_price) : "Non définie"}
-            </p>
+            <h3 className="font-medium text-sm mb-1 line-clamp-2">{product.name || "Produit sans nom"}</h3>
+            <div className="text-sm space-y-1">
+              <p className="text-muted-foreground">
+                Prix: {product.price ? formatCurrency(product.price) : "Non défini"}
+              </p>
+              <p className="text-muted-foreground">
+                Mensualité: {product.monthly_price ? formatCurrency(product.monthly_price) : "Non définie"}
+              </p>
+            </div>
             <div className="mt-2 flex items-center">
               <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
                 Disponible
