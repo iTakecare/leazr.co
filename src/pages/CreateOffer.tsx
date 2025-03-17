@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/context/AuthContext";
 import { useCalculator } from "@/hooks/useCalculator";
@@ -25,12 +25,13 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import EquipmentList from "@/components/offer/EquipmentList";
 import CalculatorOutput from "@/components/offer/CalculatorOutput";
 import MarginAdjuster from "@/components/offer/MarginAdjuster";
+import { supabase } from "@/integrations/supabase/client";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { calculate, calculator } = useCalculator();
-  const { clients, isLoading: isLoadingClients, error: errorClients } = useClients();
+  const { clients, loading: isLoadingClients, error: errorClients } = useClients();
   const { leasers, isLoading: isLoadingLeasers, error: errorLeasers } = useLeasers();
 
   const [clientId, setClientId] = useState<string | null>(null);
@@ -48,9 +49,16 @@ const CreateOffer = () => {
     const fetchClientData = async () => {
       if (!user?.id) return;
       try {
-        const id = await getClientIdForUser(user.id, user.email || null);
-        if (id) {
-          setClientId(id);
+        const { data, error } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setClientId(data.id);
         }
       } catch (error) {
         console.error("Error fetching client data:", error);
@@ -75,6 +83,7 @@ const CreateOffer = () => {
 
   const handleClientSelect = (client: Client) => {
     setSelectedClient(client);
+    setClientId(client.id);
     closeClientSelector();
   };
 
@@ -97,7 +106,7 @@ const CreateOffer = () => {
     console.log('Updating margin:', value);
   };
 
-  const createOffer = async () => {
+  const handleSaveOffer = async () => {
     if (!selectedClient) {
       toast.error("Veuillez sélectionner un client");
       return;
@@ -117,10 +126,10 @@ const CreateOffer = () => {
 
     try {
       const offerData = {
-        clientId,
-        client_name: selectedClient?.name || '',
-        client_email: selectedClient?.email || '',
-        leaser_id: selectedLeaser?.id || '',
+        clientId: selectedClient.id,
+        client_name: selectedClient.name || '',
+        client_email: selectedClient.email || '',
+        leaser_id: selectedLeaser.id || '',
         amount: calculator.finalAmount,
         coefficient: calculator.coefficient,
         equipment_description: equipmentDescription,
@@ -132,13 +141,9 @@ const CreateOffer = () => {
       };
 
       const newOffer = await createOffer(offerData);
-
-      if (newOffer) {
-        toast.success("Offre créée avec succès !");
-        navigate(`/offers/${newOffer.id}`);
-      } else {
-        toast.error("Erreur lors de la création de l'offre");
-      }
+      
+      toast.success("Offre créée avec succès !");
+      navigate(`/offers/${newOffer.id}`);
     } catch (error) {
       console.error("Erreur lors de la création de l'offre:", error);
       toast.error("Une erreur s'est produite lors de la création de l'offre");
@@ -241,7 +246,7 @@ const CreateOffer = () => {
           </Card>
 
           <div className="flex justify-end">
-            <Button disabled={isSubmitting} onClick={createOffer}>
+            <Button disabled={isSubmitting} onClick={handleSaveOffer}>
               {isSubmitting ? "Création en cours..." : "Créer l'offre"}
             </Button>
           </div>

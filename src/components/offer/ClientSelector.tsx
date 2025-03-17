@@ -3,13 +3,13 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Client } from '@/types/client';
 
-// Rename the interface to ClientSelectorProps
+// Interface for the button component
 interface ClientSelectorProps {
   selectedClient: Client | null;
   onSelect: () => void;
 }
 
-// Rename the component to ClientSelectorButton
+// Button component
 const ClientSelectorButton: React.FC<ClientSelectorProps> = ({ 
   selectedClient, 
   onSelect 
@@ -27,7 +27,7 @@ const ClientSelectorButton: React.FC<ClientSelectorProps> = ({
   );
 };
 
-// Full screen selector modal
+// Interface for the modal component
 interface FullClientSelectorProps {
   isOpen: boolean;
   onClose: () => void;
@@ -35,7 +35,7 @@ interface FullClientSelectorProps {
   clients: Client[];
 }
 
-// Rename this component to ClientSelectorModal
+// Modal component
 const ClientSelectorModal: React.FC<FullClientSelectorProps> = ({
   isOpen,
   onClose,

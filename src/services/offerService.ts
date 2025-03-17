@@ -1,7 +1,8 @@
 
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-// Mock offer data and service functions
+// Type definition for Offer
 export interface Offer {
   id: string;
   clientId: string;
@@ -19,127 +20,166 @@ export interface Offer {
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'signed';
   created_at: string;
   updated_at: string;
+  type?: string; // Optional field for compatibility
+  workflow_status?: string; // Optional field for compatibility
+  converted_to_contract?: boolean; // Optional field for compatibility
 }
 
-// Mock offers data store
-const mockOffers: Offer[] = [];
-
-// Create a new offer
+// Create a new offer using Supabase
 export const createOffer = async (offerData: Omit<Offer, 'id' | 'status' | 'created_at' | 'updated_at'>): Promise<Offer> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newOffer: Offer = {
-        id: uuidv4(),
-        ...offerData,
-        status: 'draft',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      mockOffers.push(newOffer);
-      console.log('Created offer:', newOffer);
-      
-      resolve(newOffer);
-    }, 1000);
-  });
+  try {
+    const newOffer = {
+      ...offerData,
+      status: 'draft' as const,
+    };
+    
+    const { data, error } = await supabase
+      .from('offers')
+      .insert(newOffer)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return data as Offer;
+  } catch (error) {
+    console.error('Error creating offer:', error);
+    toast.error("Erreur lors de la création de l'offre");
+    throw error;
+  }
 };
 
 // Get all offers
 export const getOffers = async (): Promise<Offer[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockOffers);
-    }, 800);
-  });
+  try {
+    const { data, error } = await supabase
+      .from('offers')
+      .select('*');
+    
+    if (error) throw error;
+    
+    return data as Offer[];
+  } catch (error) {
+    console.error('Error fetching offers:', error);
+    toast.error("Erreur lors de la récupération des offres");
+    throw error;
+  }
 };
 
 // Get offer by ID
 export const getOfferById = async (id: string): Promise<Offer | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const offer = mockOffers.find(o => o.id === id) || null;
-      resolve(offer);
-    }, 500);
-  });
+  try {
+    const { data, error } = await supabase
+      .from('offers')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    
+    if (error) throw error;
+    
+    return data as Offer;
+  } catch (error) {
+    console.error('Error fetching offer by ID:', error);
+    toast.error("Erreur lors de la récupération de l'offre");
+    throw error;
+  }
 };
 
 // Update offer status
 export const updateOfferStatus = async (id: string, status: Offer['status']): Promise<Offer | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const offerIndex = mockOffers.findIndex(o => o.id === id);
-      if (offerIndex !== -1) {
-        mockOffers[offerIndex] = {
-          ...mockOffers[offerIndex],
-          status,
-          updated_at: new Date().toISOString()
-        };
-        resolve(mockOffers[offerIndex]);
-      } else {
-        resolve(null);
-      }
-    }, 500);
-  });
+  try {
+    const { data, error } = await supabase
+      .from('offers')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return data as Offer;
+  } catch (error) {
+    console.error('Error updating offer status:', error);
+    toast.error("Erreur lors de la mise à jour du statut de l'offre");
+    throw error;
+  }
 };
 
 // Delete offer
 export const deleteOffer = async (id: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const offerIndex = mockOffers.findIndex(o => o.id === id);
-      if (offerIndex !== -1) {
-        mockOffers.splice(offerIndex, 1);
-        resolve(true);
-      } else {
-        resolve(false);
-      }
-    }, 500);
-  });
+  try {
+    const { error } = await supabase
+      .from('offers')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting offer:', error);
+    toast.error("Erreur lors de la suppression de l'offre");
+    return false;
+  }
 };
 
 // Send information request
 export const sendInfoRequest = async (offerId: string, message: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log(`Sending info request for offer ${offerId}: ${message}`);
-      resolve(true);
-    }, 800);
-  });
+  try {
+    const { error } = await supabase
+      .from('info_requests')
+      .insert({
+        offer_id: offerId,
+        message,
+        status: 'pending'
+      });
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending info request:', error);
+    toast.error("Erreur lors de l'envoi de la demande d'information");
+    return false;
+  }
 };
 
 // Process information response
 export const processInfoResponse = async (offerId: string, response: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log(`Processing info response for offer ${offerId}: ${response}`);
-      resolve(true);
-    }, 800);
-  });
+  try {
+    const { error } = await supabase
+      .from('info_responses')
+      .insert({
+        offer_id: offerId,
+        response,
+        processed_at: new Date().toISOString()
+      });
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error processing info response:', error);
+    toast.error("Erreur lors du traitement de la réponse");
+    return false;
+  }
 };
 
 // Get workflow logs
 export const getWorkflowLogs = async (offerId: string): Promise<any[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Mock some workflow logs
-      resolve([
-        {
-          id: uuidv4(),
-          offer_id: offerId,
-          action: 'create',
-          user: 'System',
-          timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          details: 'Offer created'
-        },
-        {
-          id: uuidv4(),
-          offer_id: offerId,
-          action: 'status_change',
-          user: 'John Doe',
-          timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          details: 'Status changed from draft to sent'
-        }
-      ]);
-    }, 600);
-  });
+  try {
+    const { data, error } = await supabase
+      .from('workflow_logs')
+      .select('*')
+      .eq('offer_id', offerId)
+      .order('timestamp', { ascending: false });
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workflow logs:', error);
+    toast.error("Erreur lors de la récupération des logs de workflow");
+    return [];
+  }
 };

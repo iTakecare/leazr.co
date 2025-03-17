@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { Client } from '@/types/client';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-// This is a mock hook that simulates fetching clients from an API
 export function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
@@ -20,43 +21,21 @@ export function useClients() {
       setError(null);
       setLoadingError('');
       
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Real database query
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('name', { ascending: true });
       
-      // Mock client data
-      const mockClients: Client[] = [
-        {
-          id: '1',
-          name: 'Clinique Saint-Jean',
-          email: 'contact@clinique-saintjean.fr',
-          phone: '+33 1 23 45 67 89',
-          status: 'active',
-          company: 'Groupe Hospitalier Privé',
-          address: '15 Avenue des Soins',
-          city: 'Paris',
-          postal_code: '75008',
-          country: 'France',
-          created_at: '2023-01-15T10:30:00.000Z',
-          updated_at: '2023-05-20T14:45:00.000Z',
-          ambassador_id: '1'
-        },
-        {
-          id: '2',
-          name: 'Cabinet Médical Durand',
-          email: 'secretariat@cabinet-durand.fr',
-          status: 'active',
-          created_at: '2023-02-08T09:15:00.000Z',
-          updated_at: '2023-04-10T11:20:00.000Z',
-          ambassador_id: '2'
-        }
-      ];
+      if (error) throw error;
       
-      setClients(mockClients as Client[]);
-      setFilteredClients(mockClients as Client[]);
+      setClients(data || []);
+      setFilteredClients(data || []);
     } catch (err) {
       console.error('Error fetching clients:', err);
       setError('Failed to load clients');
       setLoadingError('Failed to load clients');
+      toast.error("Erreur lors du chargement des clients");
     } finally {
       setLoading(false);
       setIsLoading(false);
@@ -84,17 +63,23 @@ export function useClients() {
   }, [clients, searchTerm, statusFilter]);
 
   const handleDeleteClient = async (clientId: string) => {
-    // This would normally call an API to delete the client
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientId);
+      
+      if (error) throw error;
       
       // Remove client from state
       const updatedClients = clients.filter(client => client.id !== clientId);
       setClients(updatedClients);
+      
+      toast.success("Client supprimé avec succès");
       return true;
     } catch (err) {
       console.error('Error deleting client:', err);
+      toast.error("Erreur lors de la suppression du client");
       return false;
     }
   };

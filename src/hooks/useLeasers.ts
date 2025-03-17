@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from 'react';
-import { Leaser } from '@/types/equipment';
+import { Leaser } from '@/types/leaser';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export function useLeasers() {
   const [leasers, setLeasers] = useState<Leaser[]>([]);
@@ -16,34 +18,18 @@ export function useLeasers() {
       setIsLoading(true);
       setError(null);
       
-      // For now, we'll use mock data
-      const mockLeasers: Leaser[] = [
-        {
-          id: '1',
-          name: 'Grenke Finance',
-          description: 'Leasing financier spécialisé en équipement informatique',
-          ranges: [
-            { id: '1-1', min: 0, max: 10000, coefficient: 2.2 },
-            { id: '1-2', min: 10001, max: 50000, coefficient: 2.1 },
-            { id: '1-3', min: 50001, max: Infinity, coefficient: 2.0 }
-          ]
-        },
-        {
-          id: '2',
-          name: 'BNP Leasing',
-          description: 'Solutions de financement professionnel',
-          ranges: [
-            { id: '2-1', min: 0, max: 15000, coefficient: 2.3 },
-            { id: '2-2', min: 15001, max: 75000, coefficient: 2.15 },
-            { id: '2-3', min: 75001, max: Infinity, coefficient: 2.05 }
-          ]
-        }
-      ];
+      // Real database query
+      const { data, error } = await supabase
+        .from('leasers')
+        .select('*');
       
-      setLeasers(mockLeasers);
+      if (error) throw error;
+      
+      setLeasers(data || []);
     } catch (err) {
       console.error('Error fetching leasers:', err);
       setError('Failed to load leasers');
+      toast.error("Erreur lors du chargement des partenaires financiers");
     } finally {
       setIsLoading(false);
     }
