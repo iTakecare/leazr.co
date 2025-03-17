@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
@@ -30,8 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateAmbassador } from "@/services/ambassadorService";
+import PageTransition from "@/components/layout/PageTransition";
+import Container from "@/components/layout/Container";
 
-// Define schema for ambassador form data
 const ambassadorSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Veuillez entrer un email valide"),
@@ -70,6 +70,11 @@ const AmbassadorEditPage = () => {
       return;
     }
 
+    if (id === "create") {
+      navigate("/ambassadors/create");
+      return;
+    }
+
     const loadAmbassador = async () => {
       try {
         const ambassadorData = await getAmbassadorById(id);
@@ -80,7 +85,6 @@ const AmbassadorEditPage = () => {
         }
         setAmbassador(ambassadorData);
         
-        // Populate form with ambassador data
         form.reset({
           name: ambassadorData.name,
           email: ambassadorData.email,
@@ -91,11 +95,18 @@ const AmbassadorEditPage = () => {
         });
         
         setLoading(false);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Erreur lors du chargement de l'ambassadeur:", error);
-        setError("Erreur lors du chargement de l'ambassadeur");
-        toast.error("Erreur lors du chargement de l'ambassadeur");
-        navigate("/ambassadors");
+        
+        if (error.message && error.message.includes("invalid input syntax for type uuid")) {
+          setError("L'identifiant fourni n'est pas valide");
+          toast.error("ID d'ambassadeur invalide");
+        } else {
+          setError("Erreur lors du chargement de l'ambassadeur");
+          toast.error("Erreur lors du chargement de l'ambassadeur");
+        }
+        
+        setTimeout(() => navigate("/ambassadors"), 2000);
       }
     };
 
@@ -123,40 +134,58 @@ const AmbassadorEditPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Chargement des données...</span>
-      </div>
+      <PageTransition>
+        <Container>
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Chargement des données...</span>
+          </div>
+        </Container>
+      </PageTransition>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 text-center">
-        <h1 className="text-xl font-bold mb-2">Erreur</h1>
-        <p className="text-muted-foreground mb-4">{error}</p>
-        <button 
-          className="px-4 py-2 bg-primary text-white rounded-md" 
-          onClick={() => navigate("/ambassadors")}
-        >
-          Retour à la liste
-        </button>
-      </div>
+      <PageTransition>
+        <Container>
+          <div className="p-4 text-center max-w-md mx-auto mt-12">
+            <div className="rounded-full bg-destructive/10 w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <span className="text-destructive text-3xl">!</span>
+            </div>
+            <h1 className="text-xl font-bold mb-2">Erreur</h1>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button 
+              className="px-4 py-2" 
+              onClick={() => navigate("/ambassadors")}
+            >
+              Retour à la liste
+            </Button>
+          </div>
+        </Container>
+      </PageTransition>
     );
   }
 
   if (!ambassador) {
     return (
-      <div className="p-4 text-center">
-        <h1 className="text-xl font-bold mb-2">Ambassadeur introuvable</h1>
-        <p className="text-muted-foreground mb-4">L'ambassadeur demandé n'existe pas ou n'est plus disponible.</p>
-        <button 
-          className="px-4 py-2 bg-primary text-white rounded-md" 
-          onClick={() => navigate("/ambassadors")}
-        >
-          Retour à la liste
-        </button>
-      </div>
+      <PageTransition>
+        <Container>
+          <div className="p-4 text-center max-w-md mx-auto mt-12">
+            <div className="rounded-full bg-destructive/10 w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <span className="text-destructive text-3xl">!</span>
+            </div>
+            <h1 className="text-xl font-bold mb-2">Ambassadeur introuvable</h1>
+            <p className="text-muted-foreground mb-4">L'ambassadeur demandé n'existe pas ou n'est plus disponible.</p>
+            <Button 
+              className="px-4 py-2" 
+              onClick={() => navigate("/ambassadors")}
+            >
+              Retour à la liste
+            </Button>
+          </div>
+        </Container>
+      </PageTransition>
     );
   }
 

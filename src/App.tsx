@@ -23,6 +23,7 @@ import PartnerDetail from "./pages/PartnerDetail";
 import PartnerEditPage from "./pages/PartnerEditPage";
 import AmbassadorDetail from "./pages/AmbassadorDetail";
 import AmbassadorEditPage from "./pages/AmbassadorEditPage";
+import AmbassadorCreatePage from "./pages/AmbassadorCreatePage";
 import AmbassadorsListPage from "./pages/AmbassadorsList";
 import ContractDetail from "./pages/ContractDetail";
 import Calculator from "./pages/Calculator";
@@ -194,6 +195,7 @@ function App() {
               <Route path="/partners/:id" element={<PartnerDetail />} />
               <Route path="/partners/edit/:id" element={<PartnerEditPage />} />
               <Route path="/ambassadors" element={<AmbassadorsListPage />} />
+              <Route path="/ambassadors/create" element={<AmbassadorCreatePage />} />
               <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
               <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
             </Route>
