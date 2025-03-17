@@ -36,13 +36,14 @@ const PartnerDetail = () => {
               type: partnerData.type as 'distributor' | 'integrator' | string,
               company: partnerData.company || undefined,
               address: partnerData.address || undefined,
-              additional_info: partnerData.notes,
+              additional_info: partnerData.additional_info,
               created_at: partnerData.created_at,
               updated_at: partnerData.updated_at,
               commission_level_id: partnerData.commission_level_id,
               has_user_account: partnerData.has_user_account,
               user_account_created_at: partnerData.user_account_created_at,
-              notes: partnerData.notes
+              notes: partnerData.notes,
+              contactName: partnerData.contactName
             };
             setPartner(typedPartner);
           } else {
@@ -117,18 +118,24 @@ const PartnerDetail = () => {
                 <Label>Type:</Label>
                 <p>{partner.type}</p>
               </div>
-              <div>
-                <Label>Société:</Label>
-                <p>{partner.company}</p>
-              </div>
-              <div>
-                <Label>Adresse:</Label>
-                <p>{partner.address}</p>
-              </div>
-              <div>
-                <Label>Informations supplémentaires:</Label>
-                <p>{partner.additional_info}</p>
-              </div>
+              {partner.company && (
+                <div>
+                  <Label>Société:</Label>
+                  <p>{partner.company}</p>
+                </div>
+              )}
+              {partner.address && (
+                <div>
+                  <Label>Adresse:</Label>
+                  <p>{partner.address}</p>
+                </div>
+              )}
+              {partner.additional_info && (
+                <div>
+                  <Label>Informations supplémentaires:</Label>
+                  <p>{partner.additional_info}</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

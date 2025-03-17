@@ -15,4 +15,7 @@ export interface Partner {
   has_user_account?: boolean;
   user_account_created_at?: string;
   notes?: string;
+  contactName?: string;
+  status?: string;
+  user_id?: string;
 }
