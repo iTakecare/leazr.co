@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProductCard from "@/components/ui/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { getProducts, getCategories, getBrands } from "@/services/catalogService";
 
 interface CatalogDialogProps {
   isOpen: boolean;
@@ -38,16 +40,72 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   filteredProducts,
   isLoading
 }) => {
+  // Fetch data directly in the component rather than relying on passed props
+  const { data: allProducts = [], isLoading: productsLoading } = useQuery({
+    queryKey: ["catalogProducts"],
+    queryFn: getProducts,
+    enabled: isOpen,
+  });
+
+  const { data: categoriesData = [] } = useQuery({
+    queryKey: ["catalogCategories"],
+    queryFn: getCategories,
+    enabled: isOpen,
+  });
+
+  const { data: brandsData = [] } = useQuery({
+    queryKey: ["catalogBrands"],
+    queryFn: getBrands,
+    enabled: isOpen,
+  });
+
+  // Filter products client-side
+  const localFilteredProducts = React.useMemo(() => {
+    if (!allProducts || !Array.isArray(allProducts)) {
+      return [];
+    }
+    
+    return allProducts.filter((product) => {
+      // Search term filter - handle null values safely
+      const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      // Category filter - handle 'all' filter correctly
+      const categoryMatch = selectedCategory === "all" || (product.category && product.category === selectedCategory);
+      
+      // Brand filter - handle 'all' filter correctly  
+      const brandMatch = selectedBrand === "all" || (product.brand && product.brand === selectedBrand);
+      
+      return nameMatch && categoryMatch && brandMatch;
+    });
+  }, [allProducts, searchTerm, selectedCategory, selectedBrand]);
+
+  // Use local categories/brands from the query instead of props
+  const localCategories = React.useMemo(() => {
+    return categoriesData.map(c => ({ name: c.name, translation: c.translation }));
+  }, [categoriesData]);
+
+  const localBrands = React.useMemo(() => {
+    return brandsData.map(b => ({ name: b.name, translation: b.translation }));
+  }, [brandsData]);
+
   useEffect(() => {
     if (isOpen) {
-      console.log("CatalogDialog opened with products:", filteredProducts);
-      console.log("Categories:", categories);
-      console.log("Brands:", brands);
-      console.log("Selected category:", selectedCategory);
-      console.log("Selected brand:", selectedBrand);
+      console.log("[CatalogDialog] Opened with products count:", allProducts?.length || 0);
+      console.log("[CatalogDialog] Filtered products count:", localFilteredProducts?.length || 0);
+      console.log("[CatalogDialog] Categories:", localCategories);
+      console.log("[CatalogDialog] Brands:", localBrands);
+      console.log("[CatalogDialog] Search term:", searchTerm);
+      console.log("[CatalogDialog] Selected category:", selectedCategory);
+      console.log("[CatalogDialog] Selected brand:", selectedBrand);
     }
-  }, [isOpen, filteredProducts, categories, brands, selectedCategory, selectedBrand]);
+  }, [isOpen, allProducts, localFilteredProducts, localCategories, localBrands, searchTerm, selectedCategory, selectedBrand]);
 
+  // Determine actual loading state
+  const actualLoading = isLoading || productsLoading;
+  
+  // Use products from our direct query, not from props
+  const productsToShow = localFilteredProducts.length > 0 ? localFilteredProducts : [];
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px]">
@@ -73,7 +131,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les catégories</SelectItem>
-              {categories && categories.length > 0 ? categories.map((category) => (
+              {localCategories && localCategories.length > 0 ? localCategories.map((category) => (
                 <SelectItem key={category.name} value={category.name}>
                   {category.translation}
                 </SelectItem>
@@ -87,7 +145,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les marques</SelectItem>
-              {brands && brands.length > 0 ? brands.map((brand) => (
+              {localBrands && localBrands.length > 0 ? localBrands.map((brand) => (
                 <SelectItem key={brand.name} value={brand.name}>
                   {brand.translation}
                 </SelectItem>
@@ -96,7 +154,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           </Select>
         </div>
         
-        {isLoading ? (
+        {actualLoading ? (
           <div className="flex flex-col gap-4 my-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />
@@ -105,8 +163,8 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         ) : (
           <ScrollArea className="h-[400px] pr-4">
             <div className="flex flex-col gap-4 my-4">
-              {filteredProducts && filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
+              {productsToShow.length > 0 ? (
+                productsToShow.map((product) => (
                   <div key={product.id} onClick={() => handleProductSelect(product)} className="cursor-pointer">
                     <ProductCard product={product} />
                   </div>
