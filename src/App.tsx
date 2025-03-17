@@ -30,6 +30,7 @@ import ContractDetail from "./pages/ContractDetail";
 import Calculator from "./pages/Calculator";
 import PartnerCreatePage from "./pages/PartnerCreatePage";
 import PartnersListPage from "./pages/PartnersList";
+import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -52,13 +53,15 @@ const queryClient = new QueryClient({
 const ProtectedRoute = ({ 
   children, 
   requireAdmin = false,
-  requirePartner = false
+  requirePartner = false,
+  requireAmbassador = false
 }: { 
   children: React.ReactNode, 
   requireAdmin?: boolean,
-  requirePartner?: boolean
+  requirePartner?: boolean,
+  requireAmbassador?: boolean
 }) => {
-  const { user, isLoading, isAdmin, isClient, isPartner, userRoleChecked } = useAuth();
+  const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
   const location = useLocation();
 
   const isPasswordResetFlow = () => {
@@ -92,17 +95,23 @@ const ProtectedRoute = ({
     email: user.email,
     isAdmin: isAdmin(),
     isPartner: isPartner(),
+    isAmbassador: isAmbassador(),
     isClient: isClient(),
     requireAdmin,
     requirePartner,
+    requireAmbassador,
     userRoleChecked,
-    partner_id: user.partner_id
+    partner_id: user.partner_id,
+    ambassador_id: user.ambassador_id
   });
 
   if (requireAdmin && !isAdmin()) {
     console.log("Accès admin requis mais utilisateur non admin, redirection");
     if (isPartner()) {
       return <Navigate to="/partner/dashboard" />;
+    }
+    if (isAmbassador()) {
+      return <Navigate to="/ambassador/dashboard" />;
     }
     return <Navigate to="/client/dashboard" />;
   }
@@ -112,10 +121,24 @@ const ProtectedRoute = ({
     if (isAdmin()) {
       return <Navigate to="/dashboard" />;
     }
+    if (isAmbassador()) {
+      return <Navigate to="/ambassador/dashboard" />;
+    }
     return <Navigate to="/client/dashboard" />;
   }
 
-  if (!requireAdmin && !requirePartner && isClient() && !window.location.pathname.startsWith('/client')) {
+  if (requireAmbassador && !isAmbassador()) {
+    console.log("Accès ambassadeur requis mais utilisateur non ambassadeur, redirection");
+    if (isAdmin()) {
+      return <Navigate to="/dashboard" />;
+    }
+    if (isPartner()) {
+      return <Navigate to="/partner/dashboard" />;
+    }
+    return <Navigate to="/client/dashboard" />;
+  }
+
+  if (!requireAdmin && !requirePartner && !requireAmbassador && isClient() && !window.location.pathname.startsWith('/client')) {
     console.log("Client tentant d'accéder à une route admin, redirection");
     return <Navigate to="/client/dashboard" />;
   }
@@ -123,6 +146,11 @@ const ProtectedRoute = ({
   if (isPartner() && window.location.pathname === '/') {
     console.log("Partenaire connecté sur la page d'accueil, redirection vers le tableau de bord partenaire");
     return <Navigate to="/partner/dashboard" />;
+  }
+
+  if (isAmbassador() && window.location.pathname === '/') {
+    console.log("Ambassadeur connecté sur la page d'accueil, redirection vers le tableau de bord ambassadeur");
+    return <Navigate to="/ambassador/dashboard" />;
   }
 
   return <>{children}</>;
@@ -140,6 +168,28 @@ const PartnerLayout = ({ children }: { children: React.ReactNode }) => {
           <nav className="flex items-center gap-6">
             <a href="/partner/dashboard" className="text-gray-700 hover:text-blue-700">Tableau de bord</a>
             <a href="/partner/create-offer" className="text-gray-700 hover:text-blue-700">Nouvelle offre</a>
+            <a href="/logout" className="text-gray-700 hover:text-blue-700">Déconnexion</a>
+          </nav>
+        </div>
+      </header>
+      <main className="container mx-auto px-4 py-6">
+        {children}
+      </main>
+    </div>
+  );
+};
+
+const AmbassadorLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold">iTakecare Ambassadeur</h1>
+          </div>
+          
+          <nav className="flex items-center gap-6">
+            <a href="/ambassador/dashboard" className="text-gray-700 hover:text-blue-700">Tableau de bord</a>
             <a href="/logout" className="text-gray-700 hover:text-blue-700">Déconnexion</a>
           </nav>
         </div>
@@ -214,6 +264,16 @@ function App() {
               <Route path="dashboard" element={<PartnerDashboard />} />
               <Route path="create-offer" element={<PartnerCreateOffer />} />
               <Route path="offers/:id" element={<PartnerOfferDetail />} />
+            </Route>
+            
+            <Route path="/ambassador" element={
+              <ProtectedRoute requireAmbassador={true}>
+                <AmbassadorLayout>
+                  <Outlet />
+                </AmbassadorLayout>
+              </ProtectedRoute>
+            }>
+              <Route path="dashboard" element={<AmbassadorDashboard />} />
             </Route>
             
             <Route path="/client/*" element={
