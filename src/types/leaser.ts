@@ -1,5 +1,6 @@
 
 export interface LeaserRange {
+  id: string;
   min: number;
   max: number;
   coefficient: number;

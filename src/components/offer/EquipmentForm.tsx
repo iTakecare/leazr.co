@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Equipment, Leaser } from "@/types/equipment";
+import { Equipment } from "@/types/equipment";
+import { Leaser } from "@/types/leaser";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
 import { useQuery } from "@tanstack/react-query";
 import MarginCalculator from "./MarginCalculator";

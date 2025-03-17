@@ -1,22 +1,46 @@
 
-export interface Client {
+export interface Collaborator {
   id: string;
   name: string;
-  email?: string;
+  email: string;
+  role: string;
+  client_id: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateClientData {
+  name: string;
+  email: string;
   phone?: string;
+  company?: string;
   address?: string;
   city?: string;
   postal_code?: string;
   country?: string;
-  vat_number?: string;
-  company?: string;
-  website?: string;
   notes?: string;
-  status: 'active' | 'inactive';
-  created_at: string;
-  updated_at?: string;
+  status?: 'lead' | 'active' | 'inactive';
   ambassador_id?: string | null;
-  has_user_account?: boolean;
-  user_account_created_at?: string;
   user_id?: string | null;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  notes?: string;
+  status: 'lead' | 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+  ambassador_id?: string;
+  has_user_account?: boolean;
+  user_id?: string;
+  user_account_created_at?: string;
+  collaborators?: Collaborator[];
 }

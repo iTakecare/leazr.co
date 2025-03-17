@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
-import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
+import { Equipment, GlobalMarginAdjustment } from '@/types/equipment';
+import { Leaser } from '@/types/leaser';
 
 // Mock default leasers for use when no leaser is selected
 const defaultLeasers: Leaser[] = [
@@ -17,7 +17,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const leaser = selectedLeaser || defaultLeasers[0];
   
   const [equipment, setEquipment] = useState<Equipment>({
-    id: crypto.randomUUID(),
     title: '',
     purchasePrice: 0,
     quantity: 1,
@@ -37,14 +36,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     originalAmount: 0,
     originalCoef: 0,
     originalMonthly: 0,
-    adjustmentPercent: 0,
-    percentage: 0,
-    amount: 0,
-    newMonthly: 0,
-    currentCoef: 0,
-    newCoef: 0,
-    adaptMonthlyPayment: false,
-    marginDifference: 0
+    adjustmentPercent: 0
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -175,6 +167,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       
       const equipmentToAdd = {
         ...equipment,
+        id: equipment.id || crypto.randomUUID(),
         margin: Number(equipment.margin.toFixed(2)),
         monthlyPayment: currentMonthlyPayment
       };
@@ -190,7 +183,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       
       // Reset equipment and targetMonthlyPayment after adding to list
       setEquipment({
-        id: crypto.randomUUID(),
         title: '',
         purchasePrice: 0,
         quantity: 1,
@@ -219,7 +211,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const cancelEditing = () => {
     setEditingId(null);
     setEquipment({
-      id: crypto.randomUUID(),
       title: '',
       purchasePrice: 0,
       quantity: 1,
@@ -262,14 +253,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         originalAmount: 0, 
         originalCoef: 0,
         originalMonthly: 0,
-        adjustmentPercent: 0,
-        percentage: 0, 
-        amount: 0, 
-        newMonthly: 0,
-        currentCoef: 0,
-        newCoef: 0,
-        adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
-        marginDifference: 0
+        adjustmentPercent: 0
       });
       return;
     }

@@ -19,7 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { ClientSelectorButton, ClientSelectorModal } from "@/components/offer/ClientSelector";
+import ClientSelectorButton from "@/components/offer/ClientSelectorButton";
+import ClientSelectorModal from "@/components/offer/ClientSelectorModal";
 import LeaserButton from "@/components/offer/LeaserButton";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -31,7 +32,7 @@ const CreateOffer = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { calculate, calculator } = useCalculator();
-  const { clients, loading: isLoadingClients, error: errorClients } = useClients();
+  const { clients, loading: isLoadingClients, loadingError: errorClients } = useClients();
   const { leasers, isLoading: isLoadingLeasers, error: errorLeasers } = useLeasers();
 
   const [clientId, setClientId] = useState<string | null>(null);
@@ -43,7 +44,13 @@ const CreateOffer = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
-  const [equipment, setEquipment] = useState<Equipment>({ items: [] });
+  const [equipment, setEquipment] = useState<Equipment>({ 
+    title: '',
+    purchasePrice: 0,
+    quantity: 1,
+    margin: 0,
+    items: [] 
+  });
 
   useEffect(() => {
     const fetchClientData = async () => {

@@ -1,24 +1,25 @@
 
-export interface Equipment {
-  items: EquipmentItem[];
-  id?: string;
-  title?: string;
-  purchasePrice?: number;
-  quantity?: number;
-  margin?: number;
-  monthlyPayment?: number;
-}
+import { Leaser } from './leaser';
 
 export interface EquipmentItem {
   id: string;
-  name: string;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-  category: string;
+  title: string;
   description?: string;
-  reference?: string;
-  brand?: string;
+  purchasePrice: number;
+  quantity: number;
+  margin: number;
+  total_price: number;
+  monthlyPayment?: number;
+}
+
+export interface Equipment {
+  id?: string;
+  title: string;
+  purchasePrice: number;
+  quantity: number;
+  margin: number;
+  monthlyPayment?: number;
+  items: EquipmentItem[];
 }
 
 export interface GlobalMarginAdjustment {
@@ -36,17 +37,5 @@ export interface GlobalMarginAdjustment {
   marginDifference?: number;
 }
 
-export interface Leaser {
-  id: string;
-  name: string;
-  description?: string;
-  logo_url?: string;
-  ranges: LeaserRange[];
-}
-
-export interface LeaserRange {
-  id: string;
-  min: number;
-  max: number;
-  coefficient: number;
-}
+// Re-export the Leaser type to ensure compatibility
+export type { Leaser, LeaserRange } from './leaser';

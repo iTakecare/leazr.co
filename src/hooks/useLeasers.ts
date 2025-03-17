@@ -21,11 +21,20 @@ export function useLeasers() {
       // Real database query
       const { data, error } = await supabase
         .from('leasers')
-        .select('*');
+        .select('*, ranges(*)');
       
       if (error) throw error;
       
-      setLeasers(data || []);
+      // Transform the data to match our Leaser type
+      const formattedLeasers: Leaser[] = data?.map(leaser => ({
+        id: leaser.id,
+        name: leaser.name,
+        description: leaser.description,
+        logo_url: leaser.logo_url,
+        ranges: leaser.ranges || []
+      })) || [];
+      
+      setLeasers(formattedLeasers);
     } catch (err) {
       console.error('Error fetching leasers:', err);
       setError('Failed to load leasers');
