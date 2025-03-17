@@ -54,6 +54,14 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     enabled: isOpen,
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      console.log("Catalog opened with products:", products);
+      console.log("Categories:", categoriesData);
+      console.log("Brands:", brandsData);
+    }
+  }, [isOpen, products, categoriesData, brandsData]);
+
   // Extraire les catégories depuis les données récupérées
   const categories = React.useMemo(() => {
     return [
@@ -70,12 +78,20 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     ];
   }, [brandsData]);
 
-  const filteredProducts = products.filter((product: Product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-    const matchesBrand = selectedBrand === "all" || product.brand === selectedBrand;
-    return matchesSearch && matchesCategory && matchesBrand;
-  });
+  const filteredProducts = React.useMemo(() => {
+    return products.filter((product: Product) => {
+      // Search term filter
+      const nameMatch = !searchTerm || product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Category filter
+      const categoryMatch = selectedCategory === "all" || product.category === selectedCategory;
+      
+      // Brand filter
+      const brandMatch = selectedBrand === "all" || product.brand === selectedBrand;
+      
+      return nameMatch && categoryMatch && brandMatch;
+    });
+  }, [products, searchTerm, selectedCategory, selectedBrand]);
 
   // Components for modal/sheet version
   const DialogOrSheet = isSheet ? Sheet : Dialog;
@@ -145,9 +161,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           ) : (
             <ScrollArea className="h-[400px] pr-4">
               <div className="flex flex-col gap-4 my-4">
-                {filteredProducts.length > 0 ? (
+                {filteredProducts && filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
-                    <div key={product.id} onClick={() => onSelectProduct(product)}>
+                    <div key={product.id} onClick={() => onSelectProduct(product)} className="cursor-pointer">
                       <ProductCard product={product} />
                     </div>
                   ))

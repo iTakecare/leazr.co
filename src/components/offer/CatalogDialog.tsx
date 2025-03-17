@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -38,6 +38,14 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   filteredProducts,
   isLoading
 }) => {
+  useEffect(() => {
+    if (isOpen) {
+      console.log("CatalogDialog opened with products:", filteredProducts);
+      console.log("Selected category:", selectedCategory);
+      console.log("Selected brand:", selectedBrand);
+    }
+  }, [isOpen, filteredProducts, selectedCategory, selectedBrand]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px]">
@@ -62,6 +70,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Toutes les catégories</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.name} value={category.name}>
                   {category.translation}
@@ -75,6 +84,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
               <SelectValue placeholder="Marque" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Toutes les marques</SelectItem>
               {brands.map((brand) => (
                 <SelectItem key={brand.name} value={brand.name}>
                   {brand.translation}
@@ -93,9 +103,9 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         ) : (
           <ScrollArea className="h-[400px] pr-4">
             <div className="flex flex-col gap-4 my-4">
-              {filteredProducts.length > 0 ? (
+              {filteredProducts && filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <div key={product.id} onClick={() => handleProductSelect(product)}>
+                  <div key={product.id} onClick={() => handleProductSelect(product)} className="cursor-pointer">
                     <ProductCard product={product} />
                   </div>
                 ))
