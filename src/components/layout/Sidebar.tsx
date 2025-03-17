@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -27,10 +26,15 @@ interface MenuItemProps {
   icon: React.ElementType;
   label: string;
   active: boolean;
+  onClick?: () => void;
 }
 
-const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
+const MenuItem = ({ to, icon: Icon, label, active, onClick }: MenuItemProps) => {
   const isMobile = useIsMobile();
+  
+  const handleClick = () => {
+    if (onClick) onClick();
+  };
   
   return isMobile ? (
     <Link
@@ -41,6 +45,7 @@ const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
       )}
+      onClick={handleClick}
     >
       <Icon className="h-5 w-5" aria-hidden="true" />
       <span>{label}</span>
@@ -57,6 +62,7 @@ const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
             )}
+            onClick={handleClick}
           >
             <Icon className="h-7 w-7" aria-hidden="true" />
           </Link>
@@ -107,9 +113,10 @@ const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
 
 interface SidebarProps {
   className?: string;
+  onLinkClick?: () => void;
 }
 
-const Sidebar = ({ className }: SidebarProps) => {
+const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -152,42 +159,49 @@ const Sidebar = ({ className }: SidebarProps) => {
           icon={LayoutDashboard}
           label="Tableau de bord"
           active={isActive("/dashboard")}
+          onClick={onLinkClick}
         />
         <MenuItem
           to="/clients"
           icon={Users}
           label="CRM"
           active={isActive("/clients")}
+          onClick={onLinkClick}
         />
         <MenuItem
           to="/catalog"
           icon={Box}
           label="Catalogue"
           active={isActive("/catalog")}
+          onClick={onLinkClick}
         />
         <MenuItem
           to="/offers"
           icon={FileText}
           label="Offres"
           active={isActive("/offers")}
+          onClick={onLinkClick}
         />
         <MenuItem
           to="/contracts"
           icon={BookOpen}
           label="Contrats"
           active={isActive("/contracts")}
+          onClick={onLinkClick}
         />
         <MenuItem
           to="/create-offer"
           icon={Calculator}
           label="Calculateur"
           active={isActive("/create-offer")}
+          onClick={onLinkClick}
         />
         <MenuItem
           to="/settings"
           icon={Settings}
           label="Paramètres"
           active={isActive("/settings")}
+          onClick={onLinkClick}
         />
       </div>
 
