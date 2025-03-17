@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { PartnersList } from '@/components/crm/PartnersList';
+import PartnersList from '@/components/crm/PartnersList';
 
 const Partners = () => {
   return (

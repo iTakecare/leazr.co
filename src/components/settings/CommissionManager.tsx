@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -121,13 +120,11 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
   const handleLevelCreate = async (data: Partial<CommissionLevel>) => {
     setIsSubmitting(true);
     try {
-      // Ensure required fields are provided
       if (!data.name || !data.type) {
         toast.error("Le nom et le type sont requis");
         return;
       }
       
-      // Create the commission level with required fields
       const newLevel = await createCommissionLevel({
         name: data.name,
         type: data.type,
@@ -240,9 +237,7 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
     return null;
   }
 
-  // This is a workaround for the CommissionLevelForm compatibility
   const renderLevelForm = (props: any) => {
-    // For creating a new level
     if (!props.initialData) {
       return (
         <div>
@@ -277,7 +272,6 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
       );
     }
 
-    // For editing an existing level
     return (
       <div>
         <div className="grid gap-4 py-4">
