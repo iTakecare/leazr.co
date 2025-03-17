@@ -43,7 +43,10 @@ const PartnerDetail = () => {
               has_user_account: partnerData.has_user_account,
               user_account_created_at: partnerData.user_account_created_at,
               notes: partnerData.notes,
-              contactName: partnerData.contactName
+              contactName: partnerData.contactName,
+              status: partnerData.status,
+              user_id: partnerData.user_id,
+              commissions_total: partnerData.commissions_total
             };
             setPartner(typedPartner);
           } else {
