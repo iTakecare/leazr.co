@@ -1,90 +1,140 @@
 
 import React from 'react';
 import { Equipment } from '@/types/equipment';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Plus, MinusCircle, PlusCircle } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { Plus, Package } from 'lucide-react';
 
-export interface EquipmentListProps {
+interface EquipmentListProps {
   equipment: Equipment;
   onChange: (newEquipment: Equipment) => void;
 }
 
 const EquipmentList: React.FC<EquipmentListProps> = ({ equipment, onChange }) => {
-  // Sample implementation for handling equipment changes
-  const handleDelete = (id: string) => {
-    const updatedItems = equipment.items.filter(item => item.id !== id);
-    onChange({ ...equipment, items: updatedItems });
-  };
-  
-  const handleQuantityChange = (id: string, amount: number) => {
-    const updatedItems = equipment.items.map(item => {
-      if (item.id === id) {
-        const newQuantity = Math.max(1, item.quantity + amount);
-        return {
-          ...item,
-          quantity: newQuantity,
-          total_price: item.unit_price * newQuantity
-        };
-      }
-      return item;
+  const addItem = () => {
+    const newEquipment = { ...equipment };
+    newEquipment.items.push({
+      id: crypto.randomUUID(),
+      name: '',
+      quantity: 1,
+      unit_price: 0,
+      total_price: 0,
+      category: 'Default'
     });
+    onChange(newEquipment);
+  };
+
+  const removeItem = (index: number) => {
+    const newEquipment = { ...equipment };
+    newEquipment.items.splice(index, 1);
+    onChange(newEquipment);
+  };
+
+  const updateItem = (index: number, key: string, value: string | number) => {
+    const newEquipment = { ...equipment };
+    newEquipment.items[index] = {
+      ...newEquipment.items[index],
+      [key]: value
+    };
     
-    onChange({ ...equipment, items: updatedItems });
+    // Recalculate total price if quantity or unit_price changes
+    if (key === 'quantity' || key === 'unit_price') {
+      const item = newEquipment.items[index];
+      item.total_price = item.quantity * item.unit_price;
+    }
+    
+    onChange(newEquipment);
   };
 
   return (
-    <div className="space-y-4">
+    <div>
       {equipment.items.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          Aucun équipement ajouté. Utilisez le calculateur ci-dessous pour ajouter de l'équipement.
+        <div className="text-center py-10 border-2 border-dashed rounded-md">
+          <Package className="mx-auto h-10 w-10 text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            Aucun équipement ajouté
+          </p>
+          <Button onClick={addItem} variant="outline" className="mt-4">
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter un équipement
+          </Button>
         </div>
       ) : (
-        <div className="border rounded-md divide-y">
-          {equipment.items.map(item => (
-            <div key={item.id} className="p-4 flex items-center gap-4">
-              <div className="flex-1">
-                <div className="font-medium">{item.name}</div>
-                <div className="text-sm text-muted-foreground">
-                  {formatCurrency(item.unit_price)} × {item.quantity}
-                </div>
+        <div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead className="w-[80px]">Qté</TableHead>
+                <TableHead className="w-[120px]">Prix unitaire</TableHead>
+                <TableHead className="w-[120px]">Total</TableHead>
+                <TableHead className="w-[100px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {equipment.items.map((item, index) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <input
+                      type="text"
+                      value={item.name}
+                      onChange={(e) => updateItem(index, 'name', e.target.value)}
+                      className="w-full border-0 bg-transparent p-0 focus:ring-0"
+                      placeholder="Nom de l'équipement"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                      className="w-full border-0 bg-transparent p-0 focus:ring-0 text-right"
+                      min="1"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <input
+                      type="number"
+                      value={item.unit_price}
+                      onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                      className="w-full border-0 bg-transparent p-0 focus:ring-0 text-right"
+                      min="0"
+                      step="0.01"
+                    />
+                    €
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {item.total_price.toFixed(2)} €
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeItem(index)}
+                      className="h-8 w-8 p-0"
+                    >
+                      &times;
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          <div className="mt-4 flex justify-between items-center">
+            <Button onClick={addItem} variant="outline" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un élément
+            </Button>
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">Total:</div>
+              <div className="text-lg font-medium">
+                {equipment.items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)} €
               </div>
-              
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => handleQuantityChange(item.id, -1)}
-                  disabled={item.quantity <= 1}
-                >
-                  <MinusCircle className="h-4 w-4" />
-                </Button>
-                <span className="w-8 text-center">{item.quantity}</span>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => handleQuantityChange(item.id, 1)}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              <div className="w-24 text-right font-medium">
-                {formatCurrency(item.total_price)}
-              </div>
-              
-              <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
             </div>
-          ))}
+          </div>
         </div>
       )}
-
-      <div className="flex justify-between items-center py-2 font-medium">
-        <span>Total</span>
-        <span>{formatCurrency(equipment.items.reduce((sum, item) => sum + item.total_price, 0))}</span>
-      </div>
     </div>
   );
 };

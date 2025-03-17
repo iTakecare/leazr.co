@@ -1,76 +1,106 @@
 
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-
-interface CalculatorState {
-  equipmentAmount: number;
-  finalAmount: number;
-  duration: number;
-  coefficient: number;
-  monthlyPayment: number;
-  commission: number;
-  downPayment: number;
-}
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Save, Edit, Lock, Unlock } from 'lucide-react';
 
 interface MarginAdjusterProps {
-  calculator: CalculatorState;
+  calculator: {
+    equipmentAmount: number;
+    coefficient: number;
+    months: number;
+    finalAmount: number;
+    monthlyPayment: number;
+    commissionRate: number;
+    commission: number;
+  };
   updateMargin: (value: number) => void;
   saveEditing: () => void;
 }
 
-const MarginAdjuster: React.FC<MarginAdjusterProps> = ({ 
-  calculator, 
-  updateMargin, 
-  saveEditing 
+const MarginAdjuster: React.FC<MarginAdjusterProps> = ({
+  calculator,
+  updateMargin,
+  saveEditing
 }) => {
-  const [marginPercent, setMarginPercent] = useState<number>(20);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [margin, setMargin] = useState(20); // Default margin percentage
+  const [isLocked, setIsLocked] = useState(true);
 
-  const handleSliderChange = (value: number[]) => {
+  const handleMarginChange = (value: number[]) => {
     const newMargin = value[0];
-    setMarginPercent(newMargin);
+    setMargin(newMargin);
     updateMargin(newMargin);
   };
 
-  const handleSave = () => {
-    saveEditing();
-    setIsEditing(false);
+  const toggleEditing = () => {
+    if (isEditing) {
+      saveEditing();
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const toggleLock = () => {
+    setIsLocked(!isLocked);
   };
 
   return (
-    <div className="border rounded-md p-4">
+    <div className="bg-muted/50 p-4 rounded-lg">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">Ajustement de marge</h3>
-        <Switch 
-          checked={isEditing} 
-          onCheckedChange={setIsEditing} 
-        />
+        <h3 className="font-medium">Ajustement de la marge</h3>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleLock}
+          >
+            {isLocked ? (
+              <>
+                <Lock className="h-4 w-4 mr-2" />
+                <span className="sr-only">Verrouillé</span>
+              </>
+            ) : (
+              <>
+                <Unlock className="h-4 w-4 mr-2" />
+                <span className="sr-only">Déverrouillé</span>
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleEditing}
+          >
+            {isEditing ? (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                <span>Enregistrer</span>
+              </>
+            ) : (
+              <>
+                <Edit className="h-4 w-4 mr-2" />
+                <span>Modifier</span>
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {isEditing && (
         <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label>Pourcentage de marge</Label>
-              <span className="font-medium">{marginPercent}%</span>
+          <div>
+            <div className="mb-2 flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Marge (%)</span>
+              <span className="font-medium">{margin}%</span>
             </div>
             <Slider
-              value={[marginPercent]}
+              defaultValue={[margin]}
               min={0}
               max={50}
-              step={0.5}
-              onValueChange={handleSliderChange}
+              step={1}
+              onValueChange={handleMarginChange}
+              disabled={isLocked}
             />
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={handleSave}>
-              Appliquer
-            </Button>
           </div>
         </div>
       )}

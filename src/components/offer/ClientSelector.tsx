@@ -1,49 +1,49 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
 import { Client } from '@/types/client';
 
-interface ClientSelectorProps {
+interface ClientSelector {
   selectedClient: Client | null;
   onSelect: () => void;
-  isOpen?: boolean;
-  onClose?: () => void;
-  clients?: Client[];
 }
 
-const ClientSelector: React.FC<ClientSelectorProps> = ({ 
+const ClientSelector: React.FC<ClientSelector> = ({ 
   selectedClient, 
-  onSelect,
+  onSelect 
+}) => {
+  return (
+    <Button 
+      onClick={onSelect} 
+      variant="outline" 
+      className="flex-1 justify-start text-left font-normal"
+    >
+      <span className="truncate">
+        {selectedClient ? `${selectedClient.name}${selectedClient.company ? ` - ${selectedClient.company}` : ''}` : "Sélectionner un client"}
+      </span>
+    </Button>
+  );
+};
+
+// Full screen selector modal
+interface FullClientSelectorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (client: Client) => void;
+  clients: Client[];
+}
+
+export const ClientSelector: React.FC<FullClientSelectorProps> = ({
   isOpen,
   onClose,
+  onSelect,
   clients
 }) => {
-  // If this is the button component (no isOpen prop provided)
-  if (isOpen === undefined) {
-    return (
-      <Button 
-        onClick={onSelect} 
-        variant="outline" 
-        className="flex-1 justify-start text-left font-normal"
-      >
-        <span className="truncate">
-          {selectedClient ? selectedClient.name : "Sélectionner un client"}
-        </span>
-      </Button>
-    );
-  }
-  
-  // If this is the dialog component
-  const handleClientSelect = (client: Client) => {
-    if (onSelect && typeof onSelect === 'function') {
-      // @ts-ignore - We know this will be called with a client in this context
-      onSelect(client);
-    }
-    if (onClose) onClose();
-  };
+  if (!isOpen) return null;
 
   return (
-    <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center ${isOpen ? '' : 'hidden'}`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div className="bg-white rounded-lg w-full max-w-md p-4 max-h-[80vh] overflow-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Sélectionner un client</h2>
@@ -55,15 +55,14 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
             clients.map(client => (
               <div
                 key={client.id}
-                className={`p-3 border rounded-md cursor-pointer hover:bg-muted transition-colors ${
-                  selectedClient?.id === client.id ? 'border-primary bg-primary/10' : ''
-                }`}
-                onClick={() => handleClientSelect(client)}
+                className="p-3 border rounded-md cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => onSelect(client)}
               >
                 <div className="font-medium">{client.name}</div>
-                <div className="text-sm text-muted-foreground">
-                  {client.email || 'No email'}
-                </div>
+                {client.company && (
+                  <div className="text-sm text-muted-foreground">{client.company}</div>
+                )}
+                <div className="text-sm text-muted-foreground">{client.email}</div>
               </div>
             ))
           ) : (

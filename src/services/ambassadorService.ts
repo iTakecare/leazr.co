@@ -1,103 +1,153 @@
 
-import { Ambassador } from '@/types/ambassador';
+import { Ambassador, DetailAmbassador, CreateAmbassadorData } from '@/types/ambassador';
+import { v4 as uuidv4 } from 'uuid';
 
-export interface CreateAmbassadorData {
-  name: string;
-  email: string;
-  company?: string;
-  phone?: string;
-  notes?: string;
-  status: 'active' | 'inactive' | 'lead';
-}
-
-export const getAmbassadors = async (): Promise<Ambassador[]> => {
-  // Simulate API call
-  return [
-    {
-      id: '1',
-      name: 'Jean Dupont',
-      email: 'jean.dupont@example.com',
-      company: 'Tech Solutions',
-      phone: '+33 1 23 45 67 89',
-      status: 'active',
-      clients_count: 5,
-      commissions_total: 2500,
-      last_commission: 500,
-      created_at: '2023-01-15T10:30:00Z',
-      updated_at: '2023-06-10T15:45:00Z',
-      has_user_account: true,
-      user_account_created_at: '2023-01-16T09:20:00Z'
-    },
-    {
-      id: '2',
-      name: 'Marie Laurent',
-      email: 'marie.laurent@example.com',
-      company: 'Digital Marketing Pro',
-      phone: '+33 6 12 34 56 78',
-      status: 'active',
-      clients_count: 3,
-      commissions_total: 1200,
-      last_commission: 350,
-      created_at: '2023-02-20T11:15:00Z',
-      updated_at: '2023-05-12T10:30:00Z'
-    },
-    {
-      id: '3',
-      name: 'Pierre Martin',
-      email: 'pierre.martin@example.com',
-      company: 'IT Consulting',
-      status: 'inactive',
-      clients_count: 1,
-      commissions_total: 200,
-      last_commission: 200,
-      created_at: '2023-03-05T09:45:00Z',
-      updated_at: '2023-04-10T14:20:00Z'
-    }
-  ];
-};
-
-export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
-  const ambassadors = await getAmbassadors();
-  return ambassadors.find(ambassador => ambassador.id === id) || null;
-};
-
-export const createAmbassador = async (data: CreateAmbassadorData): Promise<Ambassador | null> => {
-  // Simulate API call
-  const newAmbassador: Ambassador = {
-    id: crypto.randomUUID(),
-    name: data.name,
-    email: data.email,
-    company: data.company,
-    phone: data.phone,
-    notes: data.notes,
-    status: data.status,
-    clients_count: 0,
-    commissions_total: 0,
+// Mock data for ambassadors
+const mockAmbassadors: Ambassador[] = [
+  {
+    id: '1',
+    name: 'Sophie Laurent',
+    email: 'sophie.laurent@example.com',
+    phone: '+33 6 12 34 56 78',
+    region: 'Île-de-France',
+    status: 'active',
+    clients_count: 12,
+    commissions_total: 4500,
+    last_commission: 750,
+    notes: 'Ambassadrice très active dans le milieu hospitalier parisien.',
+    created_at: '2023-01-15T09:30:00Z',
+    updated_at: '2023-06-20T14:45:00Z',
+    has_user_account: true,
+    user_account_created_at: '2023-01-16T10:15:00Z'
+  },
+  {
+    id: '2',
+    name: 'Marc Dubois',
+    email: 'marc.dubois@example.com',
+    phone: '+33 6 23 45 67 89',
+    region: 'Auvergne-Rhône-Alpes',
+    status: 'active',
+    clients_count: 8,
+    commissions_total: 3200,
+    last_commission: 550,
+    notes: 'Bonne connaissance du réseau de cliniques privées de Lyon.',
+    created_at: '2023-02-10T11:20:00Z',
+    updated_at: '2023-07-05T16:30:00Z',
+    has_user_account: true,
+    user_account_created_at: '2023-02-11T09:45:00Z'
+  },
+  {
+    id: '3',
+    name: 'Émilie Moreau',
+    email: 'emilie.moreau@example.com',
+    phone: '+33 6 34 56 78 90',
+    region: 'Provence-Alpes-Côte d\'Azur',
+    status: 'inactive',
+    clients_count: 5,
+    commissions_total: 1800,
     last_commission: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-  
-  return newAmbassador;
+    notes: 'En pause temporaire pour congé maternité.',
+    created_at: '2023-03-05T10:15:00Z',
+    updated_at: '2023-06-15T09:20:00Z',
+    has_user_account: false
+  }
+];
+
+// Get all ambassadors
+export const getAmbassadors = async (): Promise<Ambassador[]> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockAmbassadors);
+    }, 800);
+  });
 };
 
-export const updateAmbassador = async (id: string, data: Partial<CreateAmbassadorData>): Promise<Ambassador | null> => {
-  // Simulate API call
-  const ambassador = await getAmbassadorById(id);
-  if (!ambassador) return null;
-  
-  const updatedAmbassador: Ambassador = {
-    ...ambassador,
-    ...data,
-    updated_at: new Date().toISOString()
-  };
-  
-  return updatedAmbassador;
+// Get ambassador by ID
+export const getAmbassadorById = async (id: string): Promise<DetailAmbassador> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const ambassador = mockAmbassadors.find(a => a.id === id);
+      if (ambassador) {
+        // Create a DetailAmbassador with the base Ambassador data
+        const detailAmbassador: DetailAmbassador = {
+          ...ambassador,
+          clients: [],
+          commissions: [],
+          collaborators: []
+        };
+        resolve(detailAmbassador);
+      } else {
+        reject(new Error(`Ambassador with ID ${id} not found`));
+      }
+    }, 800);
+  });
 };
 
-export const deleteAmbassador = async (id: string): Promise<boolean> => {
-  // Simulate API call
-  return true;
+// Create a new ambassador
+export const createAmbassador = async (ambassadorData: CreateAmbassadorData): Promise<Ambassador> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newAmbassador: Ambassador = {
+        id: uuidv4(),
+        ...ambassadorData,
+        clients_count: 0,
+        commissions_total: 0,
+        last_commission: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // In a real app, this would save to a database
+      mockAmbassadors.push(newAmbassador);
+      
+      resolve(newAmbassador);
+    }, 800);
+  });
 };
 
-export { type Ambassador };
+// Update ambassador
+export const updateAmbassador = async (id: string, ambassadorData: Partial<CreateAmbassadorData>): Promise<Ambassador> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const index = mockAmbassadors.findIndex(a => a.id === id);
+      if (index !== -1) {
+        mockAmbassadors[index] = {
+          ...mockAmbassadors[index],
+          ...ambassadorData,
+          updated_at: new Date().toISOString()
+        };
+        resolve(mockAmbassadors[index]);
+      } else {
+        reject(new Error(`Ambassador with ID ${id} not found`));
+      }
+    }, 800);
+  });
+};
+
+// Create client for ambassador
+export const createClientForAmbassador = async (ambassadorId: string, clientData: any): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const ambassador = mockAmbassadors.find(a => a.id === ambassadorId);
+      if (ambassador) {
+        // In a real app, this would create a client in the database
+        const newClient = {
+          id: uuidv4(),
+          ...clientData,
+          ambassador_id: ambassadorId,
+          created_at: new Date().toISOString()
+        };
+        
+        // Update ambassador stats
+        ambassador.clients_count += 1;
+        
+        resolve(newClient);
+      } else {
+        reject(new Error(`Ambassador with ID ${ambassadorId} not found`));
+      }
+    }, 800);
+  });
+};
+
+// Export Ambassador type
+export type { Ambassador, DetailAmbassador, CreateAmbassadorData };

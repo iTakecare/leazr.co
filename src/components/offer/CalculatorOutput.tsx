@@ -1,48 +1,44 @@
 
 import React from 'react';
-import { Card } from "@/components/ui/card";
-import { formatCurrency } from "@/utils/formatters";
+import { Card } from '@/components/ui/card';
 
-interface CalculatorState {
-  equipmentAmount: number;
-  finalAmount: number;
-  duration: number;
-  coefficient: number;
-  monthlyPayment: number;
-  commission: number;
-  downPayment: number;
+interface CalculatorProps {
+  calculator: {
+    equipmentAmount: number;
+    coefficient: number;
+    months: number;
+    finalAmount: number;
+    monthlyPayment: number;
+    commissionRate: number;
+    commission: number;
+  };
 }
 
-interface CalculatorOutputProps {
-  calculator: CalculatorState;
-}
+const CalculatorOutput: React.FC<CalculatorProps> = ({ calculator }) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+  };
 
-const CalculatorOutput: React.FC<CalculatorOutputProps> = ({ calculator }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <Card className="p-4">
-        <div className="text-sm text-muted-foreground">Montant financé</div>
-        <div className="text-2xl font-bold">{formatCurrency(calculator.finalAmount)}</div>
-      </Card>
-      
-      <Card className="p-4">
-        <div className="text-sm text-muted-foreground">Mensualité</div>
-        <div className="text-2xl font-bold">{formatCurrency(calculator.monthlyPayment)}</div>
+        <div className="text-sm text-muted-foreground">Montant équipement</div>
+        <div className="text-xl font-medium">{formatCurrency(calculator.equipmentAmount)}</div>
       </Card>
       
       <Card className="p-4">
         <div className="text-sm text-muted-foreground">Coefficient</div>
-        <div className="text-2xl font-bold">{calculator.coefficient.toFixed(2)}</div>
+        <div className="text-xl font-medium">{calculator.coefficient.toFixed(2)}%</div>
       </Card>
       
       <Card className="p-4">
-        <div className="text-sm text-muted-foreground">Commission</div>
-        <div className="text-2xl font-bold">{formatCurrency(calculator.commission)}</div>
+        <div className="text-sm text-muted-foreground">Montant financé</div>
+        <div className="text-xl font-medium">{formatCurrency(calculator.finalAmount)}</div>
       </Card>
       
       <Card className="p-4">
-        <div className="text-sm text-muted-foreground">Durée (mois)</div>
-        <div className="text-2xl font-bold">{calculator.duration}</div>
+        <div className="text-sm text-muted-foreground">Mensualité</div>
+        <div className="text-xl font-medium">{formatCurrency(calculator.monthlyPayment)}</div>
       </Card>
     </div>
   );

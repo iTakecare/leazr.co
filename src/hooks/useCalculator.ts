@@ -1,59 +1,55 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface CalculatorInputs {
-  equipmentAmount: number;
-  duration?: number;
-  downPayment?: number;
+  equipmentAmount?: number;
+  coefficient?: number;
+  months?: number;
+  commissionRate?: number;
 }
 
 interface CalculatorState {
   equipmentAmount: number;
-  finalAmount: number;
-  duration: number;
   coefficient: number;
+  months: number;
+  finalAmount: number;
   monthlyPayment: number;
+  commissionRate: number;
   commission: number;
-  downPayment: number;
 }
 
 export function useCalculator() {
   const [calculator, setCalculator] = useState<CalculatorState>({
     equipmentAmount: 0,
-    finalAmount: 0,
-    duration: 60, // Default duration in months
     coefficient: 2.1, // Default coefficient
+    months: 60, // Default period in months
+    finalAmount: 0,
     monthlyPayment: 0,
-    commission: 0,
-    downPayment: 0
+    commissionRate: 3, // Default commission rate percentage
+    commission: 0
   });
 
-  const calculate = (inputs: CalculatorInputs) => {
-    const duration = inputs.duration || calculator.duration;
-    const downPayment = inputs.downPayment || 0;
-    
-    const equipmentAmount = inputs.equipmentAmount;
-    const finalAmount = equipmentAmount - downPayment;
-    
-    // Apply coefficient to calculate monthly payment
-    // Coefficient is a percentage of the amount financed
-    const monthlyPayment = (finalAmount * calculator.coefficient) / 100;
-    
-    // Calculate commission (5% of financed amount as an example)
-    const commission = finalAmount * 0.05;
-    
-    setCalculator({
-      ...calculator,
-      equipmentAmount,
-      finalAmount,
-      duration,
-      monthlyPayment,
-      commission,
-      downPayment
-    });
+  // Calculate the final amount and monthly payment when inputs change
+  useEffect(() => {
+    const finalAmount = calculator.equipmentAmount * (1 + calculator.coefficient / 100);
+    const monthlyPayment = finalAmount / calculator.months;
+    const commission = (calculator.commissionRate / 100) * finalAmount;
 
-    return { monthlyPayment, commission };
+    setCalculator(prev => ({
+      ...prev,
+      finalAmount,
+      monthlyPayment,
+      commission
+    }));
+  }, [calculator.equipmentAmount, calculator.coefficient, calculator.months, calculator.commissionRate]);
+
+  // Function to update calculator inputs
+  const calculate = (inputs: CalculatorInputs) => {
+    setCalculator(prev => ({
+      ...prev,
+      ...inputs
+    }));
   };
 
-  return { calculate, calculator };
+  return { calculator, calculate };
 }
