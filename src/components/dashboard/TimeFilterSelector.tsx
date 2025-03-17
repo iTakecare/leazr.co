@@ -6,15 +6,16 @@ import { TimeFilter } from '@/services/dashboardService';
 interface TimeFilterSelectorProps {
   value: TimeFilter;
   onChange: (value: TimeFilter) => void;
+  className?: string; // Added className as an optional prop
 }
 
-export const TimeFilterSelector = ({ value, onChange }: TimeFilterSelectorProps) => {
+export const TimeFilterSelector = ({ value, onChange, className }: TimeFilterSelectorProps) => {
   return (
     <Select 
       value={value} 
       onValueChange={(val) => onChange(val as TimeFilter)}
     >
-      <SelectTrigger className="w-[180px]">
+      <SelectTrigger className={className}>
         <SelectValue placeholder="Filtre temporel" />
       </SelectTrigger>
       <SelectContent>
