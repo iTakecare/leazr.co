@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Leaser } from '@/types/leaser';
+import { Leaser } from '@/types/equipment';
 
 export function useLeasers() {
   const [leasers, setLeasers] = useState<Leaser[]>([]);
@@ -23,9 +23,9 @@ export function useLeasers() {
           name: 'Grenke Finance',
           description: 'Leasing financier spécialisé en équipement informatique',
           ranges: [
-            { min: 0, max: 10000, coefficient: 2.2 },
-            { min: 10001, max: 50000, coefficient: 2.1 },
-            { min: 50001, max: Infinity, coefficient: 2.0 }
+            { id: '1-1', min: 0, max: 10000, coefficient: 2.2 },
+            { id: '1-2', min: 10001, max: 50000, coefficient: 2.1 },
+            { id: '1-3', min: 50001, max: Infinity, coefficient: 2.0 }
           ]
         },
         {
@@ -33,9 +33,9 @@ export function useLeasers() {
           name: 'BNP Leasing',
           description: 'Solutions de financement professionnel',
           ranges: [
-            { min: 0, max: 15000, coefficient: 2.3 },
-            { min: 15001, max: 75000, coefficient: 2.15 },
-            { min: 75001, max: Infinity, coefficient: 2.05 }
+            { id: '2-1', min: 0, max: 15000, coefficient: 2.3 },
+            { id: '2-2', min: 15001, max: 75000, coefficient: 2.15 },
+            { id: '2-3', min: 75001, max: Infinity, coefficient: 2.05 }
           ]
         }
       ];

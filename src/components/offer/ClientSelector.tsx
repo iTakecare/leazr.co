@@ -34,6 +34,14 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
   }
   
   // If this is the dialog component
+  const handleClientSelect = (client: Client) => {
+    if (onSelect && typeof onSelect === 'function') {
+      // @ts-ignore - We know this will be called with a client in this context
+      onSelect(client);
+    }
+    if (onClose) onClose();
+  };
+
   return (
     <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center ${isOpen ? '' : 'hidden'}`}>
       <div className="bg-white rounded-lg w-full max-w-md p-4 max-h-[80vh] overflow-auto">
@@ -50,9 +58,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                 className={`p-3 border rounded-md cursor-pointer hover:bg-muted transition-colors ${
                   selectedClient?.id === client.id ? 'border-primary bg-primary/10' : ''
                 }`}
-                onClick={() => {
-                  onSelect(client);
-                }}
+                onClick={() => handleClientSelect(client)}
               >
                 <div className="font-medium">{client.name}</div>
                 <div className="text-sm text-muted-foreground">

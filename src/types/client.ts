@@ -1,49 +1,22 @@
 
-export interface Collaborator {
-  id: string;
-  name: string;
-  role: string;
-  email: string;
-  phone?: string;
-  department?: string;
-}
-
 export interface Client {
   id: string;
   name: string;
   email?: string;
-  company?: string;
   phone?: string;
   address?: string;
-  notes?: string;
-  created_at: Date;
-  updated_at: Date;
-  status?: 'active' | 'inactive' | 'lead';
-  vat_number?: string;
   city?: string;
   postal_code?: string;
   country?: string;
-  collaborators?: Collaborator[];
-  user_id?: string;
+  vat_number?: string;
+  company?: string;
+  website?: string;
+  notes?: string;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at?: string;
+  ambassador_id?: string | null;
   has_user_account?: boolean;
-  user_account_created_at?: string | Date;
-  // Add properties used in AmbassadorDetail.tsx
-  createdAt?: string;
-  totalValue?: number;
-}
-
-export interface CreateClientData {
-  name: string;
-  email?: string;
-  company?: string;
-  phone?: string;
-  address?: string;
-  notes?: string;
-  user_id?: string;
-  status?: 'active' | 'inactive' | 'lead';
-  vat_number?: string;
-  city?: string;
-  postal_code?: string;
-  country?: string;
-  collaborators?: Collaborator[];
+  user_account_created_at?: string;
+  user_id?: string | null;
 }

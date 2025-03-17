@@ -1,7 +1,17 @@
 
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
-import { defaultLeasers } from '@/data/leasers';
+
+// Mock default leasers for use when no leaser is selected
+const defaultLeasers: Leaser[] = [
+  {
+    id: '1',
+    name: 'Default Leaser',
+    ranges: [
+      { id: '1-1', min: 0, max: Infinity, coefficient: 2.1 }
+    ]
+  }
+];
 
 export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const leaser = selectedLeaser || defaultLeasers[0];
@@ -13,6 +23,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     quantity: 1,
     margin: 20,
     monthlyPayment: 0,
+    items: []
   });
   
   const [monthlyPayment, setMonthlyPayment] = useState<number>(0);
@@ -22,12 +33,17 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [totalMonthlyPayment, setTotalMonthlyPayment] = useState<number>(0);
   const [globalMarginAdjustment, setGlobalMarginAdjustment] = useState<GlobalMarginAdjustment>({ 
+    enabled: false,
+    originalAmount: 0,
+    originalCoef: 0,
+    originalMonthly: 0,
+    adjustmentPercent: 0,
     percentage: 0,
     amount: 0,
     newMonthly: 0,
     currentCoef: 0,
     newCoef: 0,
-    adaptMonthlyPayment: false,  // Changed from true to false
+    adaptMonthlyPayment: false,
     marginDifference: 0
   });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -180,6 +196,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         quantity: 1,
         margin: 20,
         monthlyPayment: 0,
+        items: []
       });
       
       setTargetMonthlyPayment(0);
@@ -208,6 +225,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       quantity: 1,
       margin: 20,
       monthlyPayment: 0,
+      items: []
     });
     setTargetMonthlyPayment(0);
   };
@@ -240,6 +258,11 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const calculateGlobalMarginAdjustment = () => {
     if (equipmentList.length === 0) {
       setGlobalMarginAdjustment({ 
+        enabled: false,
+        originalAmount: 0, 
+        originalCoef: 0,
+        originalMonthly: 0,
+        adjustmentPercent: 0,
         percentage: 0, 
         amount: 0, 
         newMonthly: 0,
@@ -252,18 +275,18 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     }
 
     const totalBaseAmount = equipmentList.reduce((sum, eq) => {
-      return sum + (eq.purchasePrice * eq.quantity);
+      return sum + ((eq.purchasePrice || 0) * (eq.quantity || 1));
     }, 0);
 
     const totalFinancedAmount = equipmentList.reduce((sum, eq) => {
-      return sum + calculateFinancedAmount(eq) * eq.quantity;
+      return sum + calculateFinancedAmount(eq) * (eq.quantity || 1);
     }, 0);
 
     const currentCoef = findCoefficient(totalFinancedAmount);
     const currentMonthly = (totalFinancedAmount * currentCoef) / 100;
     const newCoef = findCoefficient(totalFinancedAmount);
     
-    let newMonthly;
+    let newMonthly = 0;
     let marginDifference = 0;
     
     if (globalMarginAdjustment.adaptMonthlyPayment) {
@@ -273,7 +296,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     } else {
       // Case 2: Using original monthly payments from individual equipment items
       newMonthly = equipmentList.reduce((sum, eq) => {
-        return sum + (eq.monthlyPayment || 0) * eq.quantity;
+        return sum + ((eq.monthlyPayment || 0) * (eq.quantity || 1));
       }, 0);
       
       // Calculate adapted monthly based on new coefficient
@@ -292,6 +315,11 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     const marginPercentage = (marginAmount / totalBaseAmount) * 100;
 
     setGlobalMarginAdjustment({
+      enabled: true,
+      originalAmount: totalBaseAmount,
+      originalCoef: currentCoef,
+      originalMonthly: currentMonthly,
+      adjustmentPercent: marginPercentage,
       percentage: Number(marginPercentage.toFixed(2)),
       amount: marginAmount,
       newMonthly: newMonthly,

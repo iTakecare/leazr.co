@@ -35,3 +35,18 @@ export interface GlobalMarginAdjustment {
   adaptMonthlyPayment?: boolean;
   marginDifference?: number;
 }
+
+export interface Leaser {
+  id: string;
+  name: string;
+  description?: string;
+  logo_url?: string;
+  ranges: LeaserRange[];
+}
+
+export interface LeaserRange {
+  id: string;
+  min: number;
+  max: number;
+  coefficient: number;
+}

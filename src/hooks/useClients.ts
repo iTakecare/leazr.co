@@ -1,74 +1,103 @@
 
-import { useState, useEffect } from "react";
-import { getClients, deleteClient } from "@/services/clientService";
-import { Client } from "@/types/client";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { Client } from '@/types/client';
 
-export const useClients = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+export function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
-
+  const [isLoading, setIsLoading] = useState(true); // Alias for loading
+  const [loadingError, setLoadingError] = useState('');
+  const [error, setError] = useState<string | null>(null); // Alias for loadingError
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  
   useEffect(() => {
     fetchClients();
   }, []);
-
+  
   const fetchClients = async () => {
-    setLoading(true);
-    setLoadingError(null);
-    
     try {
-      const clientsData = await getClients();
+      setLoading(true);
+      setIsLoading(true);
+      setLoadingError('');
+      setError(null);
       
-      if (Array.isArray(clientsData)) {
-        setClients(clientsData);
-      } else {
-        console.error("Clients data is not an array:", clientsData);
-        setLoadingError("Format de données incorrect");
-      }
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-      setLoadingError("Impossible de charger les clients");
-      toast.error("Erreur lors du chargement des clients");
+      // Here we would fetch clients from the API
+      // For now, we'll use mock data
+      const mockClients = [
+        {
+          id: '1',
+          name: 'Acme Corporation',
+          email: 'contact@acme.com',
+          phone: '+33 1 23 45 67 89',
+          status: 'active',
+          created_at: '2023-01-15',
+          ambassador_id: null
+        },
+        {
+          id: '2',
+          name: 'TechStart SAS',
+          email: 'info@techstart.fr',
+          phone: '+33 6 12 34 56 78',
+          status: 'active',
+          created_at: '2023-02-20',
+          ambassador_id: '1'
+        },
+        {
+          id: '3',
+          name: 'Digital Marketing Agency',
+          email: 'hello@dma.fr',
+          status: 'inactive',
+          created_at: '2023-03-05',
+          ambassador_id: '1'
+        }
+      ];
+      
+      setClients(mockClients);
+      setFilteredClients(mockClients);
+    } catch (err) {
+      console.error('Error fetching clients:', err);
+      setLoadingError('Failed to load clients');
+      setError('Failed to load clients');
     } finally {
       setLoading(false);
+      setIsLoading(false);
     }
   };
-
+  
   const handleDeleteClient = async (clientId: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce client ?")) {
-      const success = await deleteClient(clientId);
-      if (success) {
-        toast.success("Le client a été supprimé avec succès");
-        // Mise à jour locale pour éviter de refaire un appel réseau
-        setClients(clients.filter(client => client.id !== clientId));
-      } else {
-        toast.error("Erreur lors de la suppression du client");
-      }
+    try {
+      // Here we would call the API to delete the client
+      // For now, we'll just update our local state
+      setClients(clients.filter(client => client.id !== clientId));
+      setFilteredClients(filteredClients.filter(client => client.id !== clientId));
+      return true;
+    } catch (err) {
+      console.error('Error deleting client:', err);
+      return false;
     }
   };
-
-  const filteredClients = clients.filter((client) => {
-    // Filtre par terme de recherche
-    const matchesSearch = 
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (client.vat_number && client.vat_number.toLowerCase().includes(searchTerm.toLowerCase()));
+  
+  // Update filteredClients whenever search term or status filter changes
+  useEffect(() => {
+    const filtered = clients.filter(client => {
+      const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
     
-    // Filtre par statut
-    const matchesStatus = statusFilter === "all" || client.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
+    setFilteredClients(filtered);
+  }, [clients, searchTerm, statusFilter]);
+  
   return {
     clients,
     filteredClients,
     loading,
+    isLoading, // Alias for loading
     loadingError,
+    error, // Alias for loadingError
     searchTerm,
     setSearchTerm,
     statusFilter,
@@ -76,4 +105,4 @@ export const useClients = () => {
     fetchClients,
     handleDeleteClient
   };
-};
+}

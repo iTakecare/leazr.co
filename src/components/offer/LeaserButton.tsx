@@ -1,14 +1,17 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Leaser } from '@/types/leaser';
+import { Leaser } from '@/types/equipment';
 
-export interface LeaserButtonProps {
+interface LeaserButtonProps {
   selectedLeaser: Leaser | null;
   onSelect: () => void;
 }
 
-const LeaserButton: React.FC<LeaserButtonProps> = ({ selectedLeaser, onSelect }) => {
+const LeaserButton: React.FC<LeaserButtonProps> = ({ 
+  selectedLeaser, 
+  onSelect
+}) => {
   return (
     <Button 
       onClick={onSelect} 
@@ -16,7 +19,7 @@ const LeaserButton: React.FC<LeaserButtonProps> = ({ selectedLeaser, onSelect })
       className="flex-1 justify-start text-left font-normal"
     >
       <span className="truncate">
-        {selectedLeaser ? selectedLeaser.name : "Sélectionner un financier"}
+        {selectedLeaser ? selectedLeaser.name : "Sélectionner un leaser"}
       </span>
     </Button>
   );

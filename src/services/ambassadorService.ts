@@ -1,211 +1,103 @@
-import { supabase } from "@/integrations/supabase/client";
-import { Ambassador, AmbassadorCommission } from "@/types/ambassador";
+
+import { Ambassador } from '@/types/ambassador';
 
 export interface CreateAmbassadorData {
   name: string;
   email: string;
   company?: string;
   phone?: string;
-  address?: string;
-  city?: string;
-  postal_code?: string;
-  country?: string;
-  vat_number?: string;
-  region?: string;
   notes?: string;
+  status: 'active' | 'inactive' | 'lead';
 }
 
-export interface CreateClientForAmbassadorData {
-  name: string;
-  email: string;
-  company?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  postal_code?: string;
-  country?: string;
-  vat_number?: string;
-  notes?: string;
-  ambassadorId: string;
-}
-
-export const getAmbassadors = async () => {
-  try {
-    const { data, error } = await supabase
-      .from("ambassadors")
-      .select("*")
-      .order("name");
-
-    if (error) throw error;
-    return data as Ambassador[];
-  } catch (error) {
-    console.error("Error fetching ambassadors:", error);
-    throw error;
-  }
-};
-
-export const getAmbassadorById = async (id: string) => {
-  try {
-    const { data, error } = await supabase
-      .from("ambassadors")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error) throw error;
-    return data as Ambassador;
-  } catch (error) {
-    console.error("Error fetching ambassador:", error);
-    throw error;
-  }
-};
-
-export const createAmbassador = async (ambassadorData: CreateAmbassadorData) => {
-  try {
-    const { data, error } = await supabase
-      .from("ambassadors")
-      .insert([
-        {
-          ...ambassadorData,
-          status: "active",
-          clients_count: 0,
-          commissions_total: 0,
-          last_commission: 0
-        }
-      ])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as Ambassador;
-  } catch (error) {
-    console.error("Error creating ambassador:", error);
-    throw error;
-  }
-};
-
-export const updateAmbassador = async (id: string, ambassadorData: Partial<Ambassador>) => {
-  try {
-    const { data, error } = await supabase
-      .from("ambassadors")
-      .update(ambassadorData)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as Ambassador;
-  } catch (error) {
-    console.error("Error updating ambassador:", error);
-    throw error;
-  }
-};
-
-export const deleteAmbassador = async (id: string) => {
-  try {
-    const { error } = await supabase
-      .from("ambassadors")
-      .delete()
-      .eq("id", id);
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error("Error deleting ambassador:", error);
-    throw error;
-  }
-};
-
-export const getAmbassadorCommissions = async (ambassadorId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from("ambassador_commissions")
-      .select("*")
-      .eq("ambassador_id", ambassadorId)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    return data as AmbassadorCommission[];
-  } catch (error) {
-    console.error("Error fetching ambassador commissions:", error);
-    throw error;
-  }
-};
-
-export const createClientForAmbassador = async (clientData: CreateClientForAmbassadorData) => {
-  try {
-    const { data: client, error: clientError } = await supabase
-      .from("clients")
-      .insert([{
-        name: clientData.name,
-        email: clientData.email,
-        company: clientData.company,
-        phone: clientData.phone,
-        address: clientData.address,
-        city: clientData.city,
-        postal_code: clientData.postal_code,
-        country: clientData.country,
-        vat_number: clientData.vat_number,
-        notes: clientData.notes,
-        status: "active",
-        ambassador_id: clientData.ambassadorId
-      }])
-      .select()
-      .single();
-
-    if (clientError) throw clientError;
-
-    const { error: updateError } = await supabase.rpc('increment_ambassador_client_count', {
-      ambassador_id: clientData.ambassadorId
-    });
-
-    if (updateError) {
-      console.error("Error updating ambassador client count:", updateError);
+export const getAmbassadors = async (): Promise<Ambassador[]> => {
+  // Simulate API call
+  return [
+    {
+      id: '1',
+      name: 'Jean Dupont',
+      email: 'jean.dupont@example.com',
+      company: 'Tech Solutions',
+      phone: '+33 1 23 45 67 89',
+      status: 'active',
+      clients_count: 5,
+      commissions_total: 2500,
+      last_commission: 500,
+      created_at: '2023-01-15T10:30:00Z',
+      updated_at: '2023-06-10T15:45:00Z',
+      has_user_account: true,
+      user_account_created_at: '2023-01-16T09:20:00Z'
+    },
+    {
+      id: '2',
+      name: 'Marie Laurent',
+      email: 'marie.laurent@example.com',
+      company: 'Digital Marketing Pro',
+      phone: '+33 6 12 34 56 78',
+      status: 'active',
+      clients_count: 3,
+      commissions_total: 1200,
+      last_commission: 350,
+      created_at: '2023-02-20T11:15:00Z',
+      updated_at: '2023-05-12T10:30:00Z'
+    },
+    {
+      id: '3',
+      name: 'Pierre Martin',
+      email: 'pierre.martin@example.com',
+      company: 'IT Consulting',
+      status: 'inactive',
+      clients_count: 1,
+      commissions_total: 200,
+      last_commission: 200,
+      created_at: '2023-03-05T09:45:00Z',
+      updated_at: '2023-04-10T14:20:00Z'
     }
-
-    return client;
-  } catch (error) {
-    console.error("Error creating client for ambassador:", error);
-    throw error;
-  }
+  ];
 };
 
-export const createAmbassadorOffer = async (offerData: any) => {
-  try {
-    const { data, error } = await supabase
-      .from("offers")
-      .insert([{
-        type: "ambassador_offer",
-        status: "pending",
-        workflow_status: "draft",
-        ambassador_id: offerData.ambassadorId,
-        client_name: offerData.client_name,
-        client_email: offerData.client_email,
-        client_id: offerData.client_id,
-        equipment_description: offerData.equipment_description,
-        equipment_text: offerData.equipment_text,
-        monthly_payment: offerData.monthly_payment,
-        commission: offerData.commission,
-        additional_info: offerData.additional_info
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error creating ambassador offer:", error);
-    throw error;
-  }
+export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
+  const ambassadors = await getAmbassadors();
+  return ambassadors.find(ambassador => ambassador.id === id) || null;
 };
 
-export default {
-  getAmbassadors,
-  getAmbassadorById,
-  createAmbassador,
-  updateAmbassador,
-  deleteAmbassador,
-  getAmbassadorCommissions,
-  createClientForAmbassador,
-  createAmbassadorOffer
+export const createAmbassador = async (data: CreateAmbassadorData): Promise<Ambassador | null> => {
+  // Simulate API call
+  const newAmbassador: Ambassador = {
+    id: crypto.randomUUID(),
+    name: data.name,
+    email: data.email,
+    company: data.company,
+    phone: data.phone,
+    notes: data.notes,
+    status: data.status,
+    clients_count: 0,
+    commissions_total: 0,
+    last_commission: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  return newAmbassador;
 };
+
+export const updateAmbassador = async (id: string, data: Partial<CreateAmbassadorData>): Promise<Ambassador | null> => {
+  // Simulate API call
+  const ambassador = await getAmbassadorById(id);
+  if (!ambassador) return null;
+  
+  const updatedAmbassador: Ambassador = {
+    ...ambassador,
+    ...data,
+    updated_at: new Date().toISOString()
+  };
+  
+  return updatedAmbassador;
+};
+
+export const deleteAmbassador = async (id: string): Promise<boolean> => {
+  // Simulate API call
+  return true;
+};
+
+export { type Ambassador };

@@ -33,7 +33,7 @@ export function useCalculator() {
     const downPayment = inputs.downPayment || 0;
     
     const equipmentAmount = inputs.equipmentAmount;
-    const finalAmount = equipmentAmount;
+    const finalAmount = equipmentAmount - downPayment;
     
     // Apply coefficient to calculate monthly payment
     // Coefficient is a percentage of the amount financed
@@ -51,6 +51,8 @@ export function useCalculator() {
       commission,
       downPayment
     });
+
+    return { monthlyPayment, commission };
   };
 
   return { calculate, calculator };

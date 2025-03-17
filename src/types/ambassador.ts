@@ -12,7 +12,7 @@ export interface Ambassador {
   vat_number?: string;
   region?: string;
   notes?: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'lead';
   clients_count: number;
   commissions_total: number;
   last_commission: number;
@@ -20,6 +20,10 @@ export interface Ambassador {
   updated_at: string;
   has_user_account?: boolean;
   user_account_created_at?: string;
+}
+
+export interface DetailAmbassador extends Ambassador {
+  // Including all properties from Ambassador
 }
 
 export interface AmbassadorCommission {
