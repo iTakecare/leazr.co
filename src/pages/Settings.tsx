@@ -2,10 +2,11 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { UserRound, Building, Settings2, Mail } from "lucide-react";
+import { UserRound, Building, Settings2, Mail, BadgePercent } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 import LeaserManager from "@/components/settings/LeaserManager";
 import SmtpSettings from "@/components/settings/SmtpSettings";
+import CommissionManager from "@/components/settings/CommissionManager";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Container from "@/components/layout/Container";
 
@@ -22,7 +23,7 @@ const Settings = () => {
           </div>
 
           <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className={`mb-6 ${isMobile ? 'grid grid-cols-2 gap-2' : ''}`}>
+            <TabsList className={`mb-6 ${isMobile ? 'grid grid-cols-3 gap-2' : ''}`}>
               <TabsTrigger value="leasers" className="flex items-center gap-2">
                 <Building className="h-4 w-4" />
                 <span>Bailleurs</span>
@@ -30,6 +31,10 @@ const Settings = () => {
               <TabsTrigger value="email" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 <span>Email</span>
+              </TabsTrigger>
+              <TabsTrigger value="commissions" className="flex items-center gap-2">
+                <BadgePercent className="h-4 w-4" />
+                <span>Commissions</span>
               </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <UserRound className="h-4 w-4" />
@@ -47,6 +52,10 @@ const Settings = () => {
 
             <TabsContent value="email" className="space-y-4">
               <SmtpSettings />
+            </TabsContent>
+
+            <TabsContent value="commissions" className="space-y-4">
+              <CommissionManager />
             </TabsContent>
 
             <TabsContent value="users" className="space-y-4">

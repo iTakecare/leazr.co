@@ -16,6 +16,7 @@ export const partnerSchema = z.object({
   type: z.enum(partnerTypes),
   status: z.enum(["active", "inactive"]),
   notes: z.string().optional(),
+  commission_level_id: z.string().optional(),
 });
 
 export type PartnerFormValues = z.infer<typeof partnerSchema>;
@@ -43,6 +44,7 @@ export interface Partner {
   has_user_account?: boolean;
   user_account_created_at?: string | Date;
   user_id?: string;
+  commission_level_id?: string;
 }
 
 // Function to map database record to our Partner interface
@@ -65,6 +67,7 @@ const mapDbPartnerToPartner = (record: any): Partner => {
     updated_at: record.updated_at ? new Date(record.updated_at) : undefined,
     has_user_account: record.has_user_account || false,
     user_account_created_at: record.user_account_created_at,
+    commission_level_id: record.commission_level_id,
   };
 };
 
@@ -79,6 +82,7 @@ const mapPartnerToDbPartner = (partner: Partial<PartnerFormValues>): Record<stri
   if (partner.type !== undefined) dbPartner.type = partner.type;
   if (partner.notes !== undefined) dbPartner.notes = partner.notes;
   if (partner.status !== undefined) dbPartner.status = partner.status;
+  if (partner.commission_level_id !== undefined) dbPartner.commission_level_id = partner.commission_level_id;
   
   return dbPartner;
 };

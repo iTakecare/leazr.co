@@ -101,6 +101,7 @@ export type Database = {
           address: string | null
           city: string | null
           clients_count: number | null
+          commission_level_id: string | null
           commissions_total: number | null
           company: string | null
           country: string | null
@@ -124,6 +125,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           clients_count?: number | null
+          commission_level_id?: string | null
           commissions_total?: number | null
           company?: string | null
           country?: string | null
@@ -147,6 +149,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           clients_count?: number | null
+          commission_level_id?: string | null
           commissions_total?: number | null
           company?: string | null
           country?: string | null
@@ -166,7 +169,15 @@ export type Database = {
           user_id?: string | null
           vat_number?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ambassadors_commission_level_id_fkey"
+            columns: ["commission_level_id"]
+            isOneToOne: false
+            referencedRelation: "commission_levels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       brands: {
         Row: {
@@ -275,6 +286,71 @@ export type Database = {
           vat_number?: string | null
         }
         Relationships: []
+      }
+      commission_levels: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean | null
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      commission_rates: {
+        Row: {
+          created_at: string
+          id: string
+          level_id: string
+          max_amount: number
+          min_amount: number
+          rate: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level_id: string
+          max_amount: number
+          min_amount: number
+          rate: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level_id?: string
+          max_amount?: number
+          min_amount?: number
+          rate?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_rates_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "commission_levels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contract_workflow_logs: {
         Row: {
@@ -691,6 +767,7 @@ export type Database = {
       partners: {
         Row: {
           clients_count: number | null
+          commission_level_id: string | null
           contact_name: string
           created_at: string | null
           email: string
@@ -709,6 +786,7 @@ export type Database = {
         }
         Insert: {
           clients_count?: number | null
+          commission_level_id?: string | null
           contact_name: string
           created_at?: string | null
           email: string
@@ -727,6 +805,7 @@ export type Database = {
         }
         Update: {
           clients_count?: number | null
+          commission_level_id?: string | null
           contact_name?: string
           created_at?: string | null
           email?: string
@@ -743,7 +822,15 @@ export type Database = {
           user_account_created_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "partners_commission_level_id_fkey"
+            columns: ["commission_level_id"]
+            isOneToOne: false
+            referencedRelation: "commission_levels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pdf_templates: {
         Row: {
