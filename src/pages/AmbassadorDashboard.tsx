@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
-import { ArrowRight, Heart, Users, Activity, CreditCard } from "lucide-react";
+import { ArrowRight, Heart, Users, Activity, CreditCard, UserPlus, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const AmbassadorDashboard = () => {
   const { user } = useAuth();
-  const ambassadorName = user?.name || "Ambassadeur";
+  const navigate = useNavigate();
+  const ambassadorName = user?.email?.split('@')[0] || "Ambassadeur";
 
   return (
     <PageTransition>
@@ -53,24 +55,40 @@ const AmbassadorDashboard = () => {
           </div>
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-            <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2">
+            <Button 
+              variant="outline" 
+              className="h-24 flex flex-col items-center justify-center gap-2"
+              onClick={() => navigate('/ambassador/clients')}
+            >
               <Users className="h-5 w-5" />
               <span>Mes partenaires</span>
             </Button>
             
-            <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2">
-              <Heart className="h-5 w-5" />
-              <span>Mes recommandations</span>
+            <Button 
+              variant="outline" 
+              className="h-24 flex flex-col items-center justify-center gap-2"
+              onClick={() => navigate('/ambassador/create-client')}
+            >
+              <UserPlus className="h-5 w-5" />
+              <span>Créer un client</span>
             </Button>
             
-            <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2">
+            <Button 
+              variant="outline" 
+              className="h-24 flex flex-col items-center justify-center gap-2"
+              onClick={() => navigate('/ambassador/calculator')}
+            >
+              <Calculator className="h-5 w-5" />
+              <span>Calculateur d'offre</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="h-24 flex flex-col items-center justify-center gap-2"
+              onClick={() => navigate('/ambassador/commissions')}
+            >
               <CreditCard className="h-5 w-5" />
               <span>Mes commissions</span>
-            </Button>
-            
-            <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2">
-              <Activity className="h-5 w-5" />
-              <span>Mes performances</span>
             </Button>
           </div>
           
@@ -81,7 +99,7 @@ const AmbassadorDashboard = () => {
             <CardContent>
               <div className="text-center py-6 text-muted-foreground">
                 <p>Aucune activité récente</p>
-                <Button variant="link" className="mt-2">
+                <Button variant="link" className="mt-2" onClick={() => navigate('/ambassador/create-client')}>
                   Commencer à recommander des partenaires <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>

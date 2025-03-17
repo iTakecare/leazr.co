@@ -360,4 +360,33 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
   }
 };
 
+export const getAmbassadorClients = async (ambassadorId: string): Promise<Client[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('ambassador_clients')
+      .select('client_id')
+      .eq('ambassador_id', ambassadorId);
+    
+    if (error) throw error;
+    
+    if (!data || data.length === 0) return [];
+    
+    const clientIds = data.map(item => item.client_id);
+    
+    const { data: clients, error: clientsError } = await supabase
+      .from('clients')
+      .select('*')
+      .in('id', clientIds)
+      .order('name', { ascending: true });
+    
+    if (clientsError) throw clientsError;
+    
+    return clients ? clients.map(mapDbClientToClient) : [];
+  } catch (error) {
+    console.error("Error fetching ambassador clients:", error);
+    toast.error("Erreur lors de la récupération des clients de l'ambassadeur");
+    return [];
+  }
+};
+
 export { createUserAccount as createAccountForClient, resetPassword as resetClientPassword };
