@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -48,6 +49,9 @@ const AmbassadorCreateOffer = () => {
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  
+  // Définir une constante pour masquer les détails financiers pour les ambassadeurs
+  const hideFinancialDetails = true;
   
   const {
     equipment,
@@ -369,7 +373,7 @@ const AmbassadorCreateOffer = () => {
                       setTargetMonthlyPayment={setTargetMonthlyPayment}
                       calculatedMargin={calculatedMargin}
                       applyCalculatedMargin={applyCalculatedMargin}
-                      hideFinancialDetails={true}
+                      hideFinancialDetails={hideFinancialDetails}
                     />
                   </div>
                 </div>
@@ -384,6 +388,7 @@ const AmbassadorCreateOffer = () => {
                     totalMonthlyPayment={totalMonthlyPayment}
                     globalMarginAdjustment={globalMarginAdjustment}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                    hideFinancialDetails={hideFinancialDetails}
                   />
                   
                   <ClientInfo
@@ -398,6 +403,7 @@ const AmbassadorCreateOffer = () => {
                     isSubmitting={isSubmitting}
                     selectedLeaser={selectedLeaser}
                     equipmentList={equipmentList}
+                    hideFinancialDetails={hideFinancialDetails}
                   />
                 </div>
               </div>

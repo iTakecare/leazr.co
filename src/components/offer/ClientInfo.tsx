@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +20,7 @@ interface ClientInfoProps {
   isSubmitting: boolean;
   selectedLeaser: Leaser | null;
   equipmentList: Equipment[];
+  hideFinancialDetails?: boolean;
 }
 
 const ClientInfo: React.FC<ClientInfoProps> = ({
@@ -34,7 +34,8 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
   handleSaveOffer,
   isSubmitting,
   selectedLeaser,
-  equipmentList
+  equipmentList,
+  hideFinancialDetails
 }) => {
   const canSubmit = clientName && clientEmail && equipmentList.length > 0;
   
@@ -86,16 +87,18 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                 </div>
               </div>
               
-              <div>
-                <Label htmlFor="client-remarks">Remarques (optionnel)</Label>
-                <Textarea 
-                  id="client-remarks"
-                  placeholder="Ajoutez des remarques pour cette offre..."
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  rows={3}
-                />
-              </div>
+              {!hideFinancialDetails && (
+                <div>
+                  <Label htmlFor="client-remarks">Remarques (optionnel)</Label>
+                  <Textarea 
+                    id="client-remarks"
+                    placeholder="Ajoutez des remarques pour cette offre..."
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              )}
               
               <Separator />
               

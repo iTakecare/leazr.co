@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +25,7 @@ interface EquipmentListProps {
   totalMonthlyPayment: number;
   globalMarginAdjustment: GlobalMarginAdjustment;
   toggleAdaptMonthlyPayment: () => void;
+  hideFinancialDetails?: boolean;
 }
 
 const EquipmentList: React.FC<EquipmentListProps> = ({
@@ -36,7 +36,8 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
   updateQuantity,
   totalMonthlyPayment,
   globalMarginAdjustment,
-  toggleAdaptMonthlyPayment
+  toggleAdaptMonthlyPayment,
+  hideFinancialDetails
 }) => {
   if (equipmentList.length === 0) {
     return (
