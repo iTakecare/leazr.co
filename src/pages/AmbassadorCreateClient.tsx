@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -46,7 +45,6 @@ const AmbassadorCreateClient = () => {
     
     try {
       const clientData = {
-        ambassadorId: user.ambassador_id,
         name,
         email,
         company,
@@ -56,7 +54,8 @@ const AmbassadorCreateClient = () => {
         postal_code: postalCode,
         country,
         vat_number: vatNumber,
-        notes
+        notes,
+        ambassador_id: user.ambassador_id
       };
       
       const result = await createClientForAmbassador(clientData);

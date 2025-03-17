@@ -29,19 +29,15 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     }
   };
   
-  const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string, reason?: string) => {
+  const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string) => {
     try {
       setIsUpdatingStatus(true);
       
       const offer = offers.find(o => o.id === offerId);
       if (!offer) throw new Error("Offre non trouvée");
       
-      const success = await updateOfferStatus(
-        offerId, 
-        newStatus, 
-        offer.workflow_status,
-        reason
-      );
+      // Update to match the expected parameters for updateOfferStatus
+      const success = await updateOfferStatus(offerId, newStatus as any);
       
       if (success) {
         setOffers(prevOffers => prevOffers.map(o => 
@@ -82,7 +78,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     }
   };
   
-  const handleRequestInfo = async (offerId: string, requestedDocs: string[], customMessage: string) => {
+  const handleRequestInfo = async (offerId: string, message: string) => {
     try {
       setIsRequestingInfo(true);
       
@@ -90,17 +86,10 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       if (!offer) throw new Error("Offre non trouvée");
       
       console.log("Demande d'informations pour l'offre:", offerId);
-      console.log("Documents demandés:", requestedDocs);
-      console.log("Message personnalisé:", customMessage);
+      console.log("Message personnalisé:", message);
       
-      const data = {
-        offerId,
-        requestedDocs,
-        customMessage,
-        previousStatus: offer.workflow_status
-      };
-      
-      const success = await sendInfoRequest(data);
+      // Update to match the expected parameters for sendInfoRequest
+      const success = await sendInfoRequest(offerId, message);
       
       if (success) {
         setOffers(prevOffers => prevOffers.map(o => 
@@ -122,7 +111,9 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     try {
       setIsUpdatingStatus(true);
       
-      const success = await processInfoResponse(offerId, approve);
+      // Convert boolean to string for the API
+      const responseStatus = approve ? "approved" : "rejected";
+      const success = await processInfoResponse(offerId, responseStatus);
       
       if (success) {
         const newStatus = approve ? 'leaser_review' : 'rejected';

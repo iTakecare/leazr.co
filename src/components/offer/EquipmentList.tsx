@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Equipment } from '@/types/equipment';
+import { Equipment, EquipmentItem } from '@/types/equipment';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { Plus, Package } from 'lucide-react';
@@ -15,11 +15,15 @@ const EquipmentList: React.FC<EquipmentListProps> = ({ equipment, onChange }) =>
     const newEquipment = { ...equipment };
     newEquipment.items.push({
       id: crypto.randomUUID(),
-      name: '',
+      title: '',
+      description: '',
       quantity: 1,
-      unit_price: 0,
+      purchasePrice: 0,
+      margin: 0,
       total_price: 0,
-      category: 'Default'
+      // Support legacy field names
+      name: '',
+      unit_price: 0
     });
     onChange(newEquipment);
   };
@@ -38,9 +42,21 @@ const EquipmentList: React.FC<EquipmentListProps> = ({ equipment, onChange }) =>
     };
     
     // Recalculate total price if quantity or unit_price changes
-    if (key === 'quantity' || key === 'unit_price') {
+    if (key === 'quantity' || key === 'unit_price' || key === 'purchasePrice') {
       const item = newEquipment.items[index];
-      item.total_price = item.quantity * item.unit_price;
+      if (key === 'unit_price') {
+        item.purchasePrice = value as number;
+      } else if (key === 'purchasePrice') {
+        item.unit_price = value as number;
+      }
+      item.total_price = item.quantity * (item.purchasePrice || item.unit_price || 0);
+    }
+    
+    // Support both title and name fields
+    if (key === 'name') {
+      newEquipment.items[index].title = value as string;
+    } else if (key === 'title') {
+      newEquipment.items[index].name = value as string;
     }
     
     onChange(newEquipment);
@@ -77,7 +93,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({ equipment, onChange }) =>
                   <TableCell>
                     <input
                       type="text"
-                      value={item.name}
+                      value={item.name || item.title}
                       onChange={(e) => updateItem(index, 'name', e.target.value)}
                       className="w-full border-0 bg-transparent p-0 focus:ring-0"
                       placeholder="Nom de l'équipement"
@@ -95,7 +111,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({ equipment, onChange }) =>
                   <TableCell>
                     <input
                       type="number"
-                      value={item.unit_price}
+                      value={item.unit_price || item.purchasePrice}
                       onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
                       className="w-full border-0 bg-transparent p-0 focus:ring-0 text-right"
                       min="0"

@@ -25,8 +25,9 @@ interface ClientTableRowProps {
 const ClientTableRow = ({ client, onDelete, onEdit, onView }: ClientTableRowProps) => {
   const navigate = useNavigate();
   
-  const formatDate = (date: Date) => {
+  const formatDate = (dateStr: string) => {
     try {
+      const date = new Date(dateStr);
       return format(date, "dd/MM/yyyy", { locale: fr });
     } catch (error) {
       return "Date incorrecte";

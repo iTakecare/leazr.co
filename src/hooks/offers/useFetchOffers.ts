@@ -7,7 +7,8 @@ import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 export interface Offer {
   id: string;
   client_name: string;
-  client_id?: string;
+  clientId?: string;
+  client_id?: string; // Added for compatibility
   clients?: {
     name: string;
     email: string;
@@ -35,7 +36,8 @@ export const useFetchOffers = () => {
     
     try {
       console.log("Fetching offers with includeConverted =", includeConverted);
-      const offersData = await getOffers(includeConverted);
+      // Remove the parameter as getOffers() doesn't accept any
+      const offersData = await getOffers();
       
       if (Array.isArray(offersData)) {
         const offersWithWorkflow = offersData.map(offer => {
@@ -48,7 +50,8 @@ export const useFetchOffers = () => {
               case "rejected":
                 workflowStatus = OFFER_STATUSES.REJECTED.id;
                 break;
-              case "pending":
+              case "draft":
+              case "pending": // Changed to match acceptable status types
                 workflowStatus = OFFER_STATUSES.DRAFT.id;
                 break;
               default:
@@ -63,7 +66,7 @@ export const useFetchOffers = () => {
           if (!offer.type) {
             return {
               ...offer,
-              type: offer.client_id ? 'client_request' : 'admin_offer'
+              type: offer.clientId || offer.client_id ? 'client_request' : 'admin_offer'
             };
           }
           return offer;
@@ -72,7 +75,8 @@ export const useFetchOffers = () => {
         console.log(`Loaded ${offersWithType.length} offers. Includes converted: ${includeConverted}`);
         console.log("Converted offers:", offersWithType.filter(o => o.converted_to_contract).length);
         
-        setOffers(offersWithType);
+        const typedOffers = offersWithType as Offer[];
+        setOffers(typedOffers);
       } else {
         console.error("Offers data is not an array:", offersData);
         setLoadingError("Format de données incorrect");

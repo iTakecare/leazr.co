@@ -1,3 +1,7 @@
+
+// Only updating the mapDbClientToClient function
+// The rest of the file is too large for one edit, and we're only changing a small part
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -76,8 +80,8 @@ const mapDbClientToClient = (record: any): Client => {
     user_id: record.user_id,
     has_user_account: record.has_user_account,
     user_account_created_at: record.user_account_created_at,
-    created_at: record.created_at ? new Date(record.created_at) : new Date(),
-    updated_at: record.updated_at ? new Date(record.updated_at) : new Date()
+    created_at: record.created_at, // Keep as string instead of converting to Date
+    updated_at: record.updated_at  // Keep as string instead of converting to Date
   };
 };
 

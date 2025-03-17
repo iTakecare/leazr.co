@@ -58,6 +58,7 @@ const CollaboratorForm = ({ clientId, onSuccess }: CollaboratorFormProps) => {
         email: values.email || "",
         phone: values.phone,
         department: values.department,
+        client_id: clientId // Add client_id to match the Collaborator type
       };
       
       console.log("Submitting collaborator:", collaboratorData);
