@@ -19,10 +19,10 @@ interface CatalogDialogProps {
   setSelectedCategory: (value: string) => void;
   selectedBrand: string;
   setSelectedBrand: (value: string) => void;
-  categories: Array<{ name: string; translation: string }>;
-  brands: Array<{ name: string; translation: string }>;
-  filteredProducts: any[];
-  isLoading: boolean;
+  categories?: Array<{ name: string; translation: string }>;
+  brands?: Array<{ name: string; translation: string }>;
+  filteredProducts?: any[];
+  isLoading?: boolean;
 }
 
 const CatalogDialog: React.FC<CatalogDialogProps> = ({
@@ -34,48 +34,58 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   selectedCategory,
   setSelectedCategory,
   selectedBrand,
-  setSelectedBrand,
-  categories,
-  brands,
-  filteredProducts,
-  isLoading
+  setSelectedBrand
 }) => {
   // Fetch data directly in the component rather than relying on passed props
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
-    queryKey: ["catalogProducts"],
+    queryKey: ["catalogProducts", isOpen],
     queryFn: getProducts,
     enabled: isOpen,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const { data: categoriesData = [] } = useQuery({
-    queryKey: ["catalogCategories"],
+  const { data: categoriesData = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ["catalogCategories", isOpen],
     queryFn: getCategories,
     enabled: isOpen,
+    staleTime: 1000 * 60 * 30, // 30 minutes
   });
 
-  const { data: brandsData = [] } = useQuery({
-    queryKey: ["catalogBrands"],
+  const { data: brandsData = [], isLoading: brandsLoading } = useQuery({
+    queryKey: ["catalogBrands", isOpen],
     queryFn: getBrands,
     enabled: isOpen,
+    staleTime: 1000 * 60 * 30, // 30 minutes
   });
 
   // Filter products client-side
   const localFilteredProducts = React.useMemo(() => {
     if (!allProducts || !Array.isArray(allProducts)) {
+      console.log("[CatalogDialog] allProducts is not an array:", allProducts);
       return [];
     }
     
+    console.log("[CatalogDialog] Filtering products, total count:", allProducts.length);
+    console.log("[CatalogDialog] Search term:", searchTerm);
+    console.log("[CatalogDialog] Selected category:", selectedCategory);
+    console.log("[CatalogDialog] Selected brand:", selectedBrand);
+    
     return allProducts.filter((product) => {
       // Search term filter - handle null values safely
-      const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      const nameMatch = !searchTerm || 
+        (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
       
       // Category filter - handle 'all' filter correctly
-      const categoryMatch = selectedCategory === "all" || (product.category && product.category === selectedCategory);
+      const categoryMatch = selectedCategory === "all" || 
+        (product.category && product.category === selectedCategory);
       
       // Brand filter - handle 'all' filter correctly  
-      const brandMatch = selectedBrand === "all" || (product.brand && product.brand === selectedBrand);
+      const brandMatch = selectedBrand === "all" || 
+        (product.brand && product.brand === selectedBrand);
       
-      return nameMatch && categoryMatch && brandMatch;
+      const matches = nameMatch && categoryMatch && brandMatch;
+      
+      return matches;
     });
   }, [allProducts, searchTerm, selectedCategory, selectedBrand]);
 
@@ -94,20 +104,17 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       console.log("[CatalogDialog] Filtered products count:", localFilteredProducts?.length || 0);
       console.log("[CatalogDialog] Categories:", localCategories);
       console.log("[CatalogDialog] Brands:", localBrands);
-      console.log("[CatalogDialog] Search term:", searchTerm);
-      console.log("[CatalogDialog] Selected category:", selectedCategory);
-      console.log("[CatalogDialog] Selected brand:", selectedBrand);
     }
-  }, [isOpen, allProducts, localFilteredProducts, localCategories, localBrands, searchTerm, selectedCategory, selectedBrand]);
+  }, [isOpen, allProducts, localFilteredProducts, localCategories, localBrands]);
 
   // Determine actual loading state
-  const actualLoading = isLoading || productsLoading;
+  const actualLoading = productsLoading || categoriesLoading || brandsLoading;
   
   // Use products from our direct query, not from props
-  const productsToShow = localFilteredProducts.length > 0 ? localFilteredProducts : [];
+  const productsToShow = localFilteredProducts;
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Sélectionner un équipement</DialogTitle>
