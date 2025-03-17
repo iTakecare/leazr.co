@@ -1,45 +1,21 @@
-
 import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Plus, Trash2, Edit, Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  getCommissionLevels,
-  getCommissionLevelWithRates,
-  CommissionLevel,
-  CommissionRate,
-  createCommissionLevel,
-  updateCommissionLevel,
-  deleteCommissionLevel,
-  createCommissionRate as createCommissionRateService,
-  updateCommissionRate as updateCommissionRateService,
-  deleteCommissionRate,
-} from "@/services/commissionService";
-import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import CommissionLevelForm from "./CommissionLevelForm";
-import CommissionRateForm from "./CommissionRateForm";
-import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,523 +25,538 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import {
+  CommissionLevel,
+  CommissionRate,
+  getCommissionLevels,
+  getCommissionRates,
+  createCommissionLevel,
+  updateCommissionLevel,
+  deleteCommissionLevel,
+  createCommissionRate,
+  updateCommissionRate,
+  deleteCommissionRate,
+  setDefaultCommissionLevel,
+} from "@/services/commissionService";
+import CommissionLevelForm from "./CommissionLevelForm";
+import CommissionRateForm from "./CommissionRateForm";
+import { supabase } from "@/integrations/supabase/client";
 
-interface CommissionManagerProps {}
-
-const CommissionManager: React.FC<CommissionManagerProps> = () => {
-  const [levels, setLevels] = useState<CommissionLevel[]>([]);
-  const [selectedLevelId, setSelectedLevelId] = useState<string | null>(null);
+const CommissionManager = () => {
+  const [activeTab, setActiveTab] = useState<"partner" | "ambassador">("partner");
+  const [partnerLevels, setPartnerLevels] = useState<CommissionLevel[]>([]);
+  const [ambassadorLevels, setAmbassadorLevels] = useState<CommissionLevel[]>([]);
+  const [selectedLevel, setSelectedLevel] = useState<CommissionLevel | null>(null);
   const [rates, setRates] = useState<CommissionRate[]>([]);
-  const [openLevelDialog, setOpenLevelDialog] = useState(false);
-  const [openEditLevelDialog, setOpenEditLevelDialog] = useState(false);
-  const [openRateDialog, setOpenRateDialog] = useState(false);
-  const [openEditRateDialog, setOpenEditRateDialog] = useState(false);
-  const [selectedRate, setSelectedRate] = useState<CommissionRate | null>(null);
-  const [selectedLevel, setSelectedLevel] = useState<CommissionLevel | null>(
-    null
-  );
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const { toast: useToastFunc } = useToast();
+  const [isAddLevelOpen, setIsAddLevelOpen] = useState(false);
+  const [isEditLevelOpen, setIsEditLevelOpen] = useState(false);
+  const [isAddRateOpen, setIsAddRateOpen] = useState(false);
+  const [editRateId, setEditRateId] = useState<string | null>(null);
+  const [deleteLevelDialog, setDeleteLevelDialog] = useState(false);
+  const [deleteRateDialog, setDeleteRateDialog] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setIsMounted(true);
+    loadCommissionLevels();
   }, []);
 
   useEffect(() => {
-    const fetchLevels = async () => {
-      try {
-        const levelsData = await getCommissionLevels("standard"); // Providing a default type value
-        setLevels(levelsData);
-      } catch (error) {
-        console.error("Error fetching commission levels:", error);
-        useToastFunc({
-          variant: "destructive",
-          title: "Erreur",
-          description:
-            "Erreur lors du chargement des niveaux de commission. Veuillez réessayer.",
-        });
-      }
-    };
+    if (selectedLevel) {
+      loadRates(selectedLevel.id);
+    } else {
+      setRates([]);
+    }
+  }, [selectedLevel]);
 
-    fetchLevels();
-  }, [useToastFunc]);
-
-  useEffect(() => {
-    const fetchRates = async () => {
-      if (selectedLevelId) {
-        try {
-          const levelWithRates = await getCommissionLevelWithRates(
-            selectedLevelId
-          );
-          setRates(levelWithRates.rates || []);
-        } catch (error) {
-          console.error("Error fetching commission rates:", error);
-          useToastFunc({
-            variant: "destructive",
-            title: "Erreur",
-            description:
-              "Erreur lors du chargement des taux de commission. Veuillez réessayer.",
-          });
-        }
-      } else {
-        setRates([]);
-      }
-    };
-
-    fetchRates();
-  }, [selectedLevelId, useToastFunc]);
-
-  const handleLevelCreate = async (data: Partial<CommissionLevel>) => {
-    setIsSubmitting(true);
+  const loadCommissionLevels = async () => {
+    setLoading(true);
     try {
-      if (!data.name || !data.type) {
-        toast.error("Le nom et le type sont requis");
-        return;
-      }
+      const partnerLevelsData = await getCommissionLevels('partner');
+      const ambassadorLevelsData = await getCommissionLevels('ambassador');
       
+      setPartnerLevels(partnerLevelsData);
+      setAmbassadorLevels(ambassadorLevelsData);
+      
+      if (!selectedLevel) {
+        const currentTabLevels = activeTab === 'partner' ? partnerLevelsData : ambassadorLevelsData;
+        if (currentTabLevels.length > 0) {
+          setSelectedLevel(currentTabLevels[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading commission levels:", error);
+      toast.error("Erreur lors du chargement des niveaux de commission");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadRates = async (levelId: string) => {
+    try {
+      const ratesData = await getCommissionRates(levelId);
+      setRates(ratesData);
+    } catch (error) {
+      console.error("Error loading commission rates:", error);
+      toast.error("Erreur lors du chargement des taux de commission");
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as "partner" | "ambassador");
+    setSelectedLevel(null);
+  };
+
+  const handleSelectLevel = (level: CommissionLevel) => {
+    setSelectedLevel(level);
+  };
+
+  const handleAddLevel = async (data: Partial<CommissionLevel>) => {
+    try {
       const newLevel = await createCommissionLevel({
-        name: data.name,
-        type: data.type,
+        name: data.name!,
+        type: activeTab,
         is_default: data.is_default || false
       });
       
-      setLevels([...levels, newLevel]);
-      setOpenLevelDialog(false);
-      toast.success("Niveau de commission créé avec succès.");
+      if (newLevel) {
+        toast.success("Niveau de commission créé avec succès");
+        setIsAddLevelOpen(false);
+        await loadCommissionLevels();
+        setSelectedLevel(newLevel);
+      }
     } catch (error) {
       console.error("Error creating commission level:", error);
-      toast.error("Erreur lors de la création du niveau de commission. Veuillez réessayer.");
-    } finally {
-      setIsSubmitting(false);
+      toast.error("Erreur lors de la création du niveau de commission");
     }
   };
 
-  const handleLevelUpdate = async (
-    id: string,
-    data: Partial<CommissionLevel>
-  ) => {
-    setIsSubmitting(true);
+  const handleEditLevel = async (data: Partial<CommissionLevel>) => {
+    if (!selectedLevel) return;
+    
     try {
-      const updatedLevel = await updateCommissionLevel(id, data);
-      setLevels(
-        levels.map((level) => (level.id === updatedLevel.id ? updatedLevel : level))
-      );
-      setOpenEditLevelDialog(false);
-      toast.success("Niveau de commission mis à jour avec succès.");
+      const updatedLevel = await updateCommissionLevel(selectedLevel.id, {
+        name: data.name!,
+        is_default: data.is_default
+      });
+      
+      if (updatedLevel) {
+        toast.success("Niveau de commission mis à jour avec succès");
+        setIsEditLevelOpen(false);
+        await loadCommissionLevels();
+      }
     } catch (error) {
       console.error("Error updating commission level:", error);
-      toast.error("Erreur lors de la mise à jour du niveau de commission. Veuillez réessayer.");
-    } finally {
-      setIsSubmitting(false);
+      toast.error("Erreur lors de la mise à jour du niveau de commission");
     }
   };
 
-  const handleLevelDelete = async (id: string) => {
-    setIsSubmitting(true);
+  const handleDeleteLevel = async () => {
+    if (!selectedLevel) return;
+    
     try {
-      await deleteCommissionLevel(id);
-      setLevels(levels.filter((level) => level.id !== id));
-      if (selectedLevelId === id) {
-        setSelectedLevelId(null);
+      const success = await deleteCommissionLevel(selectedLevel.id);
+      
+      if (success) {
+        toast.success("Niveau de commission supprimé avec succès");
+        setDeleteLevelDialog(false);
+        await loadCommissionLevels();
+        setSelectedLevel(null);
       }
-      toast.success("Niveau de commission supprimé avec succès.");
     } catch (error) {
       console.error("Error deleting commission level:", error);
-      toast.error("Erreur lors de la suppression du niveau de commission. Veuillez réessayer.");
-    } finally {
-      setIsSubmitting(false);
+      toast.error("Erreur lors de la suppression du niveau de commission");
     }
   };
 
-  const handleRateCreate = async (data: any) => {
-    setIsSubmitting(true);
+  const handleSetDefault = async (level: CommissionLevel) => {
     try {
-      if (!selectedLevelId) {
-        throw new Error("No commission level selected.");
+      const success = await setDefaultCommissionLevel(level.id, level.type);
+      
+      if (success) {
+        toast.success(`${level.name} défini comme niveau par défaut`);
+        await loadCommissionLevels();
       }
+    } catch (error) {
+      console.error("Error setting default commission level:", error);
+      toast.error("Erreur lors de la définition du niveau par défaut");
+    }
+  };
 
-      const newRate = await createCommissionRateService({
-        ...data,
-        commission_level_id: selectedLevelId,
-      });
-
-      setRates([...rates, newRate]);
-      setOpenRateDialog(false);
-      toast.success("Taux de commission créé avec succès.");
+  const handleAddRate = async (data: Partial<CommissionRate>) => {
+    if (!selectedLevel) return;
+    
+    try {
+      const rateData: Omit<CommissionRate, 'id' | 'created_at'> = {
+        commission_level_id: selectedLevel.id,
+        min_amount: data.min_amount!,
+        max_amount: data.max_amount!,
+        rate: data.rate!
+      };
+      
+      const newRate = await createCommissionRate(rateData);
+      
+      if (newRate) {
+        toast.success("Taux de commission ajouté avec succès");
+        setIsAddRateOpen(false);
+        await loadRates(selectedLevel.id);
+      }
     } catch (error) {
       console.error("Error creating commission rate:", error);
-      toast.error("Erreur lors de la création du taux de commission. Veuillez réessayer.");
-    } finally {
-      setIsSubmitting(false);
+      toast.error("Erreur lors de la création du taux de commission");
     }
   };
 
-  const handleRateUpdate = async (id: string, data: any) => {
-    setIsSubmitting(true);
+  const handleEditRate = async (id: string, data: Partial<CommissionRate>) => {
     try {
-      const updatedRate = await updateCommissionRateService(id, data);
-      setRates(
-        rates.map((rate) => (rate.id === updatedRate.id ? updatedRate : rate))
-      );
-      setOpenEditRateDialog(false);
-      toast.success("Taux de commission mis à jour avec succès.");
+      const updatedRate = await updateCommissionRate(id, {
+        min_amount: data.min_amount,
+        max_amount: data.max_amount,
+        rate: data.rate
+      });
+      
+      if (updatedRate) {
+        toast.success("Taux de commission mis à jour avec succès");
+        setEditRateId(null);
+        if (selectedLevel) {
+          await loadRates(selectedLevel.id);
+        }
+      }
     } catch (error) {
       console.error("Error updating commission rate:", error);
-      toast.error("Erreur lors de la mise à jour du taux de commission. Veuillez réessayer.");
-    } finally {
-      setIsSubmitting(false);
+      toast.error("Erreur lors de la mise à jour du taux de commission");
     }
   };
 
-  const handleRateDelete = async (id: string) => {
-    setIsSubmitting(true);
+  const handleDeleteRate = async (id: string) => {
     try {
-      await deleteCommissionRate(id);
-      setRates(rates.filter((rate) => rate.id !== id));
-      toast.success("Taux de commission supprimé avec succès.");
+      const success = await deleteCommissionRate(id);
+      
+      if (success) {
+        toast.success("Taux de commission supprimé avec succès");
+        setDeleteRateDialog(null);
+        if (selectedLevel) {
+          await loadRates(selectedLevel.id);
+        }
+      }
     } catch (error) {
       console.error("Error deleting commission rate:", error);
-      toast.error("Erreur lors de la suppression du taux de commission. Veuillez réessayer.");
-    } finally {
-      setIsSubmitting(false);
+      toast.error("Erreur lors de la suppression du taux de commission");
     }
   };
 
-  if (!isMounted) {
-    return null;
-  }
-
-  const renderLevelForm = (props: any) => {
-    if (!props.initialData) {
-      return (
-        <div>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Nom du niveau</Label>
-              <Input
-                id="name"
-                placeholder="Entrez le nom du niveau"
-                onChange={(e) => {
-                  const formData = { name: e.target.value, type: 'standard' };
-                  props.onSubmit(formData);
-                }}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={props.onCancel}>
-              Annuler
-            </Button>
-            <Button 
-              variant="default" 
-              onClick={() => {
-                const formData = { name: (document.getElementById('name') as HTMLInputElement).value, type: 'standard' };
-                props.onSubmit(formData);
-              }}
-            >
-              Créer
-            </Button>
-          </DialogFooter>
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="editName">Nom du niveau</Label>
-            <Input
-              id="editName"
-              defaultValue={props.initialData.name}
-              placeholder="Entrez le nom du niveau"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={props.onCancel}>
-            Annuler
-          </Button>
-          <Button 
-            variant="default" 
-            onClick={() => {
-              const formData = { 
-                name: (document.getElementById('editName') as HTMLInputElement).value,
-                type: props.initialData.type 
-              };
-              if (props.initialData && props.initialData.id) {
-                props.onSubmit(formData);
-              }
-            }}
-          >
-            Mettre à jour
-          </Button>
-        </DialogFooter>
-      </div>
-    );
-  };
+  const currentLevels = activeTab === 'partner' ? partnerLevels : ambassadorLevels;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Niveaux de commission</h2>
-        <Dialog open={openLevelDialog} onOpenChange={setOpenLevelDialog}>
-          <DialogTrigger asChild>
-            <Button variant="default">
-              <Plus className="mr-2 h-4 w-4" />
-              Ajouter un niveau
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Créer un niveau de commission</DialogTitle>
-              <DialogDescription>
-                Ajouter un nouveau niveau de commission à votre liste.
-              </DialogDescription>
-            </DialogHeader>
-            {renderLevelForm({
-              onSubmit: handleLevelCreate,
-              onCancel: () => setOpenLevelDialog(false)
-            })}
-          </DialogContent>
-        </Dialog>
-      </div>
-      <Separator />
-      <Table>
-        <TableCaption>
-          Liste des niveaux de commission disponibles.
-        </TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {levels.map((level) => (
-            <TableRow key={level.id}>
-              <TableCell className="font-medium">{level.name}</TableCell>
-              <TableCell>{level.type}</TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedLevel(level);
-                    setOpenEditLevelDialog(true);
-                  }}
+    <div className="space-y-6">
+      <Tabs defaultValue="partner" onValueChange={handleTabChange}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="partner">Partenaires</TabsTrigger>
+          <TabsTrigger value="ambassador">Ambassadeurs</TabsTrigger>
+        </TabsList>
+        
+        {["partner", "ambassador"].map((tabValue) => (
+          <TabsContent key={tabValue} value={tabValue} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium">Barèmes de commissionnement</h2>
+              <Dialog open={isAddLevelOpen} onOpenChange={setIsAddLevelOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span>Ajouter un niveau</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Ajouter un niveau de commission</DialogTitle>
+                  </DialogHeader>
+                  <CommissionLevelForm 
+                    isOpen={isAddLevelOpen}
+                    onClose={() => setIsAddLevelOpen(false)}
+                    level={null}
+                    type={activeTab as 'ambassador' | 'partner'}
+                    onSave={loadCommissionLevels}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {currentLevels.length > 0 ? currentLevels.map((level) => (
+                <Card 
+                  key={level.id}
+                  className={`relative ${selectedLevel?.id === level.id ? 'border-primary' : ''}`}
+                  onClick={() => handleSelectLevel(level)}
                 >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Modifier
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" className="ml-2">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Supprimer
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Êtes-vous sûr(e) ?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action supprimera le niveau de commission ainsi que
-                        tous les taux associés. Cette action est irréversible.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction
-                        disabled={isSubmitting}
-                        onClick={() => handleLevelDelete(level.id)}
-                      >
-                        Supprimer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-2"
-                  onClick={() => setSelectedLevelId(level.id)}
-                >
-                  Voir les taux
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TableCell colSpan={3}>
-              Total: {levels.length} niveau(x) de commission
-            </TableCell>
-          </TableRow>
-        </TableFooter>
-      </Table>
-      {selectedLevel && (
-        <Dialog
-          open={openEditLevelDialog}
-          onOpenChange={setOpenEditLevelDialog}
-        >
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Modifier le niveau de commission</DialogTitle>
-              <DialogDescription>
-                Modifier les informations du niveau de commission sélectionné.
-              </DialogDescription>
-            </DialogHeader>
-            {renderLevelForm({
-              initialData: selectedLevel,
-              onSubmit: (data: Partial<CommissionLevel>) => 
-                handleLevelUpdate(selectedLevel.id, data),
-              onCancel: () => {
-                setOpenEditLevelDialog(false);
-                setSelectedLevel(null);
-              }
-            })}
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {selectedLevelId && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold">
-              Taux de commission pour le niveau sélectionné
-            </h3>
-            <Dialog open={openRateDialog} onOpenChange={setOpenRateDialog}>
-              <DialogTrigger asChild>
-                <Button variant="default">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Ajouter un taux
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Créer un taux de commission</DialogTitle>
-                  <DialogDescription>
-                    Ajouter un nouveau taux de commission pour le niveau
-                    sélectionné.
-                  </DialogDescription>
-                </DialogHeader>
-                <CommissionRateForm
-                  commissionLevel={selectedLevelId}
-                  onSubmit={handleRateCreate}
-                  onCancel={() => setOpenRateDialog(false)}
-                  isSubmitting={isSubmitting}
-                />
-              </DialogContent>
-            </Dialog>
-          </div>
-          <Separator />
-          <Table>
-            <TableCaption>
-              Liste des taux de commission pour le niveau sélectionné.
-            </TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Montant minimum</TableHead>
-                <TableHead>Montant maximum</TableHead>
-                <TableHead>Taux (%)</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rates.map((rate) => (
-                <TableRow key={rate.id}>
-                  <TableCell>{rate.min_amount}</TableCell>
-                  <TableCell>{rate.max_amount}</TableCell>
-                  <TableCell>{rate.rate}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedRate(rate);
-                        setOpenEditRateDialog(true);
-                      }}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Modifier
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="ml-2"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Supprimer
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Êtes-vous sûr(e) ?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Cette action supprimera le taux de commission. Cette
-                            action est irréversible.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction
-                            disabled={isSubmitting}
-                            onClick={() => handleRateDelete(rate.id)}
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{level.name}</CardTitle>
+                      <div className="flex items-center space-x-1">
+                        {level.is_default && (
+                          <Badge variant="outline" className="text-xs">Défaut</Badge>
+                        )}
+                        <Dialog open={isEditLevelOpen && selectedLevel?.id === level.id} onOpenChange={(open) => {
+                          if (!open) setIsEditLevelOpen(false);
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedLevel(level);
+                                setIsEditLevelOpen(true);
+                              }}
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                              <span className="sr-only">Modifier</span>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Modifier le niveau de commission</DialogTitle>
+                            </DialogHeader>
+                            <CommissionLevelForm 
+                              isOpen={isEditLevelOpen}
+                              onClose={() => setIsEditLevelOpen(false)}
+                              level={selectedLevel}
+                              type={activeTab as 'ambassador' | 'partner'}
+                              onSave={loadCommissionLevels}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {loading ? (
+                      <div className="flex justify-center p-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      </div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {currentLevels.map((level) => (
+                          <li 
+                            key={level.id} 
+                            className={`flex items-center justify-between p-3 rounded-md cursor-pointer ${
+                              selectedLevel?.id === level.id 
+                                ? 'bg-primary/10 border border-primary/30' 
+                                : 'hover:bg-muted'
+                            }`}
+                            onClick={() => handleSelectLevel(level)}
                           >
-                            Supprimer
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={4}>
-                  Total: {rates.length} taux(x) de commission
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </div>
-      )}
+                            <div className="flex items-center gap-2">
+                              <span>{level.name}</span>
+                              {level.is_default && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Par défaut
+                                </Badge>
+                              )}
+                            </div>
+                            {!level.is_default && selectedLevel?.id === level.id && (
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSetDefault(level);
+                                }}
+                              >
+                                <span className="text-xs">Définir par défaut</span>
+                              </Button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardContent>
+                </Card>
+              )) : (
+                <div className="col-span-full text-center py-8 bg-muted/20 rounded-lg">
+                  <p className="text-muted-foreground">
+                    Aucun barème de commission défini pour les {activeTab === 'partner' ? 'partenaires' : 'ambassadeurs'}.
+                  </p>
+                  <Button 
+                    onClick={() => setIsAddLevelOpen(true)} 
+                    className="mt-4"
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Créer un barème
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            {selectedLevel && (
+              <div className="mt-8 border-t pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">
+                    Taux de commission pour {selectedLevel.name}
+                  </h3>
+                  <Dialog open={isAddRateOpen} onOpenChange={setIsAddRateOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Ajouter un taux
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Ajouter un taux de commission</DialogTitle>
+                      </DialogHeader>
+                      <CommissionRateForm 
+                        isOpen={isAddRateOpen}
+                        onClose={() => setIsAddRateOpen(false)}
+                        onSave={(data) => {
+                          if (selectedLevel) {
+                            handleAddRate({
+                              ...data, 
+                              commission_level_id: selectedLevel.id
+                            });
+                          }
+                        }}
+                        levelId={selectedLevel.id}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                
+                <div className="space-y-4">
+                  {rates.length > 0 ? (
+                    rates
+                      .sort((a, b) => b.min_amount - a.min_amount)
+                      .map((rate) => (
+                        <div 
+                          key={rate.id} 
+                          className="flex items-center justify-between p-3 border rounded-md"
+                        >
+                          {editRateId === rate.id ? (
+                            <CommissionRateForm 
+                              onSave={(data) => {
+                                handleEditRate(rate.id, data);
+                              }}
+                              rate={rate}
+                              onClose={() => setEditRateId(null)}
+                              inline
+                            />
+                          ) : (
+                            <>
+                              <div className="grid grid-cols-2 gap-4 flex-1">
+                                <div>
+                                  <span className="text-sm text-muted-foreground">Plage</span>
+                                  <div>
+                                    {rate.min_amount.toLocaleString('fr-FR')}€ - {rate.max_amount.toLocaleString('fr-FR')}€
+                                  </div>
+                                </div>
+                                <div>
+                                  <span className="text-sm text-muted-foreground">Taux</span>
+                                  <div className="font-medium">{rate.rate}%</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => setEditRateId(rate.id)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Modifier</span>
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => setDeleteRateDialog(rate.id)}
+                                  className="text-destructive hover:text-destructive/90"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Supprimer</span>
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))
+                  ) : (
+                    <div className="text-center py-8 bg-muted/20 rounded-lg">
+                      <p className="text-muted-foreground">
+                        Aucun taux défini pour ce barème.
+                      </p>
+                      <Button 
+                        onClick={() => setIsAddRateOpen(true)} 
+                        className="mt-4"
+                        variant="outline"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Ajouter un taux
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
 
-      {selectedRate && (
-        <Dialog
-          open={openEditRateDialog}
-          onOpenChange={setOpenEditRateDialog}
-        >
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Modifier le taux de commission</DialogTitle>
-              <DialogDescription>
-                Modifier les informations du taux de commission sélectionné.
-              </DialogDescription>
-            </DialogHeader>
-            <CommissionRateForm
-              commissionLevel={selectedLevelId}
-              initialData={selectedRate}
-              onSubmit={(data) => handleRateUpdate(selectedRate.id, data)}
-              onCancel={() => {
-                setOpenEditRateDialog(false);
-                setSelectedRate(null);
+      <AlertDialog open={deleteLevelDialog} onOpenChange={setDeleteLevelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le barème</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce barème de commission ?
+              Cela supprimera également tous les taux associés. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteLevelDialog(false)}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={handleDeleteLevel}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog 
+        open={deleteRateDialog !== null} 
+        onOpenChange={(open) => !open && setDeleteRateDialog(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le taux</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce taux de commission ?
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteRateDialog(null)}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteRateDialog) {
+                  handleDeleteRate(deleteRateDialog);
+                }
               }}
-              isSubmitting={isSubmitting}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export default function ClientDetail() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
+  // Fonction pour charger les données du client
   const fetchClient = async () => {
     if (!id) return;
     
@@ -83,7 +85,7 @@ export default function ClientDetail() {
     
     setIsCreatingAccount(true);
     try {
-      const success = await createUserAccount(client.id, "client");
+      const success = await createUserAccount(client, "client");
       if (success) {
         // Recharger les données du client pour afficher les changements
         await fetchClient();
@@ -126,6 +128,7 @@ export default function ClientDetail() {
     );
   }
 
+  // Afficher les informations de débogage complètes
   console.log("Client account status debug:", { 
     client_id: client.id,
     has_user_account: client.has_user_account,
@@ -133,6 +136,7 @@ export default function ClientDetail() {
     user_account_created_at: client.user_account_created_at
   });
 
+  // Un compte est considéré comme actif uniquement si has_user_account est true
   const hasUserAccount = Boolean(client.has_user_account);
 
   return (
