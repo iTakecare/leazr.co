@@ -69,11 +69,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
     <Card className="shadow-sm border-gray-200 rounded-lg">
       <CardHeader className="pb-3 border-b">
         <CardTitle className="text-lg font-medium">Calcul de la marge à partir de la mensualité souhaitée</CardTitle>
-        {selectedLeaser && (
-          <div className="text-sm text-muted-foreground">
-            Prestataire: {selectedLeaser.name}
-          </div>
-        )}
+        {/* Le sélecteur de prestataire est maintenant masqué */}
       </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-5">
@@ -96,20 +92,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
             </div>
           </div>
 
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between py-1">
-              <span className="text-gray-600">Coefficient appliqué :</span>
-              <span className="font-medium">{formatPercentage(coefficient)}</span>
-            </div>
-            <div className="flex justify-between py-1 border border-green-200 bg-green-50 p-2 rounded">
-              <span className="text-gray-700 font-medium">Marge calculée :</span>
-              <span className="font-bold text-green-700">{formatPercentage(calculatedMargin.percentage)}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span className="text-gray-600">Marge en euros :</span>
-              <span className="font-medium">{formatCurrency(calculatedMargin.amount)}</span>
-            </div>
-          </div>
+          {/* Les informations de marge et coefficient sont maintenant masquées */}
 
           <Button 
             onClick={handleApplyMargin}

@@ -352,10 +352,7 @@ const AmbassadorCreateOffer = () => {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div>
-                  <LeaserButton
-                    selectedLeaser={selectedLeaser}
-                    onOpen={handleOpenLeaserSelector}
-                  />
+                  {/* Le bouton de sélection du prestataire est maintenant masqué */}
 
                   <div className="mt-6">
                     <EquipmentForm

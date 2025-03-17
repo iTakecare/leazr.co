@@ -29,18 +29,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
 
   return (
     <div className="space-y-2 text-sm">
-      <div className="flex justify-between py-1">
-        <span className="text-gray-600">Marge en euros :</span>
-        <span className="font-medium">{formatCurrency(displayMarginAmount)}</span>
-      </div>
-      <div className="flex justify-between py-1">
-        <span className="text-gray-600">Prix avec marge :</span>
-        <span className="font-medium">{formatCurrency(priceWithMargin)}</span>
-      </div>
-      <div className="flex justify-between py-1">
-        <span className="text-gray-600">Coefficient appliqué :</span>
-        <span className="font-medium">{formatPercentage(coefficient)}</span>
-      </div>
+      {/* Les détails du prix et de la marge sont maintenant masqués */}
       <div className="flex justify-between py-1 text-blue-600">
         <span className="font-medium">Mensualité unitaire :</span>
         <span className="font-bold">{formatCurrency(displayMonthlyPayment)}</span>
