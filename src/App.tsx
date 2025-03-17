@@ -1,9 +1,9 @@
+
 import { useEffect, useState, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import Layout from '@/components/layout/Layout';
-import Loader from '@/components/ui/Loader';
-import ClientLayout from '@/components/layout/ClientLayout';
+import { Layout } from '@/components/layout/Layout';
+import { Loader2 } from 'lucide-react';
 import ClientRoutes from '@/components/layout/ClientRoutes';
 import ClientDashboard from '@/pages/ClientDashboard';
 import ClientContractsPage from '@/pages/ClientContractsPage';
@@ -12,48 +12,61 @@ import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import CommissionCalculator from '@/pages/CommissionCalculator';
+import Dashboard from '@/pages/Dashboard';
+import Offers from '@/pages/Offers';
+import OfferDetail from '@/pages/OfferDetail';
+import CreateOffer from '@/pages/CreateOffer';
+import Contracts from '@/pages/Contracts';
+import ContractDetail from '@/pages/ContractDetail';
+import Settings from '@/pages/Settings';
+import Profile from '@/pages/ProfilePage';
+import Partners from '@/pages/Partners';
+import PartnerDetail from '@/pages/PartnerDetail';
+import PartnerCreate from '@/pages/PartnerCreatePage';
+import PartnerEdit from '@/pages/PartnerEdit';
+import AmbassadorsList from '@/pages/AmbassadorsList';
+import AmbassadorDetail from '@/pages/AmbassadorDetail';
+import AmbassadorCreate from '@/pages/AmbassadorCreatePage';
+import AmbassadorEdit from '@/pages/AmbassadorEditPage';
+import PartnerDashboard from '@/pages/PartnerDashboard';
+import PartnerOffers from '@/pages/PartnerOffers';
+import PartnerOfferDetail from '@/pages/PartnerOfferDetail';
+import PartnerCreateOffer from '@/pages/PartnerCreateOffer';
+import AmbassadorDashboard from '@/pages/AmbassadorDashboard';
+import AmbassadorOffers from '@/pages/AmbassadorOffers';
+import AmbassadorOfferDetail from '@/pages/AmbassadorOfferDetail';
+import Clients from '@/pages/Clients';
+import ClientDetail from '@/pages/ClientDetail';
+import ClientCreate from '@/pages/ClientCreate';
+import ClientEdit from '@/pages/ClientEdit';
+import RequestInfos from '@/pages/RequestInfos';
+import RequestInfoDetail from '@/pages/RequestInfoDetail';
+import Catalog from '@/pages/Catalog';
+import CatalogCreate from '@/pages/CatalogCreate';
+import CatalogEdit from '@/pages/CatalogEdit';
+import Login from '@/pages/Login';
+import Register from '@/pages/Signup';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import EmailConfirmation from '@/pages/EmailConfirmation';
+import Pricing from '@/pages/Pricing';
+import Contact from '@/pages/Contact';
+import Legal from '@/pages/Legal';
+import NotFound from '@/pages/NotFound';
 
-const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
-const OffersPage = lazy(() => import('@/pages/OffersPage'));
-const OfferDetailPage = lazy(() => import('@/pages/OfferDetailPage'));
-const CreateOffer = lazy(() => import('@/pages/CreateOffer'));
-const ContractsPage = lazy(() => import('@/pages/ContractsPage'));
-const ContractDetailPage = lazy(() => import('@/pages/ContractDetailPage'));
-const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
-const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
-const PartnersPage = lazy(() => import('@/pages/PartnersPage'));
-const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage'));
-const PartnerCreate = lazy(() => import('@/pages/PartnerCreate'));
-const PartnerEdit = lazy(() => import('@/pages/PartnerEdit'));
-const AmbassadorsPage = lazy(() => import('@/pages/AmbassadorsPage'));
-const AmbassadorDetailPage = lazy(() => import('@/pages/AmbassadorDetailPage'));
-const AmbassadorCreate = lazy(() => import('@/pages/AmbassadorCreate'));
-const AmbassadorEdit = lazy(() => import('@/pages/AmbassadorEdit'));
-const PartnerDashboard = lazy(() => import('@/pages/PartnerDashboard'));
-const PartnerOffers = lazy(() => import('@/pages/PartnerOffers'));
-const PartnerOfferDetail = lazy(() => import('@/pages/PartnerOfferDetail'));
-const PartnerCreateOffer = lazy(() => import('@/pages/PartnerCreateOffer'));
-const AmbassadorDashboard = lazy(() => import('@/pages/AmbassadorDashboard'));
-const AmbassadorOffers = lazy(() => import('@/pages/AmbassadorOffers'));
-const AmbassadorOfferDetail = lazy(() => import('@/pages/AmbassadorOfferDetail'));
-const ClientsPage = lazy(() => import('@/pages/ClientsPage'));
-const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'));
-const ClientCreate = lazy(() => import('@/pages/ClientCreate'));
-const ClientEdit = lazy(() => import('@/pages/ClientEdit'));
-const RequestInfosPage = lazy(() => import('@/pages/RequestInfosPage'));
-const RequestInfoDetail = lazy(() => import('@/pages/RequestInfoDetail'));
-const CatalogPage = lazy(() => import('@/pages/CatalogPage'));
-const CatalogCreate = lazy(() => import('@/pages/CatalogCreate'));
-const CatalogEdit = lazy(() => import('@/pages/CatalogEdit'));
-const LoginPage = lazy(() => import('@/pages/LoginPage'));
-const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
-const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'));
-const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
-const EmailConfirmationPage = lazy(() => import('@/pages/EmailConfirmationPage'));
-const PricingPage = lazy(() => import('@/pages/PricingPage'));
-const ContactPage = lazy(() => import('@/pages/ContactPage'));
-const LegalPage = lazy(() => import('@/pages/LegalPage'));
-const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const ClientLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="client-layout">
+      {children}
+    </div>
+  );
+};
+
+const Loader = () => (
+  <div className="flex items-center justify-center h-screen">
+    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+  </div>
+);
 
 const ProtectedRoute = ({ isAllowed, children, loading }: { isAllowed: boolean; children: React.ReactNode; loading: boolean }) => {
   if (loading) {
@@ -84,8 +97,9 @@ const ClientProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const Router = () => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   
+  const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
   const isPartner = user?.role === 'partner';
   const isAmbassador = user?.role === 'ambassador';
@@ -93,17 +107,17 @@ const Router = () => {
   
   return (
     <BrowserRouter>
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<Loader />}>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<PricingPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/legal" element={<LegalPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/email-confirmation" element={<EmailConfirmationPage />} />
+          <Route path="/" element={<Pricing />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/legal" element={<Legal />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/email-confirmation" element={<EmailConfirmation />} />
           
           {/* Client routes */}
           <Route path="/client/dashboard" element={
@@ -123,43 +137,43 @@ const Router = () => {
           } />
           
           {/* Protected routes */}
-          <Route element={<ProtectedRoute isAllowed={isAuthenticated} loading={isLoading} />}>
+          <Route path="/" element={<ProtectedRoute isAllowed={isAuthenticated} loading={isLoading}><Outlet /></ProtectedRoute>}>
             <Route element={<Layout />}>
               {/* Admin routes */}
               {isAdmin && (
                 <>
-                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin/dashboard" element={<Dashboard />} />
                   
-                  <Route path="/offers" element={<OffersPage />} />
-                  <Route path="/offers/:id" element={<OfferDetailPage />} />
+                  <Route path="/offers" element={<Offers />} />
+                  <Route path="/offers/:id" element={<OfferDetail />} />
                   <Route path="/offers/create" element={<CreateOffer />} />
                   <Route path="/offers/edit/:id" element={<CreateOffer />} />
                   
-                  <Route path="/contracts" element={<ContractsPage />} />
-                  <Route path="/contracts/:id" element={<ContractDetailPage />} />
+                  <Route path="/contracts" element={<Contracts />} />
+                  <Route path="/contracts/:id" element={<ContractDetail />} />
                   
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/profile" element={<Profile />} />
                   
-                  <Route path="/partners" element={<PartnersPage />} />
-                  <Route path="/partners/:id" element={<PartnerDetailPage />} />
+                  <Route path="/partners" element={<Partners />} />
+                  <Route path="/partners/:id" element={<PartnerDetail />} />
                   <Route path="/partners/create" element={<PartnerCreate />} />
                   <Route path="/partners/edit/:id" element={<PartnerEdit />} />
                   
-                  <Route path="/ambassadors" element={<AmbassadorsPage />} />
-                  <Route path="/ambassadors/:id" element={<AmbassadorDetailPage />} />
+                  <Route path="/ambassadors" element={<AmbassadorsList />} />
+                  <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
                   <Route path="/ambassadors/create" element={<AmbassadorCreate />} />
                   <Route path="/ambassadors/edit/:id" element={<AmbassadorEdit />} />
                   
-                  <Route path="/clients" element={<ClientsPage />} />
-                  <Route path="/clients/:id" element={<ClientDetailPage />} />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/clients/:id" element={<ClientDetail />} />
                   <Route path="/clients/create" element={<ClientCreate />} />
                   <Route path="/clients/edit/:id" element={<ClientEdit />} />
                   
-                  <Route path="/request-infos" element={<RequestInfosPage />} />
+                  <Route path="/request-infos" element={<RequestInfos />} />
                   <Route path="/request-infos/:id" element={<RequestInfoDetail />} />
                   
-                  <Route path="/catalog" element={<CatalogPage />} />
+                  <Route path="/catalog" element={<Catalog />} />
                   <Route path="/catalog/create" element={<CatalogCreate />} />
                   <Route path="/catalog/edit/:id" element={<CatalogEdit />} />
                 </>
@@ -184,14 +198,14 @@ const Router = () => {
                 </>
               )}
               
-              {/* Add the new commission calculator route */}
+              {/* Add the commission calculator route */}
               <Route path="/calculator/:type/:id" element={<CommissionCalculator />} />
               
             </Route>
           </Route>
           
           {/* Catch-all route */}
-          <Route path="*" element={<NotFoundPage />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
       
