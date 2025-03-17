@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator as CalculatorIcon } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Calculator = () => {
   const [monthlyPrice, setMonthlyPrice] = useState<number>(0);
   const [duration, setDuration] = useState<number>(36);
   const [totalPrice, setTotalPrice] = useState<number | null>(null);
   const [residualValue, setResidualValue] = useState<number | null>(null);
+  const isMobile = useIsMobile();
 
   const calculateTotal = () => {
     if (!monthlyPrice) return;
@@ -26,17 +28,17 @@ const Calculator = () => {
 
   return (
     <PageTransition>
-      <div className="container mx-auto py-6">
-        <div className="flex items-center mb-6 space-x-2">
-          <CalculatorIcon className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold">Calculateur de contrat</h1>
+      <div className="container mx-auto p-3 md:py-6">
+        <div className="flex items-center mb-4 md:mb-6 space-x-2">
+          <CalculatorIcon className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+          <h1 className="text-xl md:text-3xl font-bold">Calculateur de contrat</h1>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-6 shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Paramètres</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <Card className="p-3 md:p-6 shadow-md">
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Paramètres</h2>
             
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="monthly-price">Mensualité (€)</Label>
                 <Input
@@ -79,12 +81,12 @@ const Calculator = () => {
             </div>
           </Card>
           
-          <Card className="p-6 shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Résultats</h2>
+          <Card className="p-3 md:p-6 shadow-md">
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Résultats</h2>
             
             {totalPrice !== null ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-muted rounded-md">
+              <div className="space-y-3 md:space-y-4">
+                <div className="p-3 md:p-4 bg-muted rounded-md">
                   <div className="flex justify-between mb-2">
                     <span className="font-medium">Mensualité:</span>
                     <span>{monthlyPrice.toFixed(2)} €</span>
@@ -103,18 +105,18 @@ const Calculator = () => {
                   </div>
                 </div>
                 
-                <div className="mt-4 bg-primary/10 p-4 rounded-md">
+                <div className="mt-3 md:mt-4 bg-primary/10 p-3 md:p-4 rounded-md">
                   <h3 className="font-medium mb-2">Informations</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     Ce calculateur donne une estimation approximative du coût total et de la valeur résiduelle.
                     Pour une offre personnalisée, veuillez contacter votre conseiller iTakecare.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-                <CalculatorIcon className="h-12 w-12 mb-4 opacity-50" />
-                <p>Entrez les paramètres et cliquez sur Calculer pour voir les résultats</p>
+              <div className="flex flex-col items-center justify-center h-36 md:h-48 text-muted-foreground">
+                <CalculatorIcon className="h-10 w-10 md:h-12 md:w-12 mb-3 md:mb-4 opacity-50" />
+                <p className="text-center">Entrez les paramètres et cliquez sur Calculer pour voir les résultats</p>
               </div>
             )}
           </Card>

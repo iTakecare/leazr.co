@@ -18,9 +18,11 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { TimeFilterSelector } from "@/components/dashboard/TimeFilterSelector";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import AdminOffersNotifications from "@/components/offers/AdminOffersNotifications";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const {
     stats,
     recentActivity,
@@ -48,32 +50,33 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="w-full max-w-full p-4 md:p-8">
+    <div className="w-full max-w-full p-2 md:p-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8"
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6"
       >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             Tableau de bord
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm md:text-base">
             Bienvenue {user?.first_name || ''} - Vue d'ensemble de vos activités
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <TimeFilterSelector 
             value={timeFilter} 
             onChange={setTimeFilter} 
+            className="w-full sm:w-auto"
           />
           <Button
             variant="outline"
             size="icon"
             onClick={refreshData}
-            className="h-10 w-10"
+            className="h-10 w-10 flex-shrink-0"
           >
             <RefreshCcw className="h-4 w-4" />
             <span className="sr-only">Rafraîchir</span>
@@ -91,7 +94,7 @@ const Dashboard = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8"
+        className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6 md:mb-8"
       >
         <motion.div variants={itemVariants}>
           <StatCard
@@ -155,7 +158,7 @@ const Dashboard = () => {
           />
         </motion.div>
 
-        <motion.div variants={itemVariants} className="md:col-span-2">
+        <motion.div variants={itemVariants} className={isMobile ? "" : "md:col-span-2"}>
           <StatCard
             title="Notifications"
             value="Vous avez des alertes à traiter"
@@ -172,11 +175,12 @@ const Dashboard = () => {
         </motion.div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 md:mt-8">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
+          className="w-full"
         >
           <AdminOffersNotifications />
         </motion.div>
