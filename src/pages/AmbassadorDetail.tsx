@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   Building2, Mail, Phone, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit, Check
+  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit, Check, CalcIcon
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
@@ -254,6 +254,12 @@ export default function AmbassadorDetail() {
             <ChevronLeft className="mr-1 h-4 w-4" />
             Retour
           </Button>
+          <Link to={`/calculator/ambassador/${id}`}>
+            <Button variant="outline" className="flex items-center">
+              <CalcIcon className="mr-1 h-4 w-4" />
+              Calculateur
+            </Button>
+          </Link>
           <Link to={`/ambassadors/edit/${id}`}>
             <Button className="shadow-sm flex items-center gap-2">
               <Edit className="h-4 w-4" />

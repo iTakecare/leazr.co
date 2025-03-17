@@ -1,294 +1,206 @@
+import { useEffect, useState, lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import Layout from '@/components/layout/Layout';
+import Loader from '@/components/ui/Loader';
+import ClientLayout from '@/components/layout/ClientLayout';
+import ClientRoutes from '@/components/layout/ClientRoutes';
+import ClientDashboard from '@/pages/ClientDashboard';
+import ClientContractsPage from '@/pages/ClientContractsPage';
+import ClientCalculator from '@/pages/ClientCalculator';
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as SonnerToaster } from 'sonner';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import CommissionCalculator from '@/pages/CommissionCalculator';
 
-import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
-import { useEffect } from "react";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Clients from "./pages/Clients";
-import ClientDetail from "./pages/ClientDetail";
-import ClientForm from "./pages/ClientForm";
-import Catalog from "./pages/Catalog";
-import ProductDetail from "./pages/ProductDetail";
-import Settings from "./pages/Settings";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import NotFound from "./pages/NotFound";
-import CreateOffer from "./pages/CreateOffer";
-import Offers from "./pages/Offers";
-import OfferDetail from "./pages/OfferDetail";
-import Contracts from "./pages/Contracts";
-import CreateTestUsers from "./pages/CreateTestUsers";
-import PartnerDashboard from "./pages/PartnerDashboard";
-import PartnerCreateOffer from "./pages/PartnerCreateOffer";
-import PartnerOfferDetail from "./pages/PartnerOfferDetail";
-import PartnerDetail from "./pages/PartnerDetail";
-import PartnerEditPage from "./pages/PartnerEditPage";
-import AmbassadorDetail from "./pages/AmbassadorDetail";
-import AmbassadorEditPage from "./pages/AmbassadorEditPage";
-import AmbassadorCreatePage from "./pages/AmbassadorCreatePage";
-import AmbassadorsListPage from "./pages/AmbassadorsList";
-import ContractDetail from "./pages/ContractDetail";
-import Calculator from "./pages/Calculator";
-import PartnerCreatePage from "./pages/PartnerCreatePage";
-import PartnersListPage from "./pages/PartnersList";
-import AmbassadorDashboard from "./pages/AmbassadorDashboard";
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
+const OffersPage = lazy(() => import('@/pages/OffersPage'));
+const OfferDetailPage = lazy(() => import('@/pages/OfferDetailPage'));
+const CreateOffer = lazy(() => import('@/pages/CreateOffer'));
+const ContractsPage = lazy(() => import('@/pages/ContractsPage'));
+const ContractDetailPage = lazy(() => import('@/pages/ContractDetailPage'));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+const PartnersPage = lazy(() => import('@/pages/PartnersPage'));
+const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage'));
+const PartnerCreate = lazy(() => import('@/pages/PartnerCreate'));
+const PartnerEdit = lazy(() => import('@/pages/PartnerEdit'));
+const AmbassadorsPage = lazy(() => import('@/pages/AmbassadorsPage'));
+const AmbassadorDetailPage = lazy(() => import('@/pages/AmbassadorDetailPage'));
+const AmbassadorCreate = lazy(() => import('@/pages/AmbassadorCreate'));
+const AmbassadorEdit = lazy(() => import('@/pages/AmbassadorEdit'));
+const PartnerDashboard = lazy(() => import('@/pages/PartnerDashboard'));
+const PartnerOffers = lazy(() => import('@/pages/PartnerOffers'));
+const PartnerOfferDetail = lazy(() => import('@/pages/PartnerOfferDetail'));
+const PartnerCreateOffer = lazy(() => import('@/pages/PartnerCreateOffer'));
+const AmbassadorDashboard = lazy(() => import('@/pages/AmbassadorDashboard'));
+const AmbassadorOffers = lazy(() => import('@/pages/AmbassadorOffers'));
+const AmbassadorOfferDetail = lazy(() => import('@/pages/AmbassadorOfferDetail'));
+const ClientsPage = lazy(() => import('@/pages/ClientsPage'));
+const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'));
+const ClientCreate = lazy(() => import('@/pages/ClientCreate'));
+const ClientEdit = lazy(() => import('@/pages/ClientEdit'));
+const RequestInfosPage = lazy(() => import('@/pages/RequestInfosPage'));
+const RequestInfoDetail = lazy(() => import('@/pages/RequestInfoDetail'));
+const CatalogPage = lazy(() => import('@/pages/CatalogPage'));
+const CatalogCreate = lazy(() => import('@/pages/CatalogCreate'));
+const CatalogEdit = lazy(() => import('@/pages/CatalogEdit'));
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
+const EmailConfirmationPage = lazy(() => import('@/pages/EmailConfirmationPage'));
+const PricingPage = lazy(() => import('@/pages/PricingPage'));
+const ContactPage = lazy(() => import('@/pages/ContactPage'));
+const LegalPage = lazy(() => import('@/pages/LegalPage'));
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
-import { Layout } from "./components/layout/Layout";
-import { ThemeProvider } from "./components/providers/theme-provider";
-import { Toaster } from "./components/ui/toaster";
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import { Toaster as SonnerToaster } from "sonner";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import ClientRoutes from "./components/layout/ClientRoutes";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
-
-const ProtectedRoute = ({ 
-  children, 
-  requireAdmin = false,
-  requirePartner = false,
-  requireAmbassador = false
-}: { 
-  children: React.ReactNode, 
-  requireAdmin?: boolean,
-  requirePartner?: boolean,
-  requireAmbassador?: boolean
-}) => {
-  const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
-  const location = useLocation();
-
-  const isPasswordResetFlow = () => {
-    const hash = location.hash || window.location.hash;
-    return hash && hash.includes('type=recovery');
-  };
-
-  useEffect(() => {
-    if (isPasswordResetFlow()) {
-      console.log("Flux de réinitialisation de mot de passe détecté dans ProtectedRoute");
-    }
-  }, [location]);
-
-  if (isLoading || !userRoleChecked) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-    </div>;
+const ProtectedRoute = ({ isAllowed, children, loading }: { isAllowed: boolean; children: React.ReactNode; loading: boolean }) => {
+  if (loading) {
+    return <Loader />;
   }
-
-  if (isPasswordResetFlow()) {
-    console.log("Redirection vers login pour la réinitialisation de mot de passe");
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!user) {
-    console.log("Utilisateur non connecté, redirection vers login");
+  if (!isAllowed) {
     return <Navigate to="/login" />;
   }
-
-  console.log("Vérification des accès:", {
-    email: user.email,
-    isAdmin: isAdmin(),
-    isPartner: isPartner(),
-    isAmbassador: isAmbassador(),
-    isClient: isClient(),
-    requireAdmin,
-    requirePartner,
-    requireAmbassador,
-    userRoleChecked,
-    partner_id: user.partner_id,
-    ambassador_id: user.ambassador_id
-  });
-
-  if (requireAdmin && !isAdmin()) {
-    console.log("Accès admin requis mais utilisateur non admin, redirection");
-    if (isPartner()) {
-      return <Navigate to="/partner/dashboard" />;
-    }
-    if (isAmbassador()) {
-      return <Navigate to="/ambassador/dashboard" />;
-    }
-    return <Navigate to="/client/dashboard" />;
-  }
-
-  if (requirePartner && !isPartner()) {
-    console.log("Accès partenaire requis mais utilisateur non partenaire, redirection");
-    if (isAdmin()) {
-      return <Navigate to="/dashboard" />;
-    }
-    if (isAmbassador()) {
-      return <Navigate to="/ambassador/dashboard" />;
-    }
-    return <Navigate to="/client/dashboard" />;
-  }
-
-  if (requireAmbassador && !isAmbassador()) {
-    console.log("Accès ambassadeur requis mais utilisateur non ambassadeur, redirection");
-    if (isAdmin()) {
-      return <Navigate to="/dashboard" />;
-    }
-    if (isPartner()) {
-      return <Navigate to="/partner/dashboard" />;
-    }
-    return <Navigate to="/client/dashboard" />;
-  }
-
-  if (!requireAdmin && !requirePartner && !requireAmbassador && isClient() && !window.location.pathname.startsWith('/client')) {
-    console.log("Client tentant d'accéder à une route admin, redirection");
-    return <Navigate to="/client/dashboard" />;
-  }
-
-  if (isPartner() && window.location.pathname === '/') {
-    console.log("Partenaire connecté sur la page d'accueil, redirection vers le tableau de bord partenaire");
-    return <Navigate to="/partner/dashboard" />;
-  }
-
-  if (isAmbassador() && window.location.pathname === '/') {
-    console.log("Ambassadeur connecté sur la page d'accueil, redirection vers le tableau de bord ambassadeur");
-    return <Navigate to="/ambassador/dashboard" />;
-  }
-
   return <>{children}</>;
 };
 
-const PartnerLayout = ({ children }: { children: React.ReactNode }) => {
+const ClientProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isClient, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <Loader />;
+  }
+
+  if (!isClient) {
+    return <Navigate to="/" />;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold">iTakecare Partner</h1>
-          </div>
-          
-          <nav className="flex items-center gap-6">
-            <a href="/partner/dashboard" className="text-gray-700 hover:text-blue-700">Tableau de bord</a>
-            <a href="/partner/create-offer" className="text-gray-700 hover:text-blue-700">Nouvelle offre</a>
-            <a href="/logout" className="text-gray-700 hover:text-blue-700">Déconnexion</a>
-          </nav>
-        </div>
-      </header>
-      <main className="container mx-auto px-4 py-6">
-        {children}
-      </main>
-    </div>
+    <ClientLayout>
+      {children}
+    </ClientLayout>
   );
 };
 
-const AmbassadorLayout = ({ children }: { children: React.ReactNode }) => {
+const Router = () => {
+  const { isAuthenticated, user, isLoading } = useAuth();
+  
+  const isAdmin = user?.role === 'admin';
+  const isPartner = user?.role === 'partner';
+  const isAmbassador = user?.role === 'ambassador';
+  const isClient = user?.role === 'client';
+  
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold">iTakecare Ambassadeur</h1>
-          </div>
+    <BrowserRouter>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<PricingPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/legal" element={<LegalPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/email-confirmation" element={<EmailConfirmationPage />} />
           
-          <nav className="flex items-center gap-6">
-            <a href="/ambassador/dashboard" className="text-gray-700 hover:text-blue-700">Tableau de bord</a>
-            <a href="/logout" className="text-gray-700 hover:text-blue-700">Déconnexion</a>
-          </nav>
-        </div>
-      </header>
-      <main className="container mx-auto px-4 py-6">
-        {children}
-      </main>
-    </div>
-  );
-};
-
-function App() {
-  const location = useLocation();
-
-  useEffect(() => {
-    const hash = location.hash || window.location.hash;
-    if (hash && hash.includes('type=recovery')) {
-      console.log("Flux de réinitialisation de mot de passe détecté dans App.tsx");
-    }
-  }, [location]);
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="medease-theme">
-        <AuthProvider>
-          <SonnerToaster position="top-right" />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            
-            <Route path="/" element={
-              <ProtectedRoute requireAdmin={true}>
-                <Layout />
-              </ProtectedRoute>
-            }>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/clients" element={<Clients />} />
-              <Route path="/clients/new" element={<ClientForm />} />
-              <Route path="/clients/create" element={<ClientForm />} />
-              <Route path="/clients/:id" element={<ClientDetail />} />
-              <Route path="/clients/edit/:id" element={<ClientForm />} />
-              <Route path="/catalog" element={<Catalog />} />
-              <Route path="/catalog/:id" element={<ProductDetail />} />
-              <Route path="/products/:id" element={<ProductDetail />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/create-offer" element={<CreateOffer />} />
-              <Route path="/offers" element={<Offers />} />
-              <Route path="/offers/:id" element={<OfferDetail />} />
-              <Route path="/contracts" element={<Contracts />} />
-              <Route path="/contracts/:id" element={<ContractDetail />} />
-              <Route path="/create-test-users" element={<CreateTestUsers />} />
-              <Route path="/calculator" element={<Calculator />} />
-              <Route path="/partners" element={<PartnersListPage />} />
-              <Route path="/partners/create" element={<PartnerCreatePage />} />
-              <Route path="/partners/:id" element={<PartnerDetail />} />
-              <Route path="/partners/edit/:id" element={<PartnerEditPage />} />
-              <Route path="/ambassadors" element={<AmbassadorsListPage />} />
-              <Route path="/ambassadors/create" element={<AmbassadorCreatePage />} />
-              <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
-              <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
+          {/* Client routes */}
+          <Route path="/client/dashboard" element={
+            <ClientProtectedRoute>
+              <ClientDashboard />
+            </ClientProtectedRoute>
+          } />
+          <Route path="/client/contracts" element={
+            <ClientProtectedRoute>
+              <ClientContractsPage />
+            </ClientProtectedRoute>
+          } />
+          <Route path="/client/calculator" element={
+            <ClientProtectedRoute>
+              <ClientCalculator />
+            </ClientProtectedRoute>
+          } />
+          
+          {/* Protected routes */}
+          <Route element={<ProtectedRoute isAllowed={isAuthenticated} loading={isLoading} />}>
+            <Route element={<Layout />}>
+              {/* Admin routes */}
+              {isAdmin && (
+                <>
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  
+                  <Route path="/offers" element={<OffersPage />} />
+                  <Route path="/offers/:id" element={<OfferDetailPage />} />
+                  <Route path="/offers/create" element={<CreateOffer />} />
+                  <Route path="/offers/edit/:id" element={<CreateOffer />} />
+                  
+                  <Route path="/contracts" element={<ContractsPage />} />
+                  <Route path="/contracts/:id" element={<ContractDetailPage />} />
+                  
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  
+                  <Route path="/partners" element={<PartnersPage />} />
+                  <Route path="/partners/:id" element={<PartnerDetailPage />} />
+                  <Route path="/partners/create" element={<PartnerCreate />} />
+                  <Route path="/partners/edit/:id" element={<PartnerEdit />} />
+                  
+                  <Route path="/ambassadors" element={<AmbassadorsPage />} />
+                  <Route path="/ambassadors/:id" element={<AmbassadorDetailPage />} />
+                  <Route path="/ambassadors/create" element={<AmbassadorCreate />} />
+                  <Route path="/ambassadors/edit/:id" element={<AmbassadorEdit />} />
+                  
+                  <Route path="/clients" element={<ClientsPage />} />
+                  <Route path="/clients/:id" element={<ClientDetailPage />} />
+                  <Route path="/clients/create" element={<ClientCreate />} />
+                  <Route path="/clients/edit/:id" element={<ClientEdit />} />
+                  
+                  <Route path="/request-infos" element={<RequestInfosPage />} />
+                  <Route path="/request-infos/:id" element={<RequestInfoDetail />} />
+                  
+                  <Route path="/catalog" element={<CatalogPage />} />
+                  <Route path="/catalog/create" element={<CatalogCreate />} />
+                  <Route path="/catalog/edit/:id" element={<CatalogEdit />} />
+                </>
+              )}
+              
+              {/* Partner routes */}
+              {isPartner && (
+                <>
+                  <Route path="/partner/dashboard" element={<PartnerDashboard />} />
+                  <Route path="/partner/offers" element={<PartnerOffers />} />
+                  <Route path="/partner/offers/:id" element={<PartnerOfferDetail />} />
+                  <Route path="/partner/offers/create" element={<PartnerCreateOffer />} />
+                </>
+              )}
+              
+              {/* Ambassador routes */}
+              {isAmbassador && (
+                <>
+                  <Route path="/ambassador/dashboard" element={<AmbassadorDashboard />} />
+                  <Route path="/ambassador/offers" element={<AmbassadorOffers />} />
+                  <Route path="/ambassador/offers/:id" element={<AmbassadorOfferDetail />} />
+                </>
+              )}
+              
+              {/* Add the new commission calculator route */}
+              <Route path="/calculator/:type/:id" element={<CommissionCalculator />} />
+              
             </Route>
-            
-            <Route path="/partner" element={
-              <ProtectedRoute requirePartner={true}>
-                <PartnerLayout>
-                  <Outlet />
-                </PartnerLayout>
-              </ProtectedRoute>
-            }>
-              <Route path="dashboard" element={<PartnerDashboard />} />
-              <Route path="create-offer" element={<PartnerCreateOffer />} />
-              <Route path="offers/:id" element={<PartnerOfferDetail />} />
-            </Route>
-            
-            <Route path="/ambassador" element={
-              <ProtectedRoute requireAmbassador={true}>
-                <AmbassadorLayout>
-                  <Outlet />
-                </AmbassadorLayout>
-              </ProtectedRoute>
-            }>
-              <Route path="dashboard" element={<AmbassadorDashboard />} />
-            </Route>
-            
-            <Route path="/client/*" element={
-              <ProtectedRoute>
-                <ClientRoutes />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
-        </AuthProvider>
+          </Route>
+          
+          {/* Catch-all route */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
+      
+      <Toaster />
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <SonnerToaster position="bottom-right" closeButton />
       </ThemeProvider>
-    </QueryClientProvider>
+    </BrowserRouter>
   );
-}
+};
 
-export default App;
+export default Router;

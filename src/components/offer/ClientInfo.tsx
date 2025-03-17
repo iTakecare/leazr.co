@@ -1,12 +1,12 @@
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { formatCurrency } from "@/utils/formatters";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { UserPlus, Save, Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, User } from "lucide-react";
 import { Equipment, Leaser } from "@/types/equipment";
 
 interface ClientInfoProps {
@@ -21,6 +21,7 @@ interface ClientInfoProps {
   isSubmitting: boolean;
   selectedLeaser: Leaser | null;
   equipmentList: Equipment[];
+  hideSubmitButton?: boolean;
 }
 
 const ClientInfo: React.FC<ClientInfoProps> = ({
@@ -34,93 +35,94 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
   handleSaveOffer,
   isSubmitting,
   selectedLeaser,
-  equipmentList
+  equipmentList,
+  hideSubmitButton = false,
 }) => {
-  const canSubmit = clientName && clientEmail && equipmentList.length > 0;
-  
+  const totalAmount = equipmentList.reduce(
+    (sum, eq) => sum + eq.purchasePrice * eq.quantity,
+    0
+  );
+
   return (
-    <Card className="mt-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Informations client</CardTitle>
-        <CardDescription className="text-xs">
-          Renseignez les informations du client pour finaliser l'offre
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Card className="shadow-sm">
+      <CardContent className="pt-6">
+        <h3 className="text-lg font-medium mb-4">Informations client</h3>
+        
         <div className="space-y-4">
-          <div>
-            <Button 
-              onClick={onOpenClientSelector}
-              variant="outline"
-              className="w-full flex justify-between items-center"
-            >
-              <div className="flex items-center">
-                <UserPlus className="h-4 w-4 mr-2 text-primary" />
-                <div className="text-left">
-                  <p className="text-sm font-medium">
-                    {clientId ? "Client sélectionné" : "Sélectionner un client"}
-                  </p>
-                  {clientId && (
-                    <p className="text-xs text-muted-foreground">
-                      {clientName}{clientCompany ? ` - ${clientCompany}` : ""}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {clientId ? "Changer" : "Sélectionner"}
-              </span>
-            </Button>
-          </div>
-          
-          {clientId || clientName ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full flex items-center justify-center"
+            onClick={onOpenClientSelector}
+          >
+            <User className="mr-2 h-4 w-4" />
+            Sélectionner un client
+          </Button>
+
+          {clientName && (
+            <div className="bg-muted/30 p-4 rounded-md">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="client-name">Nom</Label>
-                  <Input id="client-name" value={clientName} readOnly={!!clientId} className={clientId ? "bg-muted/50" : ""} />
+                  <Label className="text-xs text-muted-foreground">Nom</Label>
+                  <p className="font-medium">{clientName}</p>
                 </div>
-                <div>
-                  <Label htmlFor="client-email">Email</Label>
-                  <Input id="client-email" value={clientEmail} readOnly={!!clientId} className={clientId ? "bg-muted/50" : ""} />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="client-remarks">Remarques (optionnel)</Label>
-                <Textarea 
-                  id="client-remarks"
-                  placeholder="Ajoutez des remarques pour cette offre..."
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  rows={3}
-                />
-              </div>
-              
-              <Separator />
-              
-              <Button 
-                onClick={handleSaveOffer}
-                disabled={!canSubmit || isSubmitting}
-                className="w-full"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Enregistrer l'offre
-                  </>
+                {clientEmail && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Email</Label>
+                    <p className="font-medium">{clientEmail}</p>
+                  </div>
                 )}
-              </Button>
+                {clientCompany && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Société</Label>
+                    <p className="font-medium">{clientCompany}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-4 text-muted-foreground text-sm">
-              Sélectionnez un client pour continuer
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="remarks">Remarques</Label>
+            <Textarea
+              id="remarks"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Informations supplémentaires..."
+              rows={3}
+            />
+          </div>
+
+          <div className="bg-primary/5 p-4 rounded-md space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Financement total :</span>
+              <span className="font-medium">{formatCurrency(totalAmount)}</span>
             </div>
+            <div className="flex justify-between text-blue-600">
+              <span className="font-medium">Mensualité totale :</span>
+              <span className="font-bold">{formatCurrency(equipmentList.reduce(
+                (sum, eq) => sum + (eq.monthlyPayment || 0) * eq.quantity,
+                0
+              ))}</span>
+            </div>
+          </div>
+
+          {!hideSubmitButton && (
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={handleSaveOffer}
+              disabled={isSubmitting || !clientName || !clientEmail || equipmentList.length === 0}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sauvegarde en cours...
+                </>
+              ) : (
+                "Enregistrer l'offre"
+              )}
+            </Button>
           )}
         </div>
       </CardContent>
