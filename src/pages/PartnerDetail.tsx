@@ -53,10 +53,18 @@ interface Offer {
   description: string;
 }
 
+interface DetailPartner extends Partner {
+  clients?: Client[];
+  commissions?: Commission[];
+  offers?: Offer[];
+  collaborators?: Collaborator[];
+  commissionsTotal?: number;
+}
+
 export default function PartnerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [partner, setPartner] = useState<Partner | null>(null);
+  const [partner, setPartner] = useState<DetailPartner | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -76,7 +84,15 @@ export default function PartnerDetail() {
       }
       
       console.log("Partner data loaded:", partnerData);
-      setPartner(partnerData);
+      const detailPartner: DetailPartner = {
+        ...partnerData,
+        clients: [],
+        commissions: [],
+        offers: [],
+        collaborators: [],
+        commissionsTotal: partnerData.revenue_total || 0
+      };
+      setPartner(detailPartner);
     } catch (error) {
       console.error("Error fetching partner:", error);
       toast.error("Erreur lors du chargement du partenaire");
@@ -161,7 +177,7 @@ export default function PartnerDetail() {
     );
   }
 
-  const hasUserAccount = Boolean(partner.has_user_account);
+  const hasUserAccount = Boolean(partner?.has_user_account);
 
   return (
     <div className="container py-8 space-y-6">
@@ -345,7 +361,7 @@ export default function PartnerDetail() {
               <CardDescription>Clients amenés par ce partenaire</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              {partner.clients && partner.clients.length > 0 ? (
+              {partner?.clients && partner.clients.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -388,7 +404,7 @@ export default function PartnerDetail() {
               <CardDescription>Historique des commissions</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              {partner.commissions && partner.commissions.length > 0 ? (
+              {partner?.commissions && partner.commissions.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -437,7 +453,7 @@ export default function PartnerDetail() {
               <CardDescription>Offres créées par ce partenaire</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              {partner.offers && partner.offers.length > 0 ? (
+              {partner?.offers && partner.offers.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>

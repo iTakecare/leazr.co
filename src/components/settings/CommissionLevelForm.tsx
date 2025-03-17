@@ -15,6 +15,10 @@ interface CommissionLevelFormProps {
   level: CommissionLevel | null;
   type: 'ambassador' | 'partner';
   onSave: () => void;
+  // Ces props ne sont pas utilisées ici, mais sont exigées par CommissionManager
+  onSubmit?: (data: Partial<CommissionLevel>) => Promise<void>;
+  onCancel?: () => void;
+  initialData?: { name: string; is_default: boolean };
 }
 
 const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
@@ -22,17 +26,18 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
   onClose,
   level,
   type,
-  onSave
+  onSave,
+  initialData
 }) => {
-  const [name, setName] = useState(level?.name || '');
-  const [isDefault, setIsDefault] = useState(level?.is_default || false);
+  const [name, setName] = useState(initialData?.name || level?.name || '');
+  const [isDefault, setIsDefault] = useState(initialData?.is_default || level?.is_default || false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = Boolean(level);
 
   const resetForm = () => {
-    setName(level?.name || '');
-    setIsDefault(level?.is_default || false);
+    setName(initialData?.name || level?.name || '');
+    setIsDefault(initialData?.is_default || level?.is_default || false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -16,6 +16,9 @@ export const partnerSchema = z.object({
 
 export type PartnerFormValues = z.infer<typeof partnerSchema>;
 
+// Type des partenaires
+export type PartnerType = "agency" | "freelance" | "consultant" | "other";
+
 export interface Partner {
   id: string;
   name: string;
@@ -31,6 +34,14 @@ export interface Partner {
   revenue_total?: number;
   last_transaction?: number;
   commission_level_id?: string;
+  has_user_account?: boolean;
+  user_account_created_at?: string;
+  user_id?: string;
+  // Propriétés pour la vue détaillée
+  clients?: any[];
+  commissions?: any[];
+  offers?: any[];
+  commissionsTotal?: number;
 }
 
 // Récupérer tous les partenaires

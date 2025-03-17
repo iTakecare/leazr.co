@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Sheet,
@@ -26,6 +25,19 @@ interface AmbassadorDetailProps {
   onCreateOffer?: () => void;
 }
 
+interface ClientsViewProps {
+  owner: { id: string; name: string; type: string };
+  clients: any[];
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface CommissionsViewProps {
+  owner: { id: string; name: string; type: string };
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 const AmbassadorDetail = ({
   isOpen,
   onClose,
@@ -36,6 +48,7 @@ const AmbassadorDetail = ({
   const [tab, setTab] = useState("overview");
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [loading, setLoading] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen && ambassador?.commission_level_id) {
@@ -209,13 +222,19 @@ const AmbassadorDetail = ({
           </TabsContent>
 
           <TabsContent value="clients">
-            <ClientsView ambassadorId={ambassador.id} isVisible={tab === "clients"} />
+            <ClientsView 
+              owner={{ id: ambassador.id, name: ambassador.name, type: 'ambassador' }}
+              clients={clients}
+              isOpen={tab === "clients"}
+              onClose={() => setTab("overview")}
+            />
           </TabsContent>
 
           <TabsContent value="commissions">
             <CommissionsView
-              ambassadorId={ambassador.id}
-              isVisible={tab === "commissions"}
+              owner={{ id: ambassador.id, name: ambassador.name, type: 'ambassador' }}
+              isOpen={tab === "commissions"}
+              onClose={() => setTab("overview")}
             />
           </TabsContent>
         </Tabs>

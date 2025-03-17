@@ -44,6 +44,9 @@ export interface Ambassador {
   commissions_total?: number;
   last_commission?: number;
   commission_level_id?: string;
+  has_user_account?: boolean;
+  user_account_created_at?: string;
+  user_id?: string;
 }
 
 // Récupérer tous les ambassadeurs

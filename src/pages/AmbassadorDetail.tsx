@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import {
   AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAmbassadorById, Ambassador as AmbassadorType } from "@/services/ambassadorService";
+import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
 import { createUserAccount, resetPassword } from "@/services/accountService";
 
 // Mock data interfaces
@@ -46,11 +45,13 @@ interface Collaborator {
   department?: string;
 }
 
-// Extend the AmbassadorType for the detail view with potential mock data
-interface DetailAmbassador extends AmbassadorType {
+// Extend the Ambassador type for the detail view with potential mock data
+interface DetailAmbassador extends Ambassador {
   clients?: Client[];
   commissions?: Commission[];
   collaborators?: Collaborator[];
+  has_user_account?: boolean;
+  user_account_created_at?: string;
 }
 
 export default function AmbassadorDetail() {
@@ -184,7 +185,7 @@ export default function AmbassadorDetail() {
     );
   }
 
-  const hasUserAccount = Boolean(ambassador.has_user_account);
+  const hasUserAccount = Boolean(ambassador?.has_user_account);
 
   return (
     <div className="container py-8 space-y-6">

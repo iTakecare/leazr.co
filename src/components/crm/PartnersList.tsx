@@ -316,18 +316,18 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
                       handleViewClients(partner.id);
                     }}
                   >
-                    {partner.clientsCount || 0} clients
+                    {partner.clients_count || 0} clients
                   </Button>
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
                     <div className="font-medium text-sm">
-                      {formatCurrency(partner.revenueTotal || 0)}
+                      {formatCurrency(partner.revenue_total || 0)}
                     </div>
-                    {partner.lastTransaction > 0 && (
+                    {partner.last_transaction > 0 && (
                       <div className="text-xs text-muted-foreground flex items-center">
                         <Banknote className="h-3 w-3 mr-1" />
-                        Dernière: {formatCurrency(partner.lastTransaction)}
+                        Dernière: {formatCurrency(partner.last_transaction)}
                       </div>
                     )}
                   </div>
