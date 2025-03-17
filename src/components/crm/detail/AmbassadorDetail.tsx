@@ -11,9 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { formatCurrency } from "@/utils/formatters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Phone, MapPin, User, Building, BadgePercent, Check, Loader2 } from "lucide-react";
+import { MapPin, Loader2 } from "lucide-react";
 import ClientsView from "./ClientsView";
 import CommissionsView from "./CommissionsView";
 import { 
@@ -22,14 +21,12 @@ import {
   getCommissionLevels,
   updateAmbassadorCommissionLevel 
 } from "@/services/commissionService";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
+import ContactInfoSection from "./sections/ContactInfoSection";
+import CompanyInfoSection from "./sections/CompanyInfoSection";
+import CommissionLevelSelector from "./sections/CommissionLevelSelector";
+import StatsSummary from "./sections/StatsSummary";
+import NotesSection from "./sections/NotesSection";
 
 interface AmbassadorDetailProps {
   isOpen: boolean;
@@ -37,19 +34,6 @@ interface AmbassadorDetailProps {
   ambassador: any;
   onEdit: () => void;
   onCreateOffer?: () => void;
-}
-
-interface ClientsViewProps {
-  owner: { id: string; name: string; type: string };
-  clients: any[];
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-interface CommissionsViewProps {
-  owner: { id: string; name: string; type: string };
-  isOpen: boolean;
-  onClose: () => void;
 }
 
 const AmbassadorDetail = ({
@@ -64,7 +48,6 @@ const AmbassadorDetail = ({
   const [loading, setLoading] = useState(false);
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
   const [clients, setClients] = useState<any[]>([]);
-  const [updatingLevel, setUpdatingLevel] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -101,9 +84,6 @@ const AmbassadorDetail = ({
   };
 
   const handleUpdateCommissionLevel = async (levelId: string) => {
-    if (!ambassador || !levelId) return;
-    
-    setUpdatingLevel(true);
     try {
       await updateAmbassadorCommissionLevel(ambassador.id, levelId);
       loadCommissionLevel(levelId);
@@ -111,8 +91,6 @@ const AmbassadorDetail = ({
     } catch (error) {
       console.error("Error updating commission level:", error);
       toast.error("Erreur lors de la mise à jour du barème");
-    } finally {
-      setUpdatingLevel(false);
     }
   };
 
@@ -164,158 +142,35 @@ const AmbassadorDetail = ({
 
           <TabsContent value="overview">
             <div className="space-y-6">
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Informations de contact
-                </h3>
-                <div className="grid gap-2">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{ambassador.email}</span>
-                  </div>
-                  {ambassador.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{ambassador.phone}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ContactInfoSection 
+                email={ambassador.email} 
+                phone={ambassador.phone} 
+              />
 
-              {ambassador.company && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Informations entreprise
-                  </h3>
-                  <div className="grid gap-2">
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span>{ambassador.company}</span>
-                    </div>
-                    {ambassador.vat_number && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>TVA: {ambassador.vat_number}</span>
-                      </div>
-                    )}
-                    {ambassador.address && (
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {ambassador.address}
-                        <br />
-                        {ambassador.postal_code} {ambassador.city}
-                        {ambassador.country && `, ${ambassador.country}`}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              <CompanyInfoSection 
+                company={ambassador.company}
+                vat_number={ambassador.vat_number}
+                address={ambassador.address}
+                postal_code={ambassador.postal_code}
+                city={ambassador.city}
+                country={ambassador.country}
+              />
 
-              {/* Commission Level Section with Selector */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                  <BadgePercent className="h-4 w-4 text-primary" />
-                  Barème de commissionnement
-                </h3>
-                
-                <div className="p-3 rounded-lg border">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="commission-level" className="text-xs text-muted-foreground">
-                        Changer le barème
-                      </label>
-                      <Select
-                        value={ambassador.commission_level_id || ""}
-                        onValueChange={handleUpdateCommissionLevel}
-                        disabled={updatingLevel}
-                      >
-                        <SelectTrigger id="commission-level" className="w-full">
-                          <SelectValue placeholder="Sélectionner un barème" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {commissionLevels.map((level) => (
-                            <SelectItem key={level.id} value={level.id}>
-                              <div className="flex items-center gap-2">
-                                {level.name}
-                                {level.is_default && (
-                                  <Badge variant="outline" className="text-xs">Par défaut</Badge>
-                                )}
-                                {level.id === ambassador.commission_level_id && (
-                                  <Check className="h-3 w-3 text-primary ml-1" />
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {updatingLevel && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          Mise à jour en cours...
-                        </div>
-                      )}
-                    </div>
+              <CommissionLevelSelector 
+                ambassadorId={ambassador.id}
+                currentLevelId={ambassador.commission_level_id}
+                commissionLevel={commissionLevel}
+                commissionLevels={commissionLevels}
+                loading={loading}
+                onUpdateCommissionLevel={handleUpdateCommissionLevel}
+              />
 
-                    {loading ? (
-                      <div className="flex items-center justify-center py-3">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      </div>
-                    ) : commissionLevel ? (
-                      <div className="mt-2">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="font-medium">{commissionLevel.name}</div>
-                          {commissionLevel.is_default && (
-                            <Badge variant="outline" className="text-xs">Par défaut</Badge>
-                          )}
-                        </div>
-                        {commissionLevel.rates && commissionLevel.rates.length > 0 && (
-                          <div className="mt-2 space-y-1 text-sm">
-                            {commissionLevel.rates
-                              .sort((a, b) => b.min_amount - a.min_amount) // Sort by min_amount descending
-                              .map((rate, index) => (
-                                <div key={index} className="grid grid-cols-2 gap-2">
-                                  <div className="text-muted-foreground">
-                                    {Number(rate.min_amount).toLocaleString('fr-FR')}€ - {Number(rate.max_amount).toLocaleString('fr-FR')}€
-                                  </div>
-                                  <div className="font-medium text-right">{rate.rate}%</div>
-                                </div>
-                              ))
-                            }
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-amber-600 mt-2">
-                        Aucun barème de commissionnement sélectionné.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <StatsSummary 
+                clientsCount={ambassador.clients_count || 0}
+                commissionsTotal={ambassador.commissions_total || 0}
+              />
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col items-center justify-center rounded-lg border p-3">
-                  <div className="text-sm text-muted-foreground">Clients</div>
-                  <div className="text-2xl font-bold mt-1">
-                    {ambassador.clients_count || 0}
-                  </div>
-                </div>
-                <div className="flex flex-col items-center justify-center rounded-lg border p-3">
-                  <div className="text-sm text-muted-foreground">
-                    Commissions totales
-                  </div>
-                  <div className="text-2xl font-bold mt-1">
-                    {formatCurrency(ambassador.commissions_total || 0)}
-                  </div>
-                </div>
-              </div>
-
-              {ambassador.notes && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
-                  <div className="rounded-lg border p-3 text-sm whitespace-pre-wrap">
-                    {ambassador.notes}
-                  </div>
-                </div>
-              )}
+              <NotesSection notes={ambassador.notes} />
             </div>
           </TabsContent>
 
