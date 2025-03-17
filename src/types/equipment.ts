@@ -10,6 +10,8 @@ export interface EquipmentItem {
   margin: number;
   total_price: number;
   monthlyPayment?: number;
+  name?: string;  // Adding this for backward compatibility
+  unit_price?: number; // Adding this for backward compatibility
 }
 
 export interface Equipment {

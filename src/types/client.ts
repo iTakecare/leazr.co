@@ -5,6 +5,8 @@ export interface Collaborator {
   email: string;
   role: string;
   client_id: string;
+  phone?: string;
+  department?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -22,6 +24,8 @@ export interface CreateClientData {
   status?: 'lead' | 'active' | 'inactive';
   ambassador_id?: string | null;
   user_id?: string | null;
+  vat_number?: string;
+  collaborators?: Collaborator[];
 }
 
 export interface Client {
@@ -43,4 +47,5 @@ export interface Client {
   user_id?: string;
   user_account_created_at?: string;
   collaborators?: Collaborator[];
+  vat_number?: string;
 }
