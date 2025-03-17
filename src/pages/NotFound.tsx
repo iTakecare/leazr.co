@@ -1,4 +1,3 @@
-
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent, Users } from "lucide-react";
@@ -22,7 +21,6 @@ const NotFound = () => {
   const isAmbassadorEditAttempt = location.pathname.includes('/ambassadors/edit/');
   const isAmbassadorAttempt = location.pathname.includes('/ambassadors/');
   const isPartnerAttempt = location.pathname.includes('/partners/');
-  const isAmbassadorDashboardAttempt = location.pathname.includes('/ambassador/') && !location.pathname.includes('/ambassador/dashboard');
   
   const clientId = isClientEditAttempt ? 
     location.pathname.split('/clients/edit/')[1] : null;
@@ -118,19 +116,6 @@ const NotFound = () => {
               <Link to="/partners">
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2">
                   <Building className="h-4 w-4" /> Liste des partenaires
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {isAmbassadorDashboardAttempt && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous cherchez votre tableau de bord ambassadeur, utilisez le lien ci-dessous:
-              </p>
-              <Link to="/ambassador/dashboard">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <HeartHandshake className="h-4 w-4" /> Tableau de bord ambassadeur
                 </Button>
               </Link>
             </div>

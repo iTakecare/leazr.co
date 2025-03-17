@@ -98,12 +98,8 @@ export type Database = {
       }
       ambassadors: {
         Row: {
-          address: string | null
-          city: string | null
           clients_count: number | null
           commissions_total: number | null
-          company: string | null
-          country: string | null
           created_at: string | null
           email: string
           has_user_account: boolean | null
@@ -112,21 +108,15 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
-          postal_code: string | null
           region: string | null
           status: string
           updated_at: string | null
           user_account_created_at: string | null
           user_id: string | null
-          vat_number: string | null
         }
         Insert: {
-          address?: string | null
-          city?: string | null
           clients_count?: number | null
           commissions_total?: number | null
-          company?: string | null
-          country?: string | null
           created_at?: string | null
           email: string
           has_user_account?: boolean | null
@@ -135,21 +125,15 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
-          postal_code?: string | null
           region?: string | null
           status?: string
           updated_at?: string | null
           user_account_created_at?: string | null
           user_id?: string | null
-          vat_number?: string | null
         }
         Update: {
-          address?: string | null
-          city?: string | null
           clients_count?: number | null
           commissions_total?: number | null
-          company?: string | null
-          country?: string | null
           created_at?: string | null
           email?: string
           has_user_account?: boolean | null
@@ -158,13 +142,11 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
-          postal_code?: string | null
           region?: string | null
           status?: string
           updated_at?: string | null
           user_account_created_at?: string | null
           user_id?: string | null
-          vat_number?: string | null
         }
         Relationships: []
       }

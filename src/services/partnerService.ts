@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 // Define the allowed partner types as a literal union type
-export const partnerTypes = ["Revendeur", "Intégrateur", "Consultant"] as const;
+const partnerTypes = ["Revendeur", "Intégrateur", "Consultant"] as const;
 export type PartnerType = typeof partnerTypes[number];
 
 // Partner form values schema with Zod
@@ -12,9 +12,9 @@ export const partnerSchema = z.object({
   name: z.string().min(2, "Le nom de la société doit contenir au moins 2 caractères"),
   contactName: z.string().min(2, "Le nom du contact doit contenir au moins 2 caractères"),
   email: z.string().email("Veuillez entrer un email valide"),
-  phone: z.string().optional(),
+  phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
   type: z.enum(partnerTypes),
-  status: z.enum(["active", "inactive"]),
+  status: z.enum(["active", "inactive"]).optional(),
   notes: z.string().optional(),
 });
 
@@ -66,21 +66,6 @@ const mapDbPartnerToPartner = (record: any): Partner => {
     has_user_account: record.has_user_account || false,
     user_account_created_at: record.user_account_created_at,
   };
-};
-
-// Function to map Partner interface to database record format
-const mapPartnerToDbPartner = (partner: Partial<PartnerFormValues>): Record<string, any> => {
-  const dbPartner: Record<string, any> = {};
-  
-  if (partner.name !== undefined) dbPartner.name = partner.name;
-  if (partner.contactName !== undefined) dbPartner.contact_name = partner.contactName;
-  if (partner.email !== undefined) dbPartner.email = partner.email;
-  if (partner.phone !== undefined) dbPartner.phone = partner.phone;
-  if (partner.type !== undefined) dbPartner.type = partner.type;
-  if (partner.notes !== undefined) dbPartner.notes = partner.notes;
-  if (partner.status !== undefined) dbPartner.status = partner.status;
-  
-  return dbPartner;
 };
 
 // Get all partners
@@ -185,7 +170,15 @@ export const createPartner = async (partnerData: PartnerFormValues): Promise<Par
 export const updatePartner = async (id: string, partnerData: Partial<PartnerFormValues>): Promise<Partner | null> => {
   try {
     // Convert form data to database structure
-    const dbPartner = mapPartnerToDbPartner(partnerData);
+    const dbPartner: Record<string, any> = {};
+    
+    if (partnerData.name !== undefined) dbPartner.name = partnerData.name;
+    if (partnerData.contactName !== undefined) dbPartner.contact_name = partnerData.contactName;
+    if (partnerData.email !== undefined) dbPartner.email = partnerData.email;
+    if (partnerData.phone !== undefined) dbPartner.phone = partnerData.phone;
+    if (partnerData.type !== undefined) dbPartner.type = partnerData.type;
+    if (partnerData.notes !== undefined) dbPartner.notes = partnerData.notes;
+    if (partnerData.status !== undefined) dbPartner.status = partnerData.status;
     
     // Add updated_at timestamp
     dbPartner.updated_at = new Date().toISOString();

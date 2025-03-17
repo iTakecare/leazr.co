@@ -1,95 +1,72 @@
-
 /**
- * Format number as currency
+ * Format number as currency (EUR)
  */
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
   }).format(amount);
+};
+
+/**
+ * Format price for display (same as formatCurrency but exported with a different name)
+ */
+export const formatPrice = (amount: number): string => {
+  return formatCurrency(amount);
 };
 
 /**
  * Format number as percentage
  */
-export const formatPercentage = (value: number): string => {
+export const formatPercentage = (percentage: number): string => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'percent',
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value / 100);
+    maximumFractionDigits: 2,
+  }).format(percentage / 100);
 };
 
 /**
- * Format date
+ * Format date in French locale
  */
-export const formatDate = (date: string | Date): string => {
-  if (!date) return '';
-  
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+export const formatDate = (date: Date): string => {
   return new Intl.DateTimeFormat('fr-FR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }).format(dateObj);
-};
-
-/**
- * Format date with time
- */
-export const formatDateTime = (date: string | Date): string => {
-  if (!date) return '';
-  
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
-  return new Intl.DateTimeFormat('fr-FR', {
-    year: 'numeric',
-    month: 'long',
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(dateObj);
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
 };
 
-/**
- * Format date to French format
- */
-export const formatDateToFrench = (date: string | Date): string => {
-  if (!date) return '';
-  
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+// Fonction pour formatter une date relative (ex: "il y a 3 jours")
+export const formatDistanceToNow = (date: Date) => {
+  const now = new Date();
+  const diffInMilliseconds = now.getTime() - date.getTime();
+  const diffInSeconds = Math.floor(diffInMilliseconds / 1000);
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  const diffInDays = Math.floor(diffInHours / 24);
+  const diffInMonths = Math.floor(diffInDays / 30);
+  const diffInYears = Math.floor(diffInDays / 365);
+
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds} secondes`;
+  } else if (diffInMinutes < 60) {
+    return diffInMinutes === 1 ? '1 minute' : `${diffInMinutes} minutes`;
+  } else if (diffInHours < 24) {
+    return diffInHours === 1 ? '1 heure' : `${diffInHours} heures`;
+  } else if (diffInDays < 30) {
+    return diffInDays === 1 ? '1 jour' : `${diffInDays} jours`;
+  } else if (diffInMonths < 12) {
+    return diffInMonths === 1 ? '1 mois' : `${diffInMonths} mois`;
+  } else {
+    return diffInYears === 1 ? '1 an' : `${diffInYears} ans`;
+  }
+};
+
+export const formatDateToFrench = (date: Date): string => {
   return new Intl.DateTimeFormat('fr-FR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
-  }).format(dateObj);
-};
-
-/**
- * Format relative time (distance to now)
- */
-export const formatDistanceToNow = (date: string | Date): string => {
-  if (!date) return '';
-  
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  const now = new Date();
-  
-  const diffTime = Math.abs(now.getTime() - dateObj.getTime());
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
-  
-  if (diffDays > 0) {
-    return `il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
-  } else if (diffHours > 0) {
-    return `il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`;
-  } else if (diffMinutes > 0) {
-    return `il y a ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
-  } else {
-    return 'à l\'instant';
-  }
+  }).format(date);
 };

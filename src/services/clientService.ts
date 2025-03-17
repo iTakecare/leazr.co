@@ -1,7 +1,3 @@
-
-// Only updating the mapDbClientToClient function
-// The rest of the file is too large for one edit, and we're only changing a small part
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -80,8 +76,8 @@ const mapDbClientToClient = (record: any): Client => {
     user_id: record.user_id,
     has_user_account: record.has_user_account,
     user_account_created_at: record.user_account_created_at,
-    created_at: record.created_at, // Keep as string instead of converting to Date
-    updated_at: record.updated_at  // Keep as string instead of converting to Date
+    created_at: record.created_at ? new Date(record.created_at) : new Date(),
+    updated_at: record.updated_at ? new Date(record.updated_at) : new Date()
   };
 };
 
@@ -361,35 +357,6 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
     console.error("Error removing collaborator:", error);
     toast.error("Erreur lors de la suppression du collaborateur");
     return false;
-  }
-};
-
-export const getAmbassadorClients = async (ambassadorId: string): Promise<Client[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('ambassador_clients')
-      .select('client_id')
-      .eq('ambassador_id', ambassadorId);
-    
-    if (error) throw error;
-    
-    if (!data || data.length === 0) return [];
-    
-    const clientIds = data.map(item => item.client_id);
-    
-    const { data: clients, error: clientsError } = await supabase
-      .from('clients')
-      .select('*')
-      .in('id', clientIds)
-      .order('name', { ascending: true });
-    
-    if (clientsError) throw clientsError;
-    
-    return clients ? clients.map(mapDbClientToClient) : [];
-  } catch (error) {
-    console.error("Error fetching ambassador clients:", error);
-    toast.error("Erreur lors de la récupération des clients de l'ambassadeur");
-    return [];
   }
 };
 

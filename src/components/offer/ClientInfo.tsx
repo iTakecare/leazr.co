@@ -7,8 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { UserPlus, Save, Loader2 } from "lucide-react";
-import { Equipment } from "@/types/equipment";
-import { Leaser } from "@/types/leaser";
+import { Equipment, Leaser } from "@/types/equipment";
 
 interface ClientInfoProps {
   clientId: string | null;

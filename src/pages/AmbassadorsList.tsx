@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getAmbassadors } from "@/services/ambassadorService";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +29,6 @@ const AmbassadorsListPage = () => {
   const [activeTab, setActiveTab] = useState("ambassadors");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [ambassadorCount, setAmbassadorCount] = useState<number>(0);
   
   // Animation variants
   const containerVariants = {
@@ -48,27 +46,6 @@ const AmbassadorsListPage = () => {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
   };
-  
-  useEffect(() => {
-    const fetchAmbassadorCount = async () => {
-      try {
-        const ambassadors = await getAmbassadors();
-        
-        // Count ambassadors based on the current filter
-        if (statusFilter === 'all') {
-          setAmbassadorCount(ambassadors.length);
-        } else {
-          const filtered = ambassadors.filter(amb => amb.status === statusFilter);
-          setAmbassadorCount(filtered.length);
-        }
-      } catch (error) {
-        console.error("Error fetching ambassador count:", error);
-        setAmbassadorCount(0);
-      }
-    };
-    
-    fetchAmbassadorCount();
-  }, [statusFilter]);
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -146,7 +123,8 @@ const AmbassadorsListPage = () => {
                               <Filter className="h-4 w-4" />
                               <span className="truncate">{getStatusFilterLabel()}</span>
                               <Badge variant="secondary" className="ml-1 text-xs">
-                                {ambassadorCount}
+                                {/* Placeholder for ambassador count */}
+                                0
                               </Badge>
                             </Button>
                           </DropdownMenuTrigger>

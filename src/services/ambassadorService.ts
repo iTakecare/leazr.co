@@ -1,165 +1,221 @@
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { AmbassadorFormValues } from "@/components/crm/forms/AmbassadorForm";
+import { Collaborator, Client } from "@/types/client";
 
-import { Ambassador, DetailAmbassador, CreateAmbassadorData } from '@/types/ambassador';
-import { v4 as uuidv4 } from 'uuid';
-import { CreateClientData } from '@/types/client';
+export interface Commission {
+  id: string;
+  date: string;
+  client: string;
+  amount: number;
+  status: string;
+  isPaid: boolean;
+}
 
-// Mock data for ambassadors
-const mockAmbassadors: Ambassador[] = [
-  {
-    id: '1',
-    name: 'Sophie Laurent',
-    email: 'sophie.laurent@example.com',
-    phone: '+33 6 12 34 56 78',
-    region: 'Île-de-France',
-    status: 'active',
-    clients_count: 12,
-    commissions_total: 4500,
-    last_commission: 750,
-    notes: 'Ambassadrice très active dans le milieu hospitalier parisien.',
-    created_at: '2023-01-15T09:30:00Z',
-    updated_at: '2023-06-20T14:45:00Z',
-    has_user_account: true,
-    user_account_created_at: '2023-01-16T10:15:00Z'
-  },
-  {
-    id: '2',
-    name: 'Marc Dubois',
-    email: 'marc.dubois@example.com',
-    phone: '+33 6 23 45 67 89',
-    region: 'Auvergne-Rhône-Alpes',
-    status: 'active',
-    clients_count: 8,
-    commissions_total: 3200,
-    last_commission: 550,
-    notes: 'Bonne connaissance du réseau de cliniques privées de Lyon.',
-    created_at: '2023-02-10T11:20:00Z',
-    updated_at: '2023-07-05T16:30:00Z',
-    has_user_account: true,
-    user_account_created_at: '2023-02-11T09:45:00Z'
-  },
-  {
-    id: '3',
-    name: 'Émilie Moreau',
-    email: 'emilie.moreau@example.com',
-    phone: '+33 6 34 56 78 90',
-    region: 'Provence-Alpes-Côte d\'Azur',
-    status: 'inactive',
-    clients_count: 5,
-    commissions_total: 1800,
-    last_commission: 0,
-    notes: 'En pause temporaire pour congé maternité.',
-    created_at: '2023-03-05T10:15:00Z',
-    updated_at: '2023-06-15T09:20:00Z',
-    has_user_account: false
-  }
-];
+export interface Ambassador {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  region?: string;
+  status: string;
+  notes?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+  clientsCount: number;
+  commissionsTotal: number;
+  lastCommission: number;
+  clients?: any[];
+  commissions?: any[];
+  collaborators?: any[];
+  has_user_account?: boolean;
+  user_account_created_at?: string;
+  user_id?: string;
+}
 
-// Get all ambassadors
+const mapDbAmbassadorToAmbassador = (record: any): Ambassador => {
+  return {
+    id: record.id,
+    name: record.name,
+    email: record.email,
+    phone: record.phone || "",
+    region: record.region || "",
+    clientsCount: record.clients_count || 0,
+    commissionsTotal: record.commissions_total || 0,
+    lastCommission: record.last_commission || 0,
+    status: record.status || "active",
+    notes: record.notes,
+    created_at: record.created_at,
+    updated_at: record.updated_at,
+    has_user_account: record.has_user_account || false,
+    user_account_created_at: record.user_account_created_at,
+    user_id: record.user_id
+  };
+};
+
 export const getAmbassadors = async (): Promise<Ambassador[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockAmbassadors);
-    }, 800);
-  });
+  try {
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .select('*')
+      .order('name', { ascending: true });
+    
+    if (error) throw error;
+    
+    return data ? data.map(mapDbAmbassadorToAmbassador) : [];
+  } catch (error) {
+    console.error("Error fetching ambassadors:", error);
+    throw error;
+  }
 };
 
-// Get ambassador by ID
-export const getAmbassadorById = async (id: string): Promise<DetailAmbassador> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const ambassador = mockAmbassadors.find(a => a.id === id);
-      if (ambassador) {
-        // Create a DetailAmbassador with the base Ambassador data
-        const detailAmbassador: DetailAmbassador = {
-          ...ambassador,
-          clients: [],
-          commissions: [],
-          collaborators: []
-        };
-        resolve(detailAmbassador);
-      } else {
-        reject(new Error(`Ambassador with ID ${id} not found`));
-      }
-    }, 800);
-  });
+export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
+  try {
+    console.log("Requesting ambassador with ID:", id);
+    
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("Supabase error fetching ambassador:", error);
+      throw error;
+    }
+    
+    console.log("Ambassador data from db:", data);
+    
+    if (!data) {
+      console.log("No ambassador found with ID:", id);
+      return null;
+    }
+    
+    return mapDbAmbassadorToAmbassador(data);
+  } catch (error) {
+    console.error("Error fetching ambassador by ID:", error);
+    throw error;
+  }
 };
 
-// Get ambassador profile
-export const getAmbassadorProfile = async (userId: string): Promise<Ambassador | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Simulating looking up an ambassador by user ID
-      const ambassador = mockAmbassadors.find(a => a.id === '1'); // For demo, just return first ambassador
-      resolve(ambassador || null);
-    }, 800);
-  });
+export const createAmbassador = async (ambassadorData: AmbassadorFormValues): Promise<Ambassador | null> => {
+  try {
+    const dbAmbassador = {
+      name: ambassadorData.name,
+      email: ambassadorData.email,
+      phone: ambassadorData.phone || "",
+      region: ambassadorData.region,
+      notes: ambassadorData.notes || "",
+      status: ambassadorData.status || "active",
+      clients_count: 0,
+      commissions_total: 0,
+      last_commission: 0
+    };
+    
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .insert(dbAmbassador)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return data ? mapDbAmbassadorToAmbassador(data) : null;
+  } catch (error) {
+    console.error("Error creating ambassador:", error);
+    throw error;
+  }
 };
 
-// Create a new ambassador
-export const createAmbassador = async (ambassadorData: CreateAmbassadorData): Promise<Ambassador> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newAmbassador: Ambassador = {
-        id: uuidv4(),
-        ...ambassadorData,
-        clients_count: 0,
-        commissions_total: 0,
-        last_commission: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      // In a real app, this would save to a database
-      mockAmbassadors.push(newAmbassador);
-      
-      resolve(newAmbassador);
-    }, 800);
-  });
+export const updateAmbassador = async (id: string, ambassadorData: Partial<AmbassadorFormValues>): Promise<Ambassador | null> => {
+  try {
+    const dbAmbassador: Record<string, any> = {};
+    
+    if (ambassadorData.name !== undefined) dbAmbassador.name = ambassadorData.name;
+    if (ambassadorData.email !== undefined) dbAmbassador.email = ambassadorData.email;
+    if (ambassadorData.phone !== undefined) dbAmbassador.phone = ambassadorData.phone;
+    if (ambassadorData.region !== undefined) dbAmbassador.region = ambassadorData.region;
+    if (ambassadorData.notes !== undefined) dbAmbassador.notes = ambassadorData.notes;
+    if (ambassadorData.status !== undefined) dbAmbassador.status = ambassadorData.status;
+    
+    dbAmbassador.updated_at = new Date().toISOString();
+    
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .update(dbAmbassador)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return data ? mapDbAmbassadorToAmbassador(data) : null;
+  } catch (error) {
+    console.error("Error updating ambassador:", error);
+    throw error;
+  }
 };
 
-// Update ambassador
-export const updateAmbassador = async (id: string, ambassadorData: Partial<CreateAmbassadorData>): Promise<Ambassador> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const index = mockAmbassadors.findIndex(a => a.id === id);
-      if (index !== -1) {
-        mockAmbassadors[index] = {
-          ...mockAmbassadors[index],
-          ...ambassadorData,
-          updated_at: new Date().toISOString()
-        };
-        resolve(mockAmbassadors[index]);
-      } else {
-        reject(new Error(`Ambassador with ID ${id} not found`));
-      }
-    }, 800);
-  });
+export const deleteAmbassador = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('ambassadors')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting ambassador:", error);
+    throw error;
+  }
 };
 
-// Create client for ambassador
-export const createClientForAmbassador = async (ambassadorId: string, clientData: CreateClientData): Promise<boolean> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const ambassador = mockAmbassadors.find(a => a.id === ambassadorId);
-      if (ambassador) {
-        // In a real app, this would create a client in the database
-        const newClient = {
-          id: uuidv4(),
-          ...clientData,
-          ambassador_id: ambassadorId,
-          created_at: new Date().toISOString()
-        };
-        
-        // Update ambassador stats
-        ambassador.clients_count += 1;
-        
-        resolve(true);
-      } else {
-        reject(new Error(`Ambassador with ID ${ambassadorId} not found`));
-      }
-    }, 800);
-  });
+export const getAmbassadorClients = async (ambassadorId: string): Promise<any[]> => {
+  try {
+    const { data: relations, error: relationsError } = await supabase
+      .from('ambassador_clients')
+      .select('client_id')
+      .eq('ambassador_id', ambassadorId);
+    
+    if (relationsError) throw relationsError;
+    
+    if (!relations || relations.length === 0) return [];
+    
+    const clientIds = relations.map(rel => rel.client_id);
+    
+    const { data: clients, error: clientsError } = await supabase
+      .from('clients')
+      .select('*')
+      .in('id', clientIds);
+    
+    if (clientsError) throw clientsError;
+    
+    return clients || [];
+  } catch (error) {
+    console.error("Error fetching ambassador clients:", error);
+    throw error;
+  }
 };
 
-// Export Ambassador type
-export type { Ambassador, DetailAmbassador, CreateAmbassadorData };
+export const getAmbassadorCommissions = async (ambassadorId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('ambassador_commissions')
+      .select('*')
+      .eq('ambassador_id', ambassadorId)
+      .order('date', { ascending: false });
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching ambassador commissions:", error);
+    throw error;
+  }
+};
+
+import { createUserAccount, resetPassword } from "./accountService";
+
+export { createUserAccount as createAccountForAmbassador, resetPassword as resetAmbassadorPassword };

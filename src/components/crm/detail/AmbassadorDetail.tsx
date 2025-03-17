@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { 
-  User, Mail, Phone, Calendar, Tag, FileText, 
+  User, Mail, Phone, MapPin, Calendar, Tag, FileText, 
   UserPlus, KeyRound, Users, CreditCard, ChevronLeft 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -122,6 +122,14 @@ const AmbassadorDetail = ({ ambassador, onReloadData }: AmbassadorDetailProps) =
               </div>
               
               <div className="flex items-start gap-2">
+                <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Région</p>
+                  <p className="text-sm text-muted-foreground">{ambassador.region || 'Non spécifiée'}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
                 <Tag className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium">Statut</p>
@@ -228,7 +236,7 @@ const AmbassadorDetail = ({ ambassador, onReloadData }: AmbassadorDetailProps) =
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-muted/30 rounded-md p-4">
                 <p className="text-sm text-muted-foreground">Clients</p>
-                <p className="text-2xl font-bold">{ambassador.clients_count || 0}</p>
+                <p className="text-2xl font-bold">{ambassador.clientsCount || 0}</p>
                 <div className="flex items-center mt-2">
                   <Users className="h-4 w-4 text-muted-foreground mr-1" />
                   <span className="text-xs text-muted-foreground">Nombre total de clients</span>
@@ -237,7 +245,7 @@ const AmbassadorDetail = ({ ambassador, onReloadData }: AmbassadorDetailProps) =
               
               <div className="bg-muted/30 rounded-md p-4">
                 <p className="text-sm text-muted-foreground">Commissions totales</p>
-                <p className="text-2xl font-bold">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ambassador.commissions_total || 0)}</p>
+                <p className="text-2xl font-bold">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ambassador.commissionsTotal || 0)}</p>
                 <div className="flex items-center mt-2">
                   <CreditCard className="h-4 w-4 text-muted-foreground mr-1" />
                   <span className="text-xs text-muted-foreground">Montant cumulé</span>
@@ -246,7 +254,7 @@ const AmbassadorDetail = ({ ambassador, onReloadData }: AmbassadorDetailProps) =
               
               <div className="bg-muted/30 rounded-md p-4">
                 <p className="text-sm text-muted-foreground">Dernière commission</p>
-                <p className="text-2xl font-bold">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ambassador.last_commission || 0)}</p>
+                <p className="text-2xl font-bold">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ambassador.lastCommission || 0)}</p>
                 <div className="flex items-center mt-2">
                   <Calendar className="h-4 w-4 text-muted-foreground mr-1" />
                   <span className="text-xs text-muted-foreground">Montant de la dernière transaction</span>

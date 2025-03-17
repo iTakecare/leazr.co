@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,22 +8,29 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
-  Building2, Mail, Phone, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
+  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
   AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAmbassadorById, Ambassador as AmbassadorType } from "@/services/ambassadorService";
 import { createUserAccount, resetPassword } from "@/services/accountService";
 
-// Mock data interfaces
+interface Collaborator {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  phone?: string;
+  department?: string;
+}
+
 interface Client {
   id: string;
   name: string;
   email: string;
   status: string;
   company?: string;
-  created_at?: string;
-  createdAt?: string;
+  createdAt: string;
   totalValue: number;
 }
 
@@ -37,26 +43,28 @@ interface Commission {
   isPaid: boolean;
 }
 
-interface Collaborator {
-  id: string;
-  name: string;
-  role: string;
-  email: string;
-  phone?: string;
-  department?: string;
-}
+const resetAmbassadorPassword = async (email: string): Promise<boolean> => {
+  // Simuler la réinitialisation du mot de passe
+  await new Promise(resolve => setTimeout(resolve, 800));
+  console.log(`Demande de réinitialisation de mot de passe pour: ${email}`);
+  return true;
+};
 
-// Extend the AmbassadorType for the detail view with potential mock data
-interface DetailAmbassador extends AmbassadorType {
-  clients?: Client[];
-  commissions?: Commission[];
-  collaborators?: Collaborator[];
-}
+const createAccountForAmbassador = async (ambassador: AmbassadorType): Promise<boolean> => {
+  // Simuler la création d'un compte
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  console.log(`Création de compte pour l'ambassadeur: ${ambassador.name}`);
+  
+  // Note: This part would need to be updated to work with the real service
+  // instead of mock data which no longer exists
+  
+  return true;
+};
 
 export default function AmbassadorDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [ambassador, setAmbassador] = useState<DetailAmbassador | null>(null);
+  const [ambassador, setAmbassador] = useState<AmbassadorType | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -86,14 +94,7 @@ export default function AmbassadorDetail() {
       }
       
       console.log("Ambassador data loaded:", ambassadorData);
-      // Initialize empty arrays for mock data sections
-      const detailAmbassador: DetailAmbassador = {
-        ...ambassadorData,
-        clients: [],
-        commissions: [],
-        collaborators: []
-      };
-      setAmbassador(detailAmbassador);
+      setAmbassador(ambassadorData);
     } catch (error) {
       console.error("Error fetching ambassador:", error);
       setError("Erreur lors du chargement des données de l'ambassadeur");
@@ -191,7 +192,7 @@ export default function AmbassadorDetail() {
       <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{ambassador.name}</h1>
-          <p className="text-muted-foreground text-lg">Ambassadeur - {ambassador.company || "Indépendant"}</p>
+          <p className="text-muted-foreground text-lg">Ambassadeur - {ambassador.region}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate("/ambassadors")} className="flex items-center">
@@ -248,10 +249,10 @@ export default function AmbassadorDetail() {
                   )}
                   
                   <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                    <Building2 className="h-5 w-5 text-primary mt-0.5" />
+                    <MapPin className="h-5 w-5 text-primary mt-0.5" />
                     <div>
-                      <h3 className="text-sm font-medium">Entreprise</h3>
-                      <p className="text-sm">{ambassador.company || "Non spécifiée"}</p>
+                      <h3 className="text-sm font-medium">Région</h3>
+                      <p className="text-sm">{ambassador.region}</p>
                     </div>
                   </div>
                   
@@ -259,7 +260,7 @@ export default function AmbassadorDetail() {
                     <BadgePercent className="h-5 w-5 text-primary mt-0.5" />
                     <div>
                       <h3 className="text-sm font-medium">Commissions totales</h3>
-                      <p className="text-sm">{formatCurrency(ambassador.commissions_total || 0)}</p>
+                      <p className="text-sm">{formatCurrency(ambassador.commissionsTotal)}</p>
                     </div>
                   </div>
                   

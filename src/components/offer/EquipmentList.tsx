@@ -1,156 +1,219 @@
 
-import React from 'react';
-import { Equipment, EquipmentItem } from '@/types/equipment';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from '@/components/ui/button';
-import { Plus, Package } from 'lucide-react';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { formatCurrency, formatPercentage } from "@/utils/formatters";
+import { Trash2, Edit, Plus, Minus, PenLine } from "lucide-react";
+import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface EquipmentListProps {
-  equipment: Equipment;
-  onChange: (newEquipment: Equipment) => void;
+  equipmentList: Equipment[];
+  editingId: string | null;
+  startEditing: (id: string) => void;
+  removeFromList: (id: string) => void;
+  updateQuantity: (id: string, change: number) => void;
+  totalMonthlyPayment: number;
+  globalMarginAdjustment: GlobalMarginAdjustment;
+  toggleAdaptMonthlyPayment: () => void;
 }
 
-const EquipmentList: React.FC<EquipmentListProps> = ({ equipment, onChange }) => {
-  const addItem = () => {
-    const newEquipment = { ...equipment };
-    newEquipment.items.push({
-      id: crypto.randomUUID(),
-      title: '',
-      description: '',
-      quantity: 1,
-      purchasePrice: 0,
-      margin: 0,
-      total_price: 0,
-      // Support legacy field names
-      name: '',
-      unit_price: 0
-    });
-    onChange(newEquipment);
-  };
+const EquipmentList: React.FC<EquipmentListProps> = ({
+  equipmentList,
+  editingId,
+  startEditing,
+  removeFromList,
+  updateQuantity,
+  totalMonthlyPayment,
+  globalMarginAdjustment,
+  toggleAdaptMonthlyPayment
+}) => {
+  if (equipmentList.length === 0) {
+    return (
+      <Card className="shadow-sm border-gray-200 rounded-lg">
+        <CardHeader className="pb-3 border-b">
+          <CardTitle className="text-lg font-medium">Liste des équipements</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="text-center py-10 text-gray-500">
+            Aucun équipement ajouté
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  const removeItem = (index: number) => {
-    const newEquipment = { ...equipment };
-    newEquipment.items.splice(index, 1);
-    onChange(newEquipment);
-  };
-
-  const updateItem = (index: number, key: string, value: string | number) => {
-    const newEquipment = { ...equipment };
-    newEquipment.items[index] = {
-      ...newEquipment.items[index],
-      [key]: value
-    };
-    
-    // Recalculate total price if quantity or unit_price changes
-    if (key === 'quantity' || key === 'unit_price' || key === 'purchasePrice') {
-      const item = newEquipment.items[index];
-      if (key === 'unit_price') {
-        item.purchasePrice = value as number;
-      } else if (key === 'purchasePrice') {
-        item.unit_price = value as number;
-      }
-      item.total_price = item.quantity * (item.purchasePrice || item.unit_price || 0);
-    }
-    
-    // Support both title and name fields
-    if (key === 'name') {
-      newEquipment.items[index].title = value as string;
-    } else if (key === 'title') {
-      newEquipment.items[index].name = value as string;
-    }
-    
-    onChange(newEquipment);
-  };
+  console.log("Rendering equipment list with items:", equipmentList);
 
   return (
-    <div>
-      {equipment.items.length === 0 ? (
-        <div className="text-center py-10 border-2 border-dashed rounded-md">
-          <Package className="mx-auto h-10 w-10 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            Aucun équipement ajouté
-          </p>
-          <Button onClick={addItem} variant="outline" className="mt-4">
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter un équipement
-          </Button>
-        </div>
-      ) : (
-        <div>
+    <div className="space-y-6">
+      <Card className="shadow-sm border-gray-200 rounded-lg">
+        <CardHeader className="pb-3 border-b">
+          <CardTitle className="text-lg font-medium">Liste des équipements</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead className="w-[80px]">Qté</TableHead>
-                <TableHead className="w-[120px]">Prix unitaire</TableHead>
-                <TableHead className="w-[120px]">Total</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+              <TableRow className="bg-gray-50 hover:bg-gray-50">
+                <TableHead className="font-medium">Équipement</TableHead>
+                <TableHead className="text-right font-medium">Prix unitaire</TableHead>
+                <TableHead className="text-center font-medium">Qté</TableHead>
+                <TableHead className="text-right font-medium">Marge</TableHead>
+                <TableHead className="text-right font-medium">Total</TableHead>
+                <TableHead className="text-center font-medium">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {equipment.items.map((item, index) => (
-                <TableRow key={item.id}>
+              {equipmentList.map((equipment) => (
+                <TableRow 
+                  key={equipment.id}
+                  className={`${editingId === equipment.id ? 'bg-blue-50' : ''}`}
+                >
                   <TableCell>
-                    <input
-                      type="text"
-                      value={item.name || item.title}
-                      onChange={(e) => updateItem(index, 'name', e.target.value)}
-                      className="w-full border-0 bg-transparent p-0 focus:ring-0"
-                      placeholder="Nom de l'équipement"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                      className="w-full border-0 bg-transparent p-0 focus:ring-0 text-right"
-                      min="1"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <input
-                      type="number"
-                      value={item.unit_price || item.purchasePrice}
-                      onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                      className="w-full border-0 bg-transparent p-0 focus:ring-0 text-right"
-                      min="0"
-                      step="0.01"
-                    />
-                    €
+                    <div className="font-medium">{equipment.title}</div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {item.total_price.toFixed(2)} €
+                    {formatCurrency(equipment.purchasePrice)}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeItem(index)}
-                      className="h-8 w-8 p-0"
-                    >
-                      &times;
-                    </Button>
+                    <div className="flex items-center justify-center">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6" 
+                        onClick={() => updateQuantity(equipment.id, -1)}
+                        disabled={equipment.quantity <= 1 || editingId !== null}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="mx-2 w-4 text-center">{equipment.quantity}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6" 
+                        onClick={() => updateQuantity(equipment.id, 1)}
+                        disabled={editingId !== null}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatPercentage(equipment.margin)}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-blue-600">
+                    {formatCurrency((equipment.monthlyPayment || 0) * equipment.quantity)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        onClick={() => startEditing(equipment.id)}
+                        disabled={editingId !== null}
+                      >
+                        <PenLine className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
+                        onClick={() => removeFromList(equipment.id)}
+                        disabled={editingId !== null}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={4} className="text-right font-medium">
+                  Mensualité totale :
+                </TableCell>
+                <TableCell colSpan={2} className="text-right text-blue-600 font-bold">
+                  {formatCurrency(totalMonthlyPayment)}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
           </Table>
-          
-          <div className="mt-4 flex justify-between items-center">
-            <Button onClick={addItem} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un élément
-            </Button>
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Total:</div>
-              <div className="text-lg font-medium">
-                {equipment.items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)} €
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm border-gray-200 rounded-lg">
+        <CardHeader className="pb-3 border-b">
+          <CardTitle className="text-lg font-medium">Récapitulatif global</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Coefficient actuel :</span>
+              <span className="font-medium">{formatPercentage(globalMarginAdjustment.currentCoef)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Nouveau coefficient :</span>
+              <span className="font-medium">{formatPercentage(globalMarginAdjustment.newCoef)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Marge globale :</span>
+              <span className="font-medium">{formatPercentage(globalMarginAdjustment.percentage)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Marge totale en euros :</span>
+              <span className="font-medium">{formatCurrency(globalMarginAdjustment.amount)}</span>
+            </div>
+            
+            {!globalMarginAdjustment.adaptMonthlyPayment && globalMarginAdjustment.marginDifference !== 0 && (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Différence de marge :</span>
+                  <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(globalMarginAdjustment.marginDifference)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Total marge avec différence :</span>
+                  <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-blue-600'}`}>
+                    {formatCurrency(globalMarginAdjustment.amount + globalMarginAdjustment.marginDifference)}
+                  </span>
+                </div>
+              </>
+            )}
+            
+            <div className="flex items-center justify-between py-2 border-t border-b mt-2">
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="adapt-monthly" 
+                  checked={globalMarginAdjustment.adaptMonthlyPayment}
+                  onCheckedChange={toggleAdaptMonthlyPayment}
+                />
+                <Label htmlFor="adapt-monthly" className="cursor-pointer">
+                  Adapter la mensualité au nouveau coefficient
+                </Label>
               </div>
             </div>
+            
+            <div className="flex justify-between items-center text-blue-600 mt-2">
+              <span className="font-medium">Mensualité totale :</span>
+              <span className="font-bold">{formatCurrency(globalMarginAdjustment.newMonthly)}</span>
+            </div>
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

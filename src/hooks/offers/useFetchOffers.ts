@@ -7,8 +7,7 @@ import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 export interface Offer {
   id: string;
   client_name: string;
-  clientId?: string;
-  client_id?: string; // Added for compatibility
+  client_id?: string;
   clients?: {
     name: string;
     email: string;
@@ -22,8 +21,6 @@ export interface Offer {
   created_at: string;
   type: string;
   converted_to_contract?: boolean;
-  equipment_description?: string;
-  additional_info?: string;
 }
 
 export const useFetchOffers = () => {
@@ -38,8 +35,7 @@ export const useFetchOffers = () => {
     
     try {
       console.log("Fetching offers with includeConverted =", includeConverted);
-      // getOffers doesn't accept any parameters
-      const offersData = await getOffers();
+      const offersData = await getOffers(includeConverted);
       
       if (Array.isArray(offersData)) {
         const offersWithWorkflow = offersData.map(offer => {
@@ -52,14 +48,11 @@ export const useFetchOffers = () => {
               case "rejected":
                 workflowStatus = OFFER_STATUSES.REJECTED.id;
                 break;
-              case "draft":
+              case "pending":
                 workflowStatus = OFFER_STATUSES.DRAFT.id;
                 break;
               default:
-                // Handle "pending" separately - fix comparison error
-                workflowStatus = offer.status === "pending" 
-                  ? OFFER_STATUSES.DRAFT.id 
-                  : OFFER_STATUSES.DRAFT.id;
+                workflowStatus = OFFER_STATUSES.DRAFT.id;
             }
             return { ...offer, workflow_status: workflowStatus };
           }
@@ -68,14 +61,9 @@ export const useFetchOffers = () => {
         
         const offersWithType = offersWithWorkflow.map(offer => {
           if (!offer.type) {
-            // Use optional chaining to safely access clientId or client_id
-            const clientIdentifier = offer.clientId || offer.client_id;
             return {
               ...offer,
-              type: clientIdentifier ? 'client_request' : 'admin_offer',
-              // Ensure both clientId and client_id are set for backward compatibility
-              clientId: clientIdentifier,
-              client_id: clientIdentifier
+              type: offer.client_id ? 'client_request' : 'admin_offer'
             };
           }
           return offer;
@@ -84,9 +72,7 @@ export const useFetchOffers = () => {
         console.log(`Loaded ${offersWithType.length} offers. Includes converted: ${includeConverted}`);
         console.log("Converted offers:", offersWithType.filter(o => o.converted_to_contract).length);
         
-        // Cast the offers to the Offer type
-        const typedOffers = offersWithType as Offer[];
-        setOffers(typedOffers);
+        setOffers(offersWithType);
       } else {
         console.error("Offers data is not an array:", offersData);
         setLoadingError("Format de données incorrect");
