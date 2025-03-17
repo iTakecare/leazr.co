@@ -17,7 +17,20 @@ const AmbassadorCreatePage = () => {
   const onSubmit = async (data: AmbassadorFormValues) => {
     setIsSubmitting(true);
     try {
-      const newAmbassador = await createAmbassador(data);
+      const newAmbassador = await createAmbassador({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        region: data.region,
+        status: data.status || 'active',
+        notes: data.notes,
+        company: data.company,
+        vat_number: data.vat_number,
+        address: data.address,
+        city: data.city,
+        postal_code: data.postal_code,
+        country: data.country
+      });
       toast.success(`L'ambassadeur ${data.name} a été créé avec succès`);
       if (newAmbassador?.id) {
         navigate(`/ambassadors/${newAmbassador.id}`);
