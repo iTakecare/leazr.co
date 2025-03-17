@@ -22,16 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const partnerSchema = z.object({
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-  contact_name: z.string().min(2, "Le nom du contact doit contenir au moins 2 caractères"),
-  email: z.string().email("Veuillez entrer un email valide"),
-  phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide").optional(),
-  type: z.string().min(1, "Le type de partenaire est requis"),
-  status: z.enum(["active", "inactive"]).default("active"),
-  notes: z.string().optional(),
-});
+import { partnerSchema } from "@/services/partnerService";
 
 export type PartnerFormValues = z.infer<typeof partnerSchema>;
 
@@ -52,10 +43,10 @@ const PartnerForm = ({
     resolver: zodResolver(partnerSchema),
     defaultValues: initialData || {
       name: "",
-      contact_name: "",
+      contactName: "",
       email: "",
       phone: "",
-      type: "",
+      type: "Revendeur",
       status: "active",
       notes: "",
     },
@@ -84,7 +75,7 @@ const PartnerForm = ({
               
               <FormField
                 control={form.control}
-                name="contact_name"
+                name="contactName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nom du contact*</FormLabel>
@@ -144,10 +135,9 @@ const PartnerForm = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="distributor">Distributeur</SelectItem>
-                        <SelectItem value="manufacturer">Fabricant</SelectItem>
-                        <SelectItem value="consultant">Consultant</SelectItem>
-                        <SelectItem value="other">Autre</SelectItem>
+                        <SelectItem value="Revendeur">Distributeur</SelectItem>
+                        <SelectItem value="Intégrateur">Fabricant</SelectItem>
+                        <SelectItem value="Consultant">Consultant</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

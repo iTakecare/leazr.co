@@ -68,6 +68,21 @@ const mapDbPartnerToPartner = (record: any): Partner => {
   };
 };
 
+// Function to map Partner interface to database record format
+const mapPartnerToDbPartner = (partner: Partial<PartnerFormValues>): Record<string, any> => {
+  const dbPartner: Record<string, any> = {};
+  
+  if (partner.name !== undefined) dbPartner.name = partner.name;
+  if (partner.contactName !== undefined) dbPartner.contact_name = partner.contactName;
+  if (partner.email !== undefined) dbPartner.email = partner.email;
+  if (partner.phone !== undefined) dbPartner.phone = partner.phone;
+  if (partner.type !== undefined) dbPartner.type = partner.type;
+  if (partner.notes !== undefined) dbPartner.notes = partner.notes;
+  if (partner.status !== undefined) dbPartner.status = partner.status;
+  
+  return dbPartner;
+};
+
 // Get all partners
 export const getPartners = async (): Promise<Partner[]> => {
   try {
@@ -170,15 +185,7 @@ export const createPartner = async (partnerData: PartnerFormValues): Promise<Par
 export const updatePartner = async (id: string, partnerData: Partial<PartnerFormValues>): Promise<Partner | null> => {
   try {
     // Convert form data to database structure
-    const dbPartner: Record<string, any> = {};
-    
-    if (partnerData.name !== undefined) dbPartner.name = partnerData.name;
-    if (partnerData.contactName !== undefined) dbPartner.contact_name = partnerData.contactName;
-    if (partnerData.email !== undefined) dbPartner.email = partnerData.email;
-    if (partnerData.phone !== undefined) dbPartner.phone = partnerData.phone;
-    if (partnerData.type !== undefined) dbPartner.type = partnerData.type;
-    if (partnerData.notes !== undefined) dbPartner.notes = partnerData.notes;
-    if (partnerData.status !== undefined) dbPartner.status = partnerData.status;
+    const dbPartner = mapPartnerToDbPartner(partnerData);
     
     // Add updated_at timestamp
     dbPartner.updated_at = new Date().toISOString();

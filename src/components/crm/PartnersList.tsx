@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PartnerFormValues } from './forms/PartnerForm';
-import { getPartners, createPartner, updatePartner, deletePartner, getPartnerClients, Partner } from '@/services/partnerService';
+import { 
+  Partner, 
+  PartnerFormValues, 
+  getPartners, 
+  createPartner, 
+  updatePartner, 
+  deletePartner, 
+  getPartnerClients, 
+  PartnerType 
+} from '@/services/partnerService';
 
 interface PartnerWithClients extends Partner {
   clients: any[];
@@ -125,7 +134,7 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
       
       const newStatus = partner.status === 'active' ? 'inactive' : 'active';
       
-      // Créer un objet qui correspond au type PartialPartnerFormValues avec le status
+      // Create properly typed update data
       const updateData: Partial<PartnerFormValues> = { 
         status: newStatus as 'active' | 'inactive'
       };
@@ -196,6 +205,7 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
         // Update existing partner
         await updatePartner(currentPartner.id, data);
         
+        // Update the local partner list with properly typed values
         setPartnersList(prevList => 
           prevList.map(partner => 
             partner.id === currentPartner.id
@@ -241,16 +251,16 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
     setCurrentPartnerWithClients(null);
   }, []);
 
-  // Fonction pour convertir un Partner en PartnerFormValues pour le formulaire
+  // Function to convert a Partner to PartnerFormValues for the form
   const convertPartnerToFormValues = (partner: Partner): PartnerFormValues => {
     return {
       name: partner.name,
       contactName: partner.contactName,
       email: partner.email,
       phone: partner.phone,
-      type: partner.type as "Revendeur" | "Intégrateur" | "Consultant",
+      type: partner.type,
       status: partner.status as "active" | "inactive",
-      notes: partner.notes
+      notes: partner.notes || ""
     };
   };
 
