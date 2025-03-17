@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 // Define the allowed partner types as a literal union type
-const partnerTypes = ["Revendeur", "Intégrateur", "Consultant"] as const;
+export const partnerTypes = ["Revendeur", "Intégrateur", "Consultant"] as const;
 export type PartnerType = typeof partnerTypes[number];
 
 // Partner form values schema with Zod
@@ -12,9 +12,9 @@ export const partnerSchema = z.object({
   name: z.string().min(2, "Le nom de la société doit contenir au moins 2 caractères"),
   contactName: z.string().min(2, "Le nom du contact doit contenir au moins 2 caractères"),
   email: z.string().email("Veuillez entrer un email valide"),
-  phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
+  phone: z.string().optional(),
   type: z.enum(partnerTypes),
-  status: z.enum(["active", "inactive"]).optional(),
+  status: z.enum(["active", "inactive"]),
   notes: z.string().optional(),
 });
 

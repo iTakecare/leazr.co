@@ -22,19 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Save } from "lucide-react";
-
-// Schema for form validation
-const partnerFormSchema = z.object({
-  name: z.string().min(2, "Le nom de l'entreprise doit contenir au moins 2 caractères"),
-  contact_name: z.string().min(2, "Le nom du contact doit contenir au moins 2 caractères"),
-  email: z.string().email("Veuillez entrer un email valide"),
-  phone: z.string().optional(),
-  type: z.string().min(1, "Le type de partenaire est requis"),
-  status: z.enum(["active", "inactive"]),
-  notes: z.string().optional(),
-});
-
-export type PartnerFormValues = z.infer<typeof partnerFormSchema>;
+import { partnerSchema, PartnerFormValues } from "@/services/partnerService";
 
 interface PartnerFormProps {
   initialData?: PartnerFormValues;
@@ -52,16 +40,16 @@ const PartnerForm = ({
   // Default values for the form
   const defaultValues: PartnerFormValues = {
     name: "",
-    contact_name: "",
+    contactName: "",
     email: "",
     phone: "",
-    type: "commercial",
+    type: "Revendeur",
     status: "active",
     notes: "",
   };
 
   const form = useForm<PartnerFormValues>({
-    resolver: zodResolver(partnerFormSchema),
+    resolver: zodResolver(partnerSchema),
     defaultValues: initialData || defaultValues,
   });
 
@@ -99,10 +87,9 @@ const PartnerForm = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="commercial">Commercial</SelectItem>
-                        <SelectItem value="technologique">Technologique</SelectItem>
-                        <SelectItem value="financier">Financier</SelectItem>
-                        <SelectItem value="stratégique">Stratégique</SelectItem>
+                        <SelectItem value="Revendeur">Revendeur</SelectItem>
+                        <SelectItem value="Intégrateur">Intégrateur</SelectItem>
+                        <SelectItem value="Consultant">Consultant</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -117,7 +104,7 @@ const PartnerForm = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
-                name="contact_name"
+                name="contactName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nom du contact*</FormLabel>
