@@ -8,6 +8,7 @@ import ProductCard from "@/components/ui/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CatalogDialogProps {
   isOpen: boolean;
@@ -28,7 +29,6 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
 
   // Fetch products directly from Supabase
   const fetchProducts = async () => {
@@ -36,9 +36,9 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     
     try {
       setLoading(true);
-      setError(null);
+      console.log("Fetching products from Supabase...");
       
-      console.log("Fetching products directly from Supabase");
+      // Use anon key directly (the supabase client already has this configured)
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -48,11 +48,10 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         throw error;
       }
       
-      console.log("Products fetched successfully, count:", data?.length);
+      console.log(`Successfully fetched ${data?.length} products`);
       setProducts(data || []);
     } catch (err) {
       console.error("Error fetching products:", err);
-      setError(err instanceof Error ? err : new Error("Failed to fetch products"));
       toast.error("Erreur lors du chargement des produits");
     } finally {
       setLoading(false);
@@ -64,6 +63,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     if (!isOpen) return;
     
     try {
+      console.log("Fetching categories from Supabase...");
       const { data, error } = await supabase
         .from('categories')
         .select('*')
@@ -73,7 +73,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         throw error;
       }
       
-      console.log("Categories fetched successfully, count:", data?.length);
+      console.log(`Successfully fetched ${data?.length} categories`);
       setCategories(data || []);
     } catch (err) {
       console.error("Error fetching categories:", err);
@@ -85,6 +85,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     if (!isOpen) return;
     
     try {
+      console.log("Fetching brands from Supabase...");
       const { data, error } = await supabase
         .from('brands')
         .select('*')
@@ -94,7 +95,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         throw error;
       }
       
-      console.log("Brands fetched successfully, count:", data?.length);
+      console.log(`Successfully fetched ${data?.length} brands`);
       setBrands(data || []);
     } catch (err) {
       console.error("Error fetching brands:", err);
@@ -113,11 +114,9 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   // Filter products client-side
   const filteredProducts = React.useMemo(() => {
     if (!products || !Array.isArray(products)) {
-      console.log("Products is not an array:", products);
       return [];
     }
     
-    console.log("Filtering products, total count:", products.length);
     return products.filter((product) => {
       // Search term filter
       const nameMatch = !searchTerm || 
@@ -183,33 +182,31 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           </Select>
         </div>
         
-        {loading ? (
-          <div className="flex flex-col gap-4 my-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="text-center py-10 text-red-500">
-            Une erreur s'est produite lors du chargement des données
-          </div>
-        ) : (
-          <ScrollArea className="h-[400px] pr-4">
+        <ScrollArea className="h-[400px] pr-4">
+          {loading ? (
             <div className="flex flex-col gap-4 my-4">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <div key={product.id} onClick={() => handleProductSelect(product)}>
-                    <ProductCard product={product} />
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-10 text-muted-foreground">
-                  Aucun produit trouvé
-                </div>
-              )}
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
             </div>
-          </ScrollArea>
-        )}
+          ) : filteredProducts.length > 0 ? (
+            <div className="flex flex-col gap-4 my-4">
+              {filteredProducts.map((product) => (
+                <div 
+                  key={product.id} 
+                  onClick={() => handleProductSelect(product)}
+                  className="cursor-pointer"
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 text-muted-foreground">
+              Aucun produit trouvé
+            </div>
+          )}
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

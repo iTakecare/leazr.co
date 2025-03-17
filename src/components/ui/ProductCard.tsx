@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ProductCardProps {
   product: {
