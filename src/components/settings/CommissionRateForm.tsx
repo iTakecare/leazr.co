@@ -14,7 +14,7 @@ interface CommissionRateFormProps {
   onSave: (data: Partial<CommissionRate>) => void;
   rate?: CommissionRate | null;
   levelId?: string;
-  // Ces props sont exigées par CommissionManager
+  // Props for CommissionManager compatibility
   onSubmit?: (data: any) => Promise<void>;
   onCancel?: () => void;
   initialData?: { min_amount: number; max_amount: number; rate: number };
@@ -48,7 +48,8 @@ const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
       return;
     }
 
-    const data = {
+    // Ensure all required properties are properly typed and non-optional
+    const data: Partial<CommissionRate> = {
       min_amount: Number(minAmount),
       max_amount: Number(maxAmount),
       rate: Number(rateValue),

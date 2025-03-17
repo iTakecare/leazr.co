@@ -190,16 +190,18 @@ const CommissionManager = () => {
     }
   };
 
-  const handleAddRate = async (data: Omit<CommissionRate, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleAddRate = async (data: Partial<CommissionRate>) => {
     if (!selectedLevel) return;
     
     try {
-      const newRate = await createCommissionRate({
+      const rateData: Omit<CommissionRate, 'id' | 'created_at' | 'updated_at'> = {
         level_id: selectedLevel.id,
-        min_amount: data.min_amount,
-        max_amount: data.max_amount,
-        rate: data.rate
-      });
+        min_amount: data.min_amount!,
+        max_amount: data.max_amount!,
+        rate: data.rate!
+      };
+      
+      const newRate = await createCommissionRate(rateData);
       
       if (newRate) {
         toast.success("Taux de commission ajouté avec succès");
@@ -238,7 +240,7 @@ const CommissionManager = () => {
       const success = await deleteCommissionRate(id);
       
       if (success) {
-        toast.success("Taux de commission supprimé avec succès");
+        toast.success("Taux de commission supprimé avec succ��s");
         setDeleteRateDialog(null);
         if (selectedLevel) {
           await loadRates(selectedLevel.id);
