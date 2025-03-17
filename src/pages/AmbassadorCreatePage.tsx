@@ -21,7 +21,6 @@ const AmbassadorCreatePage = () => {
         name: data.name,
         email: data.email,
         phone: data.phone,
-        region: data.region,
         status: data.status || 'active',
         notes: data.notes,
         company: data.company,

@@ -3,7 +3,6 @@ export interface Ambassador {
   name: string;
   email: string;
   phone?: string;
-  region?: string;
   notes?: string;
   status: 'active' | 'inactive' | 'lead';
   user_id?: string;

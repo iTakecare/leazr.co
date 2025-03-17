@@ -31,9 +31,8 @@ const ambassadorSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Veuillez entrer un email valide"),
   phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
-  region: z.string().min(2, "La région est requise"),
   status: z.enum(["active", "inactive"]).optional(),
-  notes: z.string().optional(),
+  notes: z.string().optional().or(z.literal("")),
   company: z.string().optional().or(z.literal("")),
   vat_number: z.string().optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
@@ -66,7 +65,6 @@ const AmbassadorForm = ({
       name: "",
       email: "",
       phone: "",
-      region: "",
       status: "active",
       notes: "",
       company: "",
@@ -309,22 +307,6 @@ const AmbassadorForm = ({
                     )}
                   />
                   
-                  <FormField
-                    control={form.control}
-                    name="region"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Région*</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Île-de-France" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                   <FormField
                     control={form.control}
                     name="status"
