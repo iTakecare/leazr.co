@@ -1,87 +1,75 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, UserPlus, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { createClientForAmbassador } from "@/services/ambassadorService";
-
-const formSchema = z.object({
-  name: z.string().min(2, { message: "Le nom est requis" }),
-  email: z.string().email({ message: "Email invalide" }),
-  company: z.string().optional(),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  postal_code: z.string().optional(),
-  country: z.string().optional(),
-  vat_number: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
 
 const AmbassadorCreateClient = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Form state
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [country, setCountry] = useState("France");
+  const [vatNumber, setVatNumber] = useState("");
+  const [notes, setNotes] = useState("");
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      company: "",
-      phone: "",
-      address: "",
-      city: "",
-      postal_code: "",
-      country: "",
-      vat_number: "",
-      notes: "",
-    },
-  });
-
-  const onSubmit = async (data: FormValues) => {
-    if (!user || !user.ambassador_id) {
-      toast.error("Vous devez être connecté en tant qu'ambassadeur");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name || !email) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
-
+    
+    if (!user?.ambassador_id) {
+      toast.error("Vous devez être connecté en tant qu'ambassadeur pour créer un client");
+      return;
+    }
+    
     setIsSubmitting(true);
-
+    
     try {
-      const client = await createClientForAmbassador({
-        ...data,
+      const clientData = {
         ambassadorId: user.ambassador_id,
-      });
-
-      if (client) {
-        toast.success("Client créé avec succès");
+        name,
+        email,
+        company,
+        phone,
+        address,
+        city,
+        postal_code: postalCode,
+        country,
+        vat_number: vatNumber,
+        notes
+      };
+      
+      const result = await createClientForAmbassador(clientData);
+      
+      if (result) {
+        toast.success("Client créé avec succès !");
         navigate("/ambassador/clients");
       } else {
-        toast.error("Erreur lors de la création du client");
+        throw new Error("Échec de la création du client");
       }
     } catch (error) {
-      console.error("Error creating client:", error);
-      toast.error("Erreur lors de la création du client");
+      console.error("Erreur lors de la création du client:", error);
+      toast.error("Une erreur s'est produite lors de la création du client");
     } finally {
       setIsSubmitting(false);
     }
@@ -90,192 +78,134 @@ const AmbassadorCreateClient = () => {
   return (
     <PageTransition>
       <Container>
-        <div className="py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <UserPlus className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-bold">Créer un nouveau client</h1>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/ambassador/dashboard")}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Retour
-            </Button>
-          </div>
-
+        <div className="py-8">
+          <h1 className="text-2xl font-bold mb-6">Créer un nouveau client</h1>
+          
           <Card>
             <CardHeader>
               <CardTitle>Informations du client</CardTitle>
             </CardHeader>
             <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nom <span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nom du client" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email <span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="Email du client" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="company"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Entreprise</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nom de l'entreprise" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Téléphone</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Numéro de téléphone" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Adresse</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Adresse" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="postal_code"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Code postal</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Code postal" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Ville</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Ville" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="country"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Pays</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Pays" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="vat_number"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Numéro TVA</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Numéro TVA" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nom <span className="text-red-500">*</span></Label>
+                    <Input 
+                      id="name" 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)} 
+                      placeholder="Nom du client" 
+                      required 
                     />
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Notes</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Notes supplémentaires"
-                            className="resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={email} 
+                      onChange={(e) => setEmail(e.target.value)} 
+                      placeholder="email@exemple.com" 
+                      required 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Entreprise</Label>
+                    <Input 
+                      id="company" 
+                      value={company} 
+                      onChange={(e) => setCompany(e.target.value)} 
+                      placeholder="Nom de l'entreprise" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Téléphone</Label>
+                    <Input 
+                      id="phone" 
+                      value={phone} 
+                      onChange={(e) => setPhone(e.target.value)} 
+                      placeholder="01 23 45 67 89" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Adresse</Label>
+                    <Input 
+                      id="address" 
+                      value={address} 
+                      onChange={(e) => setAddress(e.target.value)} 
+                      placeholder="123 rue exemple" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="city">Ville</Label>
+                    <Input 
+                      id="city" 
+                      value={city} 
+                      onChange={(e) => setCity(e.target.value)} 
+                      placeholder="Paris" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="postalCode">Code postal</Label>
+                    <Input 
+                      id="postalCode" 
+                      value={postalCode} 
+                      onChange={(e) => setPostalCode(e.target.value)} 
+                      placeholder="75000" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Pays</Label>
+                    <Input 
+                      id="country" 
+                      value={country} 
+                      onChange={(e) => setCountry(e.target.value)} 
+                      placeholder="France" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="vatNumber">Numéro TVA</Label>
+                    <Input 
+                      id="vatNumber" 
+                      value={vatNumber} 
+                      onChange={(e) => setVatNumber(e.target.value)} 
+                      placeholder="FR12345678901" 
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea 
+                    id="notes" 
+                    value={notes} 
+                    onChange={(e) => setNotes(e.target.value)} 
+                    placeholder="Informations supplémentaires..." 
+                    className="h-24"
                   />
-
-                  <div className="flex justify-end">
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Création en cours...
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Créer le client
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
+                </div>
+                
+                <div className="flex justify-end space-x-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => navigate("/ambassador/dashboard")}
+                  >
+                    Annuler
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Création en cours..." : "Créer le client"}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
         </div>

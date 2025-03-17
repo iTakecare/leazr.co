@@ -1,3 +1,4 @@
+
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -30,6 +31,8 @@ import Calculator from "./pages/Calculator";
 import PartnerCreatePage from "./pages/PartnerCreatePage";
 import PartnersListPage from "./pages/PartnersList";
 import AmbassadorDashboard from "./pages/AmbassadorDashboard";
+import AmbassadorCalculator from "./pages/AmbassadorCalculator";
+import AmbassadorCreateClient from "./pages/AmbassadorCreateClient";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";

@@ -53,6 +53,17 @@ const AmbassadorCalculator = () => {
     toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
 
+  // Create a properly typed globalMarginAdjustment object for EquipmentList
+  const typedGlobalMarginAdjustment = {
+    enabled: globalMarginAdjustment.enabled || false,
+    amount: globalMarginAdjustment.amount || 0,
+    originalAmount: globalMarginAdjustment.originalAmount || 0,
+    newCoef: globalMarginAdjustment.newCoef || 0,
+    originalCoef: globalMarginAdjustment.originalCoef || 0,
+    newMonthly: globalMarginAdjustment.newMonthly || 0,
+    originalMonthly: globalMarginAdjustment.originalMonthly || 0
+  };
+
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
@@ -198,7 +209,7 @@ const AmbassadorCalculator = () => {
                     removeFromList={removeFromList}
                     updateQuantity={updateQuantity}
                     totalMonthlyPayment={totalMonthlyPayment}
-                    globalMarginAdjustment={globalMarginAdjustment}
+                    globalMarginAdjustment={typedGlobalMarginAdjustment}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                     hideMarginInfo={true}
                   />
