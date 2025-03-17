@@ -77,16 +77,14 @@ const CommissionManager = () => {
   const loadCommissionLevels = async () => {
     setLoading(true);
     try {
-      const levels = await getCommissionLevels();
+      const partnerLevelsData = await getCommissionLevels('partner');
+      const ambassadorLevelsData = await getCommissionLevels('ambassador');
       
-      const partnerLevels = levels.filter(level => level.type === 'partner');
-      const ambassadorLevels = levels.filter(level => level.type === 'ambassador');
-      
-      setPartnerLevels(partnerLevels);
-      setAmbassadorLevels(ambassadorLevels);
+      setPartnerLevels(partnerLevelsData);
+      setAmbassadorLevels(ambassadorLevelsData);
       
       if (!selectedLevel) {
-        const currentTabLevels = activeTab === 'partner' ? partnerLevels : ambassadorLevels;
+        const currentTabLevels = activeTab === 'partner' ? partnerLevelsData : ambassadorLevelsData;
         if (currentTabLevels.length > 0) {
           setSelectedLevel(currentTabLevels[0]);
         }
@@ -194,8 +192,8 @@ const CommissionManager = () => {
     if (!selectedLevel) return;
     
     try {
-      const rateData: Omit<CommissionRate, 'id' | 'created_at' | 'updated_at'> = {
-        level_id: selectedLevel.id,
+      const rateData: Omit<CommissionRate, 'id' | 'created_at'> = {
+        commission_level_id: selectedLevel.id,
         min_amount: data.min_amount!,
         max_amount: data.max_amount!,
         rate: data.rate!
@@ -240,7 +238,7 @@ const CommissionManager = () => {
       const success = await deleteCommissionRate(id);
       
       if (success) {
-        toast.success("Taux de commission supprimé avec succ��s");
+        toast.success("Taux de commission supprimé avec succès");
         setDeleteRateDialog(null);
         if (selectedLevel) {
           await loadRates(selectedLevel.id);

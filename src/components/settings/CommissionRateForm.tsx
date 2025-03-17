@@ -53,7 +53,7 @@ const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
       min_amount: Number(minAmount),
       max_amount: Number(maxAmount),
       rate: Number(rateValue),
-      level_id: levelId || rate?.level_id
+      commission_level_id: levelId || rate?.commission_level_id
     };
 
     setIsSubmitting(true);

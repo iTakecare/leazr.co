@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   Building2, Mail, Phone, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit
+  AlertCircle, Info, BadgePercent, Users, Receipt, ReceiptText, Loader2, Edit, Check
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
@@ -99,7 +99,6 @@ export default function AmbassadorDetail() {
       }
       
       console.log("Ambassador data loaded:", ambassadorData);
-      // Initialize empty arrays for mock data sections
       const detailAmbassador: DetailAmbassador = {
         ...ambassadorData,
         clients: [],
@@ -108,7 +107,6 @@ export default function AmbassadorDetail() {
       };
       setAmbassador(detailAmbassador);
 
-      // If the ambassador has a commission level, fetch the details
       if (ambassadorData.commission_level_id) {
         fetchCommissionLevel(ambassadorData.commission_level_id);
       }
@@ -148,7 +146,6 @@ export default function AmbassadorDetail() {
     setUpdatingLevel(true);
     try {
       await updateAmbassadorCommissionLevel(id, levelId);
-      // Reload ambassador data after update
       await fetchAmbassador();
       if (levelId) {
         await fetchCommissionLevel(levelId);
@@ -196,7 +193,6 @@ export default function AmbassadorDetail() {
     try {
       const success = await createUserAccount(ambassador, "ambassador");
       if (success) {
-        // Recharger les données de l'ambassadeur pour afficher les changements
         await fetchAmbassador();
       }
     } catch (error) {
@@ -340,7 +336,6 @@ export default function AmbassadorDetail() {
                   </div>
                 </div>
                 
-                {/* Commission Level Section */}
                 <div className="mt-6 border-t pt-6">
                   <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
                     <BadgePercent className="h-4 w-4 text-primary" />
@@ -430,17 +425,6 @@ export default function AmbassadorDetail() {
                     </div>
                   )}
                 </div>
-              </div>
-              
-                {ambassador.notes && (
-                  <div className="mt-6 border-t pt-4">
-                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <Info className="h-4 w-4 text-primary" />
-                      Notes
-                    </h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line bg-muted/30 p-4 rounded-md">{ambassador.notes}</p>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
