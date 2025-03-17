@@ -13,10 +13,23 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatCurrency } from "@/utils/formatters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Phone, MapPin, User, Building, BadgePercent } from "lucide-react";
+import { Mail, Phone, MapPin, User, Building, BadgePercent, Check, Loader2 } from "lucide-react";
 import ClientsView from "./ClientsView";
 import CommissionsView from "./CommissionsView";
-import { CommissionLevel, getCommissionLevelWithRates } from "@/services/commissionService";
+import { 
+  CommissionLevel, 
+  getCommissionLevelWithRates, 
+  getCommissionLevels,
+  updateAmbassadorCommissionLevel 
+} from "@/services/commissionService";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface AmbassadorDetailProps {
   isOpen: boolean;
@@ -49,15 +62,31 @@ const AmbassadorDetail = ({
   const [tab, setTab] = useState("overview");
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [loading, setLoading] = useState(false);
+  const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [updatingLevel, setUpdatingLevel] = useState(false);
 
   useEffect(() => {
-    if (isOpen && ambassador?.commission_level_id) {
-      loadCommissionLevel(ambassador.commission_level_id);
+    if (isOpen) {
+      loadCommissionLevels();
+      if (ambassador?.commission_level_id) {
+        loadCommissionLevel(ambassador.commission_level_id);
+      } else {
+        setCommissionLevel(null);
+      }
     } else {
       setCommissionLevel(null);
     }
   }, [isOpen, ambassador]);
+
+  const loadCommissionLevels = async () => {
+    try {
+      const levels = await getCommissionLevels("ambassador");
+      setCommissionLevels(levels);
+    } catch (error) {
+      console.error("Error loading commission levels:", error);
+    }
+  };
 
   const loadCommissionLevel = async (levelId: string) => {
     setLoading(true);
@@ -68,6 +97,22 @@ const AmbassadorDetail = ({
       console.error("Error loading commission level:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateCommissionLevel = async (levelId: string) => {
+    if (!ambassador || !levelId) return;
+    
+    setUpdatingLevel(true);
+    try {
+      await updateAmbassadorCommissionLevel(ambassador.id, levelId);
+      loadCommissionLevel(levelId);
+      toast.success("Barème de commissionnement mis à jour");
+    } catch (error) {
+      console.error("Error updating commission level:", error);
+      toast.error("Erreur lors de la mise à jour du barème");
+    } finally {
+      setUpdatingLevel(false);
     }
   };
 
@@ -164,35 +209,87 @@ const AmbassadorDetail = ({
                 </div>
               )}
 
-              {commissionLevel && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">Barème de commissionnement</h3>
-                  <div className="p-3 rounded-lg border">
-                    <div className="flex items-center gap-2 mb-2">
-                      <BadgePercent className="h-4 w-4 text-primary" />
-                      <div className="font-medium">{commissionLevel.name}</div>
-                      {commissionLevel.is_default && (
-                        <Badge variant="outline" className="text-xs">Par défaut</Badge>
+              {/* Commission Level Section with Selector */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <BadgePercent className="h-4 w-4 text-primary" />
+                  Barème de commissionnement
+                </h3>
+                
+                <div className="p-3 rounded-lg border">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="commission-level" className="text-xs text-muted-foreground">
+                        Changer le barème
+                      </label>
+                      <Select
+                        value={ambassador.commission_level_id || ""}
+                        onValueChange={handleUpdateCommissionLevel}
+                        disabled={updatingLevel}
+                      >
+                        <SelectTrigger id="commission-level" className="w-full">
+                          <SelectValue placeholder="Sélectionner un barème" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {commissionLevels.map((level) => (
+                            <SelectItem key={level.id} value={level.id}>
+                              <div className="flex items-center gap-2">
+                                {level.name}
+                                {level.is_default && (
+                                  <Badge variant="outline" className="text-xs">Par défaut</Badge>
+                                )}
+                                {level.id === ambassador.commission_level_id && (
+                                  <Check className="h-3 w-3 text-primary ml-1" />
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {updatingLevel && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Mise à jour en cours...
+                        </div>
                       )}
                     </div>
-                    {commissionLevel.rates && commissionLevel.rates.length > 0 && (
-                      <div className="mt-2 space-y-1 text-sm">
-                        {commissionLevel.rates
-                          .sort((a, b) => b.min_amount - a.min_amount) // Sort by min_amount descending
-                          .map((rate, index) => (
-                            <div key={index} className="grid grid-cols-2 gap-2">
-                              <div className="text-muted-foreground">
-                                {Number(rate.min_amount).toLocaleString('fr-FR')}€ - {Number(rate.max_amount).toLocaleString('fr-FR')}€
-                              </div>
-                              <div className="font-medium text-right">{rate.rate}%</div>
-                            </div>
-                          ))
-                        }
+
+                    {loading ? (
+                      <div className="flex items-center justify-center py-3">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      </div>
+                    ) : commissionLevel ? (
+                      <div className="mt-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="font-medium">{commissionLevel.name}</div>
+                          {commissionLevel.is_default && (
+                            <Badge variant="outline" className="text-xs">Par défaut</Badge>
+                          )}
+                        </div>
+                        {commissionLevel.rates && commissionLevel.rates.length > 0 && (
+                          <div className="mt-2 space-y-1 text-sm">
+                            {commissionLevel.rates
+                              .sort((a, b) => b.min_amount - a.min_amount) // Sort by min_amount descending
+                              .map((rate, index) => (
+                                <div key={index} className="grid grid-cols-2 gap-2">
+                                  <div className="text-muted-foreground">
+                                    {Number(rate.min_amount).toLocaleString('fr-FR')}€ - {Number(rate.max_amount).toLocaleString('fr-FR')}€
+                                  </div>
+                                  <div className="font-medium text-right">{rate.rate}%</div>
+                                </div>
+                              ))
+                            }
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-amber-600 mt-2">
+                        Aucun barème de commissionnement sélectionné.
                       </div>
                     )}
                   </div>
                 </div>
-              )}
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col items-center justify-center rounded-lg border p-3">

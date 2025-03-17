@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,14 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
 import { createUserAccount, resetPassword } from "@/services/accountService";
-import { CommissionLevel, getCommissionLevelWithRates } from "@/services/commissionService";
+import { CommissionLevel, getCommissionLevelWithRates, getCommissionLevels, updateAmbassadorCommissionLevel } from "@/services/commissionService";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Mock data interfaces
 interface Client {
@@ -67,6 +73,8 @@ export default function AmbassadorDetail() {
   const [error, setError] = useState<string | null>(null);
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [loadingCommission, setLoadingCommission] = useState(false);
+  const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
+  const [updatingLevel, setUpdatingLevel] = useState(false);
 
   const fetchAmbassador = async () => {
     if (!id) {
@@ -125,8 +133,38 @@ export default function AmbassadorDetail() {
     }
   };
 
+  const loadCommissionLevels = async () => {
+    try {
+      const levels = await getCommissionLevels("ambassador");
+      setCommissionLevels(levels);
+    } catch (error) {
+      console.error("Error loading commission levels:", error);
+    }
+  };
+
+  const handleUpdateCommissionLevel = async (levelId: string) => {
+    if (!ambassador || !id) return;
+    
+    setUpdatingLevel(true);
+    try {
+      await updateAmbassadorCommissionLevel(id, levelId);
+      // Reload ambassador data after update
+      await fetchAmbassador();
+      if (levelId) {
+        await fetchCommissionLevel(levelId);
+      }
+      toast.success("Barème de commissionnement mis à jour");
+    } catch (error) {
+      console.error("Error updating commission level:", error);
+      toast.error("Erreur lors de la mise à jour du barème");
+    } finally {
+      setUpdatingLevel(false);
+    }
+  };
+
   useEffect(() => {
     fetchAmbassador();
+    loadCommissionLevels();
   }, [id, navigate]);
 
   const handleResetPassword = async () => {
@@ -309,12 +347,49 @@ export default function AmbassadorDetail() {
                     Barème de commissionnement
                   </h3>
                   
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="commission-level-full" className="text-sm text-muted-foreground">
+                        Changer le barème
+                      </label>
+                      <Select
+                        value={ambassador?.commission_level_id || ""}
+                        onValueChange={handleUpdateCommissionLevel}
+                        disabled={updatingLevel}
+                      >
+                        <SelectTrigger id="commission-level-full" className="w-full">
+                          <SelectValue placeholder="Sélectionner un barème" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {commissionLevels.map((level) => (
+                            <SelectItem key={level.id} value={level.id}>
+                              <div className="flex items-center gap-2">
+                                {level.name}
+                                {level.is_default && (
+                                  <Badge variant="outline" className="text-xs">Par défaut</Badge>
+                                )}
+                                {level.id === ambassador?.commission_level_id && (
+                                  <Check className="h-3 w-3 text-primary ml-1" />
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                    </Select>
+                    {updatingLevel && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Mise à jour en cours...
+                      </div>
+                    )}
+                  </div>
+                  
                   {loadingCommission ? (
                     <div className="flex justify-center p-4">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                   ) : commissionLevel ? (
-                    <div className="bg-muted/20 p-4 rounded-md">
+                    <div className="bg-muted/20 p-4 rounded-md mt-2">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{commissionLevel.name}</span>
@@ -350,12 +425,13 @@ export default function AmbassadorDetail() {
                     <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md">
                       <p className="text-sm">
                         Aucun barème de commissionnement n'est défini pour cet ambassadeur.
-                        Utilisez la fonction "Modifier" pour en assigner un.
+                        Sélectionnez un barème ci-dessus.
                       </p>
                     </div>
                   )}
                 </div>
-                
+              </div>
+              
                 {ambassador.notes && (
                   <div className="mt-6 border-t pt-4">
                     <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
