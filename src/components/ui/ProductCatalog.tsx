@@ -59,35 +59,36 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
       console.log("Catalog opened with products:", products);
       console.log("Categories:", categoriesData);
       console.log("Brands:", brandsData);
+      console.log("Selected category:", selectedCategory);
+      console.log("Selected brand:", selectedBrand);
     }
-  }, [isOpen, products, categoriesData, brandsData]);
+  }, [isOpen, products, categoriesData, brandsData, selectedCategory, selectedBrand]);
 
   // Extraire les catégories depuis les données récupérées
   const categories = React.useMemo(() => {
-    return [
-      { name: "all", translation: "Toutes les catégories" }, 
-      ...categoriesData
-    ];
+    return categoriesData.map(c => ({ name: c.name, translation: c.translation }));
   }, [categoriesData]);
 
   // Extraire les marques depuis les données récupérées
   const brands = React.useMemo(() => {
-    return [
-      { name: "all", translation: "Toutes les marques" }, 
-      ...brandsData
-    ];
+    return brandsData.map(b => ({ name: b.name, translation: b.translation }));
   }, [brandsData]);
 
   const filteredProducts = React.useMemo(() => {
+    if (!products || !Array.isArray(products)) {
+      console.log("Products is not an array:", products);
+      return [];
+    }
+    
     return products.filter((product: Product) => {
       // Search term filter
-      const nameMatch = !searchTerm || product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
       
       // Category filter
-      const categoryMatch = selectedCategory === "all" || product.category === selectedCategory;
+      const categoryMatch = selectedCategory === "all" || (product.category && product.category === selectedCategory);
       
       // Brand filter
-      const brandMatch = selectedBrand === "all" || product.brand === selectedBrand;
+      const brandMatch = selectedBrand === "all" || (product.brand && product.brand === selectedBrand);
       
       return nameMatch && categoryMatch && brandMatch;
     });
@@ -126,6 +127,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 <SelectValue placeholder="Catégorie" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Toutes les catégories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.name} value={category.name}>
                     {category.translation}
@@ -139,6 +141,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 <SelectValue placeholder="Marque" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Toutes les marques</SelectItem>
                 {brands.map((brand) => (
                   <SelectItem key={brand.name} value={brand.name}>
                     {brand.translation}
@@ -200,6 +203,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Toutes les catégories</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.name} value={category.name}>
                   {category.translation}
@@ -213,6 +217,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               <SelectValue placeholder="Marque" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Toutes les marques</SelectItem>
               {brands.map((brand) => (
                 <SelectItem key={brand.name} value={brand.name}>
                   {brand.translation}

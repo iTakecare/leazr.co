@@ -41,10 +41,12 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   useEffect(() => {
     if (isOpen) {
       console.log("CatalogDialog opened with products:", filteredProducts);
+      console.log("Categories:", categories);
+      console.log("Brands:", brands);
       console.log("Selected category:", selectedCategory);
       console.log("Selected brand:", selectedBrand);
     }
-  }, [isOpen, filteredProducts, selectedCategory, selectedBrand]);
+  }, [isOpen, filteredProducts, categories, brands, selectedCategory, selectedBrand]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
