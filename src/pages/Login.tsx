@@ -121,9 +121,9 @@ const Login = () => {
 
   if (isResetMode) {
     return (
-      <Container>
+      <Container maxWidth="sm" className="px-4">
         <div className="flex justify-center items-center min-h-[80vh]">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-sm">
             <CardHeader>
               <CardTitle>Réinitialisation du mot de passe</CardTitle>
               <CardDescription>Créez un nouveau mot de passe pour votre compte</CardDescription>
@@ -165,9 +165,9 @@ const Login = () => {
   }
 
   return (
-    <Container>
+    <Container maxWidth="sm" className="px-4">
       <div className="flex justify-center items-center min-h-[80vh]">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-sm">
           <CardHeader>
             <CardTitle>Connexion</CardTitle>
             <CardDescription>Connectez-vous à votre compte</CardDescription>

@@ -97,6 +97,10 @@
   .responsive-badge {
     @apply inline-flex items-center justify-center whitespace-nowrap;
   }
+  
+  .auth-card {
+    @apply w-full max-w-sm mx-auto;
+  }
 }
 
 @keyframes fadeIn {
