@@ -4,7 +4,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 
 export function Layout() {
@@ -22,7 +22,7 @@ export function Layout() {
               variant="ghost"
               size="icon"
               onClick={toggleSidebar}
-              className="absolute top-4 left-4 z-50 md:hidden"
+              className="fixed top-4 left-4 z-50 md:hidden"
             >
               <Menu className="h-6 w-6" />
               <span className="sr-only">Menu</span>
@@ -34,10 +34,8 @@ export function Layout() {
               </SheetContent>
             </Sheet>
             
-            <main className="flex-1 overflow-auto p-4 pb-20 md:p-6">
-              <div className="mt-10 md:mt-0">
-                <Outlet />
-              </div>
+            <main className="flex-1 overflow-auto pt-16 px-4 pb-20 md:p-6">
+              <Outlet />
             </main>
           </>
         ) : (
