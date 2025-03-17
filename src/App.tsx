@@ -1,4 +1,3 @@
-
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -22,7 +21,6 @@ import PartnerCreateOffer from "./pages/PartnerCreateOffer";
 import PartnerOfferDetail from "./pages/PartnerOfferDetail";
 import PartnerDetail from "./pages/PartnerDetail";
 import PartnerEditPage from "./pages/PartnerEditPage";
-import PartnerCreatePage from "./pages/PartnerCreatePage";
 import AmbassadorDetail from "./pages/AmbassadorDetail";
 import AmbassadorEditPage from "./pages/AmbassadorEditPage";
 import AmbassadorCreatePage from "./pages/AmbassadorCreatePage";
@@ -194,7 +192,6 @@ function App() {
               <Route path="/create-test-users" element={<CreateTestUsers />} />
               <Route path="/calculator" element={<Calculator />} />
               <Route path="/partners" element={<AmbassadorsListPage />} />
-              <Route path="/partners/create" element={<PartnerCreatePage />} />
               <Route path="/partners/:id" element={<PartnerDetail />} />
               <Route path="/partners/edit/:id" element={<PartnerEditPage />} />
               <Route path="/ambassadors" element={<AmbassadorsListPage />} />

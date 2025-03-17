@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,6 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch partners on component mount
   useEffect(() => {
     fetchPartners();
   }, []);
@@ -73,15 +71,12 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
     }
   };
 
-  // Filter partners based on search term and status filter
   const filteredPartners = partnersList.filter(partner => {
-    // Filtre par terme de recherche
     const matchesSearch = 
       partner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (partner.email && partner.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (partner.contactName && partner.contactName.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Filtre par statut
     const matchesStatus = statusFilter === "all" || partner.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -134,7 +129,6 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
       
       const newStatus = partner.status === 'active' ? 'inactive' : 'active';
       
-      // Create properly typed update data
       const updateData: Partial<PartnerFormValues> = { 
         status: newStatus as 'active' | 'inactive'
       };
@@ -170,29 +164,23 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
     try {
       const partnerToDelete = {...currentPartner};
       
-      // First, reset all states to prevent any stuck references
       setCurrentPartner(null);
       setCurrentPartnerWithClients(null);
       
-      // Close all dialogs/modals
       setIsDeleteDialogOpen(false);
       setIsEditModalOpen(false);
       setIsClientsViewOpen(false);
       
-      // Delete from database
       await deletePartner(partnerToDelete.id);
       
-      // Then update the list
       setPartnersList(prevList => prevList.filter(p => p.id !== partnerToDelete.id));
       
-      // Show success notification
       toast.success(`Le partenaire ${partnerToDelete.name} a été supprimé`);
       
     } catch (error) {
       console.error("Erreur lors de la suppression du partenaire:", error);
       toast.error("Une erreur est survenue lors de la suppression du partenaire");
       
-      // Make sure dialogs are closed even on error
       setIsDeleteDialogOpen(false);
     }
   }, [currentPartner]);
@@ -202,10 +190,8 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
     
     try {
       if (currentPartner?.id) {
-        // Update existing partner
         await updatePartner(currentPartner.id, data);
         
-        // Update the local partner list with properly typed values
         setPartnersList(prevList => 
           prevList.map(partner => 
             partner.id === currentPartner.id
@@ -216,7 +202,7 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
                   email: data.email,
                   phone: data.phone || "",
                   type: data.type,
-                  notes: data.notes
+                  notes: data.notes || ""
                 }
               : partner
           )
@@ -224,7 +210,6 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
         toast.success(`Le partenaire ${data.name} a été mis à jour`);
         setIsEditModalOpen(false);
       } else {
-        // Create new partner
         const newPartner = await createPartner(data);
         
         if (newPartner) {
@@ -251,13 +236,12 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
     setCurrentPartnerWithClients(null);
   }, []);
 
-  // Function to convert a Partner to PartnerFormValues for the form
   const convertPartnerToFormValues = (partner: Partner): PartnerFormValues => {
     return {
       name: partner.name,
       contactName: partner.contactName,
       email: partner.email,
-      phone: partner.phone,
+      phone: partner.phone || "",
       type: partner.type,
       status: partner.status as "active" | "inactive",
       notes: partner.notes || ""
@@ -332,13 +316,13 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
                       handleViewClients(partner.id);
                     }}
                   >
-                    {partner.clientsCount} clients
+                    {partner.clientsCount || 0} clients
                   </Button>
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
                     <div className="font-medium text-sm">
-                      {formatCurrency(partner.revenueTotal)}
+                      {formatCurrency(partner.revenueTotal || 0)}
                     </div>
                     {partner.lastTransaction > 0 && (
                       <div className="text-xs text-muted-foreground flex items-center">
