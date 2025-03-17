@@ -16,17 +16,11 @@ export async function getProducts(): Promise<Product[]> {
       throw new Error(`API Error: ${error.message}`);
     }
 
-    if (!data || data.length === 0) {
-      console.log("No products found in API, using sample products");
-      return sampleProducts;
-    }
-
-    console.log(`Retrieved ${data.length} products from API`);
-    return data;
+    console.log(`Retrieved ${data?.length || 0} products from API`);
+    return data || [];
   } catch (error) {
     console.error("Error in getProducts:", error);
-    console.log("Falling back to sample products");
-    return sampleProducts;
+    return [];
   }
 }
 
@@ -282,30 +276,11 @@ export const getCategories = async () => {
       throw new Error(`API Error: ${error.message}`);
     }
 
-    if (!data || data.length === 0) {
-      console.log("No categories found in API, using defaults");
-      return [
-        { name: "laptop", translation: "Ordinateur portable" },
-        { name: "desktop", translation: "Ordinateur de bureau" },
-        { name: "tablet", translation: "Tablette" },
-        { name: "smartphone", translation: "Smartphone" },
-        { name: "accessories", translation: "Accessoires" },
-        { name: "other", translation: "Autre" }
-      ];
-    }
-
-    console.log(`Retrieved ${data.length} categories from API`);
-    return data;
+    console.log(`Retrieved ${data?.length || 0} categories from API`);
+    return data || [];
   } catch (error) {
     console.error("Error in getCategories:", error);
-    return [
-      { name: "laptop", translation: "Ordinateur portable" },
-      { name: "desktop", translation: "Ordinateur de bureau" },
-      { name: "tablet", translation: "Tablette" },
-      { name: "smartphone", translation: "Smartphone" },
-      { name: "accessories", translation: "Accessoires" },
-      { name: "other", translation: "Autre" }
-    ];
+    return [];
   }
 }
 
@@ -389,16 +364,24 @@ export const deleteCategory = async ({ name }: { name: string }) => {
 }
 
 export const getBrands = async () => {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .rpc('get_brands');
-  
-  if (error) {
-    console.error("Error fetching brands:", error);
-    throw new Error(error.message);
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*')
+      .order('name', { ascending: true });
+    
+    if (error) {
+      console.error("Error fetching brands:", error);
+      throw new Error(error.message);
+    }
+    
+    console.log(`Retrieved ${data?.length || 0} brands from API`);
+    return data || [];
+  } catch (error) {
+    console.error("Error in getBrands:", error);
+    return [];
   }
-  
-  return data || [];
 };
 
 export const addBrand = async ({ name, translation }: { name: string, translation: string }) => {
