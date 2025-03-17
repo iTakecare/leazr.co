@@ -1,6 +1,7 @@
 
 import { Ambassador, DetailAmbassador, CreateAmbassadorData } from '@/types/ambassador';
 import { v4 as uuidv4 } from 'uuid';
+import { CreateClientData } from '@/types/client';
 
 // Mock data for ambassadors
 const mockAmbassadors: Ambassador[] = [
@@ -83,6 +84,17 @@ export const getAmbassadorById = async (id: string): Promise<DetailAmbassador> =
   });
 };
 
+// Get ambassador profile
+export const getAmbassadorProfile = async (userId: string): Promise<Ambassador | null> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // Simulating looking up an ambassador by user ID
+      const ambassador = mockAmbassadors.find(a => a.id === '1'); // For demo, just return first ambassador
+      resolve(ambassador || null);
+    }, 800);
+  });
+};
+
 // Create a new ambassador
 export const createAmbassador = async (ambassadorData: CreateAmbassadorData): Promise<Ambassador> => {
   return new Promise((resolve) => {
@@ -125,7 +137,7 @@ export const updateAmbassador = async (id: string, ambassadorData: Partial<Creat
 };
 
 // Create client for ambassador
-export const createClientForAmbassador = async (ambassadorId: string, clientData: any): Promise<any> => {
+export const createClientForAmbassador = async (ambassadorId: string, clientData: CreateClientData): Promise<boolean> => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       const ambassador = mockAmbassadors.find(a => a.id === ambassadorId);
@@ -141,7 +153,7 @@ export const createClientForAmbassador = async (ambassadorId: string, clientData
         // Update ambassador stats
         ambassador.clients_count += 1;
         
-        resolve(newClient);
+        resolve(true);
       } else {
         reject(new Error(`Ambassador with ID ${ambassadorId} not found`));
       }

@@ -1,11 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthContext";
-import { createClientForAmbassador } from "@/services/clientService";
-import { getAmbassadorProfile } from "@/services/ambassadorService";
+import { getAmbassadorProfile, createClientForAmbassador } from "@/services/ambassadorService";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +54,7 @@ const AmbassadorCreateClient = () => {
 
   const {
     register,
-    handleSubmit,
+    handleSubmit: submitForm,
     formState: { errors }
   } = useForm<ClientFormData>({
     resolver: zodResolver(ClientFormSchema),
@@ -81,7 +81,7 @@ const AmbassadorCreateClient = () => {
     fetchAmbassador();
   }, [user]);
 
-  const handleSubmit = async (data: ClientFormData) => {
+  const onSubmit: SubmitHandler<ClientFormData> = async (data) => {
     setSubmitting(true);
     
     try {
@@ -91,7 +91,6 @@ const AmbassadorCreateClient = () => {
         ambassador_id: ambassador?.id || ''
       };
       
-      // Correction: passer l'id de l'ambassadeur comme premier argument
       const success = await createClientForAmbassador(
         ambassador?.id || '',
         clientData
@@ -271,7 +270,11 @@ const AmbassadorCreateClient = () => {
                 )}
               </div>
 
-              <Button disabled={submitting} onClick={handleSubmit(handleSubmit)} className="w-full">
+              <Button 
+                disabled={submitting} 
+                onClick={submitForm(onSubmit)} 
+                className="w-full"
+              >
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

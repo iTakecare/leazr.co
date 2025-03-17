@@ -36,9 +36,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       const offer = offers.find(o => o.id === offerId);
       if (!offer) throw new Error("Offre non trouvée");
       
-      // Update to match the expected parameters for updateOfferStatus (2 parameters)
-      // Cast the newStatus to any to avoid TypeScript error
-      const success = await updateOfferStatus(offerId, newStatus as any);
+      // Update to match the expected parameters for updateOfferStatus (2 parameters only)
+      const success = await updateOfferStatus(offerId, newStatus);
       
       if (success) {
         setOffers(prevOffers => prevOffers.map(o => 
@@ -89,7 +88,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       console.log("Demande d'informations pour l'offre:", offerId);
       console.log("Message personnalisé:", message);
       
-      // Update to match the expected parameters for sendInfoRequest (only need offerId and message)
+      // Fix to match the expected parameters for sendInfoRequest (only offerId and message)
       const success = await sendInfoRequest(offerId, message);
       
       if (success) {
@@ -114,7 +113,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       
       // Convert boolean to string for the API
       const responseStatus = approve ? "approved" : "rejected";
-      // Cast the boolean to string to avoid TypeScript error
+      
+      // Use the string value for the API call
       const success = await processInfoResponse(offerId, responseStatus);
       
       if (success) {

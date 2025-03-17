@@ -61,7 +61,7 @@ export function useClients() {
     }
   }, [clients, searchTerm, statusFilter]);
 
-  // Modifions la fonction handleDeleteClient pour qu'elle retourne Promise<void> au lieu de Promise<boolean>
+  // Fix return type to match Promise<void> rather than Promise<boolean>
   const handleDeleteClient = async (clientId: string): Promise<void> => {
     try {
       const { error } = await supabase

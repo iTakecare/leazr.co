@@ -36,7 +36,7 @@ export const useFetchOffers = () => {
     
     try {
       console.log("Fetching offers with includeConverted =", includeConverted);
-      // Remove the parameter as getOffers() doesn't accept any
+      // getOffers doesn't accept any parameters
       const offersData = await getOffers();
       
       if (Array.isArray(offersData)) {
@@ -54,12 +54,10 @@ export const useFetchOffers = () => {
                 workflowStatus = OFFER_STATUSES.DRAFT.id;
                 break;
               default:
-                // Check if status is 'pending' using an if statement instead of case
-                if (offer.status === "pending") {
-                  workflowStatus = OFFER_STATUSES.DRAFT.id;
-                } else {
-                  workflowStatus = OFFER_STATUSES.DRAFT.id;
-                }
+                // Handle "pending" separately
+                workflowStatus = offer.status === "pending" 
+                  ? OFFER_STATUSES.DRAFT.id 
+                  : OFFER_STATUSES.DRAFT.id;
             }
             return { ...offer, workflow_status: workflowStatus };
           }
@@ -69,14 +67,13 @@ export const useFetchOffers = () => {
         const offersWithType = offersWithWorkflow.map(offer => {
           if (!offer.type) {
             // Use optional chaining to safely access clientId or client_id
-            // Cast offer to any to avoid TS error with client_id property
-            const offerAny = offer as any;
+            const clientIdentifier = offer.clientId || (offer as any).client_id;
             return {
               ...offer,
-              type: offer.clientId || offerAny.client_id ? 'client_request' : 'admin_offer',
+              type: clientIdentifier ? 'client_request' : 'admin_offer',
               // Ensure both clientId and client_id are set for backward compatibility
-              clientId: offer.clientId || offerAny.client_id,
-              client_id: offerAny.client_id || offer.clientId
+              clientId: clientIdentifier,
+              client_id: clientIdentifier
             };
           }
           return offer;
