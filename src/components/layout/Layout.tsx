@@ -29,8 +29,8 @@ export function Layout() {
             </Button>
             
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetContent side="left" className="p-0 max-w-[280px]">
-                <Sidebar />
+              <SheetContent side="left" className="p-0 w-[280px] max-w-[80vw]">
+                <Sidebar className="h-full w-full border-none" />
               </SheetContent>
             </Sheet>
             

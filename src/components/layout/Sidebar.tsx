@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -19,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MenuItemProps {
   to: string;
@@ -28,7 +30,22 @@ interface MenuItemProps {
 }
 
 const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
-  return (
+  const isMobile = useIsMobile();
+  
+  return isMobile ? (
+    <Link
+      to={to}
+      className={cn(
+        "flex items-center gap-3 py-3 px-4 my-1 rounded-md transition-colors text-base",
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
+      )}
+    >
+      <Icon className="h-5 w-5" aria-hidden="true" />
+      <span>{label}</span>
+    </Link>
+  ) : (
     <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -59,7 +76,17 @@ interface ActionItemProps {
 }
 
 const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
-  return (
+  const isMobile = useIsMobile();
+  
+  return isMobile ? (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-3 py-3 px-4 my-1 rounded-md transition-colors text-base text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+    >
+      <Icon className="h-5 w-5" aria-hidden="true" />
+      <span>{label}</span>
+    </button>
+  ) : (
     <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -86,6 +113,7 @@ const Sidebar = ({ className }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
 
   const isActive = (path: string) => {
     return location.pathname.startsWith(path);
@@ -103,11 +131,22 @@ const Sidebar = ({ className }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "h-full flex flex-col border-r bg-background w-16",
+        "h-full flex flex-col border-r bg-background",
+        isMobile ? "w-full" : "w-16",
         className
       )}
     >
-      <div className="flex-1 overflow-y-auto p-2 pt-8 space-y-6">
+      {isMobile && (
+        <div className="p-4 border-b">
+          <h2 className="font-bold text-xl">Hub iTakecare</h2>
+        </div>
+      )}
+      
+      <div className={cn(
+        "flex-1 overflow-y-auto",
+        isMobile ? "p-3" : "p-2 pt-8",
+        "space-y-2"
+      )}>
         <MenuItem
           to="/dashboard"
           icon={LayoutDashboard}
@@ -153,9 +192,22 @@ const Sidebar = ({ className }: SidebarProps) => {
       </div>
 
       {user && (
-        <div className="p-3 border-t flex flex-col items-center pt-6 pb-6">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-6">
-            {user.email?.charAt(0).toUpperCase() || "U"}
+        <div className={cn(
+          "border-t flex flex-col items-center", 
+          isMobile ? "px-3 py-4" : "p-3 pt-6 pb-6"
+        )}>
+          <div className={cn(
+            "flex items-center",
+            isMobile ? "w-full mb-4 gap-3" : "flex-col"
+          )}>
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+              {user.email?.charAt(0).toUpperCase() || "U"}
+            </div>
+            {isMobile && (
+              <div className="flex-1">
+                <p className="font-medium">{user.email}</p>
+              </div>
+            )}
           </div>
           <ActionItem 
             icon={LogOut} 
