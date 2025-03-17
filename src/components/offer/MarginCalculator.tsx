@@ -14,6 +14,7 @@ interface MarginCalculatorProps {
   applyCalculatedMargin: () => void;
   selectedLeaser: Leaser | null;
   coefficient: number;
+  hideFinancialDetails?: boolean;
 }
 
 const MarginCalculator: React.FC<MarginCalculatorProps> = ({
@@ -22,7 +23,8 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
   calculatedMargin,
   applyCalculatedMargin,
   selectedLeaser,
-  coefficient
+  coefficient,
+  hideFinancialDetails = false
 }) => {
   const [inputValue, setInputValue] = useState(targetMonthlyPayment ? targetMonthlyPayment.toString() : "");
 
@@ -91,24 +93,26 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="block text-sm text-gray-700">Coefficient appliqué :</span>
-              <span className="font-medium">{coefficient.toFixed(2)}</span>
+          {!hideFinancialDetails && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="block text-sm text-gray-700">Coefficient appliqué :</span>
+                <span className="font-medium">{coefficient.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="block text-sm text-gray-700">Marge calculée :</span>
+                <span className="font-medium">
+                  {calculatedMargin.percentage > 0 ? formatPercentage(calculatedMargin.percentage) : '-'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-sm text-gray-700">Marge (€) :</span>
+                <span className="font-medium">
+                  {calculatedMargin.amount > 0 ? formatCurrency(calculatedMargin.amount) : '-'}
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="block text-sm text-gray-700">Marge calculée :</span>
-              <span className="font-medium">
-                {calculatedMargin.percentage > 0 ? formatPercentage(calculatedMargin.percentage) : '-'}
-              </span>
-            </div>
-            <div>
-              <span className="block text-sm text-gray-700">Marge (€) :</span>
-              <span className="font-medium">
-                {calculatedMargin.amount > 0 ? formatCurrency(calculatedMargin.amount) : '-'}
-              </span>
-            </div>
-          </div>
+          )}
 
           <Button 
             onClick={handleApplyMargin}

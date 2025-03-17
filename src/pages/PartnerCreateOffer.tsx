@@ -369,6 +369,7 @@ const PartnerCreateOffer = () => {
                       setTargetMonthlyPayment={setTargetMonthlyPayment}
                       calculatedMargin={calculatedMargin}
                       applyCalculatedMargin={applyCalculatedMargin}
+                      hideFinancialDetails={true}
                     />
                   </div>
                 </div>

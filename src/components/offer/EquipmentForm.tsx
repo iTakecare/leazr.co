@@ -24,6 +24,7 @@ interface EquipmentFormProps {
   setTargetMonthlyPayment: (value: number) => void;
   calculatedMargin: { percentage: number; amount: number };
   applyCalculatedMargin: () => void;
+  hideFinancialDetails?: boolean;
 }
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({
@@ -39,7 +40,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   targetMonthlyPayment,
   setTargetMonthlyPayment,
   calculatedMargin,
-  applyCalculatedMargin
+  applyCalculatedMargin,
+  hideFinancialDetails = false
 }) => {
   const [errors, setErrors] = useState({
     title: false,
@@ -158,6 +160,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             errors={errors}
             onOpenCatalog={() => setIsQuickCatalogOpen(true)}
             calculatedMargin={calculatedMargin}
+            hideFinancialDetails={hideFinancialDetails}
           />
 
           <PriceDetailsDisplay
@@ -165,6 +168,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             priceWithMargin={priceWithMargin}
             coefficient={coefficient}
             displayMonthlyPayment={displayMonthlyPayment}
+            hideFinancialDetails={hideFinancialDetails}
           />
 
           <FormActionButtons
@@ -181,6 +185,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
               applyCalculatedMargin={applyCalculatedMargin}
               selectedLeaser={selectedLeaser}
               coefficient={coefficient}
+              hideFinancialDetails={hideFinancialDetails}
             />
           </div>
         </div>
