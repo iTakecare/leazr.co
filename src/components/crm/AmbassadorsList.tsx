@@ -44,7 +44,7 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
     const matchesSearch = 
       ambassador.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ambassador.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (ambassador.region && ambassador.region.toLowerCase().includes(searchTerm.toLowerCase()));
+      (ambassador.company && ambassador.company.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === "all" || ambassador.status === statusFilter;
     
@@ -112,16 +112,16 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
               
               <div className="grid grid-cols-3 gap-2 mt-3 text-sm">
                 <div>
-                  <span className="text-xs text-muted-foreground block">Zone</span>
-                  {ambassador.region || "-"}
+                  <span className="text-xs text-muted-foreground block">Entreprise</span>
+                  {ambassador.company || "-"}
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground block">Clients</span>
-                  {ambassador.clientsCount || 0}
+                  {ambassador.clients_count || 0}
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground block">Commissions</span>
-                  {ambassador.commissionsTotal || 0}€
+                  {ambassador.commissions_total || 0}€
                 </div>
               </div>
               
@@ -168,7 +168,7 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
             <TableRow>
               <TableHead className="whitespace-nowrap">Nom</TableHead>
               <TableHead className="whitespace-nowrap">Contact</TableHead>
-              <TableHead className="whitespace-nowrap">Zone</TableHead>
+              <TableHead className="whitespace-nowrap">Entreprise</TableHead>
               <TableHead className="whitespace-nowrap">Clients</TableHead>
               <TableHead className="whitespace-nowrap">Commissions</TableHead>
               <TableHead className="whitespace-nowrap">Statut</TableHead>
@@ -194,9 +194,9 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{ambassador.region || "-"}</TableCell>
-                  <TableCell>{ambassador.clientsCount || 0} clients</TableCell>
-                  <TableCell>{ambassador.commissionsTotal || 0} €</TableCell>
+                  <TableCell>{ambassador.company || "-"}</TableCell>
+                  <TableCell>{ambassador.clients_count || 0} clients</TableCell>
+                  <TableCell>{ambassador.commissions_total || 0} €</TableCell>
                   <TableCell>
                     <Badge variant={ambassador.status === 'active' ? 'default' : 'secondary'} className={
                       ambassador.status === 'active' 

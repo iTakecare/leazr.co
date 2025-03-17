@@ -1,3 +1,4 @@
+
 export interface Ambassador {
   id: string;
   name: string;
@@ -17,6 +18,13 @@ export interface Ambassador {
   city?: string;
   postal_code?: string;
   country?: string;
+  // Add these properties to fix the errors
+  has_user_account?: boolean;
+  user_account_created_at?: string;
+  // These properties are used in detail views but not in the API model
+  clients?: any[];
+  commissions?: any[];
+  collaborators?: any[];
 }
 
 export const getAmbassadors = async (): Promise<Ambassador[]> => {
