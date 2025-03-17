@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,12 @@ import { ArrowLeft, Edit, Calculator, ChevronLeft } from "lucide-react";
 import { getPartnerById, updatePartner } from "@/services/partnerService";
 import { Partner } from "@/types/partner";
 
+interface PartnerDetailParams {
+  id?: string;
+}
+
 const PartnerDetail = () => {
-  const { id } = useParams();
+  const { id } = useParams<PartnerDetailParams>();
   const navigate = useNavigate();
   const [partner, setPartner] = useState<Partner | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,7 +28,23 @@ const PartnerDetail = () => {
           setLoading(true);
           const partnerData = await getPartnerById(id);
           if (partnerData) {
-            setPartner(partnerData);
+            // Convert partner data to match our expected Partner type
+            const typedPartner: Partner = {
+              id: partnerData.id,
+              name: partnerData.name,
+              email: partnerData.email,
+              phone: partnerData.phone,
+              type: partnerData.type as 'distributor' | 'integrator',
+              company: partnerData.company,
+              address: partnerData.address,
+              additional_info: partnerData.notes,
+              created_at: partnerData.created_at,
+              updated_at: partnerData.updated_at,
+              commission_level_id: partnerData.commission_level_id,
+              has_user_account: partnerData.has_user_account,
+              user_account_created_at: partnerData.user_account_created_at
+            };
+            setPartner(typedPartner);
           } else {
             toast.error("Partenaire non trouvé");
             navigate("/partners");

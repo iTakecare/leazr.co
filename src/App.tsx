@@ -1,4 +1,3 @@
-
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -19,40 +18,46 @@ import CreateOffer from '@/pages/CreateOffer';
 import Contracts from '@/pages/Contracts';
 import ContractDetail from '@/pages/ContractDetail';
 import Settings from '@/pages/Settings';
-import Profile from '@/pages/ProfilePage';
+import Profile from '@/pages/Profile';
 import Partners from '@/pages/Partners';
 import PartnerDetail from '@/pages/PartnerDetail';
 import PartnerCreate from '@/pages/PartnerCreatePage';
-import PartnerEdit from '@/pages/PartnerEdit';
+import PartnerEdit from '@/pages/PartnerEditPage';
 import AmbassadorsList from '@/pages/AmbassadorsList';
 import AmbassadorDetail from '@/pages/AmbassadorDetail';
 import AmbassadorCreate from '@/pages/AmbassadorCreatePage';
 import AmbassadorEdit from '@/pages/AmbassadorEditPage';
 import PartnerDashboard from '@/pages/PartnerDashboard';
-import PartnerOffers from '@/pages/PartnerOffers';
+import PartnerOffers from '@/pages/PartnerOffersList';
 import PartnerOfferDetail from '@/pages/PartnerOfferDetail';
 import PartnerCreateOffer from '@/pages/PartnerCreateOffer';
 import AmbassadorDashboard from '@/pages/AmbassadorDashboard';
-import AmbassadorOffers from '@/pages/AmbassadorOffers';
+import AmbassadorOffers from '@/pages/AmbassadorOffersList';
 import AmbassadorOfferDetail from '@/pages/AmbassadorOfferDetail';
 import Clients from '@/pages/Clients';
 import ClientDetail from '@/pages/ClientDetail';
-import ClientCreate from '@/pages/ClientCreate';
-import ClientEdit from '@/pages/ClientEdit';
-import RequestInfos from '@/pages/RequestInfos';
+import ClientCreate from '@/pages/ClientCreatePage';
+import ClientEdit from '@/pages/ClientEditPage';
+import RequestInfos from '@/pages/RequestInfosList';
 import RequestInfoDetail from '@/pages/RequestInfoDetail';
 import Catalog from '@/pages/Catalog';
-import CatalogCreate from '@/pages/CatalogCreate';
-import CatalogEdit from '@/pages/CatalogEdit';
+import CatalogCreate from '@/pages/CatalogCreatePage';
+import CatalogEdit from '@/pages/CatalogEditPage';
 import Login from '@/pages/Login';
 import Register from '@/pages/Signup';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import EmailConfirmation from '@/pages/EmailConfirmation';
-import Pricing from '@/pages/Pricing';
-import Contact from '@/pages/Contact';
-import Legal from '@/pages/Legal';
+import ForgotPassword from '@/pages/ForgotPasswordPage';
+import ResetPassword from '@/pages/ResetPasswordPage';
+import EmailConfirmation from '@/pages/EmailConfirmationPage';
+import Pricing from '@/pages/PricingPage';
+import Contact from '@/pages/ContactPage';
+import Legal from '@/pages/LegalPage';
 import NotFound from '@/pages/NotFound';
+
+const Loader = () => (
+  <div className="flex items-center justify-center h-screen">
+    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+  </div>
+);
 
 const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -61,12 +66,6 @@ const ClientLayout = ({ children }: { children: React.ReactNode }) => {
     </div>
   );
 };
-
-const Loader = () => (
-  <div className="flex items-center justify-center h-screen">
-    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-  </div>
-);
 
 const ProtectedRoute = ({ isAllowed, children, loading }: { isAllowed: boolean; children: React.ReactNode; loading: boolean }) => {
   if (loading) {
@@ -109,7 +108,6 @@ const Router = () => {
     <BrowserRouter>
       <Suspense fallback={<Loader />}>
         <Routes>
-          {/* Public routes */}
           <Route path="/" element={<Pricing />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/legal" element={<Legal />} />
@@ -119,7 +117,6 @@ const Router = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/email-confirmation" element={<EmailConfirmation />} />
           
-          {/* Client routes */}
           <Route path="/client/dashboard" element={
             <ClientProtectedRoute>
               <ClientDashboard />
@@ -136,10 +133,8 @@ const Router = () => {
             </ClientProtectedRoute>
           } />
           
-          {/* Protected routes */}
           <Route path="/" element={<ProtectedRoute isAllowed={isAuthenticated} loading={isLoading}><Outlet /></ProtectedRoute>}>
             <Route element={<Layout />}>
-              {/* Admin routes */}
               {isAdmin && (
                 <>
                   <Route path="/admin/dashboard" element={<Dashboard />} />
@@ -179,7 +174,6 @@ const Router = () => {
                 </>
               )}
               
-              {/* Partner routes */}
               {isPartner && (
                 <>
                   <Route path="/partner/dashboard" element={<PartnerDashboard />} />
@@ -189,7 +183,6 @@ const Router = () => {
                 </>
               )}
               
-              {/* Ambassador routes */}
               {isAmbassador && (
                 <>
                   <Route path="/ambassador/dashboard" element={<AmbassadorDashboard />} />
@@ -198,13 +191,10 @@ const Router = () => {
                 </>
               )}
               
-              {/* Add the commission calculator route */}
               <Route path="/calculator/:type/:id" element={<CommissionCalculator />} />
-              
             </Route>
           </Route>
           
-          {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

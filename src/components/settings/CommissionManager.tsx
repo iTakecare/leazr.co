@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,7 +68,7 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const { toast } = useToast();
+  const { toast: useToastFunc } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
@@ -80,7 +81,7 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
         setLevels(levelsData);
       } catch (error) {
         console.error("Error fetching commission levels:", error);
-        toast({
+        useToastFunc({
           variant: "destructive",
           title: "Erreur",
           description:
@@ -90,7 +91,7 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
     };
 
     fetchLevels();
-  }, []);
+  }, [useToastFunc]);
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -99,10 +100,10 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
           const levelWithRates = await getCommissionLevelWithRates(
             selectedLevelId
           );
-          setRates(levelWithRates.commission_rates);
+          setRates(levelWithRates.rates || []);
         } catch (error) {
           console.error("Error fetching commission rates:", error);
-          toast({
+          useToastFunc({
             variant: "destructive",
             title: "Erreur",
             description:
@@ -115,21 +116,27 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
     };
 
     fetchRates();
-  }, [selectedLevelId]);
+  }, [selectedLevelId, useToastFunc]);
 
   const handleLevelCreate = async (data: Partial<CommissionLevel>) => {
     setIsSubmitting(true);
     try {
-      const newLevel = await createCommissionLevel(data);
+      // Ensure 'type' is set to a default value if not provided
+      const completeData = {
+        ...data,
+        type: data.type || 'standard'
+      };
+      
+      const newLevel = await createCommissionLevel(completeData);
       setLevels([...levels, newLevel]);
       setOpenLevelDialog(false);
-      toast({
+      useToastFunc({
         title: "Succès",
         description: "Niveau de commission créé avec succès.",
       });
     } catch (error) {
       console.error("Error creating commission level:", error);
-      toast({
+      useToastFunc({
         variant: "destructive",
         title: "Erreur",
         description:
@@ -151,13 +158,13 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
         levels.map((level) => (level.id === updatedLevel.id ? updatedLevel : level))
       );
       setOpenEditLevelDialog(false);
-      toast({
+      useToastFunc({
         title: "Succès",
         description: "Niveau de commission mis à jour avec succès.",
       });
     } catch (error) {
       console.error("Error updating commission level:", error);
-      toast({
+      useToastFunc({
         variant: "destructive",
         title: "Erreur",
         description:
@@ -176,13 +183,13 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
       if (selectedLevelId === id) {
         setSelectedLevelId(null);
       }
-      toast({
+      useToastFunc({
         title: "Succès",
         description: "Niveau de commission supprimé avec succès.",
       });
     } catch (error) {
       console.error("Error deleting commission level:", error);
-      toast({
+      useToastFunc({
         variant: "destructive",
         title: "Erreur",
         description:
@@ -207,13 +214,13 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
 
       setRates([...rates, newRate]);
       setOpenRateDialog(false);
-      toast({
+      useToastFunc({
         title: "Succès",
         description: "Taux de commission créé avec succès.",
       });
     } catch (error) {
       console.error("Error creating commission rate:", error);
-      toast({
+      useToastFunc({
         variant: "destructive",
         title: "Erreur",
         description:
@@ -232,13 +239,13 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
         rates.map((rate) => (rate.id === updatedRate.id ? updatedRate : rate))
       );
       setOpenEditRateDialog(false);
-      toast({
+      useToastFunc({
         title: "Succès",
         description: "Taux de commission mis à jour avec succès.",
       });
     } catch (error) {
       console.error("Error updating commission rate:", error);
-      toast({
+      useToastFunc({
         variant: "destructive",
         title: "Erreur",
         description:
@@ -254,13 +261,13 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
     try {
       await deleteCommissionRate(id);
       setRates(rates.filter((rate) => rate.id !== id));
-      toast({
+      useToastFunc({
         title: "Succès",
         description: "Taux de commission supprimé avec succès.",
       });
     } catch (error) {
       console.error("Error deleting commission rate:", error);
-      toast({
+      useToastFunc({
         variant: "destructive",
         title: "Erreur",
         description:
@@ -281,7 +288,7 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
         <h2 className="text-2xl font-bold">Niveaux de commission</h2>
         <Dialog open={openLevelDialog} onOpenChange={setOpenLevelDialog}>
           <DialogTrigger asChild>
-            <Button variant="primary">
+            <Button variant="default">
               <Plus className="mr-2 h-4 w-4" />
               Ajouter un niveau
             </Button>
@@ -296,7 +303,6 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
             <CommissionLevelForm
               onSubmit={handleLevelCreate}
               onCancel={() => setOpenLevelDialog(false)}
-              isSubmitting={isSubmitting}
             />
           </DialogContent>
         </Dialog>
@@ -309,7 +315,7 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
         <TableHeader>
           <TableRow>
             <TableHead>Nom</TableHead>
-            <TableHead>Description</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -317,7 +323,7 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
           {levels.map((level) => (
             <TableRow key={level.id}>
               <TableCell className="font-medium">{level.name}</TableCell>
-              <TableCell>{level.description}</TableCell>
+              <TableCell>{level.type}</TableCell>
               <TableCell className="text-right">
                 <Button
                   variant="secondary"
@@ -397,7 +403,6 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
                 setOpenEditLevelDialog(false);
                 setSelectedLevel(null);
               }}
-              isSubmitting={isSubmitting}
             />
           </DialogContent>
         </Dialog>
@@ -411,7 +416,7 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
             </h3>
             <Dialog open={openRateDialog} onOpenChange={setOpenRateDialog}>
               <DialogTrigger asChild>
-                <Button variant="primary">
+                <Button variant="default">
                   <Plus className="mr-2 h-4 w-4" />
                   Ajouter un taux
                 </Button>

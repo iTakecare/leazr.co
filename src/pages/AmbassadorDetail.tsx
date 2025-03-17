@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
 import { createUserAccount, resetPassword } from "@/services/accountService";
 import { CommissionLevel, getCommissionLevelWithRates, getCommissionLevels, updateAmbassadorCommissionLevel } from "@/services/commissionService";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -23,12 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface AmbassadorDetailPageParams {
-  id: string;
+interface AmbassadorDetailParams {
+  id?: string;
 }
 
 const AmbassadorDetail = () => {
-  const { id } = useParams<AmbassadorDetailPageParams>();
+  const { id } = useParams<AmbassadorDetailParams>();
   const navigate = useNavigate();
   const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +95,7 @@ const AmbassadorDetail = () => {
 
     setIsCreatingUser(true);
     try {
-      await createUserAccount(ambassador.id);
+      await createUserAccount(ambassador.id, "ambassador");
       toast.success("Compte utilisateur créé avec succès. Un email a été envoyé à l'ambassadeur.");
       setAmbassador({ ...ambassador, has_user_account: true, user_account_created_at: new Date().toISOString() });
       setShowCreateUser(false);
@@ -110,7 +112,7 @@ const AmbassadorDetail = () => {
 
     setIsResettingPassword(true);
     try {
-      await resetPassword(ambassador.id);
+      await resetPassword(ambassador.email);
       toast.success("Mot de passe réinitialisé avec succès. Un email a été envoyé à l'ambassadeur.");
       setShowResetPassword(false);
     } catch (error) {
@@ -199,34 +201,34 @@ const AmbassadorDetail = () => {
               </div>
               <div className="space-y-2">
                 <div className="space-y-1">
-                  <Label htmlFor="email">Email</Label>
-                  <p id="email" className="text-sm font-medium">{ambassador.email}</p>
+                  <Label>Email</Label>
+                  <p className="text-sm font-medium">{ambassador.email}</p>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <p id="phone" className="text-sm font-medium">{ambassador.phone || "Non spécifié"}</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <Label htmlFor="address">Adresse</Label>
-                  <p id="address" className="text-sm font-medium">{ambassador.address || "Non spécifiée"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="company">Société</Label>
-                  <p id="company" className="text-sm font-medium">{ambassador.company || "Non spécifiée"}</p>
+                  <Label>Téléphone</Label>
+                  <p className="text-sm font-medium">{ambassador.phone || "Non spécifié"}</p>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="space-y-1">
-                  <Label htmlFor="created_at">Date de création</Label>
-                  <p id="created_at" className="text-sm font-medium">
+                  <Label>Adresse</Label>
+                  <p className="text-sm font-medium">{ambassador.address || "Non spécifiée"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label>Société</Label>
+                  <p className="text-sm font-medium">{ambassador.company || "Non spécifiée"}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <Label>Date de création</Label>
+                  <p className="text-sm font-medium">
                     {ambassador.created_at ? format(new Date(ambassador.created_at), "dd MMMM yyyy", { locale: fr }) : "Non spécifiée"}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="additional_info">Informations supplémentaires</Label>
-                  <p id="additional_info" className="text-sm font-medium">{ambassador.additional_info || "Aucune"}</p>
+                  <Label>Informations supplémentaires</Label>
+                  <p className="text-sm font-medium">{ambassador.notes || "Aucune"}</p>
                 </div>
               </div>
             </CardContent>
@@ -252,9 +254,9 @@ const AmbassadorDetail = () => {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="commission_level">Changer le niveau de commission</Label>
+                  <Label>Changer le niveau de commission</Label>
                   <Select onValueChange={handleCommissionLevelChange} defaultValue={selectedCommissionLevelId}>
-                    <SelectTrigger id="commission_level">
+                    <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un niveau" />
                     </SelectTrigger>
                     <SelectContent>
