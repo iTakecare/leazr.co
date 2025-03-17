@@ -1,499 +1,541 @@
 
 import React, { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Check, X, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Edit, Check, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { 
-  getCommissionLevels, 
-  getCommissionRates, 
-  CommissionLevel, 
+import {
+  CommissionLevel,
   CommissionRate,
-  setDefaultCommissionLevel,
+  getCommissionLevels,
+  getCommissionRates,
+  createCommissionLevel,
+  updateCommissionLevel,
   deleteCommissionLevel,
-  getCommissionLevelWithRates
+  createCommissionRate,
+  updateCommissionRate,
+  deleteCommissionRate,
+  setDefaultCommissionLevel,
 } from "@/services/commissionService";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import CommissionLevelForm from "./CommissionLevelForm";
 import CommissionRateForm from "./CommissionRateForm";
-import { Separator } from "@/components/ui/separator";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { supabase } from "@/integrations/supabase/client";
 
 const CommissionManager = () => {
-  const [activeTab, setActiveTab] = useState<'ambassador' | 'partner'>('ambassador');
-  const [levels, setLevels] = useState<CommissionLevel[]>([]);
+  const [activeTab, setActiveTab] = useState<"partner" | "ambassador">("partner");
+  const [partnerLevels, setPartnerLevels] = useState<CommissionLevel[]>([]);
+  const [ambassadorLevels, setAmbassadorLevels] = useState<CommissionLevel[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<CommissionLevel | null>(null);
-  const [expandedLevel, setExpandedLevel] = useState<string | null>(null);
-  const [rates, setRates] = useState<Record<string, CommissionRate[]>>({});
-  const [isAddingLevel, setIsAddingLevel] = useState(false);
-  const [isEditingLevel, setIsEditingLevel] = useState(false);
-  const [isDeletingLevel, setIsDeletingLevel] = useState(false);
-  const [isAddingRate, setIsAddingRate] = useState(false);
-  const [selectedRate, setSelectedRate] = useState<CommissionRate | null>(null);
-  const [isEditingRate, setIsEditingRate] = useState(false);
-  const [isDeletingRate, setIsDeletingRate] = useState(false);
+  const [rates, setRates] = useState<CommissionRate[]>([]);
+  const [isAddLevelOpen, setIsAddLevelOpen] = useState(false);
+  const [isEditLevelOpen, setIsEditLevelOpen] = useState(false);
+  const [isAddRateOpen, setIsAddRateOpen] = useState(false);
+  const [editRateId, setEditRateId] = useState<string | null>(null);
+  const [deleteLevelDialog, setDeleteLevelDialog] = useState(false);
+  const [deleteRateDialog, setDeleteRateDialog] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Load commission levels
   useEffect(() => {
-    loadLevels();
-  }, [activeTab]);
+    loadCommissionLevels();
+  }, []);
 
-  const loadLevels = async () => {
+  // Load rates when a level is selected
+  useEffect(() => {
+    if (selectedLevel) {
+      loadRates(selectedLevel.id);
+    } else {
+      setRates([]);
+    }
+  }, [selectedLevel]);
+
+  const loadCommissionLevels = async () => {
+    setLoading(true);
     try {
-      const levelsData = await getCommissionLevels(activeTab);
-      setLevels(levelsData);
-
-      // Reset expanded level if the current one doesn't exist anymore
-      if (expandedLevel && !levelsData.find(l => l.id === expandedLevel)) {
-        setExpandedLevel(null);
+      const levels = await getCommissionLevels();
+      
+      const partnerLevels = levels.filter(level => level.type === 'partner');
+      const ambassadorLevels = levels.filter(level => level.type === 'ambassador');
+      
+      setPartnerLevels(partnerLevels);
+      setAmbassadorLevels(ambassadorLevels);
+      
+      // Select first level of current tab if none is selected
+      if (!selectedLevel) {
+        const currentTabLevels = activeTab === 'partner' ? partnerLevels : ambassadorLevels;
+        if (currentTabLevels.length > 0) {
+          setSelectedLevel(currentTabLevels[0]);
+        }
       }
-
-      // Load rates for each level
-      const ratesData: Record<string, CommissionRate[]> = {};
-      for (const level of levelsData) {
-        ratesData[level.id] = await getCommissionRates(level.id);
-      }
-      setRates(ratesData);
     } catch (error) {
       console.error("Error loading commission levels:", error);
-      toast.error("Erreur lors du chargement des barèmes de commission");
+      toast.error("Erreur lors du chargement des niveaux de commission");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAddLevel = () => {
+  const loadRates = async (levelId: string) => {
+    try {
+      const ratesData = await getCommissionRates(levelId);
+      setRates(ratesData);
+    } catch (error) {
+      console.error("Error loading commission rates:", error);
+      toast.error("Erreur lors du chargement des taux de commission");
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as "partner" | "ambassador");
     setSelectedLevel(null);
-    setIsAddingLevel(true);
   };
 
-  const handleEditLevel = (level: CommissionLevel) => {
+  const handleSelectLevel = (level: CommissionLevel) => {
     setSelectedLevel(level);
-    setIsEditingLevel(true);
   };
 
-  const handleDeleteLevel = (level: CommissionLevel) => {
-    setSelectedLevel(level);
-    setIsDeletingLevel(true);
+  const handleAddLevel = async (data: Partial<CommissionLevel>) => {
+    try {
+      const newLevel = await createCommissionLevel({
+        name: data.name!,
+        type: activeTab,
+        is_default: data.is_default || false
+      });
+      
+      if (newLevel) {
+        toast.success("Niveau de commission créé avec succès");
+        setIsAddLevelOpen(false);
+        await loadCommissionLevels();
+        setSelectedLevel(newLevel);
+      }
+    } catch (error) {
+      console.error("Error creating commission level:", error);
+      toast.error("Erreur lors de la création du niveau de commission");
+    }
   };
 
-  const confirmDeleteLevel = async () => {
+  const handleEditLevel = async (data: Partial<CommissionLevel>) => {
     if (!selectedLevel) return;
     
-    const success = await deleteCommissionLevel(selectedLevel.id);
-    if (success) {
-      toast.success("Niveau de commission supprimé avec succès");
-      loadLevels();
+    try {
+      const updatedLevel = await updateCommissionLevel(selectedLevel.id, {
+        name: data.name!,
+        is_default: data.is_default
+      });
+      
+      if (updatedLevel) {
+        toast.success("Niveau de commission mis à jour avec succès");
+        setIsEditLevelOpen(false);
+        await loadCommissionLevels();
+      }
+    } catch (error) {
+      console.error("Error updating commission level:", error);
+      toast.error("Erreur lors de la mise à jour du niveau de commission");
     }
-    setIsDeletingLevel(false);
   };
 
-  const handleAddRate = (levelId: string) => {
-    const level = levels.find(l => l.id === levelId);
-    if (!level) return;
-    
-    setSelectedLevel(level);
-    setSelectedRate(null);
-    setIsAddingRate(true);
-  };
-
-  const handleEditRate = (rate: CommissionRate) => {
-    const level = levels.find(l => l.id === rate.level_id);
-    if (!level) return;
-    
-    setSelectedLevel(level);
-    setSelectedRate(rate);
-    setIsEditingRate(true);
-  };
-
-  const handleDeleteRate = (rate: CommissionRate) => {
-    setSelectedRate(rate);
-    setIsDeletingRate(true);
-  };
-
-  const confirmDeleteRate = async () => {
-    if (!selectedRate) return;
+  const handleDeleteLevel = async () => {
+    if (!selectedLevel) return;
     
     try {
-      const { error } = await supabase
-        .from('commission_rates')
-        .delete()
-        .eq('id', selectedRate.id);
+      const success = await deleteCommissionLevel(selectedLevel.id);
       
-      if (error) throw error;
+      if (success) {
+        toast.success("Niveau de commission supprimé avec succès");
+        setDeleteLevelDialog(false);
+        await loadCommissionLevels();
+        setSelectedLevel(null);
+      }
+    } catch (error) {
+      console.error("Error deleting commission level:", error);
+      toast.error("Erreur lors de la suppression du niveau de commission");
+    }
+  };
+
+  const handleSetDefault = async (level: CommissionLevel) => {
+    try {
+      const success = await setDefaultCommissionLevel(level.id, level.type);
       
-      toast.success("Taux de commission supprimé avec succès");
-      loadLevels();
+      if (success) {
+        toast.success(`${level.name} défini comme niveau par défaut`);
+        await loadCommissionLevels();
+      }
+    } catch (error) {
+      console.error("Error setting default commission level:", error);
+      toast.error("Erreur lors de la définition du niveau par défaut");
+    }
+  };
+
+  const handleAddRate = async (data: Omit<CommissionRate, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!selectedLevel) return;
+    
+    try {
+      const newRate = await createCommissionRate({
+        level_id: selectedLevel.id,
+        min_amount: data.min_amount,
+        max_amount: data.max_amount,
+        rate: data.rate
+      });
+      
+      if (newRate) {
+        toast.success("Taux de commission ajouté avec succès");
+        setIsAddRateOpen(false);
+        await loadRates(selectedLevel.id);
+      }
+    } catch (error) {
+      console.error("Error creating commission rate:", error);
+      toast.error("Erreur lors de la création du taux de commission");
+    }
+  };
+
+  const handleEditRate = async (id: string, data: Partial<CommissionRate>) => {
+    try {
+      const updatedRate = await updateCommissionRate(id, {
+        min_amount: data.min_amount,
+        max_amount: data.max_amount,
+        rate: data.rate
+      });
+      
+      if (updatedRate) {
+        toast.success("Taux de commission mis à jour avec succès");
+        setEditRateId(null);
+        if (selectedLevel) {
+          await loadRates(selectedLevel.id);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating commission rate:", error);
+      toast.error("Erreur lors de la mise à jour du taux de commission");
+    }
+  };
+
+  const handleDeleteRate = async (id: string) => {
+    try {
+      const success = await deleteCommissionRate(id);
+      
+      if (success) {
+        toast.success("Taux de commission supprimé avec succès");
+        setDeleteRateDialog(null);
+        if (selectedLevel) {
+          await loadRates(selectedLevel.id);
+        }
+      }
     } catch (error) {
       console.error("Error deleting commission rate:", error);
       toast.error("Erreur lors de la suppression du taux de commission");
     }
-    
-    setIsDeletingRate(false);
   };
 
-  const handleSetDefault = async (level: CommissionLevel) => {
-    if (level.is_default) return;
-    
-    const success = await setDefaultCommissionLevel(level.id, level.type);
-    if (success) {
-      toast.success(`${level.name} défini comme niveau par défaut`);
-      loadLevels();
-    }
-  };
-
-  const toggleExpand = (levelId: string) => {
-    if (expandedLevel === levelId) {
-      setExpandedLevel(null);
-    } else {
-      setExpandedLevel(levelId);
-    }
-  };
-
-  const onLevelSaved = () => {
-    loadLevels();
-    setIsAddingLevel(false);
-    setIsEditingLevel(false);
-  };
-
-  const onRateSaved = () => {
-    loadLevels();
-    setIsAddingRate(false);
-    setIsEditingRate(false);
-  };
-
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
-  };
+  // Get levels based on active tab
+  const currentLevels = activeTab === 'partner' ? partnerLevels : ambassadorLevels;
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Barèmes de commissionnement</h2>
-        <Button onClick={handleAddLevel}>
-          <Plus className="mr-2 h-4 w-4" /> Nouveau barème
-        </Button>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'ambassador' | 'partner')}>
+      <Tabs defaultValue="partner" onValueChange={handleTabChange}>
         <TabsList className="mb-4">
-          <TabsTrigger value="ambassador">Ambassadeurs</TabsTrigger>
           <TabsTrigger value="partner">Partenaires</TabsTrigger>
+          <TabsTrigger value="ambassador">Ambassadeurs</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="ambassador" className="space-y-4">
-          {levels.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-muted-foreground">Aucun barème de commissionnement défini pour les ambassadeurs</p>
-                <Button onClick={handleAddLevel} variant="outline" className="mt-4">
-                  <Plus className="mr-2 h-4 w-4" /> Créer un barème
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {levels.map((level) => (
-                <Card key={level.id} className={level.is_default ? "border-primary" : ""}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <CardTitle>{level.name}</CardTitle>
-                        {level.is_default && <Badge variant="secondary">Par défaut</Badge>}
-                      </div>
-                      <div className="flex gap-2">
-                        {!level.is_default && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleSetDefault(level)}
-                            title="Définir comme barème par défaut"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleEditLevel(level)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {!level.is_default && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleDeleteLevel(level)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => toggleExpand(level.id)}
-                        >
-                          {expandedLevel === level.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
+        
+        {["partner", "ambassador"].map((tabValue) => (
+          <TabsContent key={tabValue} value={tabValue} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium">Barèmes de commissionnement</h2>
+              <Dialog open={isAddLevelOpen} onOpenChange={setIsAddLevelOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span>Ajouter un niveau</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Ajouter un niveau de commission</DialogTitle>
+                  </DialogHeader>
+                  <CommissionLevelForm 
+                    onSubmit={handleAddLevel} 
+                    onCancel={() => setIsAddLevelOpen(false)} 
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Niveaux</CardTitle>
                   </CardHeader>
-                  
-                  {expandedLevel === level.id && (
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h3 className="text-sm font-medium">Taux de commission</h3>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleAddRate(level.id)}
+                  <CardContent>
+                    {loading ? (
+                      <div className="flex justify-center p-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      </div>
+                    ) : currentLevels.length === 0 ? (
+                      <div className="text-center p-4 text-muted-foreground">
+                        Aucun niveau de commission défini
+                      </div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {currentLevels.map((level) => (
+                          <li 
+                            key={level.id} 
+                            className={`flex items-center justify-between p-3 rounded-md cursor-pointer ${
+                              selectedLevel?.id === level.id 
+                                ? 'bg-primary/10 border border-primary/30' 
+                                : 'hover:bg-muted'
+                            }`}
+                            onClick={() => handleSelectLevel(level)}
                           >
-                            <Plus className="mr-2 h-4 w-4" /> Ajouter une tranche
-                          </Button>
+                            <div className="flex items-center gap-2">
+                              <span>{level.name}</span>
+                              {level.is_default && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Par défaut
+                                </Badge>
+                              )}
+                            </div>
+                            {!level.is_default && selectedLevel?.id === level.id && (
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSetDefault(level);
+                                }}
+                              >
+                                <span className="text-xs">Définir par défaut</span>
+                              </Button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="lg:col-span-2">
+                {selectedLevel ? (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>{selectedLevel.name}</CardTitle>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {selectedLevel.is_default ? "Niveau par défaut" : "Niveau standard"}
                         </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Dialog open={isEditLevelOpen} onOpenChange={setIsEditLevelOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Modifier
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Modifier le niveau de commission</DialogTitle>
+                            </DialogHeader>
+                            <CommissionLevelForm 
+                              initialData={{
+                                name: selectedLevel.name,
+                                is_default: selectedLevel.is_default
+                              }}
+                              onSubmit={handleEditLevel} 
+                              onCancel={() => setIsEditLevelOpen(false)} 
+                            />
+                          </DialogContent>
+                        </Dialog>
                         
-                        {rates[level.id]?.length > 0 ? (
-                          <div className="overflow-hidden rounded-md border">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="bg-muted/50">
-                                  <th className="px-4 py-2 text-left font-medium">Tranche</th>
-                                  <th className="px-4 py-2 text-left font-medium">Taux</th>
-                                  <th className="px-4 py-2 text-right font-medium">Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {rates[level.id]?.map((rate) => (
-                                  <tr key={rate.id} className="border-t">
-                                    <td className="px-4 py-2">
-                                      {formatAmount(rate.min_amount)} - {formatAmount(rate.max_amount)}
-                                    </td>
-                                    <td className="px-4 py-2">
-                                      {rate.rate}%
-                                    </td>
-                                    <td className="px-4 py-2 text-right">
-                                      <div className="flex justify-end gap-2">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          onClick={() => handleEditRate(rate)}
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          onClick={() => handleDeleteRate(rate)}
+                        <AlertDialog 
+                          open={deleteLevelDialog} 
+                          onOpenChange={setDeleteLevelDialog}
+                        >
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={selectedLevel.is_default}
+                            onClick={() => setDeleteLevelDialog(true)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Supprimer
+                          </Button>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Êtes-vous sûr?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Cette action supprimera définitivement le niveau de commission
+                                "{selectedLevel.name}" et tous ses taux associés.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuler</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={handleDeleteLevel}
+                                className="bg-destructive text-destructive-foreground"
+                              >
+                                Supprimer
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-4 flex items-center justify-between">
+                        <h3 className="font-medium">Taux de commission</h3>
+                        <Dialog open={isAddRateOpen} onOpenChange={setIsAddRateOpen}>
+                          <DialogTrigger asChild>
+                            <Button size="sm">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Ajouter un taux
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Ajouter un taux de commission</DialogTitle>
+                            </DialogHeader>
+                            <CommissionRateForm 
+                              onSubmit={handleAddRate} 
+                              onCancel={() => setIsAddRateOpen(false)} 
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      
+                      {rates.length === 0 ? (
+                        <div className="text-center p-4 text-muted-foreground border rounded-md">
+                          Aucun taux de commission défini pour ce niveau.
+                          Ajoutez des taux pour définir le barème.
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {rates
+                            .sort((a, b) => b.min_amount - a.min_amount) // Sort by min_amount descending
+                            .map((rate) => (
+                              <div 
+                                key={rate.id} 
+                                className="border rounded-md p-4"
+                              >
+                                {editRateId === rate.id ? (
+                                  <CommissionRateForm
+                                    initialData={{
+                                      min_amount: rate.min_amount,
+                                      max_amount: rate.max_amount,
+                                      rate: rate.rate
+                                    }}
+                                    onSubmit={(data) => handleEditRate(rate.id, data)}
+                                    onCancel={() => setEditRateId(null)}
+                                    inline
+                                  />
+                                ) : (
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <div className="font-medium">
+                                        {Number(rate.min_amount).toLocaleString('fr-FR')}€ - {Number(rate.max_amount).toLocaleString('fr-FR')}€
+                                      </div>
+                                      <div className="text-lg font-bold text-primary">
+                                        {rate.rate}%
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button 
+                                        size="sm" 
+                                        variant="ghost" 
+                                        onClick={() => setEditRateId(rate.id)}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      
+                                      <AlertDialog 
+                                        open={deleteRateDialog === rate.id} 
+                                        onOpenChange={(open) => setDeleteRateDialog(open ? rate.id : null)}
+                                      >
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="text-destructive"
+                                          onClick={() => setDeleteRateDialog(rate.id)}
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </Button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <div className="text-center py-4 text-muted-foreground">
-                            Aucune tranche définie
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  )}
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="partner" className="space-y-4">
-          {levels.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-muted-foreground">Aucun barème de commissionnement défini pour les partenaires</p>
-                <Button onClick={handleAddLevel} variant="outline" className="mt-4">
-                  <Plus className="mr-2 h-4 w-4" /> Créer un barème
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {levels.map((level) => (
-                <Card key={level.id} className={level.is_default ? "border-primary" : ""}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <CardTitle>{level.name}</CardTitle>
-                        {level.is_default && <Badge variant="secondary">Par défaut</Badge>}
-                      </div>
-                      <div className="flex gap-2">
-                        {!level.is_default && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleSetDefault(level)}
-                            title="Définir comme barème par défaut"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleEditLevel(level)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {!level.is_default && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleDeleteLevel(level)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => toggleExpand(level.id)}
-                        >
-                          {expandedLevel === level.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  {expandedLevel === level.id && (
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h3 className="text-sm font-medium">Taux de commission</h3>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleAddRate(level.id)}
-                          >
-                            <Plus className="mr-2 h-4 w-4" /> Ajouter une tranche
-                          </Button>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Êtes-vous sûr?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Cette action supprimera définitivement ce taux de commission.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                              onClick={() => handleDeleteRate(rate.id)}
+                                              className="bg-destructive text-destructive-foreground"
+                                            >
+                                              Supprimer
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                         </div>
-                        
-                        {rates[level.id]?.length > 0 ? (
-                          <div className="overflow-hidden rounded-md border">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="bg-muted/50">
-                                  <th className="px-4 py-2 text-left font-medium">Tranche</th>
-                                  <th className="px-4 py-2 text-left font-medium">Taux</th>
-                                  <th className="px-4 py-2 text-right font-medium">Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {rates[level.id]?.map((rate) => (
-                                  <tr key={rate.id} className="border-t">
-                                    <td className="px-4 py-2">
-                                      {formatAmount(rate.min_amount)} - {formatAmount(rate.max_amount)}
-                                    </td>
-                                    <td className="px-4 py-2">
-                                      {rate.rate}%
-                                    </td>
-                                    <td className="px-4 py-2 text-right">
-                                      <div className="flex justify-end gap-2">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          onClick={() => handleEditRate(rate)}
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          onClick={() => handleDeleteRate(rate)}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <div className="text-center py-4 text-muted-foreground">
-                            Aucune tranche définie
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </CardContent>
-                  )}
-                </Card>
-              ))}
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center p-8">
+                      <div className="text-center mb-4">
+                        <h3 className="text-lg font-medium mb-2">Aucun niveau sélectionné</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Sélectionnez un niveau dans la liste ou créez-en un nouveau
+                        </p>
+                      </div>
+                      <Button onClick={() => setIsAddLevelOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Ajouter un niveau
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
-          )}
-        </TabsContent>
+          </TabsContent>
+        ))}
       </Tabs>
-
-      {/* Form Dialogs */}
-      <CommissionLevelForm
-        isOpen={isAddingLevel || isEditingLevel}
-        onClose={() => {
-          setIsAddingLevel(false);
-          setIsEditingLevel(false);
-        }}
-        level={isEditingLevel ? selectedLevel : null}
-        type={activeTab}
-        onSave={onLevelSaved}
-      />
-
-      <CommissionRateForm
-        isOpen={isAddingRate || isEditingRate}
-        onClose={() => {
-          setIsAddingRate(false);
-          setIsEditingRate(false);
-        }}
-        levelId={selectedLevel?.id || ''}
-        rate={isEditingRate ? selectedRate : null}
-        onSave={onRateSaved}
-      />
-
-      {/* Delete Confirmation Dialogs */}
-      <AlertDialog open={isDeletingLevel} onOpenChange={setIsDeletingLevel}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer le barème</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer ce barème de commissionnement ? Cette action est irréversible.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteLevel} className="bg-destructive text-destructive-foreground">
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={isDeletingRate} onOpenChange={setIsDeletingRate}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer la tranche</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer cette tranche de commissionnement ? Cette action est irréversible.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteRate} className="bg-destructive text-destructive-foreground">
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

@@ -1,270 +1,241 @@
 
-import React, { useState } from 'react';
-import { 
-  User, Mail, Phone, Calendar, Tag, FileText, 
-  UserPlus, KeyRound, Users, CreditCard, ChevronLeft 
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Card, CardContent, CardDescription, 
-  CardFooter, CardHeader, CardTitle 
-} from '@/components/ui/card';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
-import { Ambassador } from '@/services/ambassadorService';
-import { createUserAccount, resetPassword } from '@/services/accountService';
+import React, { useState, useEffect } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { formatCurrency } from "@/utils/formatters";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Mail, Phone, MapPin, User, Building, BadgePercent } from "lucide-react";
+import ClientsView from "./ClientsView";
+import CommissionsView from "./CommissionsView";
+import { CommissionLevel, getCommissionLevelWithRates } from "@/services/commissionService";
 
 interface AmbassadorDetailProps {
-  ambassador: Ambassador;
-  onReloadData: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  ambassador: any;
+  onEdit: () => void;
+  onCreateOffer?: () => void;
 }
 
-const AmbassadorDetail = ({ ambassador, onReloadData }: AmbassadorDetailProps) => {
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
+const AmbassadorDetail = ({
+  isOpen,
+  onClose,
+  ambassador,
+  onEdit,
+  onCreateOffer,
+}: AmbassadorDetailProps) => {
+  const [tab, setTab] = useState("overview");
+  const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const formatDate = (date: string | Date | undefined) => {
-    if (!date) return 'N/A';
-    return format(new Date(date), 'dd MMMM yyyy', { locale: fr });
+  useEffect(() => {
+    if (isOpen && ambassador?.commission_level_id) {
+      loadCommissionLevel(ambassador.commission_level_id);
+    } else {
+      setCommissionLevel(null);
+    }
+  }, [isOpen, ambassador]);
+
+  const loadCommissionLevel = async (levelId: string) => {
+    setLoading(true);
+    try {
+      const level = await getCommissionLevelWithRates(levelId);
+      setCommissionLevel(level);
+    } catch (error) {
+      console.error("Error loading commission level:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreateAccount = async () => {
-    if (!ambassador) return;
-    
-    if (!ambassador.email) {
-      toast.error("Cet ambassadeur n'a pas d'adresse email");
-      return;
-    }
-    
-    setIsCreatingAccount(true);
-    try {
-      const success = await createUserAccount(ambassador, "ambassador");
-      if (success) {
-        onReloadData();
-        toast.success("Compte utilisateur créé et emails de configuration envoyés");
-      }
-    } catch (error) {
-      console.error("Error creating account:", error);
-      toast.error("Erreur lors de la création du compte");
-    } finally {
-      setIsCreatingAccount(false);
-    }
-  };
+  if (!ambassador) return null;
 
-  const handleResetPassword = async () => {
-    if (!ambassador?.email) {
-      toast.error("Cet ambassadeur n'a pas d'adresse email");
-      return;
-    }
-
-    setIsResettingPassword(true);
-    try {
-      const success = await resetPassword(ambassador.email);
-      if (success) {
-        toast.success("Email de réinitialisation envoyé avec succès");
-      } else {
-        toast.error("Échec de l'envoi de l'email de réinitialisation");
-      }
-    } catch (error) {
-      console.error("Error resetting password:", error);
-      toast.error("Erreur lors de la réinitialisation du mot de passe");
-    } finally {
-      setIsResettingPassword(false);
-    }
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Détails de l'ambassadeur</h1>
-        <div className="flex gap-2">
-          <Link to="/ambassadors">
-            <Button variant="outline" size="sm">
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Retour à la liste
-            </Button>
-          </Link>
-          <Link to={`/ambassadors/edit/${ambassador.id}`}>
-            <Button size="sm">Modifier</Button>
-          </Link>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Main info card */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              Informations principales
-            </CardTitle>
-            <CardDescription>Coordonnées et informations générales</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-start gap-2">
-                <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Email</p>
-                  <p className="text-sm text-muted-foreground">{ambassador.email || 'Non spécifié'}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-2">
-                <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Téléphone</p>
-                  <p className="text-sm text-muted-foreground">{ambassador.phone || 'Non spécifié'}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-2">
-                <Tag className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Statut</p>
-                  <Badge variant={ambassador.status === 'active' ? 'secondary' : 'outline'}>
-                    {ambassador.status === 'active' ? 'Actif' : 'Inactif'}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-2">
-                <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Date de création</p>
-                  <p className="text-sm text-muted-foreground">{formatDate(ambassador.created_at)}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-2">
-                <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Dernière mise à jour</p>
-                  <p className="text-sm text-muted-foreground">{formatDate(ambassador.updated_at)}</p>
-                </div>
-              </div>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="w-full sm:max-w-md md:max-w-xl overflow-y-auto">
+        <SheetHeader className="pb-6">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-12 w-12">
+              <AvatarFallback className="bg-primary text-white">
+                {getInitials(ambassador.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <SheetTitle className="text-2xl">{ambassador.name}</SheetTitle>
+              <SheetDescription className="flex items-center gap-2">
+                <Badge
+                  variant={ambassador.status === "active" ? "default" : "secondary"}
+                >
+                  {ambassador.status === "active" ? "Actif" : "Inactif"}
+                </Badge>
+                {ambassador.region && (
+                  <span className="flex items-center text-xs gap-1 text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    {ambassador.region}
+                  </span>
+                )}
+              </SheetDescription>
             </div>
-            
-            {ambassador.notes && (
-              <div className="mt-4 border-t pt-4">
-                <div className="flex items-start gap-2">
-                  <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Notes</p>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">{ambassador.notes}</p>
+          </div>
+        </SheetHeader>
+
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="mb-4 grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Aperçu</TabsTrigger>
+            <TabsTrigger value="clients">Clients</TabsTrigger>
+            <TabsTrigger value="commissions">Commissions</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Informations de contact
+                </h3>
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{ambassador.email}</span>
+                  </div>
+                  {ambassador.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{ambassador.phone}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {ambassador.company && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    Informations entreprise
+                  </h3>
+                  <div className="grid gap-2">
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <span>{ambassador.company}</span>
+                    </div>
+                    {ambassador.vat_number && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>TVA: {ambassador.vat_number}</span>
+                      </div>
+                    )}
+                    {ambassador.address && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {ambassador.address}
+                        <br />
+                        {ambassador.postal_code} {ambassador.city}
+                        {ambassador.country && `, ${ambassador.country}`}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {commissionLevel && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">Barème de commissionnement</h3>
+                  <div className="p-3 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BadgePercent className="h-4 w-4 text-primary" />
+                      <div className="font-medium">{commissionLevel.name}</div>
+                      {commissionLevel.is_default && (
+                        <Badge variant="outline" className="text-xs">Par défaut</Badge>
+                      )}
+                    </div>
+                    {commissionLevel.rates && commissionLevel.rates.length > 0 && (
+                      <div className="mt-2 space-y-1 text-sm">
+                        {commissionLevel.rates
+                          .sort((a, b) => b.min_amount - a.min_amount) // Sort by min_amount descending
+                          .map((rate, index) => (
+                            <div key={index} className="grid grid-cols-2 gap-2">
+                              <div className="text-muted-foreground">
+                                {Number(rate.min_amount).toLocaleString('fr-FR')}€ - {Number(rate.max_amount).toLocaleString('fr-FR')}€
+                              </div>
+                              <div className="font-medium text-right">{rate.rate}%</div>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col items-center justify-center rounded-lg border p-3">
+                  <div className="text-sm text-muted-foreground">Clients</div>
+                  <div className="text-2xl font-bold mt-1">
+                    {ambassador.clients_count || 0}
+                  </div>
+                </div>
+                <div className="flex flex-col items-center justify-center rounded-lg border p-3">
+                  <div className="text-sm text-muted-foreground">
+                    Commissions totales
+                  </div>
+                  <div className="text-2xl font-bold mt-1">
+                    {formatCurrency(ambassador.commissions_total || 0)}
                   </div>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Account card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-primary" />
-              Compte utilisateur
-            </CardTitle>
-            <CardDescription>Accès à la plateforme</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {ambassador.has_user_account ? (
-              <div className="space-y-4">
-                <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                  <p className="text-sm text-green-800 font-medium">Compte actif</p>
-                  {ambassador.user_account_created_at && (
-                    <p className="text-xs text-green-700">
-                      Créé le {formatDate(ambassador.user_account_created_at)}
-                    </p>
-                  )}
+
+              {ambassador.notes && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
+                  <div className="rounded-lg border p-3 text-sm whitespace-pre-wrap">
+                    {ambassador.notes}
+                  </div>
                 </div>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full" 
-                  onClick={handleResetPassword}
-                  disabled={isResettingPassword}
-                >
-                  <KeyRound className="h-4 w-4 mr-2" />
-                  {isResettingPassword ? 'Envoi en cours...' : 'Réinitialiser le mot de passe'}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-                  <p className="text-sm text-amber-800">
-                    Cet ambassadeur n'a pas encore de compte utilisateur
-                  </p>
-                </div>
-                
-                <Button 
-                  className="w-full"
-                  onClick={handleCreateAccount}
-                  disabled={isCreatingAccount || !ambassador.email}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  {isCreatingAccount ? 'Création en cours...' : 'Créer un compte'}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Stats card */}
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
-              Performance
-            </CardTitle>
-            <CardDescription>Statistiques et commissions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-muted/30 rounded-md p-4">
-                <p className="text-sm text-muted-foreground">Clients</p>
-                <p className="text-2xl font-bold">{ambassador.clients_count || 0}</p>
-                <div className="flex items-center mt-2">
-                  <Users className="h-4 w-4 text-muted-foreground mr-1" />
-                  <span className="text-xs text-muted-foreground">Nombre total de clients</span>
-                </div>
-              </div>
-              
-              <div className="bg-muted/30 rounded-md p-4">
-                <p className="text-sm text-muted-foreground">Commissions totales</p>
-                <p className="text-2xl font-bold">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ambassador.commissions_total || 0)}</p>
-                <div className="flex items-center mt-2">
-                  <CreditCard className="h-4 w-4 text-muted-foreground mr-1" />
-                  <span className="text-xs text-muted-foreground">Montant cumulé</span>
-                </div>
-              </div>
-              
-              <div className="bg-muted/30 rounded-md p-4">
-                <p className="text-sm text-muted-foreground">Dernière commission</p>
-                <p className="text-2xl font-bold">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ambassador.last_commission || 0)}</p>
-                <div className="flex items-center mt-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground mr-1" />
-                  <span className="text-xs text-muted-foreground">Montant de la dernière transaction</span>
-                </div>
-              </div>
+              )}
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" asChild>
-              <Link to={`/ambassadors/${ambassador.id}/commissions`}>
-                <CreditCard className="h-4 w-4 mr-2" />
-                Voir toutes les commissions
-              </Link>
+          </TabsContent>
+
+          <TabsContent value="clients">
+            <ClientsView ambassadorId={ambassador.id} isVisible={tab === "clients"} />
+          </TabsContent>
+
+          <TabsContent value="commissions">
+            <CommissionsView
+              ambassadorId={ambassador.id}
+              isVisible={tab === "commissions"}
+            />
+          </TabsContent>
+        </Tabs>
+
+        <SheetFooter className="flex-row justify-between gap-2 pt-6">
+          <Button
+            variant="outline"
+            onClick={onEdit}
+            className="flex-1"
+          >
+            Modifier
+          </Button>
+          {onCreateOffer && (
+            <Button onClick={onCreateOffer} className="flex-1">
+              Créer une offre
             </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    </div>
+          )}
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 };
 
