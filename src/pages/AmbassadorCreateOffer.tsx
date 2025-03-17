@@ -25,7 +25,7 @@ function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
-const PartnerCreateOffer = () => {
+const AmbassadorCreateOffer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -197,7 +197,7 @@ const PartnerCreateOffer = () => {
             toast.success("Offre chargée avec succès");
           } else {
             toast.error("Impossible de trouver cette offre");
-            navigate("/partner/offers");
+            navigate("/ambassador/offers");
           }
         } catch (error) {
           console.error("Error loading offer:", error);
@@ -292,7 +292,7 @@ const PartnerCreateOffer = () => {
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
         additional_info: remarks,
-        type: 'partner_offer'
+        type: 'ambassador_offer'
       };
 
       let result;
@@ -313,7 +313,7 @@ const PartnerCreateOffer = () => {
         }
       }
       
-      navigate("/partner/dashboard");
+      navigate("/ambassador/dashboard");
     } catch (error) {
       console.error("Error saving offer:", error);
       toast.error("Une erreur s'est produite lors de l'enregistrement de l'offre");
@@ -337,7 +337,7 @@ const PartnerCreateOffer = () => {
               <div className="flex gap-4">
                 <Button
                   variant="outline"
-                  onClick={() => navigate('/partner/dashboard')}
+                  onClick={() => navigate('/ambassador/dashboard')}
                 >
                   Retour
                 </Button>
@@ -433,4 +433,4 @@ const PartnerCreateOffer = () => {
   );
 };
 
-export default PartnerCreateOffer;
+export default AmbassadorCreateOffer;

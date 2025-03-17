@@ -1,4 +1,3 @@
-
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -31,6 +30,7 @@ import Calculator from "./pages/Calculator";
 import PartnerCreatePage from "./pages/PartnerCreatePage";
 import PartnersListPage from "./pages/PartnersList";
 import AmbassadorDashboard from "./pages/AmbassadorDashboard";
+import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -190,6 +190,7 @@ const AmbassadorLayout = ({ children }: { children: React.ReactNode }) => {
           
           <nav className="flex items-center gap-6">
             <a href="/ambassador/dashboard" className="text-gray-700 hover:text-blue-700">Tableau de bord</a>
+            <a href="/ambassador/create-offer" className="text-gray-700 hover:text-blue-700">Nouvelle offre</a>
             <a href="/logout" className="text-gray-700 hover:text-blue-700">Déconnexion</a>
           </nav>
         </div>
@@ -274,6 +275,7 @@ function App() {
               </ProtectedRoute>
             }>
               <Route path="dashboard" element={<AmbassadorDashboard />} />
+              <Route path="create-offer" element={<AmbassadorCreateOffer />} />
             </Route>
             
             <Route path="/client/*" element={
