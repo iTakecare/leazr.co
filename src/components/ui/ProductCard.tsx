@@ -18,9 +18,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   // Add additional logging to debug product data rendering
   React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("[ProductCard] Rendering product:", product);
-    }
+    console.log("[ProductCard] Rendering product:", product);
   }, [product]);
 
   // Ensure we have valid data for display

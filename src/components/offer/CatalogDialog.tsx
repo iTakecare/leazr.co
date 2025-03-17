@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -8,50 +8,117 @@ import ProductCard from "@/components/ui/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CatalogDialogProps {
   isOpen: boolean;
   onClose: () => void;
   handleProductSelect: (product: any) => void;
-  searchTerm: string;
-  setSearchTerm: (value: string) => void;
-  selectedCategory: string;
-  setSelectedCategory: (value: string) => void;
-  selectedBrand: string;
-  setSelectedBrand: (value: string) => void;
+  searchTerm?: string;
+  setSearchTerm?: (value: string) => void;
+  selectedCategory?: string;
+  setSelectedCategory?: (value: string) => void;
+  selectedBrand?: string;
+  setSelectedBrand?: (value: string) => void;
 }
 
 const CatalogDialog: React.FC<CatalogDialogProps> = ({
   isOpen,
   onClose,
   handleProductSelect,
-  searchTerm,
-  setSearchTerm,
-  selectedCategory,
-  setSelectedCategory,
-  selectedBrand,
-  setSelectedBrand
+  searchTerm: externalSearchTerm,
+  setSearchTerm: externalSetSearchTerm,
+  selectedCategory: externalSelectedCategory,
+  setSelectedCategory: externalSetSelectedCategory,
+  selectedBrand: externalSelectedBrand,
+  setSelectedBrand: externalSetSelectedBrand
 }) => {
-  // Fetch data directly in the component
-  const { data: allProducts = [], isLoading: productsLoading } = useQuery({
+  // Internal state for standalone usage
+  const [internalSearchTerm, setInternalSearchTerm] = useState("");
+  const [internalSelectedCategory, setInternalSelectedCategory] = useState<string>("all");
+  const [internalSelectedBrand, setInternalSelectedBrand] = useState<string>("all");
+  
+  // Use either the external state (if provided) or the internal state
+  const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
+  const setSearchTerm = externalSetSearchTerm || setInternalSearchTerm;
+  const selectedCategory = externalSelectedCategory !== undefined ? externalSelectedCategory : internalSelectedCategory;
+  const setSelectedCategory = externalSetSelectedCategory || setInternalSelectedCategory;
+  const selectedBrand = externalSelectedBrand !== undefined ? externalSelectedBrand : internalSelectedBrand;
+  const setSelectedBrand = externalSetSelectedBrand || setInternalSelectedBrand;
+  
+  // Fetch products directly using the useQuery hook
+  const { data: allProducts = [], isLoading: productsLoading, error: productsError } = useQuery({
     queryKey: ["catalogProducts", isOpen],
-    queryFn: getProducts,
+    queryFn: async () => {
+      try {
+        console.log("Fetching products directly from Supabase");
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('active', true);
+          
+        if (error) {
+          throw error;
+        }
+        
+        console.log("Products fetched successfully, count:", data?.length);
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        toast.error("Erreur lors du chargement des produits");
+        return [];
+      }
+    },
     enabled: isOpen,
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const { data: categoriesData = [], isLoading: categoriesLoading } = useQuery({
+  // Fetch categories directly
+  const { data: categoriesData = [], isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ["catalogCategories", isOpen],
-    queryFn: getCategories,
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .order('name');
+          
+        if (error) {
+          throw error;
+        }
+        
+        console.log("Categories fetched successfully, count:", data?.length);
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        return [];
+      }
+    },
     enabled: isOpen,
-    staleTime: 1000 * 60 * 30, // 30 minutes
   });
 
-  const { data: brandsData = [], isLoading: brandsLoading } = useQuery({
+  // Fetch brands directly
+  const { data: brandsData = [], isLoading: brandsLoading, error: brandsError } = useQuery({
     queryKey: ["catalogBrands", isOpen],
-    queryFn: getBrands,
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('brands')
+          .select('*')
+          .order('name');
+          
+        if (error) {
+          throw error;
+        }
+        
+        console.log("Brands fetched successfully, count:", data?.length);
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching brands:", error);
+        return [];
+      }
+    },
     enabled: isOpen,
-    staleTime: 1000 * 60 * 30, // 30 minutes
   });
 
   // Filter products client-side
@@ -105,9 +172,10 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
 
   // Determine actual loading state
   const actualLoading = productsLoading || categoriesLoading || brandsLoading;
+  const hasError = productsError || categoriesError || brandsError;
   
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Sélectionner un équipement</DialogTitle>
@@ -159,6 +227,10 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />
             ))}
+          </div>
+        ) : hasError ? (
+          <div className="text-center py-10 text-red-500">
+            Une erreur s'est produite lors du chargement des données
           </div>
         ) : (
           <ScrollArea className="h-[400px] pr-4">

@@ -48,9 +48,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   });
   
   const [isQuickCatalogOpen, setIsQuickCatalogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [productMonthlyPrice, setProductMonthlyPrice] = useState<number | null>(null);
   
   const marginAmount = equipment.purchasePrice * (equipment.margin / 100);
@@ -59,10 +56,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   useEffect(() => {
     if (isQuickCatalogOpen) {
       console.log("Quick catalog opened");
-      console.log("Selected category:", selectedCategory);
-      console.log("Selected brand:", selectedBrand);
     }
-  }, [isQuickCatalogOpen, selectedCategory, selectedBrand]);
+  }, [isQuickCatalogOpen]);
 
   const handleChange = (field: keyof Equipment, value: string | number) => {
     setEquipment({ ...equipment, [field]: value });
@@ -162,12 +157,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
         isOpen={isQuickCatalogOpen}
         onClose={() => setIsQuickCatalogOpen(false)}
         handleProductSelect={handleProductSelect}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        selectedBrand={selectedBrand}
-        setSelectedBrand={setSelectedBrand}
       />
     </Card>
   );
