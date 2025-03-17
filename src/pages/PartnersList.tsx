@@ -61,6 +61,10 @@ const PartnersListPage = () => {
     }
   };
 
+  const handleAddPartner = () => {
+    navigate("/partners/create");
+  };
+
   const getStatusFilterLabel = () => {
     switch(statusFilter) {
       case 'active': return 'Partenaires actifs';
@@ -155,7 +159,7 @@ const PartnersListPage = () => {
                             />
                           </div>
                           <Button 
-                            onClick={() => {/* Handle partner creation */}} 
+                            onClick={handleAddPartner} 
                             variant="default" 
                             size="sm" 
                             className="sm:ml-2 gap-1"

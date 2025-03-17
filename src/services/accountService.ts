@@ -102,7 +102,9 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Envoyer l'email de réinitialisation de mot de passe - en utilisant le client standard
+    // Ne plus envoyer l'email de réinitialisation de mot de passe automatiquement
+    // Décommenter la ligne ci-dessous si l'envoi d'email de réinitialisation est nécessaire
+    /*
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
       redirectTo: `${window.location.origin}/update-password`,
     });
@@ -112,11 +114,12 @@ export const createUserAccount = async (
       toast.warning("Compte créé mais problème d'envoi de l'email de réinitialisation");
       // On continue malgré cette erreur
     }
+    */
     
     // Envoyer l'email de bienvenue via notre système SMTP
     await sendWelcomeEmail(entity.email, entity.name, userType);
     
-    toast.success(`Compte ${userType} créé et emails envoyés`);
+    toast.success(`Compte ${userType} créé et email de bienvenue envoyé`);
     return true;
   } catch (error) {
     console.error(`Erreur dans createUserAccount:`, error);

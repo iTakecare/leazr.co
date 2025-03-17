@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, UserPlus } from "lucide-react";
+import { ArrowLeft, UserPlus } from "lucide-react";
 import { createAmbassador } from "@/services/ambassadorService";
 import AmbassadorForm, { AmbassadorFormValues } from "@/components/crm/forms/AmbassadorForm";
 import PageTransition from "@/components/layout/PageTransition";
@@ -17,12 +17,33 @@ const AmbassadorCreatePage = () => {
   const onSubmit = async (data: AmbassadorFormValues) => {
     setIsSubmitting(true);
     try {
-      const newAmbassador = await createAmbassador(data);
-      toast.success(`L'ambassadeur ${data.name} a été créé avec succès`);
-      if (newAmbassador?.id) {
-        navigate(`/ambassadors/${newAmbassador.id}`);
+      console.log("Submitting ambassador data:", data);
+      const newAmbassador = await createAmbassador({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        status: data.status || 'active',
+        notes: data.notes,
+        company: data.company,
+        vat_number: data.vat_number,
+        address: data.address,
+        city: data.city,
+        postal_code: data.postal_code,
+        country: data.country
+      });
+      
+      console.log("Ambassador creation result:", newAmbassador);
+      
+      if (newAmbassador) {
+        toast.success(`L'ambassadeur ${data.name} a été créé avec succès`);
+        // Make sure we have an ID before navigating
+        if (newAmbassador.id) {
+          navigate(`/ambassadors/${newAmbassador.id}`);
+        } else {
+          navigate("/ambassadors");
+        }
       } else {
-        navigate("/ambassadors");
+        throw new Error("Échec de la création de l'ambassadeur");
       }
     } catch (error) {
       console.error("Erreur lors de la création de l'ambassadeur:", error);
@@ -48,21 +69,11 @@ const AmbassadorCreatePage = () => {
             <h1 className="text-2xl font-bold">Créer un nouvel ambassadeur</h1>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                <span>Informations de l'ambassadeur</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AmbassadorForm
-                onSubmit={onSubmit}
-                onCancel={() => navigate("/ambassadors")}
-                isSubmitting={isSubmitting}
-              />
-            </CardContent>
-          </Card>
+          <AmbassadorForm
+            onSubmit={onSubmit}
+            onCancel={() => navigate("/ambassadors")}
+            isSubmitting={isSubmitting}
+          />
         </div>
       </Container>
     </PageTransition>

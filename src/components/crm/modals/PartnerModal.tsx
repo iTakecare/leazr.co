@@ -1,49 +1,40 @@
 
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription
-} from "@/components/ui/dialog";
-import PartnerForm, { PartnerFormValues } from "../forms/PartnerForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import PartnerForm from "@/components/crm/forms/PartnerForm";
+import { PartnerFormValues } from "@/services/partnerService";
 
 interface PartnerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  partner?: PartnerFormValues;
   onSubmit: (data: PartnerFormValues) => void;
-  partner?: PartnerFormValues & { id?: string };
   isSubmitting?: boolean;
 }
 
-const PartnerModal = ({
+const PartnerModal: React.FC<PartnerModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
   partner,
+  onSubmit,
   isSubmitting = false,
-}: PartnerModalProps) => {
-  const title = partner?.id ? "Modifier le partenaire" : "Ajouter un partenaire";
-
+}) => {
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {partner?.id 
-              ? "Modifiez les informations du partenaire ci-dessous"
-              : "Remplissez le formulaire pour ajouter un nouveau partenaire"
-            }
-          </DialogDescription>
+          <DialogTitle>
+            {partner ? "Modifier le partenaire" : "Ajouter un partenaire"}
+          </DialogTitle>
         </DialogHeader>
-        <PartnerForm
-          initialData={partner}
-          onSubmit={onSubmit}
-          onCancel={onClose}
-          isSubmitting={isSubmitting}
-        />
+        <div className="py-4">
+          <PartnerForm
+            initialData={partner}
+            onSubmit={onSubmit}
+            onCancel={onClose}
+            isSubmitting={isSubmitting}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,158 +1,157 @@
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { AmbassadorFormValues } from "@/components/crm/forms/AmbassadorForm";
-import { Collaborator, Client } from "@/types/client";
 
-export interface Commission {
-  id: string;
-  date: string;
-  client: string;
-  amount: number;
-  status: string;
-  isPaid: boolean;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from "uuid";
 
 export interface Ambassador {
   id: string;
   name: string;
   email: string;
   phone?: string;
-  region?: string;
-  status: string;
   notes?: string;
-  created_at?: Date | string;
-  updated_at?: Date | string;
-  clientsCount: number;
-  commissionsTotal: number;
-  lastCommission: number;
+  status: 'active' | 'inactive' | 'lead';
+  user_id?: string;
+  clients_count?: number;
+  commissions_total?: number;
+  last_commission?: number;
+  created_at?: string;
+  updated_at?: string;
+  company?: string;
+  vat_number?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  // Required properties for detail views
+  has_user_account?: boolean;
+  user_account_created_at?: string;
+  // These properties are used in detail views but not in the API model
   clients?: any[];
   commissions?: any[];
   collaborators?: any[];
-  has_user_account?: boolean;
-  user_account_created_at?: string;
-  user_id?: string;
 }
-
-const mapDbAmbassadorToAmbassador = (record: any): Ambassador => {
-  return {
-    id: record.id,
-    name: record.name,
-    email: record.email,
-    phone: record.phone || "",
-    region: record.region || "",
-    clientsCount: record.clients_count || 0,
-    commissionsTotal: record.commissions_total || 0,
-    lastCommission: record.last_commission || 0,
-    status: record.status || "active",
-    notes: record.notes,
-    created_at: record.created_at,
-    updated_at: record.updated_at,
-    has_user_account: record.has_user_account || false,
-    user_account_created_at: record.user_account_created_at,
-    user_id: record.user_id
-  };
-};
 
 export const getAmbassadors = async (): Promise<Ambassador[]> => {
   try {
     const { data, error } = await supabase
       .from('ambassadors')
-      .select('*')
-      .order('name', { ascending: true });
+      .select('*');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching ambassadors:', error);
+      throw error;
+    }
     
-    return data ? data.map(mapDbAmbassadorToAmbassador) : [];
+    return data || [];
   } catch (error) {
-    console.error("Error fetching ambassadors:", error);
-    throw error;
+    console.error('Error fetching ambassadors:', error);
+    return [];
   }
 };
 
 export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
   try {
-    console.log("Requesting ambassador with ID:", id);
-    
     const { data, error } = await supabase
       .from('ambassadors')
-      .select('*')
+      .select(`
+        *,
+        clients:ambassador_clients(client_id),
+        commissions:ambassador_commissions(id, amount, created_at)
+      `)
       .eq('id', id)
-      .maybeSingle();
+      .single();
     
     if (error) {
-      console.error("Supabase error fetching ambassador:", error);
+      console.error('Error fetching ambassador:', error);
       throw error;
     }
     
-    console.log("Ambassador data from db:", data);
+    // Calculate counts and totals
+    const ambassador = data as Ambassador;
     
-    if (!data) {
-      console.log("No ambassador found with ID:", id);
-      return null;
+    if (ambassador) {
+      ambassador.clients_count = ambassador.clients?.length || 0;
+      
+      // Calculate commissions total if commissions exist
+      if (ambassador.commissions && ambassador.commissions.length > 0) {
+        ambassador.commissions_total = ambassador.commissions.reduce(
+          (total, commission) => total + (commission.amount || 0), 
+          0
+        );
+        
+        // Get the most recent commission
+        const sortedCommissions = [...ambassador.commissions].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        ambassador.last_commission = sortedCommissions[0]?.amount || 0;
+      } else {
+        ambassador.commissions_total = 0;
+        ambassador.last_commission = 0;
+      }
     }
     
-    return mapDbAmbassadorToAmbassador(data);
+    return ambassador || null;
   } catch (error) {
-    console.error("Error fetching ambassador by ID:", error);
-    throw error;
+    console.error('Error fetching ambassador:', error);
+    return null;
   }
 };
 
-export const createAmbassador = async (ambassadorData: AmbassadorFormValues): Promise<Ambassador | null> => {
+export const createAmbassador = async (data: Partial<Ambassador>): Promise<Ambassador | null> => {
   try {
-    const dbAmbassador = {
-      name: ambassadorData.name,
-      email: ambassadorData.email,
-      phone: ambassadorData.phone || "",
-      region: ambassadorData.region,
-      notes: ambassadorData.notes || "",
-      status: ambassadorData.status || "active",
-      clients_count: 0,
-      commissions_total: 0,
-      last_commission: 0
+    console.log("Creating ambassador with data:", data);
+    const ambassadorId = uuidv4();
+    const newAmbassador = {
+      id: ambassadorId,
+      ...data,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      status: data.status || 'active',
+      has_user_account: false
     };
     
-    const { data, error } = await supabase
+    const { data: insertedData, error } = await supabase
       .from('ambassadors')
-      .insert(dbAmbassador)
+      .insert(newAmbassador)
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating ambassador:', error);
+      throw error;
+    }
     
-    return data ? mapDbAmbassadorToAmbassador(data) : null;
+    console.log("Ambassador created successfully:", insertedData);
+    return insertedData || null;
   } catch (error) {
-    console.error("Error creating ambassador:", error);
-    throw error;
+    console.error('Error creating ambassador:', error);
+    return null;
   }
 };
 
-export const updateAmbassador = async (id: string, ambassadorData: Partial<AmbassadorFormValues>): Promise<Ambassador | null> => {
+export const updateAmbassador = async (id: string, data: Partial<Ambassador>): Promise<Ambassador | null> => {
   try {
-    const dbAmbassador: Record<string, any> = {};
+    const updateData = {
+      ...data,
+      updated_at: new Date().toISOString()
+    };
     
-    if (ambassadorData.name !== undefined) dbAmbassador.name = ambassadorData.name;
-    if (ambassadorData.email !== undefined) dbAmbassador.email = ambassadorData.email;
-    if (ambassadorData.phone !== undefined) dbAmbassador.phone = ambassadorData.phone;
-    if (ambassadorData.region !== undefined) dbAmbassador.region = ambassadorData.region;
-    if (ambassadorData.notes !== undefined) dbAmbassador.notes = ambassadorData.notes;
-    if (ambassadorData.status !== undefined) dbAmbassador.status = ambassadorData.status;
-    
-    dbAmbassador.updated_at = new Date().toISOString();
-    
-    const { data, error } = await supabase
+    const { data: updatedData, error } = await supabase
       .from('ambassadors')
-      .update(dbAmbassador)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating ambassador:', error);
+      throw error;
+    }
     
-    return data ? mapDbAmbassadorToAmbassador(data) : null;
+    return updatedData || null;
   } catch (error) {
-    console.error("Error updating ambassador:", error);
-    throw error;
+    console.error('Error updating ambassador:', error);
+    return null;
   }
 };
 
@@ -163,59 +162,14 @@ export const deleteAmbassador = async (id: string): Promise<boolean> => {
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error deleting ambassador:', error);
+      throw error;
+    }
     
     return true;
   } catch (error) {
-    console.error("Error deleting ambassador:", error);
-    throw error;
+    console.error('Error deleting ambassador:', error);
+    return false;
   }
 };
-
-export const getAmbassadorClients = async (ambassadorId: string): Promise<any[]> => {
-  try {
-    const { data: relations, error: relationsError } = await supabase
-      .from('ambassador_clients')
-      .select('client_id')
-      .eq('ambassador_id', ambassadorId);
-    
-    if (relationsError) throw relationsError;
-    
-    if (!relations || relations.length === 0) return [];
-    
-    const clientIds = relations.map(rel => rel.client_id);
-    
-    const { data: clients, error: clientsError } = await supabase
-      .from('clients')
-      .select('*')
-      .in('id', clientIds);
-    
-    if (clientsError) throw clientsError;
-    
-    return clients || [];
-  } catch (error) {
-    console.error("Error fetching ambassador clients:", error);
-    throw error;
-  }
-};
-
-export const getAmbassadorCommissions = async (ambassadorId: string): Promise<any[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('ambassador_commissions')
-      .select('*')
-      .eq('ambassador_id', ambassadorId)
-      .order('date', { ascending: false });
-    
-    if (error) throw error;
-    
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching ambassador commissions:", error);
-    throw error;
-  }
-};
-
-import { createUserAccount, resetPassword } from "./accountService";
-
-export { createUserAccount as createAccountForAmbassador, resetPassword as resetAmbassadorPassword };
