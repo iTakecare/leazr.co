@@ -1,31 +1,23 @@
 
-import React from "react";
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Coins } from "lucide-react";
-import { Leaser } from "@/types/equipment";
+import { Leaser } from '@/types/leaser';
 
-interface LeaserButtonProps {
+export interface LeaserButtonProps {
   selectedLeaser: Leaser | null;
-  onOpen: () => void;
+  onSelect: () => void;
 }
 
-const LeaserButton: React.FC<LeaserButtonProps> = ({ selectedLeaser, onOpen }) => {
+const LeaserButton: React.FC<LeaserButtonProps> = ({ selectedLeaser, onSelect }) => {
   return (
     <Button 
+      onClick={onSelect} 
       variant="outline" 
-      onClick={onOpen}
-      className="w-full flex justify-between items-center h-auto py-3"
+      className="flex-1 justify-start text-left font-normal"
     >
-      <div className="flex items-center">
-        <Coins className="h-5 w-5 mr-2 text-primary" />
-        <div className="text-left">
-          <p className="font-medium text-sm">Prestataire de leasing</p>
-          <p className="text-xs text-muted-foreground">
-            {selectedLeaser ? selectedLeaser.name : "Aucun prestataire sélectionné"}
-          </p>
-        </div>
-      </div>
-      <span className="text-xs text-muted-foreground">Changer</span>
+      <span className="truncate">
+        {selectedLeaser ? selectedLeaser.name : "Sélectionner un financier"}
+      </span>
     </Button>
   );
 };

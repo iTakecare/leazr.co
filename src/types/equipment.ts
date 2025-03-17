@@ -1,33 +1,24 @@
 
 export interface Equipment {
-  id: string;
-  title: string;
-  purchasePrice: number;
-  quantity: number;
-  margin: number;
-  monthlyPayment?: number;
+  items: EquipmentItem[];
 }
 
-export interface Leaser {
+export interface EquipmentItem {
   id: string;
   name: string;
-  logo_url?: string;
-  ranges: LeaserRange[];
-}
-
-export interface LeaserRange {
-  id: string;
-  min: number;
-  max: number;
-  coefficient: number;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  category: string;
+  description?: string;
+  reference?: string;
+  brand?: string;
 }
 
 export interface GlobalMarginAdjustment {
-  percentage: number;
-  amount: number;
-  newMonthly: number;
-  currentCoef: number;
-  newCoef: number;
-  adaptMonthlyPayment: boolean;
-  marginDifference: number; // New field to track margin difference
+  enabled: boolean;
+  originalAmount: number;
+  originalCoef: number;
+  originalMonthly: number;
+  adjustmentPercent: number;
 }

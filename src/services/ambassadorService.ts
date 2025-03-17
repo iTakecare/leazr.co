@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Ambassador, AmbassadorCommission } from "@/types/ambassador";
 
@@ -135,7 +134,6 @@ export const getAmbassadorCommissions = async (ambassadorId: string) => {
 
 export const createClientForAmbassador = async (clientData: CreateClientForAmbassadorData) => {
   try {
-    // Create the client
     const { data: client, error: clientError } = await supabase
       .from("clients")
       .insert([{
@@ -157,14 +155,12 @@ export const createClientForAmbassador = async (clientData: CreateClientForAmbas
 
     if (clientError) throw clientError;
 
-    // Update ambassador client count
     const { error: updateError } = await supabase.rpc('increment_ambassador_client_count', {
       ambassador_id: clientData.ambassadorId
     });
 
     if (updateError) {
       console.error("Error updating ambassador client count:", updateError);
-      // Continue even if this fails
     }
 
     return client;

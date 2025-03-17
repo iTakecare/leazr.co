@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AmbassadorForm } from '@/components/crm/forms/AmbassadorForm';
+import AmbassadorForm from '@/components/crm/forms/AmbassadorForm';
 import { createAmbassador, CreateAmbassadorData } from '@/services/ambassadorService';
 import { toast } from 'sonner';
 import Container from '@/components/layout/Container';

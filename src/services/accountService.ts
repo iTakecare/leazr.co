@@ -1,10 +1,8 @@
-
-import { adminSupabase, supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Partner } from "./partnerService";
-import { Ambassador } from "./ambassadorService";
-import { sendWelcomeEmail } from "./emailService";
-import { Client } from "@/types/client";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Partner } from '@/services/partnerService';
+import { Ambassador } from '@/types/ambassador';
+import { Client } from '@/types/client';
 
 interface CreateAccountParams {
   email: string;
