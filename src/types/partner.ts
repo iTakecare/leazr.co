@@ -14,4 +14,5 @@ export interface Partner {
   commissions_total?: number;
   has_user_account?: boolean;
   user_account_created_at?: string;
+  notes?: string;
 }

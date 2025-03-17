@@ -41,7 +41,8 @@ const PartnerDetail = () => {
               updated_at: partnerData.updated_at,
               commission_level_id: partnerData.commission_level_id,
               has_user_account: partnerData.has_user_account,
-              user_account_created_at: partnerData.user_account_created_at
+              user_account_created_at: partnerData.user_account_created_at,
+              notes: partnerData.notes
             };
             setPartner(typedPartner);
           } else {
