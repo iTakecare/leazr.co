@@ -13,9 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
-import PartnerModal from "@/components/crm/modals/PartnerModal";
-import { toast } from "sonner";
-import { createPartner, PartnerFormValues } from "@/services/partnerService";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,8 +30,6 @@ const PartnersListPage = () => {
   const [activeTab, setActiveTab] = useState("partners");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Animation variants
   const containerVariants = {
@@ -67,21 +62,7 @@ const PartnersListPage = () => {
   };
 
   const handleAddPartner = () => {
-    setIsAddModalOpen(true);
-  };
-
-  const handleCreatePartner = async (data: PartnerFormValues) => {
-    setIsSubmitting(true);
-    try {
-      const newPartner = await createPartner(data);
-      toast.success(`Le partenaire ${data.name} a été créé avec succès`);
-      setIsAddModalOpen(false);
-    } catch (error) {
-      console.error("Erreur lors de la création du partenaire:", error);
-      toast.error("Erreur lors de la création du partenaire");
-    } finally {
-      setIsSubmitting(false);
-    }
+    navigate("/partners/create");
   };
 
   const getStatusFilterLabel = () => {
@@ -218,14 +199,6 @@ const PartnersListPage = () => {
           </motion.div>
         </motion.div>
       </Container>
-
-      {/* Modal pour ajouter un partenaire */}
-      <PartnerModal 
-        isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
-        onSubmit={handleCreatePartner}
-        isSubmitting={isSubmitting}
-      />
     </PageTransition>
   );
 };
