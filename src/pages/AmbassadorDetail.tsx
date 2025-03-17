@@ -27,6 +27,7 @@ import {
 
 interface AmbassadorDetailParams {
   id?: string;
+  [key: string]: string | undefined;
 }
 
 const AmbassadorDetail = () => {
@@ -95,7 +96,7 @@ const AmbassadorDetail = () => {
 
     setIsCreatingUser(true);
     try {
-      await createUserAccount(ambassador.id, "ambassador");
+      await createUserAccount(ambassador.id, "ambassador" as any);
       toast.success("Compte utilisateur créé avec succès. Un email a été envoyé à l'ambassadeur.");
       setAmbassador({ ...ambassador, has_user_account: true, user_account_created_at: new Date().toISOString() });
       setShowCreateUser(false);

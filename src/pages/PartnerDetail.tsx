@@ -3,16 +3,15 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Calculator, ChevronLeft } from "lucide-react";
-import { getPartnerById, updatePartner } from "@/services/partnerService";
+import { Calculator, ChevronLeft, Edit } from "lucide-react";
+import { getPartnerById } from "@/services/partnerService";
 import { Partner } from "@/types/partner";
 
 interface PartnerDetailParams {
   id?: string;
+  [key: string]: string | undefined;
 }
 
 const PartnerDetail = () => {
@@ -28,15 +27,15 @@ const PartnerDetail = () => {
           setLoading(true);
           const partnerData = await getPartnerById(id);
           if (partnerData) {
-            // Convert partner data to match our expected Partner type
+            // Create a new partner object with the correct type interface
             const typedPartner: Partner = {
               id: partnerData.id,
               name: partnerData.name,
               email: partnerData.email,
-              phone: partnerData.phone,
-              type: partnerData.type as 'distributor' | 'integrator',
-              company: partnerData.company,
-              address: partnerData.address,
+              phone: partnerData.phone || undefined,
+              type: partnerData.type as 'distributor' | 'integrator' | string,
+              company: partnerData.company || undefined,
+              address: partnerData.address || undefined,
               additional_info: partnerData.notes,
               created_at: partnerData.created_at,
               updated_at: partnerData.updated_at,
