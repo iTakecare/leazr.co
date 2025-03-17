@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,7 +77,7 @@ const CommissionManager: React.FC<CommissionManagerProps> = () => {
   useEffect(() => {
     const fetchLevels = async () => {
       try {
-        const levelsData = await getCommissionLevels();
+        const levelsData = await getCommissionLevels("standard"); // Providing a default type value
         setLevels(levelsData);
       } catch (error) {
         console.error("Error fetching commission levels:", error);

@@ -72,7 +72,7 @@ const AmbassadorDetail = () => {
     const fetchCommissionLevels = async () => {
       try {
         setIsLevelLoading(true);
-        const levels = await getCommissionLevels();
+        const levels = await getCommissionLevels("ambassador");
         setCommissionLevels(levels);
       } catch (error) {
         console.error("Error fetching commission levels:", error);
