@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
 import { createUserAccount, resetPassword } from "@/services/accountService";
+import { CommissionLevel, getCommissionLevelWithRates } from "@/services/commissionService";
 
 // Mock data interfaces
 interface Client {
@@ -63,6 +65,8 @@ export default function AmbassadorDetail() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
+  const [loadingCommission, setLoadingCommission] = useState(false);
 
   const fetchAmbassador = async () => {
     if (!id) {
@@ -95,12 +99,29 @@ export default function AmbassadorDetail() {
         collaborators: []
       };
       setAmbassador(detailAmbassador);
+
+      // If the ambassador has a commission level, fetch the details
+      if (ambassadorData.commission_level_id) {
+        fetchCommissionLevel(ambassadorData.commission_level_id);
+      }
     } catch (error) {
       console.error("Error fetching ambassador:", error);
       setError("Erreur lors du chargement des données de l'ambassadeur");
       toast.error("Erreur lors du chargement des données de l'ambassadeur");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCommissionLevel = async (levelId: string) => {
+    setLoadingCommission(true);
+    try {
+      const level = await getCommissionLevelWithRates(levelId);
+      setCommissionLevel(level);
+    } catch (error) {
+      console.error("Error loading commission level:", error);
+    } finally {
+      setLoadingCommission(false);
     }
   };
 
@@ -279,6 +300,60 @@ export default function AmbassadorDetail() {
                       <p className="text-sm">{formatDate(ambassador.updated_at)}</p>
                     </div>
                   </div>
+                </div>
+                
+                {/* Commission Level Section */}
+                <div className="mt-6 border-t pt-6">
+                  <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <BadgePercent className="h-4 w-4 text-primary" />
+                    Barème de commissionnement
+                  </h3>
+                  
+                  {loadingCommission ? (
+                    <div className="flex justify-center p-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : commissionLevel ? (
+                    <div className="bg-muted/20 p-4 rounded-md">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{commissionLevel.name}</span>
+                          {commissionLevel.is_default && (
+                            <Badge variant="outline" className="text-xs">Par défaut</Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {commissionLevel.rates && commissionLevel.rates.length > 0 ? (
+                        <div className="space-y-2 mt-3">
+                          <div className="grid grid-cols-3 text-xs text-muted-foreground mb-1">
+                            <div>Montant min</div>
+                            <div>Montant max</div>
+                            <div className="text-right">Taux</div>
+                          </div>
+                          {commissionLevel.rates
+                            .sort((a, b) => a.min_amount - b.min_amount)
+                            .map((rate, index) => (
+                              <div key={index} className="grid grid-cols-3 text-sm py-1 border-b border-muted last:border-0">
+                                <div>{Number(rate.min_amount).toLocaleString('fr-FR')}€</div>
+                                <div>{Number(rate.max_amount).toLocaleString('fr-FR')}€</div>
+                                <div className="text-right font-medium">{rate.rate}%</div>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Aucun taux défini pour ce barème.</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md">
+                      <p className="text-sm">
+                        Aucun barème de commissionnement n'est défini pour cet ambassadeur.
+                        Utilisez la fonction "Modifier" pour en assigner un.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 
                 {ambassador.notes && (
