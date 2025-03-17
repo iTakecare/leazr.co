@@ -16,11 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import ClientSelector from "@/components/offer/ClientSelector";
+import { ClientSelectorButton, ClientSelectorModal } from "@/components/offer/ClientSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -162,7 +161,7 @@ const CreateOffer = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="client">Client</Label>
-                  <ClientSelector
+                  <ClientSelectorButton
                     selectedClient={selectedClient}
                     onSelect={openClientSelector}
                   />
@@ -247,7 +246,7 @@ const CreateOffer = () => {
             </Button>
           </div>
 
-          <ClientSelector
+          <ClientSelectorModal
             isOpen={clientSelectorOpen}
             onClose={closeClientSelector}
             onSelect={handleClientSelect}

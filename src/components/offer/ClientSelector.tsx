@@ -1,15 +1,16 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
 import { Client } from '@/types/client';
 
-interface ClientSelector {
+// Rename the interface to ClientSelectorProps
+interface ClientSelectorProps {
   selectedClient: Client | null;
   onSelect: () => void;
 }
 
-const ClientSelector: React.FC<ClientSelector> = ({ 
+// Rename the component to ClientSelectorButton
+const ClientSelectorButton: React.FC<ClientSelectorProps> = ({ 
   selectedClient, 
   onSelect 
 }) => {
@@ -34,7 +35,8 @@ interface FullClientSelectorProps {
   clients: Client[];
 }
 
-export const ClientSelector: React.FC<FullClientSelectorProps> = ({
+// Rename this component to ClientSelectorModal
+const ClientSelectorModal: React.FC<FullClientSelectorProps> = ({
   isOpen,
   onClose,
   onSelect,
@@ -76,4 +78,8 @@ export const ClientSelector: React.FC<FullClientSelectorProps> = ({
   );
 };
 
-export default ClientSelector;
+// Export both components
+export { ClientSelectorButton, ClientSelectorModal };
+
+// Default export the button component
+export default ClientSelectorButton;
