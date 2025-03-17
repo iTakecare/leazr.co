@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -58,7 +59,8 @@ const AmbassadorCreateClient = () => {
         ambassador_id: user.ambassador_id
       };
       
-      const result = await createClientForAmbassador(clientData);
+      // Pass user object as second parameter to match the expected function signature
+      const result = await createClientForAmbassador(clientData, user);
       
       if (result) {
         toast.success("Client créé avec succès !");

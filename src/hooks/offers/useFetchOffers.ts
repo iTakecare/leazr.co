@@ -51,7 +51,8 @@ export const useFetchOffers = () => {
                 workflowStatus = OFFER_STATUSES.REJECTED.id;
                 break;
               case "draft":
-              case "pending": // Changed to match acceptable status types
+              // Changed to check if status is 'pending' instead of comparing
+              case "pending": 
                 workflowStatus = OFFER_STATUSES.DRAFT.id;
                 break;
               default:
@@ -64,9 +65,10 @@ export const useFetchOffers = () => {
         
         const offersWithType = offersWithWorkflow.map(offer => {
           if (!offer.type) {
+            // Use optional chaining to safely access clientId or client_id
             return {
               ...offer,
-              type: offer.clientId || offer.client_id ? 'client_request' : 'admin_offer'
+              type: offer.clientId || (offer as any).client_id ? 'client_request' : 'admin_offer'
             };
           }
           return offer;
@@ -75,6 +77,7 @@ export const useFetchOffers = () => {
         console.log(`Loaded ${offersWithType.length} offers. Includes converted: ${includeConverted}`);
         console.log("Converted offers:", offersWithType.filter(o => o.converted_to_contract).length);
         
+        // Cast the offers to the Offer type
         const typedOffers = offersWithType as Offer[];
         setOffers(typedOffers);
       } else {

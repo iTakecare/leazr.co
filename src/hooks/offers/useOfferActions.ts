@@ -36,8 +36,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       const offer = offers.find(o => o.id === offerId);
       if (!offer) throw new Error("Offre non trouvée");
       
-      // Update to match the expected parameters for updateOfferStatus
-      const success = await updateOfferStatus(offerId, newStatus as any);
+      // Update to match the expected parameters for updateOfferStatus (2 parameters)
+      const success = await updateOfferStatus(offerId, newStatus);
       
       if (success) {
         setOffers(prevOffers => prevOffers.map(o => 
@@ -88,7 +88,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       console.log("Demande d'informations pour l'offre:", offerId);
       console.log("Message personnalisé:", message);
       
-      // Update to match the expected parameters for sendInfoRequest
+      // Update to match the expected parameters for sendInfoRequest (only need offerId and message)
       const success = await sendInfoRequest(offerId, message);
       
       if (success) {

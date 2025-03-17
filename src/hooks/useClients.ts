@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Client } from '@/types/client';
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +20,6 @@ export function useClients() {
       setError(null);
       setLoadingError('');
       
-      // Real database query
       const { data, error } = await supabase
         .from('clients')
         .select('*')
@@ -62,7 +60,7 @@ export function useClients() {
     }
   }, [clients, searchTerm, statusFilter]);
 
-  const handleDeleteClient = async (clientId: string) => {
+  const handleDeleteClient = async (clientId: string): Promise<void> => {
     try {
       const { error } = await supabase
         .from('clients')
@@ -71,16 +69,13 @@ export function useClients() {
       
       if (error) throw error;
       
-      // Remove client from state
       const updatedClients = clients.filter(client => client.id !== clientId);
       setClients(updatedClients);
       
       toast.success("Client supprimé avec succès");
-      return true;
     } catch (err) {
       console.error('Error deleting client:', err);
       toast.error("Erreur lors de la suppression du client");
-      return false;
     }
   };
 

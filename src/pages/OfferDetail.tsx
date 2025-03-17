@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -115,7 +114,6 @@ const OfferDetail = () => {
         const success = await updateContractStatus(
           offer.id, 
           targetStatus, 
-          offer.contract_status || contractStatuses.CONTRACT_SENT,
           statusChangeReason
         );
         
@@ -129,9 +127,7 @@ const OfferDetail = () => {
       } else {
         const success = await updateOfferStatus(
           offer.id, 
-          targetStatus, 
-          offer.workflow_status,
-          statusChangeReason
+          targetStatus
         );
         
         if (success) {
@@ -232,21 +228,13 @@ const OfferDetail = () => {
     // Email sending functionality to be implemented here
   };
   
-  // Fixed missing function - This handles sending information requests
   const handleRequestInfo = async (requestedDocs: string[], customMessage: string) => {
     if (!offer) return;
     
     try {
       setIsUpdatingStatus(true);
       
-      const data = {
-        offerId: offer.id,
-        requestedDocs,
-        customMessage,
-        previousStatus: offer.workflow_status
-      };
-      
-      const success = await sendInfoRequest(data);
+      const success = await sendInfoRequest(offer.id, customMessage);
       
       if (success) {
         toast.success("Demande d'informations envoyée avec succès");
@@ -269,7 +257,8 @@ const OfferDetail = () => {
     try {
       setIsUpdatingStatus(true);
       
-      const success = await processInfoResponse(offer.id, approve);
+      const responseStatus = approve ? "approved" : "rejected";
+      const success = await processInfoResponse(offer.id, responseStatus);
       
       if (success) {
         toast.success(approve 
@@ -420,7 +409,6 @@ const OfferDetail = () => {
             onClick: () => openStatusChangeDialog(OFFER_STATUSES.FINANCED.id),
           });
           
-          // Add request info option in leaser_review stage
           actions.push({
             label: "Demander des infos",
             icon: HelpCircle,
