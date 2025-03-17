@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,8 +20,6 @@ import {
   updateCommissionRate,
   CommissionRate,
 } from "@/services/commissionService";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 
 const rateSchema = z.object({
   min_amount: z.coerce.number(),
@@ -31,11 +30,19 @@ const rateSchema = z.object({
 type RateFormValues = z.infer<typeof rateSchema>;
 
 interface CommissionRateFormProps {
-  commissionLevel: any;
+  commissionLevel?: any;
   initialData?: CommissionRate;
-  onSubmit: (values: RateFormValues) => Promise<void>;
-  onCancel: () => void;
+  onSubmit?: (values: RateFormValues) => Promise<void>;
+  onCancel?: () => void;
   isSubmitting?: boolean;
+  
+  // New props to match usage in CommissionManager
+  isOpen?: boolean;
+  onClose?: () => void;
+  onSave?: (data: any) => void;
+  levelId?: string;
+  rate?: CommissionRate;
+  inline?: boolean;
 }
 
 const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
@@ -44,12 +51,22 @@ const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
   onSubmit,
   onCancel,
   isSubmitting = false,
+  
+  // New props with defaults
+  onClose,
+  onSave,
+  levelId,
+  rate,
+  inline = false,
 }) => {
   const [isMounted, setIsMounted] = useState(false);
 
+  // Use rate as initialData if provided
+  const actualInitialData = rate || initialData;
+
   const form = useForm<RateFormValues>({
     resolver: zodResolver(rateSchema),
-    defaultValues: initialData || {
+    defaultValues: actualInitialData || {
       min_amount: 0,
       max_amount: 0,
       rate: 0,
@@ -63,11 +80,24 @@ const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
 
   const handleSubmit = async (values: RateFormValues) => {
     try {
-      await onSubmit(values);
-      toast.success("Taux de commission mis à jour");
+      // Handle both callback patterns
+      if (onSave) {
+        onSave(values);
+      } else if (onSubmit) {
+        await onSubmit(values);
+        toast.success("Taux de commission mis à jour");
+      }
     } catch (error) {
       console.error("Error updating commission rate:", error);
       toast.error("Erreur lors de la mise à jour du taux de commission");
+    }
+  };
+
+  const handleCancel = () => {
+    if (onClose) {
+      onClose();
+    } else if (onCancel) {
+      onCancel();
     }
   };
 
@@ -75,9 +105,15 @@ const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
     return null;
   }
 
+  // Responsive styling for inline mode
+  const formClassName = inline ? "space-y-3" : "space-y-6";
+  const buttonsClassName = inline 
+    ? "flex items-center justify-end gap-2 pt-2" 
+    : "flex items-center justify-between pt-4";
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className={formClassName}>
         <FormField
           control={form.control}
           name="min_amount"
@@ -117,12 +153,12 @@ const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
             </FormItem>
           )}
         />
-        <div className="flex items-center justify-between pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className={buttonsClassName}>
+          <Button type="button" variant="outline" onClick={handleCancel}>
             Annuler
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {initialData ? "Mettre à jour" : "Créer"}
+            {actualInitialData ? "Mettre à jour" : "Créer"}
           </Button>
         </div>
       </form>
