@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getAmbassadors, Ambassador } from "@/services/ambassadorService";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 interface AmbassadorsListProps {
   searchTerm?: string;
@@ -25,6 +26,7 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
       try {
         setLoading(true);
         const data = await getAmbassadors();
+        console.log("Loaded ambassadors:", data);
         setAmbassadors(data);
         setError(null);
       } catch (err) {
@@ -42,8 +44,8 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
   // Filter ambassadors based on search term and status filter
   const filteredAmbassadors = ambassadors.filter(ambassador => {
     const matchesSearch = 
-      ambassador.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ambassador.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ambassador.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ambassador.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (ambassador.company && ambassador.company.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === "all" || ambassador.status === statusFilter;
@@ -136,9 +138,15 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>Afficher le profil</DropdownMenuItem>
-                    <DropdownMenuItem>Modifier</DropdownMenuItem>
-                    <DropdownMenuItem>Voir les clients</DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={`/ambassadors/${ambassador.id}`}>Afficher le profil</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={`/ambassadors/edit/${ambassador.id}`}>Modifier</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={`/ambassadors/${ambassador.id}/clients`}>Voir les clients</Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className={ambassador.status === 'active' ? "text-amber-600" : "text-green-600"}>
                       {ambassador.status === 'active' ? 'Désactiver' : 'Activer'}
@@ -217,9 +225,15 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Afficher le profil</DropdownMenuItem>
-                        <DropdownMenuItem>Modifier</DropdownMenuItem>
-                        <DropdownMenuItem>Voir les clients</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/ambassadors/${ambassador.id}`}>Afficher le profil</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/ambassadors/edit/${ambassador.id}`}>Modifier</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/ambassadors/${ambassador.id}/clients`}>Voir les clients</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className={ambassador.status === 'active' ? "text-amber-600" : "text-green-600"}>
                           {ambassador.status === 'active' ? 'Désactiver' : 'Activer'}

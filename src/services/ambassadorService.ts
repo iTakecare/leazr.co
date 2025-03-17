@@ -1,4 +1,7 @@
 
+import { supabaseClient } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from "uuid";
+
 export interface Ambassador {
   id: string;
   name: string;
@@ -29,11 +32,16 @@ export interface Ambassador {
 
 export const getAmbassadors = async (): Promise<Ambassador[]> => {
   try {
-    const response = await fetch('/api/ambassadors');
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+    const { data, error } = await supabaseClient
+      .from('ambassadors')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching ambassadors:', error);
+      throw error;
     }
-    return await response.json();
+    
+    return data || [];
   } catch (error) {
     console.error('Error fetching ambassadors:', error);
     return [];
@@ -42,11 +50,47 @@ export const getAmbassadors = async (): Promise<Ambassador[]> => {
 
 export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
   try {
-    const response = await fetch(`/api/ambassadors/${id}`);
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+    const { data, error } = await supabaseClient
+      .from('ambassadors')
+      .select(`
+        *,
+        clients:clients(id),
+        commissions:commissions(id, amount, created_at)
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching ambassador:', error);
+      throw error;
     }
-    return await response.json();
+    
+    // Calculate counts and totals
+    const ambassador = data as Ambassador;
+    
+    if (ambassador) {
+      ambassador.clients_count = ambassador.clients?.length || 0;
+      
+      // Calculate commissions total if commissions exist
+      if (ambassador.commissions && ambassador.commissions.length > 0) {
+        ambassador.commissions_total = ambassador.commissions.reduce(
+          (total, commission) => total + (commission.amount || 0), 
+          0
+        );
+        
+        // Get the most recent commission
+        const sortedCommissions = [...ambassador.commissions].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        ambassador.last_commission = sortedCommissions[0]?.amount || 0;
+      } else {
+        ambassador.commissions_total = 0;
+        ambassador.last_commission = 0;
+      }
+    }
+    
+    return ambassador || null;
   } catch (error) {
     console.error('Error fetching ambassador:', error);
     return null;
@@ -55,19 +99,28 @@ export const getAmbassadorById = async (id: string): Promise<Ambassador | null> 
 
 export const createAmbassador = async (data: Partial<Ambassador>): Promise<Ambassador | null> => {
   try {
-    const response = await fetch(`/api/ambassadors`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+    const ambassadorId = uuidv4();
+    const newAmbassador = {
+      id: ambassadorId,
+      ...data,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      status: data.status || 'active',
+      has_user_account: false
+    };
     
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+    const { data: insertedData, error } = await supabaseClient
+      .from('ambassadors')
+      .insert(newAmbassador)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating ambassador:', error);
+      throw error;
     }
     
-    return await response.json();
+    return insertedData || null;
   } catch (error) {
     console.error('Error creating ambassador:', error);
     return null;
@@ -76,19 +129,24 @@ export const createAmbassador = async (data: Partial<Ambassador>): Promise<Ambas
 
 export const updateAmbassador = async (id: string, data: Partial<Ambassador>): Promise<Ambassador | null> => {
   try {
-    const response = await fetch(`/api/ambassadors/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+    const updateData = {
+      ...data,
+      updated_at: new Date().toISOString()
+    };
     
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+    const { data: updatedData, error } = await supabaseClient
+      .from('ambassadors')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating ambassador:', error);
+      throw error;
     }
     
-    return await response.json();
+    return updatedData || null;
   } catch (error) {
     console.error('Error updating ambassador:', error);
     return null;
@@ -97,12 +155,14 @@ export const updateAmbassador = async (id: string, data: Partial<Ambassador>): P
 
 export const deleteAmbassador = async (id: string): Promise<boolean> => {
   try {
-    const response = await fetch(`/api/ambassadors/${id}`, {
-      method: 'DELETE',
-    });
+    const { error } = await supabaseClient
+      .from('ambassadors')
+      .delete()
+      .eq('id', id);
     
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+    if (error) {
+      console.error('Error deleting ambassador:', error);
+      throw error;
     }
     
     return true;
