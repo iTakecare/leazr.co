@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -370,60 +371,61 @@ export default function AmbassadorDetail() {
                             </SelectItem>
                           ))}
                         </SelectContent>
-                    </Select>
-                    {updatingLevel && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Mise à jour en cours...
+                      </Select>
+                      {updatingLevel && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Mise à jour en cours...
+                        </div>
+                      )}
+                    </div>
+                  
+                    {loadingCommission ? (
+                      <div className="flex justify-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : commissionLevel ? (
+                      <div className="bg-muted/20 p-4 rounded-md mt-2">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{commissionLevel.name}</span>
+                            {commissionLevel.is_default && (
+                              <Badge variant="outline" className="text-xs">Par défaut</Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {commissionLevel.rates && commissionLevel.rates.length > 0 ? (
+                          <div className="space-y-2 mt-3">
+                            <div className="grid grid-cols-3 text-xs text-muted-foreground mb-1">
+                              <div>Montant min</div>
+                              <div>Montant max</div>
+                              <div className="text-right">Taux</div>
+                            </div>
+                            {commissionLevel.rates
+                              .sort((a, b) => a.min_amount - b.min_amount)
+                              .map((rate, index) => (
+                                <div key={index} className="grid grid-cols-3 text-sm py-1 border-b border-muted last:border-0">
+                                  <div>{Number(rate.min_amount).toLocaleString('fr-FR')}€</div>
+                                  <div>{Number(rate.max_amount).toLocaleString('fr-FR')}€</div>
+                                  <div className="text-right font-medium">{rate.rate}%</div>
+                                </div>
+                              ))
+                            }
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Aucun taux défini pour ce barème.</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md">
+                        <p className="text-sm">
+                          Aucun barème de commissionnement n'est défini pour cet ambassadeur.
+                          Sélectionnez un barème ci-dessus.
+                        </p>
                       </div>
                     )}
                   </div>
-                  
-                  {loadingCommission ? (
-                    <div className="flex justify-center p-4">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : commissionLevel ? (
-                    <div className="bg-muted/20 p-4 rounded-md mt-2">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{commissionLevel.name}</span>
-                          {commissionLevel.is_default && (
-                            <Badge variant="outline" className="text-xs">Par défaut</Badge>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {commissionLevel.rates && commissionLevel.rates.length > 0 ? (
-                        <div className="space-y-2 mt-3">
-                          <div className="grid grid-cols-3 text-xs text-muted-foreground mb-1">
-                            <div>Montant min</div>
-                            <div>Montant max</div>
-                            <div className="text-right">Taux</div>
-                          </div>
-                          {commissionLevel.rates
-                            .sort((a, b) => a.min_amount - b.min_amount)
-                            .map((rate, index) => (
-                              <div key={index} className="grid grid-cols-3 text-sm py-1 border-b border-muted last:border-0">
-                                <div>{Number(rate.min_amount).toLocaleString('fr-FR')}€</div>
-                                <div>{Number(rate.max_amount).toLocaleString('fr-FR')}€</div>
-                                <div className="text-right font-medium">{rate.rate}%</div>
-                              </div>
-                            ))
-                          }
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Aucun taux défini pour ce barème.</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md">
-                      <p className="text-sm">
-                        Aucun barème de commissionnement n'est défini pour cet ambassadeur.
-                        Sélectionnez un barème ci-dessus.
-                      </p>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
