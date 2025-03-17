@@ -1,212 +1,286 @@
-
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useAuth } from "@/context/AuthContext";
-import Container from "@/components/layout/Container";
-import PageTransition from "@/components/layout/PageTransition";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { createClientForAmbassador } from "@/services/clientService";
+import { getAmbassadorProfile } from "@/services/ambassadorService";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { createClientForAmbassador } from "@/services/ambassadorService";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import Container from "@/components/layout/Container";
+import PageTransition from "@/components/layout/PageTransition";
+import { Loader2 } from "lucide-react";
+
+const phoneRegex = new RegExp(
+  /^([+]?[\s0-9]+)?(\d{3}|[(]?[0-9]+[)])?([-]?[\s]?[0-9])+$/
+);
+
+const ClientFormSchema = z.object({
+  name: z.string().min(2, {
+    message: "Le nom doit comporter au moins 2 caractères.",
+  }),
+  company: z.string().optional(),
+  email: z.string().email({
+    message: "Adresse e-mail invalide.",
+  }),
+  phone: z.string().regex(phoneRegex, {
+    message: "Numéro de téléphone invalide",
+  }),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  postal_code: z.string().optional(),
+  country: z.string().optional(),
+  additional_info: z.string().optional(),
+  accept_terms: z.boolean().refine((value) => value === true, {
+    message: "Vous devez accepter les termes et conditions.",
+  }),
+});
+
+type ClientFormData = z.infer<typeof ClientFormSchema>;
 
 const AmbassadorCreateClient = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Form state
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-  const [country, setCountry] = useState("France");
-  const [vatNumber, setVatNumber] = useState("");
-  const [notes, setNotes] = useState("");
+  const [ambassador, setAmbassador] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name || !email) {
-      toast.error("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
-    
-    if (!user?.ambassador_id) {
-      toast.error("Vous devez être connecté en tant qu'ambassadeur pour créer un client");
-      return;
-    }
-    
-    setIsSubmitting(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<ClientFormData>({
+    resolver: zodResolver(ClientFormSchema),
+    defaultValues: {
+      accept_terms: false,
+    },
+  });
+
+  useEffect(() => {
+    const fetchAmbassador = async () => {
+      if (user && user.id) {
+        try {
+          const ambassadorData = await getAmbassadorProfile(user.id);
+          setAmbassador(ambassadorData);
+        } catch (error) {
+          console.error("Error fetching ambassador profile:", error);
+          toast.error("Erreur lors du chargement du profil de l'ambassadeur");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAmbassador();
+  }, [user]);
+
+  const handleSubmit = async (data: ClientFormData) => {
+    setSubmitting(true);
     
     try {
+      // Ajout de l'id de l'ambassadeur au client
       const clientData = {
-        name,
-        email,
-        company,
-        phone,
-        address,
-        city,
-        postal_code: postalCode,
-        country,
-        vat_number: vatNumber,
-        notes,
-        ambassador_id: user.ambassador_id
+        ...data,
+        ambassador_id: ambassador?.id || ''
       };
       
-      // Pass user object as second parameter to match the expected function signature
-      const result = await createClientForAmbassador(clientData, user);
+      // Correction: passer l'id de l'ambassadeur comme premier argument
+      const success = await createClientForAmbassador(
+        ambassador?.id || '',
+        clientData
+      );
       
-      if (result) {
-        toast.success("Client créé avec succès !");
-        navigate("/ambassador/clients");
+      if (success) {
+        toast.success("Client créé avec succès");
+        navigate('/ambassador/dashboard');
       } else {
-        throw new Error("Échec de la création du client");
+        toast.error("Erreur lors de la création du client");
       }
     } catch (error) {
       console.error("Erreur lors de la création du client:", error);
-      toast.error("Une erreur s'est produite lors de la création du client");
+      toast.error("Erreur lors de la création du client");
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex justify-center items-center h-60">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Chargement...
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
       <Container>
         <div className="py-8">
-          <h1 className="text-2xl font-bold mb-6">Créer un nouveau client</h1>
-          
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold">Créer un nouveau client</h1>
+            <p className="text-muted-foreground">Ajoutez un nouveau client à votre liste.</p>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Informations du client</CardTitle>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nom <span className="text-red-500">*</span></Label>
-                    <Input 
-                      id="name" 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)} 
-                      placeholder="Nom du client" 
-                      required 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      placeholder="email@exemple.com" 
-                      required 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Entreprise</Label>
-                    <Input 
-                      id="company" 
-                      value={company} 
-                      onChange={(e) => setCompany(e.target.value)} 
-                      placeholder="Nom de l'entreprise" 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Téléphone</Label>
-                    <Input 
-                      id="phone" 
-                      value={phone} 
-                      onChange={(e) => setPhone(e.target.value)} 
-                      placeholder="01 23 45 67 89" 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Adresse</Label>
-                    <Input 
-                      id="address" 
-                      value={address} 
-                      onChange={(e) => setAddress(e.target.value)} 
-                      placeholder="123 rue exemple" 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="city">Ville</Label>
-                    <Input 
-                      id="city" 
-                      value={city} 
-                      onChange={(e) => setCity(e.target.value)} 
-                      placeholder="Paris" 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="postalCode">Code postal</Label>
-                    <Input 
-                      id="postalCode" 
-                      value={postalCode} 
-                      onChange={(e) => setPostalCode(e.target.value)} 
-                      placeholder="75000" 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Pays</Label>
-                    <Input 
-                      id="country" 
-                      value={country} 
-                      onChange={(e) => setCountry(e.target.value)} 
-                      placeholder="France" 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="vatNumber">Numéro TVA</Label>
-                    <Input 
-                      id="vatNumber" 
-                      value={vatNumber} 
-                      onChange={(e) => setVatNumber(e.target.value)} 
-                      placeholder="FR12345678901" 
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea 
-                    id="notes" 
-                    value={notes} 
-                    onChange={(e) => setNotes(e.target.value)} 
-                    placeholder="Informations supplémentaires..." 
-                    className="h-24"
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Nom complet *</Label>
+                  <Input
+                    id="name"
+                    placeholder="John Doe"
+                    type="text"
+                    {...register("name")}
                   />
+                  {errors.name && (
+                    <p className="text-red-500 text-sm">{errors.name.message}</p>
+                  )}
                 </div>
-                
-                <div className="flex justify-end space-x-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => navigate("/ambassador/dashboard")}
-                  >
-                    Annuler
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Création en cours..." : "Créer le client"}
-                  </Button>
+
+                <div>
+                  <Label htmlFor="company">Société</Label>
+                  <Input
+                    id="company"
+                    placeholder="Nom de la société"
+                    type="text"
+                    {...register("company")}
+                  />
+                  {errors.company && (
+                    <p className="text-red-500 text-sm">{errors.company.message}</p>
+                  )}
                 </div>
-              </form>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email">Adresse e-mail *</Label>
+                  <Input
+                    id="email"
+                    placeholder="john.doe@example.com"
+                    type="email"
+                    {...register("email")}
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-sm">{errors.email.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="phone">Numéro de téléphone *</Label>
+                  <Input
+                    id="phone"
+                    placeholder="+33612345678"
+                    type="tel"
+                    {...register("phone")}
+                  />
+                  {errors.phone && (
+                    <p className="text-red-500 text-sm">{errors.phone.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="address">Adresse</Label>
+                <Input
+                  id="address"
+                  placeholder="123 Main Street"
+                  type="text"
+                  {...register("address")}
+                />
+                {errors.address && (
+                  <p className="text-red-500 text-sm">{errors.address.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="city">Ville</Label>
+                  <Input
+                    id="city"
+                    placeholder="Paris"
+                    type="text"
+                    {...register("city")}
+                  />
+                  {errors.city && (
+                    <p className="text-red-500 text-sm">{errors.city.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="postal_code">Code postal</Label>
+                  <Input
+                    id="postal_code"
+                    placeholder="75001"
+                    type="text"
+                    {...register("postal_code")}
+                  />
+                  {errors.postal_code && (
+                    <p className="text-red-500 text-sm">{errors.postal_code.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="country">Pays</Label>
+                  <Input
+                    id="country"
+                    placeholder="France"
+                    type="text"
+                    {...register("country")}
+                  />
+                  {errors.country && (
+                    <p className="text-red-500 text-sm">{errors.country.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="additional_info">Informations complémentaires</Label>
+                <Textarea
+                  id="additional_info"
+                  placeholder="Informations supplémentaires à propos du client"
+                  {...register("additional_info")}
+                />
+                {errors.additional_info && (
+                  <p className="text-red-500 text-sm">{errors.additional_info.message}</p>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="terms" {...register("accept_terms")} />
+                  <Label htmlFor="terms">
+                    J'accepte les <a href="#" className="text-primary underline underline-offset-2">termes et conditions</a> *
+                  </Label>
+                </div>
+                {errors.accept_terms && (
+                  <p className="text-red-500 text-sm">{errors.accept_terms.message}</p>
+                )}
+              </div>
+
+              <Button disabled={submitting} onClick={handleSubmit(handleSubmit)} className="w-full">
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Création en cours...
+                  </>
+                ) : (
+                  "Créer le client"
+                )}
+              </Button>
             </CardContent>
           </Card>
         </div>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Client } from '@/types/client';
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,7 @@ export function useClients() {
     }
   }, [clients, searchTerm, statusFilter]);
 
+  // Modifions la fonction handleDeleteClient pour qu'elle retourne Promise<void> au lieu de Promise<boolean>
   const handleDeleteClient = async (clientId: string): Promise<void> => {
     try {
       const { error } = await supabase

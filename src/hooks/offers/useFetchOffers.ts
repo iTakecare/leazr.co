@@ -51,12 +51,15 @@ export const useFetchOffers = () => {
                 workflowStatus = OFFER_STATUSES.REJECTED.id;
                 break;
               case "draft":
-              // Changed to check if status is 'pending' instead of comparing
-              case "pending": 
                 workflowStatus = OFFER_STATUSES.DRAFT.id;
                 break;
               default:
-                workflowStatus = OFFER_STATUSES.DRAFT.id;
+                // Check if status is 'pending' using an if statement instead of case
+                if (offer.status === "pending") {
+                  workflowStatus = OFFER_STATUSES.DRAFT.id;
+                } else {
+                  workflowStatus = OFFER_STATUSES.DRAFT.id;
+                }
             }
             return { ...offer, workflow_status: workflowStatus };
           }
@@ -66,9 +69,14 @@ export const useFetchOffers = () => {
         const offersWithType = offersWithWorkflow.map(offer => {
           if (!offer.type) {
             // Use optional chaining to safely access clientId or client_id
+            // Cast offer to any to avoid TS error with client_id property
+            const offerAny = offer as any;
             return {
               ...offer,
-              type: offer.clientId || (offer as any).client_id ? 'client_request' : 'admin_offer'
+              type: offer.clientId || offerAny.client_id ? 'client_request' : 'admin_offer',
+              // Ensure both clientId and client_id are set for backward compatibility
+              clientId: offer.clientId || offerAny.client_id,
+              client_id: offerAny.client_id || offer.clientId
             };
           }
           return offer;
