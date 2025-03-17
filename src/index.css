@@ -101,6 +101,19 @@
   .auth-card {
     @apply w-full max-w-sm mx-auto;
   }
+
+  .responsive-form-grid {
+    @apply grid gap-4 w-full;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+  
+  .responsive-price-tag {
+    @apply inline-flex items-center gap-1 whitespace-nowrap;
+  }
+  
+  .responsive-filter-group {
+    @apply flex flex-wrap gap-2 w-full;
+  }
 }
 
 @keyframes fadeIn {
@@ -144,6 +157,23 @@ a, button {
   p {
     font-size: 0.95rem;
   }
+  
+  /* Ajustements pour les tableaux de produits et les filtres sur mobile */
+  .product-item-mobile {
+    @apply flex items-center justify-between w-full py-3;
+  }
+  
+  .product-info-mobile {
+    @apply flex-1 overflow-hidden pr-2;
+  }
+  
+  .product-price-mobile {
+    @apply text-right whitespace-nowrap;
+  }
+  
+  .filter-buttons-mobile {
+    @apply flex-wrap justify-start gap-2;
+  }
 }
 
 /* Custom scrollbar */
@@ -177,4 +207,57 @@ a, button {
     overflow-x: auto;
     white-space: nowrap;
   }
+  
+  /* Formulaires responsives */
+  .form-row {
+    @apply flex flex-col sm:flex-row gap-4;
+  }
+  
+  .mobile-form-full {
+    @apply w-full mb-4;
+  }
+  
+  /* Ajustements pour les tabs et filtres */
+  .mobile-tabs-full {
+    @apply w-full grid grid-cols-2 sm:inline-flex gap-1;
+  }
+  
+  .mobile-filter-scroll {
+    @apply overflow-x-auto flex whitespace-nowrap pb-2;
+  }
+}
+
+/* Spécifique au Catalog.tsx */
+.product-card {
+  @apply relative flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 border rounded-md hover:bg-muted/10 transition-colors;
+}
+
+.product-image-container {
+  @apply flex items-center space-x-3 w-full sm:w-auto mb-2 sm:mb-0;
+}
+
+.product-details {
+  @apply flex-1 overflow-hidden;
+}
+
+.product-price-container {
+  @apply flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2 sm:mt-0;
+}
+
+.product-modifiers {
+  @apply flex justify-end items-center gap-2 mt-3 sm:mt-0;
+}
+
+/* Spécifique aux settings */
+.settings-form-field {
+  @apply flex flex-col space-y-2 mb-4;
+}
+
+.settings-switch-container {
+  @apply flex justify-between items-center mb-6 flex-wrap gap-4;
+}
+
+/* Mobile filters adjustments */
+.mobile-filters-container {
+  @apply flex flex-wrap gap-2 overflow-x-auto pb-2;
 }

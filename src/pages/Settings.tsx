@@ -25,19 +25,19 @@ const Settings = () => {
             <TabsList className={`mb-6 ${isMobile ? 'grid grid-cols-2 gap-2' : ''}`}>
               <TabsTrigger value="leasers" className="flex items-center gap-2">
                 <Building className="h-4 w-4" />
-                <span className={isMobile ? "" : ""}>Bailleurs</span>
+                <span>Bailleurs</span>
               </TabsTrigger>
               <TabsTrigger value="email" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                <span className={isMobile ? "" : ""}>Email</span>
+                <span>Email</span>
               </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <UserRound className="h-4 w-4" />
-                <span className={isMobile ? "" : ""}>Utilisateurs</span>
+                <span>Utilisateurs</span>
               </TabsTrigger>
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" />
-                <span className={isMobile ? "" : ""}>Général</span>
+                <span>Général</span>
               </TabsTrigger>
             </TabsList>
 

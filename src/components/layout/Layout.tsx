@@ -22,7 +22,7 @@ export function Layout() {
               variant="ghost"
               size="icon"
               onClick={toggleSidebar}
-              className="fixed top-4 left-4 z-50 md:hidden"
+              className="fixed top-4 left-4 z-50 md:hidden bg-background/80 backdrop-blur-sm shadow-sm"
               aria-label="Menu"
             >
               <Menu className="h-6 w-6" />
@@ -30,7 +30,7 @@ export function Layout() {
             </Button>
             
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetContent side="left" className="p-0 w-[90vw] max-w-[300px]">
+              <SheetContent side="left" className="p-0 w-[80vw] max-w-[300px]">
                 <Sidebar className="h-full w-full border-none" onLinkClick={() => setSidebarOpen(false)} />
               </SheetContent>
             </Sheet>
