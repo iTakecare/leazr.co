@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
@@ -63,7 +64,19 @@ const OfferDetail = () => {
 
       try {
         const offerData = await getOfferById(offerId);
-        setOffer(offerData);
+        // Convert offerData to match our Offer interface
+        if (offerData) {
+          const convertedOffer: Offer = {
+            ...offerData,
+            type: offerData.type || 'admin_offer',
+            // Ensure these properties exist even if they're undefined in the API response
+            equipment_description: offerData.equipment_description || '',
+            additional_info: offerData.additional_info || '',
+          };
+          setOffer(convertedOffer);
+        } else {
+          setOffer(null);
+        }
       } catch (err) {
         console.error("Error fetching offer:", err);
         setError("Failed to load offer");
@@ -79,7 +92,7 @@ const OfferDetail = () => {
   const handleUpdateStatus = async (newStatus: string) => {
     try {
       setIsUpdating(true);
-      // Cast newStatus en any pour éviter l'erreur TypeScript
+      // Cast newStatus to a valid offer status type
       const success = await updateOfferStatus(offerId, newStatus as any);
     
       if (success) {

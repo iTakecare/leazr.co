@@ -61,7 +61,7 @@ export function useClients() {
     }
   }, [clients, searchTerm, statusFilter]);
 
-  // Fix return type to match Promise<void> rather than Promise<boolean>
+  // Fixed return type to void
   const handleDeleteClient = async (clientId: string): Promise<void> => {
     try {
       const { error } = await supabase

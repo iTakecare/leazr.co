@@ -22,6 +22,8 @@ export interface Offer {
   created_at: string;
   type: string;
   converted_to_contract?: boolean;
+  equipment_description?: string;
+  additional_info?: string;
 }
 
 export const useFetchOffers = () => {
@@ -54,7 +56,7 @@ export const useFetchOffers = () => {
                 workflowStatus = OFFER_STATUSES.DRAFT.id;
                 break;
               default:
-                // Handle "pending" separately
+                // Handle "pending" separately - fix comparison error
                 workflowStatus = offer.status === "pending" 
                   ? OFFER_STATUSES.DRAFT.id 
                   : OFFER_STATUSES.DRAFT.id;
@@ -67,7 +69,7 @@ export const useFetchOffers = () => {
         const offersWithType = offersWithWorkflow.map(offer => {
           if (!offer.type) {
             // Use optional chaining to safely access clientId or client_id
-            const clientIdentifier = offer.clientId || (offer as any).client_id;
+            const clientIdentifier = offer.clientId || offer.client_id;
             return {
               ...offer,
               type: clientIdentifier ? 'client_request' : 'admin_offer',

@@ -85,9 +85,18 @@ const AmbassadorCreateClient = () => {
     setSubmitting(true);
     
     try {
-      // Ajout de l'id de l'ambassadeur au client
+      // Make sure all required fields are explicitly included
       const clientData = {
-        ...data,
+        name: data.name,               // Required field
+        email: data.email,             // Required field
+        phone: data.phone,             // Required field
+        company: data.company,
+        address: data.address,
+        city: data.city,
+        postal_code: data.postal_code,
+        country: data.country,
+        notes: data.additional_info,
+        status: 'active' as 'lead' | 'active' | 'inactive', // Set a default status
         ambassador_id: ambassador?.id || ''
       };
       

@@ -36,8 +36,9 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       const offer = offers.find(o => o.id === offerId);
       if (!offer) throw new Error("Offre non trouvée");
       
-      // Update to match the expected parameters for updateOfferStatus (2 parameters only)
-      const success = await updateOfferStatus(offerId, newStatus);
+      // Cast the newStatus to any to bypass TypeScript checks for the service call
+      // This is necessary because the API accepts workflow statuses that are different from offer statuses
+      const success = await updateOfferStatus(offerId, newStatus as any);
       
       if (success) {
         setOffers(prevOffers => prevOffers.map(o => 
@@ -114,7 +115,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       // Convert boolean to string for the API
       const responseStatus = approve ? "approved" : "rejected";
       
-      // Use the string value for the API call
+      // Use the responseStatus string for the API call
       const success = await processInfoResponse(offerId, responseStatus);
       
       if (success) {
