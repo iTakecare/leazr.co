@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { UserSearch, Filter, Users, HeartHandshake, BadgePercent, Plus } from "lucide-react";
@@ -29,10 +29,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Clients = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("clients");
   const {
     filteredClients,
@@ -118,18 +119,18 @@ const Clients = () => {
                   <TabsList className="grid grid-cols-3 mb-4">
                     <TabsTrigger value="clients" className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      <span>Clients</span>
+                      <span className={isMobile ? "" : ""}>Clients</span>
                       <Badge variant="secondary" className="ml-1">
                         {filteredClients.length}
                       </Badge>
                     </TabsTrigger>
                     <TabsTrigger value="ambassadors" className="flex items-center gap-2">
                       <HeartHandshake className="h-4 w-4" />
-                      <span>Ambassadeurs</span>
+                      <span className={isMobile ? "" : ""}>Ambassadeurs</span>
                     </TabsTrigger>
                     <TabsTrigger value="partners" className="flex items-center gap-2">
                       <BadgePercent className="h-4 w-4" />
-                      <span>Partenaires</span>
+                      <span className={isMobile ? "" : ""}>Partenaires</span>
                     </TabsTrigger>
                   </TabsList>
                   
@@ -141,12 +142,12 @@ const Clients = () => {
                           {filteredClients.length} client(s) trouvé(s)
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="gap-2">
+                            <Button variant="outline" className="w-full sm:w-auto gap-2">
                               <Filter className="h-4 w-4" />
-                              {getStatusFilterLabel()}
+                              <span className="truncate">{getStatusFilterLabel()}</span>
                               <Badge variant="secondary" className="ml-1 text-xs">
                                 {statusFilter === 'all' ? filteredClients.length : filteredClients.length}
                               </Badge>
@@ -171,24 +172,24 @@ const Clients = () => {
                             </DropdownMenuGroup>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <div className="flex items-center gap-2">
-                          <div className="relative">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div className="relative flex-grow">
                             <UserSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                               placeholder="Rechercher un client..."
                               value={searchTerm}
                               onChange={(e) => setSearchTerm(e.target.value)}
-                              className="pl-9 w-full md:w-[300px]"
+                              className="pl-9 w-full"
                             />
                           </div>
                           <Button 
                             onClick={() => navigate('/clients/create')} 
                             variant="default" 
                             size="sm" 
-                            className="gap-1"
+                            className="sm:ml-2 gap-1"
                           >
                             <Plus className="h-3.5 w-3.5" />
-                            Nouveau client
+                            <span className={isMobile ? "" : ""}>Nouveau client</span>
                           </Button>
                         </div>
                       </div>

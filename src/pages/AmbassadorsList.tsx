@@ -4,7 +4,7 @@ import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import PartnersList from "@/components/crm/PartnersList";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -25,7 +25,6 @@ import {
 
 const AmbassadorsListPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("ambassadors");
   const [searchTerm, setSearchTerm] = useState("");
@@ -97,15 +96,15 @@ const AmbassadorsListPage = () => {
                   <TabsList className="grid grid-cols-3 mb-4">
                     <TabsTrigger value="clients" className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      <span className={isMobile ? "hidden" : ""}>Clients</span>
+                      <span>Clients</span>
                     </TabsTrigger>
                     <TabsTrigger value="ambassadors" className="flex items-center gap-2">
                       <HeartHandshake className="h-4 w-4" />
-                      <span className={isMobile ? "hidden" : ""}>Ambassadeurs</span>
+                      <span>Ambassadeurs</span>
                     </TabsTrigger>
                     <TabsTrigger value="partners" className="flex items-center gap-2">
                       <BadgePercent className="h-4 w-4" />
-                      <span className={isMobile ? "hidden" : ""}>Partenaires</span>
+                      <span>Partenaires</span>
                     </TabsTrigger>
                   </TabsList>
                   
@@ -165,7 +164,7 @@ const AmbassadorsListPage = () => {
                             className="sm:ml-2 gap-1"
                           >
                             <Plus className="h-3.5 w-3.5" />
-                            <span className={isMobile ? "hidden" : ""}>Nouvel ambassadeur</span>
+                            <span>Nouvel ambassadeur</span>
                           </Button>
                         </div>
                       </div>
