@@ -6,8 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProductCard from "@/components/ui/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
-import { getProducts, getCategories, getBrands } from "@/services/catalogService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -15,165 +13,128 @@ interface CatalogDialogProps {
   isOpen: boolean;
   onClose: () => void;
   handleProductSelect: (product: any) => void;
-  searchTerm?: string;
-  setSearchTerm?: (value: string) => void;
-  selectedCategory?: string;
-  setSelectedCategory?: (value: string) => void;
-  selectedBrand?: string;
-  setSelectedBrand?: (value: string) => void;
 }
 
 const CatalogDialog: React.FC<CatalogDialogProps> = ({
   isOpen,
   onClose,
-  handleProductSelect,
-  searchTerm: externalSearchTerm,
-  setSearchTerm: externalSetSearchTerm,
-  selectedCategory: externalSelectedCategory,
-  setSelectedCategory: externalSetSelectedCategory,
-  selectedBrand: externalSelectedBrand,
-  setSelectedBrand: externalSetSelectedBrand
+  handleProductSelect
 }) => {
-  // Internal state for standalone usage
-  const [internalSearchTerm, setInternalSearchTerm] = useState("");
-  const [internalSelectedCategory, setInternalSelectedCategory] = useState<string>("all");
-  const [internalSelectedBrand, setInternalSelectedBrand] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedBrand, setSelectedBrand] = useState<string>("all");
   
-  // Use either the external state (if provided) or the internal state
-  const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
-  const setSearchTerm = externalSetSearchTerm || setInternalSearchTerm;
-  const selectedCategory = externalSelectedCategory !== undefined ? externalSelectedCategory : internalSelectedCategory;
-  const setSelectedCategory = externalSetSelectedCategory || setInternalSelectedCategory;
-  const selectedBrand = externalSelectedBrand !== undefined ? externalSelectedBrand : internalSelectedBrand;
-  const setSelectedBrand = externalSetSelectedBrand || setInternalSelectedBrand;
-  
-  // Fetch products directly using the useQuery hook
-  const { data: allProducts = [], isLoading: productsLoading, error: productsError } = useQuery({
-    queryKey: ["catalogProducts", isOpen],
-    queryFn: async () => {
-      try {
-        console.log("Fetching products directly from Supabase");
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('active', true);
-          
-        if (error) {
-          throw error;
-        }
-        
-        console.log("Products fetched successfully, count:", data?.length);
-        return data || [];
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        toast.error("Erreur lors du chargement des produits");
-        return [];
-      }
-    },
-    enabled: isOpen,
-  });
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Fetch categories directly
-  const { data: categoriesData = [], isLoading: categoriesLoading, error: categoriesError } = useQuery({
-    queryKey: ["catalogCategories", isOpen],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select('*')
-          .order('name');
-          
-        if (error) {
-          throw error;
-        }
+  // Fetch products directly from Supabase
+  const fetchProducts = async () => {
+    if (!isOpen) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log("Fetching products directly from Supabase");
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('active', true);
         
-        console.log("Categories fetched successfully, count:", data?.length);
-        return data || [];
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        return [];
+      if (error) {
+        throw error;
       }
-    },
-    enabled: isOpen,
-  });
+      
+      console.log("Products fetched successfully, count:", data?.length);
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Error fetching products:", err);
+      setError(err instanceof Error ? err : new Error("Failed to fetch products"));
+      toast.error("Erreur lors du chargement des produits");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Fetch brands directly
-  const { data: brandsData = [], isLoading: brandsLoading, error: brandsError } = useQuery({
-    queryKey: ["catalogBrands", isOpen],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('brands')
-          .select('*')
-          .order('name');
-          
-        if (error) {
-          throw error;
-        }
+  // Fetch categories directly from Supabase
+  const fetchCategories = async () => {
+    if (!isOpen) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
         
-        console.log("Brands fetched successfully, count:", data?.length);
-        return data || [];
-      } catch (error) {
-        console.error("Error fetching brands:", error);
-        return [];
+      if (error) {
+        throw error;
       }
-    },
-    enabled: isOpen,
-  });
+      
+      console.log("Categories fetched successfully, count:", data?.length);
+      setCategories(data || []);
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  };
+
+  // Fetch brands directly from Supabase
+  const fetchBrands = async () => {
+    if (!isOpen) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('brands')
+        .select('*')
+        .order('name');
+        
+      if (error) {
+        throw error;
+      }
+      
+      console.log("Brands fetched successfully, count:", data?.length);
+      setBrands(data || []);
+    } catch (err) {
+      console.error("Error fetching brands:", err);
+    }
+  };
+
+  // Fetch all data when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchProducts();
+      fetchCategories();
+      fetchBrands();
+    }
+  }, [isOpen]);
 
   // Filter products client-side
   const filteredProducts = React.useMemo(() => {
-    if (!allProducts || !Array.isArray(allProducts)) {
-      console.log("[CatalogDialog] allProducts is not an array:", allProducts);
+    if (!products || !Array.isArray(products)) {
+      console.log("Products is not an array:", products);
       return [];
     }
     
-    console.log("[CatalogDialog] Filtering products, total count:", allProducts.length);
-    console.log("[CatalogDialog] Search term:", searchTerm);
-    console.log("[CatalogDialog] Selected category:", selectedCategory);
-    console.log("[CatalogDialog] Selected brand:", selectedBrand);
-    
-    return allProducts.filter((product) => {
-      // Search term filter - handle null values safely
+    console.log("Filtering products, total count:", products.length);
+    return products.filter((product) => {
+      // Search term filter
       const nameMatch = !searchTerm || 
         (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      // Category filter - handle 'all' filter correctly
+      // Category filter
       const categoryMatch = selectedCategory === "all" || 
         (product.category && product.category === selectedCategory);
       
-      // Brand filter - handle 'all' filter correctly  
+      // Brand filter
       const brandMatch = selectedBrand === "all" || 
         (product.brand && product.brand === selectedBrand);
       
-      const matches = nameMatch && categoryMatch && brandMatch;
-      
-      return matches;
+      return nameMatch && categoryMatch && brandMatch;
     });
-  }, [allProducts, searchTerm, selectedCategory, selectedBrand]);
+  }, [products, searchTerm, selectedCategory, selectedBrand]);
 
-  // Use local categories/brands from the query
-  const localCategories = React.useMemo(() => {
-    return categoriesData.map(c => ({ name: c.name, translation: c.translation }));
-  }, [categoriesData]);
-
-  const localBrands = React.useMemo(() => {
-    return brandsData.map(b => ({ name: b.name, translation: b.translation }));
-  }, [brandsData]);
-
-  useEffect(() => {
-    if (isOpen) {
-      console.log("[CatalogDialog] Opened with products count:", allProducts?.length || 0);
-      console.log("[CatalogDialog] Filtered products count:", filteredProducts?.length || 0);
-      console.log("[CatalogDialog] Categories:", localCategories);
-      console.log("[CatalogDialog] Brands:", localBrands);
-    }
-  }, [isOpen, allProducts, filteredProducts, localCategories, localBrands]);
-
-  // Determine actual loading state
-  const actualLoading = productsLoading || categoriesLoading || brandsLoading;
-  const hasError = productsError || categoriesError || brandsError;
-  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[700px]">
@@ -199,11 +160,11 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les catégories</SelectItem>
-              {localCategories && localCategories.length > 0 ? localCategories.map((category) => (
-                <SelectItem key={category.name} value={category.name}>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.name}>
                   {category.translation}
                 </SelectItem>
-              )) : null}
+              ))}
             </SelectContent>
           </Select>
 
@@ -213,22 +174,22 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les marques</SelectItem>
-              {localBrands && localBrands.length > 0 ? localBrands.map((brand) => (
-                <SelectItem key={brand.name} value={brand.name}>
+              {brands.map((brand) => (
+                <SelectItem key={brand.id} value={brand.name}>
                   {brand.translation}
                 </SelectItem>
-              )) : null}
+              ))}
             </SelectContent>
           </Select>
         </div>
         
-        {actualLoading ? (
+        {loading ? (
           <div className="flex flex-col gap-4 my-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />
             ))}
           </div>
-        ) : hasError ? (
+        ) : error ? (
           <div className="text-center py-10 text-red-500">
             Une erreur s'est produite lors du chargement des données
           </div>
@@ -237,7 +198,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             <div className="flex flex-col gap-4 my-4">
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <div key={product.id} onClick={() => handleProductSelect(product)} className="cursor-pointer">
+                  <div key={product.id} onClick={() => handleProductSelect(product)}>
                     <ProductCard product={product} />
                   </div>
                 ))

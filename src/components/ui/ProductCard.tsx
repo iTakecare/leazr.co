@@ -1,7 +1,8 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductCardProps {
   product: {
@@ -13,14 +14,10 @@ interface ProductCardProps {
     brand?: string;
     image_url?: string;
   };
+  onClick?: () => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  // Add additional logging to debug product data rendering
-  React.useEffect(() => {
-    console.log("[ProductCard] Rendering product:", product);
-  }, [product]);
-
+const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   // Ensure we have valid data for display
   const productName = product?.name || "Produit sans nom";
   const productPrice = product?.price !== undefined ? formatCurrency(product.price) : "Non défini";
@@ -28,7 +25,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const productImage = product?.image_url || "/placeholder.svg";
 
   return (
-    <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white">
+    <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" onClick={onClick}>
       <CardContent className="p-0">
         <div className="flex">
           <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
