@@ -50,14 +50,16 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-3 justify-center w-full">
               <Button 
                 onClick={() => navigate("/login")}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto justify-center"
+                size={isMobile ? "lg" : "default"}
               >
                 Commencer
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
               <Button 
                 variant="outline" 
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto justify-center"
+                size={isMobile ? "lg" : "default"}
               >
                 En savoir plus
               </Button>

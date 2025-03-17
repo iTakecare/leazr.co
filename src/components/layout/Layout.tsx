@@ -23,18 +23,19 @@ export function Layout() {
               size="icon"
               onClick={toggleSidebar}
               className="fixed top-4 left-4 z-50 md:hidden"
+              aria-label="Menu"
             >
               <Menu className="h-6 w-6" />
               <span className="sr-only">Menu</span>
             </Button>
             
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetContent side="left" className="p-0 w-[280px] max-w-[80vw]">
-                <Sidebar className="h-full w-full border-none" />
+              <SheetContent side="left" className="p-0 w-[90vw] max-w-[300px]">
+                <Sidebar className="h-full w-full border-none" onLinkClick={() => setSidebarOpen(false)} />
               </SheetContent>
             </Sheet>
             
-            <main className="flex-1 overflow-auto pt-16 px-4 pb-20 md:p-6">
+            <main className="flex-1 overflow-auto pt-16 px-4 pb-20 md:p-6 w-full">
               <Outlet />
             </main>
           </>

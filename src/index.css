@@ -50,6 +50,12 @@
   html {
     @apply scroll-smooth;
   }
+  
+  .truncate-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 @layer utilities {
@@ -67,6 +73,29 @@
   
   .animate-fade-in {
     animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .mobile-menu-item {
+    @apply flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors;
+  }
+  
+  .mobile-full-width {
+    width: 100vw;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .table-wrapper {
+    @apply w-full overflow-x-auto;
+  }
+  
+  .responsive-table {
+    min-width: 100%;
+    @apply w-full;
+  }
+  
+  .responsive-badge {
+    @apply inline-flex items-center justify-center whitespace-nowrap;
   }
 }
 
@@ -97,6 +126,22 @@ a, button {
   @apply hover:opacity-80;
 }
 
+/* Responsive typography */
+@media (max-width: 640px) {
+  h1 {
+    font-size: calc(1.5rem + 0.5vw);
+  }
+  h2 {
+    font-size: calc(1.25rem + 0.5vw);
+  }
+  h3 {
+    font-size: calc(1.125rem + 0.25vw);
+  }
+  p {
+    font-size: 0.95rem;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -113,4 +158,19 @@ a, button {
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-primary/30;
+}
+
+/* Fix for mobile overflow issues */
+.overflow-fix {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Make sure tables don't overflow on mobile */
+@media (max-width: 640px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
 }

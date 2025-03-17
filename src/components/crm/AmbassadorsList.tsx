@@ -70,13 +70,13 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-medium">{ambassador.name}</h3>
-                  <div className="text-xs text-muted-foreground mt-1">
+                  <div className="text-xs text-muted-foreground mt-1 break-all">
                     <div className="flex items-center">
-                      <Mail className="h-3 w-3 mr-1" />
-                      {ambassador.email}
+                      <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">{ambassador.email}</span>
                     </div>
                     <div className="flex items-center mt-1">
-                      <Phone className="h-3 w-3 mr-1" />
+                      <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
                       {ambassador.phone}
                     </div>
                   </div>
@@ -142,17 +142,17 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
   // Desktop table view
   const renderDesktopView = () => {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Zone</TableHead>
-              <TableHead>Clients</TableHead>
-              <TableHead>Commissions</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="whitespace-nowrap">Nom</TableHead>
+              <TableHead className="whitespace-nowrap">Contact</TableHead>
+              <TableHead className="whitespace-nowrap">Zone</TableHead>
+              <TableHead className="whitespace-nowrap">Clients</TableHead>
+              <TableHead className="whitespace-nowrap">Commissions</TableHead>
+              <TableHead className="whitespace-nowrap">Statut</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -163,11 +163,11 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
                   <TableCell>
                     <div className="flex flex-col space-y-1">
                       <div className="flex items-center text-xs text-muted-foreground">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {ambassador.email}
+                        <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span className="truncate max-w-[150px]">{ambassador.email}</span>
                       </div>
                       <div className="flex items-center text-xs text-muted-foreground">
-                        <Phone className="h-3 w-3 mr-1" />
+                        <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
                         {ambassador.phone}
                       </div>
                     </div>

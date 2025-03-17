@@ -38,7 +38,7 @@ const ClientList = ({
     <div className="rounded-md border">
       {clients.length > 0 && (
         <div className="flex items-center justify-between p-2 border-b overflow-x-auto">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="default" className="bg-green-500 hover:bg-green-600 whitespace-nowrap">
               {activeClients} actifs
             </Badge>
@@ -51,35 +51,37 @@ const ClientList = ({
           </div>
         </div>
       )}
-      <ScrollArea className={`h-[calc(100vh-${isMobile ? '340px' : '320px'})]`}>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead>Société</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Téléphone</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead>Date de création</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {clients.length === 0 ? (
-              <ClientsEmptyState />
-            ) : (
-              clients.map((client) => (
-                <ClientTableRow
-                  key={client.id}
-                  client={client}
-                  onDelete={onDeleteClient}
-                  onEdit={onEditClient}
-                  onView={onViewClient}
-                />
-              ))
-            )}
-          </TableBody>
-        </Table>
+      <ScrollArea className={`h-[calc(100vh-${isMobile ? '360px' : '320px'})]`}>
+        <div className="min-w-full overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="whitespace-nowrap">Nom</TableHead>
+                <TableHead className="whitespace-nowrap">Société</TableHead>
+                <TableHead className="whitespace-nowrap">Email</TableHead>
+                <TableHead className="whitespace-nowrap">Téléphone</TableHead>
+                <TableHead className="whitespace-nowrap">Statut</TableHead>
+                <TableHead className="whitespace-nowrap">Date de création</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clients.length === 0 ? (
+                <ClientsEmptyState />
+              ) : (
+                clients.map((client) => (
+                  <ClientTableRow
+                    key={client.id}
+                    client={client}
+                    onDelete={onDeleteClient}
+                    onEdit={onEditClient}
+                    onView={onViewClient}
+                  />
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </ScrollArea>
     </div>
   );

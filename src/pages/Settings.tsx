@@ -6,35 +6,38 @@ import { UserRound, Building, Settings2, Mail } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 import LeaserManager from "@/components/settings/LeaserManager";
 import SmtpSettings from "@/components/settings/SmtpSettings";
+import { useIsMobile } from "@/hooks/use-mobile";
+import Container from "@/components/layout/Container";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("leasers");
+  const isMobile = useIsMobile();
 
   return (
     <PageTransition>
-      <div className="container mx-auto p-6">
-        <div className="flex flex-col">
+      <Container>
+        <div className="flex flex-col p-4">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Paramètres</h1>
           </div>
 
           <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-6">
-              <TabsTrigger value="leasers" className="flex items-center">
-                <Building className="mr-2 h-4 w-4" />
-                Bailleurs
+            <TabsList className={`mb-6 ${isMobile ? 'grid grid-cols-2 gap-2' : ''}`}>
+              <TabsTrigger value="leasers" className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                <span className={isMobile ? "" : ""}>Bailleurs</span>
               </TabsTrigger>
-              <TabsTrigger value="email" className="flex items-center">
-                <Mail className="mr-2 h-4 w-4" />
-                Email
+              <TabsTrigger value="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                <span className={isMobile ? "" : ""}>Email</span>
               </TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center">
-                <UserRound className="mr-2 h-4 w-4" />
-                Utilisateurs
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <UserRound className="h-4 w-4" />
+                <span className={isMobile ? "" : ""}>Utilisateurs</span>
               </TabsTrigger>
-              <TabsTrigger value="general" className="flex items-center">
-                <Settings2 className="mr-2 h-4 w-4" />
-                Général
+              <TabsTrigger value="general" className="flex items-center gap-2">
+                <Settings2 className="h-4 w-4" />
+                <span className={isMobile ? "" : ""}>Général</span>
               </TabsTrigger>
             </TabsList>
 
@@ -47,33 +50,33 @@ const Settings = () => {
             </TabsContent>
 
             <TabsContent value="users" className="space-y-4">
-              <div className="rounded-md border p-8 text-center">
+              <div className="rounded-md border p-4 md:p-8 text-center">
                 <h3 className="text-lg font-medium mb-2">Gestion des utilisateurs</h3>
                 <p className="text-muted-foreground mb-4">
                   La gestion des utilisateurs sera disponible prochainement.
                 </p>
-                <Button variant="outline" disabled>
+                <Button variant="outline" disabled className="w-full sm:w-auto">
                   <UserRound className="mr-2 h-4 w-4" />
-                  Gérer les utilisateurs
+                  <span>Gérer les utilisateurs</span>
                 </Button>
               </div>
             </TabsContent>
 
             <TabsContent value="general" className="space-y-4">
-              <div className="rounded-md border p-8 text-center">
+              <div className="rounded-md border p-4 md:p-8 text-center">
                 <h3 className="text-lg font-medium mb-2">Paramètres généraux</h3>
                 <p className="text-muted-foreground mb-4">
                   Les paramètres généraux seront disponibles prochainement.
                 </p>
-                <Button variant="outline" disabled>
+                <Button variant="outline" disabled className="w-full sm:w-auto">
                   <Settings2 className="mr-2 h-4 w-4" />
-                  Configurer
+                  <span>Configurer</span>
                 </Button>
               </div>
             </TabsContent>
           </Tabs>
         </div>
-      </div>
+      </Container>
     </PageTransition>
   );
 };
