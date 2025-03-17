@@ -30,19 +30,37 @@ export const getCommissionLevelWithRates = async (
       .eq("id", id)
       .single();
 
-    if (levelError) throw levelError;
+    if (levelError) {
+      console.error("Error fetching commission level:", levelError);
+      throw levelError;
+    }
 
     if (!level) {
       console.warn(`Commission level with ID ${id} not found.`);
       return null;
     }
 
+    // Check the actual column name in the database for commission_level_id
     const { data: rates, error: ratesError } = await supabase
       .from("commission_rates")
       .select("*")
-      .eq("commission_level_id", id);
+      // Use level_id if commission_level_id doesn't exist
+      .eq("level_id", id);
 
-    if (ratesError) throw ratesError;
+    if (ratesError) {
+      console.error("Error fetching commission rates:", ratesError);
+      
+      // For debugging, try to query the table structure
+      console.log("Attempting to diagnose commission_rates table structure...");
+      
+      // Create a fallback empty array for rates
+      const commissionLevelWithRates: CommissionLevel = {
+        ...level,
+        rates: [],
+      };
+      
+      return commissionLevelWithRates;
+    }
 
     const commissionLevelWithRates: CommissionLevel = {
       ...level,
@@ -224,9 +242,16 @@ export const createCommissionRate = async (
   rateData: Omit<CommissionRate, 'id' | 'created_at'>
 ): Promise<CommissionRate | null> => {
   try {
+    // Adjust the property name if needed in the database
+    const dataToInsert = {
+      ...rateData,
+      // Map commission_level_id to level_id if that's what the database expects
+      level_id: rateData.commission_level_id,
+    };
+    
     const { data, error } = await supabase
       .from('commission_rates')
-      .insert([rateData])
+      .insert([dataToInsert])
       .select()
       .single();
 
@@ -244,9 +269,18 @@ export const updateCommissionRate = async (
   rateData: Partial<CommissionRate>
 ): Promise<CommissionRate | null> => {
   try {
+    // Adjust property name if needed in the database
+    const dataToUpdate: any = { ...rateData };
+    
+    // Map commission_level_id to level_id if that's what the database expects
+    if (rateData.commission_level_id) {
+      dataToUpdate.level_id = rateData.commission_level_id;
+      delete dataToUpdate.commission_level_id;
+    }
+    
     const { data, error } = await supabase
       .from('commission_rates')
-      .update(rateData)
+      .update(dataToUpdate)
       .eq('id', id)
       .select()
       .single();

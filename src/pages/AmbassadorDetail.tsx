@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Mock data interfaces
 interface Client {
   id: string;
   name: string;
@@ -54,7 +52,6 @@ interface Collaborator {
   department?: string;
 }
 
-// Extend the Ambassador type for the detail view with potential mock data
 interface DetailAmbassador extends Ambassador {
   clients?: Client[];
   commissions?: Commission[];
@@ -123,7 +120,9 @@ export default function AmbassadorDetail() {
   const fetchCommissionLevel = async (levelId: string) => {
     setLoadingCommission(true);
     try {
+      console.log("Fetching commission level with ID:", levelId);
       const level = await getCommissionLevelWithRates(levelId);
+      console.log("Commission level data:", level);
       setCommissionLevel(level);
     } catch (error) {
       console.error("Error loading commission level:", error);

@@ -1,6 +1,9 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { getCommissionRates, getDefaultCommissionLevel } from "@/services/commissionService";
+import { 
+  CommissionRate, 
+  getCommissionRates as fetchCommissionRates, 
+  getDefaultCommissionLevel as fetchDefaultCommissionLevel 
+} from "@/services/commissionService";
 
 // Leasing coefficients (Grenke)
 export const leasingCoefficients = [
@@ -78,7 +81,7 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
     
     // Si aucun ID de niveau n'est fourni, utiliser le niveau par défaut
     if (!actualLevelId) {
-      const defaultLevel = await getDefaultCommissionLevel(type);
+      const defaultLevel = await fetchDefaultCommissionLevel(type);
       actualLevelId = defaultLevel?.id;
     }
     
@@ -92,7 +95,8 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
     }
     
     // Récupérer les taux du niveau de commission
-    const rates = await getCommissionRates(actualLevelId);
+    const rates = await fetchCommissionRates(actualLevelId);
+    console.log("Commission rates for calculation:", rates);
     
     // Trouver le taux applicable en fonction du montant
     const applicableRate = rates.find(

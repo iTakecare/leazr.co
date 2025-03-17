@@ -1,158 +1,132 @@
-
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { CommissionRate } from "@/services/commissionService";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import {
+  createCommissionRate,
+  updateCommissionRate,
+  CommissionRate,
+} from "@/services/commissionService";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+
+const rateSchema = z.object({
+  min_amount: z.coerce.number(),
+  max_amount: z.coerce.number(),
+  rate: z.coerce.number(),
+});
+
+type RateFormValues = z.infer<typeof rateSchema>;
 
 interface CommissionRateFormProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-  onSave: (data: Partial<CommissionRate>) => void;
-  rate?: CommissionRate | null;
-  levelId?: string;
-  // Props for CommissionManager compatibility
-  onSubmit?: (data: any) => Promise<void>;
-  onCancel?: () => void;
-  initialData?: { min_amount: number; max_amount: number; rate: number };
-  inline?: boolean;
+  commissionLevel: any;
+  initialData?: CommissionRate;
+  onSubmit: (values: RateFormValues) => Promise<void>;
+  onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
 const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
-  isOpen = false,
-  onClose = () => {},
-  onSave,
-  rate,
-  levelId,
+  commissionLevel,
   initialData,
-  inline = false
+  onSubmit,
+  onCancel,
+  isSubmitting = false,
 }) => {
-  const [minAmount, setMinAmount] = useState(initialData?.min_amount || rate?.min_amount || 0);
-  const [maxAmount, setMaxAmount] = useState(initialData?.max_amount || rate?.max_amount || 0);
-  const [rateValue, setRateValue] = useState(initialData?.rate || rate?.rate || 0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (minAmount >= maxAmount) {
-      toast.error("Le montant minimum doit être inférieur au montant maximum");
-      return;
-    }
+  const form = useForm<RateFormValues>({
+    resolver: zodResolver(rateSchema),
+    defaultValues: initialData || {
+      min_amount: 0,
+      max_amount: 0,
+      rate: 0,
+    },
+    mode: "onChange",
+  });
 
-    if (rateValue <= 0 || rateValue > 100) {
-      toast.error("Le taux doit être compris entre 0 et 100%");
-      return;
-    }
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-    // Ensure all required properties are properly typed and non-optional
-    const data: Partial<CommissionRate> = {
-      min_amount: Number(minAmount),
-      max_amount: Number(maxAmount),
-      rate: Number(rateValue),
-      commission_level_id: levelId || rate?.commission_level_id
-    };
-
-    setIsSubmitting(true);
-    
+  const handleSubmit = async (values: RateFormValues) => {
     try {
-      onSave(data);
-      if (!inline) {
-        onClose();
-      }
+      await onSubmit(values);
+      toast.success("Taux de commission mis à jour");
     } catch (error) {
-      console.error("Error submitting rate form:", error);
-      toast.error("Erreur lors de l'enregistrement du taux");
-    } finally {
-      setIsSubmitting(false);
+      console.error("Error updating commission rate:", error);
+      toast.error("Erreur lors de la mise à jour du taux de commission");
     }
   };
 
-  const content = (
-    <form onSubmit={handleSubmit} className={inline ? "space-y-3" : "grid gap-4 py-4"}>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="minAmount">Montant min (€)</Label>
-          <Input
-            id="minAmount"
-            type="number"
-            step="0.01"
-            value={minAmount}
-            onChange={(e) => setMinAmount(parseFloat(e.target.value) || 0)}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="maxAmount">Montant max (€)</Label>
-          <Input
-            id="maxAmount"
-            type="number"
-            step="0.01"
-            value={maxAmount}
-            onChange={(e) => setMaxAmount(parseFloat(e.target.value) || 0)}
-            required
-          />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="rate">Taux (%)</Label>
-        <Input
-          id="rate"
-          type="number"
-          step="0.1"
-          value={rateValue}
-          onChange={(e) => setRateValue(parseFloat(e.target.value) || 0)}
-          required
-        />
-      </div>
-
-      {inline ? (
-        <div className="flex justify-end space-x-2">
-          <Button type="submit" size="sm" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enregistrer"}
-          </Button>
-        </div>
-      ) : null}
-    </form>
-  );
-
-  if (inline) {
-    return content;
+  if (!isMounted) {
+    return null;
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        onClose();
-      }
-    }}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {rate ? "Modifier le taux" : "Nouveau taux"}
-          </DialogTitle>
-        </DialogHeader>
-        {content}
-        <DialogFooter>
-          <Button variant="outline" type="button" onClick={onClose}>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="min_amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Montant minimum</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="max_amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Montant maximum</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="rate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Taux (%)</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex items-center justify-between pt-4">
+          <Button type="button" variant="outline" onClick={onCancel}>
             Annuler
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {rate ? "Mise à jour..." : "Création..."}
-              </>
-            ) : (
-              rate ? "Mettre à jour" : "Créer"
-            )}
+          <Button type="submit" disabled={isSubmitting}>
+            {initialData ? "Mettre à jour" : "Créer"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </form>
+    </Form>
   );
 };
 

@@ -418,7 +418,7 @@ const CommissionManager = () => {
                           if (selectedLevel) {
                             handleAddRate({
                               ...data, 
-                              level_id: selectedLevel.id
+                              commission_level_id: selectedLevel.id
                             });
                           }
                         }}
