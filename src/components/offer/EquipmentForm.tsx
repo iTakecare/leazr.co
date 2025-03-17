@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Equipment, Leaser } from "@/types/equipment";
-import { getProducts, getCategories, getBrands } from "@/services/catalogService";
-import { useQuery } from "@tanstack/react-query";
 import MarginCalculator from "./MarginCalculator";
 import EquipmentFormFields from "./EquipmentFormFields";
 import PriceDetailsDisplay from "./PriceDetailsDisplay";
@@ -58,62 +56,13 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const marginAmount = equipment.purchasePrice * (equipment.margin / 100);
   const priceWithMargin = equipment.purchasePrice + marginAmount;
 
-  const { data: allProducts = [], isLoading: isProductsLoading } = useQuery({
-    queryKey: ["products", isQuickCatalogOpen],
-    queryFn: getProducts,
-    enabled: isQuickCatalogOpen,
-  });
-
-  const { data: categoriesData = [] } = useQuery({
-    queryKey: ["categories", isQuickCatalogOpen],
-    queryFn: getCategories,
-    enabled: isQuickCatalogOpen,
-  });
-
-  const { data: brandsData = [] } = useQuery({
-    queryKey: ["brands", isQuickCatalogOpen],
-    queryFn: getBrands,
-    enabled: isQuickCatalogOpen,
-  });
-
-  const categories = React.useMemo(() => {
-    return categoriesData.map(c => ({ name: c.name, translation: c.translation }));
-  }, [categoriesData]);
-
-  const brands = React.useMemo(() => {
-    return brandsData.map(b => ({ name: b.name, translation: b.translation }));
-  }, [brandsData]);
-
-  const filteredProducts = React.useMemo(() => {
-    if (!allProducts || !Array.isArray(allProducts)) {
-      console.log("Products is not an array:", allProducts);
-      return [];
-    }
-    
-    return allProducts.filter((product: any) => {
-      // Search term filter - handle null values safely
-      const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-      // Category filter - handle 'all' filter correctly
-      const categoryMatch = selectedCategory === "all" || (product.category && product.category === selectedCategory);
-      
-      // Brand filter - handle 'all' filter correctly  
-      const brandMatch = selectedBrand === "all" || (product.brand && product.brand === selectedBrand);
-      
-      return nameMatch && categoryMatch && brandMatch;
-    });
-  }, [allProducts, searchTerm, selectedCategory, selectedBrand]);
-
   useEffect(() => {
     if (isQuickCatalogOpen) {
-      console.log("Quick catalog opened, products count:", allProducts?.length || 0);
-      console.log("Filtered products count:", filteredProducts?.length || 0);
-      console.log("Categories count:", categories?.length || 0);
-      console.log("Brands count:", brands?.length || 0);
+      console.log("Quick catalog opened");
       console.log("Selected category:", selectedCategory);
       console.log("Selected brand:", selectedBrand);
     }
-  }, [isQuickCatalogOpen, allProducts, filteredProducts, categories, brands, selectedCategory, selectedBrand]);
+  }, [isQuickCatalogOpen, selectedCategory, selectedBrand]);
 
   const handleChange = (field: keyof Equipment, value: string | number) => {
     setEquipment({ ...equipment, [field]: value });
@@ -219,10 +168,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
         setSelectedCategory={setSelectedCategory}
         selectedBrand={selectedBrand}
         setSelectedBrand={setSelectedBrand}
-        categories={categories}
-        brands={brands}
-        filteredProducts={filteredProducts}
-        isLoading={isProductsLoading}
       />
     </Card>
   );

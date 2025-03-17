@@ -19,10 +19,6 @@ interface CatalogDialogProps {
   setSelectedCategory: (value: string) => void;
   selectedBrand: string;
   setSelectedBrand: (value: string) => void;
-  categories?: Array<{ name: string; translation: string }>;
-  brands?: Array<{ name: string; translation: string }>;
-  filteredProducts?: any[];
-  isLoading?: boolean;
 }
 
 const CatalogDialog: React.FC<CatalogDialogProps> = ({
@@ -36,7 +32,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   selectedBrand,
   setSelectedBrand
 }) => {
-  // Fetch data directly in the component rather than relying on passed props
+  // Fetch data directly in the component
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
     queryKey: ["catalogProducts", isOpen],
     queryFn: getProducts,
@@ -59,7 +55,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   });
 
   // Filter products client-side
-  const localFilteredProducts = React.useMemo(() => {
+  const filteredProducts = React.useMemo(() => {
     if (!allProducts || !Array.isArray(allProducts)) {
       console.log("[CatalogDialog] allProducts is not an array:", allProducts);
       return [];
@@ -89,7 +85,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     });
   }, [allProducts, searchTerm, selectedCategory, selectedBrand]);
 
-  // Use local categories/brands from the query instead of props
+  // Use local categories/brands from the query
   const localCategories = React.useMemo(() => {
     return categoriesData.map(c => ({ name: c.name, translation: c.translation }));
   }, [categoriesData]);
@@ -101,17 +97,14 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   useEffect(() => {
     if (isOpen) {
       console.log("[CatalogDialog] Opened with products count:", allProducts?.length || 0);
-      console.log("[CatalogDialog] Filtered products count:", localFilteredProducts?.length || 0);
+      console.log("[CatalogDialog] Filtered products count:", filteredProducts?.length || 0);
       console.log("[CatalogDialog] Categories:", localCategories);
       console.log("[CatalogDialog] Brands:", localBrands);
     }
-  }, [isOpen, allProducts, localFilteredProducts, localCategories, localBrands]);
+  }, [isOpen, allProducts, filteredProducts, localCategories, localBrands]);
 
   // Determine actual loading state
   const actualLoading = productsLoading || categoriesLoading || brandsLoading;
-  
-  // Use products from our direct query, not from props
-  const productsToShow = localFilteredProducts;
   
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
@@ -170,8 +163,8 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         ) : (
           <ScrollArea className="h-[400px] pr-4">
             <div className="flex flex-col gap-4 my-4">
-              {productsToShow.length > 0 ? (
-                productsToShow.map((product) => (
+              {filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
                   <div key={product.id} onClick={() => handleProductSelect(product)} className="cursor-pointer">
                     <ProductCard product={product} />
                   </div>
