@@ -1,5 +1,5 @@
 
-import { supabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 
 export interface Ambassador {
@@ -21,7 +21,7 @@ export interface Ambassador {
   city?: string;
   postal_code?: string;
   country?: string;
-  // Add these properties to fix the errors
+  // Required properties for detail views
   has_user_account?: boolean;
   user_account_created_at?: string;
   // These properties are used in detail views but not in the API model
@@ -32,7 +32,7 @@ export interface Ambassador {
 
 export const getAmbassadors = async (): Promise<Ambassador[]> => {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('ambassadors')
       .select('*');
     
@@ -50,12 +50,12 @@ export const getAmbassadors = async (): Promise<Ambassador[]> => {
 
 export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('ambassadors')
       .select(`
         *,
-        clients:clients(id),
-        commissions:commissions(id, amount, created_at)
+        clients:ambassador_clients(client_id),
+        commissions:ambassador_commissions(id, amount, created_at)
       `)
       .eq('id', id)
       .single();
@@ -99,6 +99,7 @@ export const getAmbassadorById = async (id: string): Promise<Ambassador | null> 
 
 export const createAmbassador = async (data: Partial<Ambassador>): Promise<Ambassador | null> => {
   try {
+    console.log("Creating ambassador with data:", data);
     const ambassadorId = uuidv4();
     const newAmbassador = {
       id: ambassadorId,
@@ -109,7 +110,7 @@ export const createAmbassador = async (data: Partial<Ambassador>): Promise<Ambas
       has_user_account: false
     };
     
-    const { data: insertedData, error } = await supabaseClient
+    const { data: insertedData, error } = await supabase
       .from('ambassadors')
       .insert(newAmbassador)
       .select()
@@ -120,6 +121,7 @@ export const createAmbassador = async (data: Partial<Ambassador>): Promise<Ambas
       throw error;
     }
     
+    console.log("Ambassador created successfully:", insertedData);
     return insertedData || null;
   } catch (error) {
     console.error('Error creating ambassador:', error);
@@ -134,7 +136,7 @@ export const updateAmbassador = async (id: string, data: Partial<Ambassador>): P
       updated_at: new Date().toISOString()
     };
     
-    const { data: updatedData, error } = await supabaseClient
+    const { data: updatedData, error } = await supabase
       .from('ambassadors')
       .update(updateData)
       .eq('id', id)
@@ -155,7 +157,7 @@ export const updateAmbassador = async (id: string, data: Partial<Ambassador>): P
 
 export const deleteAmbassador = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseClient
+    const { error } = await supabase
       .from('ambassadors')
       .delete()
       .eq('id', id);

@@ -17,6 +17,7 @@ const AmbassadorCreatePage = () => {
   const onSubmit = async (data: AmbassadorFormValues) => {
     setIsSubmitting(true);
     try {
+      console.log("Submitting ambassador data:", data);
       const newAmbassador = await createAmbassador({
         name: data.name,
         email: data.email,
@@ -30,11 +31,19 @@ const AmbassadorCreatePage = () => {
         postal_code: data.postal_code,
         country: data.country
       });
-      toast.success(`L'ambassadeur ${data.name} a été créé avec succès`);
-      if (newAmbassador?.id) {
-        navigate(`/ambassadors/${newAmbassador.id}`);
+      
+      console.log("Ambassador creation result:", newAmbassador);
+      
+      if (newAmbassador) {
+        toast.success(`L'ambassadeur ${data.name} a été créé avec succès`);
+        // Make sure we have an ID before navigating
+        if (newAmbassador.id) {
+          navigate(`/ambassadors/${newAmbassador.id}`);
+        } else {
+          navigate("/ambassadors");
+        }
       } else {
-        navigate("/ambassadors");
+        throw new Error("Échec de la création de l'ambassadeur");
       }
     } catch (error) {
       console.error("Erreur lors de la création de l'ambassadeur:", error);
