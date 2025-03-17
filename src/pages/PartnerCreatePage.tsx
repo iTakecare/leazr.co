@@ -2,9 +2,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Building2 } from "lucide-react";
+import { ArrowLeft, Building2 } from "lucide-react";
 import { createPartner } from "@/services/partnerService";
 import PartnerForm, { PartnerFormValues } from "@/components/crm/forms/PartnerForm";
 import PageTransition from "@/components/layout/PageTransition";
@@ -48,21 +47,11 @@ const PartnerCreatePage = () => {
             <h1 className="text-2xl font-bold">Créer un nouveau partenaire</h1>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                <span>Informations du partenaire</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PartnerForm
-                onSubmit={onSubmit}
-                onCancel={() => navigate("/partners")}
-                isSubmitting={isSubmitting}
-              />
-            </CardContent>
-          </Card>
+          <PartnerForm
+            onSubmit={onSubmit}
+            onCancel={() => navigate("/partners")}
+            isSubmitting={isSubmitting}
+          />
         </div>
       </Container>
     </PageTransition>
