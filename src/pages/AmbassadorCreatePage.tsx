@@ -24,12 +24,16 @@ const AmbassadorCreatePage: React.FC = () => {
     }
   };
 
+  const handleCancel = () => {
+    navigate('/ambassadors');
+  };
+
   return (
     <PageTransition>
       <Container>
         <div className="py-6">
           <h1 className="text-2xl font-bold mb-6">Créer un nouvel ambassadeur</h1>
-          <AmbassadorForm onSubmit={handleCreate} />
+          <AmbassadorForm onSubmit={handleCreate} onCancel={handleCancel} />
         </div>
       </Container>
     </PageTransition>

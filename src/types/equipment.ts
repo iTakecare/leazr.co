@@ -1,6 +1,12 @@
 
 export interface Equipment {
   items: EquipmentItem[];
+  id?: string;
+  title?: string;
+  purchasePrice?: number;
+  quantity?: number;
+  margin?: number;
+  monthlyPayment?: number;
 }
 
 export interface EquipmentItem {
@@ -21,4 +27,11 @@ export interface GlobalMarginAdjustment {
   originalCoef: number;
   originalMonthly: number;
   adjustmentPercent: number;
+  percentage?: number;
+  amount?: number;
+  newMonthly?: number;
+  currentCoef?: number;
+  newCoef?: number;
+  adaptMonthlyPayment?: boolean;
+  marginDifference?: number;
 }
