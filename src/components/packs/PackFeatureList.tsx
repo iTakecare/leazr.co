@@ -44,6 +44,10 @@ const PackFeatureList: React.FC<PackFeatureListProps> = ({ pack }) => {
   ];
 
   const renderFeatureValue = (featureId: string) => {
+    if (!pack || !pack.features) {
+      return <X className="h-5 w-5 text-gray-300" />;
+    }
+    
     const value = pack.features[featureId];
     
     if (value === true) {
@@ -56,6 +60,14 @@ const PackFeatureList: React.FC<PackFeatureListProps> = ({ pack }) => {
     
     return <span className="text-sm text-gray-800">{value}</span>;
   };
+
+  if (!pack || !pack.features) {
+    return (
+      <div className="p-4 text-amber-800 bg-amber-50 border border-amber-200 rounded-md">
+        Aucune information disponible pour ce pack.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
