@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -32,8 +33,8 @@ const CatalogManagement = () => {
   const isMobile = useIsMobile();
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
-  const [viewMode, setViewMode<"grid" | "accordion">("accordion");
-  const [groupingOption, setGroupingOption<"model" | "brand">("model");
+  const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
+  const [groupingOption, setGroupingOption] = useState<"model" | "brand">("model");
   
   // Fetch products for refetching on changes
   const { data: products = [], refetch, isLoading, error } = useQuery({
