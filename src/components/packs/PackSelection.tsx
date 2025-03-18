@@ -53,16 +53,17 @@ const PackSelection: React.FC<PackSelectionProps> = ({
               <div className={`w-full h-2 ${pack.color}`}></div>
               <CardContent className="p-6">
                 <div className="flex items-start">
-                  <RadioGroupItem 
-                    value={packId} 
-                    id={`pack-${packId}`} 
-                    className="mt-1" 
-                    checked={selectedPack === packId}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelect(packId);
-                    }}
-                  />
+                  <div className="flex items-center h-5 mt-1">
+                    <input
+                      type="radio"
+                      id={`pack-${packId}`}
+                      name="pack-selection"
+                      className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                      checked={selectedPack === packId}
+                      onChange={() => onSelect(packId)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
                   <div className="ml-3">
                     <Label htmlFor={`pack-${packId}`} className="font-bold text-lg">
                       {pack.name}
