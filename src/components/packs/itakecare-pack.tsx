@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock, Sparkles } from "lucide-react";
@@ -15,6 +14,7 @@ import PackSelection from "./PackSelection";
 import HardwareOptions from "./HardwareOptions";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
+import { formatCurrency } from "@/lib/utils";
 
 type PackTier = {
   id: string;
@@ -210,6 +210,18 @@ const ITakecarePack = () => {
     fetchSelectedProducts();
   }, [selectedHardware]);
 
+  const calculateHardwareCost = () => {
+    let total = 0;
+    
+    Object.entries(selectedProducts).forEach(([category, product]) => {
+      if (product && quantities[category as keyof typeof quantities] > 0) {
+        total += (product.price || 0) * quantities[category as keyof typeof quantities];
+      }
+    });
+    
+    return total;
+  };
+
   const deviceDiscounts = {
     "2-5": { percent: 0, label: "2-5 devices" },
     "5-10": { percent: 5, label: "5 à 10" },
@@ -242,7 +254,7 @@ const ITakecarePack = () => {
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
     const baseTotal = basePack.price * (1 - discount / 100);
     
-    const hardwareCosts = 0;
+    const hardwareCosts = calculateHardwareCost();
 
     return {
       monthly: discountedMonthly,
@@ -252,10 +264,6 @@ const ITakecarePack = () => {
       discount: discount,
     };
   };
-
-  const currentPack = packs[selectedPack];
-  const totalDevices = calculateTotalDevices();
-  const pricing = calculatePrice(currentPack, totalDevices, contractDuration);
 
   const handleSubmit = form.handleSubmit((data) => {
     console.log("Pack selected:", data);
@@ -449,11 +457,23 @@ const ITakecarePack = () => {
                                     <span className="font-medium">
                                       {qty}x {product ? product.name : "Produit sélectionné"}
                                     </span>
+                                    {product && (
+                                      <span className="font-medium">
+                                        {formatCurrency(product.price * qty)}
+                                      </span>
+                                    )}
                                   </div>
                                 );
                               }
                               return null;
                             })}
+                            
+                            {pricing.hardware > 0 && (
+                              <div className="flex justify-between pt-2 mt-2 border-t">
+                                <span className="font-bold">Total équipements</span>
+                                <span className="font-bold">{formatCurrency(pricing.hardware)}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -513,8 +533,20 @@ const ITakecarePack = () => {
                         
                         <div className="border-t pt-4 mt-4">
                           <div className="flex justify-between font-medium">
-                            <span>Total sur {contractDuration} mois</span>
+                            <span>Formule ({contractDuration} mois)</span>
                             <span>{formatCurrency(pricing.monthly * contractDuration)}</span>
+                          </div>
+                          
+                          {pricing.hardware > 0 && (
+                            <div className="flex justify-between font-medium mt-2">
+                              <span>Équipements</span>
+                              <span>{formatCurrency(pricing.hardware)}</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex justify-between font-bold mt-4 text-lg">
+                            <span>Total</span>
+                            <span>{formatCurrency(pricing.monthly * contractDuration + pricing.hardware)}</span>
                           </div>
                         </div>
                         <Button type="submit" className="w-full mt-6">
