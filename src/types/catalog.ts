@@ -11,9 +11,75 @@ export interface Product {
   imageUrl?: string;
   specifications?: Record<string, string | number>;
   tier?: string; // Silver, gold, or platinum
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   active: boolean;
+  
+  // WooCommerce compatibility fields
+  slug?: string;
+  permalink?: string;
+  dateCreated?: string;
+  dateModified?: string;
+  type?: string;
+  status?: string;
+  featured?: boolean;
+  catalogVisibility?: string;
+  shortDescription?: string;
+  sku?: string;
+  regularPrice?: string;
+  salePrice?: string;
+  dateOnSaleFrom?: string | null;
+  dateOnSaleTo?: string | null;
+  priceHtml?: string;
+  onSale?: boolean;
+  purchasable?: boolean;
+  totalSales?: number;
+  virtual?: boolean;
+  downloadable?: boolean;
+  downloads?: any[];
+  downloadLimit?: number;
+  downloadExpiry?: number;
+  externalUrl?: string;
+  buttonText?: string;
+  taxStatus?: string;
+  taxClass?: string;
+  manageStock?: boolean;
+  stockQuantity?: number;
+  inStock?: boolean;
+  backorders?: string;
+  backordersAllowed?: boolean;
+  backordered?: boolean;
+  soldIndividually?: boolean;
+  weight?: string;
+  dimensions?: {
+    length: string;
+    width: string;
+    height: string;
+  };
+  shippingRequired?: boolean;
+  shippingTaxable?: boolean;
+  shippingClass?: string;
+  shippingClassId?: number;
+  reviewsAllowed?: boolean;
+  averageRating?: string;
+  ratingCount?: number;
+  relatedIds?: number[];
+  upsellIds?: number[];
+  crossSellIds?: number[];
+  parentId?: number;
+  purchaseNote?: string;
+  categories?: any[];
+  tags?: any[];
+  images?: any[];
+  attributes?: any[];
+  defaultAttributes?: any[];
+  variations?: any[];
+  groupedProducts?: any[];
+  menuOrder?: number;
+  metaData?: any[];
+  price_number?: number;
+  stock?: number;
+  discount_per_quantity?: Record<string, any>;
   
   // Additional properties used by the application
   is_parent?: boolean;
