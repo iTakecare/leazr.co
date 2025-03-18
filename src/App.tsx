@@ -1,3 +1,4 @@
+
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -5,7 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import ClientForm from "./pages/ClientForm";
-import Catalog from "./pages/Catalog";
+import CatalogManagement from "./pages/CatalogManagement";
 import ProductDetail from "./pages/ProductDetail";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
@@ -235,7 +236,7 @@ function App() {
               <Route path="/clients/create" element={<ClientForm />} />
               <Route path="/clients/:id" element={<ClientDetail />} />
               <Route path="/clients/edit/:id" element={<ClientForm />} />
-              <Route path="/catalog" element={<Catalog />} />
+              <Route path="/catalog" element={<CatalogManagement />} />
               <Route path="/catalog/:id" element={<ProductDetail />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               <Route path="/settings" element={<Settings />} />

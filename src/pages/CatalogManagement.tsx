@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -28,13 +27,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ProductGrid from "@/components/catalog/ProductGrid";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const Catalog = () => {
+const CatalogManagement = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
-  const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
-  const [groupingOption, setGroupingOption] = useState<"model" | "brand">("model");
+  const [viewMode, setViewMode<"grid" | "accordion">("accordion");
+  const [groupingOption, setGroupingOption<"model" | "brand">("model");
   
   // Fetch products for refetching on changes
   const { data: products = [], refetch, isLoading, error } = useQuery({
@@ -83,7 +82,7 @@ const Catalog = () => {
   const handleProductDeleted = () => {
     refetch();
   };
-
+  
   return (
     <Container>
       <div className="py-6 md:py-8">
@@ -207,4 +206,4 @@ const Catalog = () => {
   );
 };
 
-export default Catalog;
+export default CatalogManagement;
