@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,6 @@ const CatalogManagement = () => {
   const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
   const [groupingOption, setGroupingOption] = useState<"model" | "brand">("model");
   
-  // Fetch products for refetching on changes
   const { data: products = [], refetch, isLoading, error } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
@@ -46,7 +44,6 @@ const CatalogManagement = () => {
     console.log(`Loaded ${products.length} products:`, products);
   }, [products]);
 
-  // Load sample data if no products are found
   useEffect(() => {
     if (!isLoading && products.length === 0) {
       console.log("No products found, loading sample data would go here");
