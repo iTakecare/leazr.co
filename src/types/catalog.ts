@@ -105,7 +105,7 @@ export interface ProductVariant {
   imageUrl?: string;
   image_url?: string;
   specifications?: Record<string, string | number>;
-  attributes?: Record<string, string | number | boolean>;
+  attributes?: Record<string, string | number | boolean>; // This must be a Record, not an array
   parent_id?: string;
   // Add any other necessary fields to ensure compatibility with Product
   createdAt?: Date | string;

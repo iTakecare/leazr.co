@@ -123,7 +123,9 @@ const ProductDetail = () => {
           imageUrl: product.imageUrl,
           image_url: product.image_url,
           specifications: product.specifications,
-          attributes: product.attributes as Record<string, string | number | boolean>,
+          attributes: product.attributes && Array.isArray(product.attributes) 
+            ? {} // Convert empty array to empty object
+            : (product.attributes as Record<string, string | number | boolean>) || {},
           parent_id: product.parent_id
         }));
         setVariants(productVariants);
@@ -160,7 +162,9 @@ const ProductDetail = () => {
               imageUrl: product.imageUrl,
               image_url: product.image_url,
               specifications: product.specifications,
-              attributes: product.attributes as Record<string, string | number | boolean>,
+              attributes: product.attributes && Array.isArray(product.attributes) 
+                ? {} // Convert empty array to empty object
+                : (product.attributes as Record<string, string | number | boolean>) || {},
               parent_id: product.parent_id
             }));
           setVariants(productVariants);
@@ -1014,3 +1018,4 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
+
