@@ -31,6 +31,7 @@ interface HardwareOptionsProps {
   };
   onSelect: (category: string, option: string) => void;
   onQuantityChange: (category: string, quantity: number) => void;
+  previousPack?: string | null;
 }
 
 const HardwareOptions: React.FC<HardwareOptionsProps> = ({
@@ -39,7 +40,8 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   selectedHardware,
   quantities,
   onSelect,
-  onQuantityChange
+  onQuantityChange,
+  previousPack
 }) => {
   const [products, setProducts] = useState<{
     laptop: Product[];
@@ -57,6 +59,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   const [loading, setLoading] = useState(true);
   const [previousProducts, setPreviousProducts] = useState<{[key: string]: boolean}>({});
   const [lastPackId, setLastPackId] = useState<string | null>(null);
+  const [newProducts, setNewProducts] = useState<{[key: string]: boolean}>({});
 
   const packPriceRanges = {
     silver: { min: 0, max: 650 },
@@ -91,18 +94,16 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
             currentProductIds[product.id] = true;
           });
           
-          const newProducts: {[key: string]: boolean} = {};
-          if (lastPackId && lastPackId !== selectedPack) {
+          const foundNewProducts: {[key: string]: boolean} = {};
+          if (previousPack && previousPack !== selectedPack) {
             filteredData.forEach(product => {
               if (!previousProducts[product.id]) {
-                newProducts[product.id] = true;
+                foundNewProducts[product.id] = true;
               }
             });
             
-            if (Object.keys(newProducts).length > 0) {
-              toast.success(`Nouveau matériel disponible pour la formule ${selectedPack.toUpperCase()} !`, {
-                duration: 3000,
-              });
+            if (Object.keys(foundNewProducts).length > 0) {
+              setNewProducts(foundNewProducts);
             }
           }
           
@@ -184,7 +185,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   }, [productQuantities, products, onQuantityChange, onSelect, quantities, selectedHardware]);
 
   const isNewProduct = (productId: string): boolean => {
-    return lastPackId !== null && lastPackId !== selectedPack && !previousProducts[productId];
+    return newProducts[productId] || false;
   };
 
   const handleProductIncrement = (productId: string) => {
@@ -238,17 +239,34 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     },
   ];
 
+  const categoriesWithNewProducts = categories.map(category => {
+    const hasNewProducts = category.products.some(product => isNewProduct(product.id));
+    return {
+      ...category,
+      hasNewProducts
+    };
+  });
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {categories.map((category) => (
-        <Card key={category.id} className="overflow-hidden">
-          <div className="bg-gray-50 p-4 flex items-center justify-between border-b">
+      {categoriesWithNewProducts.map((category) => (
+        <Card 
+          key={category.id} 
+          className={`overflow-hidden ${category.hasNewProducts ? 'border-2 border-green-300 shadow-md' : ''}`}
+        >
+          <div className={`${category.hasNewProducts ? 'bg-green-50' : 'bg-gray-50'} p-4 flex items-center justify-between border-b ${category.hasNewProducts ? 'border-green-200' : ''}`}>
             <div className="flex items-center space-x-3">
               {category.icon}
               <h3 className="font-medium">{category.label}</h3>
+              {category.hasNewProducts && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Nouveau
+                </span>
+              )}
             </div>
           </div>
-          <CardContent className="p-4">
+          <CardContent className={`p-4 ${category.hasNewProducts ? 'bg-green-50/20' : ''}`}>
             {loading ? (
               <div className="animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
@@ -268,7 +286,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                         key={product.id} 
                         className={`flex items-center justify-between pb-3 last:border-0 last:pb-0 transition-all ${
                           isNew 
-                            ? 'bg-[#F2FCE2] rounded-md p-3 border-2 border-green-300 shadow-md mb-2' 
+                            ? 'bg-[#F2FCE2] rounded-md p-3 border-2 border-green-300 shadow-md mb-2 animate-pulse' 
                             : 'border-b'
                         }`}
                       >
@@ -277,13 +295,14 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                             value={product.id} 
                             id={`${category.id}-${product.id}`}
                             disabled={productQuantities[product.id] === 0}
+                            className={isNew ? 'border-green-500' : ''}
                           />
                           <div>
                             <Label 
                               htmlFor={`${category.id}-${product.id}`} 
                               className={`text-sm leading-snug cursor-pointer flex items-center ${
                                 productQuantities[product.id] === 0 ? 'text-gray-400' : ''
-                              } ${isNew ? 'font-semibold' : ''}`}
+                              } ${isNew ? 'font-semibold text-green-800' : ''}`}
                             >
                               {product.name}
                               {isNew && (
@@ -291,9 +310,11 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                               )}
                             </Label>
                             {isNew && (
-                              <p className="text-xs text-green-700 font-bold mt-1 bg-green-100 px-2 py-0.5 rounded-full inline-block">
-                                Nouveau matériel disponible
-                              </p>
+                              <div className="flex items-center mt-1">
+                                <p className="text-xs text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full inline-block">
+                                  Nouveau matériel disponible
+                                </p>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -301,20 +322,20 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                           <Button 
                             variant="outline" 
                             size="icon" 
-                            className="h-7 w-7" 
+                            className={`h-7 w-7 ${isNew ? 'border-green-300' : ''}`}
                             onClick={() => handleProductDecrement(product.id)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
                           <Input
-                            className="w-12 text-center h-7 px-1"
+                            className={`w-12 text-center h-7 px-1 ${isNew ? 'border-green-300 bg-green-50/50' : ''}`}
                             value={productQuantities[product.id] || 0}
                             onChange={(e) => handleQuantityChange(product.id, e.target.value)}
                           />
                           <Button 
                             variant="outline" 
                             size="icon" 
-                            className="h-7 w-7" 
+                            className={`h-7 w-7 ${isNew ? 'border-green-300' : ''}`} 
                             onClick={() => handleProductIncrement(product.id)}
                           >
                             <Plus className="h-3 w-3" />

@@ -290,6 +290,7 @@ const ITakecarePack = () => {
     
     if (selectedPack !== packId) {
       setPreviousPack(selectedPack); // Store the previous pack before updating
+      setLastPackId(selectedPack); // Set lastPackId to highlight new hardware
       setSelectedPack(packId);
       form.setValue("packTier", packId);
       
@@ -421,8 +422,8 @@ const ITakecarePack = () => {
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">
+                <CardHeader className={lastPackId && lastPackId !== selectedPack ? "bg-green-50 border-b-2 border-green-200" : ""}>
+                  <CardTitle className="text-xl flex items-center">
                     2. Sélectionnez votre matériel
                     {lastPackId && lastPackId !== selectedPack && (
                       <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -431,8 +432,14 @@ const ITakecarePack = () => {
                       </span>
                     )}
                   </CardTitle>
+                  {lastPackId && lastPackId !== selectedPack && (
+                    <div className="mt-2 text-sm text-green-700 flex items-center">
+                      <Sparkles className="h-4 w-4 mr-1 text-green-600" />
+                      Des nouveaux équipements sont disponibles suite à votre changement de formule {selectedPack.toUpperCase()}
+                    </div>
+                  )}
                 </CardHeader>
-                <CardContent>
+                <CardContent className={lastPackId && lastPackId !== selectedPack ? "bg-green-50/30 border-green-100" : ""}>
                   <HardwareOptions 
                     options={currentPack.hardwareOptions}
                     selectedPack={selectedPack} 
@@ -440,6 +447,7 @@ const ITakecarePack = () => {
                     quantities={quantities}
                     onSelect={handleSelectHardware}
                     onQuantityChange={handleQuantityChange}
+                    previousPack={lastPackId}
                   />
                 </CardContent>
               </Card>
