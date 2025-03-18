@@ -5,14 +5,14 @@ import PageTransition from "@/components/layout/PageTransition";
 import ITakecarePack from "@/components/packs/itakecare-pack";
 import { Link } from "react-router-dom";
 
-const ITakecarePage = () => {
+const PackSelectionPage = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b shadow-sm">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold">iTakecare</h1>
+              <h1 className="text-xl font-bold">Pack Selection</h1>
             </div>
             
             <nav className="flex items-center gap-6">
@@ -33,4 +33,4 @@ const ITakecarePage = () => {
   );
 };
 
-export default ITakecarePage;
+export default PackSelectionPage;

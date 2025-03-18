@@ -4,7 +4,7 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import ITakecarePack from "@/components/packs/itakecare-pack";
 
-const ClientITakecarePage = () => {
+const ClientPackSelectionPage = () => {
   return (
     <PageTransition>
       <Container>
@@ -14,4 +14,4 @@ const ClientITakecarePage = () => {
   );
 };
 
-export default ClientITakecarePage;
+export default ClientPackSelectionPage;

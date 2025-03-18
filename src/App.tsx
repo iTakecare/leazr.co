@@ -1,4 +1,3 @@
-
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -32,7 +31,7 @@ import PartnerCreatePage from "./pages/PartnerCreatePage";
 import PartnersListPage from "./pages/PartnersList";
 import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
-import ITakecarePage from "./pages/ITakecarePage";
+import PackSelectionPage from "./pages/PackSelectionPage";
 import PublicCatalogPage from "./pages/PublicCatalogPage";
 
 import { Layout } from "./components/layout/Layout";
@@ -224,7 +223,7 @@ function App() {
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/itakecare" element={<ITakecarePage />} />
+            <Route path="/pack-selection" element={<PackSelectionPage />} />
             <Route path="/catalog" element={<PublicCatalogPage />} />
             
             <Route path="/" element={

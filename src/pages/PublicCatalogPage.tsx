@@ -22,7 +22,7 @@ const PublicCatalogPage = () => {
             
             <nav className="flex items-center gap-6">
               <Link to="/" className="text-gray-700 hover:text-blue-700">Accueil</Link>
-              <Link to="/itakecare" className="text-gray-700 hover:text-blue-700">iTakecare</Link>
+              <Link to="/pack-selection" className="text-gray-700 hover:text-blue-700">Pack Selection</Link>
               <Link to="/login" className="text-gray-700 hover:text-blue-700">Connexion</Link>
               <Link to="/signup" className="text-gray-700 hover:text-blue-700">Inscription</Link>
             </nav>
