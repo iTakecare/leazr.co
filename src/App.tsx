@@ -1,3 +1,4 @@
+
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -32,6 +33,9 @@ import PartnersListPage from "./pages/PartnersList";
 import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
 import ITakecarePage from "./pages/ITakecarePage";
+import PublicCatalog from "./pages/PublicCatalog";
+import ProductDetailPage from "./pages/ProductDetailPage";
+import RequestSentPage from "./pages/RequestSentPage";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -220,6 +224,11 @@ function App() {
           <SonnerToaster position="top-right" />
           <Routes>
             <Route path="/" element={<Index />} />
+            
+            {/* Routes publiques pour le catalogue */}
+            <Route path="/catalogue" element={<PublicCatalog />} />
+            <Route path="/produits/:id" element={<ProductDetailPage />} />
+            <Route path="/demande-envoyee" element={<RequestSentPage />} />
             
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
