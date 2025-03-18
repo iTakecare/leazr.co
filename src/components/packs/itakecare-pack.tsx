@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock } from "lucide-react";
@@ -344,14 +343,13 @@ const ITakecarePack = () => {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-4 px-2">
       <div className="flex flex-col space-y-6 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between bg-[#C0C7C8] p-2 border-2 border-black border-b-[#777777] border-r-[#777777]">
           <h1 className="text-2xl font-bold">Configurez votre Pack iTakecare</h1>
           <Button
-            variant="outline"
             onClick={() => setShowComparison(!showComparison)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-[#C0C7C8] text-black border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-b-black border-r-black px-2 py-1 hover:bg-[#d0d7d8] rounded-none"
           >
             {showComparison ? "Masquer la comparaison" : "Voir la comparaison complète"}
           </Button>
@@ -362,11 +360,11 @@ const ITakecarePack = () => {
         ) : (
           <Form {...form}>
             <form onSubmit={handleSubmit} className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">1. Choisissez votre formule</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] bg-[#C0C7C8] rounded-none">
+                <div className="w-full h-6 flex items-center bg-[#000080] text-white px-2">
+                  <span className="text-sm font-bold">1. Choisissez votre formule</span>
+                </div>
+                <CardContent className="p-4 bg-[#C0C7C8]">
                   <PackSelection 
                     packs={packs} 
                     selectedPack={selectedPack} 
@@ -377,28 +375,26 @@ const ITakecarePack = () => {
                   />
 
                   <div className="grid gap-6 mt-8">
-                    <div>
-                      <Label htmlFor="contractDuration">Durée du contrat</Label>
-                      <RadioGroup
-                        className="flex space-x-4 mt-2"
-                        value={contractDuration.toString()}
-                        onValueChange={handleContractDurationChange}
-                      >
+                    <div className="p-3 border-2 border-black border-t-[#FFFFFF] border-l-[#FFFFFF] bg-[#C0C7C8]">
+                      <Label htmlFor="contractDuration" className="mb-2 block">Durée du contrat</Label>
+                      <div className="flex space-x-4 mt-2">
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="36" id="duration-36" />
+                          <div className={`w-5 h-5 border-2 border-black bg-white flex items-center justify-center`}>
+                            <div className="w-2 h-2 bg-black"></div>
+                          </div>
                           <Label htmlFor="duration-36">36 mois</Label>
                         </div>
-                      </RadioGroup>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">2. Sélectionnez votre matériel</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] bg-[#C0C7C8] rounded-none">
+                <div className="w-full h-6 flex items-center bg-[#000080] text-white px-2">
+                  <span className="text-sm font-bold">2. Sélectionnez votre matériel</span>
+                </div>
+                <CardContent className="p-4 bg-[#C0C7C8]">
                   <HardwareOptions 
                     options={currentPack.hardwareOptions}
                     selectedPack={selectedPack} 
@@ -410,20 +406,22 @@ const ITakecarePack = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">3. Récapitulatif de votre pack</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] bg-[#C0C7C8] rounded-none">
+                <div className="w-full h-6 flex items-center bg-[#000080] text-white px-2">
+                  <span className="text-sm font-bold">3. Récapitulatif de votre pack</span>
+                </div>
+                <CardContent className="p-4 bg-[#C0C7C8]">
                   <div className="flex flex-col md:flex-row gap-8">
                     <div className="flex-1">
                       <h3 className="text-lg font-medium mb-4">Caractéristiques incluses</h3>
-                      <PackFeatureList pack={currentPack} />
+                      <div className="border-2 border-black border-t-[#FFFFFF] border-l-[#FFFFFF] p-3 bg-[#C0C7C8]">
+                        <PackFeatureList pack={currentPack} />
+                      </div>
                       
                       {totalDevices > 0 && (
                         <div className="mt-6">
                           <h3 className="text-lg font-medium mb-4">Équipement sélectionné</h3>
-                          <div className="space-y-2">
+                          <div className="border-2 border-black border-t-[#FFFFFF] border-l-[#FFFFFF] p-3 bg-[#C0C7C8] space-y-2">
                             {Object.entries(quantities).map(([category, qty]) => {
                               if (qty > 0) {
                                 const product = selectedProducts[category as keyof typeof selectedProducts];
@@ -441,7 +439,7 @@ const ITakecarePack = () => {
                         </div>
                       )}
                     </div>
-                    <div className="w-full md:w-72 bg-gray-50 p-6 rounded-lg border">
+                    <div className="w-full md:w-72 bg-[#C0C7C8] p-4 border-2 border-black border-t-[#FFFFFF] border-l-[#FFFFFF]">
                       <div className="text-center">
                         <h3 className="font-bold text-xl mb-1">{currentPack.name}</h3>
                         <div className={`w-full h-2 ${currentPack.color} mb-4 rounded`}></div>
@@ -449,44 +447,44 @@ const ITakecarePack = () => {
                         {pricing.discount > 0 ? (
                           <>
                             <div className="text-3xl font-bold">{formatCurrency(pricing.monthly)}</div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-gray-700">
                               <span className="line-through">{formatCurrency(currentPack.monthlyPrice)}</span> par mois
                             </div>
-                            <div className="bg-green-100 text-green-800 text-sm p-1 rounded mt-2 mb-4">
+                            <div className="bg-green-100 text-green-800 text-sm p-1 rounded mt-2 mb-4 border border-green-800">
                               Remise volume: {pricing.discount}% pour {totalDevices} équipements
                             </div>
                           </>
                         ) : (
                           <>
                             <div className="text-3xl font-bold">{formatCurrency(pricing.monthly)}</div>
-                            <div className="text-sm text-muted-foreground mb-4">par mois</div>
+                            <div className="text-sm text-gray-700 mb-4">par mois</div>
                           </>
                         )}
                         
                         <div className="mt-4 mb-4">
-                          <table className="w-full text-sm border-collapse">
+                          <table className="w-full text-sm border-collapse border-2 border-black">
                             <thead>
-                              <tr className="border-b">
-                                <th className="text-left py-1">Tier</th>
-                                <th className="text-right py-1">Prix</th>
+                              <tr className="border-b-2 border-black bg-[#C0C7C8]">
+                                <th className="text-left py-1 px-2 border-r-2 border-black">Tier</th>
+                                <th className="text-right py-1 px-2">Prix</th>
                               </tr>
                             </thead>
                             <tbody>
-                              <tr className={selectedPack === 'silver' ? 'bg-gray-100' : ''}>
-                                <td className="py-1">Silver</td>
-                                <td className="text-right py-1">
+                              <tr className={`${selectedPack === 'silver' ? 'bg-gray-300' : ''} border-b border-black`}>
+                                <td className="py-1 px-2 border-r-2 border-black">Silver</td>
+                                <td className="text-right py-1 px-2">
                                   {formatCurrency(getDiscountedMonthlyPrice('silver'))}
                                 </td>
                               </tr>
-                              <tr className={selectedPack === 'gold' ? 'bg-gray-100' : ''}>
-                                <td className="py-1">Gold</td>
-                                <td className="text-right py-1">
+                              <tr className={`${selectedPack === 'gold' ? 'bg-gray-300' : ''} border-b border-black`}>
+                                <td className="py-1 px-2 border-r-2 border-black">Gold</td>
+                                <td className="text-right py-1 px-2">
                                   {formatCurrency(getDiscountedMonthlyPrice('gold'))}
                                 </td>
                               </tr>
-                              <tr className={selectedPack === 'platinum' ? 'bg-gray-100' : ''}>
-                                <td className="py-1">Platinum</td>
-                                <td className="text-right py-1">
+                              <tr className={`${selectedPack === 'platinum' ? 'bg-gray-300' : ''}`}>
+                                <td className="py-1 px-2 border-r-2 border-black">Platinum</td>
+                                <td className="text-right py-1 px-2">
                                   {formatCurrency(getDiscountedMonthlyPrice('platinum'))}
                                 </td>
                               </tr>
@@ -494,13 +492,13 @@ const ITakecarePack = () => {
                           </table>
                         </div>
                         
-                        <div className="border-t pt-4 mt-4">
+                        <div className="border-t-2 border-black pt-4 mt-4">
                           <div className="flex justify-between font-medium">
                             <span>Total sur {contractDuration} mois</span>
                             <span>{formatCurrency(pricing.monthly * contractDuration)}</span>
                           </div>
                         </div>
-                        <Button type="submit" className="w-full mt-6">
+                        <Button type="submit" className="w-full mt-6 bg-[#C0C7C8] text-black border-2 border-t-[#FFFFFF] border-l-[#FFFFFF] border-b-black border-r-black hover:bg-[#d0d7d8] rounded-none p-2">
                           Commander
                         </Button>
                       </div>
