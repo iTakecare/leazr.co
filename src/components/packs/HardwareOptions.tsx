@@ -55,6 +55,13 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   
   const [loading, setLoading] = useState(true);
 
+  // Define price ranges for each pack tier
+  const packPriceRanges = {
+    silver: { min: 0, max: 650 },
+    gold: { min: 0, max: 1500 },
+    platinum: { min: 0, max: 2500 }
+  };
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -70,11 +77,13 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         }
         
         if (data) {
+          // Get the price range for the selected pack
+          const priceRange = packPriceRanges[selectedPack as keyof typeof packPriceRanges];
+          
+          // Filter products based on their price within the pack's price range
           const filteredData = data.filter(product => {
-            if (product.tier) {
-              return product.tier === selectedPack;
-            }
-            return true;
+            const productPrice = product.price || 0;
+            return productPrice >= priceRange.min && productPrice <= priceRange.max;
           });
           
           const categorizedProducts = {
@@ -199,7 +208,9 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                         className={`text-sm leading-snug cursor-pointer ${quantities[category.id as keyof typeof quantities] === 0 ? 'text-gray-400' : ''}`}
                       >
                         {product.name}
-                        {product.monthly_price && <span className="ml-2 text-xs text-gray-500">({product.monthly_price}€/mois)</span>}
+                        <span className="ml-2 text-xs text-gray-500">
+                          ({product.price}€)
+                        </span>
                       </Label>
                     </div>
                   ))}

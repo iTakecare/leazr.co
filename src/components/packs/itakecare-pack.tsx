@@ -226,20 +226,11 @@ const ITakecarePack = () => {
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
     const baseTotal = basePack.price * (1 - discount / 100);
     
-    let hardwareMonthly = 0;
-    
-    Object.entries(selectedProducts).forEach(([category, product]) => {
-      if (product && product.monthly_price) {
-        const qty = quantities[category as keyof typeof quantities];
-        hardwareMonthly += product.monthly_price * qty;
-      }
-    });
-
     return {
-      monthly: discountedMonthly + hardwareMonthly,
+      monthly: discountedMonthly,
       base: baseTotal,
-      hardware: hardwareMonthly * duration,
-      total: baseTotal + (hardwareMonthly * duration),
+      hardware: 0,
+      total: baseTotal,
       discount: discount,
     };
   };
@@ -410,9 +401,7 @@ const ITakecarePack = () => {
                                       {qty}x {product ? product.name : "Produit sélectionné"}
                                     </span>
                                     <span>
-                                      {product && product.monthly_price ? 
-                                        `${(product.monthly_price * qty).toFixed(2)}€/mois` : 
-                                        "Prix indisponible"}
+                                      {product ? `${product.price}€` : "Prix indisponible"}
                                     </span>
                                   </div>
                                 );
@@ -435,14 +424,6 @@ const ITakecarePack = () => {
                           </div>
                         )}
                         <div className="border-t pt-4 mt-4">
-                          <div className="flex justify-between mb-1 text-sm">
-                            <span>Pack de base</span>
-                            <span>{pricing.base.toFixed(2)}€</span>
-                          </div>
-                          <div className="flex justify-between mb-4 text-sm">
-                            <span>Équipement ({contractDuration} mois)</span>
-                            <span>{pricing.hardware.toFixed(2)}€</span>
-                          </div>
                           <div className="flex justify-between font-medium">
                             <span>Total sur {contractDuration} mois</span>
                             <span>{pricing.total.toFixed(2)}€</span>
