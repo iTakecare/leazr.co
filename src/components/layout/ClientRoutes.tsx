@@ -1,8 +1,11 @@
+
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
+import ClientCalculator from "@/pages/ClientCalculator";
+import ClientITakecarePage from "@/pages/ClientITakecarePage";
 import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
 import ClientsLoading from "@/components/clients/ClientsLoading";
@@ -186,6 +189,7 @@ const ClientRoutes = () => {
         <Route path="equipment" element={<ClientLayout><ClientEquipment /></ClientLayout>} />
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><ClientCatalog /></ClientLayout>} />
+        <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
         <Route path="calculator" element={<Navigate to="/client/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>

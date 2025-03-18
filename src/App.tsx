@@ -31,9 +31,7 @@ import PartnerCreatePage from "./pages/PartnerCreatePage";
 import PartnersListPage from "./pages/PartnersList";
 import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
-import PackSelectionPage from "./pages/PackSelectionPage";
-import PublicCatalogPage from "./pages/PublicCatalogPage";
-import ClientITakecarePage from "./pages/ClientITakecarePage";
+import ITakecarePage from "./pages/ITakecarePage";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -222,11 +220,9 @@ function App() {
           <SonnerToaster position="top-right" />
           <Routes>
             <Route path="/" element={<Index />} />
+            
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/pack-selection" element={<PackSelectionPage />} />
-            <Route path="/catalog" element={<PublicCatalogPage />} />
-            <Route path="/itakecare" element={<ClientITakecarePage />} />
             
             <Route path="/" element={
               <ProtectedRoute requireAdmin={true}>
@@ -239,7 +235,7 @@ function App() {
               <Route path="/clients/create" element={<ClientForm />} />
               <Route path="/clients/:id" element={<ClientDetail />} />
               <Route path="/clients/edit/:id" element={<ClientForm />} />
-              <Route path="/admin/catalog" element={<Catalog />} />
+              <Route path="/catalog" element={<Catalog />} />
               <Route path="/catalog/:id" element={<ProductDetail />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               <Route path="/settings" element={<Settings />} />
@@ -258,6 +254,7 @@ function App() {
               <Route path="/ambassadors/create" element={<AmbassadorCreatePage />} />
               <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
               <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
+              <Route path="/itakecare" element={<ITakecarePage />} />
             </Route>
             
             <Route path="/partner" element={

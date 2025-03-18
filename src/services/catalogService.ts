@@ -1,6 +1,6 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
+import { products as sampleProducts } from "@/data/products";
 
 export async function getProducts(): Promise<Product[]> {
   try {
@@ -9,7 +9,6 @@ export async function getProducts(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('active', true)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -17,16 +16,11 @@ export async function getProducts(): Promise<Product[]> {
       throw new Error(`API Error: ${error.message}`);
     }
 
-    if (!data || data.length === 0) {
-      console.log("No products found in database");
-      return [];
-    }
-
     console.log(`Retrieved ${data?.length || 0} products from API`);
-    return data;
+    return data || [];
   } catch (error) {
     console.error("Error in getProducts:", error);
-    throw error;
+    return [];
   }
 }
 
@@ -266,6 +260,18 @@ export const getCategories = async () => {
       .order('name', { ascending: true });
 
     if (error) {
+      if (error.code === '42P01') {
+        console.log("Categories table does not exist yet. Using default categories.");
+        return [
+          { name: "laptop", translation: "Ordinateur portable" },
+          { name: "desktop", translation: "Ordinateur de bureau" },
+          { name: "tablet", translation: "Tablette" },
+          { name: "smartphone", translation: "Smartphone" },
+          { name: "accessories", translation: "Accessoires" },
+          { name: "other", translation: "Autre" }
+        ];
+      }
+      
       console.error("Error fetching categories from API:", error);
       throw new Error(`API Error: ${error.message}`);
     }
@@ -274,7 +280,7 @@ export const getCategories = async () => {
     return data || [];
   } catch (error) {
     console.error("Error in getCategories:", error);
-    throw error;
+    return [];
   }
 }
 

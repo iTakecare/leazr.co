@@ -1,14 +1,12 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Laptop, Monitor, Smartphone, Tablet, Plus, Minus, Sparkles, AlertTriangle } from "lucide-react";
+import { Laptop, Monitor, Smartphone, Tablet, Plus, Minus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
 interface HardwareOptionsProps {
@@ -62,8 +60,6 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   const [previousProducts, setPreviousProducts] = useState<{[key: string]: boolean}>({});
   const [lastPackId, setLastPackId] = useState<string | null>(null);
   const [newProducts, setNewProducts] = useState<{[key: string]: boolean}>({});
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [noProductsFound, setNoProductsFound] = useState<boolean>(false);
 
   const packPriceRanges = {
     silver: { min: 0, max: 650 },
@@ -75,101 +71,75 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        setFetchError(null);
-        setNoProductsFound(false);
-        
-        const { data, error } = await getSupabaseClient()
+        const { data, error } = await supabase
           .from('products')
           .select('*')
           .eq('active', true);
           
         if (error) {
-          console.error("Error fetching products from database:", error);
-          setFetchError("Impossible de récupérer les produits depuis la base de données. Veuillez réessayer plus tard.");
-          return;
-        } 
-        
-        if (!data || data.length === 0) {
-          console.log("No products found in database.");
-          setNoProductsFound(true);
-          setFetchError("Aucun produit trouvé dans la base de données.");
+          console.error("Error fetching products:", error);
           return;
         }
         
-        console.log(`Successfully loaded ${data.length} products from database`);
-        
-        const priceRange = packPriceRanges[selectedPack as keyof typeof packPriceRanges];
-        
-        const filteredData = data.filter(product => {
-          const productPrice = product.price || 0;
-          return productPrice >= priceRange.min && productPrice <= priceRange.max;
-        });
+        if (data) {
+          const priceRange = packPriceRanges[selectedPack as keyof typeof packPriceRanges];
+          
+          const filteredData = data.filter(product => {
+            const productPrice = product.price || 0;
+            return productPrice >= priceRange.min && productPrice <= priceRange.max;
+          });
 
-        console.log(`Filtered down to ${filteredData.length} products in price range for ${selectedPack} pack`);
-
-        if (filteredData.length === 0) {
-          setNoProductsFound(true);
-          setFetchError(`Aucun produit trouvé dans la plage de prix pour le pack ${selectedPack}.`);
-        }
-
-        const currentProductIds: {[key: string]: boolean} = {};
-        filteredData.forEach(product => {
-          currentProductIds[product.id] = true;
-        });
-        
-        const foundNewProducts: {[key: string]: boolean} = {};
-        if (previousPack && previousPack !== selectedPack) {
+          const currentProductIds: {[key: string]: boolean} = {};
           filteredData.forEach(product => {
-            if (!previousProducts[product.id]) {
-              foundNewProducts[product.id] = true;
-            }
+            currentProductIds[product.id] = true;
           });
           
-          if (Object.keys(foundNewProducts).length > 0) {
-            setNewProducts(foundNewProducts);
+          const foundNewProducts: {[key: string]: boolean} = {};
+          if (previousPack && previousPack !== selectedPack) {
+            filteredData.forEach(product => {
+              if (!previousProducts[product.id]) {
+                foundNewProducts[product.id] = true;
+              }
+            });
+            
+            if (Object.keys(foundNewProducts).length > 0) {
+              setNewProducts(foundNewProducts);
+            }
           }
-        }
-        
-        const categorizedProducts = {
-          laptop: filteredData.filter(p => p.category === 'laptop'),
-          desktop: filteredData.filter(p => p.category === 'desktop'),
-          mobile: filteredData.filter(p => p.category === 'smartphone'),
-          tablet: filteredData.filter(p => p.category === 'tablet'),
-        };
-        
-        console.log("Categorized products:", {
-          laptops: categorizedProducts.laptop.length,
-          desktops: categorizedProducts.desktop.length,
-          mobiles: categorizedProducts.mobile.length,
-          tablets: categorizedProducts.tablet.length
-        });
-        
-        setProducts(categorizedProducts);
-        
-        if (previousPack && previousPack !== selectedPack) {
-          const initialQuantities: {[key: string]: number} = {};
-          filteredData.forEach(product => {
-            initialQuantities[product.id] = 0;
-          });
-          setProductQuantities(initialQuantities);
+          
+          const categorizedProducts = {
+            laptop: filteredData.filter(p => p.category === 'laptop'),
+            desktop: filteredData.filter(p => p.category === 'desktop'),
+            mobile: filteredData.filter(p => p.category === 'smartphone'),
+            tablet: filteredData.filter(p => p.category === 'tablet'),
+          };
+          
+          setProducts(categorizedProducts);
+          
+          if (previousPack && previousPack !== selectedPack) {
+            const initialQuantities: {[key: string]: number} = {};
+            filteredData.forEach(product => {
+              initialQuantities[product.id] = 0;
+            });
+            setProductQuantities(initialQuantities);
 
-          onQuantityChange('laptop', 0);
-          onQuantityChange('desktop', 0);
-          onQuantityChange('mobile', 0);
-          onQuantityChange('tablet', 0);
-        } else {
-          const initialQuantities: {[key: string]: number} = {};
-          filteredData.forEach(product => {
-            initialQuantities[product.id] = productQuantities[product.id] || 0;
-          });
-          setProductQuantities(initialQuantities);
+            onQuantityChange('laptop', 0);
+            onQuantityChange('desktop', 0);
+            onQuantityChange('mobile', 0);
+            onQuantityChange('tablet', 0);
+          } else {
+            const initialQuantities: {[key: string]: number} = {};
+            filteredData.forEach(product => {
+              initialQuantities[product.id] = productQuantities[product.id] || 0;
+            });
+            setProductQuantities(initialQuantities);
+          }
+          
+          setPreviousProducts(currentProductIds);
+          setLastPackId(selectedPack);
         }
-        
-        setPreviousProducts(currentProductIds);
-        setLastPackId(selectedPack);
       } catch (error) {
         console.error("Error in product fetch:", error);
-        setFetchError("Échec de la récupération des produits. Veuillez réessayer plus tard.");
       } finally {
         setLoading(false);
       }
@@ -290,30 +260,8 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     };
   });
 
-  if (noProductsFound) {
-    return (
-      <Alert className="bg-yellow-50 border-yellow-300 text-yellow-800">
-        <AlertTriangle className="h-5 w-5 text-yellow-800" />
-        <AlertTitle className="text-yellow-800">Attention</AlertTitle>
-        <AlertDescription>
-          Aucun produit n'a été trouvé dans la base de données pour le pack {selectedPack.toUpperCase()}.
-          <br />
-          Veuillez vérifier que des produits sont ajoutés dans la base de données et qu'ils correspondent à la plage de prix de ce pack.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {fetchError && (
-        <Alert className="col-span-full bg-yellow-100 text-yellow-800 border-yellow-300 mb-4">
-          <AlertTriangle className="h-5 w-5 text-yellow-800" />
-          <AlertTitle>Attention</AlertTitle>
-          <AlertDescription>{fetchError}</AlertDescription>
-        </Alert>
-      )}
-      
       {categories.map((category) => (
         <Card key={category.id} className="overflow-hidden">
           <div className="bg-gray-50 p-4 flex items-center justify-between border-b">
