@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock } from "lucide-react";
@@ -284,6 +285,7 @@ const ITakecarePack = () => {
   });
 
   const handlePackChange = (packId: string) => {
+    console.log("Changing pack to:", packId);
     setSelectedPack(packId);
     form.setValue("packTier", packId);
   };

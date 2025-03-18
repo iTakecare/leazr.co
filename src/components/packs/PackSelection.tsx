@@ -37,7 +37,7 @@ const PackSelection: React.FC<PackSelectionProps> = ({
   ];
 
   return (
-    <RadioGroup value={selectedPack} onValueChange={onSelect} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {packIds.map((packId) => {
         const pack = packs[packId];
         const hasDiscount = totalDevices >= 5 && getDiscountedMonthlyPrice;
@@ -53,7 +53,16 @@ const PackSelection: React.FC<PackSelectionProps> = ({
               <div className={`w-full h-2 ${pack.color}`}></div>
               <CardContent className="p-6">
                 <div className="flex items-start">
-                  <RadioGroupItem value={packId} id={`pack-${packId}`} className="mt-1" />
+                  <RadioGroupItem 
+                    value={packId} 
+                    id={`pack-${packId}`} 
+                    className="mt-1" 
+                    checked={selectedPack === packId}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelect(packId);
+                    }}
+                  />
                   <div className="ml-3">
                     <Label htmlFor={`pack-${packId}`} className="font-bold text-lg">
                       {pack.name}
@@ -100,7 +109,7 @@ const PackSelection: React.FC<PackSelectionProps> = ({
           </div>
         );
       })}
-    </RadioGroup>
+    </div>
   );
 };
 
