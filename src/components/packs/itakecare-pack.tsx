@@ -1,20 +1,18 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import PackComparison from "./PackComparison";
 import PackFeatureList from "./PackFeatureList";
 import PackSelection from "./PackSelection";
-import HardwareOptions from "./HardwareOptions";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/lib/utils";
+import PackCatalog from "@/components/catalog/PackCatalog";
 
 type PackTier = {
   id: string;
@@ -24,12 +22,6 @@ type PackTier = {
   monthlyPrice: number;
   features: {
     [key: string]: boolean | string | number;
-  };
-  hardwareOptions: {
-    laptop: string[];
-    desktop: string[];
-    mobile: string[];
-    tablet: string[];
   };
 };
 
@@ -106,12 +98,6 @@ const ITakecarePack = () => {
         externalBackup: false,
         incidentResponse: false,
       },
-      hardwareOptions: {
-        laptop: ["MacBook air M2 8/256", "Latitude i5 12e gen/16/256", "Lenovo V14/V15 i5 12e gen 16/256"],
-        desktop: ["Mac mini M2 8/256"],
-        mobile: ["iPhone 14"],
-        tablet: ["iPad 9e gen"],
-      },
     },
     gold: {
       id: "gold",
@@ -135,12 +121,6 @@ const ITakecarePack = () => {
         externalBackup: false,
         incidentResponse: false,
       },
-      hardwareOptions: {
-        laptop: ["Macbook Pro M3 16/512", "Inspiron i5 13e gen / 16/512", "Thinkpad i5 13e 16/512"],
-        desktop: ["Mac mini M4"],
-        mobile: ["iPhone 15 pro"],
-        tablet: ["iPad pro 11 M2"],
-      },
     },
     platinum: {
       id: "platinum",
@@ -163,12 +143,6 @@ const ITakecarePack = () => {
         passwordManager: true,
         externalBackup: true,
         incidentResponse: true,
-      },
-      hardwareOptions: {
-        laptop: ["MacBook pro 14 M3 Pro 36/512", "Dell XPS i7 16/512", "Thinkpad Carbon X1"],
-        desktop: ["Mac mini M4 pro 36/512"],
-        mobile: ["iPhone 16 pro Max"],
-        tablet: ["iPad pro 13 M4 5G"],
       },
     },
   };
@@ -314,16 +288,7 @@ const ITakecarePack = () => {
         duration: 4000,
         position: "top-center",
         className: "bg-green-50 border-green-300 text-green-800 shadow-lg",
-        icon: <Sparkles className="h-5 w-5 text-green-600" />,
       });
-    }
-  };
-
-  const handleDeviceCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const count = parseInt(e.target.value);
-    if (!isNaN(count) && count > 0) {
-      setNumberOfDevices(count);
-      form.setValue("deviceCount", e.target.value);
     }
   };
 
@@ -410,14 +375,12 @@ const ITakecarePack = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <HardwareOptions 
-                    options={currentPack.hardwareOptions}
-                    selectedPack={selectedPack} 
+                  <PackCatalog
+                    selectedPack={selectedPack}
                     selectedHardware={selectedHardware}
                     quantities={quantities}
-                    onSelect={handleSelectHardware}
+                    onSelectHardware={handleSelectHardware}
                     onQuantityChange={handleQuantityChange}
-                    previousPack={lastPackId}
                   />
                 </CardContent>
               </Card>
