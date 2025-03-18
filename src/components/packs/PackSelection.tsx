@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Check } from "lucide-react";
 
@@ -47,22 +46,27 @@ const PackSelection: React.FC<PackSelectionProps> = ({
         
         return (
           <div key={packId} onClick={() => onSelect(packId)} className="cursor-pointer">
-            <Card className={`overflow-hidden h-full border-2 transition-colors ${
-              selectedPack === packId ? "border-blue-500" : "border-gray-200 hover:border-gray-300"
+            <Card className={`overflow-hidden h-full border-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] ${
+              selectedPack === packId ? "border-black bg-[#C0C7C8]" : "border-gray-400 bg-[#C0C7C8] hover:border-gray-500"
             }`}>
-              <div className={`w-full h-2 ${pack.color}`}></div>
-              <CardContent className="p-6">
+              <div className={`w-full h-6 flex items-center justify-between bg-[#000080] text-white px-2`}>
+                <span className="text-sm font-bold">{pack.name}</span>
+                <div className="flex space-x-1">
+                  <button className="w-4 h-4 flex items-center justify-center bg-[#C0C7C8] text-black text-xs border border-black">_</button>
+                  <button className="w-4 h-4 flex items-center justify-center bg-[#C0C7C8] text-black text-xs border border-black">■</button>
+                  <button className="w-4 h-4 flex items-center justify-center bg-[#C0C7C8] text-black text-xs border border-black">✕</button>
+                </div>
+              </div>
+              <CardContent className="p-3 pt-4 bg-[#C0C7C8]">
                 <div className="flex items-start">
                   <div className="flex items-center h-5 mt-1">
-                    <input
-                      type="radio"
-                      id={`pack-${packId}`}
-                      name="pack-selection"
-                      className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                      checked={selectedPack === packId}
-                      onChange={() => onSelect(packId)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                    <div className={`w-5 h-5 border-2 border-black bg-white flex items-center justify-center ${
+                      selectedPack === packId ? "bg-white" : "bg-white"
+                    }`}>
+                      {selectedPack === packId && (
+                        <div className="w-2 h-2 bg-black"></div>
+                      )}
+                    </div>
                   </div>
                   <div className="ml-3">
                     <Label htmlFor={`pack-${packId}`} className="font-bold text-lg">
@@ -71,20 +75,24 @@ const PackSelection: React.FC<PackSelectionProps> = ({
                     
                     {hasDiscount ? (
                       <>
-                        <p className="text-2xl font-bold mt-2">{formatCurrency(discountedPrice)}</p>
-                        <p className="text-sm text-gray-500">
-                          <span className="line-through">{formatCurrency(pack.monthlyPrice)}</span> par mois / par appareil
-                        </p>
+                        <div className="bg-[#C0C7C8] border-2 border-black border-t-[#FFFFFF] border-l-[#FFFFFF] p-2 mt-2">
+                          <p className="text-2xl font-bold">{formatCurrency(discountedPrice)}</p>
+                          <p className="text-sm text-gray-700">
+                            <span className="line-through">{formatCurrency(pack.monthlyPrice)}</span> par mois / par appareil
+                          </p>
+                        </div>
                       </>
                     ) : (
                       <>
-                        <p className="text-2xl font-bold mt-2">{formatCurrency(pack.monthlyPrice)}</p>
-                        <p className="text-sm text-gray-500">par mois / par appareil</p>
+                        <div className="bg-[#C0C7C8] border-2 border-black border-t-[#FFFFFF] border-l-[#FFFFFF] p-2 mt-2">
+                          <p className="text-2xl font-bold">{formatCurrency(pack.monthlyPrice)}</p>
+                          <p className="text-sm text-gray-700">par mois / par appareil</p>
+                        </div>
                       </>
                     )}
                     
                     {totalDevices > 0 && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded-md">
+                      <div className="mt-2 p-2 bg-[#C0C7C8] border-2 border-black border-t-[#FFFFFF] border-l-[#FFFFFF]">
                         <p className="text-sm font-medium">Total pour {totalDevices} appareils:</p>
                         <p className="text-sm">{formatCurrency(totalForAllDevices)} / mois</p>
                         <p className="text-sm font-bold">
@@ -96,7 +104,9 @@ const PackSelection: React.FC<PackSelectionProps> = ({
                     <div className="mt-4 space-y-2">
                       {keyFeatures.map((feature) => (
                         <div key={feature.id} className="flex items-center">
-                          <Check className="h-4 w-4 text-green-600 mr-2" />
+                          <div className="w-4 h-4 mr-2 border border-black bg-green-600 flex items-center justify-center text-white text-xs">
+                            ✓
+                          </div>
                           <span className="text-sm">
                             {feature.label}: {pack.features[feature.id]}
                           </span>
