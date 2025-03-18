@@ -1,4 +1,3 @@
-
 // Product type definition
 export interface Product {
   id: string;
@@ -101,7 +100,10 @@ export interface ProductVariant {
   id: string;
   name: string;
   price: number;
+  monthly_price?: number;
   imageUrl?: string;
+  image_url?: string;
+  specifications?: Record<string, string | number>;
   attributes?: Record<string, string | number | boolean>;
 }
 

@@ -39,18 +39,18 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isV
   };
 
   // Determine if product has variants
-  const hasVariants = (product.variants && product.variants.length > 0) || 
-                     (product.is_parent);
+  const hasVariants = product.is_parent || 
+                     (product.variants && product.variants.length > 0);
 
   // Count available variants for the badge
   const variantsCount = product.variants?.length || 0;
 
   return (
     <Card 
-      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border-0 shadow-sm rounded-xl"
+      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl"
       onClick={onClick}
     >
-      <div className="relative aspect-video bg-gray-50 flex items-center justify-center p-4">
+      <div className="relative aspect-video bg-white flex items-center justify-center p-4">
         <img 
           src={imageUrl} 
           alt={product.name} 
@@ -75,9 +75,9 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isV
           )}
         </div>
         
-        <h3 className="font-bold text-navy-900 text-xl mb-1 line-clamp-2">{product.name}</h3>
+        <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-2">{product.name}</h3>
         
-        <div className="text-gray-700 text-base">
+        <div className="text-gray-700 text-base mt-1">
           à partir de <span className="font-bold text-indigo-700">{monthlyPrice}</span>
         </div>
         

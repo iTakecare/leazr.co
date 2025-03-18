@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -21,7 +20,6 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  // Durée fixée à 36 mois
   const duration = 36;
   
   const { data: product, isLoading, error } = useQuery({
@@ -30,15 +28,12 @@ const ProductDetailPage = () => {
     enabled: !!id,
   });
 
-  // Extract available options from product variants
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
   
   useEffect(() => {
     if (product) {
-      // Initialize available options based ONLY on product variants
       const options: Record<string, string[]> = {};
       
-      // If product has explicit variants
       if (product.variants && product.variants.length > 0) {
         product.variants.forEach(variant => {
           if (variant.attributes) {
@@ -53,7 +48,6 @@ const ProductDetailPage = () => {
           }
         });
       } 
-      // If product has variation attributes based on being a variation itself
       else if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
         Object.entries(product.variation_attributes).forEach(([key, value]) => {
           if (typeof value === 'string') {
@@ -64,7 +58,6 @@ const ProductDetailPage = () => {
       
       setAvailableOptions(options);
       
-      // Set default selected options
       const defaultOptions: Record<string, string> = {};
       Object.entries(options).forEach(([key, values]) => {
         if (values.length > 0) {
@@ -134,23 +127,19 @@ const ProductDetailPage = () => {
     );
   }
 
-  // Calculer le prix mensuel en fonction des options et de la quantité
   const calculatePrice = () => {
     let basePrice = product.monthly_price || 0;
     
-    // Pour les produits avec variants, chercher le prix de la variante correspondante
     if (product.variants && product.variants.length > 0) {
       const selectedVariant = product.variants.find(variant => {
         if (!variant.attributes) return false;
         
-        // Vérifier si tous les attributs sélectionnés correspondent à cette variante
         return Object.entries(selectedOptions).every(([key, value]) => 
           variant.attributes && variant.attributes[key] === value
         );
       });
       
       if (selectedVariant) {
-        // Use variant's monthly_price if available, otherwise use parent's monthly_price
         const variantPrice = selectedVariant.monthly_price !== undefined 
           ? selectedVariant.monthly_price 
           : basePrice;
@@ -164,16 +153,15 @@ const ProductDetailPage = () => {
     return basePrice * quantity;
   };
 
-  // Render compact options section - only showing real options from variants
   const renderOptions = () => {
     if (Object.keys(availableOptions).length === 0) {
       return null;
     }
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {Object.entries(availableOptions).map(([option, values]) => (
-          <div key={option} className="space-y-1">
+          <div key={option} className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 capitalize">
               {option}
             </label>
@@ -184,7 +172,7 @@ const ProductDetailPage = () => {
                   type="button"
                   size="sm"
                   variant={selectedOptions[option] === value ? "default" : "outline"}
-                  className="text-xs"
+                  className={selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
                   onClick={() => handleOptionChange(option, value)}
                 >
                   {value}
@@ -197,7 +185,6 @@ const ProductDetailPage = () => {
     );
   };
 
-  // Obtenir les specifications de la variante sélectionnée
   const getSelectedVariantSpecifications = () => {
     if (!product.variants || product.variants.length === 0) {
       return product.specifications || {};
@@ -214,12 +201,28 @@ const ProductDetailPage = () => {
     return selectedVariant?.specifications || product.specifications || {};
   };
 
+  const getSelectedVariantImage = () => {
+    if (!product.variants || product.variants.length === 0) {
+      return product.image_url || product.imageUrl || "/placeholder.svg";
+    }
+
+    const selectedVariant = product.variants.find(variant => {
+      if (!variant.attributes) return false;
+      
+      return Object.entries(selectedOptions).every(([key, value]) => 
+        variant.attributes && variant.attributes[key] === value
+      );
+    });
+
+    return selectedVariant?.image_url || selectedVariant?.imageUrl || 
+           product.image_url || product.imageUrl || "/placeholder.svg";
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <PublicHeader />
       
       <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
         <div className="flex items-center space-x-2 mb-6">
           <Button variant="ghost" size="sm" onClick={handleBackToCatalog} className="flex items-center">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -228,10 +231,9 @@ const ProductDetailPage = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Image */}
           <div className="bg-white rounded-lg shadow p-6 flex items-center justify-center">
             <img 
-              src={product.image_url || product.imageUrl || "/placeholder.svg"} 
+              src={getSelectedVariantImage()} 
               alt={product.name}
               className="max-w-full max-h-96 object-contain"
               onError={(e) => {
@@ -240,7 +242,6 @@ const ProductDetailPage = () => {
             />
           </div>
           
-          {/* Product Details */}
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">
@@ -271,38 +272,34 @@ const ProductDetailPage = () => {
             
             <Separator className="my-4" />
             
-            {/* Configuration Options - Compact version with only real variants */}
-            <div className="mb-4">
-              <h3 className="text-lg font-medium mb-3">Configuration</h3>
+            <div className="mb-6">
+              <h3 className="text-xl font-medium mb-4">Configuration</h3>
               
-              <div className="bg-gray-50 p-4 rounded-lg border space-y-4">
-                {/* Only show options section if we have options */}
+              <div className="bg-gray-50 p-6 rounded-lg border space-y-6">
                 {Object.keys(availableOptions).length > 0 && (
-                  <>
-                    <h4 className="font-medium text-sm text-gray-700">Sélectionnez votre configuration idéale</h4>
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-indigo-800">Sélectionnez votre configuration</h4>
                     {renderOptions()}
-                    <Separator className="my-2" />
-                  </>
+                  </div>
                 )}
                 
-                {/* Quantity selector - Compact version */}
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Quantité
-                  </label>
-                  <div className="flex items-center">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-indigo-800">Quantité</h4>
+                  <div className="flex items-center border rounded-md w-fit">
                     <Button 
-                      variant="outline" 
-                      size="icon"
+                      variant="ghost" 
+                      size="sm"
+                      className="rounded-r-none h-10"
                       onClick={() => handleQuantityChange(quantity - 1)}
                       disabled={quantity <= 1}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
-                    <span className="mx-4 font-medium">{quantity}</span>
+                    <div className="px-4 py-2 font-medium border-x">{quantity}</div>
                     <Button 
-                      variant="outline" 
-                      size="icon"
+                      variant="ghost" 
+                      size="sm"
+                      className="rounded-l-none h-10"
                       onClick={() => handleQuantityChange(quantity + 1)}
                     >
                       <Plus className="h-4 w-4" />
@@ -312,11 +309,10 @@ const ProductDetailPage = () => {
               </div>
             </div>
             
-            {/* Price and CTA */}
-            <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mb-4">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-gray-700">Total mensuel</span>
-                <span className="text-2xl font-bold text-indigo-700">{formatCurrency(calculatePrice())} HT / mois</span>
+            <div className="bg-indigo-50 p-6 rounded-lg border border-indigo-100 mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-gray-700 font-medium">Total mensuel (HT)</span>
+                <span className="text-2xl font-bold text-indigo-700">{formatCurrency(calculatePrice())} / mois</span>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3">
@@ -335,36 +331,35 @@ const ProductDetailPage = () => {
                 </Button>
               </div>
               
-              <div className="mt-3 text-xs text-gray-500 grid grid-cols-2 gap-1">
+              <div className="mt-4 text-sm text-gray-600 grid grid-cols-2 gap-y-2">
                 <div className="flex items-center">
-                  <Check className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                  <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                   <span>Livraison gratuite</span>
                 </div>
                 <div className="flex items-center">
-                  <Check className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                  <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                   <span>Pas de premier loyer majoré</span>
                 </div>
                 <div className="flex items-center">
-                  <Check className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                  <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                   <span>Garantie étendue incluse</span>
                 </div>
                 <div className="flex items-center">
-                  <Check className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                  <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                   <span>Support technique</span>
                 </div>
               </div>
             </div>
             
-            {/* Specifications - Compact Grid */}
             {Object.keys(getSelectedVariantSpecifications()).length > 0 && (
-              <div className="mb-4">
-                <h3 className="text-lg font-medium mb-2">Caractéristiques</h3>
+              <div className="mb-6">
+                <h3 className="text-xl font-medium mb-3">Caractéristiques</h3>
                 <div className="bg-white rounded-lg border overflow-hidden">
-                  <div className="grid grid-cols-2 gap-1 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-px text-sm">
                     {Object.entries(getSelectedVariantSpecifications()).map(([key, value], index) => (
-                      <div key={key} className={`p-2 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
+                      <div key={key} className={`p-3 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
                         <span className="font-medium capitalize mr-1">{key}:</span>
-                        <span className="text-gray-700">{value}</span>
+                        <span className="text-gray-700">{String(value)}</span>
                       </div>
                     ))}
                   </div>
@@ -374,10 +369,8 @@ const ProductDetailPage = () => {
           </div>
         </div>
         
-        {/* Similar products section - More compact */}
         <div className="mt-8">
           <h2 className="text-xl font-bold mb-4">Produits similaires</h2>
-          {/* Just show placeholder for now */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((index) => (
               <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
@@ -398,7 +391,6 @@ const ProductDetailPage = () => {
         </div>
       </div>
       
-      {/* Product Request Form Modal */}
       <ProductRequestForm 
         isOpen={isRequestFormOpen}
         onClose={() => setIsRequestFormOpen(false)}
