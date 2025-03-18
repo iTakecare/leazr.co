@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
@@ -28,6 +27,8 @@ const PublicCatalog = () => {
 
   // Group products by parent/child relationship to avoid showing variants as separate products
   const groupedProducts = React.useMemo(() => {
+    console.log("Grouping products:", products.length);
+    
     // First pass: collect all parent products and standalone products
     const parentProducts = products.filter(p => 
       !p.parent_id && !p.is_variation
@@ -49,13 +50,13 @@ const PublicCatalog = () => {
     parentProducts.forEach(parent => {
       if (parent.id) {
         const variants = variantMap.get(parent.id) || [];
-        // Ensure we're setting an array of Product objects, not ProductVariant objects
         parent.variants = variants;
         // Mark parent if it has variants
         parent.is_parent = variants.length > 0;
       }
     });
     
+    console.log("Grouped products:", parentProducts.length);
     return parentProducts;
   }, [products]);
 

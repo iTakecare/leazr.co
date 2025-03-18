@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import PublicHeader from "@/components/catalog/public/PublicHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { toast } from "sonner";
-import { Product, ProductVariant } from "@/types/catalog";
+import { Product } from "@/types/catalog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,7 +21,7 @@ const ProductDetailPage = () => {
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const duration = 36;
-  
+
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
     queryFn: () => getProductById(id || ""),
@@ -29,20 +29,28 @@ const ProductDetailPage = () => {
   });
 
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
-  
+  const [currentImage, setCurrentImage] = useState<string>("");
+
   useEffect(() => {
     if (product) {
+      console.log("Product loaded:", product);
+      
+      setCurrentImage(product.image_url || product.imageUrl || "/placeholder.svg");
+      
       const options: Record<string, string[]> = {};
       
       if (product.variants && product.variants.length > 0) {
+        console.log("Product has variants:", product.variants);
+        
         product.variants.forEach(variant => {
           if (variant.attributes) {
             Object.entries(variant.attributes).forEach(([key, value]) => {
               if (!options[key]) {
                 options[key] = [];
               }
-              if (typeof value === 'string' && !options[key].includes(value)) {
-                options[key].push(value);
+              const stringValue = String(value);
+              if (!options[key].includes(stringValue)) {
+                options[key].push(stringValue);
               }
             });
           }
@@ -50,12 +58,11 @@ const ProductDetailPage = () => {
       } 
       else if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
         Object.entries(product.variation_attributes).forEach(([key, value]) => {
-          if (typeof value === 'string') {
-            options[key] = [value];
-          }
+          options[key] = [String(value)];
         });
       }
       
+      console.log("Extracted options:", options);
       setAvailableOptions(options);
       
       const defaultOptions: Record<string, string> = {};
@@ -64,9 +71,19 @@ const ProductDetailPage = () => {
           defaultOptions[key] = values[0];
         }
       });
+      console.log("Setting default options:", defaultOptions);
       setSelectedOptions(defaultOptions);
     }
   }, [product]);
+
+  useEffect(() => {
+    if (product && Object.keys(selectedOptions).length > 0) {
+      const selectedVariant = findSelectedVariant();
+      if (selectedVariant) {
+        setCurrentImage(selectedVariant.image_url || selectedVariant.imageUrl || product.image_url || product.imageUrl || "/placeholder.svg");
+      }
+    }
+  }, [selectedOptions]);
 
   const handleBackToCatalog = () => {
     navigate("/catalogue");
@@ -83,10 +100,73 @@ const ProductDetailPage = () => {
   };
 
   const handleOptionChange = (optionName: string, value: string) => {
+    console.log(`Option changed: ${optionName} = ${value}`);
     setSelectedOptions({
       ...selectedOptions,
       [optionName]: value
     });
+  };
+
+  const findSelectedVariant = () => {
+    if (!product || !product.variants || product.variants.length === 0) {
+      return null;
+    }
+    
+    return product.variants.find(variant => {
+      if (!variant.attributes) return false;
+      
+      return Object.entries(selectedOptions).every(([key, value]) => 
+        variant.attributes && String(variant.attributes[key]) === value
+      );
+    });
+  };
+
+  const calculatePrice = () => {
+    let basePrice = product?.monthly_price || 0;
+    
+    const selectedVariant = findSelectedVariant();
+    if (selectedVariant && selectedVariant.monthly_price !== undefined) {
+      basePrice = selectedVariant.monthly_price;
+    }
+    
+    return basePrice * quantity;
+  };
+
+  const renderOptions = () => {
+    if (Object.keys(availableOptions).length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-4">
+        {Object.entries(availableOptions).map(([option, values]) => (
+          <div key={option} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 capitalize">
+              {option}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {values.map((value) => (
+                <Button
+                  key={value}
+                  type="button"
+                  size="sm"
+                  variant={selectedOptions[option] === value ? "default" : "outline"}
+                  className={selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                  onClick={() => handleOptionChange(option, value)}
+                >
+                  {value}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const getSelectedVariantSpecifications = () => {
+    const selectedVariant = findSelectedVariant();
+    return selectedVariant?.specifications || product?.specifications || {};
   };
 
   if (isLoading) {
@@ -127,97 +207,6 @@ const ProductDetailPage = () => {
     );
   }
 
-  const calculatePrice = () => {
-    let basePrice = product.monthly_price || 0;
-    
-    if (product.variants && product.variants.length > 0) {
-      const selectedVariant = product.variants.find(variant => {
-        if (!variant.attributes) return false;
-        
-        return Object.entries(selectedOptions).every(([key, value]) => 
-          variant.attributes && variant.attributes[key] === value
-        );
-      });
-      
-      if (selectedVariant) {
-        const variantPrice = selectedVariant.monthly_price !== undefined 
-          ? selectedVariant.monthly_price 
-          : basePrice;
-          
-        if (typeof variantPrice === 'number') {
-          basePrice = variantPrice;
-        }
-      }
-    }
-    
-    return basePrice * quantity;
-  };
-
-  const renderOptions = () => {
-    if (Object.keys(availableOptions).length === 0) {
-      return null;
-    }
-
-    return (
-      <div className="space-y-4">
-        {Object.entries(availableOptions).map(([option, values]) => (
-          <div key={option} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 capitalize">
-              {option}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {values.map((value) => (
-                <Button
-                  key={value}
-                  type="button"
-                  size="sm"
-                  variant={selectedOptions[option] === value ? "default" : "outline"}
-                  className={selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
-                  onClick={() => handleOptionChange(option, value)}
-                >
-                  {value}
-                </Button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const getSelectedVariantSpecifications = () => {
-    if (!product.variants || product.variants.length === 0) {
-      return product.specifications || {};
-    }
-
-    const selectedVariant = product.variants.find(variant => {
-      if (!variant.attributes) return false;
-      
-      return Object.entries(selectedOptions).every(([key, value]) => 
-        variant.attributes && variant.attributes[key] === value
-      );
-    });
-
-    return selectedVariant?.specifications || product.specifications || {};
-  };
-
-  const getSelectedVariantImage = () => {
-    if (!product.variants || product.variants.length === 0) {
-      return product.image_url || product.imageUrl || "/placeholder.svg";
-    }
-
-    const selectedVariant = product.variants.find(variant => {
-      if (!variant.attributes) return false;
-      
-      return Object.entries(selectedOptions).every(([key, value]) => 
-        variant.attributes && variant.attributes[key] === value
-      );
-    });
-
-    return selectedVariant?.image_url || selectedVariant?.imageUrl || 
-           product.image_url || product.imageUrl || "/placeholder.svg";
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <PublicHeader />
@@ -233,7 +222,7 @@ const ProductDetailPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white rounded-lg shadow p-6 flex items-center justify-center">
             <img 
-              src={getSelectedVariantImage()} 
+              src={currentImage} 
               alt={product.name}
               className="max-w-full max-h-96 object-contain"
               onError={(e) => {
@@ -276,11 +265,13 @@ const ProductDetailPage = () => {
               <h3 className="text-xl font-medium mb-4">Configuration</h3>
               
               <div className="bg-gray-50 p-6 rounded-lg border space-y-6">
-                {Object.keys(availableOptions).length > 0 && (
+                {Object.keys(availableOptions).length > 0 ? (
                   <div className="space-y-4">
                     <h4 className="font-medium text-indigo-800">Sélectionnez votre configuration</h4>
                     {renderOptions()}
                   </div>
+                ) : (
+                  <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
                 )}
                 
                 <div className="space-y-2">

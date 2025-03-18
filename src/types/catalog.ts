@@ -1,3 +1,4 @@
+
 // Product type definition
 export interface Product {
   id: string;
@@ -85,7 +86,7 @@ export interface Product {
   is_parent?: boolean;
   is_variation?: boolean;
   parent_id?: string;
-  variants?: ProductVariant[];
+  variants?: Product[]; // Changed from ProductVariant[] to Product[]
   variation_attributes?: Record<string, string | number | boolean>;
   
   // Alternative property names used in Supabase
@@ -93,9 +94,13 @@ export interface Product {
   image_urls?: string[]; // Additional images
   imageUrls?: string[]; // Alternative property name
   image_alts?: string[]; // Alt text for additional images
+  
+  // For variant support
+  attributes?: Record<string, string | number | boolean>;
+  model?: string;
 }
 
-// Product variant definition
+// Product variant definition - simplified as we're using Product objects for variants
 export interface ProductVariant {
   id: string;
   name: string;
