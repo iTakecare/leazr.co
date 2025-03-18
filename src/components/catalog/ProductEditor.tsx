@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -19,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Available product categories with French translations
 const productCategories = [
   "laptop",
   "desktop",
@@ -35,7 +33,6 @@ const productCategories = [
   "other"
 ];
 
-// Map for translating category names to French
 const categoryTranslations: Record<string, string> = {
   "laptop": "Ordinateur portable",
   "desktop": "Ordinateur de bureau",
@@ -51,7 +48,6 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
-// Popular brand options
 const popularBrands = [
   "Apple",
   "Samsung",
@@ -110,7 +106,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       
-      // Upload images if any were selected
       if (imageFiles.length > 0 && data.id) {
         uploadImages(data.id);
       } else {
@@ -126,12 +121,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 
   const uploadImages = async (productId: string) => {
     try {
-      // Upload main image first
       if (imageFiles.length > 0) {
         await uploadProductImage(imageFiles[0], productId, true);
       }
       
-      // Upload additional images
       for (let i = 1; i < imageFiles.length && i < 5; i++) {
         await uploadProductImage(imageFiles[i], productId, false);
       }
@@ -169,9 +162,9 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       monthly_price: monthlyPrice ? parseFloat(monthlyPrice) : undefined,
       description,
       brand: brand || "",
-      // Utiliser imageUrl pour la compatibilité avec le type Product, mais sera converti en image_url dans le service
       imageUrl: "",
-      specifications: {}
+      specifications: {},
+      active: true
     });
   };
 
@@ -179,20 +172,16 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     const files = e.target.files;
     if (!files) return;
 
-    // Limit to 5 images total
     const newFiles = Array.from(files).slice(0, 5 - imageFiles.length);
     if (newFiles.length === 0) return;
     
-    // Add new files to existing files (up to 5 total)
     const updatedFiles = [...imageFiles, ...newFiles].slice(0, 5);
     setImageFiles(updatedFiles);
 
-    // Create previews for the new files
     newFiles.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreviews(prev => {
-          // Ensure we don't exceed 5 previews
           const updated = [...prev, reader.result as string].slice(0, 5);
           return updated;
         });
