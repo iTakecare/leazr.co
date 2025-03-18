@@ -68,6 +68,9 @@ const PackCatalog: React.FC<PackCatalogProps> = ({
         console.log(`Fetching products for ${selectedPack} pack...`);
         
         const supabase = getSupabaseClient();
+        
+        // Utiliser une requête qui ne nécessite pas d'authentification
+        // Nous utilisons la clé anonyme par défaut qui permet les lectures publiques
         const { data, error } = await supabase
           .from('products')
           .select('*')

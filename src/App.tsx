@@ -33,6 +33,7 @@ import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
 import PackSelectionPage from "./pages/PackSelectionPage";
 import PublicCatalogPage from "./pages/PublicCatalogPage";
+import ClientITakecarePage from "./pages/ClientITakecarePage";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -225,6 +226,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/pack-selection" element={<PackSelectionPage />} />
             <Route path="/catalog" element={<PublicCatalogPage />} />
+            <Route path="/itakecare" element={<ClientITakecarePage />} />
             
             <Route path="/" element={
               <ProtectedRoute requireAdmin={true}>
