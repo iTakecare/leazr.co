@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ import PackComparison from "./PackComparison";
 import PackFeatureList from "./PackFeatureList";
 import PackSelection from "./PackSelection";
 import HardwareOptions from "./HardwareOptions";
+import { supabase } from "@/integrations/supabase/client";
+import { Product } from "@/types/catalog";
 
 type PackTier = {
   id: string;
@@ -40,6 +43,29 @@ const ITakecarePack = () => {
     desktop: string | null;
     mobile: string | null;
     tablet: string | null;
+  }>({
+    laptop: null,
+    desktop: null,
+    mobile: null,
+    tablet: null,
+  });
+  const [quantities, setQuantities] = useState<{
+    laptop: number;
+    desktop: number;
+    mobile: number;
+    tablet: number;
+  }>({
+    laptop: 0,
+    desktop: 0,
+    mobile: 0,
+    tablet: 0,
+  });
+  
+  const [selectedProducts, setSelectedProducts] = useState<{
+    laptop: Product | null;
+    desktop: Product | null;
+    mobile: Product | null;
+    tablet: Product | null;
   }>({
     laptop: null,
     desktop: null,
@@ -145,11 +171,48 @@ const ITakecarePack = () => {
     },
   };
 
+  // Fetch product details when a product is selected
+  useEffect(() => {
+    const fetchSelectedProducts = async () => {
+      const categories = ['laptop', 'desktop', 'mobile', 'tablet'] as const;
+      
+      for (const category of categories) {
+        const productId = selectedHardware[category];
+        if (productId) {
+          try {
+            const { data, error } = await supabase
+              .from('products')
+              .select('*')
+              .eq('id', productId)
+              .single();
+              
+            if (error) {
+              console.error(`Error fetching ${category} product:`, error);
+            } else if (data) {
+              setSelectedProducts(prev => ({
+                ...prev,
+                [category]: data
+              }));
+            }
+          } catch (error) {
+            console.error(`Error in ${category} product fetch:`, error);
+          }
+        }
+      }
+    };
+    
+    fetchSelectedProducts();
+  }, [selectedHardware]);
+
   const deviceDiscounts = {
     "2-5": { percent: 0, label: "2-5 devices" },
     "5-10": { percent: 5, label: "5 à 10" },
     "10+": { percent: 10, label: "plus de 10" },
     "20+": { percent: 20, label: "> 10" },
+  };
+
+  const calculateTotalDevices = () => {
+    return quantities.laptop + quantities.desktop + quantities.mobile + quantities.tablet;
   };
 
   const calculatePrice = (basePack: PackTier, devices: number, duration: number) => {
@@ -162,23 +225,60 @@ const ITakecarePack = () => {
       discount = deviceDiscounts["5-10"].percent;
     }
 
+    // Calculate base pack price
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
-    const totalPrice = basePack.price * (1 - discount / 100);
+    const baseTotal = basePack.price * (1 - discount / 100);
+    
+    // Calculate hardware costs
+    let hardwareMonthly = 0;
+    
+    // Add monthly costs for selected products
+    Object.entries(selectedProducts).forEach(([category, product]) => {
+      if (product && product.monthly_price) {
+        const qty = quantities[category as keyof typeof quantities];
+        hardwareMonthly += product.monthly_price * qty;
+      }
+    });
 
     return {
-      monthly: discountedMonthly,
-      total: totalPrice,
+      monthly: discountedMonthly + hardwareMonthly,
+      base: baseTotal,
+      hardware: hardwareMonthly * duration,
+      total: baseTotal + (hardwareMonthly * duration),
       discount: discount,
     };
   };
 
   const currentPack = packs[selectedPack];
-  const pricing = calculatePrice(currentPack, numberOfDevices, contractDuration);
+  const totalDevices = calculateTotalDevices();
+  const pricing = calculatePrice(currentPack, totalDevices, contractDuration);
 
   const handleSubmit = form.handleSubmit((data) => {
     console.log("Pack selected:", data);
     console.log("Selected hardware:", selectedHardware);
-    toast.success("Pack iTakecare configuré avec succès");
+    console.log("Hardware quantities:", quantities);
+    
+    // Verify quantities match selections
+    const categories = ['laptop', 'desktop', 'mobile', 'tablet'] as const;
+    let isValid = true;
+    
+    for (const category of categories) {
+      if (quantities[category] > 0 && !selectedHardware[category]) {
+        toast.error(`Veuillez sélectionner un modèle de ${category}`);
+        isValid = false;
+        break;
+      }
+      
+      if (selectedHardware[category] && quantities[category] === 0) {
+        toast.error(`Veuillez définir une quantité pour ${category}`);
+        isValid = false;
+        break;
+      }
+    }
+    
+    if (isValid) {
+      toast.success("Pack iTakecare configuré avec succès");
+    }
   });
 
   const handlePackChange = (packId: string) => {
@@ -200,10 +300,35 @@ const ITakecarePack = () => {
   };
 
   const handleSelectHardware = (category: string, option: string) => {
-    setSelectedHardware((prev) => ({
+    // Only set selected hardware if quantity is greater than 0
+    if (quantities[category as keyof typeof quantities] > 0) {
+      setSelectedHardware((prev) => ({
+        ...prev,
+        [category]: option,
+      }));
+    } else {
+      toast.error(`Veuillez d'abord définir une quantité pour ${category}`);
+    }
+  };
+  
+  const handleQuantityChange = (category: string, quantity: number) => {
+    setQuantities((prev) => ({
       ...prev,
-      [category]: option,
+      [category]: quantity,
     }));
+    
+    // If quantity is set to 0, also clear the selection
+    if (quantity === 0) {
+      setSelectedHardware((prev) => ({
+        ...prev,
+        [category]: null,
+      }));
+      
+      setSelectedProducts((prev) => ({
+        ...prev,
+        [category]: null,
+      }));
+    }
   };
 
   return (
@@ -238,28 +363,7 @@ const ITakecarePack = () => {
 
                   <div className="grid gap-6 mt-8">
                     <div>
-                      <Label htmlFor="deviceCount">Nombre d'appareils</Label>
-                      <div className="flex items-center mt-2">
-                        <Input
-                          id="deviceCount"
-                          type="number"
-                          className="w-24"
-                          value={numberOfDevices}
-                          onChange={handleDeviceCountChange}
-                          min={1}
-                        />
-                        <div className="ml-4 text-sm text-muted-foreground">
-                          {numberOfDevices > 10
-                            ? `Remise de ${deviceDiscounts["20+"].percent}% pour plus de 10 appareils`
-                            : numberOfDevices > 5
-                            ? `Remise de ${deviceDiscounts["5-10"].percent}% pour 5-10 appareils`
-                            : "Pas de remise pour moins de 5 appareils"}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Durée du contrat</Label>
+                      <Label htmlFor="contractDuration">Durée du contrat</Label>
                       <RadioGroup
                         className="flex space-x-4 mt-2"
                         value={contractDuration.toString()}
@@ -283,7 +387,9 @@ const ITakecarePack = () => {
                   <HardwareOptions 
                     options={currentPack.hardwareOptions} 
                     selectedHardware={selectedHardware}
-                    onSelect={handleSelectHardware} 
+                    quantities={quantities}
+                    onSelect={handleSelectHardware}
+                    onQuantityChange={handleQuantityChange}
                   />
                 </CardContent>
               </Card>
@@ -297,22 +403,59 @@ const ITakecarePack = () => {
                     <div className="flex-1">
                       <h3 className="text-lg font-medium mb-4">Caractéristiques incluses</h3>
                       <PackFeatureList pack={currentPack} />
+                      
+                      {totalDevices > 0 && (
+                        <div className="mt-6">
+                          <h3 className="text-lg font-medium mb-4">Équipement sélectionné</h3>
+                          <div className="space-y-2">
+                            {Object.entries(quantities).map(([category, qty]) => {
+                              if (qty > 0) {
+                                const product = selectedProducts[category as keyof typeof selectedProducts];
+                                return (
+                                  <div key={category} className="flex justify-between">
+                                    <span className="font-medium">
+                                      {qty}x {product ? product.name : "Produit sélectionné"}
+                                    </span>
+                                    <span>
+                                      {product && product.monthly_price ? 
+                                        `${(product.monthly_price * qty).toFixed(2)}€/mois` : 
+                                        "Prix indisponible"}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="w-full md:w-72 bg-gray-50 p-6 rounded-lg border">
                       <div className="text-center">
                         <h3 className="font-bold text-xl mb-1">{currentPack.name}</h3>
                         <div className={`w-full h-2 ${currentPack.color} mb-4 rounded`}></div>
-                        <div className="text-3xl font-bold">{pricing.monthly}€</div>
-                        <div className="text-sm text-muted-foreground mb-4">par mois / par appareil</div>
+                        <div className="text-3xl font-bold">{pricing.monthly.toFixed(2)}€</div>
+                        <div className="text-sm text-muted-foreground mb-4">par mois</div>
                         {pricing.discount > 0 && (
                           <div className="bg-green-100 text-green-800 text-sm p-1 rounded mb-4">
                             Remise volume: {pricing.discount}%
                           </div>
                         )}
-                        <div className="text-sm text-gray-500 mb-6">
-                          Total sur {contractDuration} mois: {pricing.total}€
+                        <div className="border-t pt-4 mt-4">
+                          <div className="flex justify-between mb-1 text-sm">
+                            <span>Pack de base</span>
+                            <span>{pricing.base.toFixed(2)}€</span>
+                          </div>
+                          <div className="flex justify-between mb-4 text-sm">
+                            <span>Équipement ({contractDuration} mois)</span>
+                            <span>{pricing.hardware.toFixed(2)}€</span>
+                          </div>
+                          <div className="flex justify-between font-medium">
+                            <span>Total sur {contractDuration} mois</span>
+                            <span>{pricing.total.toFixed(2)}€</span>
+                          </div>
                         </div>
-                        <Button type="submit" className="w-full">
+                        <Button type="submit" className="w-full mt-6">
                           Commander
                         </Button>
                       </div>
