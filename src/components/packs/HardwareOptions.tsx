@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -59,7 +58,6 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   const [previousProducts, setPreviousProducts] = useState<{[key: string]: boolean}>({});
   const [lastPackId, setLastPackId] = useState<string | null>(null);
 
-  // Define price ranges for each pack tier
   const packPriceRanges = {
     silver: { min: 0, max: 650 },
     gold: { min: 0, max: 1500 },
@@ -81,22 +79,18 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         }
         
         if (data) {
-          // Get the price range for the selected pack
           const priceRange = packPriceRanges[selectedPack as keyof typeof packPriceRanges];
           
-          // Filter products based on their price within the pack's price range
           const filteredData = data.filter(product => {
             const productPrice = product.price || 0;
             return productPrice >= priceRange.min && productPrice <= priceRange.max;
           });
 
-          // Store the current product IDs to compare with previous state
           const currentProductIds: {[key: string]: boolean} = {};
           filteredData.forEach(product => {
             currentProductIds[product.id] = true;
           });
           
-          // Create a map of new products that weren't available before
           const newProducts: {[key: string]: boolean} = {};
           if (lastPackId && lastPackId !== selectedPack) {
             filteredData.forEach(product => {
@@ -105,7 +99,6 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
               }
             });
             
-            // Only show toast if there are new products
             if (Object.keys(newProducts).length > 0) {
               toast.success(`Nouveau matériel disponible pour la formule ${selectedPack.toUpperCase()} !`, {
                 duration: 3000,
@@ -122,14 +115,12 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
           
           setProducts(categorizedProducts);
           
-          // Initialize product quantities with zeros
           const initialQuantities: {[key: string]: number} = {};
           filteredData.forEach(product => {
             initialQuantities[product.id] = productQuantities[product.id] || 0;
           });
           setProductQuantities(initialQuantities);
           
-          // Update tracking of previous products and pack
           setPreviousProducts(currentProductIds);
           setLastPackId(selectedPack);
         }
@@ -143,7 +134,6 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     fetchProducts();
   }, [selectedPack]);
 
-  // Calculate the total quantity for a category
   const getCategoryTotalQuantity = (category: string): number => {
     return Object.entries(productQuantities).reduce((total, [productId, quantity]) => {
       const product = products[category as keyof typeof products].find(p => p.id === productId);
@@ -154,7 +144,6 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     }, 0);
   };
 
-  // Update the parent component when individual product quantities change
   useEffect(() => {
     const categoryTotals = {
       laptop: getCategoryTotalQuantity('laptop'),
@@ -163,19 +152,16 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
       tablet: getCategoryTotalQuantity('tablet')
     };
     
-    // For each category, update the parent component
     Object.entries(categoryTotals).forEach(([category, total]) => {
       if (total !== quantities[category as keyof typeof quantities]) {
         onQuantityChange(category, total);
       }
     });
 
-    // For each category with products, check if a product is selected
     Object.entries(products).forEach(([category, categoryProducts]) => {
       if (categoryProducts.length > 0) {
         const selectedProductId = selectedHardware[category as keyof typeof selectedHardware];
         
-        // Find a product with quantity > 0 if none is selected
         if (!selectedProductId) {
           const productWithQuantity = categoryProducts.find(p => 
             productQuantities[p.id] > 0
@@ -184,9 +170,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
           if (productWithQuantity) {
             onSelect(category, productWithQuantity.id);
           }
-        }
-        // If selected product has zero quantity, select another with quantity
-        else if (productQuantities[selectedProductId] === 0) {
+        } else if (productQuantities[selectedProductId] === 0) {
           const productWithQuantity = categoryProducts.find(p => 
             productQuantities[p.id] > 0
           );
@@ -199,9 +183,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     });
   }, [productQuantities, products, onQuantityChange, onSelect, quantities, selectedHardware]);
 
-  // Check if a product is newly available in this pack
   const isNewProduct = (productId: string): boolean => {
-    // Only mark products as new if we've changed packs and this product wasn't available before
     return lastPackId !== null && lastPackId !== selectedPack && !previousProducts[productId];
   };
 
@@ -284,8 +266,10 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                     return (
                       <div 
                         key={product.id} 
-                        className={`flex items-center justify-between border-b pb-3 last:border-0 last:pb-0 transition-all ${
-                          isNew ? 'bg-[#F2FCE2] rounded-md p-2 border border-green-200' : ''
+                        className={`flex items-center justify-between pb-3 last:border-0 last:pb-0 transition-all ${
+                          isNew 
+                            ? 'bg-[#F2FCE2] rounded-md p-3 border-2 border-green-300 shadow-md mb-2' 
+                            : 'border-b'
                         }`}
                       >
                         <div className="flex items-start space-x-2">
@@ -299,19 +283,21 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                               htmlFor={`${category.id}-${product.id}`} 
                               className={`text-sm leading-snug cursor-pointer flex items-center ${
                                 productQuantities[product.id] === 0 ? 'text-gray-400' : ''
-                              }`}
+                              } ${isNew ? 'font-semibold' : ''}`}
                             >
                               {product.name}
                               {isNew && (
-                                <Sparkles className="h-4 w-4 text-green-500 ml-1 inline-block animate-pulse" />
+                                <Sparkles className="h-5 w-5 text-green-600 ml-1 inline-block animate-pulse" />
                               )}
                             </Label>
                             {isNew && (
-                              <p className="text-xs text-green-600 font-medium">Nouveau matériel disponible</p>
+                              <p className="text-xs text-green-700 font-bold mt-1 bg-green-100 px-2 py-0.5 rounded-full inline-block">
+                                Nouveau matériel disponible
+                              </p>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 ml-2">
                           <Button 
                             variant="outline" 
                             size="icon" 

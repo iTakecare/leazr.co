@@ -286,9 +286,19 @@ const ITakecarePack = () => {
 
   const handlePackChange = (packId: string) => {
     console.log("Changing pack to:", packId);
-    setPreviousPack(selectedPack); // Store the previous pack before updating
-    setSelectedPack(packId);
-    form.setValue("packTier", packId);
+    
+    if (selectedPack !== packId) {
+      setPreviousPack(selectedPack); // Store the previous pack before updating
+      setSelectedPack(packId);
+      form.setValue("packTier", packId);
+      
+      toast.success(`Nouveau matériel disponible pour la formule ${packId.toUpperCase()} !`, {
+        duration: 4000,
+        position: "top-center",
+        className: "bg-green-50 border-green-300 text-green-800 shadow-lg",
+        icon: <Sparkles className="h-5 w-5 text-green-600" />,
+      });
+    }
   };
 
   const handleDeviceCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -377,6 +387,20 @@ const ITakecarePack = () => {
                     contractDuration={contractDuration}
                   />
 
+                  {lastPackId && lastPackId !== selectedPack && (
+                    <div className="mt-6 bg-[#F2FCE2] p-4 rounded-lg border-2 border-green-300 shadow-md">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-green-600" />
+                        <p className="font-semibold text-green-800">
+                          Nouveau matériel disponible pour la formule {selectedPack.toUpperCase()} !
+                        </p>
+                      </div>
+                      <p className="text-sm text-green-700 mt-1">
+                        Consultez la section "Sélectionnez votre matériel" ci-dessous pour découvrir les nouveaux équipements disponibles.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid gap-6 mt-8">
                     <div>
                       <Label htmlFor="contractDuration">Durée du contrat</Label>
@@ -397,7 +421,15 @@ const ITakecarePack = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl">2. Sélectionnez votre matériel</CardTitle>
+                  <CardTitle className="text-xl">
+                    2. Sélectionnez votre matériel
+                    {lastPackId && lastPackId !== selectedPack && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <Sparkles className="h-4 w-4 mr-1" />
+                        Nouveau matériel disponible
+                      </span>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <HardwareOptions 
