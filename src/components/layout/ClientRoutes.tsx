@@ -1,10 +1,10 @@
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
-import ClientITakecarePage from "@/pages/ClientITakecarePage";
+import ClientCalculator from "@/pages/ClientCalculator";
 import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
 import ClientsLoading from "@/components/clients/ClientsLoading";
@@ -27,58 +27,36 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isClient, userRoleChecked } = useAuth();
+  const { user, isLoading, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [checkingClient, setCheckingClient] = useState(true);
-  const [clientError, setClientError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-
-  // Vérifier s'il s'agit d'un flux de réinitialisation de mot de passe
-  const isPasswordReset = useMemo(() => {
-    const hash = window.location.hash || location.hash;
-    return hash && hash.includes('type=recovery');
-  }, [location.hash]);
+  const [checkingClient, setCheckingClient] = React.useState(true);
+  const [clientError, setClientError] = React.useState<string | null>(null);
+  const [retryCount, setRetryCount] = React.useState(0);
 
   useEffect(() => {
-    if (isPasswordReset) {
+    const hash = window.location.hash || location.hash;
+    if (hash && hash.includes('type=recovery')) {
       console.log("Flux de réinitialisation de mot de passe détecté dans ClientCheck, redirection vers login");
       navigate('/login', { replace: true });
       return;
     }
-  }, [isPasswordReset, navigate]);
+  }, [navigate, location]);
 
   useEffect(() => {
     const checkClientAssociation = async () => {
       if (!user) return;
       
-      if (isPasswordReset) return;
+      const hash = window.location.hash || location.hash;
+      if (hash && hash.includes('type=recovery')) {
+        return;
+      }
       
       try {
-        console.time('checkClientAssociation');
         setCheckingClient(true);
         setClientError(null);
         
         console.log("Vérification de l'association client pour l'utilisateur:", user.id, user.email);
-        
-        // Optimisation: Vérifier d'abord si l'utilisateur a déjà un client_id dans le contexte d'authentification
-        if (user.client_id) {
-          console.log("L'utilisateur a déjà un client_id associé:", user.client_id);
-          setCheckingClient(false);
-          console.timeEnd('checkClientAssociation');
-          return;
-        }
-        
-        // Vérifier le cache local si premier essai
-        if (retryCount === 0 && user.id) {
-          const cachedClientId = localStorage.getItem(`client_id_${user.id}`);
-          if (cachedClientId) {
-            console.log("Client ID trouvé dans le cache:", cachedClientId);
-            setCheckingClient(false);
-            console.timeEnd('checkClientAssociation');
-            return;
-          }
-        }
         
         if (retryCount > 0 && user?.id) {
           localStorage.removeItem(`client_id_${user.id}`);
@@ -96,7 +74,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           console.error("Erreur lors de la vérification des clients existants:", clientError);
           setClientError("Erreur lors de la vérification des clients");
           setCheckingClient(false);
-          console.timeEnd('checkClientAssociation');
           return;
         }
         
@@ -104,7 +81,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           console.log("Client déjà associé trouvé:", associatedClient);
           localStorage.setItem(`client_id_${user.id}`, associatedClient.id);
           setCheckingClient(false);
-          console.timeEnd('checkClientAssociation');
           return;
         }
         
@@ -113,30 +89,26 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           if (clientId) {
             console.log("Client associé via linkUserToClient:", clientId);
             setCheckingClient(false);
-            console.timeEnd('checkClientAssociation');
             return;
           }
         }
         
         setClientError(`Aucun client trouvé pour votre compte utilisateur (${user.email}). Veuillez contacter l'assistance.`);
         console.error("Aucun client associé à l'utilisateur:", user.id, user.email);
-        console.timeEnd('checkClientAssociation');
       } catch (error) {
         console.error("Erreur lors de la vérification du client:", error);
         setClientError("Erreur lors de la vérification du compte client");
-        console.timeEnd('checkClientAssociation');
       } finally {
         setCheckingClient(false);
       }
     };
     
     if (user && !isLoading) {
-      console.log("Démarrage de la vérification du client pour:", user.email);
       checkClientAssociation();
     } else {
       setCheckingClient(false);
     }
-  }, [user, isLoading, retryCount, isPasswordReset, navigate]);
+  }, [user, isLoading, retryCount, location, navigate]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -167,52 +139,36 @@ const ClientRoutes = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Vérifier s'il s'agit d'un flux de réinitialisation de mot de passe
-  const isPasswordReset = useMemo(() => {
-    const hash = location.hash || window.location.hash;
-    return hash && hash.includes('type=recovery');
-  }, [location.hash]);
-  
   useEffect(() => {
-    if (isPasswordReset) {
+    const hash = location.hash || window.location.hash;
+    
+    if (hash && hash.includes('type=recovery')) {
       console.log("Flux de réinitialisation de mot de passe détecté dans ClientRoutes, redirection vers login");
       navigate('/login', { replace: true });
       return;
     }
     
-    // Ne déclencher les redirections que lorsque nous avons vérifié le rôle et qu'un utilisateur existe
     if (!isLoading && userRoleChecked && user) {
-      // Utiliser une fonction pour déterminer le type d'utilisateur et la redirection appropriée
-      const redirectUserBasedOnRole = () => {
-        console.time('redirectUserBasedOnRole');
-        if (isPartner()) {
-          console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
-          navigate('/partner/dashboard', { replace: true });
-          return true;
-        }
-        
-        if (isAmbassador()) {
-          console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
-          navigate('/ambassador/dashboard', { replace: true });
-          return true;
-        }
-        
-        if (!isClient()) {
-          console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
-          navigate('/dashboard', { replace: true });
-          return true;
-        }
-        
-        console.timeEnd('redirectUserBasedOnRole');
-        return false;
-      };
+      if (isPartner()) {
+        console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
+        navigate('/partner/dashboard', { replace: true });
+        return;
+      }
       
-      // Effectuer la redirection une seule fois
-      redirectUserBasedOnRole();
+      if (isAmbassador()) {
+        console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
+        navigate('/ambassador/dashboard', { replace: true });
+        return;
+      }
+      
+      if (!isClient()) {
+        console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked, isPasswordReset]);
+  }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked]);
 
-  if (isPasswordReset) {
+  if (location.hash && location.hash.includes('type=recovery')) {
     return null;
   }
 
@@ -233,7 +189,6 @@ const ClientRoutes = () => {
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><ClientCatalog /></ClientLayout>} />
         <Route path="calculator" element={<Navigate to="/client/dashboard" replace />} />
-        <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>
     </ClientCheck>

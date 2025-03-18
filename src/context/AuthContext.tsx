@@ -1,9 +1,10 @@
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+// Extend the User type to include the missing properties
 type ExtendedUser = User & {
   first_name?: string;
   last_name?: string;
@@ -41,125 +42,136 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRoleChecked, setUserRoleChecked] = useState(false);
   const navigate = useNavigate();
 
-  const fetchUserProfile = useCallback(async (userId: string) => {
-    console.time('fetchUserProfile');
-    try {
-      const { data, error } = await supabase.rpc('get_user_profile_with_associations', {
-        user_id: userId
-      });
-      
-      if (error) {
-        console.error('Erreur lors de la récupération du profil utilisateur:', error);
-        return null;
-      }
-
-      console.log('Profil utilisateur et associations récupérés en une seule requête:', data);
-      
-      return data;
-    } catch (error) {
-      console.error('Erreur lors de la récupération du profil utilisateur:', error);
-      return null;
-    } finally {
-      console.timeEnd('fetchUserProfile');
-    }
-  }, []);
-
   useEffect(() => {
-    const initAuth = async () => {
-      console.time('initAuth');
+    const checkSession = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
         
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Erreur lors de la récupération de la session:', error);
-          setUser(null);
-          setSession(null);
-          return;
-        }
-        
-        if (session) {
-          const profile = await fetchUserProfile(session.user.id);
+        if (data.session?.user) {
+          // Get user profile data from profiles table if needed
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, company, role')
+            .eq('id', data.session.user.id)
+            .single();
           
-          if (profile) {
-            // Mettre à jour l'utilisateur avec toutes les informations obtenues en une seule requête
-            setUser({
-              ...session.user,
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-              company: profile.company,
-              role: profile.role,
-              partner_id: profile.partner_id,
-              ambassador_id: profile.ambassador_id,
-              client_id: profile.client_id
-            });
-            setUserRoleChecked(true);
-          } else {
-            setUser(session.user);
-          }
+          // Vérifier si l'utilisateur est lié à un partenaire
+          const { data: partnerData } = await supabase
+            .from('partners')
+            .select('id')
+            .eq('user_id', data.session.user.id)
+            .single();
+            
+          // Vérifier si l'utilisateur est lié à un ambassadeur  
+          const { data: ambassadorData } = await supabase
+            .from('ambassadors')
+            .select('id')
+            .eq('user_id', data.session.user.id)
+            .single();
+            
+          // Vérifier si l'utilisateur est lié à un client
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('id')
+            .eq('user_id', data.session.user.id)
+            .single();
+            
+          // Merge user data with profile data and entity info
+          const extendedUser: ExtendedUser = {
+            ...data.session.user,
+            first_name: profileData?.first_name || '',
+            last_name: profileData?.last_name || '',
+            company: profileData?.company || '',
+            role: profileData?.role || 'client',
+            partner_id: partnerData?.id || null,
+            ambassador_id: ambassadorData?.id || null,
+            client_id: clientData?.id || null
+          };
           
-          setSession(session);
+          setUser(extendedUser);
+          setUserRoleChecked(true);
         } else {
           setUser(null);
-          setSession(null);
+          setUserRoleChecked(true);
         }
+
+        // Set up auth state listener
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+          async (_event, session) => {
+            setSession(session);
+            
+            if (session?.user) {
+              // Get user profile data from profiles table if needed
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('first_name, last_name, company, role')
+                .eq('id', session.user.id)
+                .single();
+                
+              // Vérifier si l'utilisateur est lié à un partenaire
+              const { data: partnerData } = await supabase
+                .from('partners')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+                
+              // Vérifier si l'utilisateur est lié à un ambassadeur  
+              const { data: ambassadorData } = await supabase
+                .from('ambassadors')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+                
+              // Vérifier si l'utilisateur est lié à un client
+              const { data: clientData } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+                
+              // Merge user data with profile data and entity info
+              const extendedUser: ExtendedUser = {
+                ...session.user,
+                first_name: profileData?.first_name || '',
+                last_name: profileData?.last_name || '',
+                company: profileData?.company || '',
+                role: profileData?.role || 'client',
+                partner_id: partnerData?.id || null,
+                ambassador_id: ambassadorData?.id || null,
+                client_id: clientData?.id || null
+              };
+              
+              setUser(extendedUser);
+              setUserRoleChecked(true);
+            } else {
+              setUser(null);
+              setUserRoleChecked(true);
+            }
+          }
+        );
+
+        return () => {
+          authListener.subscription.unsubscribe();
+        };
       } catch (error) {
-        console.error('Erreur lors de l\'initialisation de l\'authentification:', error);
+        console.error("Session check error:", error);
+        setUserRoleChecked(true);
       } finally {
         setIsLoading(false);
-        console.timeEnd('initAuth');
       }
     };
 
-    initAuth();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Événement d\'authentification:', event);
-      
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        console.time('authStateChange');
-        if (session) {
-          const profile = await fetchUserProfile(session.user.id);
-          
-          if (profile) {
-            // Mettre à jour l'utilisateur avec toutes les informations obtenues en une seule requête
-            setUser({
-              ...session.user,
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-              company: profile.company,
-              role: profile.role,
-              partner_id: profile.partner_id,
-              ambassador_id: profile.ambassador_id,
-              client_id: profile.client_id
-            });
-            setUserRoleChecked(true);
-          } else {
-            setUser(session.user);
-          }
-          
-          setSession(session);
-        }
-        console.timeEnd('authStateChange');
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setSession(null);
-        setUserRoleChecked(false);
-      }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [fetchUserProfile]);
+    checkSession();
+  }, []);
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -181,7 +193,7 @@ export const AuthProvider = ({ children }) => {
       
       return { user: extendedUser, session: data.session, error };
     } catch (error: any) {
-      console.error("Erreur d'inscription:", error);
+      console.error("Signup error", error);
       return { user: null, session: null, error: error.message };
     } finally {
       setIsLoading(false);
@@ -190,45 +202,34 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.time('signIn');
       setIsLoading(true);
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
-      if (error) {
-        console.error("Erreur de connexion:", error);
-        return { user: null, session: null, error };
-      }
-      
-      console.log("Connexion réussie pour l'utilisateur:", data.user?.id);
-      
       let extendedUser = null;
       
       if (data.user) {
-        const profile = await fetchUserProfile(data.user.id);
-        
-        if (profile) {
-          extendedUser = {
-            ...data.user,
-            ...profile
-          };
-        } else {
-          extendedUser = {
-            ...data.user,
-            first_name: '',
-            last_name: '',
-            company: ''
-          };
-        }
+        // Get user profile data from profiles table if needed
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, company')
+          .eq('id', data.user.id)
+          .single();
+          
+        // Merge user data with profile data
+        extendedUser = {
+          ...data.user,
+          first_name: profileData?.first_name || '',
+          last_name: profileData?.last_name || '',
+          company: profileData?.company || ''
+        };
       }
       
-      console.timeEnd('signIn');
-      return { user: extendedUser, session: data.session, error: null };
+      return { user: extendedUser, session: data.session, error };
     } catch (error: any) {
-      console.error("Erreur lors de la connexion:", error);
+      console.error("Signin error", error);
       return { user: null, session: null, error: error.message };
     } finally {
       setIsLoading(false);
@@ -241,7 +242,7 @@ export const AuthProvider = ({ children }) => {
       await supabase.auth.signOut();
       navigate("/login");
     } catch (error: any) {
-      console.error("Erreur lors de la déconnexion:", error);
+      console.error("Signout error", error);
     } finally {
       setIsLoading(false);
     }
@@ -254,12 +255,13 @@ export const AuthProvider = ({ children }) => {
           });
           return { data, error };
      } catch (error: any) {
-          console.error("Erreur de réinitialisation de mot de passe:", error);
+          console.error("Reset password error", error);
           return { data: null, error: error.message };
      }
   };
 
   const isAdmin = () => {
+    // Vérifier si le rôle est admin (nouvelle condition) ou l'email est dans la liste des admins
     return user?.role === "admin" ||
            user?.email === "admin@test.com" || 
            user?.email === "alex@test.com" ||
@@ -267,14 +269,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isClient = () => {
+    // Considéré comme client s'il a un client_id associé
     return !!user?.client_id;
   };
 
   const isPartner = () => {
+    // Considéré comme partenaire s'il a un partner_id associé
     return !!user?.partner_id;
   };
 
   const isAmbassador = () => {
+    // Considéré comme ambassadeur s'il a un ambassador_id associé
     return !!user?.ambassador_id;
   };
 
@@ -283,15 +288,15 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         session,
-        signIn,
+        isLoading,
         signUp,
+        signIn,
         signOut,
         resetPassword,
-        isLoading,
+        isAdmin,
         isClient,
         isPartner,
         isAmbassador,
-        isAdmin,
         userRoleChecked
       }}
     >

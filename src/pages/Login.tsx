@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -16,42 +16,38 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, session, user } = useAuth();
 
-  // Détecter de manière optimisée s'il s'agit d'un flux de réinitialisation de mot de passe
-  const isResetMode = useMemo(() => {
-    const hash = location.hash || window.location.hash;
-    return hash && hash.includes('type=recovery');
-  }, [location.hash]);
-
+  // Vérifier si nous avons un token de réinitialisation dans l'URL dès que le composant monte
   useEffect(() => {
-    // Éviter les redirections multiples
-    if (isRedirecting) return;
-
-    // Si l'utilisateur est déjà connecté et qu'il ne s'agit pas d'une réinitialisation de mot de passe
-    if (!isResetMode && session && user && !isRedirecting) {
-      setIsRedirecting(true);
-      console.log("L'utilisateur est déjà connecté, redirection vers le tableau de bord approprié");
+    const checkForResetToken = () => {
+      const hash = location.hash || window.location.hash;
+      console.log("Vérification du token de réinitialisation dans le hash:", hash);
       
-      // Déterminer la destination de redirection en fonction du rôle
-      let redirectPath;
-      if (user.role === 'client') {
-        redirectPath = '/client/dashboard';
-      } else if (user.role === 'partner') {
-        redirectPath = '/partner/dashboard';
-      } else if (user.role === 'ambassador') {
-        redirectPath = '/ambassador/dashboard';
-      } else {
-        redirectPath = '/dashboard';
+      if (hash && hash.includes('type=recovery')) {
+        console.log("Token de réinitialisation trouvé. Activation du mode de réinitialisation");
+        setIsResetMode(true);
+        return true;
       }
-      
-      console.log(`Redirection vers ${redirectPath}`);
-      navigate(redirectPath, { replace: true });
+      return false;
+    };
+
+    const hasResetToken = checkForResetToken();
+    
+    // Si nous n'avons pas de token de réinitialisation et que nous avons une session,
+    // et que nous ne sommes pas en mode réinitialisation, rediriger vers le tableau de bord
+    if (!hasResetToken && session && user && !isResetMode) {
+      console.log("L'utilisateur est déjà connecté, redirection vers le tableau de bord approprié");
+      if (user.role === 'client') {
+        navigate('/client/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     }
-  }, [session, navigate, location, user, isResetMode, isRedirecting]);
+  }, [session, navigate, location, user, isResetMode]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,20 +57,13 @@ const Login = () => {
     }
 
     setLoading(true);
-    console.time('loginProcess');
     try {
-      console.log("Tentative de connexion pour:", email);
       const { error } = await signIn(email, password);
       if (error) {
         console.error('Erreur lors de la connexion:', error);
         toast.error('Échec de la connexion : ' + (error.message || 'Erreur inconnue'));
-      } else {
-        console.log("Connexion réussie, redirection en cours...");
-        // La redirection sera gérée par useEffect
-        setIsRedirecting(true);
       }
     } finally {
-      console.timeEnd('loginProcess');
       setLoading(false);
     }
   };
@@ -100,7 +89,6 @@ const Login = () => {
     setLoading(true);
     try {
       console.log("Tentative de mise à jour du mot de passe avec le token");
-      console.time('passwordResetProcess');
       
       const { error } = await supabase.auth.updateUser({
         password: newPassword
@@ -112,18 +100,17 @@ const Login = () => {
       } else {
         toast.success('Votre mot de passe a été mis à jour avec succès');
         
-        // Nettoyer l'URL en supprimant le hash
-        window.history.replaceState(null, '', window.location.pathname);
+        // Supprimer le hash pour éviter de revenir au flux de réinitialisation lors de l'actualisation
+        window.location.hash = '';
         
-        // Réinitialiser les états
-        setIsRedirecting(false);
+        // Réinitialiser l'état du formulaire
+        setIsResetMode(false);
         setNewPassword('');
         setConfirmPassword('');
         
-        // Redirection vers la page de connexion
+        // Rediriger vers la page de connexion sans hash
         navigate('/login', { replace: true });
       }
-      console.timeEnd('passwordResetProcess');
     } catch (error: any) {
       console.error('Exception lors de la mise à jour du mot de passe:', error);
       toast.error('Erreur lors de la mise à jour du mot de passe : ' + error.message);
@@ -132,7 +119,6 @@ const Login = () => {
     }
   };
 
-  // Rendu conditionnel basé sur le mode de réinitialisation
   if (isResetMode) {
     return (
       <Container maxWidth="sm" className="px-4">
@@ -196,7 +182,6 @@ const Login = () => {
                   placeholder="nom@exemple.com" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  autoFocus
                 />
               </div>
               <div className="space-y-2">
