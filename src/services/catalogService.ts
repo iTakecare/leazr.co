@@ -15,11 +15,16 @@ export async function getProducts(): Promise<Product[]> {
       throw new Error(`API Error: ${error.message}`);
     }
 
+    if (!data || data.length === 0) {
+      console.log("No products found in database");
+      return [];
+    }
+
     console.log(`Retrieved ${data?.length || 0} products from API`);
-    return data || [];
+    return data;
   } catch (error) {
     console.error("Error in getProducts:", error);
-    return [];
+    throw error;
   }
 }
 
@@ -267,7 +272,7 @@ export const getCategories = async () => {
     return data || [];
   } catch (error) {
     console.error("Error in getCategories:", error);
-    return [];
+    throw error;
   }
 }
 
