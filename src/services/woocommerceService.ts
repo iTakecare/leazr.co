@@ -791,7 +791,6 @@ const mapDbProductToProduct = (record: any): Product => {
     image_url: record.image_url || "",
     imageUrls: record.image_urls || [],
     image_urls: record.image_urls || [],
-    image_alt: record.image_alt || undefined,
     image_alts: record.image_alts || undefined,
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
