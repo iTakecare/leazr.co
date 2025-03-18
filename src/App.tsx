@@ -1,3 +1,4 @@
+
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -32,6 +33,7 @@ import PartnersListPage from "./pages/PartnersList";
 import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
 import ITakecarePage from "./pages/ITakecarePage";
+import PublicCatalogPage from "./pages/PublicCatalogPage";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -223,6 +225,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/itakecare" element={<ITakecarePage />} />
+            <Route path="/catalog" element={<PublicCatalogPage />} />
             
             <Route path="/" element={
               <ProtectedRoute requireAdmin={true}>
@@ -235,7 +238,7 @@ function App() {
               <Route path="/clients/create" element={<ClientForm />} />
               <Route path="/clients/:id" element={<ClientDetail />} />
               <Route path="/clients/edit/:id" element={<ClientForm />} />
-              <Route path="/catalog" element={<Catalog />} />
+              <Route path="/admin/catalog" element={<Catalog />} />
               <Route path="/catalog/:id" element={<ProductDetail />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               <Route path="/settings" element={<Settings />} />

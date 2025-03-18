@@ -17,6 +17,7 @@ const ITakecarePage = () => {
             
             <nav className="flex items-center gap-6">
               <Link to="/" className="text-gray-700 hover:text-blue-700">Accueil</Link>
+              <Link to="/catalog" className="text-gray-700 hover:text-blue-700">Catalogue</Link>
               <Link to="/login" className="text-gray-700 hover:text-blue-700">Connexion</Link>
               <Link to="/signup" className="text-gray-700 hover:text-blue-700">Inscription</Link>
             </nav>
