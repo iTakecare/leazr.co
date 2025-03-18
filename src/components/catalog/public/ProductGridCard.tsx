@@ -18,7 +18,33 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isV
   }
 
   const brandLabel = product.brand || "Generic";
-  const monthlyPrice = product.monthly_price ? `${formatCurrency(product.monthly_price)}/mois` : "Prix sur demande";
+  
+  // Déterminer le prix mensuel minimum en tenant compte des variantes
+  const getMinimumMonthlyPrice = (): number => {
+    // Prix du produit principal
+    let minPrice = product.monthly_price || 0;
+    
+    // Vérifier si le produit a des variantes
+    if (product.variants && product.variants.length > 0) {
+      // Trouver le prix minimum parmi toutes les variantes
+      const variantPrices = product.variants
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (variantPrices.length > 0) {
+        const minVariantPrice = Math.min(...variantPrices);
+        // Utiliser le prix de la variante si inférieur au prix du produit principal
+        if (minVariantPrice > 0 && (minVariantPrice < minPrice || minPrice === 0)) {
+          minPrice = minVariantPrice;
+        }
+      }
+    }
+    
+    return minPrice;
+  };
+  
+  const monthlyPrice = getMinimumMonthlyPrice();
+  const monthlyPriceLabel = monthlyPrice ? `${formatCurrency(monthlyPrice)}/mois` : "Prix sur demande";
   const imageUrl = product.image_url || product.imageUrl || "/placeholder.svg";
   
   // Determine the appropriate category label
@@ -78,7 +104,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isV
         <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-2">{product.name}</h3>
         
         <div className="text-gray-700 text-base mt-1">
-          à partir de <span className="font-bold text-indigo-700">{monthlyPrice}</span>
+          à partir de <span className="font-bold text-indigo-700">{monthlyPriceLabel}</span>
         </div>
         
         {hasVariants && (

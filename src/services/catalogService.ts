@@ -1,3 +1,4 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -57,7 +58,27 @@ export async function getProductById(id: string): Promise<Product | null> {
         console.error(`Error fetching variants for product ${id}:`, variantError);
       } else if (variants && variants.length > 0) {
         console.log(`Found ${variants.length} variants for product ${id}`);
-        mainProduct.variants = variants;
+        // Assurez-vous que chaque variante a des attributs au format attendu
+        mainProduct.variants = variants.map(variant => {
+          // Convertir les attributs au format Record si nécessaire
+          if (variant.attributes) {
+            if (Array.isArray(variant.attributes) && variant.attributes.length === 0) {
+              variant.attributes = {};
+            } else if (Array.isArray(variant.attributes)) {
+              // Si c'est un tableau, le convertir en objet
+              const attributesObj: Record<string, string | number | boolean> = {};
+              variant.attributes.forEach((attr: any) => {
+                if (attr.name && attr.value !== undefined) {
+                  attributesObj[attr.name] = attr.value;
+                }
+              });
+              variant.attributes = attributesObj;
+            }
+          } else {
+            variant.attributes = {};
+          }
+          return variant;
+        });
       }
     }
     else if (mainProduct.parent_id) {
@@ -84,19 +105,45 @@ export async function getProductById(id: string): Promise<Product | null> {
         } else if (siblings && siblings.length > 0) {
           console.log(`Found ${siblings.length} siblings for product ${id}`);
           
-          parent.variants = siblings;
-          mainProduct.variants = siblings;
+          // Assurez-vous que chaque variante a des attributs au format attendu
+          const processedSiblings = siblings.map(variant => {
+            if (variant.attributes) {
+              if (Array.isArray(variant.attributes) && variant.attributes.length === 0) {
+                variant.attributes = {};
+              } else if (Array.isArray(variant.attributes)) {
+                const attributesObj: Record<string, string | number | boolean> = {};
+                variant.attributes.forEach((attr: any) => {
+                  if (attr.name && attr.value !== undefined) {
+                    attributesObj[attr.name] = attr.value;
+                  }
+                });
+                variant.attributes = attributesObj;
+              }
+            } else {
+              variant.attributes = {};
+            }
+            return variant;
+          });
+          
+          parent.variants = processedSiblings;
+          mainProduct.variants = processedSiblings;
         }
       }
     }
 
+    // Calculer le prix mensuel minimum en tenant compte des variantes
     if (mainProduct.variants && mainProduct.variants.length > 0) {
-      mainProduct.variants = mainProduct.variants.map(variant => {
-        if (variant.attributes && Array.isArray(variant.attributes) && variant.attributes.length === 0) {
-          variant.attributes = {};
+      const variantPrices = mainProduct.variants
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (variantPrices.length > 0) {
+        const minPrice = Math.min(...variantPrices);
+        // Si le produit principal n'a pas de prix mensuel, utilisez le prix minimum des variantes
+        if (!mainProduct.monthly_price || mainProduct.monthly_price === 0) {
+          mainProduct.monthly_price = minPrice;
         }
-        return variant;
-      });
+      }
     }
 
     console.log(`Successfully retrieved product with ID: ${id}`, mainProduct);

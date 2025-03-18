@@ -320,6 +320,32 @@ const ProductDetailPage = () => {
     return selectedVariant?.specifications || product?.specifications || {};
   };
 
+  // Calculate the minimum monthly price from all variants
+  const getMinimumMonthlyPrice = (): number => {
+    if (!product) return 0;
+    
+    // Prix du produit principal
+    let minPrice = product.monthly_price || 0;
+    
+    // Vérifier si le produit a des variantes
+    if (product.variants && product.variants.length > 0) {
+      // Trouver le prix minimum parmi toutes les variantes
+      const variantPrices = product.variants
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (variantPrices.length > 0) {
+        const minVariantPrice = Math.min(...variantPrices);
+        // Utiliser le prix de la variante si inférieur au prix du produit principal
+        if (minVariantPrice > 0 && (minVariantPrice < minPrice || minPrice === 0)) {
+          minPrice = minVariantPrice;
+        }
+      }
+    }
+    
+    return minPrice;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -357,6 +383,8 @@ const ProductDetailPage = () => {
       </div>
     );
   }
+
+  const minMonthlyPrice = getMinimumMonthlyPrice();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -401,7 +429,7 @@ const ProductDetailPage = () => {
             </h1>
             
             <div className="text-lg text-gray-700 mb-4">
-              à partir de <span className="font-bold text-indigo-700">{formatCurrency(product.monthly_price || 0)}/mois</span>
+              à partir de <span className="font-bold text-indigo-700">{formatCurrency(minMonthlyPrice)}/mois</span>
             </div>
             
             <div className="mb-4">
