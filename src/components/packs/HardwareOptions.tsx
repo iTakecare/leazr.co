@@ -167,7 +167,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         }
       }
     });
-  }, [productQuantities, products, onQuantityChange, onSelect]);
+  }, [productQuantities, products, onQuantityChange, onSelect, quantities, selectedHardware]);
 
   const handleProductIncrement = (productId: string) => {
     setProductQuantities(prev => ({

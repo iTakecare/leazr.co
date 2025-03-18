@@ -778,27 +778,27 @@ async function ensureStorageBucketExists() {
   }
 }
 
-// Helper function to convert database records to Product type
-const mapDbProductToProduct = (record: any): Product => {
+// Map a database product to a Product object
+const mapDbProductToProduct = (dbProduct: any): Product => {
   return {
-    id: record.id,
-    name: record.name || "",
-    brand: record.brand || "Generic",
-    category: record.category || "other",
-    description: record.description || "",
-    price: record.price || 0,
-    monthly_price: record.monthly_price || 0,
-    createdAt: record.created_at || new Date(),
-    updatedAt: record.updated_at || new Date(),
-    active: record.active !== undefined ? record.active : true,
-    image_url: record.image_url || "",
-    imageUrls: record.image_urls || [],
-    image_urls: record.image_urls || [],
-    image_alts: record.image_alts || undefined,
-    specifications: record.specifications || {},
-    parent_id: record.parent_id || undefined,
-    is_parent: record.is_parent || false,
-    is_variation: record.is_variation || false,
-    variation_attributes: record.variation_attributes || {},
- 
-
+    id: dbProduct.id,
+    name: dbProduct.name,
+    brand: dbProduct.brand || 'Generic',
+    price: dbProduct.price || 0,
+    monthly_price: dbProduct.monthly_price || 0,
+    category: dbProduct.category || 'other',
+    description: dbProduct.description || '',
+    image_url: dbProduct.image_url || '',
+    image_urls: dbProduct.image_urls || [],
+    image_alts: dbProduct.image_alts || [],
+    active: dbProduct.active !== false,
+    specifications: dbProduct.specifications || {},
+    created_at: dbProduct.created_at,
+    updated_at: dbProduct.updated_at,
+    is_parent: dbProduct.is_parent || false,
+    is_variation: dbProduct.is_variation || false,
+    parent_id: dbProduct.parent_id || null,
+    sku: dbProduct.sku || '',
+    variation_attributes: dbProduct.variation_attributes || {}
+  };
+};

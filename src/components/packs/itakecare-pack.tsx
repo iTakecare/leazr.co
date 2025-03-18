@@ -222,11 +222,11 @@ const ITakecarePack = () => {
   };
 
   const getDiscountPercentage = (devices: number) => {
-    if (devices > 20) {
+    if (devices >= 20) {
       return deviceDiscounts["20+"].percent;
-    } else if (devices > 10) {
+    } else if (devices >= 10) {
       return deviceDiscounts["10+"].percent;
-    } else if (devices > 5) {
+    } else if (devices >= 5) {
       return deviceDiscounts["5-10"].percent;
     }
     return 0;
@@ -445,18 +445,15 @@ const ITakecarePack = () => {
                             <div className="text-sm text-muted-foreground">
                               <span className="line-through">{currentPack.monthlyPrice.toFixed(2)}€</span> par mois
                             </div>
+                            <div className="bg-green-100 text-green-800 text-sm p-1 rounded mt-2 mb-4">
+                              Remise volume: {pricing.discount}% pour {totalDevices} équipements
+                            </div>
                           </>
                         ) : (
                           <>
                             <div className="text-3xl font-bold">{pricing.monthly.toFixed(2)}€</div>
                             <div className="text-sm text-muted-foreground mb-4">par mois</div>
                           </>
-                        )}
-                        
-                        {pricing.discount > 0 && (
-                          <div className="bg-green-100 text-green-800 text-sm p-1 rounded mb-4">
-                            Remise volume: {pricing.discount}%
-                          </div>
                         )}
                         
                         {/* Display price per tier with discount applied */}
@@ -469,19 +466,19 @@ const ITakecarePack = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              <tr>
+                              <tr className={selectedPack === 'silver' ? 'bg-gray-100' : ''}>
                                 <td className="py-1">Silver</td>
                                 <td className="text-right py-1">
                                   {getDiscountedMonthlyPrice('silver').toFixed(2)}€
                                 </td>
                               </tr>
-                              <tr>
+                              <tr className={selectedPack === 'gold' ? 'bg-gray-100' : ''}>
                                 <td className="py-1">Gold</td>
                                 <td className="text-right py-1">
                                   {getDiscountedMonthlyPrice('gold').toFixed(2)}€
                                 </td>
                               </tr>
-                              <tr>
+                              <tr className={selectedPack === 'platinum' ? 'bg-gray-100' : ''}>
                                 <td className="py-1">Platinum</td>
                                 <td className="text-right py-1">
                                   {getDiscountedMonthlyPrice('platinum').toFixed(2)}€
