@@ -88,7 +88,7 @@ const Catalog = () => {
     <Container>
       <div className="py-6 md:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">Catalogue de produits</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Gestion Catalogue</h1>
           <div className="flex gap-2">
             <Button onClick={() => setIsAddProductOpen(true)} className="flex-1 sm:flex-initial">
               <Plus className="mr-2 h-4 w-4" /> {isMobile ? "Ajouter" : "Ajouter un produit"}
