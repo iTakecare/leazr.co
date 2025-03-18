@@ -15,6 +15,13 @@ export interface ProductRequestData {
   duration: number;
 }
 
+export interface RequestInfoData {
+  offerId: string;
+  previousStatus: string;
+  requestedDocs: string[];
+  message?: string;
+}
+
 /**
  * Crée une demande de produit (offre) à partir du catalogue public
  */

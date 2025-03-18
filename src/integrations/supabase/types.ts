@@ -579,6 +579,48 @@ export type Database = {
           },
         ]
       }
+      offer_notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          offer_id: string
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          offer_id: string
+          type?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          offer_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_notes_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pending_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_notes_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_workflow_logs: {
         Row: {
           created_at: string
