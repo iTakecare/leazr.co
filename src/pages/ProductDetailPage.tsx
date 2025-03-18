@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -169,9 +168,8 @@ const ProductDetailPage = () => {
       });
       
       if (selectedVariant && selectedVariant.price) {
-        // Utiliser le prix mensuel de la variante ou calculer un prix mensuel à partir du prix total
-        const variantMonthlyPrice = selectedVariant.monthly_price || (selectedVariant.price / 36);
-        basePrice = variantMonthlyPrice;
+        // Calculate monthly price from variant price if it doesn't have monthly_price
+        basePrice = selectedVariant.monthly_price || (selectedVariant.price / 36);
       }
     }
     

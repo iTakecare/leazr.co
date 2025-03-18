@@ -37,10 +37,10 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   return (
     <Card 
-      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col"
+      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border-0 shadow-sm rounded-xl"
       onClick={onClick}
     >
-      <div className="relative aspect-video bg-gray-100 flex items-center justify-center p-4">
+      <div className="relative aspect-video bg-gray-50 flex items-center justify-center p-4">
         <img 
           src={imageUrl} 
           alt={product.name} 
@@ -49,28 +49,33 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             (e.target as HTMLImageElement).src = "/placeholder.svg";
           }}
         />
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
+      </div>
+      
+      <CardContent className="flex-1 flex flex-col p-5 pt-3">
+        <div className="flex flex-wrap gap-2 mb-2">
           {product.category && (
-            <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
+            <Badge className="bg-indigo-500 text-white hover:bg-indigo-600 rounded-full font-normal">
               {getCategoryLabel(product.category)}
             </Badge>
           )}
-          {hasVariants && (
-            <Badge variant="outline" className="bg-white">
-              Options disponibles
+          {brandLabel && (
+            <Badge variant="outline" className="rounded-full font-normal text-gray-600 bg-gray-50">
+              {brandLabel}
             </Badge>
           )}
         </div>
-      </div>
-      
-      <CardContent className="flex-1 flex flex-col p-4">
-        <div className="text-sm text-gray-500 mb-1">{brandLabel}</div>
-        <h3 className="font-medium text-lg mb-1 line-clamp-2">{product.name}</h3>
         
-        <div className="mt-auto pt-4">
-          <div className="text-sm text-gray-500">dès</div>
-          <div className="text-lg font-bold text-indigo-700">{monthlyPrice}</div>
+        <h3 className="font-bold text-navy-900 text-xl mb-1 line-clamp-2">{product.name}</h3>
+        
+        <div className="text-gray-700 text-base">
+          à partir de <span className="font-bold text-indigo-700">{monthlyPrice}</span>
         </div>
+        
+        {hasVariants && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <span className="text-gray-600 text-sm">Sélectionnez votre configuration idéale.</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
