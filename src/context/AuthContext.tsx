@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
@@ -283,7 +284,9 @@ export const AuthProvider = ({ children }) => {
         user,
         session,
         signIn,
+        signUp,
         signOut,
+        resetPassword,
         isLoading,
         isClient,
         isPartner,
