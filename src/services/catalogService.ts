@@ -1,3 +1,4 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -8,6 +9,7 @@ export async function getProducts(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('products')
       .select('*')
+      .eq('active', true)
       .order('created_at', { ascending: false });
 
     if (error) {

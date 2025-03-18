@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Laptop, Monitor, Smartphone, Tablet, Plus, Minus, Sparkles } from "lucide-react";
+import { Laptop, Monitor, Smartphone, Tablet, Plus, Minus, Sparkles, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
@@ -63,6 +63,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   const [lastPackId, setLastPackId] = useState<string | null>(null);
   const [newProducts, setNewProducts] = useState<{[key: string]: boolean}>({});
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [noProductsFound, setNoProductsFound] = useState<boolean>(false);
 
   const packPriceRanges = {
     silver: { min: 0, max: 650 },
@@ -75,6 +76,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
       try {
         setLoading(true);
         setFetchError(null);
+        setNoProductsFound(false);
         
         const { data, error } = await getSupabaseClient()
           .from('products')
@@ -83,13 +85,14 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
           
         if (error) {
           console.error("Error fetching products from database:", error);
-          setFetchError("Failed to fetch products from database.");
+          setFetchError("Impossible de récupérer les produits depuis la base de données. Veuillez réessayer plus tard.");
           return;
         } 
         
         if (!data || data.length === 0) {
           console.log("No products found in database.");
-          setFetchError("No products found in database.");
+          setNoProductsFound(true);
+          setFetchError("Aucun produit trouvé dans la base de données.");
           return;
         }
         
@@ -105,7 +108,8 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         console.log(`Filtered down to ${filteredData.length} products in price range for ${selectedPack} pack`);
 
         if (filteredData.length === 0) {
-          setFetchError(`No products found in price range for ${selectedPack} pack.`);
+          setNoProductsFound(true);
+          setFetchError(`Aucun produit trouvé dans la plage de prix pour le pack ${selectedPack}.`);
         }
 
         const currentProductIds: {[key: string]: boolean} = {};
@@ -165,7 +169,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         setLastPackId(selectedPack);
       } catch (error) {
         console.error("Error in product fetch:", error);
-        setFetchError("Failed to fetch products. Please try again later.");
+        setFetchError("Échec de la récupération des produits. Veuillez réessayer plus tard.");
       } finally {
         setLoading(false);
       }
@@ -286,10 +290,25 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     };
   });
 
+  if (noProductsFound) {
+    return (
+      <Alert className="bg-yellow-50 border-yellow-300 text-yellow-800">
+        <AlertTriangle className="h-5 w-5 text-yellow-800" />
+        <AlertTitle className="text-yellow-800">Attention</AlertTitle>
+        <AlertDescription>
+          Aucun produit n'a été trouvé dans la base de données pour le pack {selectedPack.toUpperCase()}.
+          <br />
+          Veuillez vérifier que des produits sont ajoutés dans la base de données et qu'ils correspondent à la plage de prix de ce pack.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {fetchError && (
         <Alert className="col-span-full bg-yellow-100 text-yellow-800 border-yellow-300 mb-4">
+          <AlertTriangle className="h-5 w-5 text-yellow-800" />
           <AlertTitle>Attention</AlertTitle>
           <AlertDescription>{fetchError}</AlertDescription>
         </Alert>
