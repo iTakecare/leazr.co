@@ -53,6 +53,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     tablet: [],
   });
   
+  const [productQuantities, setProductQuantities] = useState<{[key: string]: number}>({});
   const [loading, setLoading] = useState(true);
 
   // Define price ranges for each pack tier
@@ -94,6 +95,13 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
           };
           
           setProducts(categorizedProducts);
+          
+          // Initialize product quantities with zeros
+          const initialQuantities: {[key: string]: number} = {};
+          filteredData.forEach(product => {
+            initialQuantities[product.id] = 0;
+          });
+          setProductQuantities(initialQuantities);
         }
       } catch (error) {
         console.error("Error in product fetch:", error);
@@ -104,6 +112,86 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     
     fetchProducts();
   }, [selectedPack]);
+
+  // Calculate the total quantity for a category
+  const getCategoryTotalQuantity = (category: string): number => {
+    return Object.entries(productQuantities).reduce((total, [productId, quantity]) => {
+      const product = products[category as keyof typeof products].find(p => p.id === productId);
+      if (product) {
+        return total + quantity;
+      }
+      return total;
+    }, 0);
+  };
+
+  // Update the parent component when individual product quantities change
+  useEffect(() => {
+    const categoryTotals = {
+      laptop: getCategoryTotalQuantity('laptop'),
+      desktop: getCategoryTotalQuantity('desktop'),
+      mobile: getCategoryTotalQuantity('mobile'),
+      tablet: getCategoryTotalQuantity('tablet')
+    };
+    
+    // For each category, update the parent component
+    Object.entries(categoryTotals).forEach(([category, total]) => {
+      if (total !== quantities[category as keyof typeof quantities]) {
+        onQuantityChange(category, total);
+      }
+    });
+
+    // For each category with products, check if a product is selected
+    Object.entries(products).forEach(([category, categoryProducts]) => {
+      if (categoryProducts.length > 0) {
+        const selectedProductId = selectedHardware[category as keyof typeof selectedHardware];
+        
+        // Find a product with quantity > 0 if none is selected
+        if (!selectedProductId) {
+          const productWithQuantity = categoryProducts.find(p => 
+            productQuantities[p.id] > 0
+          );
+          
+          if (productWithQuantity) {
+            onSelect(category, productWithQuantity.id);
+          }
+        }
+        // If selected product has zero quantity, select another with quantity
+        else if (productQuantities[selectedProductId] === 0) {
+          const productWithQuantity = categoryProducts.find(p => 
+            productQuantities[p.id] > 0
+          );
+          
+          if (productWithQuantity) {
+            onSelect(category, productWithQuantity.id);
+          }
+        }
+      }
+    });
+  }, [productQuantities, products, onQuantityChange, onSelect]);
+
+  const handleProductIncrement = (productId: string) => {
+    setProductQuantities(prev => ({
+      ...prev,
+      [productId]: (prev[productId] || 0) + 1
+    }));
+  };
+
+  const handleProductDecrement = (productId: string) => {
+    setProductQuantities(prev => ({
+      ...prev,
+      [productId]: Math.max(0, (prev[productId] || 0) - 1)
+    }));
+  };
+
+  const handleQuantityChange = (productId: string, value: string) => {
+    const quantity = parseInt(value);
+    if (!isNaN(quantity) && quantity >= 0) {
+      setProductQuantities(prev => ({
+        ...prev,
+        [productId]: quantity
+      }));
+    }
+  };
 
   const categories = [
     {
@@ -132,18 +220,6 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     },
   ];
 
-  const handleIncrement = (category: string) => {
-    const currentQuantity = quantities[category as keyof typeof quantities];
-    onQuantityChange(category, currentQuantity + 1);
-  };
-
-  const handleDecrement = (category: string) => {
-    const currentQuantity = quantities[category as keyof typeof quantities];
-    if (currentQuantity > 0) {
-      onQuantityChange(category, currentQuantity - 1);
-    }
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {categories.map((category) => (
@@ -152,34 +228,6 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
             <div className="flex items-center space-x-3">
               {category.icon}
               <h3 className="font-medium">{category.label}</h3>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={() => handleDecrement(category.id)}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <Input
-                className="w-14 text-center h-8"
-                value={quantities[category.id as keyof typeof quantities]}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value) && value >= 0) {
-                    onQuantityChange(category.id, value);
-                  }
-                }}
-              />
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={() => handleIncrement(category.id)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
             </div>
           </div>
           <CardContent className="p-4">
@@ -193,22 +241,46 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
               <RadioGroup
                 value={selectedHardware[category.id as keyof typeof selectedHardware] || ""}
                 onValueChange={(value) => onSelect(category.id, value)}
-                disabled={quantities[category.id as keyof typeof quantities] === 0}
               >
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {category.products.map((product) => (
-                    <div key={product.id} className="flex items-start space-x-2">
-                      <RadioGroupItem 
-                        value={product.id} 
-                        id={`${category.id}-${product.id}`}
-                        disabled={quantities[category.id as keyof typeof quantities] === 0}
-                      />
-                      <Label 
-                        htmlFor={`${category.id}-${product.id}`} 
-                        className={`text-sm leading-snug cursor-pointer ${quantities[category.id as keyof typeof quantities] === 0 ? 'text-gray-400' : ''}`}
-                      >
-                        {product.name}
-                      </Label>
+                    <div key={product.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
+                      <div className="flex items-start space-x-2">
+                        <RadioGroupItem 
+                          value={product.id} 
+                          id={`${category.id}-${product.id}`}
+                          disabled={productQuantities[product.id] === 0}
+                        />
+                        <Label 
+                          htmlFor={`${category.id}-${product.id}`} 
+                          className={`text-sm leading-snug cursor-pointer ${productQuantities[product.id] === 0 ? 'text-gray-400' : ''}`}
+                        >
+                          {product.name}
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-7 w-7" 
+                          onClick={() => handleProductDecrement(product.id)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                          className="w-12 text-center h-7 px-1"
+                          value={productQuantities[product.id] || 0}
+                          onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-7 w-7" 
+                          onClick={() => handleProductIncrement(product.id)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

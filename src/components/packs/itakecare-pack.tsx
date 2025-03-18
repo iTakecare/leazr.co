@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock } from "lucide-react";
@@ -195,6 +196,12 @@ const ITakecarePack = () => {
           } catch (error) {
             console.error(`Error in ${category} product fetch:`, error);
           }
+        } else {
+          // Clear the selected product if no hardware is selected
+          setSelectedProducts(prev => ({
+            ...prev,
+            [category]: null
+          }));
         }
       }
     };
@@ -202,6 +209,7 @@ const ITakecarePack = () => {
     fetchSelectedProducts();
   }, [selectedHardware]);
 
+  // Updated discount tiers based on the image provided
   const deviceDiscounts = {
     "2-5": { percent: 0, label: "2-5 devices" },
     "5-10": { percent: 5, label: "5 à 10" },
@@ -213,16 +221,21 @@ const ITakecarePack = () => {
     return quantities.laptop + quantities.desktop + quantities.mobile + quantities.tablet;
   };
 
-  const calculatePrice = (basePack: PackTier, devices: number, duration: number) => {
-    let discount = 0;
+  const getDiscountPercentage = (devices: number) => {
     if (devices > 20) {
-      discount = deviceDiscounts["20+"].percent;
+      return deviceDiscounts["20+"].percent;
     } else if (devices > 10) {
-      discount = deviceDiscounts["10+"].percent;
+      return deviceDiscounts["10+"].percent;
     } else if (devices > 5) {
-      discount = deviceDiscounts["5-10"].percent;
+      return deviceDiscounts["5-10"].percent;
     }
+    return 0;
+  };
 
+  const calculatePrice = (basePack: PackTier, devices: number, duration: number) => {
+    const discount = getDiscountPercentage(devices);
+
+    // Apply discount to monthly price
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
     const baseTotal = basePack.price * (1 - discount / 100);
     
@@ -246,19 +259,23 @@ const ITakecarePack = () => {
     
     const categories = ['laptop', 'desktop', 'mobile', 'tablet'] as const;
     let isValid = true;
+    let totalDevices = 0;
     
+    // Count total devices and verify that each category with quantity has selection
     for (const category of categories) {
+      totalDevices += quantities[category];
+      
       if (quantities[category] > 0 && !selectedHardware[category]) {
         toast.error(`Veuillez sélectionner un modèle de ${category}`);
         isValid = false;
         break;
       }
-      
-      if (selectedHardware[category] && quantities[category] === 0) {
-        toast.error(`Veuillez définir une quantité pour ${category}`);
-        isValid = false;
-        break;
-      }
+    }
+    
+    // Ensure at least one device is selected
+    if (totalDevices === 0) {
+      toast.error("Veuillez sélectionner au moins un équipement");
+      isValid = false;
     }
     
     if (isValid) {
@@ -312,6 +329,13 @@ const ITakecarePack = () => {
         [category]: null,
       }));
     }
+  };
+
+  // Helper to format pack prices with discount applied
+  const getDiscountedMonthlyPrice = (packId: string) => {
+    const basePack = packs[packId];
+    const discount = getDiscountPercentage(totalDevices);
+    return basePack.monthlyPrice * (1 - discount / 100);
   };
 
   return (
@@ -413,17 +437,64 @@ const ITakecarePack = () => {
                       <div className="text-center">
                         <h3 className="font-bold text-xl mb-1">{currentPack.name}</h3>
                         <div className={`w-full h-2 ${currentPack.color} mb-4 rounded`}></div>
-                        <div className="text-3xl font-bold">{pricing.monthly.toFixed(2)}€</div>
-                        <div className="text-sm text-muted-foreground mb-4">par mois</div>
+                        
+                        {/* Show original price and discounted price */}
+                        {pricing.discount > 0 ? (
+                          <>
+                            <div className="text-3xl font-bold">{pricing.monthly.toFixed(2)}€</div>
+                            <div className="text-sm text-muted-foreground">
+                              <span className="line-through">{currentPack.monthlyPrice.toFixed(2)}€</span> par mois
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-3xl font-bold">{pricing.monthly.toFixed(2)}€</div>
+                            <div className="text-sm text-muted-foreground mb-4">par mois</div>
+                          </>
+                        )}
+                        
                         {pricing.discount > 0 && (
                           <div className="bg-green-100 text-green-800 text-sm p-1 rounded mb-4">
                             Remise volume: {pricing.discount}%
                           </div>
                         )}
+                        
+                        {/* Display price per tier with discount applied */}
+                        <div className="mt-4 mb-4">
+                          <table className="w-full text-sm border-collapse">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left py-1">Tier</th>
+                                <th className="text-right py-1">Prix</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td className="py-1">Silver</td>
+                                <td className="text-right py-1">
+                                  {getDiscountedMonthlyPrice('silver').toFixed(2)}€
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="py-1">Gold</td>
+                                <td className="text-right py-1">
+                                  {getDiscountedMonthlyPrice('gold').toFixed(2)}€
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="py-1">Platinum</td>
+                                <td className="text-right py-1">
+                                  {getDiscountedMonthlyPrice('platinum').toFixed(2)}€
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        
                         <div className="border-t pt-4 mt-4">
                           <div className="flex justify-between font-medium">
                             <span>Total sur {contractDuration} mois</span>
-                            <span>{pricing.total.toFixed(2)}€</span>
+                            <span>{(pricing.monthly * contractDuration).toFixed(2)}€</span>
                           </div>
                         </div>
                         <Button type="submit" className="w-full mt-6">

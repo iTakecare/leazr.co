@@ -782,25 +782,23 @@ async function ensureStorageBucketExists() {
 const mapDbProductToProduct = (record: any): Product => {
   return {
     id: record.id,
-    name: record.name,
-    brand: record.brand || "",
+    name: record.name || "",
+    brand: record.brand || "Generic",
     category: record.category || "other",
-    price: Number(record.price),
     description: record.description || "",
-    imageUrl: record.image_url || "",
+    price: record.price || 0,
+    monthly_price: record.monthly_price || 0,
+    createdAt: record.created_at || new Date(),
+    updatedAt: record.updated_at || new Date(),
+    active: record.active !== undefined ? record.active : true,
     image_url: record.image_url || "",
     imageUrls: record.image_urls || [],
     image_urls: record.image_urls || [],
     image_alts: record.image_alts || undefined,
     specifications: record.specifications || {},
     parent_id: record.parent_id || undefined,
+    is_parent: record.is_parent || false,
     is_variation: record.is_variation || false,
     variation_attributes: record.variation_attributes || {},
-    variants: record.variants || undefined,
-    variants_ids: record.variants_ids || undefined,
-    monthly_price: record.monthly_price || undefined,
-    active: record.active !== false,
-    createdAt: record.created_at ? new Date(record.created_at) : new Date(),
-    updatedAt: record.updated_at ? new Date(record.updated_at) : new Date()
-  };
-};
+ 
+
