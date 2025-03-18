@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -9,7 +10,8 @@ import {
   FileText,
   BookOpen,
   LogOut,
-  Calculator
+  Calculator,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -194,6 +196,13 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           icon={Calculator}
           label="Calculateur"
           active={isActive("/create-offer")}
+          onClick={onLinkClick}
+        />
+        <MenuItem
+          to="/itakecare"
+          icon={Shield}
+          label="iTakecare"
+          active={isActive("/itakecare")}
           onClick={onLinkClick}
         />
         <MenuItem

@@ -9,7 +9,8 @@ import {
   Clock,
   Package,
   LogOut,
-  Calculator
+  Calculator,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -107,6 +108,7 @@ const ClientSidebar = ({ className }: SidebarProps) => {
     { path: "/client/requests", icon: Clock, label: "Demandes en cours" },
     { path: "/client/catalog", icon: Package, label: "Catalogue" },
     { path: "/client/calculator", icon: Calculator, label: "Calculateur" },
+    { path: "/client/itakecare", icon: Shield, label: "Packs iTakecare" },
   ];
 
   return (
