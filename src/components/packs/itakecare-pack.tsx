@@ -483,25 +483,25 @@ const ITakecarePack = () => {
                           <table className="w-full text-sm border-collapse">
                             <thead>
                               <tr className="border-b">
-                                <th className="text-left py-1">Tier</th>
+                                <th className="text-left py-1">Formule</th>
                                 <th className="text-right py-1">Prix</th>
                               </tr>
                             </thead>
                             <tbody>
                               <tr className={selectedPack === 'silver' ? 'bg-gray-100' : ''}>
-                                <td className="py-1">Silver</td>
+                                <td className="py-1">I CARE A LITTLE</td>
                                 <td className="text-right py-1">
                                   {formatCurrency(getDiscountedMonthlyPrice('silver'))}
                                 </td>
                               </tr>
                               <tr className={selectedPack === 'gold' ? 'bg-gray-100' : ''}>
-                                <td className="py-1">Gold</td>
+                                <td className="py-1">YES I CARE</td>
                                 <td className="text-right py-1">
                                   {formatCurrency(getDiscountedMonthlyPrice('gold'))}
                                 </td>
                               </tr>
                               <tr className={selectedPack === 'platinum' ? 'bg-gray-100' : ''}>
-                                <td className="py-1">Platinum</td>
+                                <td className="py-1">I REALLY TAKE CARE</td>
                                 <td className="text-right py-1">
                                   {formatCurrency(getDiscountedMonthlyPrice('platinum'))}
                                 </td>

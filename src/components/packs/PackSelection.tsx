@@ -41,8 +41,6 @@ const PackSelection: React.FC<PackSelectionProps> = ({
         const pack = packs[packId];
         const hasDiscount = totalDevices >= 5 && getDiscountedMonthlyPrice;
         const discountedPrice = hasDiscount ? getDiscountedMonthlyPrice(packId) : pack.monthlyPrice;
-        const totalForAllDevices = discountedPrice * totalDevices;
-        const totalForContractPeriod = totalForAllDevices * contractDuration;
         
         return (
           <div key={packId} onClick={() => onSelect(packId)} className="cursor-pointer">
@@ -80,16 +78,6 @@ const PackSelection: React.FC<PackSelectionProps> = ({
                         <p className="text-2xl font-bold mt-2">{formatCurrency(pack.monthlyPrice)}</p>
                         <p className="text-sm text-gray-500">par mois / par appareil</p>
                       </>
-                    )}
-                    
-                    {totalDevices > 0 && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded-md">
-                        <p className="text-sm font-medium">Total pour {totalDevices} appareils:</p>
-                        <p className="text-sm">{formatCurrency(totalForAllDevices)} / mois</p>
-                        <p className="text-sm font-bold">
-                          {formatCurrency(totalForContractPeriod)} / {contractDuration} mois
-                        </p>
-                      </div>
                     )}
                     
                     <div className="mt-4 space-y-2">
