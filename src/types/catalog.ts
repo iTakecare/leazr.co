@@ -14,6 +14,27 @@ export interface Product {
   createdAt: Date;
   updatedAt: Date;
   active: boolean;
+  
+  // Additional properties used by the application
+  is_parent?: boolean;
+  is_variation?: boolean;
+  parent_id?: string;
+  variants?: ProductVariant[];
+  variation_attributes?: Record<string, string | number | boolean>;
+  
+  // Alternative property names used in Supabase
+  image_url?: string; // Alternative to imageUrl for DB compatibility
+  image_urls?: string[]; // Additional images
+  image_alts?: string[]; // Alt text for additional images
+}
+
+// Product variant definition
+export interface ProductVariant {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl?: string;
+  attributes?: Record<string, string | number | boolean>;
 }
 
 // Category type definition
