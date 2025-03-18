@@ -33,7 +33,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   };
 
   // Determine if product has variants
-  const hasVariants = product.variants?.length > 0 || (product.is_parent && product.variants_ids?.length > 0);
+  const hasVariants = product.variants?.length > 0 || (product.is_parent && product.variants?.length > 0);
 
   return (
     <Card 

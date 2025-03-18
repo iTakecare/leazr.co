@@ -29,12 +29,12 @@ const ProductDetailPage = () => {
     enabled: !!id,
   });
 
-  // Extract available options from product variants or specification
+  // Extract available options from product variants
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
   
   useEffect(() => {
     if (product) {
-      // Initialize available options based on product variants or specifications
+      // Initialize available options based ONLY on product variants
       const options: Record<string, string[]> = {};
       
       // If product has explicit variants
@@ -52,29 +52,22 @@ const ProductDetailPage = () => {
           }
         });
       } 
-      // If product has relevant specifications
-      else if (product.specifications) {
-        const relevantSpecs = ['stockage', 'memoire', 'processeur', 'taille', 'couleur'];
-        relevantSpecs.forEach(spec => {
-          if (product.specifications && product.specifications[spec]) {
-            const value = product.specifications[spec];
-            if (typeof value === 'string') {
-              options[spec] = [value];
-            }
+      // If product has variation attributes based on being a variation itself
+      else if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+        Object.entries(product.variation_attributes).forEach(([key, value]) => {
+          if (typeof value === 'string') {
+            options[key] = [value];
           }
         });
       }
       
-      // Add some default options if no variants are found
-      if (Object.keys(options).length === 0) {
-        if (product.category === 'laptop' || product.category === 'desktop') {
-          options.stockage = ["256GB SSD", "512GB SSD", "1TB SSD"];
-          options.memoire = ["8GB", "16GB", "32GB"];
-          options.processeur = ["Intel Core i5", "Intel Core i7", "AMD Ryzen 5"];
-        } else if (product.category === 'smartphone' || product.category === 'tablet') {
-          options.stockage = ["64GB", "128GB", "256GB"];
-          options.couleur = ["Noir", "Blanc", "Bleu"];
-        }
+      // If no options found but specifications contain comma-separated values that indicate possible options
+      else if (product.specifications) {
+        Object.entries(product.specifications).forEach(([key, value]) => {
+          if (typeof value === 'string' && value.includes(',')) {
+            options[key] = value.split(',').map(v => v.trim());
+          }
+        });
       }
       
       setAvailableOptions(options);
@@ -164,34 +157,35 @@ const ProductDetailPage = () => {
       basePrice *= 0.9; // Réduction pour contrat plus long
     }
     
-    // Ajuster en fonction des options (simulé)
-    if (selectedOptions.stockage?.includes("512GB")) {
-      basePrice += 5;
-    } else if (selectedOptions.stockage?.includes("1TB")) {
-      basePrice += 10;
-    }
-    
-    if (selectedOptions.memoire?.includes("16GB")) {
-      basePrice += 5;
-    } else if (selectedOptions.memoire?.includes("32GB")) {
-      basePrice += 15;
-    }
-    
-    if (selectedOptions.processeur?.includes("i7") || selectedOptions.processeur?.includes("M2")) {
-      basePrice += 8;
+    // Pour les produits avec variants, chercher le prix de la variante correspondante
+    if (product.variants && product.variants.length > 0) {
+      const selectedVariant = product.variants.find(variant => {
+        if (!variant.attributes) return false;
+        
+        // Vérifier si tous les attributs sélectionnés correspondent à cette variante
+        return Object.entries(selectedOptions).every(([key, value]) => 
+          variant.attributes && variant.attributes[key] === value
+        );
+      });
+      
+      if (selectedVariant && selectedVariant.price) {
+        // Utiliser le prix mensuel de la variante ou calculer un prix mensuel à partir du prix total
+        const variantMonthlyPrice = selectedVariant.monthly_price || (selectedVariant.price / 36);
+        basePrice = variantMonthlyPrice;
+      }
     }
     
     return basePrice * quantity;
   };
 
-  // Render compact options section
+  // Render compact options section - only showing real options from variants
   const renderOptions = () => {
     if (Object.keys(availableOptions).length === 0) {
       return null;
     }
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {Object.entries(availableOptions).map(([option, values]) => (
           <div key={option} className="space-y-1">
             <label className="block text-sm font-medium text-gray-700 capitalize">
@@ -274,16 +268,22 @@ const ProductDetailPage = () => {
             
             <Separator className="my-4" />
             
-            {/* Configuration Options - Now more compact */}
+            {/* Configuration Options - Compact version with only real variants */}
             <div className="mb-4">
               <h3 className="text-lg font-medium mb-3">Configuration</h3>
               
-              <div className="bg-gray-50 p-4 rounded-lg border">
-                {/* Render dynamic options based on product variants or specs */}
-                {renderOptions()}
+              <div className="bg-gray-50 p-4 rounded-lg border space-y-4">
+                {/* Only show options section if we have options */}
+                {Object.keys(availableOptions).length > 0 && (
+                  <>
+                    <h4 className="font-medium text-sm text-gray-700">Sélectionnez votre configuration idéale</h4>
+                    {renderOptions()}
+                    <Separator className="my-2" />
+                  </>
+                )}
                 
-                {/* Duration selector */}
-                <div className="mt-4 space-y-1">
+                {/* Duration selector - Compact version */}
+                <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">
                     Durée
                   </label>
@@ -294,7 +294,7 @@ const ProductDetailPage = () => {
                         type="button"
                         size="sm"
                         variant={duration === months ? "default" : "outline"}
-                        className="text-xs"
+                        className="text-xs flex-1 sm:flex-none"
                         onClick={() => handleDurationChange(months)}
                       >
                         {months} mois
@@ -303,8 +303,8 @@ const ProductDetailPage = () => {
                   </div>
                 </div>
                 
-                {/* Quantity selector */}
-                <div className="mt-4 space-y-1">
+                {/* Quantity selector - Compact version */}
+                <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">
                     Quantité
                   </label>
