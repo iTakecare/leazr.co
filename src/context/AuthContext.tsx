@@ -1,10 +1,8 @@
-
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// Extend the User type to include the missing properties
 type ExtendedUser = User & {
   first_name?: string;
   last_name?: string;
@@ -42,161 +40,125 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRoleChecked, setUserRoleChecked] = useState(false);
   const navigate = useNavigate();
 
-  const loadUserProfile = async (userId: string) => {
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    console.time('fetchUserProfile');
     try {
-      console.time('loadUserProfile');
-      
-      // Optimisation: Utiliser une seule requête RPC pour récupérer toutes les informations nécessaires
-      // Cette approche est beaucoup plus rapide que de faire plusieurs requêtes séparées
       const { data, error } = await supabase.rpc('get_user_profile_with_associations', {
         user_id: userId
       });
       
       if (error) {
-        console.error("Erreur lors de la récupération du profil utilisateur:", error);
+        console.error('Erreur lors de la récupération du profil utilisateur:', error);
         return null;
       }
+
+      console.log('Profil utilisateur et associations récupérés en une seule requête:', data);
       
-      if (data) {
-        console.log("Profil utilisateur récupéré avec succès:", data);
-        return {
-          first_name: data.first_name || '',
-          last_name: data.last_name || '',
-          company: data.company || '',
-          role: data.role || 'client',
-          partner_id: data.partner_id || null,
-          ambassador_id: data.ambassador_id || null,
-          client_id: data.client_id || null
-        };
-      }
-      
-      // Fallback à l'ancienne méthode si la RPC n'existe pas encore
-      
-      // Récupérer les données du profil
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, company, role')
-        .eq('id', userId)
-        .single();
-      
-      // Vérifier l'association avec un partenaire
-      const { data: partnerData } = await supabase
-        .from('partners')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-      
-      // Vérifier l'association avec un ambassadeur
-      const { data: ambassadorData } = await supabase
-        .from('ambassadors')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-      
-      // Vérifier l'association avec un client
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-      
-      console.timeEnd('loadUserProfile');
-      
-      return {
-        first_name: profileData?.first_name || '',
-        last_name: profileData?.last_name || '',
-        company: profileData?.company || '',
-        role: profileData?.role || 'client',
-        partner_id: partnerData?.id || null,
-        ambassador_id: ambassadorData?.id || null,
-        client_id: clientData?.id || null
-      };
+      return data;
     } catch (error) {
-      console.error("Erreur dans loadUserProfile:", error);
+      console.error('Erreur lors de la récupération du profil utilisateur:', error);
       return null;
+    } finally {
+      console.timeEnd('fetchUserProfile');
     }
-  };
+  }, []);
 
   useEffect(() => {
-    const checkSession = async () => {
-      console.time('checkSession');
-      setIsLoading(true);
+    const initAuth = async () => {
+      console.time('initAuth');
       try {
-        const { data } = await supabase.auth.getSession();
-        setSession(data.session);
+        setIsLoading(true);
         
-        if (data.session?.user) {
-          console.log("Session trouvée pour l'utilisateur:", data.session.user.id);
-          const userProfileData = await loadUserProfile(data.session.user.id);
-          
-          if (userProfileData) {
-            // Fusionner les données utilisateur avec les données de profil
-            const extendedUser: ExtendedUser = {
-              ...data.session.user,
-              ...userProfileData
-            };
-            
-            setUser(extendedUser);
-          } else {
-            setUser(data.session.user as ExtendedUser);
-          }
-        } else {
-          console.log("Aucune session trouvée");
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Erreur lors de la récupération de la session:', error);
           setUser(null);
+          setSession(null);
+          return;
         }
         
-        setUserRoleChecked(true);
-
-        // Configurer l'écouteur d'état d'authentification
-        const { data: authListener } = supabase.auth.onAuthStateChange(
-          async (_event, session) => {
-            console.log("Changement d'état d'authentification:", _event);
-            setSession(session);
-            
-            if (session?.user) {
-              console.log("Nouvel état d'authentification avec utilisateur:", session.user.id);
-              const userProfileData = await loadUserProfile(session.user.id);
-              
-              if (userProfileData) {
-                const extendedUser: ExtendedUser = {
-                  ...session.user,
-                  ...userProfileData
-                };
-                
-                setUser(extendedUser);
-              } else {
-                setUser(session.user as ExtendedUser);
-              }
-            } else {
-              console.log("Nouvel état d'authentification sans utilisateur");
-              setUser(null);
-            }
-            
+        if (session) {
+          const profile = await fetchUserProfile(session.user.id);
+          
+          if (profile) {
+            // Mettre à jour l'utilisateur avec toutes les informations obtenues en une seule requête
+            setUser({
+              ...session.user,
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              company: profile.company,
+              role: profile.role,
+              partner_id: profile.partner_id,
+              ambassador_id: profile.ambassador_id,
+              client_id: profile.client_id
+            });
             setUserRoleChecked(true);
+          } else {
+            setUser(session.user);
           }
-        );
-
-        console.timeEnd('checkSession');
-        return () => {
-          authListener.subscription.unsubscribe();
-        };
+          
+          setSession(session);
+        } else {
+          setUser(null);
+          setSession(null);
+        }
       } catch (error) {
-        console.error("Erreur lors de la vérification de session:", error);
-        setUserRoleChecked(true);
+        console.error('Erreur lors de l\'initialisation de l\'authentification:', error);
       } finally {
         setIsLoading(false);
+        console.timeEnd('initAuth');
       }
     };
 
-    checkSession();
-  }, []);
+    initAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Événement d\'authentification:', event);
+      
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.time('authStateChange');
+        if (session) {
+          const profile = await fetchUserProfile(session.user.id);
+          
+          if (profile) {
+            // Mettre à jour l'utilisateur avec toutes les informations obtenues en une seule requête
+            setUser({
+              ...session.user,
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              company: profile.company,
+              role: profile.role,
+              partner_id: profile.partner_id,
+              ambassador_id: profile.ambassador_id,
+              client_id: profile.client_id
+            });
+            setUserRoleChecked(true);
+          } else {
+            setUser(session.user);
+          }
+          
+          setSession(session);
+        }
+        console.timeEnd('authStateChange');
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSession(null);
+        setUserRoleChecked(false);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [fetchUserProfile]);
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -245,13 +207,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       let extendedUser = null;
       
       if (data.user) {
-        // Récupérer les données du profil utilisateur
-        const userProfileData = await loadUserProfile(data.user.id);
+        const profile = await fetchUserProfile(data.user.id);
         
-        if (userProfileData) {
+        if (profile) {
           extendedUser = {
             ...data.user,
-            ...userProfileData
+            ...profile
           };
         } else {
           extendedUser = {
@@ -297,7 +258,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      }
   };
 
-  // Fonctions utilitaires pour vérifier le rôle de l'utilisateur
   const isAdmin = () => {
     return user?.role === "admin" ||
            user?.email === "admin@test.com" || 
@@ -322,15 +282,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       value={{
         user,
         session,
-        isLoading,
-        signUp,
         signIn,
         signOut,
-        resetPassword,
-        isAdmin,
+        isLoading,
         isClient,
         isPartner,
         isAmbassador,
+        isAdmin,
         userRoleChecked
       }}
     >

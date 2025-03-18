@@ -1,10 +1,9 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
-import ClientCalculator from "@/pages/ClientCalculator";
 import ClientITakecarePage from "@/pages/ClientITakecarePage";
 import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
@@ -31,27 +30,29 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, isClient, userRoleChecked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [checkingClient, setCheckingClient] = React.useState(true);
-  const [clientError, setClientError] = React.useState<string | null>(null);
-  const [retryCount, setRetryCount] = React.useState(0);
+  const [checkingClient, setCheckingClient] = useState(true);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Vérifier s'il s'agit d'un flux de réinitialisation de mot de passe
+  const isPasswordReset = useMemo(() => {
+    const hash = window.location.hash || location.hash;
+    return hash && hash.includes('type=recovery');
+  }, [location.hash]);
 
   useEffect(() => {
-    const hash = window.location.hash || location.hash;
-    if (hash && hash.includes('type=recovery')) {
+    if (isPasswordReset) {
       console.log("Flux de réinitialisation de mot de passe détecté dans ClientCheck, redirection vers login");
       navigate('/login', { replace: true });
       return;
     }
-  }, [navigate, location]);
+  }, [isPasswordReset, navigate]);
 
   useEffect(() => {
     const checkClientAssociation = async () => {
       if (!user) return;
       
-      const hash = window.location.hash || location.hash;
-      if (hash && hash.includes('type=recovery')) {
-        return;
-      }
+      if (isPasswordReset) return;
       
       try {
         console.time('checkClientAssociation');
@@ -60,7 +61,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
         
         console.log("Vérification de l'association client pour l'utilisateur:", user.id, user.email);
         
-        // Optimisation: Vérifier d'abord si l'utilisateur a déjà un client_id
+        // Optimisation: Vérifier d'abord si l'utilisateur a déjà un client_id dans le contexte d'authentification
         if (user.client_id) {
           console.log("L'utilisateur a déjà un client_id associé:", user.client_id);
           setCheckingClient(false);
@@ -68,7 +69,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           return;
         }
         
-        // Vérifier le cache local
+        // Vérifier le cache local si premier essai
         if (retryCount === 0 && user.id) {
           const cachedClientId = localStorage.getItem(`client_id_${user.id}`);
           if (cachedClientId) {
@@ -135,7 +136,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
     } else {
       setCheckingClient(false);
     }
-  }, [user, isLoading, retryCount, location, navigate]);
+  }, [user, isLoading, retryCount, isPasswordReset, navigate]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -166,36 +167,52 @@ const ClientRoutes = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  useEffect(() => {
+  // Vérifier s'il s'agit d'un flux de réinitialisation de mot de passe
+  const isPasswordReset = useMemo(() => {
     const hash = location.hash || window.location.hash;
-    
-    if (hash && hash.includes('type=recovery')) {
+    return hash && hash.includes('type=recovery');
+  }, [location.hash]);
+  
+  useEffect(() => {
+    if (isPasswordReset) {
       console.log("Flux de réinitialisation de mot de passe détecté dans ClientRoutes, redirection vers login");
       navigate('/login', { replace: true });
       return;
     }
     
+    // Ne déclencher les redirections que lorsque nous avons vérifié le rôle et qu'un utilisateur existe
     if (!isLoading && userRoleChecked && user) {
-      if (isPartner()) {
-        console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
-        navigate('/partner/dashboard', { replace: true });
-        return;
-      }
+      // Utiliser une fonction pour déterminer le type d'utilisateur et la redirection appropriée
+      const redirectUserBasedOnRole = () => {
+        console.time('redirectUserBasedOnRole');
+        if (isPartner()) {
+          console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
+          navigate('/partner/dashboard', { replace: true });
+          return true;
+        }
+        
+        if (isAmbassador()) {
+          console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
+          navigate('/ambassador/dashboard', { replace: true });
+          return true;
+        }
+        
+        if (!isClient()) {
+          console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
+          navigate('/dashboard', { replace: true });
+          return true;
+        }
+        
+        console.timeEnd('redirectUserBasedOnRole');
+        return false;
+      };
       
-      if (isAmbassador()) {
-        console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
-        navigate('/ambassador/dashboard', { replace: true });
-        return;
-      }
-      
-      if (!isClient()) {
-        console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
-        navigate('/dashboard', { replace: true });
-      }
+      // Effectuer la redirection une seule fois
+      redirectUserBasedOnRole();
     }
-  }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked]);
+  }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked, isPasswordReset]);
 
-  if (location.hash && location.hash.includes('type=recovery')) {
+  if (isPasswordReset) {
     return null;
   }
 
