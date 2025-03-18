@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock } from "lucide-react";
@@ -197,7 +196,6 @@ const ITakecarePack = () => {
             console.error(`Error in ${category} product fetch:`, error);
           }
         } else {
-          // Clear the selected product if no hardware is selected
           setSelectedProducts(prev => ({
             ...prev,
             [category]: null
@@ -209,19 +207,17 @@ const ITakecarePack = () => {
     fetchSelectedProducts();
   }, [selectedHardware]);
 
-  // Updated discount tiers based on the image provided
   const deviceDiscounts = {
     "2-5": { percent: 0, label: "2-5 devices" },
     "5-10": { percent: 5, label: "5 à 10" },
     "10+": { percent: 10, label: "plus de 10" },
-    "20+": { percent: 20, label: "> 20" }, // Fixed label to "20" instead of "10"
+    "20+": { percent: 20, label: "> 20" },
   };
 
   const calculateTotalDevices = () => {
     return quantities.laptop + quantities.desktop + quantities.mobile + quantities.tablet;
   };
 
-  // This function will now be called every time quantities change
   useEffect(() => {
     setNumberOfDevices(calculateTotalDevices());
   }, [quantities]);
@@ -240,13 +236,11 @@ const ITakecarePack = () => {
   const calculatePrice = (basePack: PackTier, devices: number, duration: number) => {
     const discount = getDiscountPercentage(devices);
 
-    // Apply discount to monthly price
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
     const baseTotal = basePack.price * (1 - discount / 100);
     
-    // Calculate hardware costs if needed
-    const hardwareCosts = 0; // Could add hardware costs here if needed in the future
-    
+    const hardwareCosts = 0;
+
     return {
       monthly: discountedMonthly,
       base: baseTotal,
@@ -269,7 +263,6 @@ const ITakecarePack = () => {
     let isValid = true;
     let totalDevices = 0;
     
-    // Count total devices and verify that each category with quantity has selection
     for (const category of categories) {
       totalDevices += quantities[category];
       
@@ -280,7 +273,6 @@ const ITakecarePack = () => {
       }
     }
     
-    // Ensure at least one device is selected
     if (totalDevices === 0) {
       toast.error("Veuillez sélectionner au moins un équipement");
       isValid = false;
@@ -339,14 +331,12 @@ const ITakecarePack = () => {
     }
   };
 
-  // Helper to format pack prices with discount applied
   const getDiscountedMonthlyPrice = (packId: string) => {
     const basePack = packs[packId];
     const discount = getDiscountPercentage(totalDevices);
     return basePack.monthlyPrice * (1 - discount / 100);
   };
 
-  // Format currency
   const formatCurrency = (amount: number) => {
     return `${amount.toFixed(2)}€`;
   };
@@ -381,6 +371,7 @@ const ITakecarePack = () => {
                     onSelect={handlePackChange} 
                     totalDevices={totalDevices}
                     getDiscountedMonthlyPrice={getDiscountedMonthlyPrice}
+                    contractDuration={contractDuration}
                   />
 
                   <div className="grid gap-6 mt-8">
@@ -453,7 +444,6 @@ const ITakecarePack = () => {
                         <h3 className="font-bold text-xl mb-1">{currentPack.name}</h3>
                         <div className={`w-full h-2 ${currentPack.color} mb-4 rounded`}></div>
                         
-                        {/* Show original price and discounted price */}
                         {pricing.discount > 0 ? (
                           <>
                             <div className="text-3xl font-bold">{formatCurrency(pricing.monthly)}</div>
@@ -471,7 +461,6 @@ const ITakecarePack = () => {
                           </>
                         )}
                         
-                        {/* Display price per tier with discount applied */}
                         <div className="mt-4 mb-4">
                           <table className="w-full text-sm border-collapse">
                             <thead>
