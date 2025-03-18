@@ -249,18 +249,12 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {categoriesWithNewProducts.map((category) => (
+      {categories.map((category) => (
         <Card key={category.id} className="overflow-hidden">
           <div className="bg-gray-50 p-4 flex items-center justify-between border-b">
             <div className="flex items-center space-x-3">
               {category.icon}
               <h3 className="font-medium">{category.label}</h3>
-              {category.hasNewProducts && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  Nouveau
-                </span>
-              )}
             </div>
           </div>
           <CardContent className="p-4">

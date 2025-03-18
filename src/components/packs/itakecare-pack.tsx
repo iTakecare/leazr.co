@@ -411,12 +411,6 @@ const ITakecarePack = () => {
                 <CardHeader>
                   <CardTitle className="text-xl">
                     2. Sélectionnez votre matériel
-                    {lastPackId && lastPackId !== selectedPack && (
-                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <Sparkles className="h-4 w-4 mr-1" />
-                        Nouveau matériel disponible
-                      </span>
-                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -538,4 +532,3 @@ const ITakecarePack = () => {
   );
 };
 export default ITakecarePack;
-
