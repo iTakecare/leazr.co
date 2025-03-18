@@ -31,6 +31,7 @@ const ProductDetailPage = () => {
 
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
   const [currentImage, setCurrentImage] = useState<string>("");
+  const [validCombinations, setValidCombinations] = useState<Array<Record<string, string>>>([]);
 
   // Process product data when it's loaded
   useEffect(() => {
@@ -42,6 +43,7 @@ const ProductDetailPage = () => {
       
       // Extract available options from variants
       const options: Record<string, string[]> = {};
+      const allCombinations: Array<Record<string, string>> = [];
       
       if (product.variants && product.variants.length > 0) {
         console.log("Product has variants:", product.variants);
@@ -49,7 +51,15 @@ const ProductDetailPage = () => {
         // For each variant, extract attributes and add them as options
         product.variants.forEach(variant => {
           if (variant.attributes) {
-            Object.entries(variant.attributes).forEach(([key, value]) => {
+            // Convert attributes to a standard format for processing
+            const variantAttributes = Array.isArray(variant.attributes) 
+              ? {} 
+              : variant.attributes as Record<string, string | number | boolean>;
+            
+            // Create a combination object representing this variant's attributes
+            const combination: Record<string, string> = {};
+            
+            Object.entries(variantAttributes).forEach(([key, value]) => {
               if (!options[key]) {
                 options[key] = [];
               }
@@ -57,31 +67,61 @@ const ProductDetailPage = () => {
               if (!options[key].includes(stringValue)) {
                 options[key].push(stringValue);
               }
+              combination[key] = stringValue;
             });
+            
+            // Add this combination to our list of valid combinations
+            if (Object.keys(combination).length > 0) {
+              allCombinations.push(combination);
+            }
           }
         });
       } 
       // If the product has variation attributes but no variants
       else if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+        const combination: Record<string, string> = {};
+        
         Object.entries(product.variation_attributes).forEach(([key, value]) => {
           options[key] = [String(value)];
+          combination[key] = String(value);
         });
+        
+        if (Object.keys(combination).length > 0) {
+          allCombinations.push(combination);
+        }
       }
       // If the product has attributes but no variants
       else if (product.attributes && typeof product.attributes === 'object' && !Array.isArray(product.attributes)) {
+        const combination: Record<string, string> = {};
+        
         Object.entries(product.attributes).forEach(([key, value]) => {
           options[key] = [String(value)];
+          combination[key] = String(value);
         });
+        
+        if (Object.keys(combination).length > 0) {
+          allCombinations.push(combination);
+        }
       }
       // Extract from specifications as a fallback
       else if (product.specifications && Object.keys(product.specifications).length > 0) {
+        const combination: Record<string, string> = {};
+        
         Object.entries(product.specifications).forEach(([key, value]) => {
           options[key] = [String(value)];
+          combination[key] = String(value);
         });
+        
+        if (Object.keys(combination).length > 0) {
+          allCombinations.push(combination);
+        }
       }
       
       console.log("Extracted options:", options);
+      console.log("Valid combinations:", allCombinations);
+      
       setAvailableOptions(options);
+      setValidCombinations(allCombinations);
       
       // Set default selected options
       const defaultOptions: Record<string, string> = {};
@@ -121,10 +161,87 @@ const ProductDetailPage = () => {
 
   const handleOptionChange = (optionName: string, value: string) => {
     console.log(`Option changed: ${optionName} = ${value}`);
-    setSelectedOptions({
+    
+    // Create a new selected options object with the new selection
+    const newSelectedOptions = {
       ...selectedOptions,
       [optionName]: value
+    };
+    
+    // Validate and adjust other selections as needed
+    const validatedOptions = validateOptions(newSelectedOptions, optionName);
+    
+    setSelectedOptions(validatedOptions);
+  };
+
+  // Helper function to check if an option value is available based on current selections
+  const isOptionAvailable = (optionName: string, optionValue: string): boolean => {
+    // If no selection has been made yet, all options are available
+    if (Object.keys(selectedOptions).length === 0) {
+      return true;
+    }
+    
+    // Create a test selection with current selections plus the option we're checking
+    const testSelection = { ...selectedOptions, [optionName]: optionValue };
+    
+    // Check if any valid combination matches our test selection
+    // A match means all selected keys in testSelection exist in the combination with the same values
+    return validCombinations.some(combination => {
+      return Object.entries(testSelection).every(([key, value]) => {
+        // If this key isn't in our current test selection, it's not relevant for this check
+        if (key === optionName || selectedOptions[key] === undefined) {
+          return true;
+        }
+        // The combination must have this key and the same value
+        return combination[key] === value;
+      });
     });
+  };
+
+  // Validate options and adjust selections to ensure they're valid
+  const validateOptions = (newOptions: Record<string, string>, changedOption: string): Record<string, string> => {
+    const validatedOptions = { ...newOptions };
+    
+    // If we don't have valid combinations data, just return the new options as is
+    if (validCombinations.length === 0) {
+      return validatedOptions;
+    }
+    
+    // Find combinations that match our new selection for the changed option
+    const matchingCombinations = validCombinations.filter(
+      combo => combo[changedOption] === newOptions[changedOption]
+    );
+    
+    // If no matching combinations, return just the changed option
+    if (matchingCombinations.length === 0) {
+      return { [changedOption]: newOptions[changedOption] };
+    }
+    
+    // For each option we have selected
+    Object.keys(validatedOptions).forEach(optionKey => {
+      // Skip the option that was just changed
+      if (optionKey === changedOption) return;
+      
+      // Check if the current value for this option is valid with the new selection
+      const isValid = matchingCombinations.some(
+        combo => combo[optionKey] === validatedOptions[optionKey]
+      );
+      
+      // If not valid, try to find a valid value for this option
+      if (!isValid) {
+        // Find the first valid value for this option from matching combinations
+        const validValue = matchingCombinations.find(combo => combo[optionKey])?.[optionKey];
+        
+        if (validValue) {
+          validatedOptions[optionKey] = validValue;
+        } else {
+          // If no valid value found, remove this option from selections
+          delete validatedOptions[optionKey];
+        }
+      }
+    });
+    
+    return validatedOptions;
   };
 
   const findSelectedVariant = () => {
@@ -135,8 +252,13 @@ const ProductDetailPage = () => {
     return product.variants.find(variant => {
       if (!variant.attributes) return false;
       
+      // Convert attributes to a standard format for comparison
+      const variantAttributes = Array.isArray(variant.attributes) 
+        ? {} 
+        : variant.attributes as Record<string, string | number | boolean>;
+      
       return Object.entries(selectedOptions).every(([key, value]) => 
-        variant.attributes && String(variant.attributes[key]) === value
+        String(variantAttributes[key]) === value
       );
     });
   };
@@ -160,25 +282,32 @@ const ProductDetailPage = () => {
     }
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         {Object.entries(availableOptions).map(([option, values]) => (
-          <div key={option} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 capitalize">
+          <div key={option} className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
+            <label className="block text-sm font-medium text-gray-700 capitalize mb-3">
               {option}
             </label>
             <div className="flex flex-wrap gap-2">
-              {values.map((value) => (
-                <Button
-                  key={value}
-                  type="button"
-                  size="sm"
-                  variant={selectedOptions[option] === value ? "default" : "outline"}
-                  className={selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
-                  onClick={() => handleOptionChange(option, value)}
-                >
-                  {value}
-                </Button>
-              ))}
+              {values.map((value) => {
+                const isAvailable = isOptionAvailable(option, value);
+                return (
+                  <Button
+                    key={value}
+                    type="button"
+                    size="sm"
+                    variant={selectedOptions[option] === value ? "default" : "outline"}
+                    className={`
+                      ${selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                      ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}
+                    `}
+                    onClick={() => isAvailable && handleOptionChange(option, value)}
+                    disabled={!isAvailable}
+                  >
+                    {value}
+                  </Button>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -289,8 +418,8 @@ const ProductDetailPage = () => {
               <div className="bg-gray-50 p-6 rounded-lg border space-y-6">
                 {renderOptions()}
                 
-                <div className="space-y-2">
-                  <h4 className="font-medium text-indigo-800">Quantité</h4>
+                <div className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
+                  <h4 className="block text-sm font-medium text-gray-700 capitalize mb-3">Quantité</h4>
                   <div className="flex items-center border rounded-md w-fit">
                     <Button 
                       variant="ghost" 

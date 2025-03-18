@@ -28,7 +28,8 @@ export async function getProductById(id: string): Promise<Product | null> {
   try {
     console.log(`Fetching product with ID: ${id}`);
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase
+    
+    const { data: mainProduct, error } = await supabase
       .from('products')
       .select('*')
       .eq('id', id)
@@ -39,13 +40,67 @@ export async function getProductById(id: string): Promise<Product | null> {
       throw new Error(`Error fetching product by ID: ${error.message}`);
     }
 
-    if (!data) {
+    if (!mainProduct) {
       console.log(`No product found with ID: ${id}`);
       return null;
     }
+    
+    if (mainProduct.is_parent) {
+      console.log(`Product ${id} is a parent, fetching variants...`);
+      
+      const { data: variants, error: variantError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('parent_id', id);
+        
+      if (variantError) {
+        console.error(`Error fetching variants for product ${id}:`, variantError);
+      } else if (variants && variants.length > 0) {
+        console.log(`Found ${variants.length} variants for product ${id}`);
+        mainProduct.variants = variants;
+      }
+    }
+    else if (mainProduct.parent_id) {
+      console.log(`Product ${id} is a variant, fetching parent and siblings...`);
+      
+      const { data: parent, error: parentError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', mainProduct.parent_id)
+        .maybeSingle();
+        
+      if (parentError) {
+        console.error(`Error fetching parent for product ${id}:`, parentError);
+      } else if (parent) {
+        console.log(`Found parent ${parent.id} for product ${id}`);
+        
+        const { data: siblings, error: siblingsError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('parent_id', parent.id);
+          
+        if (siblingsError) {
+          console.error(`Error fetching siblings for product ${id}:`, siblingsError);
+        } else if (siblings && siblings.length > 0) {
+          console.log(`Found ${siblings.length} siblings for product ${id}`);
+          
+          parent.variants = siblings;
+          mainProduct.variants = siblings;
+        }
+      }
+    }
 
-    console.log(`Successfully retrieved product with ID: ${id}`, data);
-    return data;
+    if (mainProduct.variants && mainProduct.variants.length > 0) {
+      mainProduct.variants = mainProduct.variants.map(variant => {
+        if (variant.attributes && Array.isArray(variant.attributes) && variant.attributes.length === 0) {
+          variant.attributes = {};
+        }
+        return variant;
+      });
+    }
+
+    console.log(`Successfully retrieved product with ID: ${id}`, mainProduct);
+    return mainProduct;
   } catch (error) {
     console.error("Error in getProductById:", error);
     throw error;
