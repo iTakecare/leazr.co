@@ -115,7 +115,18 @@ const ProductDetail = () => {
       
       if (productQuery.data.variants) {
         setIsParentProduct(true);
-        setVariants(productQuery.data.variants);
+        const productVariants: ProductVariant[] = productQuery.data.variants.map(product => ({
+          id: product.id,
+          name: product.name,
+          price: Number(product.price),
+          monthly_price: product.monthly_price,
+          imageUrl: product.imageUrl,
+          image_url: product.image_url,
+          specifications: product.specifications,
+          attributes: product.attributes as Record<string, string | number | boolean>,
+          parent_id: product.parent_id
+        }));
+        setVariants(productVariants);
       } else {
         setIsParentProduct(false);
       }
@@ -139,7 +150,20 @@ const ProductDetail = () => {
         setParentProduct(parent);
         
         if (parent.variants) {
-          setVariants(parent.variants.filter(v => v.id !== id));
+          const productVariants: ProductVariant[] = parent.variants
+            .filter(v => v.id !== id)
+            .map(product => ({
+              id: product.id,
+              name: product.name,
+              price: Number(product.price),
+              monthly_price: product.monthly_price,
+              imageUrl: product.imageUrl,
+              image_url: product.image_url,
+              specifications: product.specifications,
+              attributes: product.attributes as Record<string, string | number | boolean>,
+              parent_id: product.parent_id
+            }));
+          setVariants(productVariants);
         } else {
           const { data, error } = await supabase
             .from('products')
@@ -148,12 +172,17 @@ const ProductDetail = () => {
             .neq('id', id);
             
           if (!error && data) {
-            setVariants(data.map(item => ({
+            const productVariants: ProductVariant[] = data.map(item => ({
               id: item.id,
               name: item.name,
               price: Number(item.price),
-              attributes: (item.variation_attributes as Record<string, string | number | boolean>) || {}
-            })));
+              monthly_price: item.monthly_price,
+              imageUrl: item.imageUrl,
+              image_url: item.image_url,
+              attributes: (item.variation_attributes as Record<string, string | number | boolean>) || {},
+              parent_id: item.parent_id
+            }));
+            setVariants(productVariants);
           }
         }
       }

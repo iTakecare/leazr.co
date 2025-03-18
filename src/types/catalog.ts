@@ -96,7 +96,7 @@ export interface Product {
   image_alts?: string[]; // Alt text for additional images
 }
 
-// Product variant definition - simplified as we're using Product objects for variants
+// Product variant definition - ensuring compatible structure with Product
 export interface ProductVariant {
   id: string;
   name: string;
@@ -107,6 +107,12 @@ export interface ProductVariant {
   specifications?: Record<string, string | number>;
   attributes?: Record<string, string | number | boolean>;
   parent_id?: string;
+  // Add any other necessary fields to ensure compatibility with Product
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  brand?: string;
+  category?: string;
+  active?: boolean;
 }
 
 // Category type definition
