@@ -3,11 +3,12 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Laptop, Monitor, Smartphone, Tablet, Plus, Minus } from "lucide-react";
+import { Laptop, Monitor, Smartphone, Tablet, Plus, Minus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface HardwareOptionsProps {
   options: {
@@ -55,6 +56,8 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   
   const [productQuantities, setProductQuantities] = useState<{[key: string]: number}>({});
   const [loading, setLoading] = useState(true);
+  const [previousProducts, setPreviousProducts] = useState<{[key: string]: boolean}>({});
+  const [lastPackId, setLastPackId] = useState<string | null>(null);
 
   // Define price ranges for each pack tier
   const packPriceRanges = {
@@ -86,6 +89,29 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
             const productPrice = product.price || 0;
             return productPrice >= priceRange.min && productPrice <= priceRange.max;
           });
+
+          // Store the current product IDs to compare with previous state
+          const currentProductIds: {[key: string]: boolean} = {};
+          filteredData.forEach(product => {
+            currentProductIds[product.id] = true;
+          });
+          
+          // Create a map of new products that weren't available before
+          const newProducts: {[key: string]: boolean} = {};
+          if (lastPackId && lastPackId !== selectedPack) {
+            filteredData.forEach(product => {
+              if (!previousProducts[product.id]) {
+                newProducts[product.id] = true;
+              }
+            });
+            
+            // Only show toast if there are new products
+            if (Object.keys(newProducts).length > 0) {
+              toast.success(`Nouveau matériel disponible pour la formule ${selectedPack.toUpperCase()} !`, {
+                duration: 3000,
+              });
+            }
+          }
           
           const categorizedProducts = {
             laptop: filteredData.filter(p => p.category === 'laptop'),
@@ -99,9 +125,13 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
           // Initialize product quantities with zeros
           const initialQuantities: {[key: string]: number} = {};
           filteredData.forEach(product => {
-            initialQuantities[product.id] = 0;
+            initialQuantities[product.id] = productQuantities[product.id] || 0;
           });
           setProductQuantities(initialQuantities);
+          
+          // Update tracking of previous products and pack
+          setPreviousProducts(currentProductIds);
+          setLastPackId(selectedPack);
         }
       } catch (error) {
         console.error("Error in product fetch:", error);
@@ -168,6 +198,12 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
       }
     });
   }, [productQuantities, products, onQuantityChange, onSelect, quantities, selectedHardware]);
+
+  // Check if a product is newly available in this pack
+  const isNewProduct = (productId: string): boolean => {
+    // Only mark products as new if we've changed packs and this product wasn't available before
+    return lastPackId !== null && lastPackId !== selectedPack && !previousProducts[productId];
+  };
 
   const handleProductIncrement = (productId: string) => {
     setProductQuantities(prev => ({
@@ -243,46 +279,64 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                 onValueChange={(value) => onSelect(category.id, value)}
               >
                 <div className="space-y-4">
-                  {category.products.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
-                      <div className="flex items-start space-x-2">
-                        <RadioGroupItem 
-                          value={product.id} 
-                          id={`${category.id}-${product.id}`}
-                          disabled={productQuantities[product.id] === 0}
-                        />
-                        <Label 
-                          htmlFor={`${category.id}-${product.id}`} 
-                          className={`text-sm leading-snug cursor-pointer ${productQuantities[product.id] === 0 ? 'text-gray-400' : ''}`}
-                        >
-                          {product.name}
-                        </Label>
+                  {category.products.map((product) => {
+                    const isNew = isNewProduct(product.id);
+                    return (
+                      <div 
+                        key={product.id} 
+                        className={`flex items-center justify-between border-b pb-3 last:border-0 last:pb-0 transition-all ${
+                          isNew ? 'bg-[#F2FCE2] rounded-md p-2 border border-green-200' : ''
+                        }`}
+                      >
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem 
+                            value={product.id} 
+                            id={`${category.id}-${product.id}`}
+                            disabled={productQuantities[product.id] === 0}
+                          />
+                          <div>
+                            <Label 
+                              htmlFor={`${category.id}-${product.id}`} 
+                              className={`text-sm leading-snug cursor-pointer flex items-center ${
+                                productQuantities[product.id] === 0 ? 'text-gray-400' : ''
+                              }`}
+                            >
+                              {product.name}
+                              {isNew && (
+                                <Sparkles className="h-4 w-4 text-green-500 ml-1 inline-block animate-pulse" />
+                              )}
+                            </Label>
+                            {isNew && (
+                              <p className="text-xs text-green-600 font-medium">Nouveau matériel disponible</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-7 w-7" 
+                            onClick={() => handleProductDecrement(product.id)}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            className="w-12 text-center h-7 px-1"
+                            value={productQuantities[product.id] || 0}
+                            onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-7 w-7" 
+                            onClick={() => handleProductIncrement(product.id)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-7 w-7" 
-                          onClick={() => handleProductDecrement(product.id)}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <Input
-                          className="w-12 text-center h-7 px-1"
-                          value={productQuantities[product.id] || 0}
-                          onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-7 w-7" 
-                          onClick={() => handleProductIncrement(product.id)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </RadioGroup>
             ) : (

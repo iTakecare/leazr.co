@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock } from "lucide-react";
@@ -35,6 +34,7 @@ type PackTier = {
 
 const ITakecarePack = () => {
   const [selectedPack, setSelectedPack] = useState<string>("silver");
+  const [previousPack, setPreviousPack] = useState<string>("silver");
   const [numberOfDevices, setNumberOfDevices] = useState<number>(5);
   const [contractDuration, setContractDuration] = useState<number>(36);
   const [showComparison, setShowComparison] = useState<boolean>(false);
@@ -286,6 +286,7 @@ const ITakecarePack = () => {
 
   const handlePackChange = (packId: string) => {
     console.log("Changing pack to:", packId);
+    setPreviousPack(selectedPack); // Store the previous pack before updating
     setSelectedPack(packId);
     form.setValue("packTier", packId);
   };
