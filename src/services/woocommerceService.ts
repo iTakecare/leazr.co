@@ -67,7 +67,7 @@ export const mapDbProductToProduct = (dbProduct: any): Product => {
     groupedProducts: dbProduct.grouped_products || [],
     menuOrder: dbProduct.menu_order || 0,
     metaData: dbProduct.meta_data || [],
-    imageAlts: dbProduct.image_alts || [],
+    image_alts: dbProduct.image_alts || [],
     // Add any custom fields needed
     price_number: parseFloat(dbProduct.price || '0'),
     model: dbProduct.model || '',
