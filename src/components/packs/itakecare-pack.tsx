@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock, Sparkles } from "lucide-react";
@@ -265,6 +266,11 @@ const ITakecarePack = () => {
     };
   };
 
+  // Define these variables at the component level so they can be used throughout the component
+  const currentPack = packs[selectedPack];
+  const totalDevices = calculateTotalDevices();
+  const pricing = calculatePrice(currentPack, totalDevices, contractDuration);
+
   const handleSubmit = form.handleSubmit((data) => {
     console.log("Pack selected:", data);
     console.log("Selected hardware:", selectedHardware);
@@ -359,10 +365,6 @@ const ITakecarePack = () => {
     const basePack = packs[packId];
     const discount = getDiscountPercentage(totalDevices);
     return basePack.monthlyPrice * (1 - discount / 100);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `${amount.toFixed(2)}€`;
   };
 
   return (
