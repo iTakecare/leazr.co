@@ -31,6 +31,7 @@ import PartnerCreatePage from "./pages/PartnerCreatePage";
 import PartnersListPage from "./pages/PartnersList";
 import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
+import ITakecarePage from "./pages/ITakecarePage";
 
 import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
@@ -253,6 +254,7 @@ function App() {
               <Route path="/ambassadors/create" element={<AmbassadorCreatePage />} />
               <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
               <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
+              <Route path="/itakecare" element={<ITakecarePage />} />
             </Route>
             
             <Route path="/partner" element={
