@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -20,7 +21,8 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  const [duration, setDuration] = useState(36); // Durée par défaut en mois
+  // Durée fixée à 36 mois
+  const duration = 36;
   
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -94,10 +96,6 @@ const ProductDetailPage = () => {
     });
   };
 
-  const handleDurationChange = (value: number) => {
-    setDuration(value);
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -136,16 +134,9 @@ const ProductDetailPage = () => {
     );
   }
 
-  // Calculer le prix mensuel en fonction des options et de la durée
+  // Calculer le prix mensuel en fonction des options et de la quantité
   const calculatePrice = () => {
     let basePrice = product.monthly_price || 0;
-    
-    // Ajuster le prix en fonction de la durée (réduction pour contrats plus longs)
-    if (duration === 24) {
-      basePrice *= 1.1; // Prix légèrement plus élevé pour contrat plus court
-    } else if (duration === 48) {
-      basePrice *= 0.9; // Réduction pour contrat plus long
-    }
     
     // Pour les produits avec variants, chercher le prix de la variante correspondante
     if (product.variants && product.variants.length > 0) {
@@ -158,15 +149,14 @@ const ProductDetailPage = () => {
         );
       });
       
-      if (selectedVariant && selectedVariant.price) {
-        // Calculate monthly price
-        const variantPrice = selectedVariant.price || 0;
-        
-        // Use variant's monthly_price if available, otherwise calculate it from price
-        if ('monthly_price' in selectedVariant && selectedVariant.monthly_price !== undefined) {
-          basePrice = selectedVariant.monthly_price;
-        } else {
-          basePrice = variantPrice / 36; // Default to 36-month calculation
+      if (selectedVariant) {
+        // Use variant's monthly_price if available, otherwise use parent's monthly_price
+        const variantPrice = selectedVariant.monthly_price !== undefined 
+          ? selectedVariant.monthly_price 
+          : basePrice;
+          
+        if (typeof variantPrice === 'number') {
+          basePrice = variantPrice;
         }
       }
     }
@@ -205,6 +195,23 @@ const ProductDetailPage = () => {
         ))}
       </div>
     );
+  };
+
+  // Obtenir les specifications de la variante sélectionnée
+  const getSelectedVariantSpecifications = () => {
+    if (!product.variants || product.variants.length === 0) {
+      return product.specifications || {};
+    }
+
+    const selectedVariant = product.variants.find(variant => {
+      if (!variant.attributes) return false;
+      
+      return Object.entries(selectedOptions).every(([key, value]) => 
+        variant.attributes && variant.attributes[key] === value
+      );
+    });
+
+    return selectedVariant?.specifications || product.specifications || {};
   };
 
   return (
@@ -278,27 +285,6 @@ const ProductDetailPage = () => {
                   </>
                 )}
                 
-                {/* Duration selector - Compact version */}
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Durée
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {[24, 36, 48].map((months) => (
-                      <Button
-                        key={months}
-                        type="button"
-                        size="sm"
-                        variant={duration === months ? "default" : "outline"}
-                        className="text-xs flex-1 sm:flex-none"
-                        onClick={() => handleDurationChange(months)}
-                      >
-                        {months} mois
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
                 {/* Quantity selector - Compact version */}
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">
@@ -370,12 +356,12 @@ const ProductDetailPage = () => {
             </div>
             
             {/* Specifications - Compact Grid */}
-            {product.specifications && Object.keys(product.specifications).length > 0 && (
+            {Object.keys(getSelectedVariantSpecifications()).length > 0 && (
               <div className="mb-4">
                 <h3 className="text-lg font-medium mb-2">Caractéristiques</h3>
                 <div className="bg-white rounded-lg border overflow-hidden">
                   <div className="grid grid-cols-2 gap-1 text-sm">
-                    {Object.entries(product.specifications).map(([key, value], index) => (
+                    {Object.entries(getSelectedVariantSpecifications()).map(([key, value], index) => (
                       <div key={key} className={`p-2 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
                         <span className="font-medium capitalize mr-1">{key}:</span>
                         <span className="text-gray-700">{value}</span>

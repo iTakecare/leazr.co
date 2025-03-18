@@ -40,10 +40,10 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isV
 
   // Determine if product has variants
   const hasVariants = (product.variants && product.variants.length > 0) || 
-                     (product.is_parent && product.variants_ids && product.variants_ids.length > 0);
+                     (product.is_parent);
 
   // Count available variants for the badge
-  const variantsCount = product.variants?.length || product.variants_ids?.length || 0;
+  const variantsCount = product.variants?.length || 0;
 
   return (
     <Card 

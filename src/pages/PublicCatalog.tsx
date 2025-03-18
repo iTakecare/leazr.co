@@ -33,7 +33,7 @@ const PublicCatalog = () => {
       !p.parent_id && !p.is_variation
     );
     
-    // Create a map of parent IDs to array of variant IDs
+    // Create a map of parent IDs to array of variant products
     const variantMap = new Map<string, Product[]>();
     
     // Second pass: organize variants by parent
