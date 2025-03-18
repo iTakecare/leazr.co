@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock, Sparkles } from "lucide-react";
@@ -251,22 +250,24 @@ const ITakecarePack = () => {
 
   const calculatePrice = (basePack: PackTier, devices: number, duration: number) => {
     const discount = getDiscountPercentage(devices);
-
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
-    const baseTotal = basePack.price * (1 - discount / 100);
+    
+    const totalMonthly = discountedMonthly * Math.max(1, devices);
+    
+    const totalContract = totalMonthly * duration;
     
     const hardwareCosts = calculateHardwareCost();
 
     return {
       monthly: discountedMonthly,
-      base: baseTotal,
+      totalMonthly: totalMonthly,
+      totalContract: totalContract,
+      base: totalContract,
       hardware: hardwareCosts,
-      total: baseTotal + hardwareCosts,
       discount: discount,
     };
   };
 
-  // Define these variables at the component level so they can be used throughout the component
   const currentPack = packs[selectedPack];
   const totalDevices = calculateTotalDevices();
   const pricing = calculatePrice(currentPack, totalDevices, contractDuration);
@@ -304,8 +305,8 @@ const ITakecarePack = () => {
     console.log("Changing pack to:", packId);
     
     if (selectedPack !== packId) {
-      setPreviousPack(selectedPack); // Store the previous pack before updating
-      setLastPackId(selectedPack); // Set lastPackId to highlight new hardware
+      setPreviousPack(selectedPack);
+      setLastPackId(selectedPack);
       setSelectedPack(packId);
       form.setValue("packTier", packId);
       
@@ -399,22 +400,6 @@ const ITakecarePack = () => {
                     getDiscountedMonthlyPrice={getDiscountedMonthlyPrice}
                     contractDuration={contractDuration}
                   />
-
-                  <div className="grid gap-6 mt-8">
-                    <div>
-                      <Label htmlFor="contractDuration">Durée du contrat</Label>
-                      <RadioGroup
-                        className="flex space-x-4 mt-2"
-                        value={contractDuration.toString()}
-                        onValueChange={handleContractDurationChange}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="36" id="duration-36" />
-                          <Label htmlFor="duration-36">36 mois</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -469,13 +454,6 @@ const ITakecarePack = () => {
                               }
                               return null;
                             })}
-                            
-                            {pricing.hardware > 0 && (
-                              <div className="flex justify-between pt-2 mt-2 border-t">
-                                <span className="font-bold">Total équipements</span>
-                                <span className="font-bold">{formatCurrency(pricing.hardware)}</span>
-                              </div>
-                            )}
                           </div>
                         </div>
                       )}
@@ -489,7 +467,7 @@ const ITakecarePack = () => {
                           <>
                             <div className="text-3xl font-bold">{formatCurrency(pricing.monthly)}</div>
                             <div className="text-sm text-muted-foreground">
-                              <span className="line-through">{formatCurrency(currentPack.monthlyPrice)}</span> par mois
+                              <span className="line-through">{formatCurrency(currentPack.monthlyPrice)}</span> par équipement et par mois
                             </div>
                             <div className="bg-green-100 text-green-800 text-sm p-1 rounded mt-2 mb-4">
                               Remise volume: {pricing.discount}% pour {totalDevices} équipements
@@ -498,7 +476,7 @@ const ITakecarePack = () => {
                         ) : (
                           <>
                             <div className="text-3xl font-bold">{formatCurrency(pricing.monthly)}</div>
-                            <div className="text-sm text-muted-foreground mb-4">par mois</div>
+                            <div className="text-sm text-muted-foreground mb-4">par équipement et par mois</div>
                           </>
                         )}
                         
@@ -512,19 +490,19 @@ const ITakecarePack = () => {
                             </thead>
                             <tbody>
                               <tr className={selectedPack === 'silver' ? 'bg-gray-100' : ''}>
-                                <td className="py-1">I CARE A LITTLE</td>
+                                <td className="py-1 text-left">I CARE A LITTLE</td>
                                 <td className="text-right py-1">
                                   {formatCurrency(getDiscountedMonthlyPrice('silver'))}
                                 </td>
                               </tr>
                               <tr className={selectedPack === 'gold' ? 'bg-gray-100' : ''}>
-                                <td className="py-1">YES I CARE</td>
+                                <td className="py-1 text-left">YES I CARE</td>
                                 <td className="text-right py-1">
                                   {formatCurrency(getDiscountedMonthlyPrice('gold'))}
                                 </td>
                               </tr>
                               <tr className={selectedPack === 'platinum' ? 'bg-gray-100' : ''}>
-                                <td className="py-1">I REALLY TAKE CARE</td>
+                                <td className="py-1 text-left">I REALLY TAKE CARE</td>
                                 <td className="text-right py-1">
                                   {formatCurrency(getDiscountedMonthlyPrice('platinum'))}
                                 </td>
@@ -535,20 +513,25 @@ const ITakecarePack = () => {
                         
                         <div className="border-t pt-4 mt-4">
                           <div className="flex justify-between font-medium">
-                            <span>Formule ({contractDuration} mois)</span>
-                            <span>{formatCurrency(pricing.monthly * contractDuration)}</span>
+                            <span>Mensualité par équipement</span>
+                            <span>{formatCurrency(pricing.monthly)}</span>
                           </div>
                           
-                          {pricing.hardware > 0 && (
+                          {totalDevices > 0 && (
                             <div className="flex justify-between font-medium mt-2">
-                              <span>Équipements</span>
-                              <span>{formatCurrency(pricing.hardware)}</span>
+                              <span>Nombre d'équipements</span>
+                              <span>{totalDevices}</span>
                             </div>
                           )}
                           
+                          <div className="flex justify-between font-medium mt-2">
+                            <span>Mensualité totale</span>
+                            <span>{formatCurrency(pricing.totalMonthly)}</span>
+                          </div>
+                          
                           <div className="flex justify-between font-bold mt-4 text-lg">
-                            <span>Total</span>
-                            <span>{formatCurrency(pricing.monthly * contractDuration + pricing.hardware)}</span>
+                            <span>Total sur {contractDuration} mois</span>
+                            <span>{formatCurrency(pricing.totalContract)}</span>
                           </div>
                         </div>
                         <Button type="submit" className="w-full mt-6">
