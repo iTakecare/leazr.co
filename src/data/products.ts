@@ -1,3 +1,4 @@
+
 import { Product } from "@/types/catalog";
 
 // Sample product data if API fails
@@ -8,8 +9,8 @@ export const products: Product[] = [
     brand: "Dell",
     category: "laptop",
     description: "Puissant ordinateur portable professionnel",
-    price: 1399, // Prix d'achat
-    monthly_price: 45.99, // Mensualité de leasing
+    price: 1399,
+    monthly_price: 45.99,
     imageUrl: "https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/xps-notebooks/xps-13-9315/media-gallery/notebook-xps-9315-nt-blue-gallery-3.psd?fmt=png-alpha&pscan=auto&scl=1&hei=402&wid=402&qlt=100,1&resMode=sharp2&size=402,402",
     specifications: {
       processor: "Intel Core i7",
@@ -17,6 +18,7 @@ export const products: Product[] = [
       storage: "512GB SSD",
       display: "13.4 pouces Full HD+"
     },
+    tier: "gold", // This laptop is available for the gold tier
     createdAt: new Date(),
     updatedAt: new Date(),
     active: true
@@ -36,6 +38,7 @@ export const products: Product[] = [
       storage: "512GB SSD", 
       display: "14 pouces Liquid Retina XDR"
     },
+    tier: "platinum", // This laptop is available for the platinum tier
     createdAt: new Date(),
     updatedAt: new Date(),
     active: true
@@ -55,6 +58,7 @@ export const products: Product[] = [
       storage: "256GB SSD",
       display: "12.9 pouces Liquid Retina XDR"
     },
+    tier: "platinum", // This tablet is available for the platinum tier
     createdAt: new Date(),
     updatedAt: new Date(),
     active: true
@@ -74,6 +78,7 @@ export const products: Product[] = [
       storage: "256GB SSD",
       display: "13.5 pouces PixelSense"
     },
+    tier: "gold", // This laptop is available for the gold tier
     createdAt: new Date(),
     updatedAt: new Date(),
     active: true
@@ -93,6 +98,7 @@ export const products: Product[] = [
       storage: "256GB",
       display: "6.1 pouces Super Retina XDR"
     },
+    tier: "platinum", // This smartphone is available for the platinum tier
     createdAt: new Date(),
     updatedAt: new Date(),
     active: true
@@ -112,6 +118,7 @@ export const products: Product[] = [
       storage: "256GB",
       display: "6.8 pouces Dynamic AMOLED 2X"
     },
+    tier: "gold", // This smartphone is available for the gold tier
     createdAt: new Date(),
     updatedAt: new Date(),
     active: true
@@ -131,6 +138,7 @@ export const products: Product[] = [
       storage: "512GB SSD",
       display: "14 pouces WUXGA"
     },
+    tier: "platinum", // This laptop is available for the platinum tier
     createdAt: new Date(),
     updatedAt: new Date(),
     active: true
@@ -150,6 +158,67 @@ export const products: Product[] = [
       storage: "256GB",
       display: "14.6 pouces Dynamic AMOLED 2X"
     },
+    tier: "gold", // This tablet is available for the gold tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
+  },
+  {
+    id: "9",
+    name: "Lenovo Ideapad",
+    brand: "Lenovo",
+    category: "laptop",
+    description: "Ordinateur portable abordable pour usage quotidien",
+    price: 699,
+    monthly_price: 22.99,
+    imageUrl: "https://p2-ofp.static.pub/fes/cms/2022/04/26/dx4k8mid73gk5ldw8rkodl7c7c04pe236853.png",
+    specifications: {
+      processor: "Intel Core i3",
+      memory: "8GB",
+      storage: "256GB SSD",
+      display: "15.6 pouces Full HD"
+    },
+    tier: "silver", // This laptop is available for the silver tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
+  },
+  {
+    id: "10",
+    name: "Samsung Galaxy A54",
+    brand: "Samsung",
+    category: "smartphone",
+    description: "Smartphone milieu de gamme avec bon rapport qualité-prix",
+    price: 499,
+    monthly_price: 16.99,
+    imageUrl: "https://images.samsung.com/fr/smartphones/galaxy-a54-5g/buy/04_Color_Selection/mobile/a54_carousel_colorselection_awesome_graphite_mo.jpg",
+    specifications: {
+      processor: "Exynos 1380",
+      memory: "6GB",
+      storage: "128GB",
+      display: "6.4 pouces Super AMOLED"
+    },
+    tier: "silver", // This smartphone is available for the silver tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
+  },
+  {
+    id: "11",
+    name: "iPad 10e gen",
+    brand: "Apple",
+    category: "tablet",
+    description: "Tablette abordable pour un usage quotidien",
+    price: 599,
+    monthly_price: 19.99,
+    imageUrl: "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/ipad-10th-gen-finish-select-202212-blue?wid=2560&hei=1440&fmt=p-jpg&qlt=95&.v=1670854677494",
+    specifications: {
+      processor: "A14 Bionic",
+      memory: "4GB",
+      storage: "64GB",
+      display: "10.9 pouces Retina"
+    },
+    tier: "silver", // This tablet is available for the silver tier
     createdAt: new Date(),
     updatedAt: new Date(),
     active: true

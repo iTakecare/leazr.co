@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock } from "lucide-react";
@@ -171,7 +170,6 @@ const ITakecarePack = () => {
     },
   };
 
-  // Fetch product details when a product is selected
   useEffect(() => {
     const fetchSelectedProducts = async () => {
       const categories = ['laptop', 'desktop', 'mobile', 'tablet'] as const;
@@ -225,14 +223,11 @@ const ITakecarePack = () => {
       discount = deviceDiscounts["5-10"].percent;
     }
 
-    // Calculate base pack price
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
     const baseTotal = basePack.price * (1 - discount / 100);
     
-    // Calculate hardware costs
     let hardwareMonthly = 0;
     
-    // Add monthly costs for selected products
     Object.entries(selectedProducts).forEach(([category, product]) => {
       if (product && product.monthly_price) {
         const qty = quantities[category as keyof typeof quantities];
@@ -258,7 +253,6 @@ const ITakecarePack = () => {
     console.log("Selected hardware:", selectedHardware);
     console.log("Hardware quantities:", quantities);
     
-    // Verify quantities match selections
     const categories = ['laptop', 'desktop', 'mobile', 'tablet'] as const;
     let isValid = true;
     
@@ -300,7 +294,6 @@ const ITakecarePack = () => {
   };
 
   const handleSelectHardware = (category: string, option: string) => {
-    // Only set selected hardware if quantity is greater than 0
     if (quantities[category as keyof typeof quantities] > 0) {
       setSelectedHardware((prev) => ({
         ...prev,
@@ -317,7 +310,6 @@ const ITakecarePack = () => {
       [category]: quantity,
     }));
     
-    // If quantity is set to 0, also clear the selection
     if (quantity === 0) {
       setSelectedHardware((prev) => ({
         ...prev,
@@ -385,7 +377,8 @@ const ITakecarePack = () => {
                 </CardHeader>
                 <CardContent>
                   <HardwareOptions 
-                    options={currentPack.hardwareOptions} 
+                    options={currentPack.hardwareOptions}
+                    selectedPack={selectedPack} 
                     selectedHardware={selectedHardware}
                     quantities={quantities}
                     onSelect={handleSelectHardware}

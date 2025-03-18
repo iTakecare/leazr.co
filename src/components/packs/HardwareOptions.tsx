@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -16,6 +15,7 @@ interface HardwareOptionsProps {
     mobile: string[];
     tablet: string[];
   };
+  selectedPack: string;
   selectedHardware: {
     laptop: string | null;
     desktop: string | null;
@@ -34,6 +34,7 @@ interface HardwareOptionsProps {
 
 const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   options,
+  selectedPack,
   selectedHardware,
   quantities,
   onSelect,
@@ -68,11 +69,18 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         }
         
         if (data) {
+          const filteredData = data.filter(product => {
+            if (product.tier) {
+              return product.tier === selectedPack;
+            }
+            return true;
+          });
+          
           const categorizedProducts = {
-            laptop: data.filter(p => p.category === 'laptop'),
-            desktop: data.filter(p => p.category === 'desktop'),
-            mobile: data.filter(p => p.category === 'smartphone'),
-            tablet: data.filter(p => p.category === 'tablet'),
+            laptop: filteredData.filter(p => p.category === 'laptop'),
+            desktop: filteredData.filter(p => p.category === 'desktop'),
+            mobile: filteredData.filter(p => p.category === 'smartphone'),
+            tablet: filteredData.filter(p => p.category === 'tablet'),
           };
           
           setProducts(categorizedProducts);
@@ -85,7 +93,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     };
     
     fetchProducts();
-  }, []);
+  }, [selectedPack]);
 
   const categories = [
     {
@@ -197,7 +205,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                 </div>
               </RadioGroup>
             ) : (
-              <div className="text-sm text-gray-500 italic p-2">Aucun produit disponible dans cette catégorie</div>
+              <div className="text-sm text-gray-500 italic p-2">Aucun produit disponible dans cette catégorie pour cette formule</div>
             )}
           </CardContent>
         </Card>

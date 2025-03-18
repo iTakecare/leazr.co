@@ -1,4 +1,5 @@
 
+// Product type definition
 export interface Product {
   id: string;
   name: string;
@@ -6,74 +7,30 @@ export interface Product {
   category: string;
   description: string;
   price: number;
-  imageUrl?: string;
-  image_url?: string; 
-  imageUrls?: string[];
-  image_urls?: string[];
-  imageAlt?: string;
-  image_alt?: string;
-  imageAlts?: string[];
-  image_alts?: string[];
-  specifications?: Record<string, string>;
-  sku?: string;
-  parent_id?: string;
-  is_variation?: boolean;
-  is_parent?: boolean;
-  variation_attributes?: Record<string, string>;
-  variants_ids?: string[];
-  variants?: ProductVariant[];
   monthly_price?: number;
-  active?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  imageUrl?: string;
+  specifications?: Record<string, string | number>;
+  tier?: string; // Silver, gold, or platinum
+  createdAt: Date;
+  updatedAt: Date;
+  active: boolean;
 }
 
-export interface ProductVariant {
+// Category type definition
+export interface Category {
   id: string;
   name: string;
-  price: number;
-  attributes?: Record<string, string | number | boolean>;
+  slug: string;
+  description?: string;
   imageUrl?: string;
-  monthly_price?: number;
+  products?: Product[];
 }
 
-export interface ProductCreateInput {
+// Brand type definition
+export interface Brand {
+  id: string;
   name: string;
-  brand?: string;
-  category?: string;
+  logo?: string;
   description?: string;
-  price: number;
-  imageUrl?: string;
-  image_url?: string;
-  imageUrls?: string[];
-  image_urls?: string[];
-  imageAlt?: string;
-  image_alt?: string;
-  imageAlts?: string[];
-  image_alts?: string[];
-  specifications?: Record<string, string>;
+  products?: Product[];
 }
-
-export interface ProductUpdateInput {
-  name?: string;
-  brand?: string;
-  category?: string;
-  description?: string;
-  price?: number;
-  imageUrl?: string;
-  image_url?: string;
-  imageUrls?: string[];
-  image_urls?: string[];
-  imageAlt?: string;
-  image_alt?: string;
-  imageAlts?: string[];
-  image_alts?: string[];
-  specifications?: Record<string, string>;
-  sku?: string;
-  active?: boolean;
-}
-
-export type ProductsResponse = {
-  data: Product[];
-  count: number;
-};
