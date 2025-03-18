@@ -259,18 +259,6 @@ export const getCategories = async () => {
       .order('name', { ascending: true });
 
     if (error) {
-      if (error.code === '42P01') {
-        console.log("Categories table does not exist yet. Using default categories.");
-        return [
-          { name: "laptop", translation: "Ordinateur portable" },
-          { name: "desktop", translation: "Ordinateur de bureau" },
-          { name: "tablet", translation: "Tablette" },
-          { name: "smartphone", translation: "Smartphone" },
-          { name: "accessories", translation: "Accessoires" },
-          { name: "other", translation: "Autre" }
-        ];
-      }
-      
       console.error("Error fetching categories from API:", error);
       throw new Error(`API Error: ${error.message}`);
     }
@@ -428,4 +416,3 @@ export const deleteBrand = async ({ name }: { name: string }) => {
   
   return data;
 };
-

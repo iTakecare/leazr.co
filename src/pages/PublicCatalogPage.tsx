@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import ProductCatalog from "@/components/ui/ProductCatalog";
 import PageTransition from "@/components/layout/PageTransition";
 import { Link } from "react-router-dom";

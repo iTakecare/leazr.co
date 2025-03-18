@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Laptop, Monitor, Smartphone, Tablet, Plus, Minus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
 interface HardwareOptionsProps {
@@ -74,7 +76,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         setLoading(true);
         setFetchError(null);
         
-        const { data, error } = await supabase
+        const { data, error } = await getSupabaseClient()
           .from('products')
           .select('*')
           .eq('active', true);
@@ -101,6 +103,10 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         });
 
         console.log(`Filtered down to ${filteredData.length} products in price range for ${selectedPack} pack`);
+
+        if (filteredData.length === 0) {
+          setFetchError(`No products found in price range for ${selectedPack} pack.`);
+        }
 
         const currentProductIds: {[key: string]: boolean} = {};
         filteredData.forEach(product => {
@@ -159,7 +165,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         setLastPackId(selectedPack);
       } catch (error) {
         console.error("Error in product fetch:", error);
-        setFetchError("Failed to fetch products.");
+        setFetchError("Failed to fetch products. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -283,9 +289,10 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {fetchError && (
-        <div className="col-span-full bg-yellow-100 p-4 rounded-md mb-4 text-yellow-800 text-sm">
-          {fetchError}
-        </div>
+        <Alert className="col-span-full bg-yellow-100 text-yellow-800 border-yellow-300 mb-4">
+          <AlertTitle>Attention</AlertTitle>
+          <AlertDescription>{fetchError}</AlertDescription>
+        </Alert>
       )}
       
       {categories.map((category) => (
