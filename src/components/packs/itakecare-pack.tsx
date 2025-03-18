@@ -389,20 +389,6 @@ const ITakecarePack = () => {
                     contractDuration={contractDuration}
                   />
 
-                  {lastPackId && lastPackId !== selectedPack && (
-                    <div className="mt-6 bg-[#F2FCE2] p-4 rounded-lg border-2 border-green-300 shadow-md">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-green-600" />
-                        <p className="font-semibold text-green-800">
-                          Nouveau matériel disponible pour la formule {selectedPack.toUpperCase()} !
-                        </p>
-                      </div>
-                      <p className="text-sm text-green-700 mt-1">
-                        Consultez la section "Sélectionnez votre matériel" ci-dessous pour découvrir les nouveaux équipements disponibles.
-                      </p>
-                    </div>
-                  )}
-
                   <div className="grid gap-6 mt-8">
                     <div>
                       <Label htmlFor="contractDuration">Durée du contrat</Label>
@@ -422,8 +408,8 @@ const ITakecarePack = () => {
               </Card>
 
               <Card>
-                <CardHeader className={lastPackId && lastPackId !== selectedPack ? "bg-green-50 border-b-2 border-green-200" : ""}>
-                  <CardTitle className="text-xl flex items-center">
+                <CardHeader>
+                  <CardTitle className="text-xl">
                     2. Sélectionnez votre matériel
                     {lastPackId && lastPackId !== selectedPack && (
                       <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -432,14 +418,8 @@ const ITakecarePack = () => {
                       </span>
                     )}
                   </CardTitle>
-                  {lastPackId && lastPackId !== selectedPack && (
-                    <div className="mt-2 text-sm text-green-700 flex items-center">
-                      <Sparkles className="h-4 w-4 mr-1 text-green-600" />
-                      Des nouveaux équipements sont disponibles suite à votre changement de formule {selectedPack.toUpperCase()}
-                    </div>
-                  )}
                 </CardHeader>
-                <CardContent className={lastPackId && lastPackId !== selectedPack ? "bg-green-50/30 border-green-100" : ""}>
+                <CardContent>
                   <HardwareOptions 
                     options={currentPack.hardwareOptions}
                     selectedPack={selectedPack} 
@@ -558,3 +538,4 @@ const ITakecarePack = () => {
   );
 };
 export default ITakecarePack;
+

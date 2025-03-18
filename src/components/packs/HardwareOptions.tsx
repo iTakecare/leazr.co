@@ -250,11 +250,8 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {categoriesWithNewProducts.map((category) => (
-        <Card 
-          key={category.id} 
-          className={`overflow-hidden ${category.hasNewProducts ? 'border-2 border-green-300 shadow-md' : ''}`}
-        >
-          <div className={`${category.hasNewProducts ? 'bg-green-50' : 'bg-gray-50'} p-4 flex items-center justify-between border-b ${category.hasNewProducts ? 'border-green-200' : ''}`}>
+        <Card key={category.id} className="overflow-hidden">
+          <div className="bg-gray-50 p-4 flex items-center justify-between border-b">
             <div className="flex items-center space-x-3">
               {category.icon}
               <h3 className="font-medium">{category.label}</h3>
@@ -266,7 +263,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
               )}
             </div>
           </div>
-          <CardContent className={`p-4 ${category.hasNewProducts ? 'bg-green-50/20' : ''}`}>
+          <CardContent className="p-4">
             {loading ? (
               <div className="animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
@@ -284,34 +281,29 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                     return (
                       <div 
                         key={product.id} 
-                        className={`flex items-center justify-between pb-3 last:border-0 last:pb-0 transition-all ${
-                          isNew 
-                            ? 'bg-[#F2FCE2] rounded-md p-3 border-2 border-green-300 shadow-md mb-2 animate-pulse' 
-                            : 'border-b'
-                        }`}
+                        className="flex items-center justify-between pb-3 last:border-0 last:pb-0 border-b"
                       >
                         <div className="flex items-start space-x-2">
                           <RadioGroupItem 
                             value={product.id} 
                             id={`${category.id}-${product.id}`}
                             disabled={productQuantities[product.id] === 0}
-                            className={isNew ? 'border-green-500' : ''}
                           />
                           <div>
                             <Label 
                               htmlFor={`${category.id}-${product.id}`} 
                               className={`text-sm leading-snug cursor-pointer flex items-center ${
                                 productQuantities[product.id] === 0 ? 'text-gray-400' : ''
-                              } ${isNew ? 'font-semibold text-green-800' : ''}`}
+                              }`}
                             >
                               {product.name}
                               {isNew && (
-                                <Sparkles className="h-5 w-5 text-green-600 ml-1 inline-block animate-pulse" />
+                                <Sparkles className="h-4 w-4 text-green-600 ml-1 inline-block" />
                               )}
                             </Label>
                             {isNew && (
                               <div className="flex items-center mt-1">
-                                <p className="text-xs text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full inline-block">
+                                <p className="text-xs text-green-700 font-medium">
                                   Nouveau matériel disponible
                                 </p>
                               </div>
@@ -322,20 +314,20 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                           <Button 
                             variant="outline" 
                             size="icon" 
-                            className={`h-7 w-7 ${isNew ? 'border-green-300' : ''}`}
+                            className="h-7 w-7"
                             onClick={() => handleProductDecrement(product.id)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
                           <Input
-                            className={`w-12 text-center h-7 px-1 ${isNew ? 'border-green-300 bg-green-50/50' : ''}`}
+                            className="w-12 text-center h-7 px-1"
                             value={productQuantities[product.id] || 0}
                             onChange={(e) => handleQuantityChange(product.id, e.target.value)}
                           />
                           <Button 
                             variant="outline" 
                             size="icon" 
-                            className={`h-7 w-7 ${isNew ? 'border-green-300' : ''}`} 
+                            className="h-7 w-7" 
                             onClick={() => handleProductIncrement(product.id)}
                           >
                             <Plus className="h-3 w-3" />
