@@ -1,4 +1,3 @@
-
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
@@ -70,7 +69,6 @@ export const mapDbProductToProduct = (dbProduct: any): Product => {
     image_alts: dbProduct.image_alts || [],
     // Add any custom fields needed
     price_number: parseFloat(dbProduct.price || '0'),
-    model: dbProduct.model || '',
     stock: dbProduct.stock || 0,
     discount_per_quantity: dbProduct.discount_per_quantity || {},
     permalink: dbProduct.permalink || '',
@@ -95,14 +93,12 @@ export const mapDbProductToProduct = (dbProduct: any): Product => {
   };
 };
 
-// WooCommerce integration functions
 export async function testWooCommerceConnection(
   siteUrl: string,
   consumerKey: string,
   consumerSecret: string
 ): Promise<boolean> {
   try {
-    // Use fetch to test the WooCommerce API connection
     const response = await fetch(`${siteUrl}/wp-json/wc/v3/products?per_page=1`, {
       headers: {
         'Authorization': 'Basic ' + btoa(`${consumerKey}:${consumerSecret}`)
@@ -198,7 +194,6 @@ export async function importWooCommerceProducts(
     
     for (const product of products) {
       try {
-        // Map WooCommerce product to our Product type
         const mappedProduct = {
           id: product.id.toString(),
           name: product.name,
@@ -221,14 +216,12 @@ export async function importWooCommerceProducts(
           image_urls: product.images?.map(img => img.src) || [],
           imageUrls: product.images?.map(img => img.src) || [],
           image_alts: product.images?.map(img => img.alt || '') || [],
-          // Add any additional fields needed
           is_parent: product.variations?.length > 0,
           parent_id: null,
           variations: [],
           is_variation: false
         };
         
-        // Check if product exists (based on SKU or ID)
         const { data: existingProduct } = await supabase
           .from('products')
           .select('*')
@@ -240,7 +233,6 @@ export async function importWooCommerceProducts(
           continue;
         }
         
-        // Insert or update the product
         if (existingProduct && overwriteExisting) {
           const { error } = await supabase
             .from('products')
@@ -258,11 +250,9 @@ export async function importWooCommerceProducts(
         
         result.totalImported++;
         
-        // Handle variations if needed
         if (includeVariations && product.variations && product.variations.length > 0) {
           for (const variationId of product.variations) {
             try {
-              // Fetch variation details from WooCommerce
               const variationResponse = await fetch(
                 `${product.siteUrl}/wp-json/wc/v3/products/${product.id}/variations/${variationId}`,
                 {
@@ -276,7 +266,6 @@ export async function importWooCommerceProducts(
               
               const variation = await variationResponse.json();
               
-              // Map variation to our Product type
               const mappedVariation = {
                 id: `${product.id}-${variation.id}`,
                 name: `${product.name} - ${variation.attributes.map((a: any) => a.option).join(', ')}`,
@@ -295,7 +284,6 @@ export async function importWooCommerceProducts(
                 stock: variation.stock_quantity || 0,
                 images: variation.image ? [variation.image.src] : (product.images?.map(img => img.src) || []),
                 image_url: variation.image?.src || product.images?.[0]?.src || '',
-                // Relation to parent
                 is_variation: true,
                 parent_id: product.id.toString(),
                 variation_attributes: variation.attributes.reduce((acc: any, attr: any) => {
@@ -304,7 +292,6 @@ export async function importWooCommerceProducts(
                 }, {})
               };
               
-              // Insert or update the variation
               const { data: existingVariation } = await supabase
                 .from('products')
                 .select('*')
@@ -379,10 +366,8 @@ export async function saveWooCommerceConfig(userId: string, config: {
   consumerSecret: string;
 }) {
   try {
-    // Save in localStorage for development purposes
     localStorage.setItem('woocommerce_config', JSON.stringify(config));
     
-    // Attempt to save to the database if available
     const { data, error } = await supabase
       .from('woocommerce_configs')
       .upsert({

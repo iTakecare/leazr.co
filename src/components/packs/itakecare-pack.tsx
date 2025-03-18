@@ -214,12 +214,17 @@ const ITakecarePack = () => {
     "2-5": { percent: 0, label: "2-5 devices" },
     "5-10": { percent: 5, label: "5 à 10" },
     "10+": { percent: 10, label: "plus de 10" },
-    "20+": { percent: 20, label: "> 10" },
+    "20+": { percent: 20, label: "> 20" }, // Fixed label to "20" instead of "10"
   };
 
   const calculateTotalDevices = () => {
     return quantities.laptop + quantities.desktop + quantities.mobile + quantities.tablet;
   };
+
+  // This function will now be called every time quantities change
+  useEffect(() => {
+    setNumberOfDevices(calculateTotalDevices());
+  }, [quantities]);
 
   const getDiscountPercentage = (devices: number) => {
     if (devices >= 20) {
@@ -239,11 +244,14 @@ const ITakecarePack = () => {
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
     const baseTotal = basePack.price * (1 - discount / 100);
     
+    // Calculate hardware costs if needed
+    const hardwareCosts = 0; // Could add hardware costs here if needed in the future
+    
     return {
       monthly: discountedMonthly,
       base: baseTotal,
-      hardware: 0,
-      total: baseTotal,
+      hardware: hardwareCosts,
+      total: baseTotal + hardwareCosts,
       discount: discount,
     };
   };
@@ -338,6 +346,11 @@ const ITakecarePack = () => {
     return basePack.monthlyPrice * (1 - discount / 100);
   };
 
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return `${amount.toFixed(2)}€`;
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col space-y-6 max-w-5xl mx-auto">
@@ -366,6 +379,8 @@ const ITakecarePack = () => {
                     packs={packs} 
                     selectedPack={selectedPack} 
                     onSelect={handlePackChange} 
+                    totalDevices={totalDevices}
+                    getDiscountedMonthlyPrice={getDiscountedMonthlyPrice}
                   />
 
                   <div className="grid gap-6 mt-8">
@@ -441,9 +456,9 @@ const ITakecarePack = () => {
                         {/* Show original price and discounted price */}
                         {pricing.discount > 0 ? (
                           <>
-                            <div className="text-3xl font-bold">{pricing.monthly.toFixed(2)}€</div>
+                            <div className="text-3xl font-bold">{formatCurrency(pricing.monthly)}</div>
                             <div className="text-sm text-muted-foreground">
-                              <span className="line-through">{currentPack.monthlyPrice.toFixed(2)}€</span> par mois
+                              <span className="line-through">{formatCurrency(currentPack.monthlyPrice)}</span> par mois
                             </div>
                             <div className="bg-green-100 text-green-800 text-sm p-1 rounded mt-2 mb-4">
                               Remise volume: {pricing.discount}% pour {totalDevices} équipements
@@ -451,7 +466,7 @@ const ITakecarePack = () => {
                           </>
                         ) : (
                           <>
-                            <div className="text-3xl font-bold">{pricing.monthly.toFixed(2)}€</div>
+                            <div className="text-3xl font-bold">{formatCurrency(pricing.monthly)}</div>
                             <div className="text-sm text-muted-foreground mb-4">par mois</div>
                           </>
                         )}
@@ -469,19 +484,19 @@ const ITakecarePack = () => {
                               <tr className={selectedPack === 'silver' ? 'bg-gray-100' : ''}>
                                 <td className="py-1">Silver</td>
                                 <td className="text-right py-1">
-                                  {getDiscountedMonthlyPrice('silver').toFixed(2)}€
+                                  {formatCurrency(getDiscountedMonthlyPrice('silver'))}
                                 </td>
                               </tr>
                               <tr className={selectedPack === 'gold' ? 'bg-gray-100' : ''}>
                                 <td className="py-1">Gold</td>
                                 <td className="text-right py-1">
-                                  {getDiscountedMonthlyPrice('gold').toFixed(2)}€
+                                  {formatCurrency(getDiscountedMonthlyPrice('gold'))}
                                 </td>
                               </tr>
                               <tr className={selectedPack === 'platinum' ? 'bg-gray-100' : ''}>
                                 <td className="py-1">Platinum</td>
                                 <td className="text-right py-1">
-                                  {getDiscountedMonthlyPrice('platinum').toFixed(2)}€
+                                  {formatCurrency(getDiscountedMonthlyPrice('platinum'))}
                                 </td>
                               </tr>
                             </tbody>
@@ -491,7 +506,7 @@ const ITakecarePack = () => {
                         <div className="border-t pt-4 mt-4">
                           <div className="flex justify-between font-medium">
                             <span>Total sur {contractDuration} mois</span>
-                            <span>{(pricing.monthly * contractDuration).toFixed(2)}€</span>
+                            <span>{formatCurrency(pricing.monthly * contractDuration)}</span>
                           </div>
                         </div>
                         <Button type="submit" className="w-full mt-6">

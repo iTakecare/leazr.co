@@ -80,6 +80,7 @@ export interface Product {
   price_number?: number;
   stock?: number;
   discount_per_quantity?: Record<string, any>;
+  model?: string; // Add missing model property
   
   // Additional properties used by the application
   is_parent?: boolean;

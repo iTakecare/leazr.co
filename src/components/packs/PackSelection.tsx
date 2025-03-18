@@ -9,10 +9,23 @@ interface PackSelectionProps {
   packs: Record<string, any>;
   selectedPack: string;
   onSelect: (packId: string) => void;
+  totalDevices?: number;
+  getDiscountedMonthlyPrice?: (packId: string) => number;
 }
 
-const PackSelection: React.FC<PackSelectionProps> = ({ packs, selectedPack, onSelect }) => {
+const PackSelection: React.FC<PackSelectionProps> = ({ 
+  packs, 
+  selectedPack, 
+  onSelect,
+  totalDevices = 0,
+  getDiscountedMonthlyPrice 
+}) => {
   const packIds = Object.keys(packs);
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return `${amount.toFixed(2)}€`;
+  };
 
   // Sélection de quelques fonctionnalités clés pour l'aperçu
   const keyFeatures = [
@@ -25,6 +38,9 @@ const PackSelection: React.FC<PackSelectionProps> = ({ packs, selectedPack, onSe
     <RadioGroup value={selectedPack} onValueChange={onSelect} className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {packIds.map((packId) => {
         const pack = packs[packId];
+        const hasDiscount = totalDevices >= 5 && getDiscountedMonthlyPrice;
+        const discountedPrice = hasDiscount ? getDiscountedMonthlyPrice(packId) : pack.monthlyPrice;
+        
         return (
           <div key={packId} onClick={() => onSelect(packId)} className="cursor-pointer">
             <Card className={`overflow-hidden h-full border-2 transition-colors ${
@@ -38,8 +54,20 @@ const PackSelection: React.FC<PackSelectionProps> = ({ packs, selectedPack, onSe
                     <Label htmlFor={`pack-${packId}`} className="font-bold text-lg">
                       {pack.name}
                     </Label>
-                    <p className="text-2xl font-bold mt-2">{pack.monthlyPrice}€</p>
-                    <p className="text-sm text-gray-500">par mois / par appareil</p>
+                    
+                    {hasDiscount ? (
+                      <>
+                        <p className="text-2xl font-bold mt-2">{formatCurrency(discountedPrice)}</p>
+                        <p className="text-sm text-gray-500">
+                          <span className="line-through">{formatCurrency(pack.monthlyPrice)}</span> par mois / par appareil
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold mt-2">{formatCurrency(pack.monthlyPrice)}</p>
+                        <p className="text-sm text-gray-500">par mois / par appareil</p>
+                      </>
+                    )}
                     
                     <div className="mt-4 space-y-2">
                       {keyFeatures.map((feature) => (
