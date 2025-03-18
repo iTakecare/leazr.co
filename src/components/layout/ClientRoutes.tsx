@@ -5,6 +5,7 @@ import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
 import ClientCalculator from "@/pages/ClientCalculator";
+import ClientITakecarePage from "@/pages/ClientITakecarePage";
 import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
 import ClientsLoading from "@/components/clients/ClientsLoading";
@@ -27,7 +28,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
+  const { user, isLoading, isClient, userRoleChecked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [checkingClient, setCheckingClient] = React.useState(true);
@@ -53,10 +54,30 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
       }
       
       try {
+        console.time('checkClientAssociation');
         setCheckingClient(true);
         setClientError(null);
         
         console.log("Vérification de l'association client pour l'utilisateur:", user.id, user.email);
+        
+        // Optimisation: Vérifier d'abord si l'utilisateur a déjà un client_id
+        if (user.client_id) {
+          console.log("L'utilisateur a déjà un client_id associé:", user.client_id);
+          setCheckingClient(false);
+          console.timeEnd('checkClientAssociation');
+          return;
+        }
+        
+        // Vérifier le cache local
+        if (retryCount === 0 && user.id) {
+          const cachedClientId = localStorage.getItem(`client_id_${user.id}`);
+          if (cachedClientId) {
+            console.log("Client ID trouvé dans le cache:", cachedClientId);
+            setCheckingClient(false);
+            console.timeEnd('checkClientAssociation');
+            return;
+          }
+        }
         
         if (retryCount > 0 && user?.id) {
           localStorage.removeItem(`client_id_${user.id}`);
@@ -74,6 +95,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           console.error("Erreur lors de la vérification des clients existants:", clientError);
           setClientError("Erreur lors de la vérification des clients");
           setCheckingClient(false);
+          console.timeEnd('checkClientAssociation');
           return;
         }
         
@@ -81,6 +103,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           console.log("Client déjà associé trouvé:", associatedClient);
           localStorage.setItem(`client_id_${user.id}`, associatedClient.id);
           setCheckingClient(false);
+          console.timeEnd('checkClientAssociation');
           return;
         }
         
@@ -89,21 +112,25 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           if (clientId) {
             console.log("Client associé via linkUserToClient:", clientId);
             setCheckingClient(false);
+            console.timeEnd('checkClientAssociation');
             return;
           }
         }
         
         setClientError(`Aucun client trouvé pour votre compte utilisateur (${user.email}). Veuillez contacter l'assistance.`);
         console.error("Aucun client associé à l'utilisateur:", user.id, user.email);
+        console.timeEnd('checkClientAssociation');
       } catch (error) {
         console.error("Erreur lors de la vérification du client:", error);
         setClientError("Erreur lors de la vérification du compte client");
+        console.timeEnd('checkClientAssociation');
       } finally {
         setCheckingClient(false);
       }
     };
     
     if (user && !isLoading) {
+      console.log("Démarrage de la vérification du client pour:", user.email);
       checkClientAssociation();
     } else {
       setCheckingClient(false);
@@ -189,6 +216,7 @@ const ClientRoutes = () => {
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><ClientCatalog /></ClientLayout>} />
         <Route path="calculator" element={<Navigate to="/client/dashboard" replace />} />
+        <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>
     </ClientCheck>

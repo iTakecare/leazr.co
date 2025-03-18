@@ -49,121 +49,146 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRoleChecked, setUserRoleChecked] = useState(false);
   const navigate = useNavigate();
 
+  const loadUserProfile = async (userId: string) => {
+    try {
+      console.time('loadUserProfile');
+      
+      // Optimisation: Utiliser une seule requête RPC pour récupérer toutes les informations nécessaires
+      // Cette approche est beaucoup plus rapide que de faire plusieurs requêtes séparées
+      const { data, error } = await supabase.rpc('get_user_profile_with_associations', {
+        user_id: userId
+      });
+      
+      if (error) {
+        console.error("Erreur lors de la récupération du profil utilisateur:", error);
+        return null;
+      }
+      
+      if (data) {
+        console.log("Profil utilisateur récupéré avec succès:", data);
+        return {
+          first_name: data.first_name || '',
+          last_name: data.last_name || '',
+          company: data.company || '',
+          role: data.role || 'client',
+          partner_id: data.partner_id || null,
+          ambassador_id: data.ambassador_id || null,
+          client_id: data.client_id || null
+        };
+      }
+      
+      // Fallback à l'ancienne méthode si la RPC n'existe pas encore
+      
+      // Récupérer les données du profil
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, company, role')
+        .eq('id', userId)
+        .single();
+      
+      // Vérifier l'association avec un partenaire
+      const { data: partnerData } = await supabase
+        .from('partners')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+      
+      // Vérifier l'association avec un ambassadeur
+      const { data: ambassadorData } = await supabase
+        .from('ambassadors')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+      
+      // Vérifier l'association avec un client
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+      
+      console.timeEnd('loadUserProfile');
+      
+      return {
+        first_name: profileData?.first_name || '',
+        last_name: profileData?.last_name || '',
+        company: profileData?.company || '',
+        role: profileData?.role || 'client',
+        partner_id: partnerData?.id || null,
+        ambassador_id: ambassadorData?.id || null,
+        client_id: clientData?.id || null
+      };
+    } catch (error) {
+      console.error("Erreur dans loadUserProfile:", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
+      console.time('checkSession');
       setIsLoading(true);
       try {
         const { data } = await supabase.auth.getSession();
         setSession(data.session);
         
         if (data.session?.user) {
-          // Get user profile data from profiles table if needed
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, company, role')
-            .eq('id', data.session.user.id)
-            .single();
+          console.log("Session trouvée pour l'utilisateur:", data.session.user.id);
+          const userProfileData = await loadUserProfile(data.session.user.id);
           
-          // Vérifier si l'utilisateur est lié à un partenaire
-          const { data: partnerData } = await supabase
-            .from('partners')
-            .select('id')
-            .eq('user_id', data.session.user.id)
-            .single();
+          if (userProfileData) {
+            // Fusionner les données utilisateur avec les données de profil
+            const extendedUser: ExtendedUser = {
+              ...data.session.user,
+              ...userProfileData
+            };
             
-          // Vérifier si l'utilisateur est lié à un ambassadeur  
-          const { data: ambassadorData } = await supabase
-            .from('ambassadors')
-            .select('id')
-            .eq('user_id', data.session.user.id)
-            .single();
-            
-          // Vérifier si l'utilisateur est lié à un client
-          const { data: clientData } = await supabase
-            .from('clients')
-            .select('id')
-            .eq('user_id', data.session.user.id)
-            .single();
-            
-          // Merge user data with profile data and entity info
-          const extendedUser: ExtendedUser = {
-            ...data.session.user,
-            first_name: profileData?.first_name || '',
-            last_name: profileData?.last_name || '',
-            company: profileData?.company || '',
-            role: profileData?.role || 'client',
-            partner_id: partnerData?.id || null,
-            ambassador_id: ambassadorData?.id || null,
-            client_id: clientData?.id || null
-          };
-          
-          setUser(extendedUser);
-          setUserRoleChecked(true);
+            setUser(extendedUser);
+          } else {
+            setUser(data.session.user as ExtendedUser);
+          }
         } else {
+          console.log("Aucune session trouvée");
           setUser(null);
-          setUserRoleChecked(true);
         }
+        
+        setUserRoleChecked(true);
 
-        // Set up auth state listener
+        // Configurer l'écouteur d'état d'authentification
         const { data: authListener } = supabase.auth.onAuthStateChange(
           async (_event, session) => {
+            console.log("Changement d'état d'authentification:", _event);
             setSession(session);
             
             if (session?.user) {
-              // Get user profile data from profiles table if needed
-              const { data: profileData } = await supabase
-                .from('profiles')
-                .select('first_name, last_name, company, role')
-                .eq('id', session.user.id)
-                .single();
-                
-              // Vérifier si l'utilisateur est lié à un partenaire
-              const { data: partnerData } = await supabase
-                .from('partners')
-                .select('id')
-                .eq('user_id', session.user.id)
-                .single();
-                
-              // Vérifier si l'utilisateur est lié à un ambassadeur  
-              const { data: ambassadorData } = await supabase
-                .from('ambassadors')
-                .select('id')
-                .eq('user_id', session.user.id)
-                .single();
-                
-              // Vérifier si l'utilisateur est lié à un client
-              const { data: clientData } = await supabase
-                .from('clients')
-                .select('id')
-                .eq('user_id', session.user.id)
-                .single();
-                
-              // Merge user data with profile data and entity info
-              const extendedUser: ExtendedUser = {
-                ...session.user,
-                first_name: profileData?.first_name || '',
-                last_name: profileData?.last_name || '',
-                company: profileData?.company || '',
-                role: profileData?.role || 'client',
-                partner_id: partnerData?.id || null,
-                ambassador_id: ambassadorData?.id || null,
-                client_id: clientData?.id || null
-              };
+              console.log("Nouvel état d'authentification avec utilisateur:", session.user.id);
+              const userProfileData = await loadUserProfile(session.user.id);
               
-              setUser(extendedUser);
-              setUserRoleChecked(true);
+              if (userProfileData) {
+                const extendedUser: ExtendedUser = {
+                  ...session.user,
+                  ...userProfileData
+                };
+                
+                setUser(extendedUser);
+              } else {
+                setUser(session.user as ExtendedUser);
+              }
             } else {
+              console.log("Nouvel état d'authentification sans utilisateur");
               setUser(null);
-              setUserRoleChecked(true);
             }
+            
+            setUserRoleChecked(true);
           }
         );
 
+        console.timeEnd('checkSession');
         return () => {
           authListener.subscription.unsubscribe();
         };
       } catch (error) {
-        console.error("Session check error:", error);
+        console.error("Erreur lors de la vérification de session:", error);
         setUserRoleChecked(true);
       } finally {
         setIsLoading(false);
@@ -193,7 +218,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       return { user: extendedUser, session: data.session, error };
     } catch (error: any) {
-      console.error("Signup error", error);
+      console.error("Erreur d'inscription:", error);
       return { user: null, session: null, error: error.message };
     } finally {
       setIsLoading(false);
@@ -202,34 +227,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.time('signIn');
       setIsLoading(true);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
+      if (error) {
+        console.error("Erreur de connexion:", error);
+        return { user: null, session: null, error };
+      }
+      
+      console.log("Connexion réussie pour l'utilisateur:", data.user?.id);
+      
       let extendedUser = null;
       
       if (data.user) {
-        // Get user profile data from profiles table if needed
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, company')
-          .eq('id', data.user.id)
-          .single();
-          
-        // Merge user data with profile data
-        extendedUser = {
-          ...data.user,
-          first_name: profileData?.first_name || '',
-          last_name: profileData?.last_name || '',
-          company: profileData?.company || ''
-        };
+        // Récupérer les données du profil utilisateur
+        const userProfileData = await loadUserProfile(data.user.id);
+        
+        if (userProfileData) {
+          extendedUser = {
+            ...data.user,
+            ...userProfileData
+          };
+        } else {
+          extendedUser = {
+            ...data.user,
+            first_name: '',
+            last_name: '',
+            company: ''
+          };
+        }
       }
       
-      return { user: extendedUser, session: data.session, error };
+      console.timeEnd('signIn');
+      return { user: extendedUser, session: data.session, error: null };
     } catch (error: any) {
-      console.error("Signin error", error);
+      console.error("Erreur lors de la connexion:", error);
       return { user: null, session: null, error: error.message };
     } finally {
       setIsLoading(false);
@@ -242,7 +279,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await supabase.auth.signOut();
       navigate("/login");
     } catch (error: any) {
-      console.error("Signout error", error);
+      console.error("Erreur lors de la déconnexion:", error);
     } finally {
       setIsLoading(false);
     }
@@ -255,13 +292,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           });
           return { data, error };
      } catch (error: any) {
-          console.error("Reset password error", error);
+          console.error("Erreur de réinitialisation de mot de passe:", error);
           return { data: null, error: error.message };
      }
   };
 
+  // Fonctions utilitaires pour vérifier le rôle de l'utilisateur
   const isAdmin = () => {
-    // Vérifier si le rôle est admin (nouvelle condition) ou l'email est dans la liste des admins
     return user?.role === "admin" ||
            user?.email === "admin@test.com" || 
            user?.email === "alex@test.com" ||
@@ -269,17 +306,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const isClient = () => {
-    // Considéré comme client s'il a un client_id associé
     return !!user?.client_id;
   };
 
   const isPartner = () => {
-    // Considéré comme partenaire s'il a un partner_id associé
     return !!user?.partner_id;
   };
 
   const isAmbassador = () => {
-    // Considéré comme ambassadeur s'il a un ambassador_id associé
     return !!user?.ambassador_id;
   };
 
