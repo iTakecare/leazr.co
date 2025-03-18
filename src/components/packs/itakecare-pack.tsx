@@ -444,11 +444,6 @@ const ITakecarePack = () => {
                                     <span className="font-medium">
                                       {qty}x {product ? product.name : "Produit sélectionné"}
                                     </span>
-                                    {product && (
-                                      <span className="font-medium">
-                                        {formatCurrency(product.price * qty)}
-                                      </span>
-                                    )}
                                   </div>
                                 );
                               }
