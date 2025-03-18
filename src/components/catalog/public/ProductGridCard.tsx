@@ -3,6 +3,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
+import { Badge } from "@/components/ui/badge";
 
 interface ProductGridCardProps {
   product: Product;
@@ -31,6 +32,9 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     return categoryMap[category] || "Autre";
   };
 
+  // Determine if product has variants
+  const hasVariants = product.variants?.length > 0 || (product.is_parent && product.variants_ids?.length > 0);
+
   return (
     <Card 
       className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col"
@@ -45,13 +49,18 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             (e.target as HTMLImageElement).src = "/placeholder.svg";
           }}
         />
-        {product.category && (
-          <div className="absolute top-2 left-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {product.category && (
+            <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
               {getCategoryLabel(product.category)}
-            </span>
-          </div>
-        )}
+            </Badge>
+          )}
+          {hasVariants && (
+            <Badge variant="outline" className="bg-white">
+              Options disponibles
+            </Badge>
+          )}
+        </div>
       </div>
       
       <CardContent className="flex-1 flex flex-col p-4">

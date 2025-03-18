@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getProductById } from "@/services/catalogService";
@@ -12,7 +12,7 @@ import PublicHeader from "@/components/catalog/public/PublicHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const ProductDetailPage = () => {
@@ -28,6 +28,67 @@ const ProductDetailPage = () => {
     queryFn: () => getProductById(id || ""),
     enabled: !!id,
   });
+
+  // Extract available options from product variants or specification
+  const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
+  
+  useEffect(() => {
+    if (product) {
+      // Initialize available options based on product variants or specifications
+      const options: Record<string, string[]> = {};
+      
+      // If product has explicit variants
+      if (product.variants && product.variants.length > 0) {
+        product.variants.forEach(variant => {
+          if (variant.attributes) {
+            Object.entries(variant.attributes).forEach(([key, value]) => {
+              if (!options[key]) {
+                options[key] = [];
+              }
+              if (typeof value === 'string' && !options[key].includes(value)) {
+                options[key].push(value);
+              }
+            });
+          }
+        });
+      } 
+      // If product has relevant specifications
+      else if (product.specifications) {
+        const relevantSpecs = ['stockage', 'memoire', 'processeur', 'taille', 'couleur'];
+        relevantSpecs.forEach(spec => {
+          if (product.specifications && product.specifications[spec]) {
+            const value = product.specifications[spec];
+            if (typeof value === 'string') {
+              options[spec] = [value];
+            }
+          }
+        });
+      }
+      
+      // Add some default options if no variants are found
+      if (Object.keys(options).length === 0) {
+        if (product.category === 'laptop' || product.category === 'desktop') {
+          options.stockage = ["256GB SSD", "512GB SSD", "1TB SSD"];
+          options.memoire = ["8GB", "16GB", "32GB"];
+          options.processeur = ["Intel Core i5", "Intel Core i7", "AMD Ryzen 5"];
+        } else if (product.category === 'smartphone' || product.category === 'tablet') {
+          options.stockage = ["64GB", "128GB", "256GB"];
+          options.couleur = ["Noir", "Blanc", "Bleu"];
+        }
+      }
+      
+      setAvailableOptions(options);
+      
+      // Set default selected options
+      const defaultOptions: Record<string, string> = {};
+      Object.entries(options).forEach(([key, values]) => {
+        if (values.length > 0) {
+          defaultOptions[key] = values[0];
+        }
+      });
+      setSelectedOptions(defaultOptions);
+    }
+  }, [product]);
 
   const handleBackToCatalog = () => {
     navigate("/catalogue");
@@ -92,13 +153,6 @@ const ProductDetailPage = () => {
     );
   }
 
-  // Options possibles (simulées)
-  const productOptions = {
-    stockage: ["256GB SSD", "512GB SSD", "1TB SSD"],
-    memoire: ["8GB", "16GB", "32GB"],
-    processeur: ["Intel Core i5", "Intel Core i7", "Apple M1", "Apple M2"]
-  };
-
   // Calculer le prix mensuel en fonction des options et de la durée
   const calculatePrice = () => {
     let basePrice = product.monthly_price || 0;
@@ -111,23 +165,56 @@ const ProductDetailPage = () => {
     }
     
     // Ajuster en fonction des options (simulé)
-    if (selectedOptions.stockage === "512GB SSD") {
+    if (selectedOptions.stockage?.includes("512GB")) {
       basePrice += 5;
-    } else if (selectedOptions.stockage === "1TB SSD") {
+    } else if (selectedOptions.stockage?.includes("1TB")) {
       basePrice += 10;
     }
     
-    if (selectedOptions.memoire === "16GB") {
+    if (selectedOptions.memoire?.includes("16GB")) {
       basePrice += 5;
-    } else if (selectedOptions.memoire === "32GB") {
+    } else if (selectedOptions.memoire?.includes("32GB")) {
       basePrice += 15;
     }
     
-    if (selectedOptions.processeur === "Intel Core i7" || selectedOptions.processeur === "Apple M2") {
+    if (selectedOptions.processeur?.includes("i7") || selectedOptions.processeur?.includes("M2")) {
       basePrice += 8;
     }
     
     return basePrice * quantity;
+  };
+
+  // Render compact options section
+  const renderOptions = () => {
+    if (Object.keys(availableOptions).length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-4">
+        {Object.entries(availableOptions).map(([option, values]) => (
+          <div key={option} className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700 capitalize">
+              {option}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {values.map((value) => (
+                <Button
+                  key={value}
+                  type="button"
+                  size="sm"
+                  variant={selectedOptions[option] === value ? "default" : "outline"}
+                  className="text-xs"
+                  onClick={() => handleOptionChange(option, value)}
+                >
+                  {value}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -160,9 +247,12 @@ const ProductDetailPage = () => {
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">
-                {product.category === "laptop" ? "Ordinateur" : 
+                {product.category === "laptop" ? "Ordinateur portable" : 
+                  product.category === "desktop" ? "Ordinateur fixe" : 
                   product.category === "tablet" ? "Tablette" : 
                   product.category === "smartphone" ? "Smartphone" : 
+                  product.category === "monitor" ? "Écran" : 
+                  product.category === "printer" ? "Imprimante" : 
                   "Équipement"}
               </Badge>
               <Badge variant="outline">{product.brand}</Badge>
@@ -172,55 +262,39 @@ const ProductDetailPage = () => {
               {product.name}
             </h1>
             
-            <div className="text-lg text-gray-700 mb-6">
+            <div className="text-lg text-gray-700 mb-4">
               à partir de <span className="font-bold text-indigo-700">{formatCurrency(product.monthly_price || 0)}/mois</span>
             </div>
             
-            <div className="mb-6">
+            <div className="mb-4">
               <p className="text-gray-600">
                 {product.description || "Cet appareil est disponible à la location pour votre entreprise. Configurez-le selon vos besoins et demandez une offre personnalisée."}
               </p>
             </div>
             
-            <Separator className="my-6" />
+            <Separator className="my-4" />
             
-            {/* Configuration Options */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-4">Sélectionnez votre configuration idéale</h3>
+            {/* Configuration Options - Now more compact */}
+            <div className="mb-4">
+              <h3 className="text-lg font-medium mb-3">Configuration</h3>
               
-              <div className="space-y-4">
-                {Object.entries(productOptions).map(([option, values]) => (
-                  <div key={option} className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 capitalize">
-                      {option}
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {values.map((value) => (
-                        <Button
-                          key={value}
-                          type="button"
-                          variant={selectedOptions[option] === value ? "default" : "outline"}
-                          className="text-sm"
-                          onClick={() => handleOptionChange(option, value)}
-                        >
-                          {value}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                {/* Render dynamic options based on product variants or specs */}
+                {renderOptions()}
                 
-                <div className="space-y-2">
+                {/* Duration selector */}
+                <div className="mt-4 space-y-1">
                   <label className="block text-sm font-medium text-gray-700">
                     Durée
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {[24, 36, 48].map((months) => (
                       <Button
                         key={months}
                         type="button"
+                        size="sm"
                         variant={duration === months ? "default" : "outline"}
-                        className="text-sm"
+                        className="text-xs"
                         onClick={() => handleDurationChange(months)}
                       >
                         {months} mois
@@ -229,11 +303,12 @@ const ProductDetailPage = () => {
                   </div>
                 </div>
                 
-                <div className="space-y-2">
+                {/* Quantity selector */}
+                <div className="mt-4 space-y-1">
                   <label className="block text-sm font-medium text-gray-700">
-                    Quantité souhaitée
+                    Quantité
                   </label>
-                  <div className="flex items-center w-1/3">
+                  <div className="flex items-center">
                     <Button 
                       variant="outline" 
                       size="icon"
@@ -256,9 +331,9 @@ const ProductDetailPage = () => {
             </div>
             
             {/* Price and CTA */}
-            <div className="bg-gray-50 p-4 rounded-lg border mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-700">Votre sélection pour</span>
+            <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mb-4">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-gray-700">Total mensuel</span>
                 <span className="text-2xl font-bold text-indigo-700">{formatCurrency(calculatePrice())} HT / mois</span>
               </div>
               
@@ -267,7 +342,7 @@ const ProductDetailPage = () => {
                   className="w-full sm:w-auto px-8 bg-indigo-600 hover:bg-indigo-700"
                   onClick={handleRequestProduct}
                 >
-                  Ajouter
+                  Demander une offre
                 </Button>
                 <Button 
                   variant="outline" 
@@ -278,87 +353,60 @@ const ProductDetailPage = () => {
                 </Button>
               </div>
               
-              <div className="mt-4 text-sm text-gray-500">
+              <div className="mt-3 text-xs text-gray-500 grid grid-cols-2 gap-1">
                 <div className="flex items-center">
-                  <Check className="h-4 w-4 text-green-500 mr-2" />
-                  <span>Livraison gratuite en France et Europe</span>
+                  <Check className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                  <span>Livraison gratuite</span>
                 </div>
                 <div className="flex items-center">
-                  <Check className="h-4 w-4 text-green-500 mr-2" />
+                  <Check className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
                   <span>Pas de premier loyer majoré</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                  <span>Garantie étendue incluse</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                  <span>Support technique</span>
                 </div>
               </div>
             </div>
             
-            {/* Product Features */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-4">Inclus dans votre location</h3>
-              <ul className="space-y-2">
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-                    <Check className="h-4 w-4 text-indigo-600" />
+            {/* Specifications - Compact Grid */}
+            {product.specifications && Object.keys(product.specifications).length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-2">Caractéristiques</h3>
+                <div className="bg-white rounded-lg border overflow-hidden">
+                  <div className="grid grid-cols-2 gap-1 text-sm">
+                    {Object.entries(product.specifications).map(([key, value], index) => (
+                      <div key={key} className={`p-2 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
+                        <span className="font-medium capitalize mr-1">{key}:</span>
+                        <span className="text-gray-700">{value}</span>
+                      </div>
+                    ))}
                   </div>
-                  <span>Garantie étendue et assurance casse, vol et oxydation</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-                    <Check className="h-4 w-4 text-indigo-600" />
-                  </div>
-                  <span>Support depuis l'application ou par téléphone pour les pannes logicielles</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-                    <Check className="h-4 w-4 text-indigo-600" />
-                  </div>
-                  <span>Accès à notre application de gestion de flotte en ligne</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-                    <Check className="h-4 w-4 text-indigo-600" />
-                  </div>
-                  <span>Recyclage ou reconditionnement de vos appareils en fin de contrat</span>
-                </li>
-              </ul>
-            </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         
-        {/* Specifications section */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Caractéristiques techniques</h2>
-          <div className="bg-white rounded-lg shadow">
-            <div className="grid grid-cols-1 md:grid-cols-2">
-              {product.specifications && Object.entries(product.specifications).map(([key, value]) => (
-                <div key={key} className="p-4 border-b border-r">
-                  <div className="text-sm text-gray-500 capitalize">{key}</div>
-                  <div className="font-medium">{value}</div>
-                </div>
-              ))}
-              
-              {(!product.specifications || Object.keys(product.specifications).length === 0) && (
-                <div className="p-4 border-b">
-                  <div className="text-gray-500">Aucune spécification disponible pour ce produit.</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Similar products section */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Produits similaires</h2>
-          {/* We would fetch similar products here, but for now just display some placeholder items */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Similar products section - More compact */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4">Produits similaires</h2>
+          {/* Just show placeholder for now */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((index) => (
               <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
                 <div className="aspect-video bg-gray-100 flex items-center justify-center p-4">
                   <img src="/placeholder.svg" alt="Product" className="object-contain max-h-full" />
                 </div>
-                <div className="p-4">
-                  <div className="text-sm text-gray-500 mb-1">Marque</div>
-                  <h3 className="font-medium">Produit similaire {index}</h3>
-                  <div className="mt-2">
-                    <div className="text-sm text-gray-500">dès</div>
+                <div className="p-3">
+                  <div className="text-xs text-gray-500 mb-1">Marque</div>
+                  <h3 className="font-medium text-sm">Produit similaire {index}</h3>
+                  <div className="mt-2 text-sm">
+                    <div className="text-xs text-gray-500">dès</div>
                     <div className="font-bold text-indigo-700">XX,XX€/mois</div>
                   </div>
                 </div>
