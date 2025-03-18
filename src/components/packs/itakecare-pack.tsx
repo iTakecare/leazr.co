@@ -400,9 +400,6 @@ const ITakecarePack = () => {
                                     <span className="font-medium">
                                       {qty}x {product ? product.name : "Produit sélectionné"}
                                     </span>
-                                    <span>
-                                      {product ? `${product.price}€` : "Prix indisponible"}
-                                    </span>
                                   </div>
                                 );
                               }
@@ -444,5 +441,4 @@ const ITakecarePack = () => {
     </div>
   );
 };
-
 export default ITakecarePack;

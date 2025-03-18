@@ -208,9 +208,6 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
                         className={`text-sm leading-snug cursor-pointer ${quantities[category.id as keyof typeof quantities] === 0 ? 'text-gray-400' : ''}`}
                       >
                         {product.name}
-                        <span className="ml-2 text-xs text-gray-500">
-                          ({product.price}€)
-                        </span>
                       </Label>
                     </div>
                   ))}

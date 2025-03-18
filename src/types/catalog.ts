@@ -25,6 +25,7 @@ export interface Product {
   // Alternative property names used in Supabase
   image_url?: string; // Alternative to imageUrl for DB compatibility
   image_urls?: string[]; // Additional images
+  imageUrls?: string[]; // Alternative property name
   image_alts?: string[]; // Alt text for additional images
 }
 
