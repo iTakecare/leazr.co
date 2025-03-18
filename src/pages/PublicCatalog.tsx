@@ -26,7 +26,37 @@ const PublicCatalog = () => {
     queryFn: getCategories,
   });
 
-  const filteredProducts = products.filter((product: Product) => {
+  // Group products by parent/child relationship to avoid showing variants as separate products
+  const groupedProducts = React.useMemo(() => {
+    // First pass: collect all parent products and standalone products
+    const parentProducts = products.filter(p => 
+      !p.parent_id && !p.is_variation
+    );
+    
+    // Create a map of parent IDs to array of variant IDs
+    const variantMap = new Map<string, Product[]>();
+    
+    // Second pass: organize variants by parent
+    products.forEach(product => {
+      if (product.parent_id) {
+        const variants = variantMap.get(product.parent_id) || [];
+        variants.push(product);
+        variantMap.set(product.parent_id, variants);
+      }
+    });
+    
+    // Attach variants to parents
+    parentProducts.forEach(parent => {
+      if (parent.id) {
+        const variants = variantMap.get(parent.id) || [];
+        parent.variants = variants;
+      }
+    });
+    
+    return parentProducts;
+  }, [products]);
+
+  const filteredProducts = groupedProducts.filter((product: Product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()));

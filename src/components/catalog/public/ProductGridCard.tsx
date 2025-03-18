@@ -8,9 +8,15 @@ import { Badge } from "@/components/ui/badge";
 interface ProductGridCardProps {
   product: Product;
   onClick: () => void;
+  isVariant?: boolean;
 }
 
-const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) => {
+const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isVariant = false }) => {
+  // Skip rendering if this is a variant and should be grouped with parent
+  if (isVariant || product.is_variation || product.parent_id) {
+    return null;
+  }
+
   const brandLabel = product.brand || "Generic";
   const monthlyPrice = product.monthly_price ? `${formatCurrency(product.monthly_price)}/mois` : "Prix sur demande";
   const imageUrl = product.image_url || product.imageUrl || "/placeholder.svg";
@@ -33,7 +39,11 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   };
 
   // Determine if product has variants
-  const hasVariants = product.variants?.length > 0 || (product.is_parent && product.variants?.length > 0);
+  const hasVariants = (product.variants && product.variants.length > 0) || 
+                     (product.is_parent && product.variants_ids && product.variants_ids.length > 0);
+
+  // Count available variants for the badge
+  const variantsCount = product.variants?.length || product.variants_ids?.length || 0;
 
   return (
     <Card 
@@ -73,7 +83,11 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         
         {hasVariants && (
           <div className="mt-3 pt-3 border-t border-gray-100">
-            <span className="text-gray-600 text-sm">Sélectionnez votre configuration idéale.</span>
+            <span className="text-gray-600 text-sm">
+              {variantsCount > 0 
+                ? `${variantsCount} configuration${variantsCount > 1 ? 's' : ''} disponible${variantsCount > 1 ? 's' : ''}`
+                : "Configurations disponibles"}
+            </span>
           </div>
         )}
       </CardContent>

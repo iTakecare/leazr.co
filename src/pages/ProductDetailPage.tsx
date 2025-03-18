@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import PublicHeader from "@/components/catalog/public/PublicHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { toast } from "sonner";
-import { Product } from "@/types/catalog";
+import { Product, ProductVariant } from "@/types/catalog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -56,15 +56,6 @@ const ProductDetailPage = () => {
         Object.entries(product.variation_attributes).forEach(([key, value]) => {
           if (typeof value === 'string') {
             options[key] = [value];
-          }
-        });
-      }
-      
-      // If no options found but specifications contain comma-separated values that indicate possible options
-      else if (product.specifications) {
-        Object.entries(product.specifications).forEach(([key, value]) => {
-          if (typeof value === 'string' && value.includes(',')) {
-            options[key] = value.split(',').map(v => v.trim());
           }
         });
       }
@@ -168,8 +159,15 @@ const ProductDetailPage = () => {
       });
       
       if (selectedVariant && selectedVariant.price) {
-        // Calculate monthly price from variant price if it doesn't have monthly_price
-        basePrice = selectedVariant.monthly_price || (selectedVariant.price / 36);
+        // Calculate monthly price
+        const variantPrice = selectedVariant.price || 0;
+        
+        // Use variant's monthly_price if available, otherwise calculate it from price
+        if ('monthly_price' in selectedVariant && selectedVariant.monthly_price !== undefined) {
+          basePrice = selectedVariant.monthly_price;
+        } else {
+          basePrice = variantPrice / 36; // Default to 36-month calculation
+        }
       }
     }
     
