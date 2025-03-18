@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import PublicHeader from "@/components/catalog/public/PublicHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { toast } from "sonner";
-import { Product } from "@/types/catalog";
+import { Product, ProductVariant } from "@/types/catalog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -20,8 +21,8 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  const duration = 36;
-
+  const duration = 36; // Fixed duration to 36 months
+  
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
     queryFn: () => getProductById(id || ""),
@@ -31,17 +32,21 @@ const ProductDetailPage = () => {
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
   const [currentImage, setCurrentImage] = useState<string>("");
 
+  // Process product data when it's loaded
   useEffect(() => {
     if (product) {
       console.log("Product loaded:", product);
       
+      // Set default image
       setCurrentImage(product.image_url || product.imageUrl || "/placeholder.svg");
       
+      // Extract available options from variants
       const options: Record<string, string[]> = {};
       
       if (product.variants && product.variants.length > 0) {
         console.log("Product has variants:", product.variants);
         
+        // For each variant, extract attributes and add them as options
         product.variants.forEach(variant => {
           if (variant.attributes) {
             Object.entries(variant.attributes).forEach(([key, value]) => {
@@ -56,8 +61,21 @@ const ProductDetailPage = () => {
           }
         });
       } 
+      // If the product has variation attributes but no variants
       else if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
         Object.entries(product.variation_attributes).forEach(([key, value]) => {
+          options[key] = [String(value)];
+        });
+      }
+      // If the product has attributes but no variants
+      else if (product.attributes && typeof product.attributes === 'object' && !Array.isArray(product.attributes)) {
+        Object.entries(product.attributes).forEach(([key, value]) => {
+          options[key] = [String(value)];
+        });
+      }
+      // Extract from specifications as a fallback
+      else if (product.specifications && Object.keys(product.specifications).length > 0) {
+        Object.entries(product.specifications).forEach(([key, value]) => {
           options[key] = [String(value)];
         });
       }
@@ -65,6 +83,7 @@ const ProductDetailPage = () => {
       console.log("Extracted options:", options);
       setAvailableOptions(options);
       
+      // Set default selected options
       const defaultOptions: Record<string, string> = {};
       Object.entries(options).forEach(([key, values]) => {
         if (values.length > 0) {
@@ -76,6 +95,7 @@ const ProductDetailPage = () => {
     }
   }, [product]);
 
+  // Update image when options change
   useEffect(() => {
     if (product && Object.keys(selectedOptions).length > 0) {
       const selectedVariant = findSelectedVariant();
@@ -134,7 +154,9 @@ const ProductDetailPage = () => {
 
   const renderOptions = () => {
     if (Object.keys(availableOptions).length === 0) {
-      return null;
+      return (
+        <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
+      );
     }
 
     return (
@@ -265,14 +287,7 @@ const ProductDetailPage = () => {
               <h3 className="text-xl font-medium mb-4">Configuration</h3>
               
               <div className="bg-gray-50 p-6 rounded-lg border space-y-6">
-                {Object.keys(availableOptions).length > 0 ? (
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-indigo-800">Sélectionnez votre configuration</h4>
-                    {renderOptions()}
-                  </div>
-                ) : (
-                  <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
-                )}
+                {renderOptions()}
                 
                 <div className="space-y-2">
                   <h4 className="font-medium text-indigo-800">Quantité</h4>

@@ -71,7 +71,7 @@ export interface Product {
   categories?: any[];
   tags?: any[];
   images?: any[];
-  attributes?: any[];
+  attributes?: Record<string, string | number | boolean> | any[];
   defaultAttributes?: any[];
   variations?: any[];
   groupedProducts?: any[];
@@ -80,7 +80,7 @@ export interface Product {
   price_number?: number;
   stock?: number;
   discount_per_quantity?: Record<string, any>;
-  model?: string; // Add missing model property
+  model?: string;
   
   // Additional properties used by the application
   is_parent?: boolean;
@@ -94,10 +94,6 @@ export interface Product {
   image_urls?: string[]; // Additional images
   imageUrls?: string[]; // Alternative property name
   image_alts?: string[]; // Alt text for additional images
-  
-  // For variant support
-  attributes?: Record<string, string | number | boolean>;
-  model?: string;
 }
 
 // Product variant definition - simplified as we're using Product objects for variants
@@ -110,6 +106,7 @@ export interface ProductVariant {
   image_url?: string;
   specifications?: Record<string, string | number>;
   attributes?: Record<string, string | number | boolean>;
+  parent_id?: string;
 }
 
 // Category type definition
