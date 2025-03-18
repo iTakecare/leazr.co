@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { products as fallbackProducts } from "@/data/products";
 
 interface HardwareOptionsProps {
   options: {
@@ -80,24 +79,23 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
           .select('*')
           .eq('active', true);
           
-        let productsData: Product[] = [];
-        
         if (error) {
           console.error("Error fetching products from database:", error);
-          setFetchError("Failed to fetch products from database. Using fallback data.");
-          productsData = fallbackProducts;
-        } else if (!data || data.length === 0) {
-          console.log("No products found in database. Using fallback data.");
-          setFetchError("No products found in database. Using fallback data.");
-          productsData = fallbackProducts;
-        } else {
-          console.log(`Successfully loaded ${data.length} products from database`);
-          productsData = data;
+          setFetchError("Failed to fetch products from database.");
+          return;
+        } 
+        
+        if (!data || data.length === 0) {
+          console.log("No products found in database.");
+          setFetchError("No products found in database.");
+          return;
         }
+        
+        console.log(`Successfully loaded ${data.length} products from database`);
         
         const priceRange = packPriceRanges[selectedPack as keyof typeof packPriceRanges];
         
-        const filteredData = productsData.filter(product => {
+        const filteredData = data.filter(product => {
           const productPrice = product.price || 0;
           return productPrice >= priceRange.min && productPrice <= priceRange.max;
         });
@@ -161,21 +159,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
         setLastPackId(selectedPack);
       } catch (error) {
         console.error("Error in product fetch:", error);
-        setFetchError("Failed to fetch products. Using fallback data.");
-        
-        const fallbackData = fallbackProducts.filter(product => {
-          const tier = product.tier || 'silver';
-          return tier === selectedPack;
-        });
-        
-        const categorizedFallbacks = {
-          laptop: fallbackData.filter(p => p.category === 'laptop'),
-          desktop: fallbackData.filter(p => p.category === 'desktop'),
-          mobile: fallbackData.filter(p => p.category === 'smartphone'),
-          tablet: fallbackData.filter(p => p.category === 'tablet'),
-        };
-        
-        setProducts(categorizedFallbacks);
+        setFetchError("Failed to fetch products.");
       } finally {
         setLoading(false);
       }

@@ -1,6 +1,5 @@
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
-import { products as sampleProducts } from "@/data/products";
 
 export async function getProducts(): Promise<Product[]> {
   try {
@@ -429,3 +428,4 @@ export const deleteBrand = async ({ name }: { name: string }) => {
   
   return data;
 };
+
