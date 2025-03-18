@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock, Sparkles } from "lucide-react";
@@ -458,7 +459,7 @@ const ITakecarePack = () => {
                       )}
                     </div>
                     <div className="w-full md:w-72 bg-gray-50 p-6 rounded-lg border">
-                      <div className="text-center">
+                      <div className="text-left">
                         <h3 className="font-bold text-xl mb-1">{currentPack.name}</h3>
                         <div className={`w-full h-2 ${currentPack.color} mb-4 rounded`}></div>
                         
