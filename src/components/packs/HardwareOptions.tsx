@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { products as fallbackProducts } from "@/data/products";
 
 interface HardwareOptionsProps {
   options: {
@@ -60,6 +61,7 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
   const [previousProducts, setPreviousProducts] = useState<{[key: string]: boolean}>({});
   const [lastPackId, setLastPackId] = useState<string | null>(null);
   const [newProducts, setNewProducts] = useState<{[key: string]: boolean}>({});
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const packPriceRanges = {
     silver: { min: 0, max: 650 },
@@ -71,75 +73,109 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
     const fetchProducts = async () => {
       try {
         setLoading(true);
+        setFetchError(null);
+        
         const { data, error } = await supabase
           .from('products')
           .select('*')
           .eq('active', true);
           
+        let productsData: Product[] = [];
+        
         if (error) {
-          console.error("Error fetching products:", error);
-          return;
+          console.error("Error fetching products from database:", error);
+          setFetchError("Failed to fetch products from database. Using fallback data.");
+          productsData = fallbackProducts;
+        } else if (!data || data.length === 0) {
+          console.log("No products found in database. Using fallback data.");
+          setFetchError("No products found in database. Using fallback data.");
+          productsData = fallbackProducts;
+        } else {
+          console.log(`Successfully loaded ${data.length} products from database`);
+          productsData = data;
         }
         
-        if (data) {
-          const priceRange = packPriceRanges[selectedPack as keyof typeof packPriceRanges];
-          
-          const filteredData = data.filter(product => {
-            const productPrice = product.price || 0;
-            return productPrice >= priceRange.min && productPrice <= priceRange.max;
-          });
+        const priceRange = packPriceRanges[selectedPack as keyof typeof packPriceRanges];
+        
+        const filteredData = productsData.filter(product => {
+          const productPrice = product.price || 0;
+          return productPrice >= priceRange.min && productPrice <= priceRange.max;
+        });
 
-          const currentProductIds: {[key: string]: boolean} = {};
+        console.log(`Filtered down to ${filteredData.length} products in price range for ${selectedPack} pack`);
+
+        const currentProductIds: {[key: string]: boolean} = {};
+        filteredData.forEach(product => {
+          currentProductIds[product.id] = true;
+        });
+        
+        const foundNewProducts: {[key: string]: boolean} = {};
+        if (previousPack && previousPack !== selectedPack) {
           filteredData.forEach(product => {
-            currentProductIds[product.id] = true;
+            if (!previousProducts[product.id]) {
+              foundNewProducts[product.id] = true;
+            }
           });
           
-          const foundNewProducts: {[key: string]: boolean} = {};
-          if (previousPack && previousPack !== selectedPack) {
-            filteredData.forEach(product => {
-              if (!previousProducts[product.id]) {
-                foundNewProducts[product.id] = true;
-              }
-            });
-            
-            if (Object.keys(foundNewProducts).length > 0) {
-              setNewProducts(foundNewProducts);
-            }
+          if (Object.keys(foundNewProducts).length > 0) {
+            setNewProducts(foundNewProducts);
           }
-          
-          const categorizedProducts = {
-            laptop: filteredData.filter(p => p.category === 'laptop'),
-            desktop: filteredData.filter(p => p.category === 'desktop'),
-            mobile: filteredData.filter(p => p.category === 'smartphone'),
-            tablet: filteredData.filter(p => p.category === 'tablet'),
-          };
-          
-          setProducts(categorizedProducts);
-          
-          if (previousPack && previousPack !== selectedPack) {
-            const initialQuantities: {[key: string]: number} = {};
-            filteredData.forEach(product => {
-              initialQuantities[product.id] = 0;
-            });
-            setProductQuantities(initialQuantities);
-
-            onQuantityChange('laptop', 0);
-            onQuantityChange('desktop', 0);
-            onQuantityChange('mobile', 0);
-            onQuantityChange('tablet', 0);
-          } else {
-            const initialQuantities: {[key: string]: number} = {};
-            filteredData.forEach(product => {
-              initialQuantities[product.id] = productQuantities[product.id] || 0;
-            });
-            setProductQuantities(initialQuantities);
-          }
-          
-          setPreviousProducts(currentProductIds);
-          setLastPackId(selectedPack);
         }
+        
+        const categorizedProducts = {
+          laptop: filteredData.filter(p => p.category === 'laptop'),
+          desktop: filteredData.filter(p => p.category === 'desktop'),
+          mobile: filteredData.filter(p => p.category === 'smartphone'),
+          tablet: filteredData.filter(p => p.category === 'tablet'),
+        };
+        
+        console.log("Categorized products:", {
+          laptops: categorizedProducts.laptop.length,
+          desktops: categorizedProducts.desktop.length,
+          mobiles: categorizedProducts.mobile.length,
+          tablets: categorizedProducts.tablet.length
+        });
+        
+        setProducts(categorizedProducts);
+        
+        if (previousPack && previousPack !== selectedPack) {
+          const initialQuantities: {[key: string]: number} = {};
+          filteredData.forEach(product => {
+            initialQuantities[product.id] = 0;
+          });
+          setProductQuantities(initialQuantities);
+
+          onQuantityChange('laptop', 0);
+          onQuantityChange('desktop', 0);
+          onQuantityChange('mobile', 0);
+          onQuantityChange('tablet', 0);
+        } else {
+          const initialQuantities: {[key: string]: number} = {};
+          filteredData.forEach(product => {
+            initialQuantities[product.id] = productQuantities[product.id] || 0;
+          });
+          setProductQuantities(initialQuantities);
+        }
+        
+        setPreviousProducts(currentProductIds);
+        setLastPackId(selectedPack);
       } catch (error) {
         console.error("Error in product fetch:", error);
+        setFetchError("Failed to fetch products. Using fallback data.");
+        
+        const fallbackData = fallbackProducts.filter(product => {
+          const tier = product.tier || 'silver';
+          return tier === selectedPack;
+        });
+        
+        const categorizedFallbacks = {
+          laptop: fallbackData.filter(p => p.category === 'laptop'),
+          desktop: fallbackData.filter(p => p.category === 'desktop'),
+          mobile: fallbackData.filter(p => p.category === 'smartphone'),
+          tablet: fallbackData.filter(p => p.category === 'tablet'),
+        };
+        
+        setProducts(categorizedFallbacks);
       } finally {
         setLoading(false);
       }
@@ -262,6 +298,12 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {fetchError && (
+        <div className="col-span-full bg-yellow-100 p-4 rounded-md mb-4 text-yellow-800 text-sm">
+          {fetchError}
+        </div>
+      )}
+      
       {categories.map((category) => (
         <Card key={category.id} className="overflow-hidden">
           <div className="bg-gray-50 p-4 flex items-center justify-between border-b">
