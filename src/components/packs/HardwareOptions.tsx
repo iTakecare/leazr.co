@@ -63,8 +63,8 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
 
   const packPriceRanges = {
     silver: { min: 0, max: 650 },
-    gold: { min: 651, max: 1500 },
-    platinum: { min: 1501, max: 2500 }
+    gold: { min: 0, max: 1500 },
+    platinum: { min: 0, max: 2500 }
   };
 
   useEffect(() => {
@@ -116,24 +116,11 @@ const HardwareOptions: React.FC<HardwareOptionsProps> = ({
           
           setProducts(categorizedProducts);
           
-          if (previousPack && previousPack !== selectedPack) {
-            const initialQuantities: {[key: string]: number} = {};
-            filteredData.forEach(product => {
-              initialQuantities[product.id] = 0;
-            });
-            setProductQuantities(initialQuantities);
-
-            onQuantityChange('laptop', 0);
-            onQuantityChange('desktop', 0);
-            onQuantityChange('mobile', 0);
-            onQuantityChange('tablet', 0);
-          } else {
-            const initialQuantities: {[key: string]: number} = {};
-            filteredData.forEach(product => {
-              initialQuantities[product.id] = productQuantities[product.id] || 0;
-            });
-            setProductQuantities(initialQuantities);
-          }
+          const initialQuantities: {[key: string]: number} = {};
+          filteredData.forEach(product => {
+            initialQuantities[product.id] = productQuantities[product.id] || 0;
+          });
+          setProductQuantities(initialQuantities);
           
           setPreviousProducts(currentProductIds);
           setLastPackId(selectedPack);

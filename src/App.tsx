@@ -1,4 +1,3 @@
-
 import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -221,7 +220,6 @@ function App() {
           <SonnerToaster position="top-right" />
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/itakecare" element={<ITakecarePage />} />
             
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
@@ -256,6 +254,7 @@ function App() {
               <Route path="/ambassadors/create" element={<AmbassadorCreatePage />} />
               <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
               <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
+              <Route path="/itakecare" element={<ITakecarePage />} />
             </Route>
             
             <Route path="/partner" element={

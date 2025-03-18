@@ -8,9 +8,7 @@ const ITakecarePage = () => {
   return (
     <PageTransition>
       <Container>
-        <div className="py-8">
-          <ITakecarePack />
-        </div>
+        <ITakecarePack />
       </Container>
     </PageTransition>
   );
