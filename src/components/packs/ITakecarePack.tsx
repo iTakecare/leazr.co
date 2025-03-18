@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock } from "lucide-react";
@@ -56,7 +55,6 @@ const ITakecarePack = () => {
     },
   });
 
-  // Définition des packs disponibles
   const packs: Record<string, PackTier> = {
     silver: {
       id: "silver",
@@ -147,7 +145,6 @@ const ITakecarePack = () => {
     },
   };
 
-  // Ajustements de prix en fonction du nombre d'appareils
   const deviceDiscounts = {
     "2-5": { percent: 0, label: "2-5 devices" },
     "5-10": { percent: 5, label: "5 à 10" },
@@ -155,7 +152,6 @@ const ITakecarePack = () => {
     "20+": { percent: 20, label: "> 10" },
   };
 
-  // Calcul du prix mensuel en fonction du nombre d'appareils et de la durée
   const calculatePrice = (basePack: PackTier, devices: number, duration: number) => {
     let discount = 0;
     if (devices > 20) {
@@ -166,7 +162,6 @@ const ITakecarePack = () => {
       discount = deviceDiscounts["5-10"].percent;
     }
 
-    // Appliquer la remise
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
     const totalPrice = basePack.price * (1 - discount / 100);
 
@@ -273,14 +268,6 @@ const ITakecarePack = () => {
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="36" id="duration-36" />
                           <Label htmlFor="duration-36">36 mois</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="48" id="duration-48" />
-                          <Label htmlFor="duration-48">48 mois</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="54" id="duration-54" />
-                          <Label htmlFor="duration-54">54 mois</Label>
                         </div>
                       </RadioGroup>
                     </div>

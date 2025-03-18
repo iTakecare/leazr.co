@@ -1174,6 +1174,12 @@ export type Database = {
         }
         Returns: string
       }
+      get_user_profile_with_associations: {
+        Args: {
+          user_id: string
+        }
+        Returns: Json
+      }
       update_brand: {
         Args: {
           original_name: string
