@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock } from "lucide-react";
+import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
@@ -38,6 +38,7 @@ const ITakecarePack = () => {
   const [numberOfDevices, setNumberOfDevices] = useState<number>(5);
   const [contractDuration, setContractDuration] = useState<number>(36);
   const [showComparison, setShowComparison] = useState<boolean>(false);
+  const [lastPackId, setLastPackId] = useState<string | null>(null);
   const [selectedHardware, setSelectedHardware] = useState<{
     laptop: string | null;
     desktop: string | null;
