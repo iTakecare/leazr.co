@@ -1,9 +1,10 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  FileContract,
+  FileText, // Changed from FileContract to FileText which is available
   Laptop,
   Clock,
   Package,
@@ -15,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  FileText,
   Receipt
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
 
   const sidebarItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
-    { label: "Contrats", icon: FileContract, href: "/client/contracts" },
+    { label: "Contrats", icon: FileText, href: "/client/contracts" }, // Changed from FileContract to FileText
     { label: "Équipements", icon: Laptop, href: "/client/equipment" },
     { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
     { label: "Catalogue", icon: Package, href: "/client/catalog" },

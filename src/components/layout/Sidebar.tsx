@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   X,
   Receipt,
-  FileContract
+  FileText // Changed from FileContract to FileText which is available
 } from "lucide-react";
 import {
   Tooltip,
@@ -49,7 +49,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/" },
     { label: "CRM", icon: Briefcase, href: "/clients" },
     { label: "Offres", icon: Receipt, href: "/offers" },
-    { label: "Contrats", icon: FileContract, href: "/contracts" },
+    { label: "Contrats", icon: FileText, href: "/contracts" }, // Changed from FileContract to FileText
     { label: "Catalogue", icon: Package, href: "/catalog" },
     { label: "Pack iTakecare", icon: ShieldCheck, href: "/i-take-care" },
     { label: "Calculateur", icon: Calculator, href: "/calculator" },
