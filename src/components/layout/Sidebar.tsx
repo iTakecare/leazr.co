@@ -4,16 +4,18 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  FileText,
+  Briefcase,
   Users,
   Package,
   Settings,
   Calculator,
-  Shield,
+  ShieldCheck,
   Menu,
   ChevronRight,
   ChevronLeft,
-  X
+  X,
+  Receipt,
+  FileContract
 } from "lucide-react";
 import {
   Tooltip,
@@ -45,11 +47,11 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   
   const menuItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/" },
-    { label: "Clients", icon: Users, href: "/clients" },
-    { label: "Offres", icon: FileText, href: "/offers" },
-    { label: "Contrats", icon: FileText, href: "/contracts" },
+    { label: "CRM", icon: Briefcase, href: "/clients" },
+    { label: "Offres", icon: Receipt, href: "/offers" },
+    { label: "Contrats", icon: FileContract, href: "/contracts" },
     { label: "Catalogue", icon: Package, href: "/catalog" },
-    { label: "iTakecare", icon: Shield, href: "/i-take-care" },
+    { label: "Pack iTakecare", icon: ShieldCheck, href: "/i-take-care" },
     { label: "Calculateur", icon: Calculator, href: "/calculator" },
     { label: "Paramètres", icon: Settings, href: "/settings" },
   ];

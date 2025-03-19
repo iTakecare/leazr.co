@@ -8,6 +8,7 @@ const ClientITakecarePage = () => {
   return (
     <PageTransition>
       <Container>
+        <h1 className="text-2xl font-bold mb-6">Pack iTakecare</h1>
         <ITakecarePack />
       </Container>
     </PageTransition>
