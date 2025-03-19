@@ -47,10 +47,13 @@ const ProductDetailPage = () => {
       const allCombinations: Array<Record<string, string>> = [];
       
       if (product.variants && product.variants.length > 0) {
-        console.log("Product has variants:", product.variants);
+        console.log("Product has variants:", product.variants.length);
+        console.log("First variant:", product.variants[0]);
         
         // For each variant, extract attributes and add them as options
         product.variants.forEach(variant => {
+          console.log(`Processing variant ${variant.id} with attributes:`, variant.attributes);
+          
           if (variant.attributes && typeof variant.attributes === 'object' && !Array.isArray(variant.attributes)) {
             // Create a combination object representing this variant's attributes
             const combination: Record<string, string> = {};
@@ -123,6 +126,7 @@ const ProductDetailPage = () => {
       const selectedVariant = findVariantByOptions(product.variants || [], selectedOptions);
       
       if (selectedVariant) {
+        console.log("Selected variant:", selectedVariant);
         // Update image if variant has one
         if (selectedVariant.image_url || selectedVariant.imageUrl) {
           setCurrentImage(selectedVariant.image_url || selectedVariant.imageUrl || product.image_url || product.imageUrl || "/placeholder.svg");
@@ -229,6 +233,8 @@ const ProductDetailPage = () => {
       combo => combo[changedOption] === newOptions[changedOption]
     );
     
+    console.log(`Found ${matchingCombinations.length} combinations matching ${changedOption}=${newOptions[changedOption]}`);
+    
     // If no matching combinations, return just the changed option
     if (matchingCombinations.length === 0) {
       return { [changedOption]: newOptions[changedOption] };
@@ -294,7 +300,16 @@ const ProductDetailPage = () => {
   };
 
   const renderOptions = () => {
-    if (Object.keys(availableOptions).length === 0) {
+    if (!product || !product.variants || product.variants.length === 0) {
+      return (
+        <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
+      );
+    }
+    
+    // Check if there are actually any options with values
+    const hasOptions = Object.values(availableOptions).some(values => values.length > 0);
+    
+    if (!hasOptions) {
       return (
         <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
       );
@@ -380,8 +395,11 @@ const ProductDetailPage = () => {
   }
 
   const minMonthlyPrice = getMinimumMonthlyPrice();
-  const hasVariants = product.variants && product.variants.length > 0;
+  const hasVariants = product?.variants && product.variants.length > 0;
   const totalPrice = calculateTotalPrice();
+  
+  // Check if there are any valid options/variants
+  const hasValidOptions = Object.keys(availableOptions).length > 0 && validCombinations.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -399,7 +417,7 @@ const ProductDetailPage = () => {
           <div className="bg-white rounded-lg shadow p-6 flex items-center justify-center">
             <img 
               src={currentImage} 
-              alt={product.name}
+              alt={product?.name}
               className="max-w-full max-h-96 object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -410,19 +428,19 @@ const ProductDetailPage = () => {
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">
-                {product.category === "laptop" ? "Ordinateur portable" : 
-                  product.category === "desktop" ? "Ordinateur fixe" : 
-                  product.category === "tablet" ? "Tablette" : 
-                  product.category === "smartphone" ? "Smartphone" : 
-                  product.category === "monitor" ? "Écran" : 
-                  product.category === "printer" ? "Imprimante" : 
+                {product?.category === "laptop" ? "Ordinateur portable" : 
+                  product?.category === "desktop" ? "Ordinateur fixe" : 
+                  product?.category === "tablet" ? "Tablette" : 
+                  product?.category === "smartphone" ? "Smartphone" : 
+                  product?.category === "monitor" ? "Écran" : 
+                  product?.category === "printer" ? "Imprimante" : 
                   "Équipement"}
               </Badge>
-              <Badge variant="outline">{product.brand}</Badge>
+              <Badge variant="outline">{product?.brand}</Badge>
             </div>
             
             <h1 className="text-3xl font-bold mb-2">
-              {product.name}
+              {product?.name}
             </h1>
             
             <div className="text-lg text-gray-700 mb-4">
@@ -437,7 +455,7 @@ const ProductDetailPage = () => {
             
             <div className="mb-4">
               <p className="text-gray-600">
-                {product.description || "Cet appareil est disponible à la location pour votre entreprise. Configurez-le selon vos besoins et demandez une offre personnalisée."}
+                {product?.description || "Cet appareil est disponible à la location pour votre entreprise. Configurez-le selon vos besoins et demandez une offre personnalisée."}
               </p>
             </div>
             
@@ -447,7 +465,7 @@ const ProductDetailPage = () => {
               <h3 className="text-xl font-medium mb-4">Configuration</h3>
               
               <div className="bg-gray-50 p-6 rounded-lg border space-y-6">
-                {Object.keys(availableOptions).length > 0 ? (
+                {hasVariants && hasValidOptions ? (
                   renderOptions()
                 ) : (
                   <div className="flex items-center space-x-2 text-amber-600">

@@ -63,6 +63,10 @@ export async function getProductById(id: string): Promise<Product | null> {
       mainProduct.attributes = {};
     }
     
+    // Pour débogage, loguer les informations sur le produit parent
+    console.log(`Product data: is_parent=${mainProduct.is_parent}, parent_id=${mainProduct.parent_id}`);
+    
+    // Si c'est un produit parent, récupérer ses variantes
     if (mainProduct.is_parent) {
       console.log(`Product ${id} is a parent, fetching variants...`);
       
@@ -75,6 +79,11 @@ export async function getProductById(id: string): Promise<Product | null> {
         console.error(`Error fetching variants for product ${id}:`, variantError);
       } else if (variants && variants.length > 0) {
         console.log(`Found ${variants.length} variants for product ${id}`);
+        
+        // Loguer le premier variant pour déboggage (voir s'il a des attributs)
+        if (variants[0]) {
+          console.log(`First variant attributes:`, variants[0].attributes);
+        }
         
         // Normaliser les attributs pour chaque variante
         mainProduct.variants = variants.map(variant => {
@@ -100,6 +109,16 @@ export async function getProductById(id: string): Promise<Product | null> {
           }
           return variant;
         });
+        
+        // Log variants après normalisation
+        console.log(`Normalized variants:`, mainProduct.variants.map(v => ({
+          id: v.id, 
+          monthly_price: v.monthly_price,
+          attributes: v.attributes
+        })));
+      } else {
+        console.log(`No variants found for parent product ${id}`);
+        mainProduct.variants = [];
       }
     }
     else if (mainProduct.parent_id) {
