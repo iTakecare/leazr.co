@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   X,
   Receipt,
-  FileText // Changed from FileContract to FileText which is available
+  FileText, // Changed from FileContract to FileText which is available
+  LogOut
 } from "lucide-react";
 import {
   Tooltip,
@@ -41,6 +42,7 @@ interface MenuItem {
 
 const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -55,6 +57,13 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Calculateur", icon: Calculator, href: "/calculator" },
     { label: "Paramètres", icon: Settings, href: "/settings" },
   ];
+
+  const handleLogout = () => {
+    // You can add actual logout functionality here
+    console.log("Logging out");
+    // If you have auth context: auth.signOut()
+    // Then navigate to login page: navigate('/login')
+  };
 
   const isActive = (href: string) => {
     if (href === "/" && location.pathname === "/") {
@@ -126,8 +135,8 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                 </ul>
               </nav>
               
-              <div className="p-4 mt-auto mx-2 mb-2 bg-primary/5 rounded-xl">
-                <div className="flex items-center gap-3">
+              <div className="p-4 mt-auto border-t">
+                <div className="flex items-center gap-3 mb-4">
                   <Avatar>
                     <AvatarFallback className="bg-primary/20 text-primary">IT</AvatarFallback>
                   </Avatar>
@@ -136,6 +145,16 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                     <p className="text-xs text-muted-foreground">Gestion complète</p>
                   </div>
                 </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Déconnexion
+                </Button>
               </div>
             </div>
           </SheetContent>
@@ -228,23 +247,50 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         </nav>
         
         <div className={cn(
-          "p-4 transition-all duration-300 mt-auto mx-2 mb-2",
-          collapsed ? "bg-transparent" : "bg-primary/5 rounded-xl"
+          "p-4 transition-all duration-300 mt-auto mx-2 mb-4 border-t border-t-primary/10 pt-4",
+          collapsed ? "px-2" : ""
         )}>
           {!collapsed ? (
-            <div className="flex items-center gap-3">
-              <Avatar>
-                <AvatarFallback className="bg-primary/20 text-primary">IT</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Admin Portal</p>
-                <p className="text-xs text-muted-foreground">Gestion complète</p>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarFallback className="bg-primary/20 text-primary">IT</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Admin Portal</p>
+                  <p className="text-xs text-muted-foreground">Gestion complète</p>
+                </div>
               </div>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
+              >
+                <LogOut className="h-4 w-4" />
+                Déconnexion
+              </Button>
             </div>
           ) : (
-            <Avatar className="mx-auto">
-              <AvatarFallback className="bg-primary/20 text-primary">IT</AvatarFallback>
-            </Avatar>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleLogout}
+                    className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive rounded-xl"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span className="sr-only">Déconnexion</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Déconnexion</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
         
@@ -266,3 +312,4 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
 };
 
 export default Sidebar;
+

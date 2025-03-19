@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -286,8 +285,8 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
         
         {user && (
           <div className={cn(
-            "transition-all duration-300 mt-auto",
-            collapsed ? "p-2" : "p-4 mx-2 mb-2 bg-primary/5 rounded-xl"
+            "transition-all duration-300 mt-auto border-t border-t-primary/10 pt-4",
+            collapsed ? "p-2" : "p-4 mx-2 mb-2"
           )}>
             {!collapsed ? (
               <>
