@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -5,7 +6,6 @@ import { getProductById } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
 import { ShoppingCart, ArrowLeft, Check, ChevronDown, ChevronUp, Minus, Plus, AlertCircle } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import PublicHeader from "@/components/catalog/public/PublicHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
@@ -20,6 +20,9 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
+  const [currentImage, setCurrentImage] = useState<string>("");
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const duration = 36; // Fixed duration to 36 months
   
   const { data: product, isLoading, error } = useQuery({
@@ -28,148 +31,134 @@ const ProductDetailPage = () => {
     enabled: !!id,
   });
 
-  const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
-  const [currentImage, setCurrentImage] = useState<string>("");
-  const [validCombinations, setValidCombinations] = useState<Array<Record<string, string>>>([]);
-  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
-
-  const logProductVariantInfo = (product: any) => {
+  // Extract options from product variants
+  useEffect(() => {
     if (!product) return;
     
-    console.log("Product ID:", product.id);
-    console.log("Product name:", product.name);
-    console.log("Is parent:", product.is_parent);
-    console.log("Parent ID:", product.parent_id);
-    console.log("Has variants:", !!product.variants && product.variants.length > 0);
-    console.log("Variants count:", product.variants?.length || 0);
+    console.log("Product data loaded:", product);
+    console.log("Variants:", product.variants?.length || 0);
     
-    if (product.variants && product.variants.length > 0) {
-      console.log("First variant attributes:", product.variants[0].attributes);
-      
-      // Log attribute types for debugging
-      const firstVariant = product.variants[0];
-      if (firstVariant.attributes) {
-        console.log("Attributes data type:", typeof firstVariant.attributes);
-        console.log("Is array:", Array.isArray(firstVariant.attributes));
-        console.log("Raw attributes:", JSON.stringify(firstVariant.attributes, null, 2));
-      }
+    // Set default image
+    setCurrentImage(product.image_url || "/placeholder.svg");
+    
+    // If product has no variants, just set the product price
+    if (!product.variants || product.variants.length === 0) {
+      setCurrentPrice(product.monthly_price || null);
+      return;
     }
-  }
-
-  useEffect(() => {
-    if (product) {
-      console.log("Product loaded:", product);
-      logProductVariantInfo(product);
+    
+    // Extract options from variants
+    const options: Record<string, Set<string>> = {};
+    
+    product.variants.forEach(variant => {
+      if (!variant.attributes) return;
       
-      // Set default image
-      setCurrentImage(product.image_url || product.imageUrl || "/placeholder.svg");
-      
-      // Extract available options from variants
-      const options: Record<string, Set<string>> = {};
-      const allCombinations: Array<Record<string, string>> = [];
-      
-      if (product.variants && product.variants.length > 0) {
-        console.log("Product has variants:", product.variants.length);
-        
-        // For each variant, extract attributes and add them as options
-        product.variants.forEach(variant => {
-          console.log(`Processing variant ${variant.id} with attributes:`, variant.attributes);
-          
-          if (variant.attributes) {
-            // Make sure attributes is an object and not an array
-            const attributes = typeof variant.attributes === 'object' && !Array.isArray(variant.attributes) 
-              ? variant.attributes 
-              : {};
-              
-            // Create a combination object representing this variant's attributes
-            const combination: Record<string, string> = {};
-            
-            Object.entries(attributes).forEach(([key, value]) => {
-              if (!options[key]) {
-                options[key] = new Set();
-              }
-              const stringValue = String(value);
-              options[key].add(stringValue);
-              combination[key] = stringValue;
-            });
-            
-            // Add this combination to our list of valid combinations
-            if (Object.keys(combination).length > 0) {
-              allCombinations.push({
-                ...combination,
-                __variant_id: variant.id, // Store variant ID for price lookup
-                __variant_price: String(variant.monthly_price || 0),
-              });
+      // Convert array attributes to object if needed
+      const attributes = Array.isArray(variant.attributes) 
+        ? variant.attributes.reduce((acc, attr) => {
+            if (typeof attr === 'string' && attr.includes(':')) {
+              const [key, value] = attr.split(':');
+              acc[key.trim()] = value.trim();
+            } else if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
+              acc[attr.name] = attr.value;
             }
-          }
-        });
-
-        // Convert Sets to Arrays and sort
-        const sortedOptions: Record<string, string[]> = {};
-        Object.entries(options).forEach(([key, valueSet]) => {
-          sortedOptions[key] = Array.from(valueSet).sort();
-        });
-        
-        console.log("Extracted options:", sortedOptions);
-        console.log("Valid combinations:", allCombinations);
-        
-        setAvailableOptions(sortedOptions);
-        setValidCombinations(allCombinations);
-        
-        // Set default selected options
-        const defaultOptions: Record<string, string> = {};
-        Object.entries(sortedOptions).forEach(([key, values]) => {
-          if (values.length > 0) {
-            defaultOptions[key] = values[0];
-          }
-        });
-        
-        if (Object.keys(defaultOptions).length > 0) {
-          console.log("Setting default options:", defaultOptions);
-          // Apply these options and validate them to ensure a valid combination
-          const validatedOptions = validateOptions(defaultOptions, Object.keys(defaultOptions)[0]);
-          setSelectedOptions(validatedOptions);
-          
-          // Update the current price based on the selected variant
-          const selectedVariant = findVariantByOptions(product.variants || [], validatedOptions);
-          if (selectedVariant && selectedVariant.monthly_price) {
-            setCurrentPrice(selectedVariant.monthly_price);
-          } else {
-            setCurrentPrice(product.monthly_price || null);
-          }
-        } else {
-          // If no variants with attributes, use the product's price
-          setCurrentPrice(product.monthly_price || null);
+            return acc;
+          }, {} as Record<string, string>)
+        : variant.attributes;
+      
+      // Add each attribute to options
+      Object.entries(attributes).forEach(([key, value]) => {
+        if (!options[key]) {
+          options[key] = new Set();
         }
-      } else {
-        console.log("Product has no variants or they couldn't be processed correctly");
-        setCurrentPrice(product.monthly_price || null);
+        options[key].add(String(value));
+      });
+    });
+    
+    // Convert Sets to Arrays
+    const processedOptions: Record<string, string[]> = {};
+    Object.entries(options).forEach(([key, values]) => {
+      processedOptions[key] = Array.from(values).sort();
+    });
+    
+    console.log("Available options:", processedOptions);
+    setAvailableOptions(processedOptions);
+    
+    // Set default selected options
+    const defaultOptions: Record<string, string> = {};
+    Object.entries(processedOptions).forEach(([key, values]) => {
+      if (values.length > 0) {
+        defaultOptions[key] = values[0];
+      }
+    });
+    
+    if (Object.keys(defaultOptions).length > 0) {
+      setSelectedOptions(defaultOptions);
+      
+      // Get variant with these options
+      const selectedVariant = findVariantByOptions(product.variants, defaultOptions);
+      if (selectedVariant) {
+        setCurrentPrice(selectedVariant.monthly_price || product.monthly_price || null);
+        
+        // Update image if variant has one
+        if (selectedVariant.image_url) {
+          setCurrentImage(selectedVariant.image_url);
+        }
       }
     }
   }, [product]);
 
+  // Update price and image when options change
   useEffect(() => {
-    if (product && Object.keys(selectedOptions).length > 0) {
-      const selectedVariant = findVariantByOptions(product.variants || [], selectedOptions);
+    if (!product || !product.variants) return;
+    
+    const selectedVariant = findVariantByOptions(product.variants, selectedOptions);
+    if (selectedVariant) {
+      setCurrentPrice(selectedVariant.monthly_price || product.monthly_price || null);
       
-      if (selectedVariant) {
-        console.log("Selected variant:", selectedVariant);
-        // Update image if variant has one
-        if (selectedVariant.image_url || selectedVariant.imageUrl) {
-          setCurrentImage(selectedVariant.image_url || selectedVariant.imageUrl || product.image_url || product.imageUrl || "/placeholder.svg");
-        }
-        
-        // Update price
-        if (selectedVariant.monthly_price) {
-          setCurrentPrice(selectedVariant.monthly_price);
-        }
+      if (selectedVariant.image_url) {
+        setCurrentImage(selectedVariant.image_url);
       } else {
-        // If no matching variant, revert to product defaults
-        setCurrentImage(product.image_url || product.imageUrl || "/placeholder.svg");
-        setCurrentPrice(product.monthly_price || null);
+        setCurrentImage(product.image_url || "/placeholder.svg");
       }
+    } else {
+      setCurrentPrice(product.monthly_price || null);
+      setCurrentImage(product.image_url || "/placeholder.svg");
     }
   }, [selectedOptions, product]);
+
+  const findVariantByOptions = (variants: Product[], options: Record<string, string>): Product | null => {
+    if (!variants || variants.length === 0 || Object.keys(options).length === 0) return null;
+    
+    return variants.find(variant => {
+      if (!variant.attributes) return false;
+      
+      // Convert array attributes to object if needed
+      const attributes = Array.isArray(variant.attributes) 
+        ? variant.attributes.reduce((acc, attr) => {
+            if (typeof attr === 'string' && attr.includes(':')) {
+              const [key, value] = attr.split(':');
+              acc[key.trim()] = value.trim();
+            } else if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
+              acc[attr.name] = attr.value;
+            }
+            return acc;
+          }, {} as Record<string, string>)
+        : variant.attributes;
+      
+      // Check if all selected options match this variant
+      return Object.entries(options).every(([key, value]) => {
+        return String(attributes[key]) === value;
+      });
+    }) || null;
+  };
+
+  const handleOptionChange = (optionName: string, value: string) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [optionName]: value
+    }));
+  };
 
   const handleBackToCatalog = () => {
     navigate("/catalogue");
@@ -185,128 +174,22 @@ const ProductDetailPage = () => {
     }
   };
 
-  const handleOptionChange = (optionName: string, value: string) => {
-    console.log(`Option changed: ${optionName} = ${value}`);
-    
-    // Create a new selected options object with the new selection
-    const newSelectedOptions = {
-      ...selectedOptions,
-      [optionName]: value
-    };
-    
-    // Validate and adjust other selections as needed
-    const validatedOptions = validateOptions(newSelectedOptions, optionName);
-    
-    setSelectedOptions(validatedOptions);
-  };
-
-  const findVariantByOptions = (variants: Product[], options: Record<string, string>): Product | null => {
-    if (!variants || variants.length === 0) return null;
-    
-    return variants.find(variant => {
-      if (!variant.attributes || typeof variant.attributes !== 'object' || Array.isArray(variant.attributes)) {
-        return false;
-      }
-      
-      // Check if all selected options match this variant's attributes
-      return Object.entries(options).every(([key, value]) => {
-        return String(variant.attributes[key]) === value;
-      });
-    }) || null;
-  };
-
-  const isOptionAvailable = (optionName: string, optionValue: string): boolean => {
-    // Create a test selection with current selections plus the option we're checking
-    const testSelection = { 
-      ...selectedOptions, 
-      [optionName]: optionValue 
-    };
-    
-    // Check if any valid combination matches our test selection
-    return validCombinations.some(combination => {
-      // For each attribute in our test selection, verify if it matches the combination
-      for (const [key, value] of Object.entries(testSelection)) {
-        // Skip the variant ID and price internal fields
-        if (key === '__variant_id' || key === '__variant_price') continue;
-        
-        // If the combination doesn't have this key or the values don't match
-        if (!combination[key] || combination[key] !== value) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
-  };
-
-  const validateOptions = (newOptions: Record<string, string>, changedOption: string): Record<string, string> => {
-    const validatedOptions = { ...newOptions };
-    
-    // If we don't have valid combinations data, just return the new options as is
-    if (validCombinations.length === 0) {
-      return validatedOptions;
-    }
-    
-    // Find combinations that match our new selection for the changed option
-    const matchingCombinations = validCombinations.filter(
-      combo => combo[changedOption] === newOptions[changedOption]
-    );
-    
-    console.log(`Found ${matchingCombinations.length} combinations matching ${changedOption}=${newOptions[changedOption]}`);
-    
-    // If no matching combinations, return just the changed option
-    if (matchingCombinations.length === 0) {
-      return { [changedOption]: newOptions[changedOption] };
-    }
-    
-    // For each option we have selected
-    Object.keys(validatedOptions).forEach(optionKey => {
-      // Skip the option that was just changed
-      if (optionKey === changedOption) return;
-      
-      // Check if the current value for this option is valid with the new selection
-      const isValid = matchingCombinations.some(
-        combo => combo[optionKey] === validatedOptions[optionKey]
-      );
-      
-      // If not valid, try to find a valid value for this option
-      if (!isValid) {
-        // Find the first valid value for this option from matching combinations
-        const validValue = matchingCombinations.find(combo => combo[optionKey])?.[optionKey];
-        
-        if (validValue) {
-          validatedOptions[optionKey] = validValue;
-        } else {
-          // If no valid value found, remove this option from selections
-          delete validatedOptions[optionKey];
-        }
-      }
-    });
-    
-    return validatedOptions;
-  };
-
   const calculateTotalPrice = (): number => {
-    const basePrice = currentPrice || product?.monthly_price || 0;
-    return basePrice * quantity;
+    return (currentPrice || 0) * quantity;
   };
 
   const getMinimumMonthlyPrice = (): number => {
     if (!product) return 0;
     
-    // Prix du produit principal
     let minPrice = product.monthly_price || 0;
     
-    // Vérifier si le produit a des variantes
     if (product.variants && product.variants.length > 0) {
-      // Trouver le prix minimum parmi toutes les variantes
       const variantPrices = product.variants
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (variantPrices.length > 0) {
         const minVariantPrice = Math.min(...variantPrices);
-        // Utiliser le prix de la variante si inférieur au prix du produit principal ou si le produit principal n'a pas de prix
         if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
           minPrice = minVariantPrice;
         }
@@ -316,70 +199,35 @@ const ProductDetailPage = () => {
     return minPrice;
   };
 
-  const renderOptions = () => {
-    if (!product) return null;
+  const isOptionAvailable = (optionName: string, value: string): boolean => {
+    if (!product || !product.variants) return false;
     
-    // Additional debug logging for variant detection
-    console.log("Rendering options. Product has variants:", 
-      !!product.variants && product.variants.length > 0);
-    console.log("Available options:", availableOptions);
-    console.log("Valid combinations count:", validCombinations.length);
+    const otherOptions = { ...selectedOptions };
+    delete otherOptions[optionName];
     
-    // Check if there are any options available
-    const hasOptions = Object.keys(availableOptions).length > 0;
-    
-    // If we have valid combinations and available options, render them
-    if (hasOptions && validCombinations.length > 0) {
-      return (
-        <div className="space-y-6">
-          {Object.entries(availableOptions).map(([option, values]) => (
-            <div key={option} className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
-              <label className="block text-sm font-medium text-gray-700 capitalize mb-3">
-                {option}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {values.map((value) => {
-                  const isAvailable = isOptionAvailable(option, value);
-                  return (
-                    <Button
-                      key={value}
-                      type="button"
-                      size="sm"
-                      variant={selectedOptions[option] === value ? "default" : "outline"}
-                      className={`
-                        ${selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
-                        ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}
-                      `}
-                      onClick={() => isAvailable && handleOptionChange(option, value)}
-                      disabled={!isAvailable}
-                    >
-                      {value}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    
-    // If we have variants but no options were extracted properly
-    if (product.variants && product.variants.length > 0) {
-      return (
-        <div className="text-amber-600 bg-amber-50 p-4 rounded-lg border border-amber-200">
-          <p className="flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2" />
-            Ce produit a des variantes, mais aucune option de configuration n'a pu être récupérée.
-          </p>
-        </div>
-      );
-    }
-    
-    // If there are no variants
-    return (
-      <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
-    );
+    return product.variants.some(variant => {
+      if (!variant.attributes) return false;
+      
+      // Convert array attributes to object if needed
+      const attributes = Array.isArray(variant.attributes) 
+        ? variant.attributes.reduce((acc, attr) => {
+            if (typeof attr === 'string' && attr.includes(':')) {
+              const [key, value] = attr.split(':');
+              acc[key.trim()] = value.trim();
+            } else if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
+              acc[attr.name] = attr.value;
+            }
+            return acc;
+          }, {} as Record<string, string>)
+        : variant.attributes;
+      
+      // Check if this option matches and all other selected options match
+      if (String(attributes[optionName]) !== value) return false;
+      
+      return Object.entries(otherOptions).every(([key, val]) => {
+        return String(attributes[key]) === val;
+      });
+    });
   };
 
   const getSelectedVariantSpecifications = () => {
@@ -427,13 +275,11 @@ const ProductDetailPage = () => {
     );
   }
 
+  const hasOptions = Object.keys(availableOptions).length > 0;
   const minMonthlyPrice = getMinimumMonthlyPrice();
-  const hasVariants = product?.variants && product.variants.length > 0;
+  const hasVariants = product.variants && product.variants.length > 0;
   const totalPrice = calculateTotalPrice();
   
-  // Check if there are any valid options/variants
-  const hasValidOptions = Object.keys(availableOptions).length > 0 && validCombinations.length > 0;
-
   return (
     <div className="min-h-screen bg-gray-50">
       <PublicHeader />
@@ -447,6 +293,7 @@ const ProductDetailPage = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Product Image */}
           <div className="bg-white rounded-lg shadow p-6 flex items-center justify-center">
             <img 
               src={currentImage} 
@@ -458,6 +305,7 @@ const ProductDetailPage = () => {
             />
           </div>
           
+          {/* Product Info */}
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">
@@ -494,19 +342,54 @@ const ProductDetailPage = () => {
             
             <Separator className="my-4" />
             
+            {/* Configuration Options */}
             <div className="mb-6">
               <h3 className="text-xl font-medium mb-4">Configuration</h3>
               
               <div className="bg-gray-50 p-6 rounded-lg border space-y-6">
-                {hasVariants && hasValidOptions ? (
-                  renderOptions()
-                ) : (
-                  <div className="flex items-center space-x-2 text-amber-600">
-                    <AlertCircle className="h-5 w-5" />
-                    <span>Aucune option de configuration disponible pour ce produit.</span>
+                {hasVariants && hasOptions ? (
+                  <div className="space-y-6">
+                    {Object.entries(availableOptions).map(([option, values]) => (
+                      <div key={option} className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
+                        <label className="block text-sm font-medium text-gray-700 capitalize mb-3">
+                          {option}
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {values.map((value) => {
+                            const isAvailable = isOptionAvailable(option, value);
+                            return (
+                              <Button
+                                key={value}
+                                type="button"
+                                size="sm"
+                                variant={selectedOptions[option] === value ? "default" : "outline"}
+                                className={`
+                                  ${selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                                  ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}
+                                `}
+                                onClick={() => isAvailable && handleOptionChange(option, value)}
+                                disabled={!isAvailable}
+                              >
+                                {value}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                ) : hasVariants ? (
+                  <div className="text-amber-600 bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <p className="flex items-center">
+                      <AlertCircle className="h-5 w-5 mr-2" />
+                      Ce produit a {product.variants.length} variantes, mais aucune option de configuration n'a pu être récupérée.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
                 )}
                 
+                {/* Quantity Selector */}
                 <div className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
                   <h4 className="block text-sm font-medium text-gray-700 capitalize mb-3">Quantité</h4>
                   <div className="flex items-center border rounded-md w-fit">
@@ -533,6 +416,7 @@ const ProductDetailPage = () => {
               </div>
             </div>
             
+            {/* Price Box */}
             <div className="bg-indigo-50 p-6 rounded-lg border border-indigo-100 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-gray-700 font-medium">Total mensuel (HT)</span>
@@ -555,6 +439,7 @@ const ProductDetailPage = () => {
                 </Button>
               </div>
               
+              {/* Features */}
               <div className="mt-4 text-sm text-gray-600 grid grid-cols-2 gap-y-2">
                 <div className="flex items-center">
                   <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
@@ -575,6 +460,7 @@ const ProductDetailPage = () => {
               </div>
             </div>
             
+            {/* Specifications */}
             {Object.keys(getSelectedVariantSpecifications()).length > 0 && (
               <div className="mb-6">
                 <h3 className="text-xl font-medium mb-3">Caractéristiques</h3>
@@ -590,27 +476,6 @@ const ProductDetailPage = () => {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-        
-        <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Produits similaires</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((index) => (
-              <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
-                <div className="aspect-video bg-gray-100 flex items-center justify-center p-4">
-                  <img src="/placeholder.svg" alt="Product" className="object-contain max-h-full" />
-                </div>
-                <div className="p-3">
-                  <div className="text-xs text-gray-500 mb-1">Marque</div>
-                  <h3 className="font-medium text-sm">Produit similaire {index}</h3>
-                  <div className="mt-2 text-sm">
-                    <div className="text-xs text-gray-500">dès</div>
-                    <div className="font-bold text-indigo-700">XX,XX€/mois</div>
-                  </div>
-                </div>
-              </Card>
-            ))}
           </div>
         </div>
       </div>

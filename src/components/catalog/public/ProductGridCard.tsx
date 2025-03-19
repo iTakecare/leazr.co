@@ -8,32 +8,27 @@ import { Badge } from "@/components/ui/badge";
 interface ProductGridCardProps {
   product: Product;
   onClick: () => void;
-  isVariant?: boolean;
 }
 
-const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isVariant = false }) => {
-  // Skip rendering if this is a variant and should be grouped with parent
-  if (isVariant || product.is_variation || product.parent_id) {
+const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) => {
+  // Skip rendering if this is a variant
+  if (product.is_variation || product.parent_id) {
     return null;
   }
 
   const brandLabel = product.brand || "Generic";
   
-  // Déterminer le prix mensuel minimum en tenant compte des variantes
+  // Determine minimum monthly price considering variants
   const getMinimumMonthlyPrice = (): number => {
-    // Prix du produit principal
     let minPrice = product.monthly_price || 0;
     
-    // Vérifier si le produit a des variantes
     if (product.variants && product.variants.length > 0) {
-      // Trouver le prix minimum parmi toutes les variantes
       const variantPrices = product.variants
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (variantPrices.length > 0) {
         const minVariantPrice = Math.min(...variantPrices);
-        // Utiliser le prix de la variante si inférieur au prix du produit principal ou si le produit principal n'a pas de prix
         if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
           minPrice = minVariantPrice;
         }
@@ -48,7 +43,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isV
   const monthlyPriceLabel = hasPrice ? `${formatCurrency(monthlyPrice)}/mois` : "Prix sur demande";
   const imageUrl = product.image_url || product.imageUrl || "/placeholder.svg";
   
-  // Determine the appropriate category label
+  // Get appropriate category label
   const getCategoryLabel = (category: string | undefined) => {
     if (!category) return "Autre";
     
@@ -65,7 +60,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isV
     return categoryMap[category] || "Autre";
   };
 
-  // Determine if product has variants
+  // Check if product has variants
   const hasVariants = product.is_parent || 
                      (product.variants && product.variants.length > 0);
 

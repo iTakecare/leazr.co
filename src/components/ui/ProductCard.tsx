@@ -2,39 +2,29 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
+import { Product } from "@/types/catalog";
 
 interface ProductCardProps {
-  product: {
-    id: string;
-    name: string;
-    monthly_price?: number;
-    price?: number;
-    category?: string;
-    brand?: string;
-    image_url?: string;
-    variants?: Array<{
-      monthly_price?: number;
-      price?: number;
-      attributes?: Record<string, string | number | boolean> | any[]; // Accepte les deux formats d'attributs
-    }>;
-    is_parent?: boolean;
-  };
+  product: Product;
   onClick?: () => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   // Ensure we have valid data for display
   const productName = product?.name || "Produit sans nom";
-  const productPrice = product?.price !== undefined ? formatCurrency(product.price) : "Non défini";
   
-  // Calculate minimum monthly price from variants if they exist and product is a parent
+  // Calculate minimum monthly price from variants if they exist
   let productMonthlyPrice = "Non définie";
+  let productPrice = "Non défini";
   let hasVariants = false;
   
-  // Check if product has variants and is a parent product
+  if (product?.price !== undefined) {
+    productPrice = formatCurrency(product.price);
+  }
+  
+  // Check if product has variants
   if (product?.variants && product.variants.length > 0) {
     hasVariants = true;
-    console.log(`ProductCard ${product.id}: Found ${product.variants.length} variants`, product.variants);
     
     // Get all valid monthly prices from variants
     const variantPrices = product.variants
@@ -43,7 +33,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
       
     if (variantPrices.length > 0) {
       const minPrice = Math.min(...variantPrices);
-      // Display the minimum price from variants
       productMonthlyPrice = formatCurrency(minPrice);
     }
   } else if (product?.monthly_price) {
@@ -52,9 +41,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   }
   
   const productImage = product?.image_url || "/placeholder.svg";
-  
-  // Debug log for variant detection
-  console.log(`ProductCard ${product.id}: is_parent=${product.is_parent}, hasVariants=${hasVariants}, variants=${product?.variants?.length || 0}`);
 
   return (
     <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" onClick={onClick}>
@@ -86,7 +72,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
               </span>
               {hasVariants && (
                 <span className="ml-2 inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                  Options
+                  {product.variants?.length || 0} option(s)
                 </span>
               )}
             </div>

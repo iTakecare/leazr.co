@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -46,15 +45,17 @@ export async function getProductById(id: string): Promise<Product | null> {
       return null;
     }
     
-    // Normalisation des attributs du produit principal
-    console.log("Main product original attributes:", mainProduct.attributes);
+    console.log("Main product:", {
+      id: mainProduct.id,
+      name: mainProduct.name,
+      is_parent: mainProduct.is_parent,
+      parent_id: mainProduct.parent_id,
+      has_attributes: !!mainProduct.attributes,
+      attributes_type: mainProduct.attributes ? typeof mainProduct.attributes : 'undefined'
+    });
+    
     mainProduct.attributes = normalizeAttributes(mainProduct.attributes);
-    console.log("Main product normalized attributes:", mainProduct.attributes);
     
-    // Pour débogage, loguer les informations sur le produit parent
-    console.log(`Product data: id=${mainProduct.id}, is_parent=${mainProduct.is_parent}, parent_id=${mainProduct.parent_id}`);
-    
-    // Si c'est un produit parent, récupérer ses variantes
     if (mainProduct.is_parent) {
       console.log(`Product ${id} is a parent, fetching variants...`);
       
@@ -68,33 +69,14 @@ export async function getProductById(id: string): Promise<Product | null> {
       } else if (variants && variants.length > 0) {
         console.log(`Found ${variants.length} variants for product ${id}`);
         
-        // Log les attributs des variantes pour le débogage avant normalisation
-        variants.forEach((variant, index) => {
-          console.log(`Variant ${index + 1} ID:`, variant.id);
-          console.log(`Variant ${index + 1} original attributes (${typeof variant.attributes}):`, variant.attributes);
-          console.log(`Variant ${index + 1} price:`, variant.price);
-          console.log(`Variant ${index + 1} monthly_price:`, variant.monthly_price);
-        });
-        
-        // Normaliser les attributs pour chaque variante
         mainProduct.variants = variants.map(variant => {
-          // S'assurer que les attributs sont au format Record et pas un tableau
-          const normalizedAttrs = normalizeAttributes(variant.attributes);
-          console.log(`Variant ${variant.id} normalized attributes:`, normalizedAttrs);
+          const normalizedAttributes = normalizeAttributes(variant.attributes);
+          console.log(`Normalized attributes for variant ${variant.id}:`, normalizedAttributes);
           
           return {
             ...variant,
-            attributes: normalizedAttrs
+            attributes: normalizedAttributes
           };
-        });
-        
-        // Log variants après normalisation
-        mainProduct.variants.forEach((variant, index) => {
-          console.log(`Normalized variant ${index + 1}:`, {
-            id: variant.id, 
-            monthly_price: variant.monthly_price,
-            attributes: variant.attributes
-          });
         });
       } else {
         console.log(`No variants found for parent product ${id}`);
@@ -125,7 +107,6 @@ export async function getProductById(id: string): Promise<Product | null> {
         } else if (siblings && siblings.length > 0) {
           console.log(`Found ${siblings.length} siblings for product ${id}`);
           
-          // Normaliser les attributs pour chaque variante
           const processedSiblings = siblings.map(variant => {
             return {
               ...variant,
@@ -133,23 +114,7 @@ export async function getProductById(id: string): Promise<Product | null> {
             };
           });
           
-          parent.variants = processedSiblings;
           mainProduct.variants = processedSiblings;
-        }
-      }
-    }
-
-    // Calculer le prix mensuel minimum en tenant compte des variantes
-    if (mainProduct.variants && mainProduct.variants.length > 0) {
-      const variantPrices = mainProduct.variants
-        .map(variant => variant.monthly_price || 0)
-        .filter(price => price > 0);
-      
-      if (variantPrices.length > 0) {
-        const minPrice = Math.min(...variantPrices);
-        // Si le produit principal n'a pas de prix mensuel, utilisez le prix minimum des variantes
-        if (!mainProduct.monthly_price || mainProduct.monthly_price === 0) {
-          mainProduct.monthly_price = minPrice;
         }
       }
     }
@@ -162,81 +127,59 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 }
 
-// Fonction améliorée pour normaliser les attributs de produit/variante
 function normalizeAttributes(attributes: any): Record<string, string | number | boolean> {
-  console.log("Normalizing attributes:", attributes);
-  
-  // Si null ou undefined, retourner un objet vide
   if (!attributes) {
-    console.log("Attributes is null or undefined, returning empty object");
     return {};
   }
   
   try {
-    // Si c'est une chaîne JSON, essayer de la parser
     if (typeof attributes === 'string') {
       try {
-        const parsed = JSON.parse(attributes);
-        console.log("Successfully parsed JSON string attributes:", parsed);
-        return normalizeAttributes(parsed); // Appel récursif avec le résultat parsé
+        return normalizeAttributes(JSON.parse(attributes));
       } catch (e) {
-        console.log("Failed to parse attributes string as JSON:", e);
+        console.log("Failed to parse attributes string:", attributes);
+        return {};
       }
     }
     
-    // Si c'est déjà un objet et pas un tableau, le valider et le convertir
     if (typeof attributes === 'object' && !Array.isArray(attributes)) {
-      console.log("Attributes is already an object");
-      // Vérifier que toutes les valeurs sont des types primitifs
-      const normalized: Record<string, string | number | boolean> = {};
+      const result: Record<string, string | number | boolean> = {};
+      
       Object.entries(attributes).forEach(([key, value]) => {
         if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-          normalized[key] = value;
+          result[key] = value;
         } else if (value !== null && value !== undefined) {
-          // Convertir les valeurs non-primitives en chaînes
-          normalized[key] = String(value);
+          result[key] = String(value);
         }
       });
-      return normalized;
+      
+      return result;
     }
     
-    // Si c'est un tableau, le convertir en objet
     if (Array.isArray(attributes)) {
-      console.log("Attributes is an array, converting to object. Array length:", attributes.length);
-      const normalized: Record<string, string | number | boolean> = {};
+      const result: Record<string, string | number | boolean> = {};
       
-      attributes.forEach((attr: any, index) => {
-        console.log(`Processing array item ${index}:`, attr);
-        
-        // Format 1: {name: "color", value: "red"}
+      attributes.forEach((attr, index) => {
         if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
-          const value = attr.value;
-          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-            normalized[attr.name] = value;
-          } else if (value !== null && value !== undefined) {
-            normalized[attr.name] = String(value);
-          }
+          result[attr.name] = attr.value;
         }
-        // Format 2: "color:red" ou similaire
         else if (typeof attr === 'string' && attr.includes(':')) {
           const [key, value] = attr.split(':', 2);
-          normalized[key.trim()] = value.trim();
+          result[key.trim()] = value.trim();
         }
-        // Format 3: Simple valeur avec index comme clé
         else if (attr !== null && attr !== undefined) {
-          normalized[`option_${index}`] = typeof attr === 'object' ? JSON.stringify(attr) : String(attr);
+          result[`option_${index}`] = typeof attr === 'object' 
+            ? JSON.stringify(attr) 
+            : String(attr);
         }
       });
       
-      console.log("Normalized from array:", normalized);
-      return normalized;
+      return result;
     }
   } catch (e) {
-    console.error("Error in normalizeAttributes:", e);
+    console.error("Error normalizing attributes:", e);
   }
   
-  // Si c'est autre chose ou une erreur s'est produite, retourner un objet vide
-  console.log("Falling back to empty object for attributes");
   return {};
 }
 
