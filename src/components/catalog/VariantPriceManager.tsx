@@ -346,7 +346,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       
       {hasVariationAttributes && (
         <>
-          <form onSubmit={handleSubmit}>
+          {/* IMPORTANT: Changed from form to div to prevent DOM nesting error */}
+          <div className="space-y-6">
             <Card>
               <CardContent className="pt-6">
                 <div className="space-y-6">
@@ -415,7 +416,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   
                   <div className="flex justify-end">
                     <Button 
-                      type="submit" 
+                      onClick={handleSubmit}
                       disabled={!areAllAttributesSelected() || !price || addVariantPriceMutation.isPending}
                     >
                       {addVariantPriceMutation.isPending ? (
@@ -433,7 +434,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                 </div>
               </CardContent>
             </Card>
-          </form>
+          </div>
           
           <div>
             <h3 className="text-lg font-medium mb-4">Prix des variantes</h3>
