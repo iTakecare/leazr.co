@@ -16,6 +16,7 @@ interface ProductCardProps {
       monthly_price?: number;
       price?: number;
     }>;
+    is_parent?: boolean;
   };
   onClick?: () => void;
 }
@@ -27,20 +28,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   
   // Calculate minimum monthly price from variants if they exist
   let productMonthlyPrice = "Non définie";
+  let hasVariants = false;
+  
   if (product?.monthly_price) {
     productMonthlyPrice = formatCurrency(product.monthly_price);
-  } else if (product?.variants && product.variants.length > 0) {
+  } 
+  
+  if (product?.variants && product.variants.length > 0) {
+    hasVariants = true;
     const variantPrices = product.variants
       .map(variant => variant.monthly_price || 0)
       .filter(price => price > 0);
       
     if (variantPrices.length > 0) {
       const minPrice = Math.min(...variantPrices);
-      productMonthlyPrice = formatCurrency(minPrice);
+      if (!product.monthly_price || minPrice < product.monthly_price) {
+        productMonthlyPrice = formatCurrency(minPrice);
+      }
     }
   }
   
   const productImage = product?.image_url || "/placeholder.svg";
+  
+  // Debug log for variant detection
+  console.log(`ProductCard ${product.id}: is_parent=${product.is_parent}, variants=${product?.variants?.length || 0}`);
 
   return (
     <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" onClick={onClick}>
@@ -63,13 +74,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
                 Prix: {productPrice}
               </p>
               <p className="text-muted-foreground">
-                Mensualité: {productMonthlyPrice}
+                {hasVariants ? "À partir de " : "Mensualité: "}{productMonthlyPrice}
               </p>
             </div>
             <div className="mt-2 flex items-center">
               <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
                 Disponible
               </span>
+              {hasVariants && (
+                <span className="ml-2 inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                  Options
+                </span>
+              )}
             </div>
           </div>
         </div>

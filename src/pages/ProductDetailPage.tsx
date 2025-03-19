@@ -33,10 +33,33 @@ const ProductDetailPage = () => {
   const [validCombinations, setValidCombinations] = useState<Array<Record<string, string>>>([]);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
 
-  // Process product data when it's loaded
+  const logProductVariantInfo = (product: any) => {
+    if (!product) return;
+    
+    console.log("Product ID:", product.id);
+    console.log("Product name:", product.name);
+    console.log("Is parent:", product.is_parent);
+    console.log("Parent ID:", product.parent_id);
+    console.log("Has variants:", !!product.variants && product.variants.length > 0);
+    console.log("Variants count:", product.variants?.length || 0);
+    
+    if (product.variants && product.variants.length > 0) {
+      console.log("First variant attributes:", product.variants[0].attributes);
+      
+      // Log attribute types for debugging
+      const firstVariant = product.variants[0];
+      if (firstVariant.attributes) {
+        console.log("Attributes data type:", typeof firstVariant.attributes);
+        console.log("Is array:", Array.isArray(firstVariant.attributes));
+        console.log("Raw attributes:", JSON.stringify(firstVariant.attributes, null, 2));
+      }
+    }
+  }
+
   useEffect(() => {
     if (product) {
       console.log("Product loaded:", product);
+      logProductVariantInfo(product);
       
       // Set default image
       setCurrentImage(product.image_url || product.imageUrl || "/placeholder.svg");
@@ -52,11 +75,16 @@ const ProductDetailPage = () => {
         product.variants.forEach(variant => {
           console.log(`Processing variant ${variant.id} with attributes:`, variant.attributes);
           
-          if (variant.attributes && typeof variant.attributes === 'object' && !Array.isArray(variant.attributes)) {
+          if (variant.attributes) {
+            // Make sure attributes is an object and not an array
+            const attributes = typeof variant.attributes === 'object' && !Array.isArray(variant.attributes) 
+              ? variant.attributes 
+              : {};
+              
             // Create a combination object representing this variant's attributes
             const combination: Record<string, string> = {};
             
-            Object.entries(variant.attributes).forEach(([key, value]) => {
+            Object.entries(attributes).forEach(([key, value]) => {
               if (!options[key]) {
                 options[key] = new Set();
               }
@@ -114,13 +142,12 @@ const ProductDetailPage = () => {
           setCurrentPrice(product.monthly_price || null);
         }
       } else {
-        console.log("Product has no variants");
+        console.log("Product has no variants or they couldn't be processed correctly");
         setCurrentPrice(product.monthly_price || null);
       }
     }
   }, [product]);
 
-  // Update image and price when options change
   useEffect(() => {
     if (product && Object.keys(selectedOptions).length > 0) {
       const selectedVariant = findVariantByOptions(product.variants || [], selectedOptions);
@@ -173,7 +200,6 @@ const ProductDetailPage = () => {
     setSelectedOptions(validatedOptions);
   };
 
-  // Find a variant that matches the selected options
   const findVariantByOptions = (variants: Product[], options: Record<string, string>): Product | null => {
     if (!variants || variants.length === 0) return null;
     
@@ -189,7 +215,6 @@ const ProductDetailPage = () => {
     }) || null;
   };
 
-  // Helper function to check if an option value is available based on current selections
   const isOptionAvailable = (optionName: string, optionValue: string): boolean => {
     // Create a test selection with current selections plus the option we're checking
     const testSelection = { 
@@ -214,7 +239,6 @@ const ProductDetailPage = () => {
     });
   };
 
-  // Validate options and adjust selections to ensure they're valid
   const validateOptions = (newOptions: Record<string, string>, changedOption: string): Record<string, string> => {
     const validatedOptions = { ...newOptions };
     
@@ -262,13 +286,11 @@ const ProductDetailPage = () => {
     return validatedOptions;
   };
 
-  // Calculate total price based on selected variant and quantity
   const calculateTotalPrice = (): number => {
     const basePrice = currentPrice || product?.monthly_price || 0;
     return basePrice * quantity;
   };
 
-  // Get minimum monthly price from all variants
   const getMinimumMonthlyPrice = (): number => {
     if (!product) return 0;
     
@@ -295,52 +317,68 @@ const ProductDetailPage = () => {
   };
 
   const renderOptions = () => {
-    if (!product || !product.variants || product.variants.length === 0) {
-      return (
-        <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
-      );
-    }
+    if (!product) return null;
     
-    // Check if there are actually any options with values
+    // Additional debug logging for variant detection
+    console.log("Rendering options. Product has variants:", 
+      !!product.variants && product.variants.length > 0);
+    console.log("Available options:", availableOptions);
+    console.log("Valid combinations count:", validCombinations.length);
+    
+    // Check if there are any options available
     const hasOptions = Object.keys(availableOptions).length > 0;
     
-    if (!hasOptions) {
+    // If we have valid combinations and available options, render them
+    if (hasOptions && validCombinations.length > 0) {
       return (
-        <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
+        <div className="space-y-6">
+          {Object.entries(availableOptions).map(([option, values]) => (
+            <div key={option} className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
+              <label className="block text-sm font-medium text-gray-700 capitalize mb-3">
+                {option}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {values.map((value) => {
+                  const isAvailable = isOptionAvailable(option, value);
+                  return (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={selectedOptions[option] === value ? "default" : "outline"}
+                      className={`
+                        ${selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                        ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}
+                      `}
+                      onClick={() => isAvailable && handleOptionChange(option, value)}
+                      disabled={!isAvailable}
+                    >
+                      {value}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       );
     }
-
+    
+    // If we have variants but no options were extracted properly
+    if (product.variants && product.variants.length > 0) {
+      return (
+        <div className="text-amber-600 bg-amber-50 p-4 rounded-lg border border-amber-200">
+          <p className="flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            Ce produit a des variantes, mais aucune option de configuration n'a pu être récupérée.
+          </p>
+        </div>
+      );
+    }
+    
+    // If there are no variants
     return (
-      <div className="space-y-6">
-        {Object.entries(availableOptions).map(([option, values]) => (
-          <div key={option} className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
-            <label className="block text-sm font-medium text-gray-700 capitalize mb-3">
-              {option}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {values.map((value) => {
-                const isAvailable = isOptionAvailable(option, value);
-                return (
-                  <Button
-                    key={value}
-                    type="button"
-                    size="sm"
-                    variant={selectedOptions[option] === value ? "default" : "outline"}
-                    className={`
-                      ${selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
-                      ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}
-                    `}
-                    onClick={() => isAvailable && handleOptionChange(option, value)}
-                    disabled={!isAvailable}
-                  >
-                    {value}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+      <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
     );
   };
 

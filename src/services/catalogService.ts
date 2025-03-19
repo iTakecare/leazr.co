@@ -51,7 +51,7 @@ export async function getProductById(id: string): Promise<Product | null> {
     console.log("Main product normalized attributes:", mainProduct.attributes);
     
     // Pour débogage, loguer les informations sur le produit parent
-    console.log(`Product data: is_parent=${mainProduct.is_parent}, parent_id=${mainProduct.parent_id}`);
+    console.log(`Product data: id=${mainProduct.id}, is_parent=${mainProduct.is_parent}, parent_id=${mainProduct.parent_id}`);
     
     // Si c'est un produit parent, récupérer ses variantes
     if (mainProduct.is_parent) {
@@ -71,6 +71,8 @@ export async function getProductById(id: string): Promise<Product | null> {
         variants.forEach((variant, index) => {
           console.log(`Variant ${index + 1} ID:`, variant.id);
           console.log(`Variant ${index + 1} original attributes:`, variant.attributes);
+          console.log(`Variant ${index + 1} price:`, variant.price);
+          console.log(`Variant ${index + 1} monthly_price:`, variant.monthly_price);
         });
         
         // Normaliser les attributs pour chaque variante
@@ -152,45 +154,66 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 }
 
-// Fonction utilitaire pour normaliser les attributs de produit/variante
+// Fonction utilitaire pour normaliser les attributs de produit/variante - réécrite pour être plus robuste
 function normalizeAttributes(attributes: any): Record<string, string | number | boolean> {
+  console.log("Normalizing attributes:", attributes);
+  
   // Si null ou undefined, retourner un objet vide
   if (!attributes) {
+    console.log("Attributes is null or undefined, returning empty object");
     return {};
   }
   
-  // Si c'est déjà un objet et pas un tableau, le valider
-  if (typeof attributes === 'object' && !Array.isArray(attributes)) {
-    // Vérifier que toutes les valeurs sont des types primitifs
-    const normalized: Record<string, string | number | boolean> = {};
-    Object.entries(attributes).forEach(([key, value]) => {
-      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-        normalized[key] = value;
-      } else if (value !== null && value !== undefined) {
-        // Convertir les valeurs non-primitives en chaînes
-        normalized[key] = String(value);
+  try {
+    // Si c'est une chaîne JSON, essayer de la parser
+    if (typeof attributes === 'string') {
+      try {
+        const parsed = JSON.parse(attributes);
+        console.log("Successfully parsed JSON string attributes:", parsed);
+        return normalizeAttributes(parsed); // Recursive call with parsed result
+      } catch (e) {
+        console.log("Failed to parse attributes string as JSON:", e);
       }
-    });
-    return normalized;
-  }
-  
-  // Si c'est un tableau, le convertir en objet
-  if (Array.isArray(attributes)) {
-    const normalized: Record<string, string | number | boolean> = {};
-    attributes.forEach((attr: any) => {
-      if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
-        const value = attr.value;
+    }
+    
+    // Si c'est déjà un objet et pas un tableau, le valider
+    if (typeof attributes === 'object' && !Array.isArray(attributes)) {
+      console.log("Attributes is already an object");
+      // Vérifier que toutes les valeurs sont des types primitifs
+      const normalized: Record<string, string | number | boolean> = {};
+      Object.entries(attributes).forEach(([key, value]) => {
         if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-          normalized[attr.name] = value;
+          normalized[key] = value;
         } else if (value !== null && value !== undefined) {
-          normalized[attr.name] = String(value);
+          // Convertir les valeurs non-primitives en chaînes
+          normalized[key] = String(value);
         }
-      }
-    });
-    return normalized;
+      });
+      return normalized;
+    }
+    
+    // Si c'est un tableau, le convertir en objet
+    if (Array.isArray(attributes)) {
+      console.log("Attributes is an array, converting to object");
+      const normalized: Record<string, string | number | boolean> = {};
+      attributes.forEach((attr: any) => {
+        if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
+          const value = attr.value;
+          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            normalized[attr.name] = value;
+          } else if (value !== null && value !== undefined) {
+            normalized[attr.name] = String(value);
+          }
+        }
+      });
+      return normalized;
+    }
+  } catch (e) {
+    console.error("Error in normalizeAttributes:", e);
   }
   
-  // Si c'est autre chose, retourner un objet vide
+  // Si c'est autre chose ou une erreur s'est produite, retourner un objet vide
+  console.log("Falling back to empty object for attributes");
   return {};
 }
 
