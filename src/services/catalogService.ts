@@ -1,5 +1,5 @@
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
-import { Product } from "@/types/catalog";
+import { Product, ProductAttribute } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
 
 export async function getProducts(): Promise<Product[]> {
@@ -49,12 +49,10 @@ export async function getProductById(id: string): Promise<Product | null> {
       id: mainProduct.id,
       name: mainProduct.name,
       is_parent: mainProduct.is_parent,
-      parent_id: mainProduct.parent_id,
-      has_attributes: !!mainProduct.attributes,
-      attributes_type: mainProduct.attributes ? typeof mainProduct.attributes : 'undefined'
+      parent_id: mainProduct.parent_id
     });
     
-    mainProduct.attributes = normalizeAttributes(mainProduct.attributes);
+    mainProduct.attributes = parseAttributes(mainProduct.attributes);
     
     if (mainProduct.is_parent) {
       console.log(`Product ${id} is a parent, fetching variants...`);
@@ -70,14 +68,17 @@ export async function getProductById(id: string): Promise<Product | null> {
         console.log(`Found ${variants.length} variants for product ${id}`);
         
         mainProduct.variants = variants.map(variant => {
-          const normalizedAttributes = normalizeAttributes(variant.attributes);
-          console.log(`Normalized attributes for variant ${variant.id}:`, normalizedAttributes);
+          const parsedAttributes = parseAttributes(variant.attributes);
+          console.log(`Variant ${variant.id} attributes:`, parsedAttributes);
           
           return {
             ...variant,
-            attributes: normalizedAttributes
+            attributes: parsedAttributes
           };
         });
+        
+        mainProduct.variation_attributes = extractVariationAttributesFromVariants(mainProduct.variants);
+        console.log("Extracted variation attributes:", mainProduct.variation_attributes);
       } else {
         console.log(`No variants found for parent product ${id}`);
         mainProduct.variants = [];
@@ -110,11 +111,13 @@ export async function getProductById(id: string): Promise<Product | null> {
           const processedSiblings = siblings.map(variant => {
             return {
               ...variant,
-              attributes: normalizeAttributes(variant.attributes)
+              attributes: parseAttributes(variant.attributes)
             };
           });
           
           mainProduct.variants = processedSiblings;
+          
+          mainProduct.variation_attributes = extractVariationAttributesFromVariants(processedSiblings);
         }
       }
     }
@@ -127,7 +130,8 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 }
 
-function normalizeAttributes(attributes: any): Record<string, string | number | boolean> {
+function parseAttributes(attributes: any): Record<string, string | number | boolean> {
+  console.log("Parsing attributes:", attributes);
   if (!attributes) {
     return {};
   }
@@ -135,7 +139,7 @@ function normalizeAttributes(attributes: any): Record<string, string | number | 
   try {
     if (typeof attributes === 'string') {
       try {
-        return normalizeAttributes(JSON.parse(attributes));
+        return parseAttributes(JSON.parse(attributes));
       } catch (e) {
         console.log("Failed to parse attributes string:", attributes);
         return {};
@@ -163,9 +167,13 @@ function normalizeAttributes(attributes: any): Record<string, string | number | 
         if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
           result[attr.name] = attr.value;
         }
-        else if (typeof attr === 'string' && attr.includes(':')) {
-          const [key, value] = attr.split(':', 2);
-          result[key.trim()] = value.trim();
+        else if (typeof attr === 'string') {
+          if (attr.includes(':')) {
+            const [key, value] = attr.split(':', 2);
+            result[key.trim()] = value.trim();
+          } else {
+            result[`option_${index}`] = attr;
+          }
         }
         else if (attr !== null && attr !== undefined) {
           result[`option_${index}`] = typeof attr === 'object' 
@@ -177,10 +185,36 @@ function normalizeAttributes(attributes: any): Record<string, string | number | 
       return result;
     }
   } catch (e) {
-    console.error("Error normalizing attributes:", e);
+    console.error("Error parsing attributes:", e);
   }
   
   return {};
+}
+
+function extractVariationAttributesFromVariants(variants: Product[]): Record<string, string[]> {
+  if (!variants || variants.length === 0) {
+    return {};
+  }
+  
+  const attributeOptions: Record<string, Set<string>> = {};
+  
+  variants.forEach(variant => {
+    if (variant.attributes) {
+      Object.entries(variant.attributes).forEach(([attrName, attrValue]) => {
+        if (!attributeOptions[attrName]) {
+          attributeOptions[attrName] = new Set();
+        }
+        attributeOptions[attrName].add(String(attrValue));
+      });
+    }
+  });
+  
+  const result: Record<string, string[]> = {};
+  Object.entries(attributeOptions).forEach(([attrName, values]) => {
+    result[attrName] = Array.from(values).sort();
+  });
+  
+  return result;
 }
 
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: string }> {

@@ -23,6 +23,7 @@ const ProductDetailPage = () => {
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
   const [currentImage, setCurrentImage] = useState<string>("");
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
   const duration = 36; // Fixed duration to 36 months
   
   const { data: product, isLoading, error } = useQuery({
@@ -31,57 +32,80 @@ const ProductDetailPage = () => {
     enabled: !!id,
   });
 
-  // Extract options from product variants
+  // When product loads, set up initial state
   useEffect(() => {
     if (!product) return;
     
-    console.log("Product data loaded:", product);
-    console.log("Variants:", product.variants?.length || 0);
+    console.log("Product loaded:", product);
+    console.log("Product has variants:", product.variants?.length || 0);
+    console.log("Product variation attributes:", product.variation_attributes);
     
     // Set default image
     setCurrentImage(product.image_url || "/placeholder.svg");
     
-    // If product has no variants, just set the product price
+    // Set base price
+    setCurrentPrice(product.monthly_price || null);
+    
+    // If product has no variants, we're done
     if (!product.variants || product.variants.length === 0) {
-      setCurrentPrice(product.monthly_price || null);
       return;
     }
     
-    // Extract options from variants
-    const options: Record<string, Set<string>> = {};
+    // Extract options from variation_attributes if available
+    if (product.variation_attributes && typeof product.variation_attributes === 'object') {
+      const options: Record<string, string[]> = {};
+      
+      // Check if it's already in the right format
+      if (!Array.isArray(product.variation_attributes)) {
+        Object.entries(product.variation_attributes).forEach(([key, values]) => {
+          if (Array.isArray(values)) {
+            options[key] = values.map(v => String(v));
+          }
+        });
+      }
+      
+      if (Object.keys(options).length > 0) {
+        console.log("Setting available options from variation_attributes:", options);
+        setAvailableOptions(options);
+        
+        // Set default selected options
+        const initialOptions: Record<string, string> = {};
+        Object.entries(options).forEach(([key, values]) => {
+          if (values.length > 0) {
+            initialOptions[key] = values[0];
+          }
+        });
+        
+        if (Object.keys(initialOptions).length > 0) {
+          console.log("Setting initial options:", initialOptions);
+          setSelectedOptions(initialOptions);
+        }
+        
+        return;
+      }
+    }
+    
+    // If variation_attributes wasn't available or usable, extract from variants
+    const optionsFromVariants: Record<string, Set<string>> = {};
     
     product.variants.forEach(variant => {
       if (!variant.attributes) return;
       
-      // Convert array attributes to object if needed
-      const attributes = Array.isArray(variant.attributes) 
-        ? variant.attributes.reduce((acc, attr) => {
-            if (typeof attr === 'string' && attr.includes(':')) {
-              const [key, value] = attr.split(':');
-              acc[key.trim()] = value.trim();
-            } else if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
-              acc[attr.name] = attr.value;
-            }
-            return acc;
-          }, {} as Record<string, string>)
-        : variant.attributes;
-      
-      // Add each attribute to options
-      Object.entries(attributes).forEach(([key, value]) => {
-        if (!options[key]) {
-          options[key] = new Set();
+      Object.entries(variant.attributes).forEach(([key, value]) => {
+        if (!optionsFromVariants[key]) {
+          optionsFromVariants[key] = new Set();
         }
-        options[key].add(String(value));
+        optionsFromVariants[key].add(String(value));
       });
     });
     
     // Convert Sets to Arrays
     const processedOptions: Record<string, string[]> = {};
-    Object.entries(options).forEach(([key, values]) => {
+    Object.entries(optionsFromVariants).forEach(([key, values]) => {
       processedOptions[key] = Array.from(values).sort();
     });
     
-    console.log("Available options:", processedOptions);
+    console.log("Extracted options from variants:", processedOptions);
     setAvailableOptions(processedOptions);
     
     // Set default selected options
@@ -93,35 +117,31 @@ const ProductDetailPage = () => {
     });
     
     if (Object.keys(defaultOptions).length > 0) {
+      console.log("Setting default options:", defaultOptions);
       setSelectedOptions(defaultOptions);
-      
-      // Get variant with these options
-      const selectedVariant = findVariantByOptions(product.variants, defaultOptions);
-      if (selectedVariant) {
-        setCurrentPrice(selectedVariant.monthly_price || product.monthly_price || null);
-        
-        // Update image if variant has one
-        if (selectedVariant.image_url) {
-          setCurrentImage(selectedVariant.image_url);
-        }
-      }
     }
   }, [product]);
 
   // Update price and image when options change
   useEffect(() => {
-    if (!product || !product.variants) return;
+    if (!product || !product.variants || Object.keys(selectedOptions).length === 0) return;
     
-    const selectedVariant = findVariantByOptions(product.variants, selectedOptions);
-    if (selectedVariant) {
-      setCurrentPrice(selectedVariant.monthly_price || product.monthly_price || null);
+    console.log("Selected options changed:", selectedOptions);
+    
+    const variant = findVariantByOptions(product.variants, selectedOptions);
+    setSelectedVariant(variant);
+    
+    if (variant) {
+      console.log("Found matching variant:", variant.id);
+      setCurrentPrice(variant.monthly_price || product.monthly_price || null);
       
-      if (selectedVariant.image_url) {
-        setCurrentImage(selectedVariant.image_url);
+      if (variant.image_url) {
+        setCurrentImage(variant.image_url);
       } else {
         setCurrentImage(product.image_url || "/placeholder.svg");
       }
     } else {
+      console.log("No matching variant found");
       setCurrentPrice(product.monthly_price || null);
       setCurrentImage(product.image_url || "/placeholder.svg");
     }
@@ -130,30 +150,21 @@ const ProductDetailPage = () => {
   const findVariantByOptions = (variants: Product[], options: Record<string, string>): Product | null => {
     if (!variants || variants.length === 0 || Object.keys(options).length === 0) return null;
     
-    return variants.find(variant => {
+    const matchingVariant = variants.find(variant => {
       if (!variant.attributes) return false;
-      
-      // Convert array attributes to object if needed
-      const attributes = Array.isArray(variant.attributes) 
-        ? variant.attributes.reduce((acc, attr) => {
-            if (typeof attr === 'string' && attr.includes(':')) {
-              const [key, value] = attr.split(':');
-              acc[key.trim()] = value.trim();
-            } else if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
-              acc[attr.name] = attr.value;
-            }
-            return acc;
-          }, {} as Record<string, string>)
-        : variant.attributes;
       
       // Check if all selected options match this variant
       return Object.entries(options).every(([key, value]) => {
-        return String(attributes[key]) === value;
+        const variantValue = variant.attributes ? String(variant.attributes[key]) : undefined;
+        return variantValue === value;
       });
-    }) || null;
+    });
+    
+    return matchingVariant || null;
   };
 
   const handleOptionChange = (optionName: string, value: string) => {
+    console.log(`Changing option ${optionName} to ${value}`);
     setSelectedOptions(prev => ({
       ...prev,
       [optionName]: value
@@ -202,39 +213,33 @@ const ProductDetailPage = () => {
   const isOptionAvailable = (optionName: string, value: string): boolean => {
     if (!product || !product.variants) return false;
     
+    // Copy all currently selected options except the one we're checking
     const otherOptions = { ...selectedOptions };
     delete otherOptions[optionName];
     
+    // A configuration is available if there's at least one variant with:
+    // 1. This option value for the current option
+    // 2. Matching values for all other currently selected options
     return product.variants.some(variant => {
       if (!variant.attributes) return false;
       
-      // Convert array attributes to object if needed
-      const attributes = Array.isArray(variant.attributes) 
-        ? variant.attributes.reduce((acc, attr) => {
-            if (typeof attr === 'string' && attr.includes(':')) {
-              const [key, value] = attr.split(':');
-              acc[key.trim()] = value.trim();
-            } else if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
-              acc[attr.name] = attr.value;
-            }
-            return acc;
-          }, {} as Record<string, string>)
-        : variant.attributes;
+      // First check if this variant has the option value we're checking
+      const variantValue = String(variant.attributes[optionName]);
+      if (variantValue !== value) return false;
       
-      // Check if this option matches and all other selected options match
-      if (String(attributes[optionName]) !== value) return false;
-      
+      // Then check if this variant matches all our other selected options
       return Object.entries(otherOptions).every(([key, val]) => {
-        return String(attributes[key]) === val;
+        return String(variant.attributes[key]) === val;
       });
     });
   };
 
-  const getSelectedVariantSpecifications = () => {
-    if (!product || !product.variants) return {};
-    
-    const selectedVariant = findVariantByOptions(product.variants, selectedOptions);
-    return selectedVariant?.specifications || product?.specifications || {};
+  const getSelectedSpecifications = (): Record<string, string | number> => {
+    // Use selected variant specs if available, otherwise use the base product specs
+    if (selectedVariant?.specifications) {
+      return selectedVariant.specifications;
+    }
+    return product?.specifications || {};
   };
 
   if (isLoading) {
@@ -276,9 +281,10 @@ const ProductDetailPage = () => {
   }
 
   const hasOptions = Object.keys(availableOptions).length > 0;
-  const minMonthlyPrice = getMinimumMonthlyPrice();
   const hasVariants = product.variants && product.variants.length > 0;
+  const minMonthlyPrice = getMinimumMonthlyPrice();
   const totalPrice = calculateTotalPrice();
+  const specifications = getSelectedSpecifications();
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -357,14 +363,16 @@ const ProductDetailPage = () => {
                         <div className="flex flex-wrap gap-2">
                           {values.map((value) => {
                             const isAvailable = isOptionAvailable(option, value);
+                            const isSelected = selectedOptions[option] === value;
+                            
                             return (
                               <Button
                                 key={value}
                                 type="button"
                                 size="sm"
-                                variant={selectedOptions[option] === value ? "default" : "outline"}
+                                variant={isSelected ? "default" : "outline"}
                                 className={`
-                                  ${selectedOptions[option] === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                                  ${isSelected ? "bg-indigo-600 hover:bg-indigo-700" : ""}
                                   ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}
                                 `}
                                 onClick={() => isAvailable && handleOptionChange(option, value)}
@@ -461,12 +469,12 @@ const ProductDetailPage = () => {
             </div>
             
             {/* Specifications */}
-            {Object.keys(getSelectedVariantSpecifications()).length > 0 && (
+            {Object.keys(specifications).length > 0 && (
               <div className="mb-6">
                 <h3 className="text-xl font-medium mb-3">Caractéristiques</h3>
                 <div className="bg-white rounded-lg border overflow-hidden">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-px text-sm">
-                    {Object.entries(getSelectedVariantSpecifications()).map(([key, value], index) => (
+                    {Object.entries(specifications).map(([key, value], index) => (
                       <div key={key} className={`p-3 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
                         <span className="font-medium capitalize mr-1">{key}:</span>
                         <span className="text-gray-700">{String(value)}</span>
@@ -483,7 +491,7 @@ const ProductDetailPage = () => {
       <ProductRequestForm 
         isOpen={isRequestFormOpen}
         onClose={() => setIsRequestFormOpen(false)}
-        product={product}
+        product={selectedVariant || product}
         quantity={quantity}
         selectedOptions={selectedOptions}
         duration={duration}
