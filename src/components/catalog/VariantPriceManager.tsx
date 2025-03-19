@@ -151,7 +151,9 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     if (!product.variation_attributes) return false;
     
     return Object.keys(product.variation_attributes).every(
-      attrName => selectedAttributes[attrName] !== undefined
+      attrName => selectedAttributes[attrName] !== undefined && 
+                  selectedAttributes[attrName] !== null && 
+                  selectedAttributes[attrName] !== ""
     );
   };
   
@@ -537,7 +539,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   <div className="flex justify-end">
                     <Button 
                       onClick={handleSubmit}
-                      disabled={!areAllAttributesSelected() || !purchasePrice || addVariantPriceMutation.isPending}
+                      disabled={!areAllAttributesSelected() || purchasePrice === "" || Number(purchasePrice) <= 0 || addVariantPriceMutation.isPending}
                     >
                       {addVariantPriceMutation.isPending ? (
                         <span className="flex items-center">
