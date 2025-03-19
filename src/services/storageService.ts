@@ -141,6 +141,64 @@ async function createPublicPolicy(bucketName: string): Promise<void> {
 }
 
 /**
+ * Determines the correct MIME type for a file based on extension and binary analysis
+ * @param fileOrBlob The file or blob to analyze
+ * @param filename The filename (for extension detection)
+ * @returns Promise with the corrected MIME type
+ */
+async function determineCorrectMimeType(fileOrBlob: File | Blob, filename: string): Promise<string> {
+  // First try to get extension from filename
+  const filenameExtension = filename.split('.').pop()?.toLowerCase();
+  let mimeType = 'application/octet-stream'; // Default fallback
+  
+  // Check for WebP signature (52 49 46 46 XX XX XX XX 57 45 42 50)
+  // WebP files start with "RIFF" followed by file size, then "WEBP"
+  try {
+    const buffer = await fileOrBlob.slice(0, 12).arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    
+    if (
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 && // "RIFF"
+      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50   // "WEBP"
+    ) {
+      console.log("WebP signature detected in file");
+      return "image/webp";
+    }
+    
+    // Check for JPEG signature (FF D8 FF)
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+      console.log("JPEG signature detected in file");
+      return "image/jpeg";
+    }
+    
+    // Check for PNG signature (89 50 4E 47 0D 0A 1A 0A)
+    if (
+      bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47 &&
+      bytes[4] === 0x0D && bytes[5] === 0x0A && bytes[6] === 0x1A && bytes[7] === 0x0A
+    ) {
+      console.log("PNG signature detected in file");
+      return "image/png";
+    }
+  } catch (e) {
+    console.warn("Error analyzing file header:", e);
+  }
+  
+  // If we didn't detect a signature, try extension detection
+  if (filenameExtension) {
+    mimeType = getMimeTypeFromExtension(filenameExtension, mimeType);
+    console.log(`Determined MIME type from extension: ${mimeType}`);
+  }
+  
+  // If the file is a File object with a type, use it as a fallback if our detection failed
+  if (fileOrBlob instanceof File && fileOrBlob.type && mimeType === 'application/octet-stream') {
+    mimeType = fileOrBlob.type;
+    console.log(`Using File.type as fallback: ${mimeType}`);
+  }
+  
+  return mimeType;
+}
+
+/**
  * Downloads and uploads an image to Supabase storage
  * @param imageUrl The URL of the image to download
  * @param filename A unique filename for the uploaded image
@@ -192,7 +250,11 @@ export async function downloadAndUploadImage(
       const contentType = response.headers.get('content-type');
       console.log(`Server reported content type: ${contentType}`);
       
-      // Determine file extension from URL and content type
+      // Get image as array buffer
+      const imageArrayBuffer = await response.arrayBuffer();
+      console.log(`Downloaded image size: ${imageArrayBuffer.byteLength} bytes`);
+      
+      // Determine file extension and correct MIME type
       let fileExtension = '';
       
       // Try to get extension from URL first
@@ -201,7 +263,7 @@ export async function downloadAndUploadImage(
         console.log(`URL suggests file extension: ${fileExtension}`);
       }
       
-      // If extension is invalid or too long, try to determine from content type
+      // If extension is invalid or too long, determine from content type
       if (!fileExtension || fileExtension.length > 5 || !/^[a-z0-9]+$/.test(fileExtension)) {
         console.log("Determining extension from content type");
         
@@ -215,20 +277,19 @@ export async function downloadAndUploadImage(
         console.log(`Content type suggests file extension: ${fileExtension}`);
       }
       
-      // Determine the correct MIME type based on extension
-      const correctMimeType = getMimeTypeFromExtension(fileExtension, 'image/jpeg');
-      console.log(`Using file extension: ${fileExtension}, content type: ${correctMimeType}`);
+      // Create a blob with the image data
+      const imageBlob = new Blob([imageArrayBuffer]);
       
-      // Get image as array buffer
-      const imageArrayBuffer = await response.arrayBuffer();
-      console.log(`Downloaded image size: ${imageArrayBuffer.byteLength} bytes`);
-      
-      // Create a properly typed blob with correct MIME type
-      const imageBlob = new Blob([imageArrayBuffer], { type: correctMimeType });
-      
-      // Convert blob to file with proper extension and MIME type
+      // Analyze the blob to determine its actual MIME type
       const uniqueFilename = `${filename.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.${fileExtension}`;
-      const imageFile = new File([imageBlob], uniqueFilename, { type: correctMimeType });
+      const detectedMimeType = await determineCorrectMimeType(imageBlob, uniqueFilename);
+      
+      // Create a properly typed file with correct MIME type
+      const imageFile = new File([imageArrayBuffer], uniqueFilename, { 
+        type: detectedMimeType
+      });
+      
+      console.log(`Created file with name: ${uniqueFilename} and type: ${detectedMimeType}`);
       
       // Make sure storage bucket exists
       console.log(`Ensuring bucket ${bucketName} exists...`);
@@ -241,7 +302,7 @@ export async function downloadAndUploadImage(
       // Get Supabase client
       let supabase = getSupabaseClient();
       
-      console.log(`Uploading image to ${uniqueFilename} with content type ${correctMimeType}`);
+      console.log(`Uploading image to ${uniqueFilename} with content type ${detectedMimeType}`);
       
       // Upload to Supabase Storage with explicit content type
       let { error, data } = await supabase.storage
@@ -249,7 +310,7 @@ export async function downloadAndUploadImage(
         .upload(uniqueFilename, imageFile, {
           cacheControl: '3600',
           upsert: true,
-          contentType: correctMimeType
+          contentType: detectedMimeType
         });
         
       if (error) {
@@ -264,7 +325,7 @@ export async function downloadAndUploadImage(
           .upload(uniqueFilename, imageFile, {
             cacheControl: '3600',
             upsert: true,
-            contentType: correctMimeType
+            contentType: detectedMimeType
           });
           
         if (adminResult.error) {

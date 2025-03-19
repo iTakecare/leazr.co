@@ -63,13 +63,71 @@ export function getMimeTypeFromExtension(extension: string, fallbackType: string
 }
 
 /**
+ * Analyzes the first bytes of a file to detect its type based on binary signature
+ * @param file The file to analyze
+ * @returns Promise with the detected MIME type
+ */
+export async function detectMimeTypeFromSignature(file: File): Promise<string | null> {
+  try {
+    // Read first 12 bytes of the file to check signatures
+    const buffer = await file.slice(0, 12).arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    
+    // Check for WebP signature (52 49 46 46 XX XX XX XX 57 45 42 50)
+    // WebP files start with "RIFF" followed by file size, then "WEBP"
+    if (
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 && // "RIFF"
+      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50   // "WEBP"
+    ) {
+      console.log("WebP signature detected");
+      return "image/webp";
+    }
+    
+    // Check for JPEG signature (FF D8 FF)
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+      console.log("JPEG signature detected");
+      return "image/jpeg";
+    }
+    
+    // Check for PNG signature (89 50 4E 47 0D 0A 1A 0A)
+    if (
+      bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47 &&
+      bytes[4] === 0x0D && bytes[5] === 0x0A && bytes[6] === 0x1A && bytes[7] === 0x0A
+    ) {
+      console.log("PNG signature detected");
+      return "image/png";
+    }
+    
+    // Check for GIF signature (47 49 46 38)
+    if (
+      bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38
+    ) {
+      console.log("GIF signature detected");
+      return "image/gif";
+    }
+    
+    return null; // No signature match
+  } catch (error) {
+    console.error("Error analyzing file signature:", error);
+    return null;
+  }
+}
+
+/**
  * Create a new file with the correct content type
  * @param file Original file
  * @param extension File extension
  * @returns New file with correct content type
  */
 export async function createFileWithCorrectType(file: File, extension: string): Promise<File> {
-  const contentType = getMimeTypeFromExtension(extension);
+  // First try to detect the MIME type from file signature
+  const signatureMimeType = await detectMimeTypeFromSignature(file);
+  
+  // If signature detection worked, use that, otherwise fall back to extension
+  const contentType = signatureMimeType || getMimeTypeFromExtension(extension);
+  
+  console.log(`Using content type: ${contentType} for file with extension: ${extension}`);
+  
   const fileArrayBuffer = await file.arrayBuffer();
   return new File([fileArrayBuffer], file.name, { type: contentType });
 }
@@ -153,11 +211,12 @@ export async function uploadImage(
       finalPath = `${pathParts.join('/')}/${seoFilename}-${Date.now()}.${extension}`;
     }
 
-    // Create a new file with the correct content type
-    const contentType = getMimeTypeFromExtension(extension);
-    console.log(`Setting content type: ${contentType}`);
+    // First try to detect MIME type from file signature 
+    const signatureMimeType = await detectMimeTypeFromSignature(file);
+    const contentType = signatureMimeType || getMimeTypeFromExtension(extension);
+    console.log(`Determined content type: ${contentType} for upload`);
     
-    // Always create a new file with the proper MIME type to avoid content type issues
+    // Create a new file with the proper MIME type to avoid content type issues
     const fileArrayBuffer = await file.arrayBuffer();
     const processedFile = new File([fileArrayBuffer], file.name, { type: contentType });
     
@@ -314,5 +373,6 @@ export default {
   generateAltText,
   getMimeTypeFromExtension,
   createFileWithCorrectType,
-  detectFileExtension
+  detectFileExtension,
+  detectMimeTypeFromSignature
 };
