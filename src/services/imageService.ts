@@ -40,6 +40,41 @@ export function generateAltText(filename: string, productName?: string): string 
 }
 
 /**
+ * Get the correct MIME type based on file extension
+ * @param extension File extension
+ * @param fallbackType Fallback content type if extension is not recognized
+ * @returns Correct MIME type
+ */
+export function getMimeTypeFromExtension(extension: string, fallbackType: string = "image/jpeg"): string {
+  const mimeTypes: Record<string, string> = {
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+    'bmp': 'image/bmp',
+    'tiff': 'image/tiff',
+    'tif': 'image/tiff',
+    'ico': 'image/x-icon'
+  };
+  
+  return mimeTypes[extension.toLowerCase()] || fallbackType;
+}
+
+/**
+ * Create a new file with the correct content type
+ * @param file Original file
+ * @param extension File extension
+ * @returns New file with correct content type
+ */
+export async function createFileWithCorrectType(file: File, extension: string): Promise<File> {
+  const contentType = getMimeTypeFromExtension(extension);
+  const fileArrayBuffer = await file.arrayBuffer();
+  return new File([fileArrayBuffer], file.name, { type: contentType });
+}
+
+/**
  * Upload an image file to Supabase Storage with SEO-friendly name
  * @param file The file to upload
  * @param path The path to store the file at (including filename)
@@ -87,26 +122,10 @@ export async function uploadImage(
       finalPath = `${pathParts.join('/')}/${seoFilename}-${Date.now()}.${extension}`;
     }
 
-    // Determine the correct MIME type based on file extension
-    let contentType;
-    switch (extension) {
-      case 'png': contentType = 'image/png'; break;
-      case 'jpg':
-      case 'jpeg': contentType = 'image/jpeg'; break;
-      case 'gif': contentType = 'image/gif'; break;
-      case 'webp': contentType = 'image/webp'; break;
-      case 'svg': contentType = 'image/svg+xml'; break;
-      default: contentType = file.type || 'image/jpeg';
-    }
-    
+    // Create a new file with the correct content type
+    const contentType = getMimeTypeFromExtension(extension);
     console.log(`Detected file extension: ${extension}, setting content type: ${contentType}`);
-
-    // If the file's type doesn't match the extension or is application/json, create a new file with the correct type
-    if (file.type !== contentType || file.type === 'application/json' || file.type === 'application/octet-stream') {
-      console.log(`File type mismatch: ${file.type} vs ${contentType}, creating new file with correct type`);
-      const fileArrayBuffer = await file.arrayBuffer();
-      file = new File([fileArrayBuffer], file.name, { type: contentType });
-    }
+    const processedFile = await createFileWithCorrectType(file, extension);
     
     // Try with regular client first
     console.log(`Uploading image to path: ${finalPath} with content type: ${contentType}`);
@@ -115,7 +134,7 @@ export async function uploadImage(
     // Upload the file with explicit content type
     let { data, error } = await supabase.storage
       .from(bucket)
-      .upload(finalPath, file, {
+      .upload(finalPath, processedFile, {
         cacheControl: '3600',
         upsert: true,
         contentType: contentType
@@ -129,7 +148,7 @@ export async function uploadImage(
       supabase = getAdminSupabaseClient();
       const result = await supabase.storage
         .from(bucket)
-        .upload(finalPath, file, {
+        .upload(finalPath, processedFile, {
           cacheControl: '3600',
           upsert: true,
           contentType: contentType
@@ -258,5 +277,8 @@ export default {
   uploadProductImages,
   downloadProductImage,
   prepareSeoFilename,
-  generateAltText
+  generateAltText,
+  getMimeTypeFromExtension,
+  createFileWithCorrectType
 };
+
