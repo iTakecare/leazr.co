@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -85,7 +84,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // États pour les attributs de variante
   const [variationAttributes, setVariationAttributes] = useState<ProductVariationAttributes>({});
   const [newAttributeName, setNewAttributeName] = useState("");
   const [newAttributeValues, setNewAttributeValues] = useState("");
@@ -147,7 +145,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   };
 
   const finishProductCreation = async (productId: string) => {
-    // Si c'est un produit parent avec des attributs de variante, les enregistrer
     if (isParentProduct && Object.keys(variationAttributes).length > 0) {
       try {
         await updateProductVariationAttributes(productId, variationAttributes);
@@ -171,7 +168,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !category || !price) {
+    if (!name || !category || (!isParentProduct && !price)) {
       toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
@@ -181,8 +178,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     addProductMutation.mutate({
       name,
       category,
-      price: parseFloat(price),
-      monthly_price: monthlyPrice ? parseFloat(monthlyPrice) : undefined,
+      price: isParentProduct ? 0 : parseFloat(price),
+      monthly_price: isParentProduct ? undefined : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
       description,
       brand: brand || "",
       imageUrl: "",
@@ -220,14 +217,12 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
   
-  // Fonction pour ajouter un nouvel attribut
   const handleAddAttribute = () => {
     if (!newAttributeName || !newAttributeValues) {
       toast.error("Veuillez saisir un nom d'attribut et au moins une valeur");
       return;
     }
     
-    // Séparer les valeurs par virgule et supprimer les espaces inutiles
     const values = newAttributeValues.split(',').map(v => v.trim()).filter(Boolean);
     
     if (values.length === 0) {
@@ -240,12 +235,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       [newAttributeName]: values
     }));
     
-    // Réinitialiser les champs
     setNewAttributeName("");
     setNewAttributeValues("");
   };
   
-  // Fonction pour supprimer un attribut
   const handleRemoveAttribute = (attributeName: string) => {
     setVariationAttributes(prev => {
       const updated = { ...prev };
@@ -328,41 +321,45 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="price" className="required">Prix (€)</Label>
-                  <div className="relative">
-                    <Input
-                      id="price"
-                      type="number"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      required
-                      className="pl-8"
-                    />
-                    <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="monthly_price">Mensualité (€/mois)</Label>
-                  <div className="relative">
-                    <Input
-                      id="monthly_price"
-                      type="number"
-                      value={monthlyPrice}
-                      onChange={(e) => setMonthlyPrice(e.target.value)}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      className="pl-8"
-                    />
-                    <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-xs text-muted-foreground">Mensualité pour le leasing du produit</p>
-                </div>
+                {!isParentProduct && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="price" className="required">Prix (€)</Label>
+                      <div className="relative">
+                        <Input
+                          id="price"
+                          type="number"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          required
+                          className="pl-8"
+                        />
+                        <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="monthly_price">Mensualité (€/mois)</Label>
+                      <div className="relative">
+                        <Input
+                          id="monthly_price"
+                          type="number"
+                          value={monthlyPrice}
+                          onChange={(e) => setMonthlyPrice(e.target.value)}
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          className="pl-8"
+                        />
+                        <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Mensualité pour le leasing du produit</p>
+                    </div>
+                  </>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
@@ -474,7 +471,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Liste des attributs existants */}
                     {Object.keys(variationAttributes).length > 0 ? (
                       <div className="space-y-4">
                         {Object.entries(variationAttributes).map(([attrName, values]) => (
@@ -509,7 +505,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                       </div>
                     )}
 
-                    {/* Formulaire pour ajouter un nouvel attribut */}
                     <div className="pt-4 border-t">
                       <h4 className="text-sm font-medium mb-2">Ajouter un nouvel attribut</h4>
                       <div className="grid grid-cols-1 gap-4">

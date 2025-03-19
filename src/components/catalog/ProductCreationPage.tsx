@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -81,7 +80,6 @@ const ProductCreationPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
-  // États pour les attributs de variante
   const [variationAttributes, setVariationAttributes] = useState<ProductVariationAttributes>({});
   const [newAttributeName, setNewAttributeName] = useState("");
   const [newAttributeValues, setNewAttributeValues] = useState("");
@@ -138,7 +136,6 @@ const ProductCreationPage: React.FC = () => {
   };
 
   const finishProductCreation = async (productId: string) => {
-    // Si c'est un produit parent avec des attributs de variante, les enregistrer
     if (isParentProduct && Object.keys(variationAttributes).length > 0) {
       try {
         await updateProductVariationAttributes(productId, variationAttributes);
@@ -159,7 +156,7 @@ const ProductCreationPage: React.FC = () => {
   };
 
   const handleCancel = () => {
-    if (name || category || brand || price || description || imageFiles.length > 0 || Object.keys(variationAttributes).length > 0) {
+    if (name || category || brand || (!isParentProduct && price) || description || imageFiles.length > 0 || Object.keys(variationAttributes).length > 0) {
       setShowConfirmDialog(true);
     } else {
       navigate("/catalog");
@@ -169,7 +166,7 @@ const ProductCreationPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !category || !price) {
+    if (!name || !category || (!isParentProduct && !price)) {
       toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
@@ -179,8 +176,8 @@ const ProductCreationPage: React.FC = () => {
     addProductMutation.mutate({
       name,
       category,
-      price: parseFloat(price),
-      monthly_price: monthlyPrice ? parseFloat(monthlyPrice) : undefined,
+      price: isParentProduct ? 0 : parseFloat(price),
+      monthly_price: isParentProduct ? undefined : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
       description,
       brand: brand || "",
       imageUrl: "",
@@ -217,15 +214,13 @@ const ProductCreationPage: React.FC = () => {
     setImageFiles(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
-  
-  // Fonction pour ajouter un nouvel attribut
+
   const handleAddAttribute = () => {
     if (!newAttributeName || !newAttributeValues) {
       toast.error("Veuillez saisir un nom d'attribut et au moins une valeur");
       return;
     }
     
-    // Séparer les valeurs par virgule et supprimer les espaces inutiles
     const values = newAttributeValues.split(',').map(v => v.trim()).filter(Boolean);
     
     if (values.length === 0) {
@@ -238,12 +233,10 @@ const ProductCreationPage: React.FC = () => {
       [newAttributeName]: values
     }));
     
-    // Réinitialiser les champs
     setNewAttributeName("");
     setNewAttributeValues("");
   };
-  
-  // Fonction pour supprimer un attribut
+
   const handleRemoveAttribute = (attributeName: string) => {
     setVariationAttributes(prev => {
       const updated = { ...prev };
@@ -348,44 +341,6 @@ const ProductCreationPage: React.FC = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="price" className="after:content-['*'] after:ml-0.5 after:text-red-500">Prix (€)</Label>
-                    <div className="relative">
-                      <Input
-                        id="price"
-                        type="number"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        required
-                        className="pl-8"
-                      />
-                      <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="monthly_price">Mensualité (€/mois)</Label>
-                    <div className="relative">
-                      <Input
-                        id="monthly_price"
-                        type="number"
-                        value={monthlyPrice}
-                        onChange={(e) => setMonthlyPrice(e.target.value)}
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        className="pl-8"
-                      />
-                      <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Mensualité pour le leasing du produit</p>
-                  </div>
-
-                  <div className="space-y-2">
                     <div className="flex items-center h-10 space-x-2 pt-8">
                       <input
                         type="checkbox"
@@ -401,6 +356,46 @@ const ProductCreationPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
+
+                {!isParentProduct && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="price" className="after:content-['*'] after:ml-0.5 after:text-red-500">Prix (€)</Label>
+                      <div className="relative">
+                        <Input
+                          id="price"
+                          type="number"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          required
+                          className="pl-8"
+                        />
+                        <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="monthly_price">Mensualité (€/mois)</Label>
+                      <div className="relative">
+                        <Input
+                          id="monthly_price"
+                          type="number"
+                          value={monthlyPrice}
+                          onChange={(e) => setMonthlyPrice(e.target.value)}
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          className="pl-8"
+                        />
+                        <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Mensualité pour le leasing du produit</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
@@ -497,7 +492,6 @@ const ProductCreationPage: React.FC = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="px-0 pt-0 space-y-6">
-                    {/* Liste des attributs existants */}
                     {Object.keys(variationAttributes).length > 0 ? (
                       <div className="space-y-4">
                         {Object.entries(variationAttributes).map(([attrName, values]) => (
@@ -533,7 +527,6 @@ const ProductCreationPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Formulaire pour ajouter un nouvel attribut */}
                     <div className="pt-4 border-t">
                       <h4 className="text-base font-medium mb-4">Ajouter un nouvel attribut</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -595,7 +588,6 @@ const ProductCreationPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Dialog de confirmation */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
