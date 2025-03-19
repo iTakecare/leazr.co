@@ -33,13 +33,27 @@ export const createVariantCombinationPrice = async (
   data: Omit<VariantCombinationPrice, 'id' | 'created_at' | 'updated_at'>
 ): Promise<VariantCombinationPrice> => {
   try {
+    // Adapter les données pour correspondre à la structure de la table
+    // Ne pas inclure purchase_price s'il n'existe pas dans la base de données
+    const dataToInsert = {
+      product_id: data.product_id,
+      attributes: data.attributes,
+      price: data.price || 0
+      // Notons que nous n'incluons pas purchase_price ici car il n'existe pas dans la table
+    };
+    
+    console.log("Inserting variant price data:", dataToInsert);
+    
     const { data: newPrice, error } = await supabase
       .from('product_variant_prices')
-      .insert([data])
+      .insert([dataToInsert])
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating variant combination price:", error);
+      throw error;
+    }
     
     return newPrice;
   } catch (error) {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -31,7 +30,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -40,7 +38,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import VariantAttributeSelector from "./VariantAttributeSelector";
 import { 
@@ -68,11 +65,9 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Bulk generation dialog state
   const [isBulkGenerationDialogOpen, setIsBulkGenerationDialogOpen] = useState(false);
   const [basePurchasePrice, setBasePurchasePrice] = useState<number | string>("");
   
-  // Attributes editor state
   const [isAttributeDialogOpen, setIsAttributeDialogOpen] = useState(false);
   const [attributeName, setAttributeName] = useState("");
   const [attributeValues, setAttributeValues] = useState<string>("");
@@ -82,21 +77,18 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     product.variation_attributes && 
     Object.keys(product.variation_attributes).length > 0;
   
-  // Initialize existing attributes
   useEffect(() => {
     if (product.variation_attributes) {
       setExistingAttributes(product.variation_attributes);
     }
   }, [product.variation_attributes]);
   
-  // Get variant prices
   const { data: variantPrices, isLoading } = useQuery({
     queryKey: ["variant-prices", product.id],
     queryFn: () => getVariantCombinationPrices(product.id),
     enabled: !!product.id && product.is_parent === true,
   });
   
-  // Add variant price mutation
   const addVariantPriceMutation = useMutation({
     mutationFn: (data: Omit<VariantCombinationPrice, 'id' | 'created_at' | 'updated_at'>) => 
       createVariantCombinationPrice(data),
@@ -107,11 +99,11 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       if (onPriceAdded) onPriceAdded();
     },
     onError: (error: any) => {
+      console.error("Error adding variant price:", error);
       toast.error(`Erreur lors de l'ajout du prix: ${error.message}`);
     }
   });
   
-  // Delete variant price mutation
   const deleteVariantPriceMutation = useMutation({
     mutationFn: (id: string) => deleteVariantCombinationPrice(id),
     onSuccess: () => {
@@ -124,7 +116,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     }
   });
   
-  // Update product variation attributes mutation
   const updateAttributesMutation = useMutation({
     mutationFn: (data: { productId: string, attributes: ProductVariationAttributes }) => 
       updateProductVariationAttributes(data.productId, data.attributes),
@@ -139,7 +130,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     }
   });
   
-  // Remove parent product price mutation
   const removeParentPriceMutation = useMutation({
     mutationFn: (productId: string) => updateParentProductRemovePrice(productId),
     onSuccess: () => {
@@ -151,7 +141,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     }
   });
   
-  // Helper to check if all required attributes are selected
   const areAllAttributesSelected = (): boolean => {
     if (!product.variation_attributes) return false;
     
@@ -160,18 +149,15 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     );
   };
   
-  // Reset form values
   const resetForm = () => {
     setSelectedAttributes({});
     setPurchasePrice("");
   };
   
-  // Handle attribute selection
   const handleAttributesChange = (attributes: ProductAttributes) => {
     setSelectedAttributes(attributes);
   };
   
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -185,7 +171,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
-    // Check if this combination already exists
     const combinationExists = variantPrices?.some(variantPrice => {
       const priceAttrs = variantPrice.attributes;
       return Object.keys(selectedAttributes).every(
@@ -201,21 +186,19 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     const newVariantPrice = {
       product_id: product.id,
       attributes: selectedAttributes,
-      price: 0, // Nous gardons price à 0 puisqu'on ne l'utilise plus
-      purchase_price: Number(purchasePrice)
+      price: Number(purchasePrice)
     };
     
+    console.log("Adding variant price:", newVariantPrice);
     addVariantPriceMutation.mutate(newVariantPrice);
   };
   
-  // Prepare for delete
   const confirmDelete = (id: string, attributes: ProductAttributes) => {
     setDeleteId(id);
     setAttributesToDelete(attributes);
     setIsDeleteDialogOpen(true);
   };
   
-  // Handle delete
   const handleDelete = () => {
     if (deleteId) {
       deleteVariantPriceMutation.mutate(deleteId);
@@ -225,25 +208,18 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     }
   };
   
-  // Generate all possible combinations of attributes
   const generateAttributeCombinations = (): ProductAttributes[] => {
     if (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
       return [];
     }
     
-    // Start with an array containing one empty object
     let result: ProductAttributes[] = [{}];
     
-    // For each attribute (e.g., color, size)
     Object.entries(product.variation_attributes).forEach(([attrName, values]) => {
-      // Create a new accumulator array
       const newResult: ProductAttributes[] = [];
       
-      // For each existing result so far
       result.forEach(combinationSoFar => {
-        // For each value of the current attribute
         values.forEach(value => {
-          // Create a new combination by adding the current attribute value
           newResult.push({
             ...combinationSoFar,
             [attrName]: value
@@ -251,14 +227,12 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
         });
       });
       
-      // Replace result with the new combinations
       result = newResult;
     });
     
     return result;
   };
   
-  // Generate prices for all possible combinations
   const generateAllVariantPrices = () => {
     if (!basePurchasePrice) {
       toast.error("Veuillez saisir un prix d'achat de base");
@@ -272,10 +246,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
-    // Check which combinations already exist
     const existingCombinations = variantPrices || [];
     
-    // Filter out combinations that already exist
     const newCombinations = combinations.filter(combo => {
       return !existingCombinations.some(existing => {
         return Object.keys(combo).every(
@@ -289,49 +261,43 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
-    // Create a price for each combination
     let successCount = 0;
     let errorCount = 0;
     
-    // Show a loading toast
     const loadingToast = toast.loading(`Génération de ${newCombinations.length} prix de variantes...`);
     
-    // Remove parent product price
     removeParentPriceMutation.mutate(product.id);
     
-    // Process each combination sequentially with Promise chaining
     newCombinations.reduce((promise, combination, index) => {
       return promise.then(() => {
-        // Add some randomness to purchase prices to simulate realistic differences between variants
-        const purchasePriceVariation = Math.random() * 20 - 10; // +/- 10
+        const purchasePriceVariation = Math.random() * 20 - 10;
         
         const newVariantPrice = {
           product_id: product.id,
           attributes: combination,
-          price: 0, // Nous gardons price à 0 puisqu'on ne l'utilise plus
-          purchase_price: Math.max(5, Number(basePurchasePrice) + purchasePriceVariation)
+          price: Math.max(5, Number(basePurchasePrice) + purchasePriceVariation)
         };
+        
+        console.log(`Creating variant ${index + 1}/${newCombinations.length}:`, newVariantPrice);
         
         return createVariantCombinationPrice(newVariantPrice)
           .then(() => {
             successCount++;
-            // Update loading toast periodically
             if (index % 5 === 0 || index === newCombinations.length - 1) {
               toast.loading(`Génération en cours: ${index + 1}/${newCombinations.length}`, {
                 id: loadingToast
               });
             }
           })
-          .catch(() => {
+          .catch((error) => {
+            console.error(`Error creating variant ${index + 1}:`, error);
             errorCount++;
           });
       });
     }, Promise.resolve())
       .then(() => {
-        // Dismiss the loading toast
         toast.dismiss(loadingToast);
         
-        // Show the final result
         if (successCount > 0) {
           toast.success(`${successCount} prix de variantes générés avec succès`);
           queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
@@ -342,12 +308,10 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
           toast.error(`Échec de la génération de ${errorCount} prix de variantes`);
         }
         
-        // Close the dialog
         setIsBulkGenerationDialogOpen(false);
       });
   };
   
-  // Add a new attribute
   const handleAddAttribute = () => {
     if (!attributeName.trim()) {
       toast.error("Veuillez saisir un nom d'attribut");
@@ -359,7 +323,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
-    // Parse attribute values into an array, removing duplicates
     const valuesArray = attributeValues
       .split(",")
       .map(val => val.trim())
@@ -371,7 +334,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
-    // Update existing attributes
     const updatedAttributes = {
       ...existingAttributes,
       [attributeName]: valuesArray
@@ -379,19 +341,16 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     
     setExistingAttributes(updatedAttributes);
     
-    // Reset form
     setAttributeName("");
     setAttributeValues("");
   };
   
-  // Remove an attribute
   const handleRemoveAttribute = (attrName: string) => {
     const updatedAttributes = { ...existingAttributes };
     delete updatedAttributes[attrName];
     setExistingAttributes(updatedAttributes);
   };
   
-  // Save attributes to the product
   const saveAttributes = () => {
     if (Object.keys(existingAttributes).length === 0) {
       toast.error("Veuillez ajouter au moins un attribut");
@@ -404,19 +363,12 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     });
   };
   
-  // Format attributes for display
   const formatAttributes = (attributes: ProductAttributes): string => {
     return Object.entries(attributes)
       .map(([key, value]) => `${key}: ${value}`)
       .join(", ");
   };
   
-  // Remove parent product price
-  const handleRemoveParentPrice = () => {
-    removeParentPriceMutation.mutate(product.id);
-  };
-  
-  // If product is not a parent product, show a message
   if (product.is_parent !== true) {
     return (
       <div className="bg-muted p-6 rounded-md text-center">
@@ -505,7 +457,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       
       {hasVariationAttributes && (
         <>
-          {/* IMPORTANT: Changed from form to div to prevent DOM nesting error */}
           <div className="space-y-6">
             <Card>
               <CardContent className="pt-6">
@@ -591,8 +542,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                           {formatAttributes(variantPrice.attributes)}
                         </TableCell>
                         <TableCell>
-                          {variantPrice.purchase_price 
-                            ? `${variantPrice.purchase_price.toFixed(2)} €` 
+                          {variantPrice.price 
+                            ? `${variantPrice.price.toFixed(2)} €` 
                             : "-"}
                         </TableCell>
                         <TableCell>
@@ -621,7 +572,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
         </>
       )}
       
-      {/* Attributes Editor Dialog */}
       <Dialog open={isAttributeDialogOpen} onOpenChange={setIsAttributeDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -722,7 +672,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
         </DialogContent>
       </Dialog>
       
-      {/* Bulk Generation Dialog */}
       <Dialog open={isBulkGenerationDialogOpen} onOpenChange={setIsBulkGenerationDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -779,7 +728,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
         </DialogContent>
       </Dialog>
       
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
