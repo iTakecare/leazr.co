@@ -1,5 +1,6 @@
 
-import { getSupabaseClient, getAdminSupabaseClient, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
+import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
+import { getMimeTypeFromExtension } from "@/services/imageService";
 
 /**
  * Ensures that a storage bucket exists with the correct public access settings
@@ -157,10 +158,11 @@ export async function downloadAndUploadImage(
       return null;
     }
     
-    console.log(`Processing image: ${imageUrl} for product: ${filename}`);
+    console.log(`Processing image: ${imageUrl} for filename: ${filename}`);
     
-    // For external URLs, return the URL as-is
+    // For external URLs that aren't from our domain, we can return the URL as-is
     if (imageUrl.startsWith('http') && !imageUrl.includes(window.location.hostname)) {
+      console.log("External URL detected, returning original URL");
       return imageUrl;
     }
     
@@ -169,8 +171,14 @@ export async function downloadAndUploadImage(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
+      console.log("Fetching image...");
       const response = await fetch(imageUrl, { 
-        signal: controller.signal 
+        signal: controller.signal,
+        headers: {
+          // Add typical browser headers to avoid server restrictions
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+        }
       });
       
       clearTimeout(timeoutId);
@@ -180,54 +188,50 @@ export async function downloadAndUploadImage(
         return imageUrl;
       }
       
-      // Extract content type and handle based on the type
+      // Extract content type from response headers
       const contentType = response.headers.get('content-type');
       console.log(`Server reported content type: ${contentType}`);
       
-      // Get file extension from URL or content type
+      // Determine file extension from URL and content type
       let fileExtension = '';
+      
+      // Try to get extension from URL first
       if (imageUrl.includes('.')) {
         fileExtension = imageUrl.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+        console.log(`URL suggests file extension: ${fileExtension}`);
       }
       
-      if (!fileExtension || fileExtension.length > 5) {
-        // Fallback: determine extension from content type
+      // If extension is invalid or too long, try to determine from content type
+      if (!fileExtension || fileExtension.length > 5 || !/^[a-z0-9]+$/.test(fileExtension)) {
+        console.log("Determining extension from content type");
+        
         if (contentType?.includes('jpeg') || contentType?.includes('jpg')) fileExtension = 'jpg';
         else if (contentType?.includes('png')) fileExtension = 'png';
         else if (contentType?.includes('gif')) fileExtension = 'gif';
         else if (contentType?.includes('webp')) fileExtension = 'webp';
         else if (contentType?.includes('svg')) fileExtension = 'svg';
         else fileExtension = 'jpg'; // Default fallback
+        
+        console.log(`Content type suggests file extension: ${fileExtension}`);
       }
       
       // Determine the correct MIME type based on extension
-      let correctMimeType: string;
-      switch (fileExtension) {
-        case 'png': correctMimeType = 'image/png'; break;
-        case 'gif': correctMimeType = 'image/gif'; break;
-        case 'webp': correctMimeType = 'image/webp'; break;
-        case 'svg': correctMimeType = 'image/svg+xml'; break;
-        case 'jpg':
-        case 'jpeg': correctMimeType = 'image/jpeg'; break;
-        default: correctMimeType = 'image/jpeg'; // Default to JPEG
-      }
-      
+      const correctMimeType = getMimeTypeFromExtension(fileExtension, 'image/jpeg');
       console.log(`Using file extension: ${fileExtension}, content type: ${correctMimeType}`);
       
       // Get image as array buffer
       const imageArrayBuffer = await response.arrayBuffer();
+      console.log(`Downloaded image size: ${imageArrayBuffer.byteLength} bytes`);
       
-      // Create a properly typed blob
+      // Create a properly typed blob with correct MIME type
       const imageBlob = new Blob([imageArrayBuffer], { type: correctMimeType });
       
-      // Convert blob to file with proper extension to ensure correct handling
-      const imageFile = new File(
-        [imageBlob], 
-        `${filename}.${fileExtension}`, 
-        { type: correctMimeType }
-      );
+      // Convert blob to file with proper extension and MIME type
+      const uniqueFilename = `${filename.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.${fileExtension}`;
+      const imageFile = new File([imageBlob], uniqueFilename, { type: correctMimeType });
       
       // Make sure storage bucket exists
+      console.log(`Ensuring bucket ${bucketName} exists...`);
       const bucketExists = await ensureStorageBucket(bucketName);
       if (!bucketExists) {
         console.warn(`Failed to ensure storage bucket ${bucketName} exists, using original URL`);
@@ -235,15 +239,12 @@ export async function downloadAndUploadImage(
       }
       
       // Get Supabase client
-      const supabase = getSupabaseClient();
+      let supabase = getSupabaseClient();
       
-      // Generate a unique filename with proper extension
-      const uniqueFilename = `${filename.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.${fileExtension}`;
-      
-      console.log(`Uploading image with content type ${correctMimeType} to ${uniqueFilename}`);
+      console.log(`Uploading image to ${uniqueFilename} with content type ${correctMimeType}`);
       
       // Upload to Supabase Storage with explicit content type
-      const { error, data } = await supabase.storage
+      let { error, data } = await supabase.storage
         .from(bucketName)
         .upload(uniqueFilename, imageFile, {
           cacheControl: '3600',
@@ -252,13 +253,13 @@ export async function downloadAndUploadImage(
         });
         
       if (error) {
-        console.error("Error uploading image to storage:", error);
+        console.error("Error uploading image to storage with regular client:", error);
         
         // Fallback: Try using admin client
         const adminSupabase = getAdminSupabaseClient();
         console.log("Retrying upload with admin client...");
         
-        const { error: adminError, data: adminData } = await adminSupabase.storage
+        const adminResult = await adminSupabase.storage
           .from(bucketName)
           .upload(uniqueFilename, imageFile, {
             cacheControl: '3600',
@@ -266,15 +267,17 @@ export async function downloadAndUploadImage(
             contentType: correctMimeType
           });
           
-        if (adminError) {
-          console.error("Error uploading image with admin client:", adminError);
+        if (adminResult.error) {
+          console.error("Error uploading image with admin client:", adminResult.error);
           return imageUrl;
         }
+        
+        data = adminResult.data;
         
         // Get public URL using admin client
         const { data: adminPublicUrlData } = adminSupabase.storage
           .from(bucketName)
-          .getPublicUrl(adminData.path);
+          .getPublicUrl(data.path);
           
         console.log(`Successfully uploaded image to: ${adminPublicUrlData?.publicUrl}`);
         

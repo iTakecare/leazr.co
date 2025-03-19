@@ -130,14 +130,19 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 
   const uploadImages = async (productId: string) => {
     try {
+      console.log(`Starting to upload ${imageFiles.length} images for product ${productId}`);
+      
       if (imageFiles.length > 0) {
+        console.log(`Uploading main image: ${imageFiles[0].name}`);
         await uploadProductImage(imageFiles[0], productId, true);
       }
       
       for (let i = 1; i < imageFiles.length && i < 5; i++) {
+        console.log(`Uploading additional image ${i}: ${imageFiles[i].name}`);
         await uploadProductImage(imageFiles[i], productId, false);
       }
       
+      console.log("All images uploaded successfully");
       finishProductCreation(productId);
     } catch (error) {
       console.error("Erreur lors du téléchargement des images:", error);
@@ -211,6 +216,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     const files = e.target.files;
     if (!files) return;
 
+    console.log(`Selected ${files.length} new image files`);
     const newFiles = Array.from(files).slice(0, 5 - imageFiles.length);
     if (newFiles.length === 0) return;
     
@@ -218,6 +224,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     setImageFiles(updatedFiles);
 
     newFiles.forEach(file => {
+      console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreviews(prev => {
@@ -603,3 +611,4 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 };
 
 export default ProductEditor;
+

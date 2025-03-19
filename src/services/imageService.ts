@@ -75,6 +75,34 @@ export async function createFileWithCorrectType(file: File, extension: string): 
 }
 
 /**
+ * Detects the correct file extension based on content type and filename
+ * @param file The file to analyze
+ * @returns The detected file extension
+ */
+export function detectFileExtension(file: File): string {
+  // First try to get extension from filename
+  const filenameExtension = file.name.split('.').pop()?.toLowerCase();
+  
+  // Attempt to detect from MIME type if no extension or unusual extension
+  if (!filenameExtension || filenameExtension.length > 5) {
+    const mimeTypeMapping: Record<string, string> = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'image/svg+xml': 'svg',
+      'image/bmp': 'bmp',
+      'image/tiff': 'tiff'
+    };
+    
+    return mimeTypeMapping[file.type] || 'jpg';
+  }
+  
+  return filenameExtension;
+}
+
+/**
  * Upload an image file to Supabase Storage with SEO-friendly name
  * @param file The file to upload
  * @param path The path to store the file at (including filename)
@@ -103,7 +131,10 @@ export async function uploadImage(
 
     // Get original filename for SEO purposes
     const originalFilename = file.name;
-    const extension = originalFilename.split('.').pop()?.toLowerCase() || 'jpg';
+    
+    // Detect the correct file extension
+    const extension = detectFileExtension(file);
+    console.log(`Detected file extension: ${extension}`);
     
     // Create SEO-friendly version of the filename
     const seoFilename = prepareSeoFilename(originalFilename);
@@ -124,8 +155,11 @@ export async function uploadImage(
 
     // Create a new file with the correct content type
     const contentType = getMimeTypeFromExtension(extension);
-    console.log(`Detected file extension: ${extension}, setting content type: ${contentType}`);
-    const processedFile = await createFileWithCorrectType(file, extension);
+    console.log(`Setting content type: ${contentType}`);
+    
+    // Always create a new file with the proper MIME type to avoid content type issues
+    const fileArrayBuffer = await file.arrayBuffer();
+    const processedFile = new File([fileArrayBuffer], file.name, { type: contentType });
     
     // Try with regular client first
     console.log(`Uploading image to path: ${finalPath} with content type: ${contentType}`);
@@ -206,7 +240,7 @@ export async function uploadProductImages(
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const timestamp = Date.now();
-      const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const extension = detectFileExtension(file);
       const path = `${productId}/${i === 0 ? 'main' : `additional_${i}`}_${timestamp}.${extension}`;
       
       const result = await uploadImage(file, path, bucket, true);
@@ -279,6 +313,6 @@ export default {
   prepareSeoFilename,
   generateAltText,
   getMimeTypeFromExtension,
-  createFileWithCorrectType
+  createFileWithCorrectType,
+  detectFileExtension
 };
-
