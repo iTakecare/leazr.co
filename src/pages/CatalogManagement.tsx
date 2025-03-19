@@ -7,7 +7,7 @@ import { deleteAllProducts, deleteProduct, getProducts } from "@/services/catalo
 import { Product } from "@/types/catalog";
 import { Plus, Trash2, Tag, Award, List, Grid3X3, Layers, Settings } from "lucide-react";
 import ProductEditor from "@/components/catalog/ProductEditor";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -57,18 +57,50 @@ const CatalogManagement = () => {
     mutationFn: deleteAllProducts,
     onSuccess: () => {
       refetch();
-      toast.success("Tous les produits ont été supprimés");
+      toast({
+        title: "Succès",
+        description: "Tous les produits ont été supprimés",
+        variant: "default",
+      });
     },
     onError: (err: Error) => {
       console.error("Erreur lors de la suppression des produits:", err);
-      toast.error("Impossible de supprimer tous les produits");
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer tous les produits",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: deleteProduct,
+    onSuccess: () => {
+      refetch();
+      toast({
+        title: "Succès",
+        description: "Le produit a été supprimé",
+        variant: "default",
+      });
+    },
+    onError: (err: Error) => {
+      console.error("Erreur lors de la suppression du produit:", err);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le produit",
+        variant: "destructive",
+      });
     }
   });
 
   const onProductAdded = () => {
     setIsAddProductOpen(false);
     refetch();
-    toast.success("Produit ajouté avec succès");
+    toast({
+      title: "Succès",
+      description: "Produit ajouté avec succès",
+      variant: "default",
+    });
   };
 
   const handleDeleteAllProducts = () => {
@@ -79,8 +111,8 @@ const CatalogManagement = () => {
     navigate(`/products/${product.id}`);
   };
 
-  const handleProductDeleted = () => {
-    refetch();
+  const handleProductDeleted = (productId: string) => {
+    deleteProductMutation.mutate(productId);
   };
 
   const handleAddNewProduct = () => {

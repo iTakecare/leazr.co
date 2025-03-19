@@ -48,6 +48,12 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
     );
   }
 
+  const handleDeleteClick = (productId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDeleteProduct(productId);
+  };
+
   return (
     <div className="space-y-4">
       {products.map((product, index) => (
@@ -86,7 +92,7 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={() => onDeleteProduct(product.id)}
+                  onClick={(e) => handleDeleteClick(product.id, e)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

@@ -1,454 +1,309 @@
 
-import React, { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { getProducts, deleteProduct, getBrands } from "@/services/catalogService";
-import { Product } from "@/types/catalog";
-import { Button } from "@/components/ui/button";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { formatCurrency } from "@/utils/formatters";
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from "@/components/ui/accordion";
-import { Trash2, Edit, ArrowUpDown, SortAsc, SortDesc, Check } from "lucide-react";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Package, Layers, Edit, Trash2 } from "lucide-react";
+import { formatCurrency } from "@/utils/formatters";
+import { Product } from "@/types/catalog"; 
 
 interface AccordionProductListProps {
-  products?: Product[];
-  onProductDeleted?: () => void;
+  products: Product[];
+  onProductDeleted: (productId: string) => void;
   groupingOption: "model" | "brand";
 }
 
-type SortOption = "name-asc" | "name-desc" | "price-asc" | "price-desc";
+interface GroupedProducts {
+  [key: string]: Product[];
+}
 
-const AccordionProductList = ({ 
-  products: providedProducts, 
+const AccordionProductList: React.FC<AccordionProductListProps> = ({ 
+  products,
   onProductDeleted,
-  groupingOption = "model" 
-}: AccordionProductListProps) => {
-  const [productToDelete, setProductToDelete] = useState<string | null>(null);
-  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
-  
-  const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
-    queryKey: ["products"],
-    queryFn: getProducts,
-    enabled: !providedProducts, // Only fetch products if they're not provided
-  });
-  
-  const { data: brands = [] } = useQuery({
-    queryKey: ["brands"],
-    queryFn: getBrands,
-  });
+  groupingOption 
+}) => {
+  // Regrouper les produits par modèle ou marque
+  const groupedProducts = useMemo(() => {
+    const grouped: GroupedProducts = {};
+    
+    products.forEach(product => {
+      let groupKey: string;
+      
+      if (groupingOption === "model") {
+        if (product.is_parent) {
+          // Les produits parents sont leurs propres groupes
+          groupKey = product.id;
+          if (!grouped[groupKey]) {
+            grouped[groupKey] = [product];
+          }
+        } else if (product.parent_id) {
+          // Les produits enfants vont dans le groupe de leur parent
+          groupKey = product.parent_id;
+          if (!grouped[groupKey]) {
+            grouped[groupKey] = [];
+          }
+          grouped[groupKey].push(product);
+        } else {
+          // Les produits sans variation vont dans leur propre groupe
+          groupKey = product.id;
+          if (!grouped[groupKey]) {
+            grouped[groupKey] = [product];
+          }
+        }
+      } else if (groupingOption === "brand") {
+        // Regrouper par marque
+        groupKey = product.brand || "Sans marque";
+        if (!grouped[groupKey]) {
+          grouped[groupKey] = [];
+        }
+        grouped[groupKey].push(product);
+      }
+    });
+    
+    if (groupingOption === "model") {
+      console.log("Grouping by model:", Object.keys(grouped).length, "parent products", 
+                  products.filter(p => p.parent_id).length, "variants");
+    } else {
+      console.log("Grouping by brand:", Object.keys(grouped).length, "brands", products.length, "products");
+    }
+    
+    return grouped;
+  }, [products, groupingOption]);
 
-  const products = providedProducts || fetchedProducts;
-  
-  console.log("Products loaded:", products.length, "items");
-  if (products.length > 0) {
-    console.log("Sample product:", products[0]);
+  const handleDeleteProduct = (productId: string) => {
+    onProductDeleted(productId);
+  };
+
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-12 border rounded-lg bg-gray-50">
+        <Package className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-semibold text-gray-900">Aucun produit</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Vous n'avez pas encore ajouté de produits à votre catalogue.
+        </p>
+        <div className="mt-6">
+          <Link to="/catalog/create-product">
+            <Button>
+              Ajouter un produit
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteProduct,
-    onSuccess: () => {
-      toast.success("Produit supprimé avec succès");
-      refetch();
-      if (onProductDeleted) {
-        onProductDeleted();
-      }
-    },
-    onError: (err: Error) => {
-      toast.error(`Erreur lors de la suppression du produit: ${err.message}`);
-    },
-  });
-
-  const handleDeleteProduct = (id: string) => {
-    deleteMutation.mutate(id);
-    setProductToDelete(null);
-  };
-  
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { 
-        staggerChildren: 0.05
-      }
-    }
-  };
-  
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0 }
   };
 
-  const sortProducts = (productsToSort: Product[]) => {
-    const sorted = [...productsToSort];
-    
-    switch(sortOption) {
-      case "name-asc":
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case "name-desc":
-        return sorted.sort((a, b) => b.name.localeCompare(a.name));
-      case "price-asc":
-        return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
-      case "price-desc":
-        return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
-      default:
-        return sorted;
-    }
-  };
-
-  if (isLoading && !providedProducts) {
-    return (
-      <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-16 rounded-md bg-muted animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  if (!products || products.length === 0) {
-    return (
-      <div className="text-center py-12 border rounded-lg">
-        <p className="text-muted-foreground mb-2">Aucun produit trouvé.</p>
-        <p className="text-sm text-muted-foreground">
-          Ajoutez des produits en cliquant sur le bouton "Ajouter un produit" ou importez-les depuis WooCommerce.
-        </p>
-      </div>
-    );
-  }
-
-  // Function to check if a product is a parent product
-  const isParentProduct = (product: Product) => {
-    return product.is_parent || (!product.parent_id && !product.is_variation);
-  };
-
-  // Group products by model
-  const groupProductsByModel = () => {
-    const parentProducts: Product[] = [];
-    const variantsByParentId: Record<string, Product[]> = {};
-    
-    // First gather all parent products
-    products.forEach(product => {
-      if (isParentProduct(product)) {
-        parentProducts.push(product);
-        variantsByParentId[product.id] = [];
-      }
-    });
-    
-    // Then assign variants to their parents
-    products.forEach(product => {
-      if (product.parent_id && variantsByParentId[product.parent_id]) {
-        variantsByParentId[product.parent_id].push(product);
-      } 
-      else if (product.parent_id) {
-        // If parent exists in products but wasn't processed yet
-        const parentExists = products.find(p => p.id === product.parent_id);
-        if (parentExists) {
-          if (!variantsByParentId[parentExists.id]) {
-            variantsByParentId[parentExists.id] = [];
-          }
-          variantsByParentId[parentExists.id].push(product);
-        } else {
-          // If parent doesn't exist, treat as standalone
-          parentProducts.push(product);
-          variantsByParentId[product.id] = [];
-        }
-      }
-      else if (!isParentProduct(product)) {
-        // If it's a variant without a parent, add it to a parent with similar name
-        const baseProductName = product.name.split(/\s+\d+\s*GB|\s+\d+Go|\s+\d+\s*To|\(/).shift()?.trim();
-        if (baseProductName) {
-          const potentialParent = parentProducts.find(
-            p => p.name.toLowerCase().includes(baseProductName.toLowerCase())
-          );
-          if (potentialParent) {
-            variantsByParentId[potentialParent.id].push(product);
-          } else {
-            // If no matching parent, treat as standalone
-            parentProducts.push(product);
-            variantsByParentId[product.id] = [];
-          }
-        } else {
-          parentProducts.push(product);
-          variantsByParentId[product.id] = [];
-        }
-      }
-    });
-    
-    // Add products that weren't added as parents or variants
-    const processedProductIds = [
-      ...parentProducts.map(p => p.id),
-      ...Object.values(variantsByParentId).flat().map(v => v.id)
-    ];
-    
-    const remainingProducts = products.filter(
-      p => !processedProductIds.includes(p.id)
-    );
-    
-    remainingProducts.forEach(product => {
-      parentProducts.push(product);
-      variantsByParentId[product.id] = [];
-    });
-    
-    return { parentProducts: sortProducts(parentProducts), variantsByParentId };
-  };
-
-  // Group products by brand
-  const groupProductsByBrand = () => {
-    const brandGroups: Record<string, Product[]> = {};
-    
-    // Initialize brand groups including "other"
-    brands.forEach(brand => {
-      brandGroups[brand.name] = [];
-    });
-    
-    // Add "other" category
-    brandGroups["other"] = [];
-    
-    // Sort products into brand groups
-    products.forEach(product => {
-      // Assign to appropriate brand
-      const brandKey = product.brand || "other";
-      if (brandGroups[brandKey]) {
-        brandGroups[brandKey].push(product);
-      } else {
-        // If brand doesn't exist in our groups, add it
-        brandGroups[brandKey] = [product];
-      }
-    });
-    
-    // Sort products in each brand
-    Object.keys(brandGroups).forEach(brandKey => {
-      brandGroups[brandKey] = sortProducts(brandGroups[brandKey]);
-    });
-    
-    // Filter out empty brand groups
-    const filteredBrandGroups: Record<string, Product[]> = {};
-    Object.entries(brandGroups).forEach(([brandKey, brandProducts]) => {
-      if (brandProducts.length > 0) {
-        filteredBrandGroups[brandKey] = brandProducts;
-      }
-    });
-    
-    return filteredBrandGroups;
-  };
-
-  const { parentProducts, variantsByParentId } = groupProductsByModel();
-  const brandGroups = groupProductsByBrand();
-
-  // Log grouping results for debugging
-  console.log("Grouping by model:", 
-    parentProducts.length, "parent products", 
-    Object.values(variantsByParentId).flat().length, "variants"
-  );
-  
-  console.log("Grouping by brand:", 
-    Object.keys(brandGroups).length, "brands", 
-    Object.values(brandGroups).flat().length, "products"
-  );
-
-  const getBrandTranslation = (brandName: string) => {
-    const brand = brands.find(b => b.name === brandName);
-    return brand ? brand.translation : brandName;
-  };
-
-  const renderProductItem = (product: Product) => (
-    <motion.div key={product.id} variants={itemVariants}>
-      <div className="border rounded-md p-3 mb-2 bg-white hover:bg-gray-50 transition-colors">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gray-100 rounded-md overflow-hidden">
-              <img
-                src={product.image_url || '/placeholder.svg'}
-                alt={product.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/placeholder.svg";
-                }}
-              />
-            </div>
-            <div>
-              <h3 className="font-medium text-sm">{product.name}</h3>
-              <div className="flex items-center text-xs text-muted-foreground">
-                <span className="mr-2">{formatCurrency(product.price || 0)}</span>
-                {product.monthly_price ? (
-                  <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full text-xs">
-                    {formatCurrency(product.monthly_price)}/mois
-                  </span>
-                ) : null}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link to={`/products/${product.id}`}>
-              <Button variant="outline" size="sm">
-                <Edit className="h-3.5 w-3.5 mr-1" />
-                Modifier
-              </Button>
-            </Link>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setProductToDelete(product.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-
   return (
-    <motion.div 
-      className="space-y-6"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <AlertDialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer ce produit ? Cette action ne peut pas être annulée.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={() => productToDelete && handleDeleteProduct(productToDelete)}>
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      <div className="flex justify-end items-center mb-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <ArrowUpDown className="h-4 w-4 mr-2" />
-              Trier
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuRadioGroup value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-              <DropdownMenuRadioItem value="name-asc">
-                <SortAsc className="h-4 w-4 mr-2" />
-                Nom (A-Z)
-                {sortOption === "name-asc" && <Check className="h-4 w-4 ml-auto" />}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="name-desc">
-                <SortDesc className="h-4 w-4 mr-2" />
-                Nom (Z-A)
-                {sortOption === "name-desc" && <Check className="h-4 w-4 ml-auto" />}
-              </DropdownMenuRadioItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioItem value="price-asc">
-                <SortAsc className="h-4 w-4 mr-2" />
-                Prix (croissant)
-                {sortOption === "price-asc" && <Check className="h-4 w-4 ml-auto" />}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="price-desc">
-                <SortDesc className="h-4 w-4 mr-2" />
-                Prix (décroissant)
-                {sortOption === "price-desc" && <Check className="h-4 w-4 ml-auto" />}
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {groupingOption === "model" ? (
-        <div className="space-y-6">
-          {parentProducts.map((parentProduct) => {
-            const variants = variantsByParentId[parentProduct.id] || [];
-            const hasVariants = variants.length > 0;
-            
-            if (!hasVariants) {
-              return renderProductItem(parentProduct);
-            }
-            
-            return (
-              <motion.div key={parentProduct.id} variants={itemVariants} className="mb-4">
-                <div className="border rounded-md overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-3 border-b">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-white rounded-md overflow-hidden mr-3 border">
+    <Accordion type="multiple" className="space-y-4">
+      {Object.entries(groupedProducts).map(([groupKey, groupProducts], groupIndex) => {
+        // Pour le regroupement par modèle, le premier produit est le produit parent ou le seul produit
+        const mainProduct = groupingOption === "model" 
+          ? groupProducts.find(p => p.is_parent) || groupProducts[0]
+          : null;
+        
+        const groupTitle = groupingOption === "model" 
+          ? (mainProduct?.name || "Produit")
+          : groupKey;
+        
+        const variants = groupingOption === "model" 
+          ? groupProducts.filter(p => p.id !== mainProduct?.id)
+          : [];
+        
+        return (
+          <motion.div
+            key={groupKey}
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: groupIndex * 0.05 }}
+          >
+            <AccordionItem value={groupKey} className="border rounded-md overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:bg-gray-50 data-[state=open]:bg-gray-50">
+                <div className="flex items-center">
+                  {groupingOption === "model" && mainProduct ? (
+                    <div className="flex flex-1 items-center">
+                      <div className="w-10 h-10 mr-3 overflow-hidden rounded bg-gray-100 flex-shrink-0">
                         <img
-                          src={parentProduct.image_url || '/placeholder.svg'}
-                          alt={parentProduct.name}
+                          src={mainProduct.image_url || '/placeholder.svg'}
+                          alt={mainProduct.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = "/placeholder.svg";
                           }}
                         />
                       </div>
-                      <div className="text-left font-medium">
-                        {parentProduct.name}
+                      <div className="flex-1">
+                        <div className="font-medium text-left">{mainProduct.name}</div>
+                        <div className="text-xs text-muted-foreground text-left flex items-center">
+                          {mainProduct.is_parent && variants.length > 0 ? (
+                            <span className="flex items-center"><Layers className="h-3 w-3 mr-1" /> {variants.length} variante(s)</span>
+                          ) : (
+                            <span>{mainProduct.brand || "Sans marque"} • {mainProduct.category || "Sans catégorie"}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="p-3">
-                    <div className="space-y-2">
-                      {variants.map(renderProductItem)}
+                  ) : (
+                    <div className="flex-1 font-medium text-left">
+                      {groupTitle} <span className="text-xs text-muted-foreground">({groupProducts.length} produit{groupProducts.length > 1 ? 's' : ''})</span>
                     </div>
-                  </div>
+                  )}
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {Object.entries(brandGroups).map(([brandName, brandProducts]) => (
-            <motion.div key={brandName} variants={itemVariants} className="mb-4">
-              <div className="border rounded-md overflow-hidden">
-                <div className="bg-gray-50 px-4 py-3 border-b">
-                  <div className="flex items-center">
-                    <span className="font-medium">{getBrandTranslation(brandName)}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      ({brandProducts.length} produit{brandProducts.length > 1 ? 's' : ''})
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="p-3">
+              </AccordionTrigger>
+              
+              <AccordionContent className="px-4 pb-4">
+                <div className="space-y-4">
+                  {/* Afficher le produit principal d'abord pour le regroupement par modèle */}
+                  {groupingOption === "model" && mainProduct && (
+                    <div className="border rounded-md overflow-hidden">
+                      <div className="p-4 bg-gray-50 flex justify-between items-center">
+                        <div className="flex items-center">
+                          <div className="font-medium">{mainProduct.name}</div>
+                          {mainProduct.is_parent && (
+                            <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">Produit parent</span>
+                          )}
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          <Link to={`/products/${mainProduct.id}`}>
+                            <Button size="sm" variant="outline">
+                              <Edit className="h-4 w-4 mr-1" /> Modifier
+                            </Button>
+                          </Link>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Êtes-vous sûr de vouloir supprimer ce produit{mainProduct.is_parent ? " et toutes ses variantes" : ""} ?
+                                  Cette action ne peut pas être annulée.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteProduct(mainProduct.id)}>
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                      
+                      {!mainProduct.is_parent && (
+                        <div className="p-4 border-t">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <div className="text-sm font-medium">Prix</div>
+                              <div>{formatCurrency(mainProduct.price || 0)}</div>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium">Mensualité</div>
+                              <div>{formatCurrency(mainProduct.monthly_price || 0)}/mois</div>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium">Stock</div>
+                              <div>{mainProduct.stock || "Non spécifié"}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Afficher les variantes ou tous les produits pour le regroupement par marque */}
                   <div className="space-y-2">
-                    {brandProducts.map(renderProductItem)}
+                    {(groupingOption === "model" ? variants : groupProducts).map((product) => (
+                      <div key={product.id} className="border rounded-md overflow-hidden">
+                        <div className="p-3 flex justify-between items-center">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 mr-2 overflow-hidden rounded bg-gray-100 flex-shrink-0">
+                              <img
+                                src={product.image_url || '/placeholder.svg'}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <div className="font-medium">{product.name}</div>
+                              {groupingOption === "brand" && (
+                                <div className="text-xs text-muted-foreground">
+                                  {product.category || "Sans catégorie"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3 ml-2">
+                            {!(product.is_parent && groupingOption === "brand") && (
+                              <div className="text-sm mr-4">
+                                {formatCurrency(product.price || 0)}
+                              </div>
+                            )}
+                            
+                            <div className="flex space-x-1">
+                              <Link to={`/products/${product.id}`}>
+                                <Button size="sm" variant="ghost">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Êtes-vous sûr de vouloir supprimer ce produit{product.is_parent ? " et toutes ses variantes" : ""} ?
+                                      Cette action ne peut pas être annulée.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
+                                      Supprimer
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-    </motion.div>
+              </AccordionContent>
+            </AccordionItem>
+          </motion.div>
+        );
+      })}
+    </Accordion>
   );
 };
 
