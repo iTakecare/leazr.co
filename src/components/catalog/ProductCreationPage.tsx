@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -15,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { updateProductVariationAttributes } from "@/services/variantPriceService";
 import Container from "@/components/layout/Container";
 import { useNavigate } from "react-router-dom";
-import RichTextEditor from "@/components/ui/rich-text-editor";
+import { Textarea } from "@/components/ui/textarea";
 
 const productCategories = [
   "laptop",
@@ -122,12 +121,10 @@ const ProductCreationPage: React.FC = () => {
 
   const uploadImages = async (productId: string) => {
     try {
-      // Téléchargement de l'image principale
       if (imageFiles.length > 0) {
         await uploadProductImage(imageFiles[0], productId, true);
       }
       
-      // Téléchargement des images supplémentaires
       const uploadPromises = [];
       for (let i = 1; i < imageFiles.length && i < 5; i++) {
         uploadPromises.push(uploadProductImage(imageFiles[i], productId, false));
@@ -188,7 +185,6 @@ const ProductCreationPage: React.FC = () => {
 
     setIsSubmitting(true);
 
-    // Création du produit
     try {
       const productData = {
         name,
@@ -424,11 +420,12 @@ const ProductCreationPage: React.FC = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <RichTextEditor
+                  <Textarea
+                    id="description"
                     value={description}
-                    onChange={setDescription}
+                    onChange={(e) => setDescription(e.target.value)}
                     placeholder="Description du produit"
-                    height={250}
+                    className="min-h-[250px]"
                   />
                 </div>
               </TabsContent>
@@ -638,3 +635,4 @@ const ProductCreationPage: React.FC = () => {
 };
 
 export default ProductCreationPage;
+
