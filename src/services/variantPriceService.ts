@@ -12,7 +12,7 @@ import {
 export const getVariantCombinationPrices = async (productId: string): Promise<VariantCombinationPrice[]> => {
   try {
     const { data, error } = await supabase
-      .from('variant_combination_prices')
+      .from('product_variant_prices')
       .select('*')
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
@@ -34,7 +34,7 @@ export const createVariantCombinationPrice = async (
 ): Promise<VariantCombinationPrice> => {
   try {
     const { data: newPrice, error } = await supabase
-      .from('variant_combination_prices')
+      .from('product_variant_prices')
       .insert([data])
       .select()
       .single();
@@ -54,7 +54,7 @@ export const createVariantCombinationPrice = async (
 export const deleteVariantCombinationPrice = async (id: string): Promise<void> => {
   try {
     const { error } = await supabase
-      .from('variant_combination_prices')
+      .from('product_variant_prices')
       .delete()
       .eq('id', id);
     
@@ -75,7 +75,7 @@ export const findVariantCombinationPrice = async (
   try {
     // Récupérer toutes les combinaisons de prix pour ce produit
     const { data, error } = await supabase
-      .from('variant_combination_prices')
+      .from('product_variant_prices')
       .select('*')
       .eq('product_id', productId);
     

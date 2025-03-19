@@ -129,8 +129,16 @@ const ProductDetail: React.FC = () => {
 
   // Update product mutation
   const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) => 
-      updateProduct(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) => {
+      // Vérifiez et supprimez les champs qui ne sont pas des colonnes dans la table products
+      const productData = { ...data };
+      
+      // Remove fields that aren't actual database columns 
+      if ('variants' in productData) delete productData.variants;
+      if ('variant_combination_prices' in productData) delete productData.variant_combination_prices;
+      
+      return updateProduct(id, productData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
