@@ -82,6 +82,10 @@ const CatalogManagement = () => {
   const handleProductDeleted = () => {
     refetch();
   };
+
+  const handleAddNewProduct = () => {
+    navigate("/catalog/create-product");
+  };
   
   return (
     <Container>
@@ -89,7 +93,7 @@ const CatalogManagement = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold">Gestion Catalogue</h1>
           <div className="flex gap-2">
-            <Button onClick={() => setIsAddProductOpen(true)} className="flex-1 sm:flex-initial">
+            <Button onClick={handleAddNewProduct} className="flex-1 sm:flex-initial">
               <Plus className="mr-2 h-4 w-4" /> {isMobile ? "Ajouter" : "Ajouter un produit"}
             </Button>
             <AlertDialog>
@@ -205,6 +209,7 @@ const CatalogManagement = () => {
         </Tabs>
       </div>
 
+      {/* Garder le ProductEditor comme solution de repli ou d'édition rapide */}
       <ProductEditor 
         isOpen={isAddProductOpen} 
         onClose={() => setIsAddProductOpen(false)} 

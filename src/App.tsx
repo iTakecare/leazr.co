@@ -1,303 +1,115 @@
 
-import { Route, Routes, Navigate, useLocation, Outlet } from "react-router-dom";
-import { useEffect } from "react";
-import Index from "./pages/Index";
+import React from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
-import ClientDetail from "./pages/ClientDetail";
 import ClientForm from "./pages/ClientForm";
-import CatalogManagement from "./pages/CatalogManagement";
-import ProductDetail from "./pages/ProductDetail";
-import Settings from "./pages/Settings";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import NotFound from "./pages/NotFound";
 import CreateOffer from "./pages/CreateOffer";
+import ClientDetail from "./pages/ClientDetail";
+import Layout from "./components/layout/Layout";
+import CatalogManagement from "./pages/CatalogManagement";
 import Offers from "./pages/Offers";
 import OfferDetail from "./pages/OfferDetail";
 import Contracts from "./pages/Contracts";
-import CreateTestUsers from "./pages/CreateTestUsers";
-import PartnerDashboard from "./pages/PartnerDashboard";
-import PartnerCreateOffer from "./pages/PartnerCreateOffer";
-import PartnerOfferDetail from "./pages/PartnerOfferDetail";
-import PartnerDetail from "./pages/PartnerDetail";
-import PartnerEditPage from "./pages/PartnerEditPage";
-import AmbassadorDetail from "./pages/AmbassadorDetail";
-import AmbassadorEditPage from "./pages/AmbassadorEditPage";
-import AmbassadorCreatePage from "./pages/AmbassadorCreatePage";
-import AmbassadorsListPage from "./pages/AmbassadorsList";
 import ContractDetail from "./pages/ContractDetail";
-import Calculator from "./pages/Calculator";
-import PartnerCreatePage from "./pages/PartnerCreatePage";
-import PartnersListPage from "./pages/PartnersList";
-import AmbassadorDashboard from "./pages/AmbassadorDashboard";
-import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
 import ITakecarePage from "./pages/ITakecarePage";
-import PublicCatalog from "./pages/PublicCatalog";
-import ProductDetailPage from "./pages/ProductDetailPage";
-import RequestSentPage from "./pages/RequestSentPage";
-
-import { Layout } from "./components/layout/Layout";
 import { ThemeProvider } from "./components/providers/theme-provider";
-import { Toaster } from "./components/ui/toaster";
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import { Toaster as SonnerToaster } from "sonner";
+import NotFound from "./pages/NotFound";
+import { Toaster } from "@/components/ui/sonner";
+import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
+import { ClientRoutes } from "./components/layout/ClientRoutes";
+import { AnimatePresence } from "framer-motion";
+import Settings from "./pages/Settings";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import ClientRoutes from "./components/layout/ClientRoutes";
+import ProductDetailPage from "./pages/ProductDetailPage";
+import { AuthProvider } from "@/context/AuthContext";
+import AmbassadorCreatePage from "./pages/AmbassadorCreatePage";
+import AmbassadorEditPage from "./pages/AmbassadorEditPage";
+import AmbassadorDetail from "./pages/AmbassadorDetail";
+import AmbassadorsList from "./pages/AmbassadorsList";
+import PartnersList from "./pages/PartnersList";
+import PartnerCreatePage from "./pages/PartnerCreatePage";
+import PartnerEditPage from "./pages/PartnerEditPage";
+import PartnerDetail from "./pages/PartnerDetail";
+import PartnerOfferDetail from "./pages/PartnerOfferDetail";
+import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
+import PartnerCreateOffer from "./pages/PartnerCreateOffer";
+import AmbassadorDashboard from "./pages/AmbassadorDashboard";
+import PartnerDashboard from "./pages/PartnerDashboard";
+import CreateTestUsers from "./pages/CreateTestUsers";
+import Signup from "./pages/Signup";
+import ProductCreationPage from "@/components/catalog/ProductCreationPage";
+import ProductDetail from "./pages/ProductDetail";
 
+// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
       retry: 1,
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
 
-const ProtectedRoute = ({ 
-  children, 
-  requireAdmin = false,
-  requirePartner = false,
-  requireAmbassador = false
-}: { 
-  children: React.ReactNode, 
-  requireAdmin?: boolean,
-  requirePartner?: boolean,
-  requireAmbassador?: boolean
-}) => {
-  const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
-  const location = useLocation();
-
-  const isPasswordResetFlow = () => {
-    const hash = location.hash || window.location.hash;
-    return hash && hash.includes('type=recovery');
-  };
-
-  useEffect(() => {
-    if (isPasswordResetFlow()) {
-      console.log("Flux de réinitialisation de mot de passe détecté dans ProtectedRoute");
-    }
-  }, [location]);
-
-  if (isLoading || !userRoleChecked) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-    </div>;
-  }
-
-  if (isPasswordResetFlow()) {
-    console.log("Redirection vers login pour la réinitialisation de mot de passe");
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!user) {
-    console.log("Utilisateur non connecté, redirection vers login");
-    return <Navigate to="/login" />;
-  }
-
-  console.log("Vérification des accès:", {
-    email: user.email,
-    isAdmin: isAdmin(),
-    isPartner: isPartner(),
-    isAmbassador: isAmbassador(),
-    isClient: isClient(),
-    requireAdmin,
-    requirePartner,
-    requireAmbassador,
-    userRoleChecked,
-    partner_id: user.partner_id,
-    ambassador_id: user.ambassador_id
-  });
-
-  if (requireAdmin && !isAdmin()) {
-    console.log("Accès admin requis mais utilisateur non admin, redirection");
-    if (isPartner()) {
-      return <Navigate to="/partner/dashboard" />;
-    }
-    if (isAmbassador()) {
-      return <Navigate to="/ambassador/dashboard" />;
-    }
-    return <Navigate to="/client/dashboard" />;
-  }
-
-  if (requirePartner && !isPartner()) {
-    console.log("Accès partenaire requis mais utilisateur non partenaire, redirection");
-    if (isAdmin()) {
-      return <Navigate to="/dashboard" />;
-    }
-    if (isAmbassador()) {
-      return <Navigate to="/ambassador/dashboard" />;
-    }
-    return <Navigate to="/client/dashboard" />;
-  }
-
-  if (requireAmbassador && !isAmbassador()) {
-    console.log("Accès ambassadeur requis mais utilisateur non ambassadeur, redirection");
-    if (isAdmin()) {
-      return <Navigate to="/dashboard" />;
-    }
-    if (isPartner()) {
-      return <Navigate to="/partner/dashboard" />;
-    }
-    return <Navigate to="/client/dashboard" />;
-  }
-
-  if (!requireAdmin && !requirePartner && !requireAmbassador && isClient() && !window.location.pathname.startsWith('/client')) {
-    console.log("Client tentant d'accéder à une route admin, redirection");
-    return <Navigate to="/client/dashboard" />;
-  }
-
-  if (isPartner() && window.location.pathname === '/') {
-    console.log("Partenaire connecté sur la page d'accueil, redirection vers le tableau de bord partenaire");
-    return <Navigate to="/partner/dashboard" />;
-  }
-
-  if (isAmbassador() && window.location.pathname === '/') {
-    console.log("Ambassadeur connecté sur la page d'accueil, redirection vers le tableau de bord ambassadeur");
-    return <Navigate to="/ambassador/dashboard" />;
-  }
-
-  return <>{children}</>;
-};
-
-const PartnerLayout = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold">iTakecare Partner</h1>
-          </div>
-          
-          <nav className="flex items-center gap-6">
-            <a href="/partner/dashboard" className="text-gray-700 hover:text-blue-700">Tableau de bord</a>
-            <a href="/partner/create-offer" className="text-gray-700 hover:text-blue-700">Nouvelle offre</a>
-            <a href="/logout" className="text-gray-700 hover:text-blue-700">Déconnexion</a>
-          </nav>
-        </div>
-      </header>
-      <main className="container mx-auto px-4 py-6">
-        {children}
-      </main>
-    </div>
-  );
-};
-
-const AmbassadorLayout = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold">iTakecare Ambassadeur</h1>
-          </div>
-          
-          <nav className="flex items-center gap-6">
-            <a href="/ambassador/dashboard" className="text-gray-700 hover:text-blue-700">Tableau de bord</a>
-            <a href="/ambassador/create-offer" className="text-gray-700 hover:text-blue-700">Nouvelle offre</a>
-            <a href="/logout" className="text-gray-700 hover:text-blue-700">Déconnexion</a>
-          </nav>
-        </div>
-      </header>
-      <main className="container mx-auto px-4 py-6">
-        {children}
-      </main>
-    </div>
-  );
-};
-
 function App() {
   const location = useLocation();
 
-  useEffect(() => {
-    const hash = location.hash || window.location.hash;
-    if (hash && hash.includes('type=recovery')) {
-      console.log("Flux de réinitialisation de mot de passe détecté dans App.tsx");
-    }
-  }, [location]);
-
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="medease-theme">
+      <ThemeProvider defaultTheme="light" storageKey="itakecareapp-theme">
         <AuthProvider>
-          <SonnerToaster position="top-right" />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            
-            {/* Routes publiques pour le catalogue */}
-            <Route path="/catalogue" element={<PublicCatalog />} />
-            <Route path="/produits/:id" element={<ProductDetailPage />} />
-            <Route path="/demande-envoyee" element={<RequestSentPage />} />
-            
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            
-            <Route path="/" element={
-              <ProtectedRoute requireAdmin={true}>
-                <Layout />
-              </ProtectedRoute>
-            }>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/clients" element={<Clients />} />
-              <Route path="/clients/new" element={<ClientForm />} />
-              <Route path="/clients/create" element={<ClientForm />} />
-              <Route path="/clients/:id" element={<ClientDetail />} />
-              <Route path="/clients/edit/:id" element={<ClientForm />} />
-              <Route path="/catalog" element={<CatalogManagement />} />
-              <Route path="/catalog/:id" element={<ProductDetail />} />
-              <Route path="/products/:id" element={<ProductDetail />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/create-offer" element={<CreateOffer />} />
-              <Route path="/offers" element={<Offers />} />
-              <Route path="/offers/:id" element={<OfferDetail />} />
-              <Route path="/contracts" element={<Contracts />} />
-              <Route path="/contracts/:id" element={<ContractDetail />} />
-              <Route path="/create-test-users" element={<CreateTestUsers />} />
-              <Route path="/calculator" element={<Calculator />} />
-              <Route path="/partners" element={<PartnersListPage />} />
-              <Route path="/partners/create" element={<PartnerCreatePage />} />
-              <Route path="/partners/:id" element={<PartnerDetail />} />
-              <Route path="/partners/edit/:id" element={<PartnerEditPage />} />
-              <Route path="/ambassadors" element={<AmbassadorsListPage />} />
-              <Route path="/ambassadors/create" element={<AmbassadorCreatePage />} />
-              <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
-              <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
-              <Route path="/itakecare" element={<ITakecarePage />} />
-            </Route>
-            
-            <Route path="/partner" element={
-              <ProtectedRoute requirePartner={true}>
-                <PartnerLayout>
-                  <Outlet />
-                </PartnerLayout>
-              </ProtectedRoute>
-            }>
-              <Route path="dashboard" element={<PartnerDashboard />} />
-              <Route path="create-offer" element={<PartnerCreateOffer />} />
-              <Route path="offers/:id" element={<PartnerOfferDetail />} />
-            </Route>
-            
-            <Route path="/ambassador" element={
-              <ProtectedRoute requireAmbassador={true}>
-                <AmbassadorLayout>
-                  <Outlet />
-                </AmbassadorLayout>
-              </ProtectedRoute>
-            }>
-              <Route path="dashboard" element={<AmbassadorDashboard />} />
-              <Route path="create-offer" element={<AmbassadorCreateOffer />} />
-            </Route>
-            
-            <Route path="/client/*" element={
-              <ProtectedRoute>
-                <ClientRoutes />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="clients" element={<Clients />} />
+                <Route path="clients/new" element={<ClientForm />} />
+                <Route path="clients/:id" element={<ClientDetail />} />
+                <Route path="clients/:id/create-offer" element={<CreateOffer />} />
+                <Route path="catalog" element={<CatalogManagement />} />
+                <Route path="catalog/create-product" element={<ProductCreationPage />} />
+                <Route path="products/:id" element={<ProductDetail />} />
+                <Route path="offers" element={<Offers />} />
+                <Route path="offers/:id" element={<OfferDetail />} />
+                <Route path="contracts" element={<Contracts />} />
+                <Route path="contracts/:id" element={<ContractDetail />} />
+                <Route path="i-take-care" element={<ITakecarePage />} />
+                <Route path="settings" element={<Settings />} />
+                
+                {/* Routes ambassadeurs */}
+                <Route path="ambassadors" element={<AmbassadorsList />} />
+                <Route path="ambassadors/create" element={<AmbassadorCreatePage />} />
+                <Route path="ambassadors/:id" element={<AmbassadorDetail />} />
+                <Route path="ambassadors/:id/edit" element={<AmbassadorEditPage />} />
+                <Route path="ambassadors/:id/dashboard" element={<AmbassadorDashboard />} />
+                <Route path="ambassadors/:id/create-offer/:clientId" element={<AmbassadorCreateOffer />} />
+                
+                {/* Routes partenaires */}
+                <Route path="partners" element={<PartnersList />} />
+                <Route path="partners/create" element={<PartnerCreatePage />} />
+                <Route path="partners/:id" element={<PartnerDetail />} />
+                <Route path="partners/:id/edit" element={<PartnerEditPage />} />
+                <Route path="partners/:id/dashboard" element={<PartnerDashboard />} />
+                <Route path="partners/:id/create-offer/:clientId" element={<PartnerCreateOffer />} />
+                <Route path="partners/:id/offers/:offerId" element={<PartnerOfferDetail />} />
+                
+                {/* Route pour création de comptes de test */}
+                <Route path="create-test-users" element={<CreateTestUsers />} />
+              </Route>
+              
+              {/* Routes clients */}
+              <Route path="/client/*" element={<ClientRoutes />} />
+              
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AnimatePresence>
+          
+          <Toaster richColors position="top-right" />
+          <ShadcnToaster />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
