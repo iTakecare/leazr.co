@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -9,7 +10,8 @@ import {
   Package,
   LogOut,
   Calculator,
-  Shield
+  Shield,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -36,7 +38,7 @@ const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
           <Link
             to={to}
             className={cn(
-              "flex items-center justify-center py-4 px-3 my-5 rounded-md transition-all",
+              "flex items-center justify-center py-4 px-3 my-5 rounded-xl transition-all",
               active
                 ? "bg-primary/15 text-primary shadow-sm translate-x-1"
                 : "text-muted-foreground hover:bg-primary/5 hover:text-primary hover:translate-x-1"
@@ -66,7 +68,7 @@ const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
         <TooltipTrigger asChild>
           <button
             onClick={onClick}
-            className="flex items-center justify-center py-4 px-3 my-5 rounded-md transition-colors text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+            className="flex items-center justify-center py-4 px-3 my-5 rounded-xl transition-colors text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
           >
             <Icon className="h-7 w-7" aria-hidden="true" />
           </button>
@@ -116,13 +118,13 @@ const ClientSidebar = ({ className }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "h-full flex flex-col border-r bg-gradient-to-b from-background to-muted/20 w-16 shadow-md",
+        "h-full flex flex-col border-r sidebar-gradient w-16 shadow-md",
         className
       )}
     >
       <div className="flex-1 overflow-y-auto py-8 px-2">
         <div className="flex justify-center mb-8">
-          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
+          <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center text-primary-foreground font-bold shadow-md">
             IT
           </div>
         </div>
@@ -141,8 +143,8 @@ const ClientSidebar = ({ className }: SidebarProps) => {
 
       {user && (
         <div className="p-3 border-t border-t-muted/40 flex flex-col items-center pt-6 pb-6">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center text-primary font-medium mb-6 shadow-sm">
-            {user.first_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center text-primary font-medium mb-6 shadow-md">
+            <User className="h-5 w-5" />
           </div>
           <ActionItem 
             icon={LogOut} 

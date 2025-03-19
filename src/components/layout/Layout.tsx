@@ -22,7 +22,7 @@ export function Layout() {
               variant="ghost"
               size="icon"
               onClick={toggleSidebar}
-              className="fixed top-4 left-4 z-50 md:hidden bg-background/80 backdrop-blur-sm shadow-sm"
+              className="fixed top-4 left-4 z-50 md:hidden bg-background/80 backdrop-blur-sm shadow-sm rounded-full"
               aria-label="Menu"
             >
               <Menu className="h-6 w-6" />
@@ -35,14 +35,14 @@ export function Layout() {
               </SheetContent>
             </Sheet>
             
-            <main className="flex-1 overflow-auto pt-16 px-4 pb-20 md:p-6 w-full">
+            <main className="flex-1 overflow-auto pt-16 px-4 pb-20 md:p-6 w-full bg-background">
               <Outlet />
             </main>
           </>
         ) : (
           <>
-            <Sidebar />
-            <main className="flex-1 overflow-auto p-4 md:p-6">
+            <Sidebar className="sidebar-gradient" />
+            <main className="flex-1 overflow-auto p-4 md:p-6 bg-background">
               <Outlet />
             </main>
           </>

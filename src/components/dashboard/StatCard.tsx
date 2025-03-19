@@ -24,17 +24,24 @@ export const StatCard = ({
   className
 }: StatCardProps) => {
   return (
-    <Card className={cn("overflow-hidden transition-all hover:shadow-md", className)}>
+    <Card 
+      className={cn(
+        "overflow-hidden transition-all hover:shadow-md rounded-xl card-gradient border-0", 
+        className
+      )}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">
           {title}
         </CardTitle>
-        <Icon className={cn(
-          "h-4 w-4", 
-          trend === 'up' ? "text-emerald-500" : 
-          trend === 'down' ? "text-rose-500" : 
-          "text-muted-foreground"
-        )} />
+        <div className={cn(
+          "w-8 h-8 rounded-lg flex items-center justify-center",
+          trend === 'up' ? "bg-emerald-100 text-emerald-600" : 
+          trend === 'down' ? "bg-rose-100 text-rose-600" : 
+          "bg-primary/10 text-primary"
+        )}>
+          <Icon className="h-4 w-4" />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
@@ -45,10 +52,10 @@ export const StatCard = ({
         )}
         {change && (
           <p className={cn(
-            "text-xs mt-1",
-            trend === 'up' ? "text-emerald-500" : 
-            trend === 'down' ? "text-rose-500" : 
-            "text-muted-foreground"
+            "text-xs mt-2 py-1 px-2 rounded-full inline-block",
+            trend === 'up' ? "bg-emerald-50 text-emerald-600" : 
+            trend === 'down' ? "bg-rose-50 text-rose-600" : 
+            "bg-gray-50 text-gray-600"
           )}>
             {change}
           </p>
