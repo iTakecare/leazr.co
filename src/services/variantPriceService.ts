@@ -37,8 +37,8 @@ export const createVariantCombinationPrice = async (
     const dataToInsert = {
       product_id: data.product_id,
       attributes: data.attributes,
-      price: data.price || 0,
-      monthly_price: data.monthly_price || 0,
+      price: data.price !== undefined ? data.price : 0,
+      monthly_price: data.monthly_price !== undefined ? data.monthly_price : 0,
       stock: data.stock
     };
     

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -75,7 +74,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const [attributeValues, setAttributeValues] = useState<string>("");
   const [existingAttributes, setExistingAttributes] = useState<ProductVariationAttributes>({});
   
-  // New state for editing attribute
   const [isEditingAttribute, setIsEditingAttribute] = useState(false);
   const [editingAttributeName, setEditingAttributeName] = useState("");
   const [editingAttributeValues, setEditingAttributeValues] = useState("");
@@ -335,12 +333,12 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     
     newCombinations.reduce((promise, combination, index) => {
       return promise.then(() => {
-        const randomPrice = Math.floor(Math.random() * 100) + 50;
-        
         const newVariantPrice = {
           product_id: product.id,
           attributes: combination,
-          price: randomPrice
+          price: 0,
+          monthly_price: 0,
+          stock: null
         };
         
         console.log(`Creating variant ${index + 1}/${newCombinations.length}:`, newVariantPrice);
@@ -416,7 +414,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     setExistingAttributes(updatedAttributes);
   };
   
-  // New function to handle editing attribute
   const handleEditAttribute = (attrName: string) => {
     const values = existingAttributes[attrName];
     setEditingAttributeName(attrName);
@@ -424,7 +421,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     setIsEditingAttribute(true);
   };
   
-  // New function to save edited attribute
   const saveEditedAttribute = () => {
     if (!editingAttributeValues.trim()) {
       toast.error("Veuillez saisir au moins une valeur d'attribut");
@@ -442,18 +438,15 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
-    // Remove old attribute
     const updatedAttributes = { ...existingAttributes };
     delete updatedAttributes[editingAttributeName];
     
-    // Add with possibly new values
     updatedAttributes[editingAttributeName] = valuesArray;
     
     setExistingAttributes(updatedAttributes);
     cancelEditAttribute();
   };
   
-  // New function to cancel editing attribute
   const cancelEditAttribute = () => {
     setIsEditingAttribute(false);
     setEditingAttributeName("");
@@ -757,7 +750,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
           
           <div className="space-y-6">
             {!isEditingAttribute ? (
-              // Normal attribute add form
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-3 md:col-span-1">
                   <Label htmlFor="attribute-name">Nom de l'attribut</Label>
@@ -779,7 +771,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                 </div>
               </div>
             ) : (
-              // Editing attribute form
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="editing-attribute-name">Nom de l'attribut</Label>
