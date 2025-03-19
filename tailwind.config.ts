@@ -104,8 +104,15 @@ export default {
 				'scale-in': 'scale-in 0.3s ease-out'
 			},
 			boxShadow: {
-				'soft': '0 2px 10px rgba(0, 0, 0, 0.05)',
-				'button': '0 1px 3px rgba(0, 0, 0, 0.1)'
+				'soft': '0 4px 15px rgba(0, 0, 0, 0.05)',
+				'button': '0 2px 5px rgba(0, 0, 0, 0.1)',
+				'card': '0 5px 20px rgba(0, 0, 0, 0.08)',
+				'glow': '0 0 15px rgba(59, 130, 246, 0.5)'
+			},
+			backgroundImage: {
+				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+				'gradient-subtle': 'linear-gradient(to right, var(--tw-gradient-stops))',
+				'gradient-card': 'linear-gradient(to bottom right, var(--tw-gradient-stops))',
 			}
 		}
 	},

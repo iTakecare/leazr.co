@@ -38,13 +38,13 @@ const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
           <Link
             to={to}
             className={cn(
-              "flex items-center justify-center py-4 px-3 my-5 rounded-xl transition-all",
+              "flex items-center justify-center py-4 px-3 my-4 rounded-xl transition-all duration-300",
               active
-                ? "bg-primary/15 text-primary shadow-sm translate-x-1"
-                : "text-muted-foreground hover:bg-primary/5 hover:text-primary hover:translate-x-1"
+                ? "bg-primary/15 text-primary shadow-md translate-x-1 scale-105"
+                : "text-muted-foreground hover:bg-primary/5 hover:text-primary hover:translate-x-1 hover:scale-105"
             )}
           >
-            <Icon className={cn("h-7 w-7", active && "stroke-[2.5px]")} aria-hidden="true" />
+            <Icon className={cn("h-6 w-6", active && "stroke-[2.5px]")} aria-hidden="true" />
           </Link>
         </TooltipTrigger>
         <TooltipContent side="right" className="font-medium">
@@ -68,9 +68,9 @@ const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
         <TooltipTrigger asChild>
           <button
             onClick={onClick}
-            className="flex items-center justify-center py-4 px-3 my-5 rounded-xl transition-colors text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+            className="flex items-center justify-center py-4 px-3 my-4 rounded-xl transition-all duration-300 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 hover:scale-105"
           >
-            <Icon className="h-7 w-7" aria-hidden="true" />
+            <Icon className="h-6 w-6" aria-hidden="true" />
           </button>
         </TooltipTrigger>
         <TooltipContent side="right" className="font-medium">
@@ -118,17 +118,17 @@ const ClientSidebar = ({ className }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "h-full flex flex-col border-r sidebar-gradient w-16 shadow-md",
+        "h-full flex flex-col border-r bg-gradient-to-b from-background to-muted/50 w-16 shadow-md",
         className
       )}
     >
       <div className="flex-1 overflow-y-auto py-8 px-2">
         <div className="flex justify-center mb-8">
-          <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center text-primary-foreground font-bold shadow-md">
+          <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/70 text-white rounded-full flex items-center justify-center text-primary-foreground font-bold shadow-lg">
             IT
           </div>
         </div>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {sidebarItems.map((item) => (
             <MenuItem
               key={item.path}

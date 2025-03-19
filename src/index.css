@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 220 25% 98%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -17,7 +17,7 @@
     --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
+    --secondary: 214 32% 91%;
     --secondary-foreground: 222 47% 11.2%;
 
     --muted: 210 40% 96.1%;
@@ -90,11 +90,11 @@
 
 @layer utilities {
   .glass {
-    @apply backdrop-blur-lg bg-white/80 border border-white/20 shadow-md;
+    @apply backdrop-blur-lg bg-white/90 border border-white/20 shadow-lg rounded-xl;
   }
   
   .glass-dark {
-    @apply backdrop-blur-lg bg-foreground/5 border border-foreground/10 shadow-md;
+    @apply backdrop-blur-lg bg-foreground/5 border border-foreground/10 shadow-lg rounded-xl;
   }
   
   .text-balance {
@@ -106,7 +106,7 @@
   }
   
   .mobile-menu-item {
-    @apply flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors;
+    @apply flex items-center gap-2 px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors rounded-lg;
   }
   
   .mobile-full-width {
@@ -116,12 +116,12 @@
   }
   
   .table-wrapper {
-    @apply w-full overflow-x-auto;
+    @apply w-full overflow-x-auto rounded-xl shadow-sm;
   }
   
   .responsive-table {
     min-width: 100%;
-    @apply w-full;
+    @apply w-full rounded-lg overflow-hidden;
   }
   
   .responsive-badge {
@@ -129,7 +129,7 @@
   }
   
   .auth-card {
-    @apply w-full max-w-sm mx-auto;
+    @apply w-full max-w-sm mx-auto bg-card/80 backdrop-blur-md shadow-xl rounded-xl border-0;
   }
 
   .responsive-form-grid {
@@ -138,7 +138,7 @@
   }
   
   .responsive-price-tag {
-    @apply inline-flex items-center gap-1 whitespace-nowrap;
+    @apply inline-flex items-center gap-1 whitespace-nowrap font-medium;
   }
   
   .responsive-filter-group {
@@ -146,15 +146,31 @@
   }
   
   .card-gradient {
-    @apply bg-gradient-to-br from-white to-secondary/30;
+    @apply bg-gradient-to-br from-white to-blue-50/50 dark:from-gray-900 dark:to-blue-950/20 shadow-md;
   }
   
   .button-gradient {
-    @apply bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary;
+    @apply bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white shadow-md;
   }
   
   .sidebar-gradient {
-    @apply bg-gradient-to-b from-background to-secondary/30;
+    @apply bg-gradient-to-b from-background to-secondary/30 shadow-md;
+  }
+  
+  .modern-card {
+    @apply rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-white to-secondary/20;
+  }
+  
+  .modern-button {
+    @apply rounded-xl shadow-sm hover:shadow-md transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white;
+  }
+  
+  .modern-input {
+    @apply rounded-lg border border-input bg-background/50 backdrop-blur-sm shadow-sm focus-visible:ring-primary/50;
+  }
+  
+  .dashboard-section {
+    @apply p-6 rounded-xl bg-white/80 backdrop-blur-sm shadow-md border border-secondary/50;
   }
 }
 
@@ -169,6 +185,28 @@
   }
 }
 
+@keyframes slideIn {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 #root {
   margin: 0 auto;
   width: 100%;
@@ -177,12 +215,30 @@
 
 /* Smooth transitions */
 a, button, input, select, textarea {
-  @apply transition-all duration-200;
+  @apply transition-all duration-300;
 }
 
 /* Hover effects */
 a, button {
-  @apply hover:opacity-80;
+  @apply hover:opacity-90;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/30 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/50;
 }
 
 /* Responsive typography */
@@ -216,24 +272,6 @@ a, button {
   .filter-buttons-mobile {
     @apply flex-wrap justify-start gap-2;
   }
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-primary/20 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-primary/30;
 }
 
 /* Fix for mobile overflow issues */
@@ -271,11 +309,11 @@ a, button {
 
 /* Spécifique au Catalog.tsx */
 .product-card {
-  @apply relative flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 border rounded-md hover:bg-muted/10 transition-colors;
+  @apply relative flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border rounded-xl hover:bg-muted/10 transition-all shadow-sm hover:shadow-md;
 }
 
 .product-image-container {
-  @apply flex items-center space-x-3 w-full sm:w-auto mb-2 sm:mb-0;
+  @apply flex items-center space-x-3 w-full sm:w-auto mb-3 sm:mb-0;
 }
 
 .product-details {
@@ -283,33 +321,23 @@ a, button {
 }
 
 .product-price-container {
-  @apply flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2 sm:mt-0;
+  @apply flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-3 sm:mt-0;
 }
 
 .product-modifiers {
-  @apply flex justify-end items-center gap-2 mt-3 sm:mt-0;
+  @apply flex justify-end items-center gap-3 mt-3 sm:mt-0;
 }
 
-/* Spécifique aux settings */
-.settings-form-field {
-  @apply flex flex-col space-y-2 mb-4;
+/* Animation classes */
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out forwards;
 }
 
-.settings-switch-container {
-  @apply flex justify-between items-center mb-6 flex-wrap gap-4;
+.animate-slide-in {
+  animation: slideIn 0.4s ease-out forwards;
 }
 
-/* Mobile filters adjustments */
-.mobile-filters-container {
-  @apply flex flex-wrap gap-2 overflow-x-auto pb-2;
-}
-
-/* Modern card styles */
-.modern-card {
-  @apply rounded-xl shadow-md hover:shadow-lg transition-shadow;
-}
-
-/* Enhanced buttons */
-.enhanced-button {
-  @apply shadow-sm hover:shadow-md font-medium;
+/* Modern form styling */
+.modern-form-input {
+  @apply rounded-lg border border-input bg-white/80 backdrop-blur-sm p-3 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary;
 }
