@@ -86,7 +86,7 @@ export interface Product {
   is_parent?: boolean;
   is_variation?: boolean;
   parent_id?: string;
-  variants?: Product[]; // Changed from ProductVariant[] to Product[]
+  variants?: Product[]; // Liste des variantes du produit
   variation_attributes?: Record<string, string | number | boolean>;
   
   // Alternative property names used in Supabase
@@ -105,7 +105,7 @@ export interface ProductVariant {
   imageUrl?: string;
   image_url?: string;
   specifications?: Record<string, string | number>;
-  attributes?: Record<string, string | number | boolean>; // This must be a Record, not an array
+  attributes?: Record<string, string | number | boolean> | any[]; // Accepte les deux formats d'attributs
   parent_id?: string;
   // Add any other necessary fields to ensure compatibility with Product
   createdAt?: Date | string;

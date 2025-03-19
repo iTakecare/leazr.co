@@ -1,3 +1,4 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -67,19 +68,24 @@ export async function getProductById(id: string): Promise<Product | null> {
       } else if (variants && variants.length > 0) {
         console.log(`Found ${variants.length} variants for product ${id}`);
         
-        // Log les attributs des variantes pour le débogage
+        // Log les attributs des variantes pour le débogage avant normalisation
         variants.forEach((variant, index) => {
           console.log(`Variant ${index + 1} ID:`, variant.id);
-          console.log(`Variant ${index + 1} original attributes:`, variant.attributes);
+          console.log(`Variant ${index + 1} original attributes (${typeof variant.attributes}):`, variant.attributes);
           console.log(`Variant ${index + 1} price:`, variant.price);
           console.log(`Variant ${index + 1} monthly_price:`, variant.monthly_price);
         });
         
         // Normaliser les attributs pour chaque variante
         mainProduct.variants = variants.map(variant => {
-          // Convertir les attributs au format Record
-          variant.attributes = normalizeAttributes(variant.attributes);
-          return variant;
+          // S'assurer que les attributs sont au format Record et pas un tableau
+          const normalizedAttrs = normalizeAttributes(variant.attributes);
+          console.log(`Variant ${variant.id} normalized attributes:`, normalizedAttrs);
+          
+          return {
+            ...variant,
+            attributes: normalizedAttrs
+          };
         });
         
         // Log variants après normalisation
@@ -121,8 +127,10 @@ export async function getProductById(id: string): Promise<Product | null> {
           
           // Normaliser les attributs pour chaque variante
           const processedSiblings = siblings.map(variant => {
-            variant.attributes = normalizeAttributes(variant.attributes);
-            return variant;
+            return {
+              ...variant,
+              attributes: normalizeAttributes(variant.attributes)
+            };
           });
           
           parent.variants = processedSiblings;
@@ -154,7 +162,7 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 }
 
-// Fonction utilitaire pour normaliser les attributs de produit/variante - réécrite pour être plus robuste
+// Fonction améliorée pour normaliser les attributs de produit/variante
 function normalizeAttributes(attributes: any): Record<string, string | number | boolean> {
   console.log("Normalizing attributes:", attributes);
   
@@ -170,13 +178,13 @@ function normalizeAttributes(attributes: any): Record<string, string | number | 
       try {
         const parsed = JSON.parse(attributes);
         console.log("Successfully parsed JSON string attributes:", parsed);
-        return normalizeAttributes(parsed); // Recursive call with parsed result
+        return normalizeAttributes(parsed); // Appel récursif avec le résultat parsé
       } catch (e) {
         console.log("Failed to parse attributes string as JSON:", e);
       }
     }
     
-    // Si c'est déjà un objet et pas un tableau, le valider
+    // Si c'est déjà un objet et pas un tableau, le valider et le convertir
     if (typeof attributes === 'object' && !Array.isArray(attributes)) {
       console.log("Attributes is already an object");
       // Vérifier que toutes les valeurs sont des types primitifs
@@ -194,9 +202,13 @@ function normalizeAttributes(attributes: any): Record<string, string | number | 
     
     // Si c'est un tableau, le convertir en objet
     if (Array.isArray(attributes)) {
-      console.log("Attributes is an array, converting to object");
+      console.log("Attributes is an array, converting to object. Array length:", attributes.length);
       const normalized: Record<string, string | number | boolean> = {};
-      attributes.forEach((attr: any) => {
+      
+      attributes.forEach((attr: any, index) => {
+        console.log(`Processing array item ${index}:`, attr);
+        
+        // Format 1: {name: "color", value: "red"}
         if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
           const value = attr.value;
           if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -205,7 +217,18 @@ function normalizeAttributes(attributes: any): Record<string, string | number | 
             normalized[attr.name] = String(value);
           }
         }
+        // Format 2: "color:red" ou similaire
+        else if (typeof attr === 'string' && attr.includes(':')) {
+          const [key, value] = attr.split(':', 2);
+          normalized[key.trim()] = value.trim();
+        }
+        // Format 3: Simple valeur avec index comme clé
+        else if (attr !== null && attr !== undefined) {
+          normalized[`option_${index}`] = typeof attr === 'object' ? JSON.stringify(attr) : String(attr);
+        }
       });
+      
+      console.log("Normalized from array:", normalized);
       return normalized;
     }
   } catch (e) {
