@@ -49,7 +49,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
         <div key={attrName} className="space-y-2">
           <Label htmlFor={`attr-${attrName}`}>{attrName}</Label>
           <Select
-            value={selectedAttributes[attrName]?.toString() || ""}
+            defaultValue={selectedAttributes[attrName]?.toString() || ""}
             onValueChange={(value) => handleAttributeChange(attrName, value)}
             disabled={disabled}
           >
