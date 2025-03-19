@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Euro, Package } from "lucide-react";
 import VariantAttributeSelector from "./VariantAttributeSelector";
 import { findVariantCombinationPrice } from "@/services/variantPriceService";
+import { Badge } from "@/components/ui/badge";
 
 interface ProductVariantViewerProps {
   product: Product;
@@ -86,9 +87,13 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-4">
-            <p className="text-muted-foreground">
+          <div className="p-6 text-center">
+            <p className="text-muted-foreground mb-2">
               Ce produit n'a pas d'attributs de variante définis.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Pour configurer des variantes, allez dans l'onglet "Variantes et Prix", 
+              puis définissez d'abord les attributs dans la section "Attributs de variante".
             </p>
           </div>
         </CardContent>
@@ -108,6 +113,16 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-sm font-medium mb-4">Sélectionner les attributs</h3>
+            
+            <div className="mb-4">
+              <div className="flex flex-wrap gap-1 mb-2">
+                {Object.entries(product.variation_attributes || {}).map(([attrName, values]) => (
+                  <Badge key={attrName} variant="outline" className="px-2 py-1">
+                    {attrName}: {values.length} options
+                  </Badge>
+                ))}
+              </div>
+            </div>
             
             <VariantAttributeSelector
               variationAttributes={product.variation_attributes || {}}
