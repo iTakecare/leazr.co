@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -15,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { updateProductVariationAttributes } from "@/services/variantPriceService";
-import RichTextEditor from "@/components/ui/rich-text-editor";
+import { Textarea } from "@/components/ui/textarea";
 
 const productCategories = [
   "laptop",
@@ -131,12 +130,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 
   const uploadImages = async (productId: string) => {
     try {
-      // Téléchargement de l'image principale
       if (imageFiles.length > 0) {
         await uploadProductImage(imageFiles[0], productId, true);
       }
       
-      // Téléchargement des images supplémentaires
       for (let i = 1; i < imageFiles.length && i < 5; i++) {
         await uploadProductImage(imageFiles[i], productId, false);
       }
@@ -186,7 +183,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 
     setIsSubmitting(true);
 
-    // Création du produit et conversion des prix en nombre
     try {
       const productData = {
         name,
@@ -400,11 +396,12 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <RichTextEditor
+                  <Textarea
+                    id="description"
                     value={description}
-                    onChange={setDescription}
+                    onChange={(e) => setDescription(e.target.value)}
                     placeholder="Description du produit"
-                    height={150}
+                    className="min-h-[150px]"
                   />
                 </div>
               </TabsContent>
