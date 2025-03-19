@@ -150,11 +150,15 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const areAllAttributesSelected = (): boolean => {
     if (!product.variation_attributes) return false;
     
-    return Object.keys(product.variation_attributes).every(
-      attrName => selectedAttributes[attrName] !== undefined && 
-                  selectedAttributes[attrName] !== null && 
-                  selectedAttributes[attrName] !== ""
+    const allSelected = Object.keys(product.variation_attributes).every(
+      attrName => {
+        const value = selectedAttributes[attrName];
+        return value !== undefined && value !== null && value !== "";
+      }
     );
+    
+    console.log("All attributes selected:", allSelected, "Selected attributes:", selectedAttributes);
+    return allSelected;
   };
   
   const resetForm = () => {
@@ -181,6 +185,12 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
+    const numPurchasePrice = Number(purchasePrice);
+    if (isNaN(numPurchasePrice) || numPurchasePrice <= 0) {
+      toast.error("Le prix d'achat doit être un nombre positif");
+      return;
+    }
+    
     const combinationExists = variantPrices?.some(variantPrice => {
       const priceAttrs = variantPrice.attributes;
       return Object.keys(selectedAttributes).every(
@@ -196,7 +206,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     const newVariantPrice = {
       product_id: product.id,
       attributes: selectedAttributes,
-      price: Number(purchasePrice),
+      price: numPurchasePrice,
       monthly_price: monthlyPrice ? Number(monthlyPrice) : undefined,
       stock: stock ? Number(stock) : undefined
     };
@@ -539,7 +549,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   <div className="flex justify-end">
                     <Button 
                       onClick={handleSubmit}
-                      disabled={!areAllAttributesSelected() || purchasePrice === "" || Number(purchasePrice) <= 0 || addVariantPriceMutation.isPending}
+                      disabled={!areAllAttributesSelected() || !purchasePrice || addVariantPriceMutation.isPending}
                     >
                       {addVariantPriceMutation.isPending ? (
                         <span className="flex items-center">
