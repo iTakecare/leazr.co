@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -20,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 interface MenuItemProps {
   to: string;
@@ -96,8 +96,10 @@ const ClientSidebar = ({ className }: SidebarProps) => {
     try {
       await signOut();
       navigate('/login');
+      toast.success("Déconnexion réussie");
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
+      toast.error("Erreur lors de la déconnexion");
     }
   };
 
