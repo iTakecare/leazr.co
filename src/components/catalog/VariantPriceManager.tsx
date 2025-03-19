@@ -47,7 +47,8 @@ import {
   getVariantCombinationPrices, 
   createVariantCombinationPrice,
   deleteVariantCombinationPrice,
-  updateProductVariationAttributes
+  updateProductVariationAttributes,
+  updateParentProductRemovePrice
 } from "@/services/variantPriceService";
 import { Badge } from "@/components/ui/badge";
 
@@ -62,20 +63,14 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [selectedAttributes, setSelectedAttributes] = useState<ProductAttributes>({});
-  const [price, setPrice] = useState<number | string>("");
   const [purchasePrice, setPurchasePrice] = useState<number | string>("");
-  const [monthlyPrice, setMonthlyPrice] = useState<number | string>("");
-  const [stock, setStock] = useState<number | string>("");
   const [attributesToDelete, setAttributesToDelete] = useState<ProductAttributes | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   // Bulk generation dialog state
   const [isBulkGenerationDialogOpen, setIsBulkGenerationDialogOpen] = useState(false);
-  const [basePrice, setBasePrice] = useState<number | string>("");
   const [basePurchasePrice, setBasePurchasePrice] = useState<number | string>("");
-  const [baseMonthlyPrice, setBaseMonthlyPrice] = useState<number | string>("");
-  const [baseStock, setBaseStock] = useState<number | string>("10");
   
   // Attributes editor state
   const [isAttributeDialogOpen, setIsAttributeDialogOpen] = useState(false);
@@ -144,6 +139,18 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     }
   });
   
+  // Remove parent product price mutation
+  const removeParentPriceMutation = useMutation({
+    mutationFn: (productId: string) => updateParentProductRemovePrice(productId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+      toast.success("Prix du produit parent supprimé avec succès");
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur lors de la suppression du prix parent: ${error.message}`);
+    }
+  });
+  
   // Helper to check if all required attributes are selected
   const areAllAttributesSelected = (): boolean => {
     if (!product.variation_attributes) return false;
@@ -156,10 +163,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   // Reset form values
   const resetForm = () => {
     setSelectedAttributes({});
-    setPrice("");
     setPurchasePrice("");
-    setMonthlyPrice("");
-    setStock("");
   };
   
   // Handle attribute selection
@@ -173,11 +177,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     
     if (!areAllAttributesSelected()) {
       toast.error("Veuillez sélectionner toutes les options d'attributs");
-      return;
-    }
-    
-    if (!price) {
-      toast.error("Veuillez saisir un prix");
       return;
     }
     
@@ -202,10 +201,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     const newVariantPrice = {
       product_id: product.id,
       attributes: selectedAttributes,
-      price: Number(price),
-      purchase_price: Number(purchasePrice),
-      monthly_price: monthlyPrice ? Number(monthlyPrice) : undefined,
-      stock: stock ? Number(stock) : undefined
+      price: 0, // Nous gardons price à 0 puisqu'on ne l'utilise plus
+      purchase_price: Number(purchasePrice)
     };
     
     addVariantPriceMutation.mutate(newVariantPrice);
@@ -263,8 +260,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   
   // Generate prices for all possible combinations
   const generateAllVariantPrices = () => {
-    if (!basePrice || !basePurchasePrice) {
-      toast.error("Veuillez saisir un prix de base et un prix d'achat de base");
+    if (!basePurchasePrice) {
+      toast.error("Veuillez saisir un prix d'achat de base");
       return;
     }
     
@@ -299,20 +296,20 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     // Show a loading toast
     const loadingToast = toast.loading(`Génération de ${newCombinations.length} prix de variantes...`);
     
+    // Remove parent product price
+    removeParentPriceMutation.mutate(product.id);
+    
     // Process each combination sequentially with Promise chaining
     newCombinations.reduce((promise, combination, index) => {
       return promise.then(() => {
-        // Add some randomness to prices to simulate realistic differences between variants
-        const priceVariation = Math.random() * 50 - 25; // +/- 25
+        // Add some randomness to purchase prices to simulate realistic differences between variants
         const purchasePriceVariation = Math.random() * 20 - 10; // +/- 10
         
         const newVariantPrice = {
           product_id: product.id,
           attributes: combination,
-          price: Math.max(10, Number(basePrice) + priceVariation),
-          purchase_price: Math.max(5, Number(basePurchasePrice) + purchasePriceVariation),
-          monthly_price: baseMonthlyPrice ? Math.max(1, Number(baseMonthlyPrice) + priceVariation/10) : undefined,
-          stock: baseStock ? Number(baseStock) : undefined
+          price: 0, // Nous gardons price à 0 puisqu'on ne l'utilise plus
+          purchase_price: Math.max(5, Number(basePurchasePrice) + purchasePriceVariation)
         };
         
         return createVariantCombinationPrice(newVariantPrice)
@@ -414,6 +411,11 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       .join(", ");
   };
   
+  // Remove parent product price
+  const handleRemoveParentPrice = () => {
+    removeParentPriceMutation.mutate(product.id);
+  };
+  
   // If product is not a parent product, show a message
   if (product.is_parent !== true) {
     return (
@@ -436,14 +438,24 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
               <Tag className="h-5 w-5 mr-2" />
               Attributs de variante
             </CardTitle>
-            <Button 
-              onClick={() => setIsAttributeDialogOpen(true)}
-              variant="outline"
-              size="sm"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Modifier les attributs
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleRemoveParentPrice} 
+                variant="outline"
+                size="sm"
+              >
+                <Euro className="h-4 w-4 mr-2" />
+                Supprimer prix du produit parent
+              </Button>
+              <Button 
+                onClick={() => setIsAttributeDialogOpen(true)}
+                variant="outline"
+                size="sm"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Modifier les attributs
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -499,9 +511,9 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
               <CardContent className="pt-6">
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium mb-2">Définir un nouveau prix</h3>
+                    <h3 className="text-lg font-medium mb-2">Définir un nouveau prix d'achat</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Sélectionnez les attributs et définissez le prix pour cette combinaison
+                      Sélectionnez les attributs et définissez le prix d'achat pour cette combinaison
                     </p>
                   </div>
                   
@@ -513,24 +525,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   
                   <Separator />
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Prix de vente (€)</Label>
-                      <div className="relative">
-                        <Input
-                          id="price"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={price}
-                          onChange={(e) => setPrice(e.target.value)}
-                          className="pl-8"
-                          placeholder="0.00"
-                        />
-                        <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </div>
-                    
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="purchase-price">Prix d'achat (€)</Label>
                       <div className="relative">
@@ -547,41 +542,12 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                         <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="monthly-price">Mensualité (€/mois)</Label>
-                      <div className="relative">
-                        <Input
-                          id="monthly-price"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={monthlyPrice}
-                          onChange={(e) => setMonthlyPrice(e.target.value)}
-                          className="pl-8"
-                          placeholder="0.00"
-                        />
-                        <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="stock">Stock</Label>
-                      <Input
-                        id="stock"
-                        type="number"
-                        min="0"
-                        value={stock}
-                        onChange={(e) => setStock(e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
                   </div>
                   
                   <div className="flex justify-end">
                     <Button 
                       onClick={handleSubmit}
-                      disabled={!areAllAttributesSelected() || !price || !purchasePrice || addVariantPriceMutation.isPending}
+                      disabled={!areAllAttributesSelected() || !purchasePrice || addVariantPriceMutation.isPending}
                     >
                       {addVariantPriceMutation.isPending ? (
                         <span className="flex items-center">
@@ -614,10 +580,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Attributs</TableHead>
-                      <TableHead>Prix de vente (€)</TableHead>
                       <TableHead>Prix d'achat (€)</TableHead>
-                      <TableHead>Mensualité (€/mois)</TableHead>
-                      <TableHead>Stock</TableHead>
                       <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -627,20 +590,9 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                         <TableCell className="font-medium">
                           {formatAttributes(variantPrice.attributes)}
                         </TableCell>
-                        <TableCell>{variantPrice.price.toFixed(2)} €</TableCell>
                         <TableCell>
                           {variantPrice.purchase_price 
                             ? `${variantPrice.purchase_price.toFixed(2)} €` 
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          {variantPrice.monthly_price 
-                            ? `${variantPrice.monthly_price.toFixed(2)} €` 
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          {variantPrice.stock !== undefined 
-                            ? variantPrice.stock 
                             : "-"}
                         </TableCell>
                         <TableCell>
@@ -777,31 +729,11 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
             <DialogTitle>Générer toutes les variantes</DialogTitle>
             <DialogDescription>
               Cette action va créer automatiquement toutes les combinaisons d'attributs possibles
-              avec les prix spécifiés ci-dessous.
+              avec les prix d'achat spécifiés ci-dessous et supprimer le prix du produit parent.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="base-price">Prix de vente de base (€)</Label>
-              <div className="relative">
-                <Input
-                  id="base-price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={basePrice}
-                  onChange={(e) => setBasePrice(e.target.value)}
-                  className="pl-8"
-                  placeholder="0.00"
-                />
-                <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Les prix varieront légèrement autour de cette valeur pour chaque variante.
-              </p>
-            </div>
-            
             <div className="space-y-2">
               <Label htmlFor="base-purchase-price">Prix d'achat de base (€)</Label>
               <div className="relative">
@@ -817,35 +749,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                 />
                 <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="base-monthly-price">Mensualité de base (€/mois - optionnel)</Label>
-              <div className="relative">
-                <Input
-                  id="base-monthly-price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={baseMonthlyPrice}
-                  onChange={(e) => setBaseMonthlyPrice(e.target.value)}
-                  className="pl-8"
-                  placeholder="0.00"
-                />
-                <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="base-stock">Stock initial (optionnel)</Label>
-              <Input
-                id="base-stock"
-                type="number"
-                min="0"
-                value={baseStock}
-                onChange={(e) => setBaseStock(e.target.value)}
-                placeholder="10"
-              />
             </div>
             
             <div className="mt-2 p-3 bg-muted rounded-md">
@@ -868,7 +771,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
             </Button>
             <Button 
               onClick={generateAllVariantPrices}
-              disabled={!basePrice || !basePurchasePrice}
+              disabled={!basePurchasePrice}
             >
               Générer toutes les variantes
             </Button>
