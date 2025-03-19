@@ -482,8 +482,8 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
         await updateProduct(productId, {
           image_urls: updatedImageUrls,
           image_alts: updatedImageAlts,
-          imageurls: updatedImageUrls, // Pour compatibilité
-          imagealts: updatedImageAlts // Pour compatibilité
+          imageUrls: updatedImageUrls, // Correction ici: imageUrls au lieu de imageurls (avec U majuscule)
+          imageAlts: updatedImageAlts // Correction ici: imageAlts au lieu de imagealts (avec A majuscule)
         });
       }
     }
@@ -847,3 +847,4 @@ export async function convertProductToParent(
     throw error;
   }
 }
+
