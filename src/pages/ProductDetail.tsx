@@ -7,8 +7,7 @@ import {
   updateProduct, 
   deleteProduct, 
   uploadProductImage, 
-  convertProductToParent,
-  findVariantByAttributes
+  convertProductToParent
 } from "@/services/catalogService";
 import Container from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
@@ -36,15 +35,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Trash2, Upload, PlusCircle, MinusCircle, ChevronDown, ChevronUp, Tag, Package, Layers, Euro, X, Image, Unlink } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Upload, Layers, Euro, X, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Product, ProductAttributes } from "@/types/catalog";
+import { Product, VariantCombinationPrice } from "@/types/catalog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 import ProductSpecifications from "@/components/catalog/ProductSpecifications";
+import ProductVariantViewer from "@/components/catalog/ProductVariantViewer";
 
 const productCategories = [
   "laptop",
@@ -95,7 +94,7 @@ const popularBrands = [
   "Autre"
 ];
 
-const ProductDetail = () => {
+const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -105,10 +104,9 @@ const ProductDetail = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedAttributes, setSelectedAttributes] = useState<ProductAttributes>({});
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [convertToParentDialogOpen, setConvertToParentDialogOpen] = useState(false);
   const [modelName, setModelName] = useState("");
+  const [selectedVariantPrice, setSelectedVariantPrice] = useState<VariantCombinationPrice | null>(null);
   
   // Product data query
   const productQuery = useQuery({
@@ -204,19 +202,6 @@ const ProductDetail = () => {
     }
   });
   
-  // Find variant by attributes mutation
-  const findVariantMutation = useMutation({
-    mutationFn: ({ parentId, attributes }: { parentId: string, attributes: ProductAttributes }) => 
-      findVariantByAttributes(parentId, attributes),
-    onSuccess: (data) => {
-      if (data) {
-        setSelectedVariantId(data.id);
-      } else {
-        setSelectedVariantId(null);
-      }
-    }
-  });
-  
   // Initialize data when product is loaded
   useEffect(() => {
     if (productQuery.data) {
@@ -227,11 +212,6 @@ const ProductDetail = () => {
       
       if (productQuery.data.image_urls) {
         setAdditionalImages(productQuery.data.image_urls);
-      }
-      
-      // Initialize selected attributes if product is a variant
-      if (productQuery.data.is_variation && productQuery.data.attributes) {
-        setSelectedAttributes(productQuery.data.attributes as ProductAttributes);
       }
     } else if (productQuery.isError) {
       setIsLoading(false);
@@ -316,24 +296,6 @@ const ProductDetail = () => {
     }
   };
   
-  // Handle attribute change for variant selection
-  const handleAttributeChange = (attributeName: string, value: string) => {
-    const updatedAttributes = {
-      ...selectedAttributes,
-      [attributeName]: value
-    };
-    
-    setSelectedAttributes(updatedAttributes);
-    
-    // Try to find a matching variant with these attributes
-    if (formData.parent_id && Object.keys(updatedAttributes).length > 0) {
-      findVariantMutation.mutate({ 
-        parentId: formData.parent_id, 
-        attributes: updatedAttributes 
-      });
-    }
-  };
-  
   // Handle detach from parent
   const handleDetachFromParent = () => {
     if (id) {
@@ -350,11 +312,9 @@ const ProductDetail = () => {
     }
   };
   
-  // Handle navigation to selected variant
-  const handleNavigateToVariant = () => {
-    if (selectedVariantId) {
-      navigate(`/products/${selectedVariantId}`);
-    }
+  // Handle variant price selection
+  const handleVariantPriceSelect = (price: VariantCombinationPrice | null) => {
+    setSelectedVariantPrice(price);
   };
   
   // View parent products
@@ -421,12 +381,12 @@ const ProductDetail = () => {
           )}
           {isVariant && (
             <Badge variant="outline" className="text-sm py-1 px-3">
-              <Package className="h-4 w-4 mr-1" /> Variante
+              Variante
             </Badge>
           )}
           {!isParentProduct && !isVariant && (
             <Badge variant="outline" className="text-sm py-1 px-3">
-              <Package className="h-4 w-4 mr-1" /> Produit standard
+              Produit standard
             </Badge>
           )}
           {formData.model && (
@@ -464,45 +424,14 @@ const ProductDetail = () => {
           </div>
         )}
         
-        {/* Variant selector for parent products with variants */}
-        {hasVariationAttributes && !isParentProduct && formData.parent_id && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Sélectionner une variante</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {Object.entries(productQuery.data!.variation_attributes!).map(([attrName, values]) => (
-                  <div key={attrName} className="space-y-2">
-                    <Label htmlFor={`select-${attrName}`}>{attrName}</Label>
-                    <Select
-                      value={selectedAttributes[attrName]?.toString() || ""}
-                      onValueChange={(value) => handleAttributeChange(attrName, value)}
-                    >
-                      <SelectTrigger id={`select-${attrName}`}>
-                        <SelectValue placeholder={`Choisir ${attrName}`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {values.map((value) => (
-                          <SelectItem key={`${attrName}-${value}`} value={value.toString()}>
-                            {value}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-                
-                {selectedVariantId && selectedVariantId !== id && (
-                  <div className="col-span-1 md:col-span-3 mt-4">
-                    <Button onClick={handleNavigateToVariant}>
-                      Voir cette variante
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Variant price viewer for parent products */}
+        {isParentProduct && hasVariationAttributes && (
+          <div className="mb-6">
+            <ProductVariantViewer 
+              product={productQuery.data!} 
+              onVariantSelect={handleVariantPriceSelect}
+            />
+          </div>
         )}
         
         {/* Convert to parent product button */}
@@ -525,7 +454,7 @@ const ProductDetail = () => {
             <TabsTrigger value="specifications">Spécifications</TabsTrigger>
             {isParentProduct && (
               <TabsTrigger value="variants">
-                Variantes {productQuery.data?.variants?.length ? `(${productQuery.data.variants.length})` : ''}
+                Variantes et Prix
               </TabsTrigger>
             )}
           </TabsList>
@@ -773,16 +702,26 @@ const ProductDetail = () => {
                     </div>
                   )}
                   
-                  {isVariant && formData.attributes && (
-                    <div className="mt-6">
-                      <h3 className="text-lg font-medium mb-3">Attributs de variation</h3>
-                      <div className="space-y-3 bg-muted p-4 rounded-lg">
-                        {Object.entries(formData.attributes as ProductAttributes).map(([key, value]) => (
-                          <div key={key} className="grid grid-cols-2 gap-2">
-                            <div className="text-sm font-medium">{key}:</div>
-                            <div className="text-sm">{value}</div>
+                  {selectedVariantPrice && (
+                    <div className="mt-6 p-4 border rounded-md bg-muted">
+                      <h3 className="text-lg font-medium mb-2">Prix sélectionné</h3>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-1">
+                          <span className="text-sm font-medium">Prix:</span>
+                          <span className="text-sm">{selectedVariantPrice.price.toFixed(2)} €</span>
+                        </div>
+                        {selectedVariantPrice.monthly_price && (
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="text-sm font-medium">Mensualité:</span>
+                            <span className="text-sm">{selectedVariantPrice.monthly_price.toFixed(2)} €/mois</span>
                           </div>
-                        ))}
+                        )}
+                        {selectedVariantPrice.stock !== undefined && (
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="text-sm font-medium">Stock:</span>
+                            <span className="text-sm">{selectedVariantPrice.stock}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -935,7 +874,7 @@ const ProductDetail = () => {
           <DialogHeader>
             <DialogTitle>Convertir en produit parent</DialogTitle>
             <DialogDescription>
-              Convertir ce produit en produit parent vous permettra d'ajouter des variantes.
+              Convertir ce produit en produit parent vous permettra de définir des prix pour différentes combinaisons d'attributs.
             </DialogDescription>
           </DialogHeader>
           

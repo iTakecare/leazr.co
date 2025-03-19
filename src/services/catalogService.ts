@@ -134,8 +134,9 @@ export async function getProductById(id: string): Promise<Product | null> {
     mainProduct.attributes = parseAttributes(mainProduct.attributes);
     
     if (mainProduct.is_parent) {
-      console.log(`Product ${id} is a parent, fetching variants...`);
+      console.log(`Product ${id} is a parent, fetching variants and combination prices...`);
       
+      // Fetch variants
       const variants = await getProductVariants(id);
       if (variants.length > 0) {
         console.log(`Found ${variants.length} variants for product ${id}`);
@@ -148,6 +149,28 @@ export async function getProductById(id: string): Promise<Product | null> {
       } else {
         console.log(`No variants found for parent product ${id}`);
         mainProduct.variants = [];
+      }
+      
+      // Fetch variant combination prices
+      try {
+        const { data: variantPrices, error: pricesError } = await supabase
+          .from('product_variant_prices')
+          .select('*')
+          .eq('product_id', id);
+        
+        if (pricesError) {
+          console.error(`Error fetching variant prices for product ${id}:`, pricesError);
+        } else if (variantPrices && variantPrices.length > 0) {
+          console.log(`Found ${variantPrices.length} price combinations for product ${id}`);
+          mainProduct.variant_combination_prices = variantPrices.map(price => ({
+            ...price,
+            attributes: typeof price.attributes === 'string' 
+              ? JSON.parse(price.attributes) 
+              : price.attributes
+          }));
+        }
+      } catch (priceError) {
+        console.error("Error fetching variant prices:", priceError);
       }
     }
     else if (mainProduct.parent_id) {

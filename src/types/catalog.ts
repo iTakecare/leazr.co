@@ -1,4 +1,3 @@
-
 // Product type definition
 export interface Product {
   id: string;
@@ -88,6 +87,7 @@ export interface Product {
   parent_id?: string;
   variants?: Product[]; // List of product variants
   variation_attributes?: ProductVariationAttributes; // Available attribute options for this product
+  variant_combination_prices?: VariantCombinationPrice[]; // Prices for specific attribute combinations
   
   // Alternative property names used in Supabase
   image_url?: string; // Alternative to imageUrl for DB compatibility
@@ -137,6 +137,18 @@ export interface AttributeValue {
   attribute_id: string;
   value: string;
   display_value: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+}
+
+// Price definition for specific combinations of attribute values
+export interface VariantCombinationPrice {
+  id: string;
+  product_id: string; // Parent product ID
+  attributes: ProductAttributes; // Combination of attributes
+  price: number;
+  monthly_price?: number;
+  stock?: number;
   created_at?: Date | string;
   updated_at?: Date | string;
 }
