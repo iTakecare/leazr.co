@@ -107,7 +107,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   });
   
   const deleteVariantPriceMutation = useMutation({
-    mutationFn: (id: string) => deleteVariantPriceMutation.mutate(id),
+    mutationFn: (id: string) => deleteVariantCombinationPrice(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
       toast.success("Prix de variante supprimé avec succès");
@@ -211,16 +211,10 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   
   const handleDelete = () => {
     if (deleteId) {
-      deleteVariantPrice(deleteId).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
-        toast.success("Prix de variante supprimé avec succès");
-        if (onPriceAdded) onPriceAdded();
-        setIsDeleteDialogOpen(false);
-        setDeleteId(null);
-        setAttributesToDelete(null);
-      }).catch((error) => {
-        toast.error(`Erreur lors de la suppression du prix: ${error.message}`);
-      });
+      deleteVariantPriceMutation.mutate(deleteId);
+      setIsDeleteDialogOpen(false);
+      setDeleteId(null);
+      setAttributesToDelete(null);
     }
   };
   
