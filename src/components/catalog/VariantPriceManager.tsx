@@ -3,27 +3,16 @@ import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Product, 
-  ProductAttributes, 
-  ProductVariationAttributes,
-  VariantCombinationPrice 
+  ProductAttributes,
+  VariantCombinationPrice
 } from "@/types/catalog";
-import {
-  createVariantCombinationPrice,
-  updateVariantCombinationPrice,
-  deleteVariantCombinationPrice,
-  getVariantCombinationPrices
-} from "@/services/variantPriceService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Euro, Trash2, Plus, Package2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -43,12 +32,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, ShoppingCart, Euro } from "lucide-react";
-import { toast } from "sonner";
 import VariantAttributeSelector from "./VariantAttributeSelector";
+import { 
+  getVariantCombinationPrices, 
+  createVariantCombinationPrice,
+  deleteVariantCombinationPrice
+} from "@/services/variantPriceService";
 
 interface VariantPriceManagerProps {
   product: Product;
@@ -60,488 +49,330 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   onPriceAdded
 }) => {
   const queryClient = useQueryClient();
-  const [isAddPriceOpen, setIsAddPriceOpen] = useState(false);
-  const [isEditPriceOpen, setIsEditPriceOpen] = useState(false);
-  const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
-  
-  // Form data
-  const [variantPrice, setVariantPrice] = useState("");
-  const [variantMonthlyPrice, setVariantMonthlyPrice] = useState("");
-  const [variantStock, setVariantStock] = useState("");
   const [selectedAttributes, setSelectedAttributes] = useState<ProductAttributes>({});
+  const [price, setPrice] = useState<number | string>("");
+  const [monthlyPrice, setMonthlyPrice] = useState<number | string>("");
+  const [stock, setStock] = useState<number | string>("");
+  const [attributesToDelete, setAttributesToDelete] = useState<ProductAttributes | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Make sure we have variation attributes
-  const variationAttributes = product.variation_attributes || {};
+  const hasVariationAttributes = 
+    product.variation_attributes && 
+    Object.keys(product.variation_attributes).length > 0;
   
-  // Query for variant prices
-  const variantPricesQuery = useQuery({
+  // Get variant prices
+  const { data: variantPrices, isLoading } = useQuery({
     queryKey: ["variant-prices", product.id],
     queryFn: () => getVariantCombinationPrices(product.id),
-    enabled: !!product.id && product.is_parent === true
+    enabled: !!product.id && product.is_parent === true,
   });
   
-  // Create price mutation
-  const createPriceMutation = useMutation({
-    mutationFn: (priceData: Omit<VariantCombinationPrice, 'id' | 'created_at' | 'updated_at'>) => 
-      createVariantCombinationPrice(priceData),
+  // Add variant price mutation
+  const addVariantPriceMutation = useMutation({
+    mutationFn: (data: Omit<VariantCombinationPrice, 'id' | 'created_at' | 'updated_at'>) => 
+      createVariantCombinationPrice(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
-      queryClient.invalidateQueries({ queryKey: ["product", product.id] });
       resetForm();
-      setIsAddPriceOpen(false);
-      toast.success("Prix de variante créé avec succès");
+      toast.success("Prix de variante ajouté avec succès");
       if (onPriceAdded) onPriceAdded();
     },
     onError: (error: any) => {
-      toast.error(`Erreur lors de la création du prix: ${error.message}`);
+      toast.error(`Erreur lors de l'ajout du prix: ${error.message}`);
     }
   });
   
-  // Update price mutation
-  const updatePriceMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string, updates: Partial<VariantCombinationPrice> }) => 
-      updateVariantCombinationPrice(id, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
-      queryClient.invalidateQueries({ queryKey: ["product", product.id] });
-      resetForm();
-      setIsEditPriceOpen(false);
-      toast.success("Prix de variante mis à jour avec succès");
-    },
-    onError: (error: any) => {
-      toast.error(`Erreur lors de la mise à jour du prix: ${error.message}`);
-    }
-  });
-  
-  // Delete price mutation
-  const deletePriceMutation = useMutation({
+  // Delete variant price mutation
+  const deleteVariantPriceMutation = useMutation({
     mutationFn: (id: string) => deleteVariantCombinationPrice(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
-      queryClient.invalidateQueries({ queryKey: ["product", product.id] });
       toast.success("Prix de variante supprimé avec succès");
+      if (onPriceAdded) onPriceAdded();
     },
     onError: (error: any) => {
       toast.error(`Erreur lors de la suppression du prix: ${error.message}`);
     }
   });
   
-  // Reset form state
-  const resetForm = () => {
-    setVariantPrice("");
-    setVariantMonthlyPrice("");
-    setVariantStock("");
-    setSelectedAttributes({});
-    setSelectedPriceId(null);
+  // Helper to check if all required attributes are selected
+  const areAllAttributesSelected = (): boolean => {
+    if (!product.variation_attributes) return false;
+    
+    return Object.keys(product.variation_attributes).every(
+      attrName => selectedAttributes[attrName] !== undefined
+    );
   };
   
-  // Handle attribute change
-  const handleAttributeChange = (attributes: ProductAttributes) => {
+  // Reset form values
+  const resetForm = () => {
+    setSelectedAttributes({});
+    setPrice("");
+    setMonthlyPrice("");
+    setStock("");
+  };
+  
+  // Handle attribute selection
+  const handleAttributesChange = (attributes: ProductAttributes) => {
     setSelectedAttributes(attributes);
   };
   
-  // Format price for display
-  const formatPrice = (price: number) => {
-    return price.toFixed(2) + " €";
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!areAllAttributesSelected()) {
+      toast.error("Veuillez sélectionner toutes les options d'attributs");
+      return;
+    }
+    
+    if (!price) {
+      toast.error("Veuillez saisir un prix");
+      return;
+    }
+    
+    // Check if this combination already exists
+    const combinationExists = variantPrices?.some(variantPrice => {
+      const priceAttrs = variantPrice.attributes;
+      return Object.keys(selectedAttributes).every(
+        key => String(priceAttrs[key]).toLowerCase() === String(selectedAttributes[key]).toLowerCase()
+      );
+    });
+    
+    if (combinationExists) {
+      toast.error("Cette combinaison d'attributs existe déjà");
+      return;
+    }
+    
+    const newVariantPrice = {
+      product_id: product.id,
+      attributes: selectedAttributes,
+      price: Number(price),
+      monthly_price: monthlyPrice ? Number(monthlyPrice) : undefined,
+      stock: stock ? Number(stock) : undefined
+    };
+    
+    addVariantPriceMutation.mutate(newVariantPrice);
   };
   
-  // Format attribute values for display
-  const formatAttributeValues = (attributes: ProductAttributes) => {
-    if (!attributes) return "N/A";
-    
+  // Prepare for delete
+  const confirmDelete = (id: string, attributes: ProductAttributes) => {
+    setDeleteId(id);
+    setAttributesToDelete(attributes);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // Handle delete
+  const handleDelete = () => {
+    if (deleteId) {
+      deleteVariantPriceMutation.mutate(deleteId);
+      setIsDeleteDialogOpen(false);
+      setDeleteId(null);
+      setAttributesToDelete(null);
+    }
+  };
+  
+  // Format attributes for display
+  const formatAttributes = (attributes: ProductAttributes): string => {
     return Object.entries(attributes)
       .map(([key, value]) => `${key}: ${value}`)
       .join(", ");
   };
   
-  // Submit form for creating a new price
-  const handleCreateSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!variantPrice) {
-      toast.error("Veuillez saisir un prix");
-      return;
-    }
-    
-    // Check for required attributes
-    const attributeNames = Object.keys(variationAttributes);
-    for (const attrName of attributeNames) {
-      if (!selectedAttributes[attrName]) {
-        toast.error(`Veuillez sélectionner une valeur pour l'attribut "${attrName}"`);
-        return;
-      }
-    }
-    
-    // Check if a price with these attributes already exists
-    const existingPrice = variantPricesQuery.data?.find(p => {
-      const priceAttributes = typeof p.attributes === 'string' 
-        ? JSON.parse(p.attributes) 
-        : p.attributes;
-      
-      return Object.entries(selectedAttributes).every(([key, value]) => 
-        priceAttributes[key] === value
-      );
-    });
-    
-    if (existingPrice) {
-      toast.error("Un prix pour cette combinaison d'attributs existe déjà");
-      return;
-    }
-    
-    createPriceMutation.mutate({
-      product_id: product.id,
-      price: parseFloat(variantPrice),
-      monthly_price: variantMonthlyPrice ? parseFloat(variantMonthlyPrice) : undefined,
-      stock: variantStock ? parseInt(variantStock, 10) : undefined,
-      attributes: selectedAttributes
-    });
-  };
-  
-  // Submit form for updating a price
-  const handleUpdateSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedPriceId || !variantPrice) {
-      toast.error("Données manquantes pour la mise à jour");
-      return;
-    }
-    
-    updatePriceMutation.mutate({
-      id: selectedPriceId,
-      updates: {
-        price: parseFloat(variantPrice),
-        monthly_price: variantMonthlyPrice ? parseFloat(variantMonthlyPrice) : undefined,
-        stock: variantStock ? parseInt(variantStock, 10) : undefined
-      }
-    });
-  };
-  
-  // Handle edit price
-  const handleEditPrice = (price: VariantCombinationPrice) => {
-    setSelectedPriceId(price.id);
-    setVariantPrice(price.price.toString());
-    setVariantMonthlyPrice(price.monthly_price?.toString() || "");
-    setVariantStock(price.stock?.toString() || "");
-    
-    const attributes = typeof price.attributes === 'string'
-      ? JSON.parse(price.attributes)
-      : price.attributes;
-    
-    setSelectedAttributes(attributes || {});
-    setIsEditPriceOpen(true);
-  };
-  
-  // Handle delete price
-  const handleDeletePrice = (id: string) => {
-    deletePriceMutation.mutate(id);
-  };
-  
-  const variantPrices = variantPricesQuery.data || [];
-  const isLoading = variantPricesQuery.isLoading;
+  // If there are no variation attributes defined, show a message
+  if (!hasVariationAttributes) {
+    return (
+      <div className="bg-muted p-6 rounded-md text-center">
+        <Package2 className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+        <h3 className="text-lg font-medium mb-2">Aucun attribut de variante défini</h3>
+        <p className="text-muted-foreground mb-4">
+          Vous devez d'abord définir des attributs de variante pour ce produit.
+        </p>
+        <Button variant="outline" size="sm" disabled>
+          Définir des attributs
+        </Button>
+      </div>
+    );
+  }
   
   return (
-    <div>
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Prix des combinaisons de variantes</CardTitle>
-              <CardDescription>
-                Définissez les prix pour chaque combinaison d'attributs
-              </CardDescription>
-            </div>
-            
-            <Button onClick={() => {
-              resetForm();
-              setIsAddPriceOpen(true);
-            }}>
-              <Plus className="mr-2 h-4 w-4" /> Ajouter un prix
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center p-4">
-              <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full inline-block"></div>
-              <p className="mt-2 text-sm text-muted-foreground">Chargement des prix...</p>
-            </div>
-          ) : variantPrices.length === 0 ? (
-            <div className="text-center p-4 text-gray-500">
-              Aucun prix de variante défini pour ce produit.
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Attributs</TableHead>
-                    <TableHead>Prix</TableHead>
-                    <TableHead>Mensualité</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {variantPrices.map(price => {
-                    const attributes = typeof price.attributes === 'string'
-                      ? JSON.parse(price.attributes)
-                      : price.attributes;
-                    
-                    return (
-                      <TableRow key={price.id}>
-                        <TableCell className="font-medium">{formatAttributeValues(attributes)}</TableCell>
-                        <TableCell>{formatPrice(price.price)}</TableCell>
-                        <TableCell>{price.monthly_price ? formatPrice(price.monthly_price) : "N/A"}</TableCell>
-                        <TableCell>{price.stock !== undefined ? price.stock : "N/A"}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleEditPrice(price)}
-                            >
-                              <Edit className="h-4 w-4 mr-1" /> Modifier
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-1" /> Supprimer
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Supprimer ce prix de variante</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Êtes-vous sûr de vouloir supprimer ce prix ? Cette action est irréversible.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeletePrice(price.id)}>
-                                    Supprimer
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      {/* Add Price Dialog */}
-      <Dialog open={isAddPriceOpen} onOpenChange={setIsAddPriceOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Ajouter un prix de variante</DialogTitle>
-            <DialogDescription>
-              Définissez un prix pour une combinaison spécifique d'attributs.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleCreateSubmit}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="variantPrice" className="required">Prix (€)</Label>
-                <div className="relative">
-                  <Input
-                    id="variantPrice"
-                    type="number"
-                    value={variantPrice}
-                    onChange={(e) => setVariantPrice(e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    required
-                    className="pl-8"
-                  />
-                  <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit}>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium mb-2">Définir un nouveau prix</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Sélectionnez les attributs et définissez le prix pour cette combinaison
+                </p>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="variantMonthlyPrice">Mensualité (€/mois)</Label>
-                <div className="relative">
-                  <Input
-                    id="variantMonthlyPrice"
-                    type="number"
-                    value={variantMonthlyPrice}
-                    onChange={(e) => setVariantMonthlyPrice(e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="pl-8"
-                  />
-                  <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
+              <VariantAttributeSelector
+                variationAttributes={product.variation_attributes || {}}
+                initialSelectedAttributes={{}}
+                onAttributesChange={handleAttributesChange}
+              />
               
-              <div className="space-y-2">
-                <Label htmlFor="variantStock">Stock</Label>
-                <div className="relative">
-                  <Input
-                    id="variantStock"
-                    type="number"
-                    value={variantStock}
-                    onChange={(e) => setVariantStock(e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    className="pl-8"
-                  />
-                  <ShoppingCart className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
+              <Separator />
               
-              {Object.keys(variationAttributes).length > 0 && (
-                <>
-                  <Separator />
-                  
-                  <div>
-                    <h3 className="font-medium mb-3">Attributs de variante</h3>
-                    
-                    <VariantAttributeSelector
-                      variationAttributes={variationAttributes}
-                      initialSelectedAttributes={selectedAttributes}
-                      onAttributesChange={handleAttributeChange}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="price">Prix (€)</Label>
+                  <div className="relative">
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="pl-8"
+                      placeholder="0.00"
                     />
+                    <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   </div>
-                </>
-              )}
-            </div>
-            
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAddPriceOpen(false)}
-              >
-                Annuler
-              </Button>
-              <Button 
-                type="submit"
-                disabled={createPriceMutation.isPending}
-              >
-                {createPriceMutation.isPending ? (
-                  <span className="flex items-center">
-                    <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
-                    Création en cours...
-                  </span>
-                ) : "Créer le prix"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit Price Dialog */}
-      <Dialog open={isEditPriceOpen} onOpenChange={setIsEditPriceOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Modifier le prix de variante</DialogTitle>
-            <DialogDescription>
-              Modifiez le prix pour cette combinaison d'attributs.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleUpdateSubmit}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Attributs (non modifiables)</Label>
-                <div className="p-3 border rounded-md bg-muted">
-                  {Object.entries(selectedAttributes).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between text-sm py-1">
-                      <span className="font-medium">{key}:</span>
-                      <span>{value}</span>
-                    </div>
-                  ))}
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="editVariantPrice" className="required">Prix (€)</Label>
-                <div className="relative">
+                
+                <div className="space-y-2">
+                  <Label htmlFor="monthly-price">Mensualité (€/mois)</Label>
+                  <div className="relative">
+                    <Input
+                      id="monthly-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={monthlyPrice}
+                      onChange={(e) => setMonthlyPrice(e.target.value)}
+                      className="pl-8"
+                      placeholder="0.00"
+                    />
+                    <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="stock">Stock</Label>
                   <Input
-                    id="editVariantPrice"
+                    id="stock"
                     type="number"
-                    value={variantPrice}
-                    onChange={(e) => setVariantPrice(e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
                     min="0"
-                    required
-                    className="pl-8"
-                  />
-                  <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="editVariantMonthlyPrice">Mensualité (€/mois)</Label>
-                <div className="relative">
-                  <Input
-                    id="editVariantMonthlyPrice"
-                    type="number"
-                    value={variantMonthlyPrice}
-                    onChange={(e) => setVariantMonthlyPrice(e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="pl-8"
-                  />
-                  <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="editVariantStock">Stock</Label>
-                <div className="relative">
-                  <Input
-                    id="editVariantStock"
-                    type="number"
-                    value={variantStock}
-                    onChange={(e) => setVariantStock(e.target.value)}
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
                     placeholder="0"
-                    min="0"
-                    className="pl-8"
                   />
-                  <ShoppingCart className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
+              
+              <div className="flex justify-end">
+                <Button 
+                  type="submit" 
+                  disabled={!areAllAttributesSelected() || !price || addVariantPriceMutation.isPending}
+                >
+                  {addVariantPriceMutation.isPending ? (
+                    <span className="flex items-center">
+                      <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
+                      Ajout...
+                    </span>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" /> Ajouter ce prix
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditPriceOpen(false)}
-              >
-                Annuler
-              </Button>
-              <Button 
-                type="submit"
-                disabled={updatePriceMutation.isPending}
-              >
-                {updatePriceMutation.isPending ? (
-                  <span className="flex items-center">
-                    <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
-                    Mise à jour...
-                  </span>
-                ) : "Enregistrer les modifications"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      </form>
+      
+      <div>
+        <h3 className="text-lg font-medium mb-4">Prix des variantes</h3>
+        
+        {isLoading ? (
+          <div className="text-center py-4">
+            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-sm text-muted-foreground mt-2">Chargement des prix...</p>
+          </div>
+        ) : variantPrices && variantPrices.length > 0 ? (
+          <div className="border rounded-md overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Attributs</TableHead>
+                  <TableHead>Prix (€)</TableHead>
+                  <TableHead>Mensualité (€/mois)</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {variantPrices.map((variantPrice) => (
+                  <TableRow key={variantPrice.id}>
+                    <TableCell className="font-medium">
+                      {formatAttributes(variantPrice.attributes)}
+                    </TableCell>
+                    <TableCell>{variantPrice.price.toFixed(2)} €</TableCell>
+                    <TableCell>
+                      {variantPrice.monthly_price 
+                        ? `${variantPrice.monthly_price.toFixed(2)} €` 
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {variantPrice.stock !== undefined 
+                        ? variantPrice.stock 
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => confirmDelete(variantPrice.id, variantPrice.attributes)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="text-center py-8 border rounded-md">
+            <p className="text-muted-foreground">
+              Aucun prix de variante défini pour ce produit
+            </p>
+          </div>
+        )}
+      </div>
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce prix de variante</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce prix pour la combinaison
+              {attributesToDelete && (
+                <span className="font-medium block mt-2">
+                  {formatAttributes(attributesToDelete)}
+                </span>
+              )}
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

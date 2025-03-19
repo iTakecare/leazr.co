@@ -984,6 +984,47 @@ export type Database = {
         }
         Relationships: []
       }
+      product_variant_prices: {
+        Row: {
+          attributes: Json
+          created_at: string
+          id: string
+          monthly_price: number | null
+          price: number
+          product_id: string
+          stock: number | null
+          updated_at: string
+        }
+        Insert: {
+          attributes?: Json
+          created_at?: string
+          id?: string
+          monthly_price?: number | null
+          price?: number
+          product_id: string
+          stock?: number | null
+          updated_at?: string
+        }
+        Update: {
+          attributes?: Json
+          created_at?: string
+          id?: string
+          monthly_price?: number | null
+          price?: number
+          product_id?: string
+          stock?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variant_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           active: boolean | null
