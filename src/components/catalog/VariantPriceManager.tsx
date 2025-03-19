@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -140,6 +141,10 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       toast.error(`Erreur lors de la suppression du prix parent: ${error.message}`);
     }
   });
+  
+  const handleRemoveParentPrice = () => {
+    removeParentPriceMutation.mutate(product.id);
+  };
   
   const areAllAttributesSelected = (): boolean => {
     if (!product.variation_attributes) return false;
