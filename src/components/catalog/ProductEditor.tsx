@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, X, Plus, Image, Euro, Tag, Layers, BarChart3, ArrowRight } from "lucide-react";
+import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight } from "lucide-react";
 import { Product, ProductVariationAttributes } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -122,6 +123,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       }
     },
     onError: (error) => {
+      console.error("Erreur lors de l'ajout du produit:", error);
       toast.error("Erreur lors de l'ajout du produit");
       setIsSubmitting(false);
     }
@@ -129,33 +131,41 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 
   const uploadImages = async (productId: string) => {
     try {
+      // Téléchargement de l'image principale
       if (imageFiles.length > 0) {
         await uploadProductImage(imageFiles[0], productId, true);
       }
       
+      // Téléchargement des images supplémentaires
       for (let i = 1; i < imageFiles.length && i < 5; i++) {
         await uploadProductImage(imageFiles[i], productId, false);
       }
       
       finishProductCreation(productId);
     } catch (error) {
+      console.error("Erreur lors du téléchargement des images:", error);
       toast.error("Le produit a été ajouté mais certaines images n'ont pas pu être téléchargées");
       finishProductCreation(productId);
     }
   };
 
   const finishProductCreation = async (productId: string) => {
-    if (isParentProduct && Object.keys(variationAttributes).length > 0) {
-      try {
-        await updateProductVariationAttributes(productId, variationAttributes);
-        toast.success("Attributs de variante enregistrés avec succès");
-      } catch (error) {
-        toast.error("Erreur lors de l'enregistrement des attributs de variante");
+    try {
+      if (isParentProduct && Object.keys(variationAttributes).length > 0) {
+        try {
+          await updateProductVariationAttributes(productId, variationAttributes);
+          toast.success("Attributs de variante enregistrés avec succès");
+        } catch (error) {
+          console.error("Erreur lors de l'enregistrement des attributs de variante:", error);
+          toast.error("Erreur lors de l'enregistrement des attributs de variante");
+        }
       }
+    } catch (error) {
+      console.error("Erreur lors de la finalisation de la création du produit:", error);
+    } finally {
+      setIsSubmitting(false);
+      handleSuccess();
     }
-    
-    setIsSubmitting(false);
-    handleSuccess();
   };
 
   const handleSuccess = () => {
@@ -163,6 +173,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     if (onSuccess) {
       onSuccess();
     }
+    toast.success("Le produit a été ajouté avec succès");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -175,20 +186,29 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 
     setIsSubmitting(true);
 
-    addProductMutation.mutate({
-      name,
-      category,
-      price: isParentProduct ? 0 : parseFloat(price),
-      monthly_price: isParentProduct ? 0 : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
-      description,
-      brand: brand || "",
-      imageUrl: "",
-      specifications: {},
-      active: true,
-      is_parent: isParentProduct,
-      stock: isParentProduct ? 0 : undefined,
-      variation_attributes: isParentProduct ? variationAttributes : {}
-    });
+    // Création du produit et conversion des prix en nombre
+    try {
+      const productData = {
+        name,
+        category,
+        price: isParentProduct ? 0 : parseFloat(price) || 0,
+        monthly_price: isParentProduct ? 0 : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
+        description,
+        brand: brand || "",
+        imageUrl: "",
+        specifications: {},
+        active: true,
+        is_parent: isParentProduct,
+        stock: isParentProduct ? 0 : undefined,
+        variation_attributes: isParentProduct ? variationAttributes : {}
+      };
+
+      addProductMutation.mutate(productData);
+    } catch (error) {
+      console.error("Erreur lors de la préparation des données:", error);
+      toast.error("Erreur lors de la préparation des données du produit");
+      setIsSubmitting(false);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

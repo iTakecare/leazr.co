@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -113,6 +114,7 @@ const ProductCreationPage: React.FC = () => {
       }
     },
     onError: (error) => {
+      console.error("Erreur lors de l'ajout du produit:", error);
       toast.error("Erreur lors de l'ajout du produit");
       setIsSubmitting(false);
     }
@@ -120,33 +122,46 @@ const ProductCreationPage: React.FC = () => {
 
   const uploadImages = async (productId: string) => {
     try {
+      // Téléchargement de l'image principale
       if (imageFiles.length > 0) {
         await uploadProductImage(imageFiles[0], productId, true);
       }
       
+      // Téléchargement des images supplémentaires
+      const uploadPromises = [];
       for (let i = 1; i < imageFiles.length && i < 5; i++) {
-        await uploadProductImage(imageFiles[i], productId, false);
+        uploadPromises.push(uploadProductImage(imageFiles[i], productId, false));
+      }
+      
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises);
       }
       
       finishProductCreation(productId);
     } catch (error) {
+      console.error("Erreur lors du téléchargement des images:", error);
       toast.error("Le produit a été ajouté mais certaines images n'ont pas pu être téléchargées");
       finishProductCreation(productId);
     }
   };
 
   const finishProductCreation = async (productId: string) => {
-    if (isParentProduct && Object.keys(variationAttributes).length > 0) {
-      try {
-        await updateProductVariationAttributes(productId, variationAttributes);
-        toast.success("Attributs de variante enregistrés avec succès");
-      } catch (error) {
-        toast.error("Erreur lors de l'enregistrement des attributs de variante");
+    try {
+      if (isParentProduct && Object.keys(variationAttributes).length > 0) {
+        try {
+          await updateProductVariationAttributes(productId, variationAttributes);
+          toast.success("Attributs de variante enregistrés avec succès");
+        } catch (error) {
+          console.error("Erreur lors de l'enregistrement des attributs de variante:", error);
+          toast.error("Erreur lors de l'enregistrement des attributs de variante");
+        }
       }
+    } catch (error) {
+      console.error("Erreur lors de la finalisation de la création du produit:", error);
+    } finally {
+      setIsSubmitting(false);
+      handleSuccess();
     }
-    
-    setIsSubmitting(false);
-    handleSuccess();
   };
 
   const handleSuccess = () => {
@@ -173,20 +188,29 @@ const ProductCreationPage: React.FC = () => {
 
     setIsSubmitting(true);
 
-    addProductMutation.mutate({
-      name,
-      category,
-      price: isParentProduct ? 0 : parseFloat(price),
-      monthly_price: isParentProduct ? 0 : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
-      description,
-      brand: brand || "",
-      imageUrl: "",
-      specifications: {},
-      active: true,
-      is_parent: isParentProduct,
-      stock: isParentProduct ? 0 : undefined,
-      variation_attributes: isParentProduct ? variationAttributes : {}
-    });
+    // Création du produit
+    try {
+      const productData = {
+        name,
+        category,
+        price: isParentProduct ? 0 : parseFloat(price) || 0,
+        monthly_price: isParentProduct ? 0 : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
+        description,
+        brand: brand || "",
+        imageUrl: "",
+        specifications: {},
+        active: true,
+        is_parent: isParentProduct,
+        stock: isParentProduct ? 0 : undefined,
+        variation_attributes: isParentProduct ? variationAttributes : {}
+      };
+
+      addProductMutation.mutate(productData);
+    } catch (error) {
+      console.error("Erreur lors de la préparation des données du produit:", error);
+      toast.error("Erreur lors de la création du produit");
+      setIsSubmitting(false);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -293,7 +317,7 @@ const ProductCreationPage: React.FC = () => {
               </TabsTrigger>
             </TabsList>
 
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="space-y-6">
               <TabsContent value="informations" className="space-y-6 mt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -565,10 +589,10 @@ const ProductCreationPage: React.FC = () => {
 
               <div className="pt-6 border-t mt-6">
                 <div className="flex justify-between">
-                  <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>
+                  <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
                     Annuler
                   </Button>
-                  <Button onClick={handleSubmit} disabled={isSubmitting}>
+                  <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? (
                       <span className="flex items-center">
                         <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
