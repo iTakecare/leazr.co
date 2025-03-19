@@ -255,7 +255,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={handleClose} className="w-full">
+    <Sheet open={isOpen} onOpenChange={handleClose}>
       <SheetContent side="right" className="sm:max-w-2xl w-full p-0">
         <SheetHeader className="p-6 pb-2">
           <SheetTitle>Créer un nouveau produit</SheetTitle>
