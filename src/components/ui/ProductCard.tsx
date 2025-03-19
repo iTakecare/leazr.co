@@ -15,7 +15,7 @@ interface ProductCardProps {
     variants?: Array<{
       monthly_price?: number;
       price?: number;
-      attributes?: Record<string, string | number | boolean>;
+      attributes?: Record<string, string | number | boolean> | any[]; // Updated to accept both Record and array
     }>;
     is_parent?: boolean;
   };
