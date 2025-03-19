@@ -83,9 +83,10 @@ const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
 
 interface SidebarProps {
   className?: string;
+  onLinkClick?: () => void;
 }
 
-const ClientSidebar = ({ className }: SidebarProps) => {
+const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -136,6 +137,8 @@ const ClientSidebar = ({ className }: SidebarProps) => {
               icon={item.icon}
               label={item.label}
               active={isActive(item.path)}
+              // Pass the onLinkClick handler to close mobile menu if needed
+              {...(onLinkClick && { onClick: onLinkClick })}
             />
           ))}
         </div>

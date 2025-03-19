@@ -42,6 +42,7 @@ import Signup from "./pages/Signup";
 import ProductCreationPage from "@/components/catalog/ProductCreationPage";
 import ProductDetail from "./pages/ProductDetail";
 import Calculator from "./pages/Calculator";
+import Index from "./pages/Index";
 
 // Create a client
 const queryClient = new QueryClient({
