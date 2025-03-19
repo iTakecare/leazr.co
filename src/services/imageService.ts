@@ -1,3 +1,4 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { ensureStorageBucket, downloadAndUploadImage } from "./storageService";
 
@@ -100,8 +101,8 @@ export async function uploadImage(
     
     console.log(`Detected file extension: ${extension}, setting content type: ${contentType}`);
 
-    // If the file's type doesn't match the extension, create a new file with the correct type
-    if (file.type !== contentType) {
+    // If the file's type doesn't match the extension or is application/json, create a new file with the correct type
+    if (file.type !== contentType || file.type === 'application/json' || file.type === 'application/octet-stream') {
       console.log(`File type mismatch: ${file.type} vs ${contentType}, creating new file with correct type`);
       const fileArrayBuffer = await file.arrayBuffer();
       file = new File([fileArrayBuffer], file.name, { type: contentType });

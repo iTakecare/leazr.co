@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product, ProductAttributes, ProductVariationAttributes } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -427,7 +426,7 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
   try {
     console.log(`Uploading ${isMainImage ? 'main' : 'additional'} image for product ${productId}`);
     
-    // Vérifier si le produit existe
+    // Check if the product exists
     const product = await getProductById(productId);
     if (!product) {
       console.error(`Product ${productId} not found`);
@@ -465,10 +464,9 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
         console.log(`Updating main image for product ${productId}`);
         await updateProduct(productId, { 
           image_url: result.url,
-          imageUrl: result.url, // Pour compatibilité
           ...(result.altText ? { 
             image_alt: result.altText,
-            image_alts: [result.altText] // Utiliser image_alts au lieu de imageAlts
+            image_alts: [result.altText]
           } : {})
         });
       } else {
@@ -476,14 +474,13 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
         const imageUrls = product.image_urls || [];
         const imageAlts = product.image_alts || [];
         
-        // Ajouter la nouvelle URL d'image
+        // Add the new image URL
         const updatedImageUrls = [...imageUrls, result.url];
         const updatedImageAlts = [...imageAlts, result.altText];
         
         await updateProduct(productId, {
           image_urls: updatedImageUrls,
-          image_alts: updatedImageAlts,
-          imageUrls: updatedImageUrls // Correction: imageUrls avec U majuscule
+          image_alts: updatedImageAlts
         });
       }
     }
@@ -847,4 +844,3 @@ export async function convertProductToParent(
     throw error;
   }
 }
-
