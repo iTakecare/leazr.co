@@ -15,6 +15,7 @@ interface ProductCardProps {
     variants?: Array<{
       monthly_price?: number;
       price?: number;
+      attributes?: Record<string, string | number | boolean>;
     }>;
     is_parent?: boolean;
   };
@@ -26,32 +27,34 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   const productName = product?.name || "Produit sans nom";
   const productPrice = product?.price !== undefined ? formatCurrency(product.price) : "Non défini";
   
-  // Calculate minimum monthly price from variants if they exist
+  // Calculate minimum monthly price from variants if they exist and product is a parent
   let productMonthlyPrice = "Non définie";
   let hasVariants = false;
   
-  if (product?.monthly_price) {
-    productMonthlyPrice = formatCurrency(product.monthly_price);
-  } 
-  
+  // Check if product has variants and is a parent product
   if (product?.variants && product.variants.length > 0) {
     hasVariants = true;
+    console.log(`ProductCard ${product.id}: Found ${product.variants.length} variants`, product.variants);
+    
+    // Get all valid monthly prices from variants
     const variantPrices = product.variants
       .map(variant => variant.monthly_price || 0)
       .filter(price => price > 0);
       
     if (variantPrices.length > 0) {
       const minPrice = Math.min(...variantPrices);
-      if (!product.monthly_price || minPrice < product.monthly_price) {
-        productMonthlyPrice = formatCurrency(minPrice);
-      }
+      // Display the minimum price from variants
+      productMonthlyPrice = formatCurrency(minPrice);
     }
+  } else if (product?.monthly_price) {
+    // If no variants but product has monthly price
+    productMonthlyPrice = formatCurrency(product.monthly_price);
   }
   
   const productImage = product?.image_url || "/placeholder.svg";
   
   // Debug log for variant detection
-  console.log(`ProductCard ${product.id}: is_parent=${product.is_parent}, variants=${product?.variants?.length || 0}`);
+  console.log(`ProductCard ${product.id}: is_parent=${product.is_parent}, hasVariants=${hasVariants}, variants=${product?.variants?.length || 0}`);
 
   return (
     <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" onClick={onClick}>
