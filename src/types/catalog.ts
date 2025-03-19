@@ -1,3 +1,4 @@
+
 // Product type definition
 export interface Product {
   id: string;
@@ -146,7 +147,8 @@ export interface VariantCombinationPrice {
   id: string;
   product_id: string; // Parent product ID
   attributes: ProductAttributes; // Combination of attributes
-  price: number;
+  price: number; // Selling price
+  purchase_price?: number; // Purchase price (cost)
   monthly_price?: number;
   stock?: number;
   created_at?: Date | string;

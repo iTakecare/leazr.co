@@ -119,3 +119,24 @@ export const updateProductVariationAttributes = async (
     throw error;
   }
 };
+
+/**
+ * Met à jour un produit parent pour supprimer le prix d'achat fixe
+ */
+export const updateParentProductRemovePrice = async (
+  productId: string
+): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('products')
+      .update({
+        price: 0
+      })
+      .eq('id', productId);
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error updating parent product price:", error);
+    throw error;
+  }
+};

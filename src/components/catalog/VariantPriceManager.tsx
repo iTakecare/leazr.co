@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Euro, Trash2, Plus, Package2, Tag, Edit } from "lucide-react";
+import { Euro, Trash2, Plus, Package2, Tag, Edit, Grid } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -63,11 +63,19 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const queryClient = useQueryClient();
   const [selectedAttributes, setSelectedAttributes] = useState<ProductAttributes>({});
   const [price, setPrice] = useState<number | string>("");
+  const [purchasePrice, setPurchasePrice] = useState<number | string>("");
   const [monthlyPrice, setMonthlyPrice] = useState<number | string>("");
   const [stock, setStock] = useState<number | string>("");
   const [attributesToDelete, setAttributesToDelete] = useState<ProductAttributes | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
+  // Bulk generation dialog state
+  const [isBulkGenerationDialogOpen, setIsBulkGenerationDialogOpen] = useState(false);
+  const [basePrice, setBasePrice] = useState<number | string>("");
+  const [basePurchasePrice, setBasePurchasePrice] = useState<number | string>("");
+  const [baseMonthlyPrice, setBaseMonthlyPrice] = useState<number | string>("");
+  const [baseStock, setBaseStock] = useState<number | string>("10");
   
   // Attributes editor state
   const [isAttributeDialogOpen, setIsAttributeDialogOpen] = useState(false);
@@ -149,6 +157,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const resetForm = () => {
     setSelectedAttributes({});
     setPrice("");
+    setPurchasePrice("");
     setMonthlyPrice("");
     setStock("");
   };
@@ -172,6 +181,11 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
+    if (!purchasePrice) {
+      toast.error("Veuillez saisir un prix d'achat");
+      return;
+    }
+    
     // Check if this combination already exists
     const combinationExists = variantPrices?.some(variantPrice => {
       const priceAttrs = variantPrice.attributes;
@@ -189,6 +203,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       product_id: product.id,
       attributes: selectedAttributes,
       price: Number(price),
+      purchase_price: Number(purchasePrice),
       monthly_price: monthlyPrice ? Number(monthlyPrice) : undefined,
       stock: stock ? Number(stock) : undefined
     };
@@ -211,6 +226,128 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       setDeleteId(null);
       setAttributesToDelete(null);
     }
+  };
+  
+  // Generate all possible combinations of attributes
+  const generateAttributeCombinations = (): ProductAttributes[] => {
+    if (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
+      return [];
+    }
+    
+    // Start with an array containing one empty object
+    let result: ProductAttributes[] = [{}];
+    
+    // For each attribute (e.g., color, size)
+    Object.entries(product.variation_attributes).forEach(([attrName, values]) => {
+      // Create a new accumulator array
+      const newResult: ProductAttributes[] = [];
+      
+      // For each existing result so far
+      result.forEach(combinationSoFar => {
+        // For each value of the current attribute
+        values.forEach(value => {
+          // Create a new combination by adding the current attribute value
+          newResult.push({
+            ...combinationSoFar,
+            [attrName]: value
+          });
+        });
+      });
+      
+      // Replace result with the new combinations
+      result = newResult;
+    });
+    
+    return result;
+  };
+  
+  // Generate prices for all possible combinations
+  const generateAllVariantPrices = () => {
+    if (!basePrice || !basePurchasePrice) {
+      toast.error("Veuillez saisir un prix de base et un prix d'achat de base");
+      return;
+    }
+    
+    const combinations = generateAttributeCombinations();
+    
+    if (combinations.length === 0) {
+      toast.error("Aucune combinaison d'attributs possible");
+      return;
+    }
+    
+    // Check which combinations already exist
+    const existingCombinations = variantPrices || [];
+    
+    // Filter out combinations that already exist
+    const newCombinations = combinations.filter(combo => {
+      return !existingCombinations.some(existing => {
+        return Object.keys(combo).every(
+          key => String(existing.attributes[key]).toLowerCase() === String(combo[key]).toLowerCase()
+        );
+      });
+    });
+    
+    if (newCombinations.length === 0) {
+      toast.error("Toutes les combinaisons d'attributs existent déjà");
+      return;
+    }
+    
+    // Create a price for each combination
+    let successCount = 0;
+    let errorCount = 0;
+    
+    // Show a loading toast
+    const loadingToast = toast.loading(`Génération de ${newCombinations.length} prix de variantes...`);
+    
+    // Process each combination sequentially with Promise chaining
+    newCombinations.reduce((promise, combination, index) => {
+      return promise.then(() => {
+        // Add some randomness to prices to simulate realistic differences between variants
+        const priceVariation = Math.random() * 50 - 25; // +/- 25
+        const purchasePriceVariation = Math.random() * 20 - 10; // +/- 10
+        
+        const newVariantPrice = {
+          product_id: product.id,
+          attributes: combination,
+          price: Math.max(10, Number(basePrice) + priceVariation),
+          purchase_price: Math.max(5, Number(basePurchasePrice) + purchasePriceVariation),
+          monthly_price: baseMonthlyPrice ? Math.max(1, Number(baseMonthlyPrice) + priceVariation/10) : undefined,
+          stock: baseStock ? Number(baseStock) : undefined
+        };
+        
+        return createVariantCombinationPrice(newVariantPrice)
+          .then(() => {
+            successCount++;
+            // Update loading toast periodically
+            if (index % 5 === 0 || index === newCombinations.length - 1) {
+              toast.loading(`Génération en cours: ${index + 1}/${newCombinations.length}`, {
+                id: loadingToast
+              });
+            }
+          })
+          .catch(() => {
+            errorCount++;
+          });
+      });
+    }, Promise.resolve())
+      .then(() => {
+        // Dismiss the loading toast
+        toast.dismiss(loadingToast);
+        
+        // Show the final result
+        if (successCount > 0) {
+          toast.success(`${successCount} prix de variantes générés avec succès`);
+          queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
+          if (onPriceAdded) onPriceAdded();
+        }
+        
+        if (errorCount > 0) {
+          toast.error(`Échec de la génération de ${errorCount} prix de variantes`);
+        }
+        
+        // Close the dialog
+        setIsBulkGenerationDialogOpen(false);
+      });
   };
   
   // Add a new attribute
@@ -326,6 +463,16 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   </div>
                 ))}
               </div>
+              
+              <div className="flex justify-end">
+                <Button 
+                  onClick={() => setIsBulkGenerationDialogOpen(true)}
+                  variant="outline"
+                >
+                  <Grid className="h-4 w-4 mr-2" />
+                  Générer toutes les variantes
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="text-center py-6">
@@ -366,9 +513,9 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   
                   <Separator />
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="price">Prix (€)</Label>
+                      <Label htmlFor="price">Prix de vente (€)</Label>
                       <div className="relative">
                         <Input
                           id="price"
@@ -377,6 +524,23 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                           min="0"
                           value={price}
                           onChange={(e) => setPrice(e.target.value)}
+                          className="pl-8"
+                          placeholder="0.00"
+                        />
+                        <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="purchase-price">Prix d'achat (€)</Label>
+                      <div className="relative">
+                        <Input
+                          id="purchase-price"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={purchasePrice}
+                          onChange={(e) => setPurchasePrice(e.target.value)}
                           className="pl-8"
                           placeholder="0.00"
                         />
@@ -417,7 +581,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   <div className="flex justify-end">
                     <Button 
                       onClick={handleSubmit}
-                      disabled={!areAllAttributesSelected() || !price || addVariantPriceMutation.isPending}
+                      disabled={!areAllAttributesSelected() || !price || !purchasePrice || addVariantPriceMutation.isPending}
                     >
                       {addVariantPriceMutation.isPending ? (
                         <span className="flex items-center">
@@ -450,7 +614,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Attributs</TableHead>
-                      <TableHead>Prix (€)</TableHead>
+                      <TableHead>Prix de vente (€)</TableHead>
+                      <TableHead>Prix d'achat (€)</TableHead>
                       <TableHead>Mensualité (€/mois)</TableHead>
                       <TableHead>Stock</TableHead>
                       <TableHead className="w-[100px]">Actions</TableHead>
@@ -463,6 +628,11 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                           {formatAttributes(variantPrice.attributes)}
                         </TableCell>
                         <TableCell>{variantPrice.price.toFixed(2)} €</TableCell>
+                        <TableCell>
+                          {variantPrice.purchase_price 
+                            ? `${variantPrice.purchase_price.toFixed(2)} €` 
+                            : "-"}
+                        </TableCell>
                         <TableCell>
                           {variantPrice.monthly_price 
                             ? `${variantPrice.monthly_price.toFixed(2)} €` 
@@ -595,6 +765,112 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
               ) : (
                 "Enregistrer les attributs"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Bulk Generation Dialog */}
+      <Dialog open={isBulkGenerationDialogOpen} onOpenChange={setIsBulkGenerationDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Générer toutes les variantes</DialogTitle>
+            <DialogDescription>
+              Cette action va créer automatiquement toutes les combinaisons d'attributs possibles
+              avec les prix spécifiés ci-dessous.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="base-price">Prix de vente de base (€)</Label>
+              <div className="relative">
+                <Input
+                  id="base-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={basePrice}
+                  onChange={(e) => setBasePrice(e.target.value)}
+                  className="pl-8"
+                  placeholder="0.00"
+                />
+                <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Les prix varieront légèrement autour de cette valeur pour chaque variante.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="base-purchase-price">Prix d'achat de base (€)</Label>
+              <div className="relative">
+                <Input
+                  id="base-purchase-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={basePurchasePrice}
+                  onChange={(e) => setBasePurchasePrice(e.target.value)}
+                  className="pl-8"
+                  placeholder="0.00"
+                />
+                <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="base-monthly-price">Mensualité de base (€/mois - optionnel)</Label>
+              <div className="relative">
+                <Input
+                  id="base-monthly-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={baseMonthlyPrice}
+                  onChange={(e) => setBaseMonthlyPrice(e.target.value)}
+                  className="pl-8"
+                  placeholder="0.00"
+                />
+                <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="base-stock">Stock initial (optionnel)</Label>
+              <Input
+                id="base-stock"
+                type="number"
+                min="0"
+                value={baseStock}
+                onChange={(e) => setBaseStock(e.target.value)}
+                placeholder="10"
+              />
+            </div>
+            
+            <div className="mt-2 p-3 bg-muted rounded-md">
+              <p className="text-sm font-medium mb-1">Nombre de combinaisons à générer: </p>
+              <p className="text-2xl font-bold">
+                {generateAttributeCombinations().length}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Les combinaisons déjà existantes seront ignorées.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsBulkGenerationDialogOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={generateAllVariantPrices}
+              disabled={!basePrice || !basePurchasePrice}
+            >
+              Générer toutes les variantes
             </Button>
           </DialogFooter>
         </DialogContent>
