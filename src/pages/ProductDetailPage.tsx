@@ -5,13 +5,13 @@ import { useQuery } from "@tanstack/react-query";
 import { getProductById } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
-import { ShoppingCart, ArrowLeft, Check, ChevronDown, ChevronUp, Minus, Plus } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Check, ChevronDown, ChevronUp, Minus, Plus, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import PublicHeader from "@/components/catalog/public/PublicHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { toast } from "sonner";
-import { Product, ProductVariant } from "@/types/catalog";
+import { Product } from "@/types/catalog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -32,6 +32,7 @@ const ProductDetailPage = () => {
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
   const [currentImage, setCurrentImage] = useState<string>("");
   const [validCombinations, setValidCombinations] = useState<Array<Record<string, string>>>([]);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
 
   // Process product data when it's loaded
   useEffect(() => {
@@ -50,16 +51,11 @@ const ProductDetailPage = () => {
         
         // For each variant, extract attributes and add them as options
         product.variants.forEach(variant => {
-          if (variant.attributes) {
-            // Convert attributes to a standard format for processing
-            const variantAttributes = Array.isArray(variant.attributes) 
-              ? {} 
-              : variant.attributes as Record<string, string | number | boolean>;
-            
+          if (variant.attributes && typeof variant.attributes === 'object' && !Array.isArray(variant.attributes)) {
             // Create a combination object representing this variant's attributes
             const combination: Record<string, string> = {};
             
-            Object.entries(variantAttributes).forEach(([key, value]) => {
+            Object.entries(variant.attributes).forEach(([key, value]) => {
               if (!options[key]) {
                 options[key] = [];
               }
@@ -72,49 +68,19 @@ const ProductDetailPage = () => {
             
             // Add this combination to our list of valid combinations
             if (Object.keys(combination).length > 0) {
-              allCombinations.push(combination);
+              allCombinations.push({
+                ...combination,
+                __variant_id: variant.id, // Store variant ID for price lookup
+                __variant_price: String(variant.monthly_price || 0),
+              });
             }
           }
         });
-      } 
-      // If the product has variation attributes but no variants
-      else if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
-        const combination: Record<string, string> = {};
         
-        Object.entries(product.variation_attributes).forEach(([key, value]) => {
-          options[key] = [String(value)];
-          combination[key] = String(value);
+        // Sort the options by value
+        Object.keys(options).forEach(key => {
+          options[key].sort();
         });
-        
-        if (Object.keys(combination).length > 0) {
-          allCombinations.push(combination);
-        }
-      }
-      // If the product has attributes but no variants
-      else if (product.attributes && typeof product.attributes === 'object' && !Array.isArray(product.attributes)) {
-        const combination: Record<string, string> = {};
-        
-        Object.entries(product.attributes).forEach(([key, value]) => {
-          options[key] = [String(value)];
-          combination[key] = String(value);
-        });
-        
-        if (Object.keys(combination).length > 0) {
-          allCombinations.push(combination);
-        }
-      }
-      // Extract from specifications as a fallback
-      else if (product.specifications && Object.keys(product.specifications).length > 0) {
-        const combination: Record<string, string> = {};
-        
-        Object.entries(product.specifications).forEach(([key, value]) => {
-          options[key] = [String(value)];
-          combination[key] = String(value);
-        });
-        
-        if (Object.keys(combination).length > 0) {
-          allCombinations.push(combination);
-        }
       }
       
       console.log("Extracted options:", options);
@@ -130,20 +96,49 @@ const ProductDetailPage = () => {
           defaultOptions[key] = values[0];
         }
       });
-      console.log("Setting default options:", defaultOptions);
-      setSelectedOptions(defaultOptions);
+      
+      if (Object.keys(defaultOptions).length > 0) {
+        console.log("Setting default options:", defaultOptions);
+        // Apply these options and validate them to ensure a valid combination
+        const validatedOptions = validateOptions(defaultOptions, Object.keys(defaultOptions)[0]);
+        setSelectedOptions(validatedOptions);
+        
+        // Update the current price based on the selected variant
+        const selectedVariant = findVariantByOptions(product.variants || [], validatedOptions);
+        if (selectedVariant && selectedVariant.monthly_price) {
+          setCurrentPrice(selectedVariant.monthly_price);
+        } else {
+          setCurrentPrice(product.monthly_price || null);
+        }
+      } else {
+        // If no variants with attributes, use the product's price
+        setCurrentPrice(product.monthly_price || null);
+      }
     }
   }, [product]);
 
-  // Update image when options change
+  // Update image and price when options change
   useEffect(() => {
     if (product && Object.keys(selectedOptions).length > 0) {
-      const selectedVariant = findSelectedVariant();
+      const selectedVariant = findVariantByOptions(product.variants || [], selectedOptions);
+      
       if (selectedVariant) {
-        setCurrentImage(selectedVariant.image_url || selectedVariant.imageUrl || product.image_url || product.imageUrl || "/placeholder.svg");
+        // Update image if variant has one
+        if (selectedVariant.image_url || selectedVariant.imageUrl) {
+          setCurrentImage(selectedVariant.image_url || selectedVariant.imageUrl || product.image_url || product.imageUrl || "/placeholder.svg");
+        }
+        
+        // Update price
+        if (selectedVariant.monthly_price) {
+          setCurrentPrice(selectedVariant.monthly_price);
+        }
+      } else {
+        // If no matching variant, revert to product defaults
+        setCurrentImage(product.image_url || product.imageUrl || "/placeholder.svg");
+        setCurrentPrice(product.monthly_price || null);
       }
     }
-  }, [selectedOptions]);
+  }, [selectedOptions, product]);
 
   const handleBackToCatalog = () => {
     navigate("/catalogue");
@@ -174,27 +169,49 @@ const ProductDetailPage = () => {
     setSelectedOptions(validatedOptions);
   };
 
+  // Find a variant that matches the selected options
+  const findVariantByOptions = (variants: Product[], options: Record<string, string>): Product | null => {
+    if (!variants || variants.length === 0) return null;
+    
+    return variants.find(variant => {
+      if (!variant.attributes || typeof variant.attributes !== 'object' || Array.isArray(variant.attributes)) {
+        return false;
+      }
+      
+      // Check if all selected options match this variant's attributes
+      return Object.entries(options).every(([key, value]) => {
+        return String(variant.attributes[key]) === value;
+      });
+    }) || null;
+  };
+
   // Helper function to check if an option value is available based on current selections
   const isOptionAvailable = (optionName: string, optionValue: string): boolean => {
-    // If no selection has been made yet, all options are available
-    if (Object.keys(selectedOptions).length === 0) {
-      return true;
-    }
-    
     // Create a test selection with current selections plus the option we're checking
-    const testSelection = { ...selectedOptions, [optionName]: optionValue };
+    const testSelection = { 
+      ...selectedOptions, 
+      [optionName]: optionValue 
+    };
     
     // Check if any valid combination matches our test selection
-    // A match means all selected keys in testSelection exist in the combination with the same values
     return validCombinations.some(combination => {
-      return Object.entries(testSelection).every(([key, value]) => {
-        // If this key isn't in our current test selection, it's not relevant for this check
-        if (key === optionName || selectedOptions[key] === undefined) {
-          return true;
+      // For each attribute in our test selection, verify if it matches the combination
+      for (const [key, value] of Object.entries(testSelection)) {
+        // Skip the variant ID and price internal fields
+        if (key === '__variant_id' || key === '__variant_price') continue;
+        
+        // Skip the key we're currently testing - only check other selections
+        if (key === optionName) continue;
+        
+        // If this key is in our current selection (not the one we're testing)
+        // and the values don't match, this combination doesn't work
+        if (selectedOptions[key] !== undefined && combination[key] !== value) {
+          return false;
         }
-        // The combination must have this key and the same value
-        return combination[key] === value;
-      });
+      }
+      
+      // Finally check that the option we're testing is valid in this combination
+      return combination[optionName] === optionValue;
     });
   };
 
@@ -244,34 +261,36 @@ const ProductDetailPage = () => {
     return validatedOptions;
   };
 
-  const findSelectedVariant = () => {
-    if (!product || !product.variants || product.variants.length === 0) {
-      return null;
-    }
-    
-    return product.variants.find(variant => {
-      if (!variant.attributes) return false;
-      
-      // Convert attributes to a standard format for comparison
-      const variantAttributes = Array.isArray(variant.attributes) 
-        ? {} 
-        : variant.attributes as Record<string, string | number | boolean>;
-      
-      return Object.entries(selectedOptions).every(([key, value]) => 
-        String(variantAttributes[key]) === value
-      );
-    });
+  // Calculate total price based on selected variant and quantity
+  const calculateTotalPrice = (): number => {
+    const basePrice = currentPrice || product?.monthly_price || 0;
+    return basePrice * quantity;
   };
 
-  const calculatePrice = () => {
-    let basePrice = product?.monthly_price || 0;
+  // Get minimum monthly price from all variants
+  const getMinimumMonthlyPrice = (): number => {
+    if (!product) return 0;
     
-    const selectedVariant = findSelectedVariant();
-    if (selectedVariant && selectedVariant.monthly_price !== undefined) {
-      basePrice = selectedVariant.monthly_price;
+    // Prix du produit principal
+    let minPrice = product.monthly_price || 0;
+    
+    // Vérifier si le produit a des variantes
+    if (product.variants && product.variants.length > 0) {
+      // Trouver le prix minimum parmi toutes les variantes
+      const variantPrices = product.variants
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (variantPrices.length > 0) {
+        const minVariantPrice = Math.min(...variantPrices);
+        // Utiliser le prix de la variante si inférieur au prix du produit principal ou si le produit principal n'a pas de prix
+        if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
+          minPrice = minVariantPrice;
+        }
+      }
     }
     
-    return basePrice * quantity;
+    return minPrice;
   };
 
   const renderOptions = () => {
@@ -316,34 +335,10 @@ const ProductDetailPage = () => {
   };
 
   const getSelectedVariantSpecifications = () => {
-    const selectedVariant = findSelectedVariant();
+    if (!product || !product.variants) return {};
+    
+    const selectedVariant = findVariantByOptions(product.variants, selectedOptions);
     return selectedVariant?.specifications || product?.specifications || {};
-  };
-
-  // Calculate the minimum monthly price from all variants
-  const getMinimumMonthlyPrice = (): number => {
-    if (!product) return 0;
-    
-    // Prix du produit principal
-    let minPrice = product.monthly_price || 0;
-    
-    // Vérifier si le produit a des variantes
-    if (product.variants && product.variants.length > 0) {
-      // Trouver le prix minimum parmi toutes les variantes
-      const variantPrices = product.variants
-        .map(variant => variant.monthly_price || 0)
-        .filter(price => price > 0);
-      
-      if (variantPrices.length > 0) {
-        const minVariantPrice = Math.min(...variantPrices);
-        // Utiliser le prix de la variante si inférieur au prix du produit principal
-        if (minVariantPrice > 0 && (minVariantPrice < minPrice || minPrice === 0)) {
-          minPrice = minVariantPrice;
-        }
-      }
-    }
-    
-    return minPrice;
   };
 
   if (isLoading) {
@@ -385,6 +380,8 @@ const ProductDetailPage = () => {
   }
 
   const minMonthlyPrice = getMinimumMonthlyPrice();
+  const hasVariants = product.variants && product.variants.length > 0;
+  const totalPrice = calculateTotalPrice();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -429,7 +426,13 @@ const ProductDetailPage = () => {
             </h1>
             
             <div className="text-lg text-gray-700 mb-4">
-              à partir de <span className="font-bold text-indigo-700">{formatCurrency(minMonthlyPrice)}/mois</span>
+              {currentPrice ? (
+                <span className="font-bold text-indigo-700">{formatCurrency(currentPrice)}/mois</span>
+              ) : (
+                <>
+                  à partir de <span className="font-bold text-indigo-700">{formatCurrency(minMonthlyPrice)}/mois</span>
+                </>
+              )}
             </div>
             
             <div className="mb-4">
@@ -444,7 +447,14 @@ const ProductDetailPage = () => {
               <h3 className="text-xl font-medium mb-4">Configuration</h3>
               
               <div className="bg-gray-50 p-6 rounded-lg border space-y-6">
-                {renderOptions()}
+                {Object.keys(availableOptions).length > 0 ? (
+                  renderOptions()
+                ) : (
+                  <div className="flex items-center space-x-2 text-amber-600">
+                    <AlertCircle className="h-5 w-5" />
+                    <span>Aucune option de configuration disponible pour ce produit.</span>
+                  </div>
+                )}
                 
                 <div className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
                   <h4 className="block text-sm font-medium text-gray-700 capitalize mb-3">Quantité</h4>
@@ -475,7 +485,7 @@ const ProductDetailPage = () => {
             <div className="bg-indigo-50 p-6 rounded-lg border border-indigo-100 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-gray-700 font-medium">Total mensuel (HT)</span>
-                <span className="text-2xl font-bold text-indigo-700">{formatCurrency(calculatePrice())} / mois</span>
+                <span className="text-2xl font-bold text-indigo-700">{formatCurrency(totalPrice)} / mois</span>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3">
@@ -561,7 +571,7 @@ const ProductDetailPage = () => {
         quantity={quantity}
         selectedOptions={selectedOptions}
         duration={duration}
-        monthlyPrice={calculatePrice()}
+        monthlyPrice={totalPrice}
       />
     </div>
   );

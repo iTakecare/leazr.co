@@ -46,6 +46,23 @@ export async function getProductById(id: string): Promise<Product | null> {
       return null;
     }
     
+    // Normaliser les attributs du produit principal pour garantir qu'ils sont au format Record
+    if (mainProduct.attributes) {
+      if (Array.isArray(mainProduct.attributes)) {
+        const attributesObj: Record<string, string | number | boolean> = {};
+        mainProduct.attributes.forEach((attr: any) => {
+          if (attr.name && attr.value !== undefined) {
+            attributesObj[attr.name] = attr.value;
+          }
+        });
+        mainProduct.attributes = attributesObj;
+      } else if (typeof mainProduct.attributes !== 'object') {
+        mainProduct.attributes = {};
+      }
+    } else {
+      mainProduct.attributes = {};
+    }
+    
     if (mainProduct.is_parent) {
       console.log(`Product ${id} is a parent, fetching variants...`);
       
@@ -58,21 +75,25 @@ export async function getProductById(id: string): Promise<Product | null> {
         console.error(`Error fetching variants for product ${id}:`, variantError);
       } else if (variants && variants.length > 0) {
         console.log(`Found ${variants.length} variants for product ${id}`);
-        // Assurez-vous que chaque variante a des attributs au format attendu
+        
+        // Normaliser les attributs pour chaque variante
         mainProduct.variants = variants.map(variant => {
-          // Convertir les attributs au format Record si nécessaire
+          // Convertir les attributs au format Record
           if (variant.attributes) {
-            if (Array.isArray(variant.attributes) && variant.attributes.length === 0) {
+            if (Array.isArray(variant.attributes)) {
+              if (variant.attributes.length === 0) {
+                variant.attributes = {};
+              } else {
+                const attributesObj: Record<string, string | number | boolean> = {};
+                variant.attributes.forEach((attr: any) => {
+                  if (attr.name && attr.value !== undefined) {
+                    attributesObj[attr.name] = attr.value;
+                  }
+                });
+                variant.attributes = attributesObj;
+              }
+            } else if (typeof variant.attributes !== 'object') {
               variant.attributes = {};
-            } else if (Array.isArray(variant.attributes)) {
-              // Si c'est un tableau, le convertir en objet
-              const attributesObj: Record<string, string | number | boolean> = {};
-              variant.attributes.forEach((attr: any) => {
-                if (attr.name && attr.value !== undefined) {
-                  attributesObj[attr.name] = attr.value;
-                }
-              });
-              variant.attributes = attributesObj;
             }
           } else {
             variant.attributes = {};
@@ -105,19 +126,23 @@ export async function getProductById(id: string): Promise<Product | null> {
         } else if (siblings && siblings.length > 0) {
           console.log(`Found ${siblings.length} siblings for product ${id}`);
           
-          // Assurez-vous que chaque variante a des attributs au format attendu
+          // Normaliser les attributs pour chaque frère/sœur (variant)
           const processedSiblings = siblings.map(variant => {
             if (variant.attributes) {
-              if (Array.isArray(variant.attributes) && variant.attributes.length === 0) {
+              if (Array.isArray(variant.attributes)) {
+                if (variant.attributes.length === 0) {
+                  variant.attributes = {};
+                } else {
+                  const attributesObj: Record<string, string | number | boolean> = {};
+                  variant.attributes.forEach((attr: any) => {
+                    if (attr.name && attr.value !== undefined) {
+                      attributesObj[attr.name] = attr.value;
+                    }
+                  });
+                  variant.attributes = attributesObj;
+                }
+              } else if (typeof variant.attributes !== 'object') {
                 variant.attributes = {};
-              } else if (Array.isArray(variant.attributes)) {
-                const attributesObj: Record<string, string | number | boolean> = {};
-                variant.attributes.forEach((attr: any) => {
-                  if (attr.name && attr.value !== undefined) {
-                    attributesObj[attr.name] = attr.value;
-                  }
-                });
-                variant.attributes = attributesObj;
               }
             } else {
               variant.attributes = {};
