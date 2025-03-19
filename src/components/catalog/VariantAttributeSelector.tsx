@@ -53,7 +53,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
         <div key={attributeName} className="space-y-2">
           <Label htmlFor={`attribute-${attributeName}`}>{attributeName}</Label>
           <Select
-            value={String(selectedAttributes[attributeName] || "")}
+            value={selectedAttributes[attributeName] ? String(selectedAttributes[attributeName]) : ""}
             onValueChange={(value) => handleAttributeChange(attributeName, value)}
           >
             <SelectTrigger id={`attribute-${attributeName}`}>

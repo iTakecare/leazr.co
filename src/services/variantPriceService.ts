@@ -99,9 +99,14 @@ export const findVariantCombinationPrice = async (
     
     // Trouver la combinaison qui correspond exactement aux attributs
     const foundPrice = data.find(price => {
+      if (!price.attributes) return false;
+      
       const priceAttrs = price.attributes;
       return Object.keys(attributes).every(
-        key => String(priceAttrs[key]).toLowerCase() === String(attributes[key]).toLowerCase()
+        key => 
+          priceAttrs[key] !== undefined && 
+          attributes[key] !== undefined &&
+          String(priceAttrs[key]).toLowerCase() === String(attributes[key]).toLowerCase()
       );
     });
     

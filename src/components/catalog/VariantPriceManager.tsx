@@ -247,7 +247,13 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     setIsEditing(true);
     setEditingVariantId(variantPrice.id);
     setSelectedAttributes({...variantPrice.attributes});
-    setPurchasePrice(variantPrice.price);
+    
+    if (variantPrice.price && !isNaN(Number(variantPrice.price))) {
+      setPurchasePrice(variantPrice.price);
+    } else {
+      setPurchasePrice("");
+    }
+    
     setMonthlyPrice(variantPrice.monthly_price || "");
     setStock(variantPrice.stock !== undefined ? variantPrice.stock : "");
     
@@ -865,3 +871,4 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
 };
 
 export default VariantPriceManager;
+
