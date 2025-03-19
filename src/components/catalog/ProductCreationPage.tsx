@@ -1,10 +1,8 @@
-
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -16,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { updateProductVariationAttributes } from "@/services/variantPriceService";
 import Container from "@/components/layout/Container";
 import { useNavigate } from "react-router-dom";
+import RichTextEditor from "@/components/ui/rich-text-editor";
 
 const productCategories = [
   "laptop",
@@ -401,12 +400,11 @@ const ProductCreationPage: React.FC = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
+                  <RichTextEditor
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={setDescription}
                     placeholder="Description du produit"
-                    rows={5}
+                    height={250}
                   />
                 </div>
               </TabsContent>

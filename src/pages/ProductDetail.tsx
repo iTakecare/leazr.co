@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,9 +11,9 @@ import {
 import Container from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import RichTextEditor from "@/components/ui/rich-text-editor";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -108,7 +107,6 @@ const ProductDetail: React.FC = () => {
   const [modelName, setModelName] = useState("");
   const [selectedVariantPrice, setSelectedVariantPrice] = useState<VariantCombinationPrice | null>(null);
   
-  // Product data query
   const productQuery = useQuery({
     queryKey: ["product", id],
     queryFn: () => {
@@ -127,13 +125,10 @@ const ProductDetail: React.FC = () => {
     }
   });
 
-  // Update product mutation
   const updateProductMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) => {
-      // Vérifiez et supprimez les champs qui ne sont pas des colonnes dans la table products
       const productData = { ...data };
       
-      // Remove fields that aren't actual database columns 
       if ('variants' in productData) delete productData.variants;
       if ('variant_combination_prices' in productData) delete productData.variant_combination_prices;
       
@@ -149,7 +144,6 @@ const ProductDetail: React.FC = () => {
     }
   });
   
-  // Delete product mutation
   const deleteProductMutation = useMutation({
     mutationFn: (id: string) => deleteProduct(id),
     onSuccess: () => {
@@ -162,7 +156,6 @@ const ProductDetail: React.FC = () => {
     }
   });
   
-  // Image upload mutation
   const imageUploadMutation = useMutation({
     mutationFn: ({ file, id }: { file: File; id: string }) => 
       uploadProductImage(file, id, true),
@@ -177,7 +170,6 @@ const ProductDetail: React.FC = () => {
     }
   });
   
-  // Convert to parent product mutation
   const convertToParentMutation = useMutation({
     mutationFn: ({ productId, modelName }: { productId: string, modelName: string }) => 
       convertProductToParent(productId, modelName),
@@ -192,7 +184,6 @@ const ProductDetail: React.FC = () => {
     }
   });
 
-  // Detach from parent mutation
   const detachFromParentMutation = useMutation({
     mutationFn: (productId: string) => 
       updateProduct(productId, { 
@@ -210,7 +201,6 @@ const ProductDetail: React.FC = () => {
     }
   });
   
-  // Initialize data when product is loaded
   useEffect(() => {
     if (productQuery.data) {
       console.log("Product data loaded:", productQuery.data);
@@ -226,18 +216,15 @@ const ProductDetail: React.FC = () => {
     }
   }, [productQuery.data, productQuery.isError]);
   
-  // Handle input change for form fields
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
   
-  // Handle select change for dropdown fields
   const handleSelectChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
   };
   
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -249,7 +236,6 @@ const ProductDetail: React.FC = () => {
     }
   };
   
-  // Handle image change
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || !id) return;
@@ -264,7 +250,6 @@ const ProductDetail: React.FC = () => {
     reader.readAsDataURL(file);
   };
   
-  // Upload selected image
   const uploadImage = () => {
     if (imageFiles.length > 0 && id) {
       imageUploadMutation.mutate({ file: imageFiles[0], id });
@@ -273,13 +258,11 @@ const ProductDetail: React.FC = () => {
     }
   };
   
-  // Remove preview image
   const removeImagePreview = () => {
     setImageFiles([]);
     setImagePreviews([]);
   };
   
-  // Remove additional image
   const removeAdditionalImage = async (imageUrl: string, index: number) => {
     try {
       const newAdditionalImages = [...additionalImages];
@@ -297,21 +280,18 @@ const ProductDetail: React.FC = () => {
     }
   };
   
-  // Navigate to parent product
   const navigateToParent = () => {
     if (formData.parent_id) {
       navigate(`/products/${formData.parent_id}`);
     }
   };
   
-  // Handle detach from parent
   const handleDetachFromParent = () => {
     if (id) {
       detachFromParentMutation.mutate(id);
     }
   };
   
-  // Convert product to parent
   const handleConvertToParent = () => {
     if (id && modelName) {
       convertToParentMutation.mutate({ productId: id, modelName });
@@ -320,12 +300,10 @@ const ProductDetail: React.FC = () => {
     }
   };
   
-  // Handle variant price selection
   const handleVariantPriceSelect = (price: VariantCombinationPrice | null) => {
     setSelectedVariantPrice(price);
   };
   
-  // View parent products
   const viewParentProducts = () => {
     navigate("/catalog");
   };
@@ -380,7 +358,6 @@ const ProductDetail: React.FC = () => {
           )}
         </div>
         
-        {/* Product type indicators */}
         <div className="flex flex-wrap gap-2 mb-6">
           {isParentProduct && (
             <Badge variant="secondary" className="text-sm py-1 px-3">
@@ -404,7 +381,6 @@ const ProductDetail: React.FC = () => {
           )}
         </div>
         
-        {/* Parent product info */}
         {isVariant && formData.parent_id && (
           <div className="mb-6 p-4 bg-muted rounded-lg">
             <div className="flex items-center justify-between">
@@ -432,7 +408,6 @@ const ProductDetail: React.FC = () => {
           </div>
         )}
         
-        {/* Variant price viewer for parent products */}
         {isParentProduct && hasVariationAttributes && (
           <div className="mb-6">
             <ProductVariantViewer 
@@ -442,7 +417,6 @@ const ProductDetail: React.FC = () => {
           </div>
         )}
         
-        {/* Convert to parent product button */}
         {!isParentProduct && !isVariant && (
           <div className="mb-6">
             <Button
@@ -626,12 +600,10 @@ const ProductDetail: React.FC = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      name="description"
-                      rows={5}
+                    <RichTextEditor
                       value={formData.description || ""}
-                      onChange={handleInputChange}
+                      onChange={(value) => setFormData({...formData, description: value})}
+                      height={250}
                     />
                   </div>
                 </div>
@@ -876,7 +848,6 @@ const ProductDetail: React.FC = () => {
         </Tabs>
       </div>
       
-      {/* Convert to Parent Dialog */}
       <Dialog open={convertToParentDialogOpen} onOpenChange={setConvertToParentDialogOpen}>
         <DialogContent>
           <DialogHeader>
