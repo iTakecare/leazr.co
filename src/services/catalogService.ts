@@ -1,5 +1,6 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
-import { Product, ProductAttribute } from "@/types/catalog";
+import { Product, ProductAttribute, ProductVariationAttributes } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
 
 export async function getProducts(): Promise<Product[]> {
@@ -52,6 +53,7 @@ export async function getProductById(id: string): Promise<Product | null> {
       parent_id: mainProduct.parent_id
     });
     
+    // Parse attributes to ensure consistent format
     mainProduct.attributes = parseAttributes(mainProduct.attributes);
     
     if (mainProduct.is_parent) {
@@ -67,7 +69,9 @@ export async function getProductById(id: string): Promise<Product | null> {
       } else if (variants && variants.length > 0) {
         console.log(`Found ${variants.length} variants for product ${id}`);
         
+        // Process each variant to ensure attributes are in the correct format
         mainProduct.variants = variants.map(variant => {
+          // Parse the attributes for each variant
           const parsedAttributes = parseAttributes(variant.attributes);
           console.log(`Variant ${variant.id} attributes:`, parsedAttributes);
           
@@ -77,6 +81,7 @@ export async function getProductById(id: string): Promise<Product | null> {
           };
         });
         
+        // Extract all possible attribute options from variants
         mainProduct.variation_attributes = extractVariationAttributesFromVariants(mainProduct.variants);
         console.log("Extracted variation attributes:", mainProduct.variation_attributes);
       } else {
@@ -108,6 +113,7 @@ export async function getProductById(id: string): Promise<Product | null> {
         } else if (siblings && siblings.length > 0) {
           console.log(`Found ${siblings.length} siblings for product ${id}`);
           
+          // Process each sibling to ensure attributes are in the correct format
           const processedSiblings = siblings.map(variant => {
             return {
               ...variant,
@@ -117,7 +123,9 @@ export async function getProductById(id: string): Promise<Product | null> {
           
           mainProduct.variants = processedSiblings;
           
+          // Extract all possible attribute options from siblings
           mainProduct.variation_attributes = extractVariationAttributesFromVariants(processedSiblings);
+          console.log("Extracted variation attributes from siblings:", mainProduct.variation_attributes);
         }
       }
     }
@@ -130,6 +138,9 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 }
 
+/**
+ * Parse product attributes into a consistent format
+ */
 function parseAttributes(attributes: any): Record<string, string | number | boolean> {
   console.log("Parsing attributes:", attributes);
   if (!attributes) {
@@ -137,6 +148,7 @@ function parseAttributes(attributes: any): Record<string, string | number | bool
   }
   
   try {
+    // If attributes is a string, try to parse it as JSON
     if (typeof attributes === 'string') {
       try {
         return parseAttributes(JSON.parse(attributes));
@@ -146,6 +158,7 @@ function parseAttributes(attributes: any): Record<string, string | number | bool
       }
     }
     
+    // If attributes is an object (not array), return it as is with proper type conversion
     if (typeof attributes === 'object' && !Array.isArray(attributes)) {
       const result: Record<string, string | number | boolean> = {};
       
@@ -160,13 +173,16 @@ function parseAttributes(attributes: any): Record<string, string | number | bool
       return result;
     }
     
+    // If attributes is an array, convert it to an object
     if (Array.isArray(attributes)) {
       const result: Record<string, string | number | boolean> = {};
       
       attributes.forEach((attr, index) => {
+        // If attribute is an object with name and value properties
         if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
           result[attr.name] = attr.value;
         }
+        // If attribute is a string with format "key:value"
         else if (typeof attr === 'string') {
           if (attr.includes(':')) {
             const [key, value] = attr.split(':', 2);
@@ -175,6 +191,7 @@ function parseAttributes(attributes: any): Record<string, string | number | bool
             result[`option_${index}`] = attr;
           }
         }
+        // For any other type, convert to string
         else if (attr !== null && attr !== undefined) {
           result[`option_${index}`] = typeof attr === 'object' 
             ? JSON.stringify(attr) 
@@ -191,7 +208,10 @@ function parseAttributes(attributes: any): Record<string, string | number | bool
   return {};
 }
 
-function extractVariationAttributesFromVariants(variants: Product[]): Record<string, string[]> {
+/**
+ * Extract all possible attribute options from a list of variants
+ */
+function extractVariationAttributesFromVariants(variants: Product[]): ProductVariationAttributes {
   if (!variants || variants.length === 0) {
     return {};
   }
@@ -209,7 +229,8 @@ function extractVariationAttributesFromVariants(variants: Product[]): Record<str
     }
   });
   
-  const result: Record<string, string[]> = {};
+  // Convert Set to Array for each attribute
+  const result: ProductVariationAttributes = {};
   Object.entries(attributeOptions).forEach(([attrName, values]) => {
     result[attrName] = Array.from(values).sort();
   });

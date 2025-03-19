@@ -71,7 +71,7 @@ export interface Product {
   categories?: any[];
   tags?: any[];
   images?: any[];
-  attributes?: Record<string, string | number | boolean> | ProductAttribute[];
+  attributes?: ProductAttribute[] | Record<string, string | number | boolean>;
   defaultAttributes?: any[];
   variations?: any[];
   groupedProducts?: any[];
@@ -87,7 +87,7 @@ export interface Product {
   is_variation?: boolean;
   parent_id?: string;
   variants?: Product[]; // List of product variants
-  variation_attributes?: Record<string, string | number | boolean> | ProductAttribute[];
+  variation_attributes?: ProductVariationAttributes; // Available attribute options for this product
   
   // Alternative property names used in Supabase
   image_url?: string; // Alternative to imageUrl for DB compatibility
@@ -101,6 +101,11 @@ export interface ProductAttribute {
   name: string;
   value: string | number | boolean;
   options?: string[];
+}
+
+// Product variation attributes definition - for storing available options
+export interface ProductVariationAttributes {
+  [attributeName: string]: string[]; // attribute name -> list of possible values
 }
 
 // Product variant definition - ensuring compatible structure with Product
