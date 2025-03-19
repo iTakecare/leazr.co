@@ -41,6 +41,7 @@ import CreateTestUsers from "./pages/CreateTestUsers";
 import Signup from "./pages/Signup";
 import ProductCreationPage from "@/components/catalog/ProductCreationPage";
 import ProductDetail from "./pages/ProductDetail";
+import Calculator from "./pages/Calculator";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -78,6 +79,8 @@ function App() {
                 <Route path="contracts/:id" element={<ContractDetail />} />
                 <Route path="i-take-care" element={<ITakecarePage />} />
                 <Route path="settings" element={<Settings />} />
+                {/* Ajout de la route manquante pour le calculateur */}
+                <Route path="create-offer" element={<CreateOffer />} />
                 
                 {/* Routes ambassadeurs */}
                 <Route path="ambassadors" element={<AmbassadorsList />} />
