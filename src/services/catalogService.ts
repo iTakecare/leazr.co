@@ -422,8 +422,17 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 
 export async function uploadProductImage(file: File, productId: string, isMainImage: boolean = true): Promise<string> {
   try {
+    console.log(`Uploading ${isMainImage ? 'main' : 'additional'} image for product ${productId}`);
+    
+    // Vérifier si le produit existe
     const product = await getProductById(productId);
+    if (!product) {
+      console.error(`Product ${productId} not found`);
+      throw new Error(`Product ${productId} not found`);
+    }
+    
     const productName = product?.name || '';
+    console.log(`Uploading image for product: ${productName}`);
     
     const { uploadImage } = await import("@/services/imageService");
     
@@ -431,19 +440,25 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
     const extension = file.name.split('.').pop() || 'jpg';
     const path = `${productId}/${isMainImage ? 'main' : `additional_${timestamp}`}_${timestamp}.${extension}`;
     
+    console.log(`Calling uploadImage with path: ${path}`);
     const result = await uploadImage(file, path, 'product-images', true);
     
     if (!result || !result.url) {
+      console.error("Failed to upload image:", result);
       throw new Error("Failed to upload image");
     }
     
+    console.log(`Image uploaded successfully with URL: ${result.url}`);
+    
     if (product) {
       if (isMainImage) {
+        console.log(`Updating main image for product ${productId}`);
         await updateProduct(productId, { 
           image_url: result.url,
           ...(result.altText ? { image_alt: result.altText } : {})
         });
       } else {
+        console.log(`Adding additional image for product ${productId}`);
         const imageUrls = product.image_urls || [];
         const imageAlts = product.image_alts || [];
         

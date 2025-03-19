@@ -54,13 +54,17 @@ export async function uploadImage(
   preserveOriginalName: boolean = true
 ): Promise<{ url: string | null, altText: string } | null> {
   try {
+    console.log(`Starting image upload for file: ${file.name} to path: ${path} in bucket: ${bucket}`);
+    
     // Ensure bucket exists using admin client
+    console.log(`Ensuring bucket ${bucket} exists...`);
     const bucketExists = await ensureStorageBucket(bucket);
     if (!bucketExists) {
       console.error(`Failed to ensure storage bucket ${bucket} exists`);
       // Fallback to returning a default alt text but no URL
       return { url: null, altText: file.name };
     }
+    console.log(`Bucket ${bucket} is confirmed to exist`);
 
     // Get original filename for SEO purposes
     const originalFilename = file.name;

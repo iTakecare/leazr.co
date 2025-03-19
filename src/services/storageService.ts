@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 /**
@@ -24,6 +23,22 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
     if (!bucketExists) {
       console.log(`Creating storage bucket: ${bucketName}`);
       try {
+        // Bucket doesn't exist yet in this session, but might exist in the database
+        // We'll try to use it directly first
+        const testUpload = await supabase.storage.from(bucketName).upload(
+          'test-bucket-exists.txt', 
+          new Blob(['test']), 
+          { upsert: true }
+        );
+        
+        if (!testUpload.error) {
+          console.log(`Bucket ${bucketName} exists and is accessible`);
+          // Clean up test file
+          await supabase.storage.from(bucketName).remove(['test-bucket-exists.txt']);
+          return true;
+        }
+        
+        // If we're here, we need to explicitly create the bucket
         const { error: createError } = await supabase.storage.createBucket(bucketName, {
           public: true,
           fileSizeLimit: 10485760, // 10MB limit
@@ -34,27 +49,8 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
           return false;
         }
         
-        // Set CORS policy for the bucket
-        try {
-          const { error: corsError } = await supabase.storage.updateBucket(bucketName, {
-            public: true,
-            fileSizeLimit: 10485760,
-            allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
-          });
-          
-          if (corsError) {
-            console.warn(`Could not set CORS policy for ${bucketName}:`, corsError);
-          }
-        } catch (corsError) {
-          console.warn(`Error setting CORS policy for ${bucketName}:`, corsError);
-        }
-        
-        // Create public access policy
-        try {
-          await createPublicPolicy(bucketName);
-        } catch (policyError) {
-          console.warn(`Could not create policy for ${bucketName}:`, policyError);
-        }
+        console.log(`Successfully created bucket: ${bucketName}`);
+        return true;
       } catch (e) {
         console.error(`Could not create bucket ${bucketName}:`, e);
         return false;
