@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -179,13 +180,14 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       name,
       category,
       price: isParentProduct ? 0 : parseFloat(price),
-      monthly_price: isParentProduct ? undefined : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
+      monthly_price: isParentProduct ? 0 : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
       description,
       brand: brand || "",
       imageUrl: "",
       specifications: {},
       active: true,
       is_parent: isParentProduct,
+      stock: isParentProduct ? 0 : undefined,
       variation_attributes: isParentProduct ? variationAttributes : {}
     });
   };
@@ -321,6 +323,22 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                   </Select>
                 </div>
 
+                <div className="pt-4 border-t">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_parent"
+                      checked={isParentProduct}
+                      onChange={(e) => setIsParentProduct(e.target.checked)}
+                      className="rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <Label htmlFor="is_parent">Ce produit a des variantes</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Activez cette option si vous souhaitez créer des variantes (tailles, couleurs, etc.)
+                  </p>
+                </div>
+
                 {!isParentProduct && (
                   <>
                     <div className="space-y-2">
@@ -370,22 +388,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                     placeholder="Description du produit"
                     rows={3}
                   />
-                </div>
-                
-                <div className="pt-4 border-t">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="is_parent"
-                      checked={isParentProduct}
-                      onChange={(e) => setIsParentProduct(e.target.checked)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <Label htmlFor="is_parent">Ce produit a des variantes</Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Activez cette option si vous souhaitez créer des variantes (tailles, couleurs, etc.)
-                  </p>
                 </div>
               </TabsContent>
 

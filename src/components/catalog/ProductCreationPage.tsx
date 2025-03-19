@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -177,13 +178,14 @@ const ProductCreationPage: React.FC = () => {
       name,
       category,
       price: isParentProduct ? 0 : parseFloat(price),
-      monthly_price: isParentProduct ? undefined : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
+      monthly_price: isParentProduct ? 0 : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
       description,
       brand: brand || "",
       imageUrl: "",
       specifications: {},
       active: true,
       is_parent: isParentProduct,
+      stock: isParentProduct ? 0 : undefined,
       variation_attributes: isParentProduct ? variationAttributes : {}
     });
   };
