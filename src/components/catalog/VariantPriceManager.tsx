@@ -74,6 +74,11 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const [attributeValues, setAttributeValues] = useState<string>("");
   const [existingAttributes, setExistingAttributes] = useState<ProductVariationAttributes>({});
   
+  // New state for editing attribute
+  const [isEditingAttribute, setIsEditingAttribute] = useState(false);
+  const [editingAttributeName, setEditingAttributeName] = useState("");
+  const [editingAttributeValues, setEditingAttributeValues] = useState("");
+  
   const [isEditing, setIsEditing] = useState(false);
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   
@@ -410,6 +415,50 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     setExistingAttributes(updatedAttributes);
   };
   
+  // New function to handle editing attribute
+  const handleEditAttribute = (attrName: string) => {
+    const values = existingAttributes[attrName];
+    setEditingAttributeName(attrName);
+    setEditingAttributeValues(values.join(", "));
+    setIsEditingAttribute(true);
+  };
+  
+  // New function to save edited attribute
+  const saveEditedAttribute = () => {
+    if (!editingAttributeValues.trim()) {
+      toast.error("Veuillez saisir au moins une valeur d'attribut");
+      return;
+    }
+    
+    const valuesArray = editingAttributeValues
+      .split(",")
+      .map(val => val.trim())
+      .filter(val => val.length > 0)
+      .filter((val, index, self) => self.indexOf(val) === index);
+    
+    if (valuesArray.length === 0) {
+      toast.error("Veuillez saisir au moins une valeur d'attribut");
+      return;
+    }
+    
+    // Remove old attribute
+    const updatedAttributes = { ...existingAttributes };
+    delete updatedAttributes[editingAttributeName];
+    
+    // Add with possibly new values
+    updatedAttributes[editingAttributeName] = valuesArray;
+    
+    setExistingAttributes(updatedAttributes);
+    cancelEditAttribute();
+  };
+  
+  // New function to cancel editing attribute
+  const cancelEditAttribute = () => {
+    setIsEditingAttribute(false);
+    setEditingAttributeName("");
+    setEditingAttributeValues("");
+  };
+  
   const saveAttributes = () => {
     if (Object.keys(existingAttributes).length === 0) {
       toast.error("Veuillez ajouter au moins un attribut");
@@ -706,30 +755,65 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
           </DialogHeader>
           
           <div className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-3 md:col-span-1">
-                <Label htmlFor="attribute-name">Nom de l'attribut</Label>
-                <Input
-                  id="attribute-name"
-                  placeholder="Ex: Couleur, Taille..."
-                  value={attributeName}
-                  onChange={(e) => setAttributeName(e.target.value)}
-                />
+            {!isEditingAttribute ? (
+              // Normal attribute add form
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-3 md:col-span-1">
+                  <Label htmlFor="attribute-name">Nom de l'attribut</Label>
+                  <Input
+                    id="attribute-name"
+                    placeholder="Ex: Couleur, Taille..."
+                    value={attributeName}
+                    onChange={(e) => setAttributeName(e.target.value)}
+                  />
+                </div>
+                <div className="col-span-3 md:col-span-2">
+                  <Label htmlFor="attribute-values">Valeurs possibles</Label>
+                  <Input
+                    id="attribute-values"
+                    placeholder="Ex: Rouge, Bleu, Vert... (séparés par des virgules)"
+                    value={attributeValues}
+                    onChange={(e) => setAttributeValues(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="col-span-3 md:col-span-2">
-                <Label htmlFor="attribute-values">Valeurs possibles</Label>
-                <Input
-                  id="attribute-values"
-                  placeholder="Ex: Rouge, Bleu, Vert... (séparés par des virgules)"
-                  value={attributeValues}
-                  onChange={(e) => setAttributeValues(e.target.value)}
-                />
+            ) : (
+              // Editing attribute form
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="editing-attribute-name">Nom de l'attribut</Label>
+                  <Input
+                    id="editing-attribute-name"
+                    value={editingAttributeName}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editing-attribute-values">Valeurs possibles</Label>
+                  <Input
+                    id="editing-attribute-values"
+                    placeholder="Ex: Rouge, Bleu, Vert... (séparés par des virgules)"
+                    value={editingAttributeValues}
+                    onChange={(e) => setEditingAttributeValues(e.target.value)}
+                  />
+                </div>
+                <div className="flex space-x-2 justify-end">
+                  <Button variant="outline" onClick={cancelEditAttribute}>
+                    Annuler
+                  </Button>
+                  <Button onClick={saveEditedAttribute}>
+                    Enregistrer les modifications
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
             
-            <Button type="button" onClick={handleAddAttribute} variant="outline" className="w-full">
-              <Plus className="mr-2 h-4 w-4" /> Ajouter cet attribut
-            </Button>
+            {!isEditingAttribute && (
+              <Button type="button" onClick={handleAddAttribute} variant="outline" className="w-full">
+                <Plus className="mr-2 h-4 w-4" /> Ajouter cet attribut
+              </Button>
+            )}
             
             <Separator />
             
@@ -750,14 +834,24 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                           ))}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveAttribute(attrName)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditAttribute(attrName)}
+                          className="text-primary hover:text-primary hover:bg-primary/10"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveAttribute(attrName)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -862,4 +956,4 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   );
 };
 
-export default VariantPriceManager;
+export default Variant
