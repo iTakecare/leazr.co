@@ -34,12 +34,12 @@ export const createVariantCombinationPrice = async (
 ): Promise<VariantCombinationPrice> => {
   try {
     // Adapter les données pour correspondre à la structure de la table
-    // Ne pas inclure purchase_price s'il n'existe pas dans la base de données
     const dataToInsert = {
       product_id: data.product_id,
       attributes: data.attributes,
-      price: data.price || 0
-      // Notons que nous n'incluons pas purchase_price ici car il n'existe pas dans la table
+      price: data.price || 0,
+      monthly_price: data.monthly_price || 0,
+      stock: data.stock
     };
     
     console.log("Inserting variant price data:", dataToInsert);

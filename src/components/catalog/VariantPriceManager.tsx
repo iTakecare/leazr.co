@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -62,6 +61,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const queryClient = useQueryClient();
   const [selectedAttributes, setSelectedAttributes] = useState<ProductAttributes>({});
   const [purchasePrice, setPurchasePrice] = useState<number | string>("");
+  const [monthlyPrice, setMonthlyPrice] = useState<number | string>("");
+  const [stock, setStock] = useState<number | string>("");
   const [attributesToDelete, setAttributesToDelete] = useState<ProductAttributes | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -106,7 +107,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   });
   
   const deleteVariantPriceMutation = useMutation({
-    mutationFn: (id: string) => deleteVariantCombinationPrice(id),
+    mutationFn: (id: string) => deleteVariantPriceMutation.mutate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
       toast.success("Prix de variante supprimé avec succès");
@@ -157,6 +158,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const resetForm = () => {
     setSelectedAttributes({});
     setPurchasePrice("");
+    setMonthlyPrice("");
+    setStock("");
   };
   
   const handleAttributesChange = (attributes: ProductAttributes) => {
@@ -191,7 +194,9 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     const newVariantPrice = {
       product_id: product.id,
       attributes: selectedAttributes,
-      price: Number(purchasePrice)
+      price: Number(purchasePrice),
+      monthly_price: monthlyPrice ? Number(monthlyPrice) : undefined,
+      stock: stock ? Number(stock) : undefined
     };
     
     console.log("Adding variant price:", newVariantPrice);
@@ -206,10 +211,16 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   
   const handleDelete = () => {
     if (deleteId) {
-      deleteVariantPriceMutation.mutate(deleteId);
-      setIsDeleteDialogOpen(false);
-      setDeleteId(null);
-      setAttributesToDelete(null);
+      deleteVariantPrice(deleteId).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
+        toast.success("Prix de variante supprimé avec succès");
+        if (onPriceAdded) onPriceAdded();
+        setIsDeleteDialogOpen(false);
+        setDeleteId(null);
+        setAttributesToDelete(null);
+      }).catch((error) => {
+        toast.error(`Erreur lors de la suppression du prix: ${error.message}`);
+      });
     }
   };
   
@@ -481,7 +492,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                   
                   <Separator />
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="purchase-price">Prix d'achat (€)</Label>
                       <div className="relative">
@@ -497,6 +508,35 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                         />
                         <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="monthly-price">Mensualité (€/mois)</Label>
+                      <div className="relative">
+                        <Input
+                          id="monthly-price"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={monthlyPrice}
+                          onChange={(e) => setMonthlyPrice(e.target.value)}
+                          className="pl-8"
+                          placeholder="0.00"
+                        />
+                        <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="stock">Stock</Label>
+                      <Input
+                        id="stock"
+                        type="number"
+                        min="0"
+                        value={stock}
+                        onChange={(e) => setStock(e.target.value)}
+                        placeholder="0"
+                      />
                     </div>
                   </div>
                   
@@ -537,6 +577,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                     <TableRow>
                       <TableHead>Attributs</TableHead>
                       <TableHead>Prix d'achat (€)</TableHead>
+                      <TableHead>Mensualité (€/mois)</TableHead>
+                      <TableHead>Stock</TableHead>
                       <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -549,6 +591,16 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                         <TableCell>
                           {variantPrice.price 
                             ? `${variantPrice.price.toFixed(2)} €` 
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {variantPrice.monthly_price 
+                            ? `${variantPrice.monthly_price.toFixed(2)} €` 
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {variantPrice.stock !== undefined 
+                            ? variantPrice.stock 
                             : "-"}
                         </TableCell>
                         <TableCell>
