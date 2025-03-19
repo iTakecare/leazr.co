@@ -600,10 +600,12 @@ const ProductDetail: React.FC = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>
-                    <RichTextEditor
+                    <Textarea
+                      id="description"
+                      name="description"
                       value={formData.description || ""}
-                      onChange={(value) => setFormData({...formData, description: value})}
-                      height={250}
+                      onChange={handleInputChange}
+                      className="min-h-[250px]"
                     />
                   </div>
                 </div>
