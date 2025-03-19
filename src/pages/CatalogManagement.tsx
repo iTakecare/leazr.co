@@ -86,6 +86,12 @@ const CatalogManagement = () => {
   const handleAddNewProduct = () => {
     navigate("/catalog/create-product");
   };
+
+  const handleViewModeChange = (value: string) => {
+    if (value === "grid" || value === "accordion") {
+      setViewMode(value);
+    }
+  };
   
   return (
     <Container>
@@ -165,7 +171,12 @@ const CatalogManagement = () => {
                   </div>
                   
                   <div className="flex items-center space-x-2 self-end">
-                    <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "grid" | "accordion")}>
+                    <ToggleGroup 
+                      type="single" 
+                      value={viewMode} 
+                      onValueChange={handleViewModeChange}
+                      className="bg-background"
+                    >
                       <ToggleGroupItem value="accordion" aria-label="Voir en liste">
                         <List className="h-4 w-4" />
                       </ToggleGroupItem>

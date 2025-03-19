@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   ProductVariationAttributes, 
-  ProductAttributes,
-  VariantCombinationPrice
+  ProductAttributes
 } from "@/types/catalog";
 import {
   Select,
@@ -34,6 +33,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   }, [initialSelectedAttributes]);
 
   const handleAttributeChange = (attributeName: string, value: string) => {
+    console.log(`Changing attribute ${attributeName} to ${value}`);
     const updatedAttributes = {
       ...selectedAttributes,
       [attributeName]: value
@@ -53,10 +53,10 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
             onValueChange={(value) => handleAttributeChange(attrName, value)}
             disabled={disabled}
           >
-            <SelectTrigger id={`attr-${attrName}`} className="w-full">
+            <SelectTrigger id={`attr-${attrName}`} className="w-full bg-background">
               <SelectValue placeholder={`Sélectionner ${attrName.toLowerCase()}`} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="bg-background min-w-[200px] z-50">
               {values.map((value) => (
                 <SelectItem key={`${attrName}-${value}`} value={value.toString()}>
                   {value}
