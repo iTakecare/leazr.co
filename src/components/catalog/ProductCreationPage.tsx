@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addProduct, uploadProductImage } from "@/services/catalogService";
@@ -114,7 +115,7 @@ const ProductCreationPage: React.FC = () => {
     },
     onError: (error) => {
       console.error("Erreur lors de l'ajout du produit:", error);
-      toast.error("Erreur lors de l'ajout du produit");
+      toast.error(`Erreur lors de l'ajout du produit: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
       setIsSubmitting(false);
     }
   });
@@ -186,6 +187,7 @@ const ProductCreationPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      console.log("Préparation des données du produit pour l'ajout...");
       const productData = {
         name,
         category,
@@ -197,14 +199,17 @@ const ProductCreationPage: React.FC = () => {
         specifications: {},
         active: true,
         is_parent: isParentProduct,
+        parent_id: null,
+        is_variation: false,
         stock: isParentProduct ? 0 : undefined,
         variation_attributes: isParentProduct ? variationAttributes : {}
       };
 
+      console.log("Données du produit préparées:", productData);
       addProductMutation.mutate(productData);
     } catch (error) {
       console.error("Erreur lors de la préparation des données du produit:", error);
-      toast.error("Erreur lors de la création du produit");
+      toast.error(`Erreur lors de la création du produit: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
       setIsSubmitting(false);
     }
   };
@@ -635,4 +640,3 @@ const ProductCreationPage: React.FC = () => {
 };
 
 export default ProductCreationPage;
-

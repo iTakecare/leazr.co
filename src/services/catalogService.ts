@@ -1,3 +1,4 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product, ProductAttributes, ProductVariationAttributes } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -350,14 +351,19 @@ export async function findVariantByAttributes(
 
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: string }> {
   try {
+    console.log("Adding product to database:", product);
     const supabase = getSupabaseClient();
     
+    // Préparation des données du produit
     const productData = {
       ...product,
       image_url: product.imageUrl,
     };
     
+    // Suppression des champs qui ne correspondent pas au schéma de la table
     delete (productData as any).imageUrl;
+    
+    console.log("Prepared product data for insertion:", productData);
     
     const { data, error } = await supabase
       .from('products')
@@ -366,13 +372,16 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
       .single();
 
     if (error) {
+      console.error("Error adding product:", error);
       throw new Error(`Error adding product: ${error.message}`);
     }
 
     if (!data || !data.id) {
+      console.error("Product ID not found after insertion");
       throw new Error("Product ID not found after insertion.");
     }
 
+    console.log("Product successfully added with ID:", data.id);
     return { id: data.id };
   } catch (error) {
     console.error("Error in addProduct:", error);
