@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product, ProductAttributes, ProductVariationAttributes } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -420,6 +419,9 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
   }
 }
 
+/**
+ * Upload an image for a product and update the product with the image URL
+ */
 export async function uploadProductImage(file: File, productId: string, isMainImage: boolean = true): Promise<string> {
   try {
     console.log(`Uploading ${isMainImage ? 'main' : 'additional'} image for product ${productId}`);
@@ -430,6 +432,13 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
       console.error(`Product ${productId} not found`);
       throw new Error(`Product ${productId} not found`);
     }
+    
+    console.log(`Main product:`, JSON.stringify({
+      id: product.id,
+      name: product.name,
+      is_parent: product.is_parent,
+      parent_id: product.parent_id
+    }));
     
     const productName = product?.name || '';
     console.log(`Uploading image for product: ${productName}`);
@@ -455,30 +464,30 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
         console.log(`Updating main image for product ${productId}`);
         await updateProduct(productId, { 
           image_url: result.url,
-          ...(result.altText ? { image_alt: result.altText } : {})
+          imageUrl: result.url, // Pour compatibilité
+          ...(result.altText ? { 
+            image_alt: result.altText,
+            imagealt: result.altText // Pour compatibilité
+          } : {})
         });
       } else {
         console.log(`Adding additional image for product ${productId}`);
         const imageUrls = product.image_urls || [];
         const imageAlts = product.image_alts || [];
         
-        if (imageUrls.length >= 4) {
-          imageUrls.pop();
-          if (imageAlts.length > 0) {
-            imageAlts.pop();
-          }
-        }
+        // Ajouter la nouvelle URL d'image
+        const updatedImageUrls = [...imageUrls, result.url];
+        const updatedImageAlts = [...imageAlts, result.altText];
         
-        imageUrls.unshift(result.url);
-        imageAlts.unshift(result.altText);
-        
-        await updateProduct(productId, { 
-          image_urls: imageUrls,
-          ...(imageAlts.length > 0 ? { image_alts: imageAlts } : {})
+        await updateProduct(productId, {
+          image_urls: updatedImageUrls,
+          image_alts: updatedImageAlts,
+          imageurls: updatedImageUrls, // Pour compatibilité
+          imagealts: updatedImageAlts // Pour compatibilité
         });
       }
     }
-
+    
     return result.url;
   } catch (error) {
     console.error("Error in uploadProductImage:", error);

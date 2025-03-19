@@ -1,4 +1,5 @@
-import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
+
+import { getSupabaseClient, getAdminSupabaseClient, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 
 /**
  * Ensures that a storage bucket exists with the correct public access settings
@@ -7,24 +8,57 @@ import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supaba
  */
 export async function ensureStorageBucket(bucketName: string): Promise<boolean> {
   try {
-    // Use adminSupabase client for bucket operations to avoid RLS issues
-    const supabase = getAdminSupabaseClient();
+    console.log(`Checking if bucket ${bucketName} exists using supabase client...`);
+    
+    // Use regular supabase client first (not admin) to avoid any potential token issues
+    let supabase = getSupabaseClient();
     
     // Check if bucket exists
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    let { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
     if (listError) {
-      console.error(`Error checking if bucket ${bucketName} exists:`, listError);
-      return false;
+      console.log(`Error with regular client, trying admin client: ${listError.message}`);
+      // Try with admin client as fallback
+      supabase = getAdminSupabaseClient();
+      const result = await supabase.storage.listBuckets();
+      buckets = result.data;
+      listError = result.error;
+      
+      if (listError) {
+        console.error(`Error checking if bucket ${bucketName} exists with admin client:`, listError);
+        
+        // Last resort: try a direct bucket access test
+        try {
+          console.log(`Attempting direct bucket access test for ${bucketName}`);
+          const testUpload = await supabase.storage.from(bucketName).upload(
+            'test-bucket-exists.txt', 
+            new Blob(['test']), 
+            { upsert: true }
+          );
+          
+          if (!testUpload.error) {
+            console.log(`Bucket ${bucketName} exists and is accessible via direct test`);
+            // Clean up test file
+            await supabase.storage.from(bucketName).remove(['test-bucket-exists.txt']);
+            return true;
+          } else {
+            console.log(`Direct test failed: ${testUpload.error.message}`);
+            return false;
+          }
+        } catch (directError) {
+          console.error(`Direct bucket test failed:`, directError);
+          return false;
+        }
+      }
     }
     
     const bucketExists = buckets?.some(b => b.name === bucketName);
     
     if (!bucketExists) {
-      console.log(`Creating storage bucket: ${bucketName}`);
+      console.log(`Bucket ${bucketName} does not exist, creating it...`);
+      
+      // Try a direct bucket test first
       try {
-        // Bucket doesn't exist yet in this session, but might exist in the database
-        // We'll try to use it directly first
         const testUpload = await supabase.storage.from(bucketName).upload(
           'test-bucket-exists.txt', 
           new Blob(['test']), 
@@ -32,13 +66,19 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         );
         
         if (!testUpload.error) {
-          console.log(`Bucket ${bucketName} exists and is accessible`);
+          console.log(`Bucket ${bucketName} already exists and is accessible`);
           // Clean up test file
           await supabase.storage.from(bucketName).remove(['test-bucket-exists.txt']);
           return true;
+        } else {
+          console.log(`Need to create bucket, direct access failed: ${testUpload.error.message}`);
         }
-        
-        // If we're here, we need to explicitly create the bucket
+      } catch (directError) {
+        console.log(`Direct bucket test failed with error:`, directError);
+      }
+      
+      // Create the bucket
+      try {
         const { error: createError } = await supabase.storage.createBucket(bucketName, {
           public: true,
           fileSizeLimit: 10485760, // 10MB limit
@@ -49,6 +89,9 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
           return false;
         }
         
+        // Create public access policy
+        await createPublicPolicy(bucketName);
+        
         console.log(`Successfully created bucket: ${bucketName}`);
         return true;
       } catch (e) {
@@ -57,6 +100,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       }
     }
     
+    console.log(`Bucket ${bucketName} already exists, no need to create it`);
     return true;
   } catch (error) {
     console.error(`Unexpected error ensuring bucket ${bucketName}:`, error);
@@ -185,14 +229,14 @@ export async function downloadAndUploadImage(
         return imageUrl;
       }
       
-      // Get Supabase client with admin privileges for storage operations
-      const supabase = getAdminSupabaseClient();
+      // Get Supabase client
+      const supabase = getSupabaseClient();
       
       // Generate a unique filename with proper extension
       const uniqueFilename = `${filename.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.${fileExtension}`;
       
       // Upload to Supabase Storage with explicit content type
-      const { error } = await supabase.storage
+      const { error, data } = await supabase.storage
         .from(bucketName)
         .upload(uniqueFilename, imageFile, {
           cacheControl: '3600',
@@ -202,13 +246,38 @@ export async function downloadAndUploadImage(
         
       if (error) {
         console.error("Error uploading image to storage:", error);
-        return imageUrl;
+        
+        // Fallback: Try using admin client
+        const adminSupabase = getAdminSupabaseClient();
+        console.log("Retrying upload with admin client...");
+        
+        const { error: adminError, data: adminData } = await adminSupabase.storage
+          .from(bucketName)
+          .upload(uniqueFilename, imageFile, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: correctMimeType
+          });
+          
+        if (adminError) {
+          console.error("Error uploading image with admin client:", adminError);
+          return imageUrl;
+        }
+        
+        // Get public URL using admin client
+        const { data: adminPublicUrlData } = adminSupabase.storage
+          .from(bucketName)
+          .getPublicUrl(adminData.path);
+          
+        console.log(`Successfully uploaded image to: ${adminPublicUrlData?.publicUrl}`);
+        
+        return adminPublicUrlData?.publicUrl || imageUrl;
       }
       
       // Get public URL
       const { data: publicUrlData } = supabase.storage
         .from(bucketName)
-        .getPublicUrl(uniqueFilename);
+        .getPublicUrl(data.path);
         
       console.log(`Successfully uploaded image to: ${publicUrlData?.publicUrl}`);
       

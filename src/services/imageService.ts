@@ -56,7 +56,7 @@ export async function uploadImage(
   try {
     console.log(`Starting image upload for file: ${file.name} to path: ${path} in bucket: ${bucket}`);
     
-    // Ensure bucket exists using admin client
+    // Ensure bucket exists
     console.log(`Ensuring bucket ${bucket} exists...`);
     const bucketExists = await ensureStorageBucket(bucket);
     if (!bucketExists) {
@@ -112,13 +112,12 @@ export async function uploadImage(
       console.log(`Corrected file type: ${file.type}`);
     }
     
-    // Get Supabase client with admin privileges
-    const supabase = getAdminSupabaseClient();
-    
+    // Try with regular client first
     console.log(`Uploading image of type: ${file.type} to path: ${finalPath}`);
+    let supabase = getSupabaseClient();
     
     // Upload the file with explicit content type
-    const { data, error } = await supabase.storage
+    let { data, error } = await supabase.storage
       .from(bucket)
       .upload(finalPath, file, {
         cacheControl: '3600',
@@ -126,9 +125,27 @@ export async function uploadImage(
         contentType: file.type
       });
       
+    // If error with regular client, try with admin client
     if (error) {
-      console.error("Error uploading image:", error);
-      return { url: null, altText };
+      console.error("Error uploading image with regular client:", error);
+      console.log("Retrying with admin client...");
+      
+      supabase = getAdminSupabaseClient();
+      const result = await supabase.storage
+        .from(bucket)
+        .upload(finalPath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type
+        });
+        
+      data = result.data;
+      error = result.error;
+      
+      if (error) {
+        console.error("Error uploading image with admin client:", error);
+        return { url: null, altText };
+      }
     }
     
     // Get public URL
