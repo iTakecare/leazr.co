@@ -451,14 +451,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
             </CardTitle>
             <div className="flex gap-2">
               <Button 
-                onClick={handleRemoveParentPrice} 
-                variant="outline"
-                size="sm"
-              >
-                <Euro className="h-4 w-4 mr-2" />
-                Supprimer prix du produit parent
-              </Button>
-              <Button 
                 onClick={() => setIsAttributeDialogOpen(true)}
                 variant="outline"
                 size="sm"
@@ -871,4 +863,3 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
 };
 
 export default VariantPriceManager;
-
