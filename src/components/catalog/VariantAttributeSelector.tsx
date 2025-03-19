@@ -1,9 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { 
-  ProductVariationAttributes, 
-  ProductAttributes
-} from "@/types/catalog";
+import { ProductAttributes, ProductVariationAttributes } from "@/types/catalog";
 import {
   Select,
   SelectContent,
@@ -15,50 +12,56 @@ import { Label } from "@/components/ui/label";
 
 interface VariantAttributeSelectorProps {
   variationAttributes: ProductVariationAttributes;
-  initialSelectedAttributes?: ProductAttributes;
+  initialSelectedAttributes: ProductAttributes;
   onAttributesChange: (attributes: ProductAttributes) => void;
-  disabled?: boolean;
 }
 
 const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   variationAttributes,
-  initialSelectedAttributes = {},
+  initialSelectedAttributes,
   onAttributesChange,
-  disabled = false
 }) => {
-  const [selectedAttributes, setSelectedAttributes] = useState<ProductAttributes>(initialSelectedAttributes);
-
+  const [selectedAttributes, setSelectedAttributes] = useState<ProductAttributes>(initialSelectedAttributes || {});
+  
   useEffect(() => {
-    setSelectedAttributes(initialSelectedAttributes);
+    // When initial attributes change (especially when editing), update the state
+    console.log("Initial attributes received:", initialSelectedAttributes);
+    setSelectedAttributes(initialSelectedAttributes || {});
   }, [initialSelectedAttributes]);
 
+  useEffect(() => {
+    // Report changes to parent component whenever selectedAttributes change
+    console.log("Selected attributes in selector:", selectedAttributes);
+    onAttributesChange(selectedAttributes);
+  }, [selectedAttributes, onAttributesChange]);
+
   const handleAttributeChange = (attributeName: string, value: string) => {
-    console.log(`Changing attribute ${attributeName} to ${value}`);
     const updatedAttributes = {
       ...selectedAttributes,
-      [attributeName]: value
+      [attributeName]: value,
     };
     
+    console.log(`Changed attribute ${attributeName} to ${value}`);
+    console.log("New attributes:", updatedAttributes);
+    
     setSelectedAttributes(updatedAttributes);
-    onAttributesChange(updatedAttributes);
   };
 
   return (
-    <div className="space-y-4">
-      {Object.entries(variationAttributes).map(([attrName, values]) => (
-        <div key={attrName} className="space-y-2">
-          <Label htmlFor={`attr-${attrName}`}>{attrName}</Label>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {Object.entries(variationAttributes).map(([attributeName, attributeValues]) => (
+        <div key={attributeName} className="space-y-2">
+          <Label htmlFor={`attribute-${attributeName}`}>{attributeName}</Label>
           <Select
-            defaultValue={selectedAttributes[attrName]?.toString() || ""}
-            onValueChange={(value) => handleAttributeChange(attrName, value)}
-            disabled={disabled}
+            value={String(selectedAttributes[attributeName] || "")}
+            onValueChange={(value) => handleAttributeChange(attributeName, value)}
           >
-            <SelectTrigger id={`attr-${attrName}`} className="w-full bg-background">
-              <SelectValue placeholder={`Sélectionner ${attrName.toLowerCase()}`} />
+            <SelectTrigger id={`attribute-${attributeName}`}>
+              <SelectValue placeholder={`Choisir ${attributeName}`} />
             </SelectTrigger>
-            <SelectContent className="bg-background min-w-[200px] z-50">
-              {values.map((value) => (
-                <SelectItem key={`${attrName}-${value}`} value={value.toString()}>
+            <SelectContent>
+              {attributeValues.map((value) => (
+                <SelectItem key={`${attributeName}-${value}`} value={value}>
                   {value}
                 </SelectItem>
               ))}

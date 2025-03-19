@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -174,6 +173,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   };
   
   const handleAttributesChange = (attributes: ProductAttributes) => {
+    console.log("Attributes changed to:", attributes);
     setSelectedAttributes(attributes);
   };
   
@@ -196,10 +196,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
-    // Si on n'est pas en mode édition, vérifie que la combinaison n'existe pas déjà
     if (!isEditing) {
       const combinationExists = variantPrices?.some(variantPrice => {
-        // Ignore la variante en cours d'édition
         if (editingVariantId && variantPrice.id === editingVariantId) return false;
         
         const priceAttrs = variantPrice.attributes;
@@ -222,7 +220,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       stock: stock ? Number(stock) : undefined
     };
     
-    // Si on est en mode édition et qu'on a un ID, on supprime d'abord la variante puis on ajoute la nouvelle
     if (isEditing && editingVariantId) {
       deleteVariantPriceMutation.mutate(editingVariantId);
     }
@@ -249,12 +246,14 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const handleEdit = (variantPrice: VariantCombinationPrice) => {
     setIsEditing(true);
     setEditingVariantId(variantPrice.id);
-    setSelectedAttributes(variantPrice.attributes);
+    setSelectedAttributes({...variantPrice.attributes});
     setPurchasePrice(variantPrice.price);
     setMonthlyPrice(variantPrice.monthly_price || "");
     setStock(variantPrice.stock !== undefined ? variantPrice.stock : "");
     
-    // Scroll to the form
+    console.log("Editing variant:", variantPrice);
+    console.log("Selected attributes set to:", variantPrice.attributes);
+    
     const formElement = document.getElementById('variant-price-form');
     if (formElement) {
       formElement.scrollIntoView({ behavior: 'smooth' });
@@ -322,10 +321,9 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     
     removeParentPriceMutation.mutate(product.id);
     
-    // Générer un prix aléatoire entre 50 et 150 pour chaque variante
     newCombinations.reduce((promise, combination, index) => {
       return promise.then(() => {
-        const randomPrice = Math.floor(Math.random() * 100) + 50; // Prix entre 50 et 150
+        const randomPrice = Math.floor(Math.random() * 100) + 50;
         
         const newVariantPrice = {
           product_id: product.id,
@@ -531,6 +529,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                     variationAttributes={product.variation_attributes || {}}
                     initialSelectedAttributes={selectedAttributes}
                     onAttributesChange={handleAttributesChange}
+                    key={`attribute-selector-${isEditing ? "edit-" + editingVariantId : "new"}`}
                   />
                   
                   <Separator />
