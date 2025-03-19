@@ -408,15 +408,6 @@ const ProductDetail: React.FC = () => {
           </div>
         )}
         
-        {isParentProduct && hasVariationAttributes && (
-          <div className="mb-6">
-            <ProductVariantViewer 
-              product={productQuery.data!} 
-              onVariantSelect={handleVariantPriceSelect}
-            />
-          </div>
-        )}
-        
         {!isParentProduct && !isVariant && (
           <div className="mb-6">
             <Button

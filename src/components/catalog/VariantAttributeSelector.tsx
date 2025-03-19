@@ -56,7 +56,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
             <SelectTrigger id={`attr-${attrName}`} className="w-full bg-background">
               <SelectValue placeholder={`Sélectionner ${attrName.toLowerCase()}`} />
             </SelectTrigger>
-            <SelectContent position="popper" className="bg-background min-w-[200px] z-50">
+            <SelectContent className="bg-background min-w-[200px] z-50">
               {values.map((value) => (
                 <SelectItem key={`${attrName}-${value}`} value={value.toString()}>
                   {value}
