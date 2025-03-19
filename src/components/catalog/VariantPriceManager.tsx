@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -11,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Euro, Trash2, Plus, Package2, Tag, Edit, Grid } from "lucide-react";
+import { Euro, Trash2, Plus, Package2, Tag, Edit, Grid, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -68,12 +69,14 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   const [isBulkGenerationDialogOpen, setIsBulkGenerationDialogOpen] = useState(false);
-  const [basePurchasePrice, setBasePurchasePrice] = useState<number | string>("");
   
   const [isAttributeDialogOpen, setIsAttributeDialogOpen] = useState(false);
   const [attributeName, setAttributeName] = useState("");
   const [attributeValues, setAttributeValues] = useState<string>("");
   const [existingAttributes, setExistingAttributes] = useState<ProductVariationAttributes>({});
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   
   const hasVariationAttributes = 
     product.variation_attributes && 
@@ -97,8 +100,10 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["variant-prices", product.id] });
       resetForm();
-      toast.success("Prix de variante ajouté avec succès");
+      toast.success(isEditing ? "Prix de variante mis à jour avec succès" : "Prix de variante ajouté avec succès");
       if (onPriceAdded) onPriceAdded();
+      setIsEditing(false);
+      setEditingVariantId(null);
     },
     onError: (error: any) => {
       console.error("Error adding variant price:", error);
@@ -191,16 +196,22 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
-    const combinationExists = variantPrices?.some(variantPrice => {
-      const priceAttrs = variantPrice.attributes;
-      return Object.keys(selectedAttributes).every(
-        key => String(priceAttrs[key]).toLowerCase() === String(selectedAttributes[key]).toLowerCase()
-      );
-    });
-    
-    if (combinationExists) {
-      toast.error("Cette combinaison d'attributs existe déjà");
-      return;
+    // Si on n'est pas en mode édition, vérifie que la combinaison n'existe pas déjà
+    if (!isEditing) {
+      const combinationExists = variantPrices?.some(variantPrice => {
+        // Ignore la variante en cours d'édition
+        if (editingVariantId && variantPrice.id === editingVariantId) return false;
+        
+        const priceAttrs = variantPrice.attributes;
+        return Object.keys(selectedAttributes).every(
+          key => String(priceAttrs[key]).toLowerCase() === String(selectedAttributes[key]).toLowerCase()
+        );
+      });
+      
+      if (combinationExists) {
+        toast.error("Cette combinaison d'attributs existe déjà");
+        return;
+      }
     }
     
     const newVariantPrice = {
@@ -211,7 +222,12 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       stock: stock ? Number(stock) : undefined
     };
     
-    console.log("Adding variant price:", newVariantPrice);
+    // Si on est en mode édition et qu'on a un ID, on supprime d'abord la variante puis on ajoute la nouvelle
+    if (isEditing && editingVariantId) {
+      deleteVariantPriceMutation.mutate(editingVariantId);
+    }
+    
+    console.log("Adding/updating variant price:", newVariantPrice);
     addVariantPriceMutation.mutate(newVariantPrice);
   };
   
@@ -228,6 +244,27 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       setDeleteId(null);
       setAttributesToDelete(null);
     }
+  };
+  
+  const handleEdit = (variantPrice: VariantCombinationPrice) => {
+    setIsEditing(true);
+    setEditingVariantId(variantPrice.id);
+    setSelectedAttributes(variantPrice.attributes);
+    setPurchasePrice(variantPrice.price);
+    setMonthlyPrice(variantPrice.monthly_price || "");
+    setStock(variantPrice.stock !== undefined ? variantPrice.stock : "");
+    
+    // Scroll to the form
+    const formElement = document.getElementById('variant-price-form');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+  
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditingVariantId(null);
+    resetForm();
   };
   
   const generateAttributeCombinations = (): ProductAttributes[] => {
@@ -256,11 +293,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   };
   
   const generateAllVariantPrices = () => {
-    if (!basePurchasePrice) {
-      toast.error("Veuillez saisir un prix d'achat de base");
-      return;
-    }
-    
     const combinations = generateAttributeCombinations();
     
     if (combinations.length === 0) {
@@ -290,14 +322,15 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     
     removeParentPriceMutation.mutate(product.id);
     
+    // Générer un prix aléatoire entre 50 et 150 pour chaque variante
     newCombinations.reduce((promise, combination, index) => {
       return promise.then(() => {
-        const purchasePriceVariation = Math.random() * 20 - 10;
+        const randomPrice = Math.floor(Math.random() * 100) + 50; // Prix entre 50 et 150
         
         const newVariantPrice = {
           product_id: product.id,
           attributes: combination,
-          price: Math.max(5, Number(basePurchasePrice) + purchasePriceVariation)
+          price: randomPrice
         };
         
         console.log(`Creating variant ${index + 1}/${newCombinations.length}:`, newVariantPrice);
@@ -480,19 +513,23 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       {hasVariationAttributes && (
         <>
           <div className="space-y-6">
-            <Card>
+            <Card id="variant-price-form">
               <CardContent className="pt-6">
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium mb-2">Définir un nouveau prix d'achat</h3>
+                    <h3 className="text-lg font-medium mb-2">
+                      {isEditing ? "Modifier le prix d'achat" : "Définir un nouveau prix d'achat"}
+                    </h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Sélectionnez les attributs et définissez le prix d'achat pour cette combinaison
+                      {isEditing 
+                        ? "Modifiez les attributs et le prix pour cette combinaison" 
+                        : "Sélectionnez les attributs et définissez le prix d'achat pour cette combinaison"}
                     </p>
                   </div>
                   
                   <VariantAttributeSelector
                     variationAttributes={product.variation_attributes || {}}
-                    initialSelectedAttributes={{}}
+                    initialSelectedAttributes={selectedAttributes}
                     onAttributesChange={handleAttributesChange}
                   />
                   
@@ -546,7 +583,15 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                     </div>
                   </div>
                   
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
+                    {isEditing && (
+                      <Button 
+                        variant="outline" 
+                        onClick={cancelEdit}
+                      >
+                        Annuler
+                      </Button>
+                    )}
                     <Button 
                       onClick={handleSubmit}
                       disabled={!areAllAttributesSelected() || !purchasePrice || addVariantPriceMutation.isPending}
@@ -554,11 +599,19 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                       {addVariantPriceMutation.isPending ? (
                         <span className="flex items-center">
                           <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
-                          Ajout...
+                          {isEditing ? "Mise à jour..." : "Ajout..."}
                         </span>
                       ) : (
                         <>
-                          <Plus className="mr-2 h-4 w-4" /> Ajouter ce prix
+                          {isEditing ? (
+                            <>
+                              <Edit className="mr-2 h-4 w-4" /> Mettre à jour ce prix
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="mr-2 h-4 w-4" /> Ajouter ce prix
+                            </>
+                          )}
                         </>
                       )}
                     </Button>
@@ -610,14 +663,24 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => confirmDelete(variantPrice.id, variantPrice.attributes)}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(variantPrice)}
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => confirmDelete(variantPrice.id, variantPrice.attributes)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -741,28 +804,11 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
             <DialogTitle>Générer toutes les variantes</DialogTitle>
             <DialogDescription>
               Cette action va créer automatiquement toutes les combinaisons d'attributs possibles
-              avec les prix d'achat spécifiés ci-dessous et supprimer le prix du produit parent.
+              avec des prix aléatoires et supprimer le prix du produit parent.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="base-purchase-price">Prix d'achat de base (€)</Label>
-              <div className="relative">
-                <Input
-                  id="base-purchase-price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={basePurchasePrice}
-                  onChange={(e) => setBasePurchasePrice(e.target.value)}
-                  className="pl-8"
-                  placeholder="0.00"
-                />
-                <Euro className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-            
             <div className="mt-2 p-3 bg-muted rounded-md">
               <p className="text-sm font-medium mb-1">Nombre de combinaisons à générer: </p>
               <p className="text-2xl font-bold">
@@ -783,7 +829,6 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
             </Button>
             <Button 
               onClick={generateAllVariantPrices}
-              disabled={!basePurchasePrice}
             >
               Générer toutes les variantes
             </Button>
