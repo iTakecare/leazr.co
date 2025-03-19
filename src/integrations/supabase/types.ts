@@ -925,9 +925,69 @@ export type Database = {
         }
         Relationships: []
       }
+      product_attribute_values: {
+        Row: {
+          attribute_id: string
+          created_at: string
+          display_value: string
+          id: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          attribute_id: string
+          created_at?: string
+          display_value: string
+          id?: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          attribute_id?: string
+          created_at?: string
+          display_value?: string
+          id?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_attribute_values_attribute_id_fkey"
+            columns: ["attribute_id"]
+            isOneToOne: false
+            referencedRelation: "product_attributes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_attributes: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           active: boolean | null
+          attributes: Json | null
           brand: string | null
           category: string | null
           created_at: string | null
@@ -942,18 +1002,21 @@ export type Database = {
           imageurls: string[] | null
           is_parent: boolean | null
           is_variation: boolean | null
+          model: string | null
           monthly_price: number | null
           name: string
           parent_id: string | null
           price: number
           sku: string | null
           specifications: Json | null
+          stock: number | null
           updated_at: string | null
           variants_ids: string[] | null
           variation_attributes: Json | null
         }
         Insert: {
           active?: boolean | null
+          attributes?: Json | null
           brand?: string | null
           category?: string | null
           created_at?: string | null
@@ -968,18 +1031,21 @@ export type Database = {
           imageurls?: string[] | null
           is_parent?: boolean | null
           is_variation?: boolean | null
+          model?: string | null
           monthly_price?: number | null
           name: string
           parent_id?: string | null
           price?: number
           sku?: string | null
           specifications?: Json | null
+          stock?: number | null
           updated_at?: string | null
           variants_ids?: string[] | null
           variation_attributes?: Json | null
         }
         Update: {
           active?: boolean | null
+          attributes?: Json | null
           brand?: string | null
           category?: string | null
           created_at?: string | null
@@ -994,12 +1060,14 @@ export type Database = {
           imageurls?: string[] | null
           is_parent?: boolean | null
           is_variation?: boolean | null
+          model?: string | null
           monthly_price?: number | null
           name?: string
           parent_id?: string | null
           price?: number
           sku?: string | null
           specifications?: Json | null
+          stock?: number | null
           updated_at?: string | null
           variants_ids?: string[] | null
           variation_attributes?: Json | null

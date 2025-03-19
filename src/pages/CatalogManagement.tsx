@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
 import { deleteAllProducts, deleteProduct, getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Plus, Trash2, Tag, Award, List, Grid3X3 } from "lucide-react";
+import { Plus, Trash2, Tag, Award, List, Grid3X3, Layers, Settings } from "lucide-react";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "sonner";
 import { 
@@ -21,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import BrandManager from "@/components/catalog/BrandManager";
+import AttributeManager from "@/components/catalog/AttributeManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AccordionProductList from "@/components/catalog/AccordionProductList";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -125,6 +127,10 @@ const CatalogManagement = () => {
               <Award className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Marques" : <span>Marques</span>}
             </TabsTrigger>
+            <TabsTrigger value="attributes">
+              <Settings className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Attributs" : <span>Attributs</span>}
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="catalog">
@@ -191,6 +197,10 @@ const CatalogManagement = () => {
           
           <TabsContent value="brands">
             <BrandManager />
+          </TabsContent>
+          
+          <TabsContent value="attributes">
+            <AttributeManager />
           </TabsContent>
         </Tabs>
       </div>

@@ -14,6 +14,8 @@ export interface Product {
   createdAt: Date | string;
   updatedAt: Date | string;
   active: boolean;
+  model?: string;
+  stock?: number;
   
   // WooCommerce compatibility fields
   slug?: string;
@@ -71,16 +73,14 @@ export interface Product {
   categories?: any[];
   tags?: any[];
   images?: any[];
-  attributes?: ProductAttribute[] | Record<string, string | number | boolean>;
+  attributes?: ProductAttributes | Record<string, string | number | boolean>;
   defaultAttributes?: any[];
   variations?: any[];
   groupedProducts?: any[];
   menuOrder?: number;
   metaData?: any[];
   price_number?: number;
-  stock?: number;
   discount_per_quantity?: Record<string, any>;
-  model?: string;
   
   // Additional properties used by the application
   is_parent?: boolean;
@@ -98,9 +98,16 @@ export interface Product {
 
 // Product attribute definition
 export interface ProductAttribute {
+  id?: string;
   name: string;
+  display_name?: string;
   value: string | number | boolean;
   options?: string[];
+}
+
+// Product attributes as key-value pairs
+export interface ProductAttributes {
+  [key: string]: string | number | boolean;
 }
 
 // Product variation attributes definition - for storing available options
@@ -109,39 +116,52 @@ export interface ProductVariationAttributes {
 }
 
 // Product variant definition - ensuring compatible structure with Product
-export interface ProductVariant {
+export interface ProductVariant extends Omit<Product, 'variants' | 'variation_attributes'> {
+  parent_id: string;
+  attributes: ProductAttributes;
+}
+
+// Attribute type definition for the new product_attributes table
+export interface AttributeDefinition {
   id: string;
   name: string;
-  price: number;
-  monthly_price?: number;
-  imageUrl?: string;
-  image_url?: string;
-  specifications?: Record<string, string | number>;
-  attributes?: Record<string, string | number | boolean> | ProductAttribute[];
-  parent_id?: string;
-  // Add any other necessary fields to ensure compatibility with Product
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
-  brand?: string;
-  category?: string;
-  active?: boolean;
+  display_name: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+  values?: AttributeValue[];
+}
+
+// Attribute value definition for the new product_attribute_values table
+export interface AttributeValue {
+  id: string;
+  attribute_id: string;
+  value: string;
+  display_value: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
 }
 
 // Category type definition
 export interface Category {
   id: string;
   name: string;
-  slug: string;
+  slug?: string;
+  translation?: string;
   description?: string;
   imageUrl?: string;
   products?: Product[];
+  created_at?: Date | string;
+  updated_at?: Date | string;
 }
 
 // Brand type definition
 export interface Brand {
   id: string;
   name: string;
+  translation?: string;
   logo?: string;
   description?: string;
   products?: Product[];
+  created_at?: Date | string;
+  updated_at?: Date | string;
 }

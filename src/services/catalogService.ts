@@ -1,6 +1,5 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
-import { Product, ProductAttribute, ProductVariationAttributes } from "@/types/catalog";
+import { Product, ProductAttributes, ProductVariationAttributes } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
 
 export async function getProducts(): Promise<Product[]> {
@@ -21,6 +20,84 @@ export async function getProducts(): Promise<Product[]> {
     return data || [];
   } catch (error) {
     console.error("Error in getProducts:", error);
+    return [];
+  }
+}
+
+export async function getProductsByModel(model: string): Promise<Product[]> {
+  try {
+    console.log(`Fetching products with model: ${model}`);
+    const supabase = getSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('model', model)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(`Error fetching products with model ${model}:`, error);
+      throw new Error(`API Error: ${error.message}`);
+    }
+
+    console.log(`Retrieved ${data?.length || 0} products with model ${model}`);
+    return data || [];
+  } catch (error) {
+    console.error("Error in getProductsByModel:", error);
+    return [];
+  }
+}
+
+export async function getParentProducts(): Promise<Product[]> {
+  try {
+    console.log("Fetching parent products");
+    const supabase = getSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_parent', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching parent products:", error);
+      throw new Error(`API Error: ${error.message}`);
+    }
+
+    console.log(`Retrieved ${data?.length || 0} parent products`);
+    return data || [];
+  } catch (error) {
+    console.error("Error in getParentProducts:", error);
+    return [];
+  }
+}
+
+export async function getProductVariants(parentId: string): Promise<Product[]> {
+  try {
+    console.log(`Fetching variants for product with ID: ${parentId}`);
+    const supabase = getSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('parent_id', parentId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(`Error fetching variants for product ${parentId}:`, error);
+      throw new Error(`API Error: ${error.message}`);
+    }
+
+    const variants = data || [];
+    console.log(`Retrieved ${variants.length} variants for product ${parentId}`);
+    
+    // Process each variant to ensure attributes are in the correct format
+    return variants.map(variant => ({
+      ...variant,
+      attributes: parseAttributes(variant.attributes)
+    }));
+  } catch (error) {
+    console.error("Error in getProductVariants:", error);
     return [];
   }
 }
@@ -59,30 +136,14 @@ export async function getProductById(id: string): Promise<Product | null> {
     if (mainProduct.is_parent) {
       console.log(`Product ${id} is a parent, fetching variants...`);
       
-      const { data: variants, error: variantError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('parent_id', id);
-        
-      if (variantError) {
-        console.error(`Error fetching variants for product ${id}:`, variantError);
-      } else if (variants && variants.length > 0) {
+      const variants = await getProductVariants(id);
+      if (variants.length > 0) {
         console.log(`Found ${variants.length} variants for product ${id}`);
         
-        // Process each variant to ensure attributes are in the correct format
-        mainProduct.variants = variants.map(variant => {
-          // Parse the attributes for each variant
-          const parsedAttributes = parseAttributes(variant.attributes);
-          console.log(`Variant ${variant.id} attributes:`, parsedAttributes);
-          
-          return {
-            ...variant,
-            attributes: parsedAttributes
-          };
-        });
+        mainProduct.variants = variants;
         
         // Extract all possible attribute options from variants
-        mainProduct.variation_attributes = extractVariationAttributesFromVariants(mainProduct.variants);
+        mainProduct.variation_attributes = extractVariationAttributesFromVariants(variants);
         console.log("Extracted variation attributes:", mainProduct.variation_attributes);
       } else {
         console.log(`No variants found for parent product ${id}`);
@@ -92,39 +153,18 @@ export async function getProductById(id: string): Promise<Product | null> {
     else if (mainProduct.parent_id) {
       console.log(`Product ${id} is a variant, fetching parent and siblings...`);
       
-      const { data: parent, error: parentError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', mainProduct.parent_id)
-        .maybeSingle();
-        
-      if (parentError) {
-        console.error(`Error fetching parent for product ${id}:`, parentError);
-      } else if (parent) {
+      const parent = await getProductById(mainProduct.parent_id);
+      if (parent) {
         console.log(`Found parent ${parent.id} for product ${id}`);
         
-        const { data: siblings, error: siblingsError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('parent_id', parent.id);
-          
-        if (siblingsError) {
-          console.error(`Error fetching siblings for product ${id}:`, siblingsError);
-        } else if (siblings && siblings.length > 0) {
+        const siblings = await getProductVariants(parent.id);
+        if (siblings.length > 0) {
           console.log(`Found ${siblings.length} siblings for product ${id}`);
           
-          // Process each sibling to ensure attributes are in the correct format
-          const processedSiblings = siblings.map(variant => {
-            return {
-              ...variant,
-              attributes: parseAttributes(variant.attributes)
-            };
-          });
-          
-          mainProduct.variants = processedSiblings;
+          mainProduct.variants = siblings;
           
           // Extract all possible attribute options from siblings
-          mainProduct.variation_attributes = extractVariationAttributesFromVariants(processedSiblings);
+          mainProduct.variation_attributes = extractVariationAttributesFromVariants(siblings);
           console.log("Extracted variation attributes from siblings:", mainProduct.variation_attributes);
         }
       }
@@ -141,7 +181,7 @@ export async function getProductById(id: string): Promise<Product | null> {
 /**
  * Parse product attributes into a consistent format
  */
-function parseAttributes(attributes: any): Record<string, string | number | boolean> {
+export function parseAttributes(attributes: any): ProductAttributes {
   console.log("Parsing attributes:", attributes);
   if (!attributes) {
     return {};
@@ -160,7 +200,7 @@ function parseAttributes(attributes: any): Record<string, string | number | bool
     
     // If attributes is an object (not array), return it as is with proper type conversion
     if (typeof attributes === 'object' && !Array.isArray(attributes)) {
-      const result: Record<string, string | number | boolean> = {};
+      const result: ProductAttributes = {};
       
       Object.entries(attributes).forEach(([key, value]) => {
         if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -175,7 +215,7 @@ function parseAttributes(attributes: any): Record<string, string | number | bool
     
     // If attributes is an array, convert it to an object
     if (Array.isArray(attributes)) {
-      const result: Record<string, string | number | boolean> = {};
+      const result: ProductAttributes = {};
       
       attributes.forEach((attr, index) => {
         // If attribute is an object with name and value properties
@@ -211,7 +251,7 @@ function parseAttributes(attributes: any): Record<string, string | number | bool
 /**
  * Extract all possible attribute options from a list of variants
  */
-function extractVariationAttributesFromVariants(variants: Product[]): ProductVariationAttributes {
+export function extractVariationAttributesFromVariants(variants: Product[]): ProductVariationAttributes {
   if (!variants || variants.length === 0) {
     return {};
   }
@@ -236,6 +276,53 @@ function extractVariationAttributesFromVariants(variants: Product[]): ProductVar
   });
   
   return result;
+}
+
+export async function findVariantByAttributes(
+  parentId: string, 
+  selectedAttributes: ProductAttributes
+): Promise<Product | null> {
+  try {
+    console.log(`Finding variant for parent ${parentId} with attributes:`, selectedAttributes);
+    const variants = await getProductVariants(parentId);
+    
+    if (!variants || variants.length === 0) {
+      return null;
+    }
+    
+    // Convert selectedAttributes keys to lowercase for case-insensitive comparison
+    const normalizedSelectedAttrs: Record<string, string> = {};
+    Object.entries(selectedAttributes).forEach(([key, value]) => {
+      normalizedSelectedAttrs[key.toLowerCase()] = String(value).toLowerCase();
+    });
+    
+    // Find the variant that matches all selected attributes
+    const matchingVariant = variants.find(variant => {
+      if (!variant.attributes) return false;
+      
+      // Convert variant attributes keys to lowercase
+      const normalizedVariantAttrs: Record<string, string> = {};
+      Object.entries(variant.attributes).forEach(([key, value]) => {
+        normalizedVariantAttrs[key.toLowerCase()] = String(value).toLowerCase();
+      });
+      
+      // Check if all selected attributes match this variant
+      return Object.entries(normalizedSelectedAttrs).every(([key, value]) => 
+        normalizedVariantAttrs[key] === value
+      );
+    });
+    
+    if (matchingVariant) {
+      console.log(`Found matching variant: ${matchingVariant.id}`);
+    } else {
+      console.log(`No matching variant found for attributes:`, selectedAttributes);
+    }
+    
+    return matchingVariant || null;
+  } catch (error) {
+    console.error("Error in findVariantByAttributes:", error);
+    return null;
+  }
 }
 
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: string }> {
@@ -615,3 +702,92 @@ export const deleteBrand = async ({ name }: { name: string }) => {
   
   return data;
 };
+
+export async function createProductVariant(
+  parentId: string, 
+  variantData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { attributes: ProductAttributes }
+): Promise<Product> {
+  try {
+    console.log(`Creating variant for parent ${parentId} with data:`, variantData);
+    const supabase = getSupabaseClient();
+    
+    // Get parent product to inherit properties
+    const parent = await getProductById(parentId);
+    if (!parent) {
+      throw new Error(`Parent product ${parentId} not found`);
+    }
+    
+    // Prepare variant data
+    const newVariant = {
+      ...variantData,
+      parent_id: parentId,
+      is_variation: true,
+      is_parent: false,
+      model: parent.model || parent.name,
+      image_url: variantData.imageUrl || variantData.image_url,
+      brand: parent.brand,
+      category: parent.category
+    };
+    
+    // Remove fields we don't want to duplicate
+    delete (newVariant as any).id;
+    delete (newVariant as any).imageUrl;
+    
+    const { data, error } = await supabase
+      .from('products')
+      .insert([newVariant])
+      .select()
+      .single();
+      
+    if (error) {
+      console.error("Error creating product variant:", error);
+      throw error;
+    }
+    
+    console.log(`Successfully created variant: ${data.id}`);
+    return data;
+  } catch (error) {
+    console.error("Error in createProductVariant:", error);
+    throw error;
+  }
+}
+
+export async function convertProductToParent(
+  productId: string,
+  modelName?: string
+): Promise<Product> {
+  try {
+    console.log(`Converting product ${productId} to parent`);
+    const supabase = getSupabaseClient();
+    
+    const product = await getProductById(productId);
+    if (!product) {
+      throw new Error(`Product ${productId} not found`);
+    }
+    
+    const updateData = {
+      is_parent: true,
+      model: modelName || product.name,
+      parent_id: null,
+      is_variation: false
+    };
+    
+    const { data, error } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', productId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error(`Error converting product ${productId} to parent:`, error);
+      throw error;
+    }
+    
+    console.log(`Successfully converted product ${productId} to parent`);
+    return data;
+  } catch (error) {
+    console.error("Error in convertProductToParent:", error);
+    throw error;
+  }
+}
