@@ -182,6 +182,7 @@ export async function downloadAndUploadImage(
       
       // Extract content type and handle based on the type
       const contentType = response.headers.get('content-type');
+      console.log(`Server reported content type: ${contentType}`);
       
       // Get file extension from URL or content type
       let fileExtension = '';
@@ -206,8 +207,12 @@ export async function downloadAndUploadImage(
         case 'gif': correctMimeType = 'image/gif'; break;
         case 'webp': correctMimeType = 'image/webp'; break;
         case 'svg': correctMimeType = 'image/svg+xml'; break;
+        case 'jpg':
+        case 'jpeg': correctMimeType = 'image/jpeg'; break;
         default: correctMimeType = 'image/jpeg'; // Default to JPEG
       }
+      
+      console.log(`Using file extension: ${fileExtension}, content type: ${correctMimeType}`);
       
       // Get image as array buffer
       const imageArrayBuffer = await response.arrayBuffer();
@@ -234,6 +239,8 @@ export async function downloadAndUploadImage(
       
       // Generate a unique filename with proper extension
       const uniqueFilename = `${filename.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.${fileExtension}`;
+      
+      console.log(`Uploading image with content type ${correctMimeType} to ${uniqueFilename}`);
       
       // Upload to Supabase Storage with explicit content type
       const { error, data } = await supabase.storage

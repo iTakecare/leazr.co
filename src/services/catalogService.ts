@@ -1,3 +1,4 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product, ProductAttributes, ProductVariationAttributes } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -467,7 +468,7 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
           imageUrl: result.url, // Pour compatibilité
           ...(result.altText ? { 
             image_alt: result.altText,
-            imagealt: result.altText // Pour compatibilité
+            image_alts: [result.altText] // Utiliser image_alts au lieu de imageAlts
           } : {})
         });
       } else {
@@ -482,8 +483,7 @@ export async function uploadProductImage(file: File, productId: string, isMainIm
         await updateProduct(productId, {
           image_urls: updatedImageUrls,
           image_alts: updatedImageAlts,
-          imageUrls: updatedImageUrls, // Correction ici: imageUrls au lieu de imageurls (avec U majuscule)
-          imageAlts: updatedImageAlts // Correction ici: imageAlts au lieu de imagealts (avec A majuscule)
+          imageUrls: updatedImageUrls // Correction: imageUrls avec U majuscule
         });
       }
     }

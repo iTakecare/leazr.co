@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { ensureStorageBucket, downloadAndUploadImage } from "./storageService";
 
@@ -87,33 +86,29 @@ export async function uploadImage(
       finalPath = `${pathParts.join('/')}/${seoFilename}-${Date.now()}.${extension}`;
     }
 
-    // Verify the file is an image
-    if (!file.type.startsWith('image/')) {
-      console.warn(`File is not a valid image, detected type: ${file.type}`);
-      
-      // Determine type based on extension
-      let contentType = 'image/jpeg'; // Default type
-      
-      if (extension === 'png') contentType = 'image/png';
-      else if (extension === 'gif') contentType = 'image/gif';
-      else if (extension === 'webp') contentType = 'image/webp';
-      else if (extension === 'svg') contentType = 'image/svg+xml';
-      
-      // Create a new blob with the correct type
+    // Determine the correct MIME type based on file extension
+    let contentType;
+    switch (extension) {
+      case 'png': contentType = 'image/png'; break;
+      case 'jpg':
+      case 'jpeg': contentType = 'image/jpeg'; break;
+      case 'gif': contentType = 'image/gif'; break;
+      case 'webp': contentType = 'image/webp'; break;
+      case 'svg': contentType = 'image/svg+xml'; break;
+      default: contentType = file.type || 'image/jpeg';
+    }
+    
+    console.log(`Detected file extension: ${extension}, setting content type: ${contentType}`);
+
+    // If the file's type doesn't match the extension, create a new file with the correct type
+    if (file.type !== contentType) {
+      console.log(`File type mismatch: ${file.type} vs ${contentType}, creating new file with correct type`);
       const fileArrayBuffer = await file.arrayBuffer();
-      const correctedFile = new File(
-        [fileArrayBuffer], 
-        file.name, 
-        { type: contentType }
-      );
-      
-      // Use this new file
-      file = correctedFile;
-      console.log(`Corrected file type: ${file.type}`);
+      file = new File([fileArrayBuffer], file.name, { type: contentType });
     }
     
     // Try with regular client first
-    console.log(`Uploading image of type: ${file.type} to path: ${finalPath}`);
+    console.log(`Uploading image to path: ${finalPath} with content type: ${contentType}`);
     let supabase = getSupabaseClient();
     
     // Upload the file with explicit content type
@@ -122,7 +117,7 @@ export async function uploadImage(
       .upload(finalPath, file, {
         cacheControl: '3600',
         upsert: true,
-        contentType: file.type
+        contentType: contentType
       });
       
     // If error with regular client, try with admin client
@@ -136,7 +131,7 @@ export async function uploadImage(
         .upload(finalPath, file, {
           cacheControl: '3600',
           upsert: true,
-          contentType: file.type
+          contentType: contentType
         });
         
       data = result.data;
