@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
 import { deleteAllProducts, deleteProduct, getProducts } from "@/services/catalogService";
@@ -31,6 +31,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const CatalogManagement = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
@@ -56,7 +57,7 @@ const CatalogManagement = () => {
   const deleteAllProductsMutation = useMutation({
     mutationFn: deleteAllProducts,
     onSuccess: () => {
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
         title: "Succès",
         description: "Tous les produits ont été supprimés",
@@ -76,7 +77,7 @@ const CatalogManagement = () => {
   const deleteProductMutation = useMutation({
     mutationFn: deleteProduct,
     onSuccess: () => {
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
         title: "Succès",
         description: "Le produit a été supprimé",
@@ -95,7 +96,7 @@ const CatalogManagement = () => {
 
   const onProductAdded = () => {
     setIsAddProductOpen(false);
-    refetch();
+    queryClient.invalidateQueries({ queryKey: ["products"] });
     toast({
       title: "Succès",
       description: "Produit ajouté avec succès",
@@ -111,8 +112,14 @@ const CatalogManagement = () => {
     navigate(`/products/${product.id}`);
   };
 
-  const handleProductDeleted = (productId: string) => {
-    deleteProductMutation.mutate(productId);
+  const handleProductDeleted = async (productId: string) => {
+    try {
+      await deleteProductMutation.mutateAsync(productId);
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      return Promise.reject(error);
+    }
   };
 
   const handleAddNewProduct = () => {

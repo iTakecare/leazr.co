@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
@@ -9,6 +9,18 @@ import { motion } from "framer-motion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronsUpDown, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/use-toast";
 
 interface CollapsibleProductListProps {
   products?: Product[];
@@ -16,14 +28,19 @@ interface CollapsibleProductListProps {
 }
 
 const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }: CollapsibleProductListProps) => {
+  const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  
   // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
-  const { data: fetchedProducts = [], isLoading } = useQuery({
+  const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
     enabled: !providedProducts, // Ne récupère les produits que s'ils ne sont pas déjà fournis
   });
 
-  const products = providedProducts || fetchedProducts;
+  // Mise à jour des produits locaux quand les produits fournis ou récupérés changent
+  useEffect(() => {
+    setLocalProducts(providedProducts || fetchedProducts);
+  }, [providedProducts, fetchedProducts]);
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -40,7 +57,7 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
     );
   }
 
-  if (products.length === 0) {
+  if (localProducts.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Aucun produit trouvé.</p>
@@ -48,15 +65,34 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
     );
   }
 
-  const handleDeleteClick = (productId: string, e: React.MouseEvent) => {
+  const handleDeleteClick = async (productId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onDeleteProduct(productId);
+    
+    try {
+      await onDeleteProduct(productId);
+      
+      // Mise à jour des produits locaux après la suppression
+      setLocalProducts(prevProducts => prevProducts.filter(product => product.id !== productId));
+      
+      toast({
+        title: "Succès",
+        description: "Le produit a été supprimé",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le produit",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="space-y-4">
-      {products.map((product, index) => (
+      {localProducts.map((product, index) => (
         <motion.div
           key={product.id}
           variants={itemVariants}
@@ -81,7 +117,7 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
                   <h3 className="font-medium">{product.name}</h3>
                   <p className="text-sm text-muted-foreground">
                     {product.category} • 
-                    {formatCurrency(product.price || 0)}
+                    {!product.is_parent && formatCurrency(product.price || 0)}
                   </p>
                 </div>
               </div>
@@ -89,13 +125,30 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
                 <Link to={`/products/${product.id}`}>
                   <Button variant="outline" size="sm">Modifier</Button>
                 </Link>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={(e) => handleDeleteClick(product.id, e)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Êtes-vous sûr de vouloir supprimer ce produit{product.is_parent ? " et toutes ses variantes" : ""} ?
+                        Cette action ne peut pas être annulée.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={(e) => handleDeleteClick(product.id, e as React.MouseEvent)}>
+                        Supprimer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <ChevronsUpDown className="h-4 w-4" />
@@ -116,8 +169,12 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
                     <h4 className="text-sm font-medium mb-1">Détails</h4>
                     <ul className="text-sm space-y-1">
                       <li><span className="text-muted-foreground">Marque:</span> {product.brand || "Non spécifiée"}</li>
-                      <li><span className="text-muted-foreground">Prix:</span> {formatCurrency(product.price || 0)}</li>
-                      <li><span className="text-muted-foreground">Mensualité:</span> {formatCurrency(product.monthly_price || 0)}/mois</li>
+                      {!product.is_parent && (
+                        <>
+                          <li><span className="text-muted-foreground">Prix:</span> {formatCurrency(product.price || 0)}</li>
+                          <li><span className="text-muted-foreground">Mensualité:</span> {formatCurrency(product.monthly_price || 0)}/mois</li>
+                        </>
+                      )}
                     </ul>
                   </div>
                 </div>

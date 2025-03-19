@@ -1,5 +1,5 @@
 
-import React, { useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Package, Layers, Edit, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Product } from "@/types/catalog"; 
+import { toast } from "@/components/ui/use-toast";
 
 interface AccordionProductListProps {
   products: Product[];
@@ -25,10 +26,17 @@ interface GroupedProducts {
 }
 
 const AccordionProductList: React.FC<AccordionProductListProps> = ({ 
-  products,
+  products: initialProducts,
   onProductDeleted,
   groupingOption 
 }) => {
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+
+  // Mettre à jour les produits locaux lorsque les produits initiaux changent
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
+  
   // Regrouper les produits par modèle ou marque
   const groupedProducts = useMemo(() => {
     const grouped: GroupedProducts = {};
@@ -77,8 +85,32 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return grouped;
   }, [products, groupingOption]);
 
-  const handleDeleteProduct = (productId: string) => {
-    onProductDeleted(productId);
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      await onProductDeleted(productId);
+      
+      // Mettre à jour l'état local pour retirer le produit supprimé
+      setProducts(prevProducts => {
+        // Retirer le produit supprimé et ses variantes
+        const updatedProducts = prevProducts.filter(product => 
+          product.id !== productId && product.parent_id !== productId
+        );
+        return updatedProducts;
+      });
+      
+      toast({
+        title: "Succès",
+        description: "Le produit a été supprimé",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le produit",
+        variant: "destructive",
+      });
+    }
   };
 
   if (products.length === 0) {
