@@ -13,7 +13,9 @@ import {
   Shield,
   User,
   Menu,
-  ChevronRight
+  ChevronLeft,
+  ChevronRight,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -26,6 +28,8 @@ import {
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface SidebarProps {
   className?: string;
@@ -36,6 +40,8 @@ interface MenuItem {
   label: string;
   icon: React.ElementType;
   href: string;
+  badge?: string;
+  isNew?: boolean;
 }
 
 const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
@@ -61,10 +67,10 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
     { label: "Contrats", icon: FileText, href: "/client/contracts" },
     { label: "Équipements", icon: Laptop, href: "/client/equipment" },
-    { label: "Demandes en cours", icon: Clock, href: "/client/requests" },
+    { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
     { label: "Catalogue", icon: Package, href: "/client/catalog" },
     { label: "Calculateur", icon: Calculator, href: "/client/calculator" },
-    { label: "Packs iTakecare", icon: Shield, href: "/client/itakecare" },
+    { label: "Packs iTakecare", icon: Shield, href: "/client/itakecare", isNew: true },
   ];
 
   const isActive = (path: string) => {
@@ -79,7 +85,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
           variant="ghost"
           size="icon"
           onClick={() => setMobileOpen(true)}
-          className="fixed top-4 left-4 z-50 md:hidden bg-background/80 backdrop-blur-sm shadow-md rounded-full"
+          className="fixed top-4 left-4 z-50 md:hidden bg-background/90 backdrop-blur-sm shadow-lg rounded-full hover:bg-primary/20 transition-all"
           aria-label="Menu"
         >
           <Menu className="h-5 w-5 text-primary" />
@@ -87,22 +93,29 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
         </Button>
         
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="p-0 w-[250px] border-0 bg-gradient-to-b from-background to-muted/50">
+          <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
             <div className="flex flex-col h-full">
-              <div className="px-4 py-6 mb-2">
+              <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-md bg-primary/20 flex items-center justify-center">
-                    <span className="font-bold text-primary">IT</span>
+                  <div className="relative w-10 h-10">
+                    <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
+                    <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-background rounded-xl shadow-md">
+                      <span className="font-bold text-primary text-lg">IT</span>
+                    </div>
                   </div>
                   <div>
                     <h1 className="text-lg font-bold">iTakecare</h1>
                     <p className="text-xs text-muted-foreground">Espace Client</p>
                   </div>
                 </div>
+                <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full">
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
               
-              <nav className="flex-1 px-2">
-                <ul className="space-y-1.5">
+              <nav className="flex-1 px-2 py-4">
+                <ul className="space-y-1">
                   {sidebarItems.map((item) => (
                     <li key={item.href}>
                       <Link
@@ -112,15 +125,25 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
                           setMobileOpen(false);
                         }}
                         className={cn(
-                          "flex items-center py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200",
+                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300",
                           isActive(item.href)
-                            ? "bg-primary/15 text-primary shadow-sm translate-x-1"
-                            : "hover:bg-primary/5 hover:text-primary hover:translate-x-1"
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
+                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
                         )}
                         aria-current={isActive(item.href) ? "page" : undefined}
                       >
-                        <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "text-primary")} />
-                        {item.label}
+                        <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
+                        <span className="flex-1">{item.label}</span>
+                        {item.badge && (
+                          <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
+                            {item.badge}
+                          </Badge>
+                        )}
+                        {item.isNew && !item.badge && (
+                          <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
+                            New
+                          </Badge>
+                        )}
                       </Link>
                     </li>
                   ))}
@@ -128,11 +151,13 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
               </nav>
               
               {user && (
-                <div className="p-4 mt-auto border-t border-t-muted/40">
+                <div className="p-4 border-t mt-auto">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
+                    <Avatar>
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        {user.email?.substring(0, 2).toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="overflow-hidden">
                       <p className="text-sm font-medium truncate">{user.email}</p>
                       <p className="text-xs text-muted-foreground">Client</p>
@@ -143,7 +168,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
                     variant="outline" 
                     size="sm" 
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10"
+                    className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
                   >
                     <LogOut className="h-4 w-4" />
                     Déconnexion
@@ -160,31 +185,48 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
   return (
     <aside
       className={cn(
-        "h-screen sticky top-0 transition-all duration-300 bg-gradient-to-b from-background to-secondary/10 border-r border-r-primary/10 shadow-md",
-        collapsed ? "w-[72px]" : "w-[240px]",
+        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
+        collapsed ? "w-[80px]" : "w-[280px]",
         className
       )}
     >
       <div className="flex flex-col h-full">
         <div className={cn(
-          "flex items-center gap-2 p-4 mb-4 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6"
+          "flex items-center p-4 mb-2 transition-all duration-300",
+          collapsed ? "justify-center" : "px-6 justify-between"
         )}>
-          <div className="w-9 h-9 rounded-md bg-primary/20 flex items-center justify-center flex-shrink-0">
-            <span className="font-bold text-primary">IT</span>
+          <div className="flex items-center gap-2">
+            <div className="relative w-10 h-10 flex-shrink-0">
+              <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
+              <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
+              <div className="absolute inset-0 flex items-center justify-center bg-background rounded-xl shadow-md">
+                <span className="font-bold text-primary text-lg">IT</span>
+              </div>
+            </div>
+            
+            {!collapsed && (
+              <div className="overflow-hidden">
+                <h1 className="text-lg font-bold">iTakecare</h1>
+                <p className="text-xs text-muted-foreground">Espace Client</p>
+              </div>
+            )}
           </div>
           
           {!collapsed && (
-            <div className="overflow-hidden">
-              <h1 className="text-lg font-bold">iTakecare</h1>
-              <p className="text-xs text-muted-foreground">Espace Client</p>
-            </div>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setCollapsed(true)} 
+              className="rounded-full hover:bg-primary/10"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
           )}
         </div>
         
-        <nav className="flex-1 px-2 py-2">
+        <nav className="flex-1 px-2 py-4">
           <TooltipProvider delayDuration={200}>
-            <ul className="space-y-1.5">
+            <ul className="space-y-1">
               {sidebarItems.map((item) => (
                 <li key={item.href}>
                   <Tooltip>
@@ -193,26 +235,45 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
                         to={item.href}
                         onClick={onLinkClick}
                         className={cn(
-                          "flex items-center py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                          "flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
                           collapsed ? "justify-center px-2" : "px-3",
                           isActive(item.href)
-                            ? "bg-primary/15 text-primary shadow-sm" 
-                            : "hover:bg-primary/5 hover:text-primary"
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
+                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
                         )}
                         aria-current={isActive(item.href) ? "page" : undefined}
                       >
                         <item.icon 
                           className={cn(
                             "h-5 w-5 flex-shrink-0", 
-                            collapsed ? "" : "mr-3",
+                            collapsed ? "relative" : "mr-3",
                             isActive(item.href) && "stroke-[2.5px]"
                           )} 
                         />
-                        {!collapsed && <span>{item.label}</span>}
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1">{item.label}</span>
+                            {item.badge && (
+                              <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
+                                {item.badge}
+                              </Badge>
+                            )}
+                            {item.isNew && !item.badge && (
+                              <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
+                                New
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                        {collapsed && item.badge && (
+                          <Badge className="absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-4 h-4 p-0 flex items-center justify-center text-[10px]">
+                            {item.badge}
+                          </Badge>
+                        )}
                       </Link>
                     </TooltipTrigger>
                     {collapsed && (
-                      <TooltipContent side="right">
+                      <TooltipContent side="right" className="font-medium">
                         <p>{item.label}</p>
                       </TooltipContent>
                     )}
@@ -225,15 +286,17 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
         
         {user && (
           <div className={cn(
-            "transition-all duration-300 border-t border-t-muted/40",
-            collapsed ? "py-4" : "p-4"
+            "transition-all duration-300 mt-auto",
+            collapsed ? "p-2" : "p-4 mx-2 mb-2 bg-primary/5 rounded-xl"
           )}>
             {!collapsed ? (
               <>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <User className="h-4 w-4 text-primary" />
-                  </div>
+                  <Avatar>
+                    <AvatarFallback className="bg-primary/20 text-primary">
+                      {user.email?.substring(0, 2).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="overflow-hidden">
                     <p className="text-sm font-medium truncate">{user.email}</p>
                     <p className="text-xs text-muted-foreground">Client</p>
@@ -244,7 +307,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
                   variant="outline" 
                   size="sm" 
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10"
+                  className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
                 >
                   <LogOut className="h-4 w-4" />
                   Déconnexion
@@ -258,7 +321,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
                       variant="ghost" 
                       size="icon" 
                       onClick={handleLogout}
-                      className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+                      className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive rounded-xl"
                     >
                       <LogOut className="h-5 w-5" />
                       <span className="sr-only">Déconnexion</span>
@@ -273,19 +336,18 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
           </div>
         )}
         
-        <div className="p-2">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => setCollapsed(!collapsed)} 
-            className="w-full flex justify-center items-center h-10 rounded-lg"
-          >
-            <ChevronRight className={cn("h-5 w-5 transition-transform", collapsed ? "rotate-180" : "")} />
-            <span className="sr-only">
-              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            </span>
-          </Button>
-        </div>
+        {collapsed && (
+          <div className="p-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setCollapsed(false)} 
+              className="w-full flex justify-center items-center h-10 rounded-xl hover:bg-primary/10"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
       </div>
     </aside>
   );
