@@ -11,7 +11,9 @@ import {
   LogOut,
   Calculator,
   Shield,
-  User
+  User,
+  Menu,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -22,78 +24,27 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-
-interface MenuItemProps {
-  to: string;
-  icon: React.ElementType;
-  label: string;
-  active: boolean;
-}
-
-const MenuItem = ({ to, icon: Icon, label, active }: MenuItemProps) => {
-  return (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            to={to}
-            className={cn(
-              "flex items-center justify-center py-4 px-3 my-4 rounded-xl transition-all duration-300",
-              active
-                ? "bg-primary/15 text-primary shadow-md translate-x-1 scale-105"
-                : "text-muted-foreground hover:bg-primary/5 hover:text-primary hover:translate-x-1 hover:scale-105"
-            )}
-          >
-            <Icon className={cn("h-6 w-6", active && "stroke-[2.5px]")} aria-hidden="true" />
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent side="right" className="font-medium">
-          <p>{label}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
-
-interface ActionItemProps {
-  icon: React.ElementType;
-  label: string;
-  onClick: () => void;
-}
-
-const ActionItem = ({ icon: Icon, label, onClick }: ActionItemProps) => {
-  return (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            onClick={onClick}
-            className="flex items-center justify-center py-4 px-3 my-4 rounded-xl transition-all duration-300 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 hover:scale-105"
-          >
-            <Icon className="h-6 w-6" aria-hidden="true" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="right" className="font-medium">
-          <p>{label}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface SidebarProps {
   className?: string;
   onLinkClick?: () => void;
 }
 
+interface MenuItem {
+  label: string;
+  icon: React.ElementType;
+  href: string;
+}
+
 const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-
-  const isActive = (path: string) => {
-    return location.pathname.startsWith(path);
-  };
+  const isMobile = useIsMobile();
+  const [collapsed, setCollapsed] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const handleLogout = async () => {
     try {
@@ -106,57 +57,237 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     }
   };
 
-  const sidebarItems = [
-    { path: "/client/dashboard", icon: LayoutDashboard, label: "Tableau de bord" },
-    { path: "/client/contracts", icon: FileText, label: "Contrats" },
-    { path: "/client/equipment", icon: Laptop, label: "Équipements" },
-    { path: "/client/requests", icon: Clock, label: "Demandes en cours" },
-    { path: "/client/catalog", icon: Package, label: "Catalogue" },
-    { path: "/client/calculator", icon: Calculator, label: "Calculateur" },
-    { path: "/client/itakecare", icon: Shield, label: "Packs iTakecare" },
+  const sidebarItems: MenuItem[] = [
+    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
+    { label: "Contrats", icon: FileText, href: "/client/contracts" },
+    { label: "Équipements", icon: Laptop, href: "/client/equipment" },
+    { label: "Demandes en cours", icon: Clock, href: "/client/requests" },
+    { label: "Catalogue", icon: Package, href: "/client/catalog" },
+    { label: "Calculateur", icon: Calculator, href: "/client/calculator" },
+    { label: "Packs iTakecare", icon: Shield, href: "/client/itakecare" },
   ];
 
+  const isActive = (path: string) => {
+    return location.pathname.startsWith(path);
+  };
+
+  // Handle mobile sidebar
+  if (isMobile) {
+    return (
+      <>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMobileOpen(true)}
+          className="fixed top-4 left-4 z-50 md:hidden bg-background/80 backdrop-blur-sm shadow-md rounded-full"
+          aria-label="Menu"
+        >
+          <Menu className="h-5 w-5 text-primary" />
+          <span className="sr-only">Menu</span>
+        </Button>
+        
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="p-0 w-[250px] border-0 bg-gradient-to-b from-background to-muted/50">
+            <div className="flex flex-col h-full">
+              <div className="px-4 py-6 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-md bg-primary/20 flex items-center justify-center">
+                    <span className="font-bold text-primary">IT</span>
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-bold">iTakecare</h1>
+                    <p className="text-xs text-muted-foreground">Espace Client</p>
+                  </div>
+                </div>
+              </div>
+              
+              <nav className="flex-1 px-2">
+                <ul className="space-y-1.5">
+                  {sidebarItems.map((item) => (
+                    <li key={item.href}>
+                      <Link
+                        to={item.href}
+                        onClick={() => {
+                          onLinkClick?.();
+                          setMobileOpen(false);
+                        }}
+                        className={cn(
+                          "flex items-center py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200",
+                          isActive(item.href)
+                            ? "bg-primary/15 text-primary shadow-sm translate-x-1"
+                            : "hover:bg-primary/5 hover:text-primary hover:translate-x-1"
+                        )}
+                        aria-current={isActive(item.href) ? "page" : undefined}
+                      >
+                        <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "text-primary")} />
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              
+              {user && (
+                <div className="p-4 mt-auto border-t border-t-muted/40">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="overflow-hidden">
+                      <p className="text-sm font-medium truncate">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">Client</p>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Déconnexion
+                  </Button>
+                </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+  
   return (
-    <div
+    <aside
       className={cn(
-        "h-full flex flex-col border-r bg-gradient-to-b from-background to-muted/50 w-16 shadow-md",
+        "h-screen sticky top-0 transition-all duration-300 bg-gradient-to-b from-background to-secondary/10 border-r border-r-primary/10 shadow-md",
+        collapsed ? "w-[72px]" : "w-[240px]",
         className
       )}
     >
-      <div className="flex-1 overflow-y-auto py-8 px-2">
-        <div className="flex justify-center mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/70 text-white rounded-full flex items-center justify-center text-primary-foreground font-bold shadow-lg">
-            IT
+      <div className="flex flex-col h-full">
+        <div className={cn(
+          "flex items-center gap-2 p-4 mb-4 transition-all duration-300",
+          collapsed ? "justify-center" : "px-6"
+        )}>
+          <div className="w-9 h-9 rounded-md bg-primary/20 flex items-center justify-center flex-shrink-0">
+            <span className="font-bold text-primary">IT</span>
           </div>
+          
+          {!collapsed && (
+            <div className="overflow-hidden">
+              <h1 className="text-lg font-bold">iTakecare</h1>
+              <p className="text-xs text-muted-foreground">Espace Client</p>
+            </div>
+          )}
         </div>
-        <div className="space-y-4">
-          {sidebarItems.map((item) => (
-            <MenuItem
-              key={item.path}
-              to={item.path}
-              icon={item.icon}
-              label={item.label}
-              active={isActive(item.path)}
-              // Pass the onLinkClick handler to close mobile menu if needed
-              {...(onLinkClick && { onClick: onLinkClick })}
-            />
-          ))}
+        
+        <nav className="flex-1 px-2 py-2">
+          <TooltipProvider delayDuration={200}>
+            <ul className="space-y-1.5">
+              {sidebarItems.map((item) => (
+                <li key={item.href}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={item.href}
+                        onClick={onLinkClick}
+                        className={cn(
+                          "flex items-center py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                          collapsed ? "justify-center px-2" : "px-3",
+                          isActive(item.href)
+                            ? "bg-primary/15 text-primary shadow-sm" 
+                            : "hover:bg-primary/5 hover:text-primary"
+                        )}
+                        aria-current={isActive(item.href) ? "page" : undefined}
+                      >
+                        <item.icon 
+                          className={cn(
+                            "h-5 w-5 flex-shrink-0", 
+                            collapsed ? "" : "mr-3",
+                            isActive(item.href) && "stroke-[2.5px]"
+                          )} 
+                        />
+                        {!collapsed && <span>{item.label}</span>}
+                      </Link>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right">
+                        <p>{item.label}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </li>
+              ))}
+            </ul>
+          </TooltipProvider>
+        </nav>
+        
+        {user && (
+          <div className={cn(
+            "transition-all duration-300 border-t border-t-muted/40",
+            collapsed ? "py-4" : "p-4"
+          )}>
+            {!collapsed ? (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="text-sm font-medium truncate">{user.email}</p>
+                    <p className="text-xs text-muted-foreground">Client</p>
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Déconnexion
+                </Button>
+              </>
+            ) : (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={handleLogout}
+                      className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      <span className="sr-only">Déconnexion</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Déconnexion</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        )}
+        
+        <div className="p-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setCollapsed(!collapsed)} 
+            className="w-full flex justify-center items-center h-10 rounded-lg"
+          >
+            <ChevronRight className={cn("h-5 w-5 transition-transform", collapsed ? "rotate-180" : "")} />
+            <span className="sr-only">
+              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            </span>
+          </Button>
         </div>
       </div>
-
-      {user && (
-        <div className="p-3 border-t border-t-muted/40 flex flex-col items-center pt-6 pb-6">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center text-primary font-medium mb-6 shadow-md">
-            <User className="h-5 w-5" />
-          </div>
-          <ActionItem 
-            icon={LogOut} 
-            label="Déconnexion" 
-            onClick={handleLogout} 
-          />
-        </div>
-      )}
-    </div>
+    </aside>
   );
 };
 
