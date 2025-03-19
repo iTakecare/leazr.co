@@ -12,6 +12,10 @@ interface ProductCardProps {
     category?: string;
     brand?: string;
     image_url?: string;
+    variants?: Array<{
+      monthly_price?: number;
+      price?: number;
+    }>;
   };
   onClick?: () => void;
 }
@@ -20,7 +24,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   // Ensure we have valid data for display
   const productName = product?.name || "Produit sans nom";
   const productPrice = product?.price !== undefined ? formatCurrency(product.price) : "Non défini";
-  const productMonthlyPrice = product?.monthly_price !== undefined ? formatCurrency(product.monthly_price) : "Non définie";
+  
+  // Calculate minimum monthly price from variants if they exist
+  let productMonthlyPrice = "Non définie";
+  if (product?.monthly_price) {
+    productMonthlyPrice = formatCurrency(product.monthly_price);
+  } else if (product?.variants && product.variants.length > 0) {
+    const variantPrices = product.variants
+      .map(variant => variant.monthly_price || 0)
+      .filter(price => price > 0);
+      
+    if (variantPrices.length > 0) {
+      const minPrice = Math.min(...variantPrices);
+      productMonthlyPrice = formatCurrency(minPrice);
+    }
+  }
+  
   const productImage = product?.image_url || "/placeholder.svg";
 
   return (

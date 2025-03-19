@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -46,22 +45,10 @@ export async function getProductById(id: string): Promise<Product | null> {
       return null;
     }
     
-    // Normaliser les attributs du produit principal pour garantir qu'ils sont au format Record
-    if (mainProduct.attributes) {
-      if (Array.isArray(mainProduct.attributes)) {
-        const attributesObj: Record<string, string | number | boolean> = {};
-        mainProduct.attributes.forEach((attr: any) => {
-          if (attr.name && attr.value !== undefined) {
-            attributesObj[attr.name] = attr.value;
-          }
-        });
-        mainProduct.attributes = attributesObj;
-      } else if (typeof mainProduct.attributes !== 'object') {
-        mainProduct.attributes = {};
-      }
-    } else {
-      mainProduct.attributes = {};
-    }
+    // Normalisation des attributs du produit principal
+    console.log("Main product original attributes:", mainProduct.attributes);
+    mainProduct.attributes = normalizeAttributes(mainProduct.attributes);
+    console.log("Main product normalized attributes:", mainProduct.attributes);
     
     // Pour débogage, loguer les informations sur le produit parent
     console.log(`Product data: is_parent=${mainProduct.is_parent}, parent_id=${mainProduct.parent_id}`);
@@ -80,42 +67,27 @@ export async function getProductById(id: string): Promise<Product | null> {
       } else if (variants && variants.length > 0) {
         console.log(`Found ${variants.length} variants for product ${id}`);
         
-        // Loguer le premier variant pour déboggage (voir s'il a des attributs)
-        if (variants[0]) {
-          console.log(`First variant attributes:`, variants[0].attributes);
-        }
+        // Log les attributs des variantes pour le débogage
+        variants.forEach((variant, index) => {
+          console.log(`Variant ${index + 1} ID:`, variant.id);
+          console.log(`Variant ${index + 1} original attributes:`, variant.attributes);
+        });
         
         // Normaliser les attributs pour chaque variante
         mainProduct.variants = variants.map(variant => {
           // Convertir les attributs au format Record
-          if (variant.attributes) {
-            if (Array.isArray(variant.attributes)) {
-              if (variant.attributes.length === 0) {
-                variant.attributes = {};
-              } else {
-                const attributesObj: Record<string, string | number | boolean> = {};
-                variant.attributes.forEach((attr: any) => {
-                  if (attr.name && attr.value !== undefined) {
-                    attributesObj[attr.name] = attr.value;
-                  }
-                });
-                variant.attributes = attributesObj;
-              }
-            } else if (typeof variant.attributes !== 'object') {
-              variant.attributes = {};
-            }
-          } else {
-            variant.attributes = {};
-          }
+          variant.attributes = normalizeAttributes(variant.attributes);
           return variant;
         });
         
         // Log variants après normalisation
-        console.log(`Normalized variants:`, mainProduct.variants.map(v => ({
-          id: v.id, 
-          monthly_price: v.monthly_price,
-          attributes: v.attributes
-        })));
+        mainProduct.variants.forEach((variant, index) => {
+          console.log(`Normalized variant ${index + 1}:`, {
+            id: variant.id, 
+            monthly_price: variant.monthly_price,
+            attributes: variant.attributes
+          });
+        });
       } else {
         console.log(`No variants found for parent product ${id}`);
         mainProduct.variants = [];
@@ -145,27 +117,9 @@ export async function getProductById(id: string): Promise<Product | null> {
         } else if (siblings && siblings.length > 0) {
           console.log(`Found ${siblings.length} siblings for product ${id}`);
           
-          // Normaliser les attributs pour chaque frère/sœur (variant)
+          // Normaliser les attributs pour chaque variante
           const processedSiblings = siblings.map(variant => {
-            if (variant.attributes) {
-              if (Array.isArray(variant.attributes)) {
-                if (variant.attributes.length === 0) {
-                  variant.attributes = {};
-                } else {
-                  const attributesObj: Record<string, string | number | boolean> = {};
-                  variant.attributes.forEach((attr: any) => {
-                    if (attr.name && attr.value !== undefined) {
-                      attributesObj[attr.name] = attr.value;
-                    }
-                  });
-                  variant.attributes = attributesObj;
-                }
-              } else if (typeof variant.attributes !== 'object') {
-                variant.attributes = {};
-              }
-            } else {
-              variant.attributes = {};
-            }
+            variant.attributes = normalizeAttributes(variant.attributes);
             return variant;
           });
           
@@ -196,6 +150,48 @@ export async function getProductById(id: string): Promise<Product | null> {
     console.error("Error in getProductById:", error);
     throw error;
   }
+}
+
+// Fonction utilitaire pour normaliser les attributs de produit/variante
+function normalizeAttributes(attributes: any): Record<string, string | number | boolean> {
+  // Si null ou undefined, retourner un objet vide
+  if (!attributes) {
+    return {};
+  }
+  
+  // Si c'est déjà un objet et pas un tableau, le valider
+  if (typeof attributes === 'object' && !Array.isArray(attributes)) {
+    // Vérifier que toutes les valeurs sont des types primitifs
+    const normalized: Record<string, string | number | boolean> = {};
+    Object.entries(attributes).forEach(([key, value]) => {
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        normalized[key] = value;
+      } else if (value !== null && value !== undefined) {
+        // Convertir les valeurs non-primitives en chaînes
+        normalized[key] = String(value);
+      }
+    });
+    return normalized;
+  }
+  
+  // Si c'est un tableau, le convertir en objet
+  if (Array.isArray(attributes)) {
+    const normalized: Record<string, string | number | boolean> = {};
+    attributes.forEach((attr: any) => {
+      if (attr && typeof attr === 'object' && 'name' in attr && 'value' in attr) {
+        const value = attr.value;
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          normalized[attr.name] = value;
+        } else if (value !== null && value !== undefined) {
+          normalized[attr.name] = String(value);
+        }
+      }
+    });
+    return normalized;
+  }
+  
+  // Si c'est autre chose, retourner un objet vide
+  return {};
 }
 
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: string }> {

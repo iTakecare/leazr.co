@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -43,12 +42,11 @@ const ProductDetailPage = () => {
       setCurrentImage(product.image_url || product.imageUrl || "/placeholder.svg");
       
       // Extract available options from variants
-      const options: Record<string, string[]> = {};
+      const options: Record<string, Set<string>> = {};
       const allCombinations: Array<Record<string, string>> = [];
       
       if (product.variants && product.variants.length > 0) {
         console.log("Product has variants:", product.variants.length);
-        console.log("First variant:", product.variants[0]);
         
         // For each variant, extract attributes and add them as options
         product.variants.forEach(variant => {
@@ -60,12 +58,10 @@ const ProductDetailPage = () => {
             
             Object.entries(variant.attributes).forEach(([key, value]) => {
               if (!options[key]) {
-                options[key] = [];
+                options[key] = new Set();
               }
               const stringValue = String(value);
-              if (!options[key].includes(stringValue)) {
-                options[key].push(stringValue);
-              }
+              options[key].add(stringValue);
               combination[key] = stringValue;
             });
             
@@ -79,42 +75,46 @@ const ProductDetailPage = () => {
             }
           }
         });
-        
-        // Sort the options by value
-        Object.keys(options).forEach(key => {
-          options[key].sort();
+
+        // Convert Sets to Arrays and sort
+        const sortedOptions: Record<string, string[]> = {};
+        Object.entries(options).forEach(([key, valueSet]) => {
+          sortedOptions[key] = Array.from(valueSet).sort();
         });
-      }
-      
-      console.log("Extracted options:", options);
-      console.log("Valid combinations:", allCombinations);
-      
-      setAvailableOptions(options);
-      setValidCombinations(allCombinations);
-      
-      // Set default selected options
-      const defaultOptions: Record<string, string> = {};
-      Object.entries(options).forEach(([key, values]) => {
-        if (values.length > 0) {
-          defaultOptions[key] = values[0];
-        }
-      });
-      
-      if (Object.keys(defaultOptions).length > 0) {
-        console.log("Setting default options:", defaultOptions);
-        // Apply these options and validate them to ensure a valid combination
-        const validatedOptions = validateOptions(defaultOptions, Object.keys(defaultOptions)[0]);
-        setSelectedOptions(validatedOptions);
         
-        // Update the current price based on the selected variant
-        const selectedVariant = findVariantByOptions(product.variants || [], validatedOptions);
-        if (selectedVariant && selectedVariant.monthly_price) {
-          setCurrentPrice(selectedVariant.monthly_price);
+        console.log("Extracted options:", sortedOptions);
+        console.log("Valid combinations:", allCombinations);
+        
+        setAvailableOptions(sortedOptions);
+        setValidCombinations(allCombinations);
+        
+        // Set default selected options
+        const defaultOptions: Record<string, string> = {};
+        Object.entries(sortedOptions).forEach(([key, values]) => {
+          if (values.length > 0) {
+            defaultOptions[key] = values[0];
+          }
+        });
+        
+        if (Object.keys(defaultOptions).length > 0) {
+          console.log("Setting default options:", defaultOptions);
+          // Apply these options and validate them to ensure a valid combination
+          const validatedOptions = validateOptions(defaultOptions, Object.keys(defaultOptions)[0]);
+          setSelectedOptions(validatedOptions);
+          
+          // Update the current price based on the selected variant
+          const selectedVariant = findVariantByOptions(product.variants || [], validatedOptions);
+          if (selectedVariant && selectedVariant.monthly_price) {
+            setCurrentPrice(selectedVariant.monthly_price);
+          } else {
+            setCurrentPrice(product.monthly_price || null);
+          }
         } else {
+          // If no variants with attributes, use the product's price
           setCurrentPrice(product.monthly_price || null);
         }
       } else {
-        // If no variants with attributes, use the product's price
+        console.log("Product has no variants");
         setCurrentPrice(product.monthly_price || null);
       }
     }
@@ -204,18 +204,13 @@ const ProductDetailPage = () => {
         // Skip the variant ID and price internal fields
         if (key === '__variant_id' || key === '__variant_price') continue;
         
-        // Skip the key we're currently testing - only check other selections
-        if (key === optionName) continue;
-        
-        // If this key is in our current selection (not the one we're testing)
-        // and the values don't match, this combination doesn't work
-        if (selectedOptions[key] !== undefined && combination[key] !== value) {
+        // If the combination doesn't have this key or the values don't match
+        if (!combination[key] || combination[key] !== value) {
           return false;
         }
       }
       
-      // Finally check that the option we're testing is valid in this combination
-      return combination[optionName] === optionValue;
+      return true;
     });
   };
 
@@ -307,7 +302,7 @@ const ProductDetailPage = () => {
     }
     
     // Check if there are actually any options with values
-    const hasOptions = Object.values(availableOptions).some(values => values.length > 0);
+    const hasOptions = Object.keys(availableOptions).length > 0;
     
     if (!hasOptions) {
       return (
