@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
@@ -26,7 +25,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   
   // Check if product has variants or variant combination prices
   const hasVariantCombinations = product?.variant_combination_prices && 
-                                 product.variant_combination_prices.length > 0;
+                                product.variant_combination_prices.length > 0;
   
   // Check if product has variants
   if (product?.variants && product.variants.length > 0) {
@@ -65,11 +64,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
     if (product.variants && product.variants.length > 0) {
       return product.variants.length;
     }
-    if (product.variations && product.variations.length > 0) {
-      return product.variations.length;
-    }
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      return product.variant_combination_prices.length;
+    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+      // For variation attributes, calculate combinations
+      const attributes = product.variation_attributes;
+      let count = 0;
+      
+      // If we have variant_combination_prices, use their length
+      if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+        return product.variant_combination_prices.length;
+      }
+      
+      // Otherwise calculate from variation attributes
+      const attributeKeys = Object.keys(attributes);
+      if (attributeKeys.length > 0) {
+        count = attributeKeys.reduce((total, key) => {
+          const values = attributes[key];
+          return total * (values.length || 1);
+        }, 1);
+      }
+      
+      return count;
     }
     return 0;
   };

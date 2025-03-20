@@ -59,12 +59,13 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       const processedProducts = data.map(product => {
         // Check if the product has variant prices
         const hasVariantPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
+        const hasVariationAttributes = product.variation_attributes && 
+                                      Object.keys(product.variation_attributes).length > 0;
         
         return {
           ...product,
           attributes: parseAttributes(product.attributes),
-          is_parent: hasVariantPrices || product.is_parent || false,
-          has_variants: hasVariantPrices
+          is_parent: hasVariantPrices || hasVariationAttributes || product.is_parent || false
         };
       });
       
@@ -205,7 +206,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         }
         
         // Also add its variants if showing variants
-        if (showVariants && (product.is_parent || product.has_variants)) {
+        if (showVariants && (product.is_parent || product.variant_combination_prices?.length > 0)) {
           // Fetch variant products if they exist
           const variants = filteredProducts.filter(p => p.parent_id === product.id);
           variants.forEach(variant => {

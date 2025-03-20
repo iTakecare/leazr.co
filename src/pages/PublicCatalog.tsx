@@ -47,13 +47,20 @@ const PublicCatalog = () => {
       }
     });
     
-    // Attach variants to parents
+    // Attach variants to parents and update product info
     parentProducts.forEach(parent => {
       if (parent.id) {
+        // Get variants from the map
         const variants = variantMap.get(parent.id) || [];
         parent.variants = variants;
-        // Mark parent if it has variants
-        parent.is_parent = variants.length > 0;
+        
+        // Mark parent if it has variants or variant combinations
+        const hasVariantCombinations = parent.variant_combination_prices && 
+                                      parent.variant_combination_prices.length > 0;
+        const hasVariationAttributes = parent.variation_attributes && 
+                                      Object.keys(parent.variation_attributes).length > 0;
+        
+        parent.is_parent = variants.length > 0 || hasVariantCombinations || hasVariationAttributes;
       }
     });
     
