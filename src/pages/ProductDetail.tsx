@@ -220,13 +220,14 @@ const ProductDetail: React.FC = () => {
       }
       
       const additionalImgs = Array.isArray(productQuery.data.image_urls) 
-        ? productQuery.data.image_urls 
+        ? productQuery.data.image_urls.filter(url => url && url.trim() !== '')
         : [];
       
       setAdditionalImages(additionalImgs);
       setTotalImages(imageCount + additionalImgs.length);
       
       console.log(`Total images: ${imageCount + additionalImgs.length} (Main: ${imageCount ? 1 : 0}, Additional: ${additionalImgs.length})`);
+      console.log("Additional images:", additionalImgs);
     } else if (productQuery.isError) {
       setIsLoading(false);
     }
@@ -302,12 +303,9 @@ const ProductDetail: React.FC = () => {
       return;
     }
     
-    const uploadPromises = additionalImageFiles.map(file => 
-      imageUploadMutation.mutate({ file, id, isMain: false })
-    );
-    
-    setAdditionalImageFiles([]);
-    setAdditionalImagePreviews([]);
+    for (const file of additionalImageFiles) {
+      imageUploadMutation.mutate({ file, id, isMain: false });
+    }
   };
   
   const removeImagePreview = () => {
@@ -670,12 +668,13 @@ const ProductDetail: React.FC = () => {
                         alt={formData.name}
                         className="w-full h-full object-contain"
                         onError={(e) => {
+                          console.error("Error loading main image:", (formData.imageUrl || formData.image_url));
                           (e.target as HTMLImageElement).src = "/placeholder.svg";
                         }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-muted">
-                        <p className="text-muted-foreground">Aucune image</p>
+                        <p className="text-muted-foreground">Aucune image principale</p>
                       </div>
                     )}
                   </div>
@@ -775,6 +774,7 @@ const ProductDetail: React.FC = () => {
                           alt={formData.name}
                           className="w-full h-full object-contain"
                           onError={(e) => {
+                            console.error("Error loading main image:", (formData.imageUrl || formData.image_url));
                             (e.target as HTMLImageElement).src = "/placeholder.svg";
                           }}
                         />
@@ -847,12 +847,13 @@ const ProductDetail: React.FC = () => {
                     
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       {additionalImages.length > 0 && additionalImages.map((imageUrl, index) => (
-                        <div key={index} className="relative border rounded-md overflow-hidden aspect-square">
+                        <div key={`additional-${index}`} className="relative border rounded-md overflow-hidden aspect-square">
                           <img
                             src={imageUrl}
                             alt={`${formData.name} - Image ${index + 2}`}
                             className="w-full h-full object-cover"
                             onError={(e) => {
+                              console.error("Error loading additional image:", imageUrl);
                               (e.target as HTMLImageElement).src = "/placeholder.svg";
                             }}
                           />

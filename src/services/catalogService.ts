@@ -1,3 +1,4 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product, ProductAttributes, ProductVariationAttributes } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -102,101 +103,73 @@ export async function getProductVariants(parentId: string): Promise<Product[]> {
   }
 }
 
-export async function getProductById(id: string): Promise<Product | null> {
+export async function getProductById(productId: string): Promise<Product> {
   try {
-    console.log(`Fetching product with ID: ${id}`);
+    console.log(`Fetching product with ID: ${productId}`);
     const supabase = getSupabaseClient();
     
-    const { data: mainProduct, error } = await supabase
+    // Get the base product data
+    const { data: product, error } = await supabase
       .from('products')
       .select('*')
-      .eq('id', id)
-      .maybeSingle();
+      .eq('id', productId)
+      .single();
 
     if (error) {
-      console.error(`Error fetching product by ID ${id}:`, error);
-      throw new Error(`Error fetching product by ID: ${error.message}`);
+      console.error("Error fetching product:", error);
+      throw new Error(`Error fetching product: ${error.message}`);
     }
 
-    if (!mainProduct) {
-      console.log(`No product found with ID: ${id}`);
-      return null;
+    if (!product) {
+      throw new Error(`Product not found with ID: ${productId}`);
     }
-    
-    console.log("Main product:", {
-      id: mainProduct.id,
-      name: mainProduct.name,
-      is_parent: mainProduct.is_parent,
-      parent_id: mainProduct.parent_id
-    });
-    
-    // Parse attributes to ensure consistent format
-    mainProduct.attributes = parseAttributes(mainProduct.attributes);
-    
-    if (mainProduct.is_parent) {
-      console.log(`Product ${id} is a parent, fetching variants and combination prices...`);
+
+    // Get variant price combinations separately
+    const { data: variantPrices, error: variantPricesError } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', productId);
       
-      // Fetch variants
-      const variants = await getProductVariants(id);
-      if (variants.length > 0) {
-        console.log(`Found ${variants.length} variants for product ${id}`);
+    if (variantPricesError) {
+      console.error("Error fetching variant prices:", variantPricesError);
+      // Continue anyway - this is not a blocking error
+    }
+
+    // Get variants if it's a parent product
+    let variants = [];
+    if (product.is_parent) {
+      const { data: variantsData, error: variantsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('parent_id', productId);
         
-        mainProduct.variants = variants;
-        
-        // Extract all possible attribute options from variants
-        mainProduct.variation_attributes = extractVariationAttributesFromVariants(variants);
-        console.log("Extracted variation attributes:", mainProduct.variation_attributes);
+      if (variantsError) {
+        console.error("Error fetching variants:", variantsError);
+        // Continue anyway - this is not a blocking error
       } else {
-        console.log(`No variants found for parent product ${id}`);
-        mainProduct.variants = [];
-      }
-      
-      // Fetch variant combination prices
-      try {
-        const { data: variantPrices, error: pricesError } = await supabase
-          .from('product_variant_prices')
-          .select('*')
-          .eq('product_id', id);
-        
-        if (pricesError) {
-          console.error(`Error fetching variant prices for product ${id}:`, pricesError);
-        } else if (variantPrices && variantPrices.length > 0) {
-          console.log(`Found ${variantPrices.length} price combinations for product ${id}`);
-          mainProduct.variant_combination_prices = variantPrices.map(price => ({
-            ...price,
-            attributes: typeof price.attributes === 'string' 
-              ? JSON.parse(price.attributes) 
-              : price.attributes
-          }));
-        }
-      } catch (priceError) {
-        console.error("Error fetching variant prices:", priceError);
-      }
-    }
-    else if (mainProduct.parent_id) {
-      console.log(`Product ${id} is a variant, fetching parent and siblings...`);
-      
-      const parent = await getProductById(mainProduct.parent_id);
-      if (parent) {
-        console.log(`Found parent ${parent.id} for product ${id}`);
-        
-        const siblings = await getProductVariants(parent.id);
-        if (siblings.length > 0) {
-          console.log(`Found ${siblings.length} siblings for product ${id}`);
-          
-          mainProduct.variants = siblings;
-          
-          // Extract all possible attribute options from siblings
-          mainProduct.variation_attributes = extractVariationAttributesFromVariants(siblings);
-          console.log("Extracted variation attributes from siblings:", mainProduct.variation_attributes);
-        }
+        variants = variantsData || [];
       }
     }
 
-    console.log(`Successfully retrieved product with ID: ${id}`, mainProduct);
-    return mainProduct;
+    // Ensure image_urls is always an array
+    if (!product.image_urls || !Array.isArray(product.image_urls)) {
+      product.image_urls = [];
+    }
+
+    // Filter out any null or empty strings in image_urls
+    product.image_urls = product.image_urls.filter(url => url && url.trim() !== '');
+
+    // Build the complete product object with related data
+    const completeProduct = {
+      ...product,
+      variants: variants,
+      variant_combination_prices: variantPrices || []
+    };
+
+    console.log(`Retrieved product with ID ${productId}:`, completeProduct);
+    return completeProduct as Product;
   } catch (error) {
-    console.error("Error in getProductById:", error);
+    console.error(`Error in getProductById(${productId}):`, error);
     throw error;
   }
 }
@@ -422,70 +395,80 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 /**
  * Upload an image for a product and update the product with the image URL
  */
-export async function uploadProductImage(file: File, productId: string, isMainImage: boolean = true): Promise<string> {
+export async function uploadProductImage(file: File, productId: string, isMain: boolean = false): Promise<string> {
   try {
-    console.log(`Uploading ${isMainImage ? 'main' : 'additional'} image for product ${productId}`);
+    console.log(`Uploading ${isMain ? 'main' : 'additional'} image for product ${productId}: ${file.name}`);
     
-    // Check if the product exists
+    // Generate a unique file name
+    const filename = `${file.name.split('.')[0]}-${Date.now()}.${file.name.split('.').pop()}`;
+    const filePath = `${productId}/${filename}`;
+    
+    const supabase = getSupabaseClient();
+    
+    // Upload file to storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type
+      });
+
+    if (uploadError) {
+      console.error("Error uploading image to storage:", uploadError);
+      throw new Error(`Error uploading image: ${uploadError.message}`);
+    }
+
+    // Get public URL for the uploaded file
+    const { data: publicUrlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    const publicUrl = publicUrlData?.publicUrl;
+
+    if (!publicUrl) {
+      throw new Error("Failed to get public URL for uploaded image");
+    }
+
+    // Update the product record with the new image URL
     const product = await getProductById(productId);
-    if (!product) {
-      console.error(`Product ${productId} not found`);
-      throw new Error(`Product ${productId} not found`);
-    }
     
-    console.log(`Main product:`, JSON.stringify({
-      id: product.id,
-      name: product.name,
-      is_parent: product.is_parent,
-      parent_id: product.parent_id
-    }));
-    
-    const productName = product?.name || '';
-    console.log(`Uploading image for product: ${productName}`);
-    
-    const { uploadImage } = await import("@/services/imageService");
-    
-    const timestamp = Date.now();
-    const extension = file.name.split('.').pop() || 'jpg';
-    const path = `${productId}/${isMainImage ? 'main' : `additional_${timestamp}`}_${timestamp}.${extension}`;
-    
-    console.log(`Calling uploadImage with path: ${path}`);
-    const result = await uploadImage(file, path, 'product-images', true);
-    
-    if (!result || !result.url) {
-      console.error("Failed to upload image:", result);
-      throw new Error("Failed to upload image");
-    }
-    
-    console.log(`Image uploaded successfully with URL: ${result.url}`);
-    
-    if (product) {
-      if (isMainImage) {
-        console.log(`Updating main image for product ${productId}`);
-        await updateProduct(productId, { 
-          image_url: result.url,
-          ...(result.altText ? { 
-            image_alt: result.altText,
-            image_alts: [result.altText]
-          } : {})
-        });
-      } else {
-        console.log(`Adding additional image for product ${productId}`);
-        const imageUrls = product.image_urls || [];
-        const imageAlts = product.image_alts || [];
-        
-        // Add the new image URL
-        const updatedImageUrls = [...imageUrls, result.url];
-        const updatedImageAlts = [...imageAlts, result.altText];
-        
-        await updateProduct(productId, {
-          image_urls: updatedImageUrls,
-          image_alts: updatedImageAlts
-        });
+    if (isMain) {
+      // Update main image
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ 
+          image_url: publicUrl,
+          image_alt: filename
+        })
+        .eq('id', productId);
+
+      if (updateError) {
+        console.error("Error updating main product image:", updateError);
+        throw new Error(`Error updating product image: ${updateError.message}`);
+      }
+    } else {
+      // Update or add to additional images
+      let imageUrls = product.image_urls || [];
+      if (!Array.isArray(imageUrls)) {
+        imageUrls = [];
+      }
+      
+      imageUrls.push(publicUrl);
+      
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ image_urls: imageUrls })
+        .eq('id', productId);
+
+      if (updateError) {
+        console.error("Error updating additional product images:", updateError);
+        throw new Error(`Error updating additional images: ${updateError.message}`);
       }
     }
-    
-    return result.url;
+
+    console.log(`Successfully uploaded ${isMain ? 'main' : 'additional'} image: ${publicUrl}`);
+    return publicUrl;
   } catch (error) {
     console.error("Error in uploadProductImage:", error);
     throw error;
