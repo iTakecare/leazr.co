@@ -3,19 +3,18 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  FileText, // Changed from FileContract to FileText which is available
+  FileText,
   Laptop,
   Clock,
   Package,
   LogOut,
   Calculator,
   ShieldCheck,
-  User,
   Menu,
   ChevronLeft,
   ChevronRight,
   X,
-  Receipt
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -65,11 +64,11 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
 
   const sidebarItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
-    { label: "Contrats", icon: FileText, href: "/client/contracts" }, // Changed from FileContract to FileText
+    { label: "Contrats", icon: FileText, href: "/client/contracts" },
     { label: "Équipements", icon: Laptop, href: "/client/equipment" },
     { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
     { label: "Catalogue", icon: Package, href: "/client/catalog" },
-    { label: "Calculateur", icon: Calculator, href: "/client/calculator" }, // This is correct, pointing to the calculator route
+    { label: "Calculateur", icon: Calculator, href: "/client/calculator" },
     { label: "Pack iTakecare", icon: ShieldCheck, href: "/client/itakecare", isNew: true },
   ];
 
