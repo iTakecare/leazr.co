@@ -60,58 +60,56 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
         )}
       </div>
 
-      {!hideFinancialDetails && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="purchase-price" className={`font-medium text-gray-700 ${errors?.purchasePrice ? "text-destructive" : ""}`}>
-              Prix d'achat (€)
-            </Label>
-            <div className="mt-1 relative">
-              <Input
-                id="purchase-price"
-                type="number"
-                min="0"
-                step="1"
-                value={equipment.purchasePrice || ''}
-                onChange={(e) => handleChange('purchasePrice', parseFloat(e.target.value) || 0)}
-                className={`pl-8 ${errors?.purchasePrice ? "border-destructive" : ""}`}
-                placeholder="0.00"
-              />
-              <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">€</span>
-              {errors?.purchasePrice && (
-                <p className="text-destructive text-xs mt-1">Prix invalide</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="margin" className={`font-medium text-gray-700 ${errors?.margin ? "text-destructive" : ""}`}>
-              Marge (%)
-            </Label>
-            <div className="mt-1 relative">
-              <Input
-                id="margin"
-                type="number"
-                min="0"
-                step="0.1"
-                value={showCalculatedMargin ? calculatedMargin.percentage.toFixed(2) : (equipment.margin || '')}
-                onChange={(e) => handleChange('margin', parseFloat(e.target.value) || 0)}
-                className={`pl-8 ${errors?.margin ? "border-destructive" : ""} ${showCalculatedMargin ? 'border-green-500 bg-green-50' : ''}`}
-                placeholder="20.00"
-              />
-              <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">%</span>
-              {errors?.margin && (
-                <p className="text-destructive text-xs mt-1">Marge invalide</p>
-              )}
-              {showCalculatedMargin && (
-                <p className="text-green-600 text-xs mt-1">
-                  Marge calculée disponible: {calculatedMargin.percentage.toFixed(2)}%
-                </p>
-              )}
-            </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="purchase-price" className={`font-medium text-gray-700 ${errors?.purchasePrice ? "text-destructive" : ""}`}>
+            Prix d'achat (€)
+          </Label>
+          <div className="mt-1 relative">
+            <Input
+              id="purchase-price"
+              type="number"
+              min="0"
+              step="1"
+              value={equipment.purchasePrice || ''}
+              onChange={(e) => handleChange('purchasePrice', parseFloat(e.target.value) || 0)}
+              className={`pl-8 ${errors?.purchasePrice ? "border-destructive" : ""}`}
+              placeholder="0.00"
+            />
+            <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">€</span>
+            {errors?.purchasePrice && (
+              <p className="text-destructive text-xs mt-1">Prix invalide</p>
+            )}
           </div>
         </div>
-      )}
+
+        <div>
+          <Label htmlFor="margin" className={`font-medium text-gray-700 ${errors?.margin ? "text-destructive" : ""}`}>
+            Marge (%)
+          </Label>
+          <div className="mt-1 relative">
+            <Input
+              id="margin"
+              type="number"
+              min="0"
+              step="0.1"
+              value={showCalculatedMargin ? calculatedMargin.percentage.toFixed(2) : (equipment.margin || '')}
+              onChange={(e) => handleChange('margin', parseFloat(e.target.value) || 0)}
+              className={`pl-8 ${errors?.margin ? "border-destructive" : ""} ${showCalculatedMargin ? 'border-green-500 bg-green-50' : ''}`}
+              placeholder="20.00"
+            />
+            <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">%</span>
+            {errors?.margin && (
+              <p className="text-destructive text-xs mt-1">Marge invalide</p>
+            )}
+            {showCalculatedMargin && (
+              <p className="text-green-600 text-xs mt-1">
+                Marge calculée disponible: {calculatedMargin.percentage.toFixed(2)}%
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
     </>
   );
 };

@@ -31,31 +31,27 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
 
   return (
     <div className="space-y-2 text-sm">
-      {!hideFinancialDetails && (
-        <>
-          <div className="flex justify-between py-1">
-            <span>Marge :</span>
-            <span>{formatCurrency(displayMarginAmount)} ({formatPercentage(displayMarginPercentage)})</span>
-          </div>
-          
-          <div className="flex justify-between py-1">
-            <span>Prix avec marge :</span>
-            <span>{formatCurrency(priceWithMargin)}</span>
-          </div>
-          
-          <div className="flex justify-between py-1">
-            <span>Coefficient appliqué :</span>
-            <span>{coefficient.toFixed(2)}</span>
-          </div>
-        </>
-      )}
+      <div className="flex justify-between py-1">
+        <span>Marge :</span>
+        <span>{formatCurrency(displayMarginAmount)} ({formatPercentage(displayMarginPercentage)})</span>
+      </div>
+      
+      <div className="flex justify-between py-1">
+        <span>Prix avec marge :</span>
+        <span>{formatCurrency(priceWithMargin)}</span>
+      </div>
+      
+      <div className="flex justify-between py-1">
+        <span>Coefficient appliqué :</span>
+        <span>{coefficient.toFixed(2)}</span>
+      </div>
       
       <div className="flex justify-between py-1 text-blue-600">
         <span className="font-medium">Mensualité unitaire :</span>
         <span className="font-bold">{formatCurrency(displayMonthlyPayment)}</span>
       </div>
       
-      {!hideFinancialDetails && !isMatchingFormula && calculatedMonthly > 0 && (
+      {!isMatchingFormula && calculatedMonthly > 0 && (
         <div className="flex justify-between py-1 text-amber-600 text-xs">
           <span>Mensualité calculée avec le coefficient :</span>
           <span>{formatCurrency(calculatedMonthly)}</span>
