@@ -1,7 +1,7 @@
 
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent, Users } from "lucide-react";
+import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent, Users, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NotFound = () => {

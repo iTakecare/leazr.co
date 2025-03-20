@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -21,7 +20,6 @@ const Login = () => {
   const location = useLocation();
   const { signIn, session, user } = useAuth();
 
-  // Vérifier si nous avons un token de réinitialisation dans l'URL dès que le composant monte
   useEffect(() => {
     const checkForResetToken = () => {
       const hash = location.hash || window.location.hash;
@@ -37,14 +35,16 @@ const Login = () => {
 
     const hasResetToken = checkForResetToken();
     
-    // Si nous n'avons pas de token de réinitialisation et que nous avons une session,
-    // et que nous ne sommes pas en mode réinitialisation, rediriger vers le tableau de bord
     if (!hasResetToken && session && user && !isResetMode) {
       console.log("L'utilisateur est déjà connecté, redirection vers le tableau de bord approprié");
       if (user.role === 'client') {
         navigate('/client/dashboard');
+      } else if (user.ambassador_id) {
+        navigate('/ambassador/dashboard');
+      } else if (user.partner_id) {
+        navigate('/partners/' + user.partner_id + '/dashboard');
       } else {
-        navigate('/dashboard');
+        navigate('/');
       }
     }
   }, [session, navigate, location, user, isResetMode]);
@@ -62,6 +62,8 @@ const Login = () => {
       if (error) {
         console.error('Erreur lors de la connexion:', error);
         toast.error('Échec de la connexion : ' + (error.message || 'Erreur inconnue'));
+      } else {
+        // Login success - let the useEffect handle redirection based on user role
       }
     } finally {
       setLoading(false);
@@ -100,15 +102,12 @@ const Login = () => {
       } else {
         toast.success('Votre mot de passe a été mis à jour avec succès');
         
-        // Supprimer le hash pour éviter de revenir au flux de réinitialisation lors de l'actualisation
         window.location.hash = '';
         
-        // Réinitialiser l'état du formulaire
         setIsResetMode(false);
         setNewPassword('');
         setConfirmPassword('');
         
-        // Rediriger vers la page de connexion sans hash
         navigate('/login', { replace: true });
       }
     } catch (error: any) {

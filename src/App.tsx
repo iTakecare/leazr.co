@@ -109,9 +109,17 @@ function App() {
               <Route path="/ambassador/dashboard" element={<AmbassadorDashboard />} />
               <Route path="/ambassador/offers" element={<Offers />} />
               <Route path="/ambassador/clients" element={<Clients />} />
+              <Route path="/ambassador" element={<AmbassadorDashboard />} />
+              
+              {/* Routes partner login */}
+              <Route path="/partner/dashboard" element={<PartnerDashboard />} />
+              <Route path="/partner/offers" element={<Offers />} />
+              <Route path="/partner/clients" element={<Clients />} />
+              <Route path="/partner" element={<PartnerDashboard />} />
               
               {/* Route spéciale pour le calculateur directement accessible */}
               <Route path="/create-offer" element={<CreateOffer />} />
+              <Route path="/calculator" element={<CreateOffer />} />
               
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
