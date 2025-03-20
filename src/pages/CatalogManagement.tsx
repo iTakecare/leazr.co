@@ -78,6 +78,8 @@ const CatalogManagement = () => {
   const handleProductDeleted = async (productId: string) => {
     try {
       await deleteProductMutation.mutateAsync(productId);
+      // Après la suppression réussie, on rafraîchit la liste des produits
+      await refetch();
       return Promise.resolve();
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);

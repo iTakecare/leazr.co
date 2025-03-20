@@ -24,11 +24,12 @@ import { toast } from "@/components/ui/use-toast";
 
 interface CollapsibleProductListProps {
   products?: Product[];
-  onDeleteProduct: (productId: string) => void;
+  onDeleteProduct: (productId: string) => Promise<void>;
 }
 
 const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }: CollapsibleProductListProps) => {
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   
   // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
   const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
@@ -70,10 +71,16 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
     e.stopPropagation();
     
     try {
+      setIsDeleting(productId);
       await onDeleteProduct(productId);
       
       // Mise à jour des produits locaux après la suppression
       setLocalProducts(prevProducts => prevProducts.filter(product => product.id !== productId));
+      
+      // Rafraîchissement de la liste des produits
+      if (!providedProducts) {
+        await refetch();
+      }
       
       toast({
         title: "Succès",
@@ -87,6 +94,8 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
         description: "Impossible de supprimer le produit",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -128,8 +137,16 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
                 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 className="h-4 w-4" />
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      disabled={isDeleting === product.id}
+                    >
+                      {isDeleting === product.id ? (
+                        <span className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full"></span>
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
