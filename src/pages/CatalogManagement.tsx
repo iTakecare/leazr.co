@@ -49,12 +49,8 @@ const CatalogManagement = () => {
 
   useEffect(() => {
     if (!isLoading && products.length === 0) {
-      console.log("No products found");
-      toast({
-        title: "Aucun produit trouvé",
-        description: "Vous pouvez ajouter des produits manuellement ou importer depuis WooCommerce",
-        variant: "default",
-      });
+      console.log("No products found, loading sample data would go here");
+      // This is where you could load sample data if needed
     }
   }, [isLoading, products]);
 
@@ -129,7 +125,7 @@ const CatalogManagement = () => {
   const handleAddNewProduct = () => {
     navigate("/catalog/create-product");
   };
-  
+
   const handleViewModeChange = (value: string) => {
     if (value === "grid" || value === "accordion") {
       setViewMode(value);
@@ -235,21 +231,6 @@ const CatalogManagement = () => {
                     {[...Array(5)].map((_, i) => (
                       <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
                     ))}
-                  </div>
-                ) : products.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center py-16 border rounded-lg bg-gray-50">
-                    <div className="mb-4 bg-gray-100 p-4 rounded-full">
-                      <Layers className="h-12 w-12 text-gray-400" />
-                    </div>
-                    <h3 className="text-xl font-medium mb-2">Aucun produit</h3>
-                    <p className="text-muted-foreground mb-6 max-w-md">
-                      Vous n'avez pas encore ajouté de produits à votre catalogue. Ajoutez des produits manuellement ou importez-les depuis WooCommerce.
-                    </p>
-                    <div className="flex flex-wrap gap-3 justify-center">
-                      <Button onClick={handleAddNewProduct}>
-                        <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
-                      </Button>
-                    </div>
                   </div>
                 ) : viewMode === "accordion" ? (
                   <AccordionProductList 
