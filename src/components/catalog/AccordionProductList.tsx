@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, ChevronUp, ChevronDown, Cpu, HardDrive, Tag } from "lucide-react";
+import { Edit, Trash2, Cpu, HardDrive, Tag } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Product } from "@/types/catalog"; 
 import { Badge } from "@/components/ui/badge";
@@ -30,37 +30,10 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   groupingOption 
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
   useEffect(() => {
     setProducts(initialProducts);
   }, [initialProducts]);
-  
-  // Fonction pour déterminer le nombre de variantes
-  const getVariantsCount = (product: Product): number => {
-    // Ne compter que les vraies variantes, pas le produit parent
-    if (product.variants && product.variants.length > 0) {
-      return product.variants.length;
-    }
-    
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      return product.variant_combination_prices.length;
-    }
-    
-    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
-      const attributes = product.variation_attributes;
-      const attributeKeys = Object.keys(attributes);
-      
-      if (attributeKeys.length > 0) {
-        return attributeKeys.reduce((total, key) => {
-          const values = attributes[key];
-          return total * (Array.isArray(values) ? values.length : 1);
-        }, 1);
-      }
-    }
-    
-    return 0;
-  };
   
   // Grouper les produits par modèle ou marque
   const groupedProducts = React.useMemo(() => {
@@ -252,37 +225,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
               
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-4">
-                  {/* Section attributs de variation */}
-                  {parentProduct.variation_attributes && 
-                   Object.keys(parentProduct.variation_attributes).length > 0 && (
-                    <div className="rounded-md p-4 bg-gray-50 border">
-                      <h3 className="text-sm font-medium mb-2">Attributs de variation disponibles</h3>
-                      <div className="space-y-2">
-                        {Object.entries(parentProduct.variation_attributes).map(([attrName, values]) => (
-                          <div key={attrName}>
-                            <div className="text-xs font-medium text-gray-500 mb-1">{attrName}</div>
-                            <div className="flex flex-wrap gap-1">
-                              {values.map((value) => getAttributeBadge(attrName, value))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Produit parent */}
-                  {parentProduct.is_parent && (
-                    <div className="flex justify-between items-center p-4 border rounded-md">
+                  {/* Produit parent et ses attributs de variations */}
+                  <div className="border rounded-md p-4">
+                    <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
                         <div className="font-medium">{parentProduct.name}</div>
                         <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
                           Produit parent
                         </Badge>
-                        {variantsCount > 0 && (
-                          <Badge variant="outline" className="bg-indigo-100 text-indigo-700 border-indigo-200">
-                            {variantsCount} variante{variantsCount > 1 ? 's' : ''}
-                          </Badge>
-                        )}
                       </div>
                       
                       <div className="flex space-x-2">
@@ -316,7 +266,22 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         </AlertDialog>
                       </div>
                     </div>
-                  )}
+                    
+                    {/* Affichage des attributs de variation disponibles sous forme de badges */}
+                    {parentProduct.variation_attributes && 
+                     Object.keys(parentProduct.variation_attributes).length > 0 && (
+                      <div className="mt-2">
+                        {Object.entries(parentProduct.variation_attributes).map(([attrName, values]) => (
+                          <div key={attrName} className="my-2">
+                            <div className="text-xs font-medium text-gray-500 mb-1">{attrName}</div>
+                            <div className="flex flex-wrap gap-1">
+                              {values.map((value) => getAttributeBadge(attrName, value))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   
                   {/* Variantes */}
                   {variants.length > 0 && (
@@ -324,7 +289,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                       {variants.map((variant) => (
                         <div key={variant.id} className="flex justify-between items-center p-3 border rounded-md hover:bg-gray-50">
                           <div className="flex-1">
-                            <h3 className="font-medium">{variant.name}</h3>
                             <div className="flex flex-wrap gap-1 mt-1">
                               {variant.attributes && Object.entries(variant.attributes).map(([name, value]) => 
                                 getAttributeBadge(name, value.toString())
