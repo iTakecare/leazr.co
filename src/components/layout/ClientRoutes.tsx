@@ -190,7 +190,7 @@ const ClientRoutes = () => {
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><ClientCatalog /></ClientLayout>} />
         <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
-        {/* Ajout d'une route pour le calculateur qui utilise le composant CreateOffer */}
+        {/* Route for the calculator that uses the CreateOffer component */}
         <Route path="calculator" element={<ClientLayout><CreateOffer /></ClientLayout>} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>
