@@ -23,6 +23,7 @@ const NotFound = () => {
   const isAmbassadorAttempt = location.pathname.includes('/ambassadors/');
   const isPartnerAttempt = location.pathname.includes('/partners/');
   const isAmbassadorDashboardAttempt = location.pathname.includes('/ambassador/') && !location.pathname.includes('/ambassador/dashboard');
+  const isCalculatorAttempt = location.pathname.includes('/calculator');
   
   const clientId = isClientEditAttempt ? 
     location.pathname.split('/clients/edit/')[1] : null;
@@ -136,6 +137,19 @@ const NotFound = () => {
             </div>
           )}
           
+          {isCalculatorAttempt && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-amber-700 text-sm mb-4">
+                Si vous cherchez le calculateur d'offres, utilisez le lien ci-dessous:
+              </p>
+              <Link to="/create-offer">
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <Calculator className="h-4 w-4" /> Calculateur d'offres
+                </Button>
+              </Link>
+            </div>
+          )}
+          
           {productOrCatalogId && (isProductDetailAttempt || isCatalogDetailAttempt) && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
               <p className="text-amber-700 text-sm mb-4">
@@ -164,7 +178,7 @@ const NotFound = () => {
               asChild
               className="flex items-center gap-2 w-full"
             >
-              <Link to="/dashboard">
+              <Link to="/">
                 <Home className="h-4 w-4" /> 
                 Tableau de bord
               </Link>

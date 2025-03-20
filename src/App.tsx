@@ -105,6 +105,11 @@ function App() {
               {/* Routes clients */}
               <Route path="/client/*" element={<ClientRoutes />} />
               
+              {/* Routes ambassador login */}
+              <Route path="/ambassador/dashboard" element={<AmbassadorDashboard />} />
+              <Route path="/ambassador/offers" element={<Offers />} />
+              <Route path="/ambassador/clients" element={<Clients />} />
+              
               {/* Route spéciale pour le calculateur directement accessible */}
               <Route path="/create-offer" element={<CreateOffer />} />
               
