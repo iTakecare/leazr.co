@@ -28,8 +28,9 @@ export const getSupabaseClient = () => {
         fetch: (url, options) => {
           return fetch(url, {
             ...options,
-            credentials: 'same-origin',
+            credentials: 'include',
             cache: 'no-cache',
+            mode: 'cors',
           });
         },
       },
@@ -53,8 +54,9 @@ export const getAdminSupabaseClient = () => {
         fetch: (url, options) => {
           return fetch(url, {
             ...options,
-            credentials: 'same-origin',
+            credentials: 'include',
             cache: 'no-cache',
+            mode: 'cors',
           });
         },
       },
