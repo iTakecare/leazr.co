@@ -38,6 +38,35 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     return minPrice;
   };
   
+  // Calculate the number of variants or variations
+  const getVariationsCount = (): number => {
+    // First check for actual variants
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.length;
+    }
+    
+    // Check if product has variant combination prices
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      return product.variant_combination_prices.length;
+    }
+    
+    // Check if product has variation attributes and calculate combinations
+    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+      const attributes = product.variation_attributes;
+      const attributeKeys = Object.keys(attributes);
+      
+      if (attributeKeys.length > 0) {
+        // Calculate total possible combinations
+        return attributeKeys.reduce((total, key) => {
+          const values = attributes[key];
+          return total * (Array.isArray(values) ? values.length : 1);
+        }, 1);
+      }
+    }
+    
+    return 0;
+  };
+  
   const monthlyPrice = getMinimumMonthlyPrice();
   const hasPrice = monthlyPrice > 0;
   const monthlyPriceLabel = hasPrice ? `${formatCurrency(monthlyPrice)}/mois` : "Prix sur demande";
@@ -62,10 +91,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   // Check if product has variants
   const hasVariants = product.is_parent || 
-                     (product.variants && product.variants.length > 0);
+                     (product.variants && product.variants.length > 0) ||
+                     (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
+                     (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
 
   // Count available variants for the badge
-  const variantsCount = product.variants?.length || 0;
+  const variantsCount = getVariationsCount();
 
   return (
     <Card 

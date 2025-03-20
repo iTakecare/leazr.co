@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -38,6 +37,35 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   useEffect(() => {
     setProducts(initialProducts);
   }, [initialProducts]);
+  
+  // Get the number of variants for a product
+  const getVariantsCount = (product: Product): number => {
+    // First check for actual variants
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.length;
+    }
+    
+    // Check if product has variant combination prices
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      return product.variant_combination_prices.length;
+    }
+    
+    // Check if product has variation attributes and calculate combinations
+    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+      const attributes = product.variation_attributes;
+      const attributeKeys = Object.keys(attributes);
+      
+      if (attributeKeys.length > 0) {
+        // Calculate total possible combinations
+        return attributeKeys.reduce((total, key) => {
+          const values = attributes[key];
+          return total * (Array.isArray(values) ? values.length : 1);
+        }, 1);
+      }
+    }
+    
+    return 0;
+  };
   
   // Regrouper les produits par modèle ou marque
   const groupedProducts = useMemo(() => {
@@ -179,6 +207,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           ? groupProducts.filter(p => p.id !== mainProduct?.id && (p.parent_id === mainProduct?.id || (!mainProduct?.is_parent && p.is_variation)))
           : [];
         
+        // Calculate the number of variants for the badge
+        const variantsCount = mainProduct ? getVariantsCount(mainProduct) : 0;
+        
         // Log the variants for each group
         console.log(`Variants for ${groupTitle}:`, variants.map(v => v.name));
         
@@ -209,9 +240,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         <div className="font-medium">{mainProduct.name}</div>
                         <div className="text-xs text-muted-foreground flex items-center">
                           {mainProduct.brand || "Sans marque"} • {mainProduct.category || "Sans catégorie"}
-                          {(mainProduct.is_parent || variants.length > 0) && (
+                          {(mainProduct.is_parent || variantsCount > 0) && (
                             <span className="ml-2 flex items-center">
-                              <Layers className="h-3 w-3 mr-1" /> {variants.length} variante(s)
+                              <Layers className="h-3 w-3 mr-1" /> {variantsCount} variante(s)
                             </span>
                           )}
                         </div>
@@ -261,7 +292,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteProduct(mainProduct.id)}>
+                                <AlertDialogAction onClick={() => onProductDeleted(mainProduct.id)}>
                                   Supprimer
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -371,7 +402,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
+                                    <AlertDialogAction onClick={() => onProductDeleted(product.id)}>
                                       Supprimer
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
