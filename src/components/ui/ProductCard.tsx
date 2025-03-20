@@ -42,8 +42,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
     productMonthlyPrice = formatCurrency(product.monthly_price);
   }
   
-  // Check for variants_ids which is an alternative way to identify if a product has variants
-  if (product?.variants_ids && product.variants_ids.length > 0) {
+  // Check for variants in the product data - using the variations property from the type
+  if (product?.variations && product.variations.length > 0) {
     hasVariants = true;
   }
   
@@ -84,7 +84,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
               {isParent && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center">
                   <Layers className="h-3 w-3 mr-1" />
-                  {(product.variants?.length || product.variants_ids?.length || 0)} variante(s)
+                  {(product.variants?.length || product.variations?.length || 0)} variante(s)
                 </Badge>
               )}
               
