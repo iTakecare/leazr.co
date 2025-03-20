@@ -41,7 +41,10 @@ import CreateTestUsers from "./pages/CreateTestUsers";
 import Signup from "./pages/Signup";
 import ProductCreationPage from "@/components/catalog/ProductCreationPage";
 import ProductDetail from "./pages/ProductDetail";
-import Index from "./pages/Index";
+import AmbassadorDashboardPage from "./pages/AmbassadorPages/AmbassadorDashboardPage";
+import AmbassadorOffersPage from "./pages/AmbassadorPages/AmbassadorOffersPage";
+import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage";
+import AmbassadorLayout from "./components/layout/AmbassadorLayout";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -64,6 +67,8 @@ function App() {
             <Routes location={location} key={location.pathname}>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              
+              {/* Routes Admin */}
               <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="clients" element={<Clients />} />
@@ -105,11 +110,19 @@ function App() {
               {/* Routes clients */}
               <Route path="/client/*" element={<ClientRoutes />} />
               
-              {/* Routes ambassador login */}
-              <Route path="/ambassador/dashboard" element={<AmbassadorDashboard />} />
-              <Route path="/ambassador/offers" element={<Offers />} />
-              <Route path="/ambassador/clients" element={<Clients />} />
-              <Route path="/ambassador" element={<AmbassadorDashboard />} />
+              {/* Routes ambassador */}
+              <Route path="/ambassador" element={<AmbassadorLayout />}>
+                <Route index element={<AmbassadorDashboardPage />} />
+                <Route path="dashboard" element={<AmbassadorDashboardPage />} />
+                <Route path="offers" element={<AmbassadorOffersPage />} />
+                <Route path="offers/:id" element={<OfferDetail />} />
+                <Route path="clients" element={<AmbassadorClientsPage />} />
+                <Route path="clients/new" element={<ClientForm />} />
+                <Route path="clients/:id" element={<ClientDetail />} />
+                <Route path="create-offer" element={<AmbassadorCreateOffer />} />
+                <Route path="create-offer/:clientId" element={<AmbassadorCreateOffer />} />
+                <Route path="catalog" element={<CatalogManagement />} />
+              </Route>
               
               {/* Routes partner login */}
               <Route path="/partner/dashboard" element={<PartnerDashboard />} />
