@@ -36,7 +36,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch products directly from Supabase
+  // Fetch products and their variants directly from Supabase
   const fetchProducts = async () => {
     if (!isOpen) return;
     
@@ -44,26 +44,46 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       setLoading(true);
       console.log("Fetching products from Supabase...");
       
-      // Use anon key directly (the supabase client already has this configured)
-      const { data, error } = await supabase
+      // Fetch parent products first
+      const { data: parentProducts, error: parentError } = await supabase
         .from('products')
         .select('*')
         .eq('active', true)
         .order('created_at', { ascending: false });
         
-      if (error) {
-        throw error;
+      if (parentError) {
+        throw parentError;
       }
       
-      console.log(`Successfully fetched ${data?.length} products`);
-      
-      // Process products to ensure consistent format
-      const processedProducts = data.map(product => ({
+      // Process parent products
+      const processedParentProducts = parentProducts.map(product => ({
         ...product,
         attributes: parseAttributes(product.attributes)
       }));
       
-      setProducts(processedProducts || []);
+      // Now fetch all variant products
+      const { data: variantProducts, error: variantError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('active', true)
+        .not('parent_id', 'is', null)
+        .order('created_at', { ascending: false });
+        
+      if (variantError) {
+        throw variantError;
+      }
+      
+      // Process variant products
+      const processedVariantProducts = variantProducts.map(product => ({
+        ...product,
+        attributes: parseAttributes(product.attributes)
+      }));
+      
+      // Combine both sets of products
+      const allProducts = [...processedParentProducts, ...processedVariantProducts];
+      
+      console.log(`Successfully fetched ${allProducts.length} products`);
+      setProducts(allProducts || []);
     } catch (err) {
       console.error("Error fetching products:", err);
       toast.error("Erreur lors du chargement des produits");
@@ -167,11 +187,36 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     const grouped: Record<string, Product[]> = {};
     
     filteredProducts.forEach(product => {
-      const modelKey = product.model || product.name;
-      if (!grouped[modelKey]) {
-        grouped[modelKey] = [];
+      if (product.is_parent) {
+        // Parent products get their own group
+        const modelKey = product.id;
+        if (!grouped[modelKey]) {
+          grouped[modelKey] = [product];
+        }
+      } else if (product.parent_id) {
+        // Variant products go in their parent's group
+        const modelKey = product.parent_id;
+        if (!grouped[modelKey]) {
+          // Find the parent product
+          const parentProduct = filteredProducts.find(p => p.id === product.parent_id);
+          if (parentProduct) {
+            grouped[modelKey] = [parentProduct, product];
+          } else {
+            // If parent not in filtered products, create a new group for this variant
+            grouped[product.id] = [product];
+          }
+        } else {
+          grouped[modelKey].push(product);
+        }
+      } else {
+        // Standalone products get their own group
+        const modelKey = product.model || product.name || product.id;
+        if (!grouped[modelKey]) {
+          grouped[modelKey] = [product];
+        } else {
+          grouped[modelKey].push(product);
+        }
       }
-      grouped[modelKey].push(product);
     });
     
     return grouped;
@@ -254,62 +299,74 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </div>
           ) : Object.keys(groupedByModel).length > 0 ? (
             <div className="space-y-6">
-              {Object.entries(groupedByModel).map(([modelName, modelProducts]) => (
-                <div key={modelName} className="space-y-2">
-                  <h3 className="font-medium text-sm text-muted-foreground">{modelName}</h3>
-                  
-                  <div className="flex flex-col gap-2">
-                    {modelProducts.map((product) => (
-                      <div 
-                        key={product.id} 
-                        onClick={() => handleProductSelect(product)}
-                        className={`cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${product.is_variation ? 'border-dashed' : ''}`}
-                      >
-                        <div className="flex p-3">
-                          <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
-                            <img 
-                              src={product.image_url || product.imageUrl || "/placeholder.svg"}
-                              alt={product.name}
-                              className="object-contain h-16 w-16"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/placeholder.svg";
-                              }}
-                            />
-                          </div>
-                          <div className="w-2/3 p-3">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium text-sm">{product.name}</h3>
-                              {product.is_parent && (
-                                <Badge variant="outline" className="text-xs">Parent</Badge>
-                              )}
-                              {product.is_variation && (
-                                <Badge variant="outline" className="text-xs">Variante</Badge>
-                              )}
+              {Object.entries(groupedByModel).map(([modelName, modelProducts]) => {
+                // Sort products so parent comes first, then variants
+                const sortedProducts = [...modelProducts].sort((a, b) => {
+                  if (a.is_parent) return -1;
+                  if (b.is_parent) return 1;
+                  return 0;
+                });
+                
+                // Get parent product for the group heading
+                const parentProduct = sortedProducts.find(p => p.is_parent) || sortedProducts[0];
+                
+                return (
+                  <div key={modelName} className="space-y-2">
+                    <h3 className="font-medium text-sm text-muted-foreground">{parentProduct.name}</h3>
+                    
+                    <div className="flex flex-col gap-2">
+                      {sortedProducts.map((product) => (
+                        <div 
+                          key={product.id} 
+                          onClick={() => handleProductSelect(product)}
+                          className={`cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${product.is_variation ? 'border-dashed' : ''}`}
+                        >
+                          <div className="flex p-3">
+                            <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
+                              <img 
+                                src={product.image_url || product.imageUrl || "/placeholder.svg"}
+                                alt={product.name}
+                                className="object-contain h-16 w-16"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                }}
+                              />
                             </div>
-                            
-                            {product.is_variation && product.attributes && Object.keys(product.attributes).length > 0 && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatAttributes(product.attributes as ProductAttributes)}
-                              </p>
-                            )}
-                            
-                            <div className="text-sm space-y-1 mt-2">
-                              <p className="text-muted-foreground">
-                                Prix: {product.price} €
-                              </p>
-                              {product.monthly_price && (
-                                <p className="text-muted-foreground">
-                                  Mensualité: {product.monthly_price} €
+                            <div className="w-2/3 p-3">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-medium text-sm">{product.name}</h3>
+                                {product.is_parent && (
+                                  <Badge variant="outline" className="text-xs">Parent</Badge>
+                                )}
+                                {product.is_variation && (
+                                  <Badge variant="outline" className="text-xs">Variante</Badge>
+                                )}
+                              </div>
+                              
+                              {product.is_variation && product.attributes && Object.keys(product.attributes).length > 0 && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {formatAttributes(product.attributes as ProductAttributes)}
                                 </p>
                               )}
+                              
+                              <div className="text-sm space-y-1 mt-2">
+                                <p className="text-muted-foreground">
+                                  Prix: {product.price} €
+                                </p>
+                                {product.monthly_price > 0 && (
+                                  <p className="text-muted-foreground">
+                                    Mensualité: {product.monthly_price} €
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-10 text-muted-foreground">
