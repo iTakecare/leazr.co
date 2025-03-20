@@ -53,13 +53,30 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           if (!grouped[groupKey]) {
             grouped[groupKey] = [product];
           }
+          
+          // Chercher et ajouter toutes les variantes associées à ce parent
+          const variants = products.filter(p => p.parent_id === product.id);
+          if (variants.length > 0) {
+            grouped[groupKey] = [...grouped[groupKey], ...variants];
+          }
         } else if (product.parent_id) {
           // Les produits enfants vont dans le groupe de leur parent
           groupKey = product.parent_id;
           if (!grouped[groupKey]) {
-            grouped[groupKey] = [];
+            // Si le parent n'est pas encore dans le groupe, créer le groupe avec le parent
+            const parent = products.find(p => p.id === product.parent_id);
+            if (parent) {
+              grouped[groupKey] = [parent, product];
+            } else {
+              // Si on ne trouve pas le parent, mettre la variante dans son propre groupe
+              grouped[product.id] = [product];
+            }
+          } else {
+            // Si le parent est déjà dans le groupe, ajouter la variante
+            if (!grouped[groupKey].some(p => p.id === product.id)) {
+              grouped[groupKey].push(product);
+            }
           }
-          grouped[groupKey].push(product);
         } else {
           // Les produits sans variation vont dans leur propre groupe
           groupKey = product.id;
@@ -156,8 +173,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           ? (mainProduct?.name || "Produit")
           : groupKey;
         
+        // Récupérer toutes les variantes (excluant le produit parent)
         const variants = groupingOption === "model" 
-          ? groupProducts.filter(p => p.id !== mainProduct?.id || !mainProduct.is_parent)
+          ? groupProducts.filter(p => p.id !== mainProduct?.id && (p.parent_id === mainProduct?.id || (!mainProduct?.is_parent && p.is_variation)))
           : [];
         
         return (
@@ -274,7 +292,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     {/* Pour regroupement par modèle : afficher toutes les variantes */}
                     {/* Pour regroupement par marque : afficher tous les produits */}
                     {(groupingOption === "model" 
-                      ? (mainProduct?.is_parent ? variants : groupProducts) 
+                      ? variants 
                       : groupProducts).map((product) => (
                       <div key={product.id} className="border rounded-md overflow-hidden">
                         <div className="p-3 flex justify-between items-center">

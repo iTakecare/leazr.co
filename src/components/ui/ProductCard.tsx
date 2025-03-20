@@ -42,7 +42,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
     productMonthlyPrice = formatCurrency(product.monthly_price);
   }
   
+  // Check for variants_ids which is an alternative way to identify if a product has variants
+  if (product?.variants_ids && product.variants_ids.length > 0) {
+    hasVariants = true;
+  }
+  
   const productImage = product?.image_url || "/placeholder.svg";
+  
+  const isVariant = !!product.parent_id;
+  const isParent = product.is_parent || hasVariants;
 
   return (
     <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" onClick={onClick}>
@@ -73,14 +81,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
                 Disponible
               </Badge>
               
-              {product.is_parent && (
+              {isParent && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center">
                   <Layers className="h-3 w-3 mr-1" />
-                  {(product.variants?.length || 0)} variante(s)
+                  {(product.variants?.length || product.variants_ids?.length || 0)} variante(s)
                 </Badge>
               )}
               
-              {product.parent_id && (
+              {isVariant && (
                 <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
                   Variante
                 </Badge>
