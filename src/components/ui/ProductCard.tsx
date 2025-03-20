@@ -53,7 +53,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
           <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
             <img 
               src={mainImageUrl} 
-              alt={product?.image_alt || productName}
+              alt={productName}
               className="object-contain h-20 w-20"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/placeholder.svg";
