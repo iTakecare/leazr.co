@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Package, Layers, Edit, Trash2, Tag } from "lucide-react";
+import { Package, Layers, Edit, Trash2, Tag, Cpu, Memory, HardDrive } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Product } from "@/types/catalog"; 
 import { toast } from "@/components/ui/use-toast";
@@ -159,6 +159,36 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     }
   };
 
+  // Fonction pour rendre les attributs variés comme des tags
+  const renderAttributeVariationTags = (key: string, values: string[]) => {
+    // Déterminer l'icône appropriée en fonction du type d'attribut
+    const getAttributeIcon = (attrName: string) => {
+      const lowerName = attrName.toLowerCase();
+      if (lowerName.includes("processeur") || lowerName.includes("cpu")) return <Cpu className="h-3 w-3 mr-1" />;
+      if (lowerName.includes("mémoire") || lowerName.includes("ram")) return <Memory className="h-3 w-3 mr-1" />;
+      if (lowerName.includes("disque") || lowerName.includes("stockage") || lowerName.includes("ssd")) return <HardDrive className="h-3 w-3 mr-1" />;
+      return <Tag className="h-3 w-3 mr-1" />;
+    };
+
+    return (
+      <div key={key} className="mb-2">
+        <span className="text-xs font-medium text-gray-500">{key}</span>
+        <div className="flex flex-wrap gap-1 mt-1">
+          {values.map((value, idx) => (
+            <Badge 
+              key={`${key}-${idx}`}
+              variant="outline" 
+              className="text-xs py-0 px-2 flex items-center bg-blue-50 text-blue-700 border-blue-200"
+            >
+              {getAttributeIcon(key)}
+              {value}
+            </Badge>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   // Render attribute tags for variant products
   const renderAttributeTags = (product: Product) => {
     if (!product.attributes || Object.keys(product.attributes).length === 0) {
@@ -171,8 +201,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           <Badge 
             key={`${product.id}-${key}`} 
             variant="outline" 
-            className="text-xs bg-purple-100 text-purple-700 py-0.5 px-2"
+            className="text-xs bg-purple-100 text-purple-700 py-0.5 px-2 flex items-center"
           >
+            <Tag className="h-3 w-3 mr-1" />
             {key}: {value}
           </Badge>
         ))}
@@ -188,22 +219,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     
     return (
       <div className="space-y-2 mt-2">
-        {Object.entries(product.variation_attributes).map(([key, values]) => (
-          <div key={key}>
-            <span className="text-sm font-medium text-gray-600">{key}:</span>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {Array.isArray(values) && values.map((value, idx) => (
-                <Badge 
-                  key={`${key}-${idx}`}
-                  variant="outline" 
-                  className="text-xs bg-blue-50 text-blue-700"
-                >
-                  {value}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        ))}
+        {Object.entries(product.variation_attributes).map(([key, values]) => 
+          renderAttributeVariationTags(key, Array.isArray(values) ? values : [])
+        )}
       </div>
     );
   };
@@ -309,6 +327,15 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
               
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-4">
+                  {/* Affichage des attributs de variation du produit parent */}
+                  {groupingOption === "model" && parentProduct.variation_attributes && 
+                   Object.keys(parentProduct.variation_attributes).length > 0 && (
+                    <div className="border rounded-md p-4 bg-gray-50">
+                      <h3 className="text-sm font-medium mb-2">Attributs de variation disponibles</h3>
+                      {renderVariationAttributes(parentProduct)}
+                    </div>
+                  )}
+                  
                   {/* Display parent product if we're grouping by model and it's a parent */}
                   {groupingOption === "model" && parentProduct.is_parent && (
                     <div className="border rounded-md overflow-hidden">
@@ -375,36 +402,22 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                           </div>
                         </div>
                       )}
-                      
-                      {/* Display available variation options */}
-                      {renderVariationAttributes(parentProduct)}
                     </div>
                   )}
                   
                   {/* Display variants */}
                   {groupingOption === "model" && variants.length > 0 && (
                     <div className="space-y-2">
+                      <h3 className="text-sm font-medium mb-2 text-gray-600">Variantes</h3>
                       {variants.map((variant) => (
                         <div key={variant.id} className="border rounded-md p-3">
                           <div className="flex justify-between items-start">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 mr-2 bg-gray-100 rounded flex-shrink-0 overflow-hidden">
-                                <img
-                                  src={variant.image_url || parentProduct.image_url || '/placeholder.svg'}
-                                  alt={variant.name}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = "/placeholder.svg";
-                                  }}
-                                />
-                              </div>
-                              <div>
-                                <div className="font-medium">{variant.name}</div>
-                                {renderAttributeTags(variant)}
-                              </div>
+                            <div className="flex-1">
+                              <div className="font-medium">{variant.name}</div>
+                              {renderAttributeTags(variant)}
                             </div>
                             
-                            <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-4 ml-4">
                               <div className="text-right">
                                 <div className="font-medium">{formatCurrency(variant.price || 0)}</div>
                                 <div className="text-sm text-gray-500">{formatCurrency(variant.monthly_price || 0)}/mois</div>
