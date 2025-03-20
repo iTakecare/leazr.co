@@ -24,6 +24,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
     productPrice = formatCurrency(product.price);
   }
   
+  // Check if product has variants or variant combination prices
+  const hasVariantCombinations = product?.variant_combination_prices && 
+                                 product.variant_combination_prices.length > 0;
+  
   // Check if product has variants
   if (product?.variants && product.variants.length > 0) {
     hasVariants = true;
@@ -42,8 +46,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
     productMonthlyPrice = formatCurrency(product.monthly_price);
   }
   
-  // Check for variants in the product data - using the variations property from the type
-  if (product?.variations && product.variations.length > 0) {
+  // Also check if product has variation attributes, indicating it's a parent product
+  const hasVariationAttributes = product?.variation_attributes && 
+                                Object.keys(product.variation_attributes).length > 0;
+  
+  // If product has variation attributes or variant combinations, it's considered to have variants
+  if (hasVariationAttributes || hasVariantCombinations) {
     hasVariants = true;
   }
   
@@ -51,6 +59,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   
   const isVariant = !!product.parent_id;
   const isParent = product.is_parent || hasVariants;
+
+  // Calculate the number of variants or variations
+  const getVariationsCount = () => {
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.length;
+    }
+    if (product.variations && product.variations.length > 0) {
+      return product.variations.length;
+    }
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      return product.variant_combination_prices.length;
+    }
+    return 0;
+  };
+
+  const variantsCount = getVariationsCount();
 
   return (
     <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" onClick={onClick}>
@@ -84,7 +108,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
               {isParent && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center">
                   <Layers className="h-3 w-3 mr-1" />
-                  {(product.variants?.length || product.variations?.length || 0)} variante(s)
+                  {variantsCount} variante(s)
                 </Badge>
               )}
               
