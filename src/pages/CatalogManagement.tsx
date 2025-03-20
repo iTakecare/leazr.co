@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -32,17 +33,6 @@ const CatalogManagement = () => {
 
   useEffect(() => {
     console.log(`Loaded ${products.length} products:`, products);
-    
-    products.forEach(product => {
-      if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
-        console.log(`Product with variations: ${product.name}`, {
-          id: product.id,
-          variation_attributes: product.variation_attributes,
-          is_parent: product.is_parent,
-          variantCombinations: product.variant_combination_prices?.length || 0
-        });
-      }
-    });
   }, [products]);
 
   useEffect(() => {
@@ -203,6 +193,7 @@ const CatalogManagement = () => {
         </Tabs>
       </div>
 
+      {/* Garder le ProductEditor comme solution de repli ou d'édition rapide */}
       <ProductEditor 
         isOpen={isAddProductOpen} 
         onClose={() => setIsAddProductOpen(false)} 

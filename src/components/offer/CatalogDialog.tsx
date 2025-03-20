@@ -27,7 +27,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
-  const [showVariants, setShowVariants] = useState<boolean>(true);
+  const [showVariants, setShowVariants] = useState<boolean>(false);
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -45,7 +45,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       // Use anon key directly (the supabase client already has this configured)
       const { data, error } = await supabase
         .from('products')
-        .select('*, variant_combination_prices(*)')
+        .select('*')
         .eq('active', true)
         .order('created_at', { ascending: false });
         
@@ -56,18 +56,10 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       console.log(`Successfully fetched ${data?.length} products`);
       
       // Process products to ensure consistent format
-      const processedProducts = data.map(product => {
-        // Check if the product has variant prices
-        const hasVariantPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
-        const hasVariationAttributes = product.variation_attributes && 
-                                      Object.keys(product.variation_attributes).length > 0;
-        
-        return {
-          ...product,
-          attributes: parseAttributes(product.attributes),
-          is_parent: hasVariantPrices || hasVariationAttributes || product.is_parent || false
-        };
-      });
+      const processedProducts = data.map(product => ({
+        ...product,
+        attributes: parseAttributes(product.attributes)
+      }));
       
       setProducts(processedProducts || []);
     } catch (err) {
@@ -141,7 +133,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     
     // Remove variants if not showing variants
     if (!showVariants) {
-      filtered = filtered.filter(product => !product.is_variation && !product.parent_id);
+      filtered = filtered.filter(product => !product.is_variation);
     }
     
     // Apply filters
@@ -172,86 +164,22 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     
     const grouped: Record<string, Product[]> = {};
     
-    // Debug information
-    console.log("Raw products to be grouped:", filteredProducts);
-    
     filteredProducts.forEach(product => {
-      if (product.parent_id && showVariants) {
-        // If it's a variant and we're showing variants
-        const parentProduct = filteredProducts.find(p => p.id === product.parent_id);
-        const modelKey = parentProduct ? parentProduct.name : product.name;
-        
-        if (!grouped[modelKey]) {
-          grouped[modelKey] = [];
-          // Add parent first if found
-          if (parentProduct) {
-            grouped[modelKey].push(parentProduct);
-          }
-        }
-        
-        // Only add the variant if parent exists and variant isn't already in the list
-        if (parentProduct && !grouped[modelKey].some(p => p.id === product.id)) {
-          grouped[modelKey].push(product);
-        }
-      } else if (!product.parent_id) {
-        // If it's a parent product or standalone product
-        const modelKey = product.model || product.name;
-        if (!grouped[modelKey]) {
-          grouped[modelKey] = [];
-        }
-        
-        // Add the product if it's not already in the list
-        if (!grouped[modelKey].some(p => p.id === product.id)) {
-          grouped[modelKey].push(product);
-        }
-        
-        // Also add its variants if showing variants
-        if (showVariants && (product.is_parent || product.variant_combination_prices?.length > 0)) {
-          // Fetch variant products if they exist
-          const variants = filteredProducts.filter(p => p.parent_id === product.id);
-          variants.forEach(variant => {
-            if (!grouped[modelKey].some(p => p.id === variant.id)) {
-              grouped[modelKey].push(variant);
-            }
-          });
-          
-          // Log variant count for debugging
-          console.log(`Variants for ${product.name}:`, variants);
-        }
+      const modelKey = product.model || product.name;
+      if (!grouped[modelKey]) {
+        grouped[modelKey] = [];
       }
-    });
-    
-    // Log grouped information for debugging
-    Object.entries(grouped).forEach(([key, items]) => {
-      console.log(`Group ${key}:`, items.map(item => 
-        `${item.name} (${item.id}, parent_id: ${item.parent_id}, is_parent: ${item.is_parent})`
-      ));
-    });
-    
-    // Sort to ensure parents come first
-    Object.keys(grouped).forEach(key => {
-      grouped[key].sort((a, b) => {
-        // Parents first, then variants
-        if (a.parent_id && !b.parent_id) return 1;
-        if (!a.parent_id && b.parent_id) return -1;
-        return 0;
-      });
+      grouped[modelKey].push(product);
     });
     
     return grouped;
-  }, [filteredProducts, showVariants]);
+  }, [filteredProducts]);
 
   // Format attributes for display
   const formatAttributes = (attributes: ProductAttributes) => {
     return Object.entries(attributes)
       .map(([key, value]) => `${key}: ${value}`)
       .join(", ");
-  };
-
-  // Check if product has price variantes
-  const hasVariantPrices = (product: Product) => {
-    return product.variant_combination_prices && 
-           product.variant_combination_prices.length > 0;
   };
 
   return (
@@ -332,7 +260,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                       <div 
                         key={product.id} 
                         onClick={() => handleProductSelect(product)}
-                        className={`cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${product.parent_id ? 'border-dashed ml-4' : ''}`}
+                        className={`cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${product.is_variation ? 'border-dashed' : ''}`}
                       >
                         <div className="flex p-3">
                           <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
@@ -348,24 +276,17 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                           <div className="w-2/3 p-3">
                             <div className="flex items-center gap-2">
                               <h3 className="font-medium text-sm">{product.name}</h3>
-                              {(product.is_parent || hasVariantPrices(product)) && (
-                                <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-200">Parent</Badge>
+                              {product.is_parent && (
+                                <Badge variant="outline" className="text-xs">Parent</Badge>
                               )}
-                              {product.parent_id && (
-                                <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700 border-purple-200">Variante</Badge>
+                              {product.is_variation && (
+                                <Badge variant="outline" className="text-xs">Variante</Badge>
                               )}
                             </div>
                             
-                            {product.parent_id && product.attributes && Object.keys(product.attributes).length > 0 && (
+                            {product.is_variation && product.attributes && Object.keys(product.attributes).length > 0 && (
                               <p className="text-xs text-gray-500 mt-1">
                                 {formatAttributes(product.attributes as ProductAttributes)}
-                              </p>
-                            )}
-                            
-                            {/* Show if this product has variant prices */}
-                            {(!product.parent_id && hasVariantPrices(product)) && (
-                              <p className="text-xs text-blue-600 mt-1">
-                                {product.variant_combination_prices.length} configuration(s) de prix
                               </p>
                             )}
                             

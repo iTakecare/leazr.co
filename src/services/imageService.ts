@@ -74,6 +74,7 @@ export async function detectMimeTypeFromSignature(file: File): Promise<string | 
     const bytes = new Uint8Array(buffer);
     
     // Check for WebP signature (52 49 46 46 XX XX XX XX 57 45 42 50)
+    // WebP files start with "RIFF" followed by file size, then "WEBP"
     if (
       bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 && // "RIFF"
       bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50   // "WEBP"
@@ -210,8 +211,6 @@ export async function uploadImage(
       finalPath = `${pathParts.join('/')}/${seoFilename}-${Date.now()}.${extension}`;
     }
 
-    console.log(`Final upload path: ${finalPath}`);
-
     // First try to detect MIME type from file signature 
     const signatureMimeType = await detectMimeTypeFromSignature(file);
     const contentType = signatureMimeType || getMimeTypeFromExtension(extension);
@@ -223,25 +222,26 @@ export async function uploadImage(
     // Create a new blob with the correct MIME type - this is crucial for proper content type setting
     const blob = new Blob([arrayBuffer], { type: contentType });
     
-    // Get Supabase client
+    console.log(`Uploading image to path: ${finalPath} with explicit content type: ${contentType}`);
+    
+    // Try with regular client first
     let supabase = getSupabaseClient();
     
-    // Try standard upload method first
-    const { data, error } = await supabase.storage
+    // Upload the file with explicit content type using fetches directly - avoiding Supabase's auto content type detection
+    const formData = new FormData();
+    formData.append('file', blob, file.name);
+    
+    // Get upload URL from Supabase
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from(bucket)
-      .upload(finalPath, blob, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType: contentType // Explicitly set content type
-      });
+      .createSignedUploadUrl(finalPath);
+    
+    if (signedUrlError) {
+      console.error("Error getting signed URL:", signedUrlError);
+      console.log("Trying with standard upload method...");
       
-    if (error) {
-      console.error("Error uploading with standard method:", error);
-      console.log("Trying with admin client...");
-      
-      // Try with admin client as fallback
-      supabase = getAdminSupabaseClient();
-      const adminResult = await supabase.storage
+      // Fall back to standard upload method
+      const { data, error } = await supabase.storage
         .from(bucket)
         .upload(finalPath, blob, {
           cacheControl: '3600',
@@ -249,35 +249,86 @@ export async function uploadImage(
           contentType: contentType // Explicitly set content type
         });
         
-      if (adminResult.error) {
-        console.error("Error uploading with admin client:", adminResult.error);
-        return { url: null, altText };
+      if (error) {
+        console.error("Error uploading with standard method:", error);
+        console.log("Trying with admin client...");
+        
+        // Try with admin client as last resort
+        supabase = getAdminSupabaseClient();
+        const result = await supabase.storage
+          .from(bucket)
+          .upload(finalPath, blob, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: contentType // Explicitly set content type
+          });
+          
+        if (result.error) {
+          console.error("Error uploading with admin client:", result.error);
+          return { url: null, altText };
+        }
+        
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(result.data.path);
+          
+        console.log(`Successfully uploaded image to: ${publicUrlData?.publicUrl}`);
+        
+        return {
+          url: publicUrlData?.publicUrl || null,
+          altText
+        };
       }
       
-      // Get public URL with admin client
-      const publicUrlData = supabase.storage
+      // Get public URL if standard method worked
+      const { data: publicUrlData } = supabase.storage
         .from(bucket)
-        .getPublicUrl(adminResult.data.path);
+        .getPublicUrl(data.path);
         
-      console.log(`Successfully uploaded image to: ${publicUrlData?.data?.publicUrl}`);
+      console.log(`Successfully uploaded image to: ${publicUrlData?.publicUrl}`);
       
       return {
-        url: publicUrlData?.data?.publicUrl || null,
+        url: publicUrlData?.publicUrl || null,
         altText
       };
     }
     
-    // Get public URL if standard method worked
-    const publicUrlData = supabase.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
-      
-    console.log(`Successfully uploaded image to: ${publicUrlData?.data?.publicUrl}`);
+    // If we got a signed URL, use direct fetch with explicit content type header
+    console.log("Using signed URL for upload with explicit content type");
+    const { signedUrl, token, path: storagePath } = signedUrlData;
     
-    return {
-      url: publicUrlData?.data?.publicUrl || null,
-      altText
-    };
+    try {
+      const uploadResponse = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentType,
+          'x-upsert': 'true'
+        },
+        body: blob
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
+      
+      console.log("Upload successful with fetch and explicit content type");
+      
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(storagePath);
+        
+      console.log(`Successfully uploaded image to: ${publicUrlData?.publicUrl}`);
+      
+      return {
+        url: publicUrlData?.publicUrl || null,
+        altText
+      };
+    } catch (fetchError) {
+      console.error("Error with fetch upload:", fetchError);
+      return { url: null, altText };
+    }
   } catch (error) {
     console.error("Error in uploadImage:", error);
     return { url: null, altText: file.name };

@@ -17,10 +17,7 @@ export const getVariantCombinationPrices = async (productId: string): Promise<Va
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error("Error fetching variant combination prices:", error);
-      throw error;
-    }
+    if (error) throw error;
     
     return data || [];
   } catch (error) {
@@ -58,10 +55,6 @@ export const createVariantCombinationPrice = async (
       throw error;
     }
     
-    if (!newPrice) {
-      throw new Error("Failed to create variant price - no data returned");
-    }
-    
     return newPrice;
   } catch (error) {
     console.error("Error creating variant combination price:", error);
@@ -79,10 +72,7 @@ export const deleteVariantCombinationPrice = async (id: string): Promise<void> =
       .delete()
       .eq('id', id);
     
-    if (error) {
-      console.error("Error deleting variant combination price:", error);
-      throw error;
-    }
+    if (error) throw error;
   } catch (error) {
     console.error("Error deleting variant combination price:", error);
     throw error;
@@ -103,10 +93,7 @@ export const findVariantCombinationPrice = async (
       .select('*')
       .eq('product_id', productId);
     
-    if (error) {
-      console.error("Error finding variant prices:", error);
-      throw error;
-    }
+    if (error) throw error;
     
     if (!data || data.length === 0) return null;
     
@@ -138,8 +125,6 @@ export const updateProductVariationAttributes = async (
   attributes: ProductVariationAttributes
 ): Promise<void> => {
   try {
-    console.log("Updating variation attributes for product:", productId, attributes);
-    
     const { error } = await supabase
       .from('products')
       .update({
@@ -147,12 +132,7 @@ export const updateProductVariationAttributes = async (
       })
       .eq('id', productId);
     
-    if (error) {
-      console.error("Error updating product variation attributes:", error);
-      throw error;
-    }
-    
-    console.log("Successfully updated variation attributes");
+    if (error) throw error;
   } catch (error) {
     console.error("Error updating product variation attributes:", error);
     throw error;
@@ -173,10 +153,7 @@ export const updateParentProductRemovePrice = async (
       })
       .eq('id', productId);
     
-    if (error) {
-      console.error("Error updating parent product price:", error);
-      throw error;
-    }
+    if (error) throw error;
   } catch (error) {
     console.error("Error updating parent product price:", error);
     throw error;
