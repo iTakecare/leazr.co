@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -27,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 interface SidebarProps {
   className?: string;
@@ -45,6 +48,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const { signOut } = useAuth();
   
   const menuItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/" },
@@ -57,8 +61,15 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Paramètres", icon: Settings, href: "/settings" },
   ];
 
-  const handleLogout = () => {
-    console.log("Logging out");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+      toast.success("Déconnexion réussie");
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      toast.error("Erreur lors de la déconnexion");
+    }
   };
 
   const isActive = (href: string) => {
