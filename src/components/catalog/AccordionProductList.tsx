@@ -17,8 +17,9 @@ import { toast } from "@/components/ui/use-toast";
 
 interface AccordionProductListProps {
   products: Product[];
-  onProductDeleted: (productId: string) => void;
+  onProductDeleted: ((productId: string) => void) | null;
   groupingOption: "model" | "brand";
+  readOnly?: boolean;
 }
 
 interface GroupedProducts {
@@ -28,7 +29,8 @@ interface GroupedProducts {
 const AccordionProductList: React.FC<AccordionProductListProps> = ({ 
   products: initialProducts,
   onProductDeleted,
-  groupingOption 
+  groupingOption,
+  readOnly = false
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
 
@@ -86,6 +88,8 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   }, [products, groupingOption]);
 
   const handleDeleteProduct = async (productId: string) => {
+    if (!onProductDeleted) return;
+    
     try {
       await onProductDeleted(productId);
       
@@ -119,15 +123,20 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
         <Package className="mx-auto h-12 w-12 text-gray-400" />
         <h3 className="mt-2 text-sm font-semibold text-gray-900">Aucun produit</h3>
         <p className="mt-1 text-sm text-gray-500">
-          Vous n'avez pas encore ajouté de produits à votre catalogue.
+          {readOnly 
+            ? "Aucun produit n'est disponible dans le catalogue."
+            : "Vous n'avez pas encore ajouté de produits à votre catalogue."
+          }
         </p>
-        <div className="mt-6">
-          <Link to="/catalog/create-product">
-            <Button>
-              Ajouter un produit
-            </Button>
-          </Link>
-        </div>
+        {!readOnly && (
+          <div className="mt-6">
+            <Link to="/catalog/create-product">
+              <Button>
+                Ajouter un produit
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     );
   }
@@ -208,36 +217,38 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                           )}
                         </div>
                         
-                        <div className="flex space-x-2">
-                          <Link to={`/products/${mainProduct.id}`}>
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-4 w-4 mr-1" /> Modifier
-                            </Button>
-                          </Link>
-                          
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive">
-                                <Trash2 className="h-4 w-4" />
+                        {!readOnly && (
+                          <div className="flex space-x-2">
+                            <Link to={`/products/${mainProduct.id}`}>
+                              <Button size="sm" variant="outline">
+                                <Edit className="h-4 w-4 mr-1" /> Modifier
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Êtes-vous sûr de vouloir supprimer ce produit{mainProduct.is_parent ? " et toutes ses variantes" : ""} ?
-                                  Cette action ne peut pas être annulée.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteProduct(mainProduct.id)}>
-                                  Supprimer
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                            </Link>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Êtes-vous sûr de vouloir supprimer ce produit{mainProduct.is_parent ? " et toutes ses variantes" : ""} ?
+                                    Cette action ne peut pas être annulée.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteProduct(mainProduct.id)}>
+                                    Supprimer
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                       </div>
                       
                       {!mainProduct.is_parent && (
@@ -294,36 +305,38 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                               </div>
                             )}
                             
-                            <div className="flex space-x-1">
-                              <Link to={`/products/${product.id}`}>
-                                <Button size="sm" variant="ghost">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </Link>
-                              
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                                    <Trash2 className="h-4 w-4" />
+                            {!readOnly && (
+                              <div className="flex space-x-1">
+                                <Link to={`/products/${product.id}`}>
+                                  <Button size="sm" variant="ghost">
+                                    <Edit className="h-4 w-4" />
                                   </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Êtes-vous sûr de vouloir supprimer ce produit{product.is_parent ? " et toutes ses variantes" : ""} ?
-                                      Cette action ne peut pas être annulée.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
-                                      Supprimer
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
+                                </Link>
+                                
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Êtes-vous sûr de vouloir supprimer ce produit{product.is_parent ? " et toutes ses variantes" : ""} ?
+                                        Cette action ne peut pas être annulée.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
+                                        Supprimer
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
