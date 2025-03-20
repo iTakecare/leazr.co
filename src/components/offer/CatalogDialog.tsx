@@ -27,7 +27,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
-  const [showVariants, setShowVariants] = useState<boolean>(false);
+  const [showVariants, setShowVariants] = useState<boolean>(true);
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -133,7 +133,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     
     // Remove variants if not showing variants
     if (!showVariants) {
-      filtered = filtered.filter(product => !product.is_variation);
+      filtered = filtered.filter(product => !product.is_variation && !product.parent_id);
     }
     
     // Apply filters
@@ -165,15 +165,59 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     const grouped: Record<string, Product[]> = {};
     
     filteredProducts.forEach(product => {
-      const modelKey = product.model || product.name;
-      if (!grouped[modelKey]) {
-        grouped[modelKey] = [];
+      if (product.parent_id && showVariants) {
+        // If it's a variant and we're showing variants
+        const parentProduct = filteredProducts.find(p => p.id === product.parent_id);
+        const modelKey = parentProduct ? parentProduct.name : product.name;
+        
+        if (!grouped[modelKey]) {
+          grouped[modelKey] = [];
+          // Add parent first if found
+          if (parentProduct) {
+            grouped[modelKey].push(parentProduct);
+          }
+        }
+        
+        // Only add the variant if parent exists and variant isn't already in the list
+        if (parentProduct && !grouped[modelKey].some(p => p.id === product.id)) {
+          grouped[modelKey].push(product);
+        }
+      } else if (!product.parent_id) {
+        // If it's a parent product or standalone product
+        const modelKey = product.model || product.name;
+        if (!grouped[modelKey]) {
+          grouped[modelKey] = [];
+        }
+        
+        // Add the product if it's not already in the list
+        if (!grouped[modelKey].some(p => p.id === product.id)) {
+          grouped[modelKey].push(product);
+        }
+        
+        // Also add its variants if showing variants
+        if (showVariants && product.is_parent) {
+          const variants = filteredProducts.filter(p => p.parent_id === product.id);
+          variants.forEach(variant => {
+            if (!grouped[modelKey].some(p => p.id === variant.id)) {
+              grouped[modelKey].push(variant);
+            }
+          });
+        }
       }
-      grouped[modelKey].push(product);
+    });
+    
+    // Sort to ensure parents come first
+    Object.keys(grouped).forEach(key => {
+      grouped[key].sort((a, b) => {
+        // Parents first, then variants
+        if (a.parent_id && !b.parent_id) return 1;
+        if (!a.parent_id && b.parent_id) return -1;
+        return 0;
+      });
     });
     
     return grouped;
-  }, [filteredProducts]);
+  }, [filteredProducts, showVariants]);
 
   // Format attributes for display
   const formatAttributes = (attributes: ProductAttributes) => {
@@ -260,7 +304,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                       <div 
                         key={product.id} 
                         onClick={() => handleProductSelect(product)}
-                        className={`cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${product.is_variation ? 'border-dashed' : ''}`}
+                        className={`cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${product.parent_id ? 'border-dashed ml-4' : ''}`}
                       >
                         <div className="flex p-3">
                           <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
@@ -277,14 +321,14 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                             <div className="flex items-center gap-2">
                               <h3 className="font-medium text-sm">{product.name}</h3>
                               {product.is_parent && (
-                                <Badge variant="outline" className="text-xs">Parent</Badge>
+                                <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-200">Parent</Badge>
                               )}
-                              {product.is_variation && (
-                                <Badge variant="outline" className="text-xs">Variante</Badge>
+                              {product.parent_id && (
+                                <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700 border-purple-200">Variante</Badge>
                               )}
                             </div>
                             
-                            {product.is_variation && product.attributes && Object.keys(product.attributes).length > 0 && (
+                            {product.parent_id && product.attributes && Object.keys(product.attributes).length > 0 && (
                               <p className="text-xs text-gray-500 mt-1">
                                 {formatAttributes(product.attributes as ProductAttributes)}
                               </p>

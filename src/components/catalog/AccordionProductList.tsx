@@ -43,6 +43,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   const groupedProducts = useMemo(() => {
     const grouped: GroupedProducts = {};
     
+    // Log the raw products to debug
+    console.log("Raw products to be grouped:", products);
+    
     products.forEach(product => {
       let groupKey: string;
       
@@ -94,12 +97,10 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       }
     });
     
-    if (groupingOption === "model") {
-      console.log("Grouping by model:", Object.keys(grouped).length, "parent products", 
-                  products.filter(p => p.parent_id).length, "variants");
-    } else {
-      console.log("Grouping by brand:", Object.keys(grouped).length, "brands", products.length, "products");
-    }
+    // Log each group and its contents for debugging
+    Object.entries(grouped).forEach(([key, products]) => {
+      console.log(`Group ${key}:`, products.map(p => `${p.name} (${p.id}, parent_id: ${p.parent_id}, is_parent: ${p.is_parent})`));
+    });
     
     return grouped;
   }, [products, groupingOption]);
@@ -178,6 +179,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           ? groupProducts.filter(p => p.id !== mainProduct?.id && (p.parent_id === mainProduct?.id || (!mainProduct?.is_parent && p.is_variation)))
           : [];
         
+        // Log the variants for each group
+        console.log(`Variants for ${groupTitle}:`, variants.map(v => v.name));
+        
         return (
           <motion.div
             key={groupKey}
@@ -205,7 +209,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         <div className="font-medium">{mainProduct.name}</div>
                         <div className="text-xs text-muted-foreground flex items-center">
                           {mainProduct.brand || "Sans marque"} • {mainProduct.category || "Sans catégorie"}
-                          {mainProduct.is_parent && variants.length > 0 && (
+                          {(mainProduct.is_parent || variants.length > 0) && (
                             <span className="ml-2 flex items-center">
                               <Layers className="h-3 w-3 mr-1" /> {variants.length} variante(s)
                             </span>
