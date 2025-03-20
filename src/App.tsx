@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
@@ -45,6 +44,7 @@ import AmbassadorDashboardPage from "./pages/AmbassadorPages/AmbassadorDashboard
 import AmbassadorOffersPage from "./pages/AmbassadorPages/AmbassadorOffersPage";
 import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage";
 import AmbassadorLayout from "./components/layout/AmbassadorLayout";
+import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -121,7 +121,7 @@ function App() {
                 <Route path="clients/:id" element={<ClientDetail />} />
                 <Route path="create-offer" element={<AmbassadorCreateOffer />} />
                 <Route path="create-offer/:clientId" element={<AmbassadorCreateOffer />} />
-                <Route path="catalog" element={<CatalogManagement />} />
+                <Route path="catalog" element={<AmbassadorCatalog />} />
               </Route>
               
               {/* Routes partner login */}
