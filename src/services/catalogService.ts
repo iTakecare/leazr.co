@@ -368,13 +368,15 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 /**
  * Upload an image for a product and update the product with the image URL
  */
-export async function uploadProductImage(file: File, productId: string, isMain: boolean = false): Promise<string> => {
+export async function uploadProductImage(file: File, productId: string, isMain: boolean = false): Promise<string> {
   try {
     console.log(`Uploading ${isMain ? 'main' : 'additional'} image for product ${productId}: ${file.name}`);
     
     // Generate a unique file name
     const filename = `${file.name.split('.')[0]}-${Date.now()}.${file.name.split('.').pop()}`;
     const filePath = `${productId}/${filename}`;
+    
+    const supabase = getSupabaseClient();
     
     // Upload file to storage
     const { data: uploadData, error: uploadError } = await supabase.storage
