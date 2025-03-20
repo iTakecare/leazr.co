@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import AccordionProductList from "@/components/catalog/AccordionProductList";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ProductGrid from "@/components/catalog/ProductGrid";
 import { useIsMobile } from "@/hooks/use-mobile";
+import CollapsibleProductList from "@/components/catalog/CollapsibleProductList";
 
 const CatalogManagement = () => {
   const navigate = useNavigate();
@@ -42,9 +44,10 @@ const CatalogManagement = () => {
 
   const deleteProductMutation = useMutation({
     mutationFn: deleteProduct,
-    onSuccess: () => {
+    onSuccess: async () => {
       console.log("Produit supprimé avec succès, invalidation du cache");
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      await refetch(); // Forcer une actualisation explicite
       toast({
         title: "Succès",
         description: "Le produit a été supprimé",
@@ -79,8 +82,7 @@ const CatalogManagement = () => {
     try {
       console.log(`Début de la suppression du produit ${productId}`);
       await deleteProductMutation.mutateAsync(productId);
-      console.log(`Suppression du produit ${productId} réussie, rafraîchissement de la liste`);
-      await refetch();
+      console.log(`Suppression du produit ${productId} réussie`);
       return Promise.resolve();
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
@@ -174,10 +176,9 @@ const CatalogManagement = () => {
                     ))}
                   </div>
                 ) : viewMode === "accordion" ? (
-                  <AccordionProductList 
+                  <CollapsibleProductList 
                     products={products} 
-                    onProductDeleted={handleProductDeleted} 
-                    groupingOption={groupingOption} 
+                    onDeleteProduct={handleProductDeleted} 
                   />
                 ) : (
                   <ProductGrid products={products} />

@@ -93,12 +93,6 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
       // Effectuer la suppression en base de données
       await onDeleteProduct(productToDelete);
       
-      // Rafraîchir les données après la suppression
-      if (!providedProducts) {
-        console.log("Rafraîchissement de la liste des produits après suppression");
-        await refetch();
-      }
-      
       toast({
         title: "Succès",
         description: "Le produit a été supprimé",

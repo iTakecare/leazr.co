@@ -538,11 +538,16 @@ export async function deleteProduct(productId: string): Promise<void> {
       .from('products')
       .select('*')
       .eq('id', productId)
-      .single();
+      .maybeSingle();
       
     if (checkError) {
       console.error(`Erreur lors de la vérification du produit ${productId}:`, checkError);
       throw new Error(`Produit non trouvé: ${checkError.message}`);
+    }
+    
+    if (!productToDelete) {
+      console.error(`Produit ${productId} non trouvé`);
+      throw new Error(`Produit non trouvé`);
     }
     
     // Supprimer d'abord toutes les variantes du produit s'il est parent
@@ -557,18 +562,18 @@ export async function deleteProduct(productId: string): Promise<void> {
         console.error(`Erreur lors de la recherche des variantes enfants: ${childrenQueryError.message}`);
       } else if (childProducts && childProducts.length > 0) {
         console.log(`Suppression de ${childProducts.length} variantes enfants pour le produit ${productId}`);
-        const childIds = childProducts.map(child => child.id);
         
-        for (const childId of childIds) {
+        // Supprimer les variantes une par une pour garantir la suppression complète
+        for (const childProduct of childProducts) {
           const { error: childDeleteError } = await supabase
             .from('products')
             .delete()
-            .eq('id', childId);
+            .eq('id', childProduct.id);
           
           if (childDeleteError) {
-            console.error(`Erreur lors de la suppression de la variante ${childId}: ${childDeleteError.message}`);
+            console.error(`Erreur lors de la suppression de la variante ${childProduct.id}: ${childDeleteError.message}`);
           } else {
-            console.log(`Variante ${childId} supprimée avec succès`);
+            console.log(`Variante ${childProduct.id} supprimée avec succès`);
           }
         }
       }
@@ -861,4 +866,3 @@ export async function convertProductToParent(
     throw error;
   }
 }
-
