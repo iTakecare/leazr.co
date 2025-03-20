@@ -217,7 +217,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                           )}
                         </div>
                         
-                        {!readOnly && (
+                        {!readOnly && onProductDeleted && (
                           <div className="flex space-x-2">
                             <Link to={`/products/${mainProduct.id}`}>
                               <Button size="sm" variant="outline">
@@ -305,7 +305,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                               </div>
                             )}
                             
-                            {!readOnly && (
+                            {!readOnly && onProductDeleted && (
                               <div className="flex space-x-1">
                                 <Link to={`/products/${product.id}`}>
                                   <Button size="sm" variant="ghost">

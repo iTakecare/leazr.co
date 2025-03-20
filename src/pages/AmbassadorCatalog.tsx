@@ -84,7 +84,7 @@ const AmbassadorCatalog = () => {
         ) : viewMode === "accordion" ? (
           <AccordionProductList 
             products={products} 
-            onProductDeleted={null} 
+            onProductDeleted={null}
             groupingOption={groupingOption}
             readOnly={true}
           />
