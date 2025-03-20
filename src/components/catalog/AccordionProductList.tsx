@@ -266,21 +266,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         </AlertDialog>
                       </div>
                     </div>
-                    
-                    {/* Affichage des attributs de variation disponibles sous forme de badges */}
-                    {parentProduct.variation_attributes && 
-                     Object.keys(parentProduct.variation_attributes).length > 0 && (
-                      <div className="mt-2">
-                        {Object.entries(parentProduct.variation_attributes).map(([attrName, values]) => (
-                          <div key={attrName} className="my-2">
-                            <div className="text-xs font-medium text-gray-500 mb-1">{attrName}</div>
-                            <div className="flex flex-wrap gap-1">
-                              {values.map((value) => getAttributeBadge(attrName, value))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   
                   {/* Variantes */}
