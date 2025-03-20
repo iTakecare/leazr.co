@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import AmbassadorSidebar from "./AmbassadorSidebar";
@@ -8,6 +8,11 @@ import Navbar from "./Navbar";
 export const AmbassadorLayout = () => {
   const { user, isLoading, userRoleChecked, isAmbassador } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleMenuClick = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   useEffect(() => {
     if (!isLoading && userRoleChecked && !isAmbassador()) {
@@ -32,7 +37,7 @@ export const AmbassadorLayout = () => {
     <div className="flex h-screen overflow-hidden bg-background">
       <AmbassadorSidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar />
+        <Navbar onMenuClick={handleMenuClick} />
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
