@@ -107,40 +107,66 @@ export async function getProductById(productId: string): Promise<Product> {
     console.log(`Fetching product with ID: ${productId}`);
     const supabase = getSupabaseClient();
     
-    const { data, error } = await supabase
+    // First get the product
+    const { data: product, error: productError } = await supabase
       .from('products')
-      .select(`
-        *,
-        variants:variants_ids (
-          id,
-          name,
-          price,
-          monthly_price,
-          attributes,
-          stock,
-          image_url,
-          is_variation
-        ),
-        variant_combination_prices:product_variant_prices(*)
-      `)
+      .select('*')
       .eq('id', productId)
       .single();
 
-    if (error) {
-      console.error("Error fetching product:", error);
-      throw new Error(`Error fetching product: ${error.message}`);
+    if (productError) {
+      console.error("Error fetching product:", productError);
+      throw new Error(`Error fetching product: ${productError.message}`);
+    }
+
+    if (!product) {
+      throw new Error(`Product not found with ID: ${productId}`);
+    }
+
+    // Get variant price combinations separately
+    const { data: variantPrices, error: variantPricesError } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', productId);
+      
+    if (variantPricesError) {
+      console.error("Error fetching variant prices:", variantPricesError);
+      // Continue anyway - this is not a blocking error
+    }
+
+    // Get variants if it's a parent product
+    let variants = [];
+    if (product.is_parent) {
+      const { data: variantsData, error: variantsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('parent_id', productId);
+        
+      if (variantsError) {
+        console.error("Error fetching variants:", variantsError);
+        // Continue anyway - this is not a blocking error
+      } else {
+        variants = variantsData || [];
+      }
     }
 
     // Ensure image_urls is always an array
-    if (!data.image_urls || !Array.isArray(data.image_urls)) {
-      data.image_urls = [];
+    if (!product.image_urls || !Array.isArray(product.image_urls)) {
+      product.image_urls = [];
     }
 
     // Filter out any null or empty strings in image_urls
-    data.image_urls = data.image_urls.filter(url => url && url.trim() !== '');
+    product.image_urls = product.image_urls.filter(url => url && url.trim() !== '');
 
-    console.log(`Retrieved product with ID ${productId}:`, data);
-    return data as Product;
+    // Build the complete product object with related data
+    const completeProduct = {
+      ...product,
+      variants: variants,
+      variant_combination_prices: variantPrices || []
+    };
+
+    console.log(`Retrieved product with ID ${productId}:`, completeProduct);
+    return completeProduct as Product;
   } catch (error) {
     console.error(`Error in getProductById(${productId}):`, error);
     throw error;
