@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Product, ProductAttributes } from "@/types/catalog";
 import { Badge } from "@/components/ui/badge";
 import { parseAttributes } from "@/services/catalogService";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface CatalogDialogProps {
   isOpen: boolean;
@@ -27,7 +29,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
-  const [showVariants, setShowVariants] = useState<boolean>(false);
+  const [showVariants, setShowVariants] = useState<boolean>(true);
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -231,15 +233,16 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         </div>
         
         <div className="flex items-center mb-4">
-          <label className="flex items-center cursor-pointer space-x-2">
-            <input
-              type="checkbox"
-              className="form-checkbox h-4 w-4"
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="show-variants"
               checked={showVariants}
-              onChange={(e) => setShowVariants(e.target.checked)}
+              onCheckedChange={setShowVariants}
             />
-            <span className="text-sm">Afficher les variantes</span>
-          </label>
+            <Label htmlFor="show-variants" className="cursor-pointer">
+              Afficher les variantes
+            </Label>
+          </div>
         </div>
         
         <ScrollArea className="h-[400px] pr-4">
