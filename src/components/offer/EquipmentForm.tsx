@@ -39,7 +39,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   setTargetMonthlyPayment,
   calculatedMargin,
   applyCalculatedMargin,
-  hideFinancialDetails
+  hideFinancialDetails = false
 }) => {
   const [errors, setErrors] = useState({
     title: false,
@@ -122,6 +122,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             errors={errors}
             onOpenCatalog={() => setIsQuickCatalogOpen(true)}
             calculatedMargin={calculatedMargin}
+            hideFinancialDetails={hideFinancialDetails}
           />
 
           <PriceDetailsDisplay
@@ -129,6 +130,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             priceWithMargin={priceWithMargin}
             coefficient={coefficient}
             displayMonthlyPayment={displayMonthlyPayment}
+            hideFinancialDetails={hideFinancialDetails}
           />
 
           <FormActionButtons
@@ -145,6 +147,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
               applyCalculatedMargin={applyCalculatedMargin}
               selectedLeaser={selectedLeaser}
               coefficient={coefficient}
+              hideFinancialDetails={hideFinancialDetails}
             />
           </div>
         </div>
