@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Package, Layers, Edit, Trash2 } from "lucide-react";
+import { Package, Layers, Edit, Trash2, Tag } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Product } from "@/types/catalog"; 
 import { toast } from "@/components/ui/use-toast";
@@ -33,30 +33,24 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
-  // Mettre à jour les produits locaux lorsque les produits initiaux changent
   useEffect(() => {
     setProducts(initialProducts);
   }, [initialProducts]);
   
-  // Get the number of variants for a product
   const getVariantsCount = (product: Product): number => {
-    // First check for actual variants
     if (product.variants && product.variants.length > 0) {
       return product.variants.length;
     }
     
-    // Check if product has variant combination prices
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    // Check if product has variation attributes and calculate combinations
     if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
       const attributes = product.variation_attributes;
       const attributeKeys = Object.keys(attributes);
       
       if (attributeKeys.length > 0) {
-        // Calculate total possible combinations
         return attributeKeys.reduce((total, key) => {
           const values = attributes[key];
           return total * (Array.isArray(values) ? values.length : 1);
@@ -67,11 +61,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return 0;
   };
   
-  // Regrouper les produits par modèle ou marque
   const groupedProducts = useMemo(() => {
     const grouped: GroupedProducts = {};
     
-    // Log the raw products to debug
     console.log("Raw products to be grouped:", products);
     
     products.forEach(product => {
@@ -79,44 +71,36 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       
       if (groupingOption === "model") {
         if (product.is_parent) {
-          // Les produits parents sont leurs propres groupes
           groupKey = product.id;
           if (!grouped[groupKey]) {
             grouped[groupKey] = [product];
           }
           
-          // Chercher et ajouter toutes les variantes associées à ce parent
           const variants = products.filter(p => p.parent_id === product.id);
           if (variants.length > 0) {
             grouped[groupKey] = [...grouped[groupKey], ...variants];
           }
         } else if (product.parent_id) {
-          // Les produits enfants vont dans le groupe de leur parent
           groupKey = product.parent_id;
           if (!grouped[groupKey]) {
-            // Si le parent n'est pas encore dans le groupe, créer le groupe avec le parent
             const parent = products.find(p => p.id === product.parent_id);
             if (parent) {
               grouped[groupKey] = [parent, product];
             } else {
-              // Si on ne trouve pas le parent, mettre la variante dans son propre groupe
               grouped[product.id] = [product];
             }
           } else {
-            // Si le parent est déjà dans le groupe, ajouter la variante
             if (!grouped[groupKey].some(p => p.id === product.id)) {
               grouped[groupKey].push(product);
             }
           }
         } else {
-          // Les produits sans variation vont dans leur propre groupe
           groupKey = product.id;
           if (!grouped[groupKey]) {
             grouped[groupKey] = [product];
           }
         }
       } else if (groupingOption === "brand") {
-        // Regrouper par marque
         groupKey = product.brand || "Sans marque";
         if (!grouped[groupKey]) {
           grouped[groupKey] = [];
@@ -125,7 +109,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       }
     });
     
-    // Log each group and its contents for debugging
     Object.entries(grouped).forEach(([key, products]) => {
       console.log(`Group ${key}:`, products.map(p => `${p.name} (${p.id}, parent_id: ${p.parent_id}, is_parent: ${p.is_parent})`));
     });
@@ -137,9 +120,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     try {
       await onProductDeleted(productId);
       
-      // Mettre à jour l'état local pour retirer le produit supprimé
       setProducts(prevProducts => {
-        // Retirer le produit supprimé et ses variantes
         const updatedProducts = prevProducts.filter(product => 
           product.id !== productId && product.parent_id !== productId
         );
@@ -159,6 +140,27 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
         variant: "destructive",
       });
     }
+  };
+
+  const renderAttributeTags = (product: Product) => {
+    if (!product.attributes || Object.keys(product.attributes).length === 0) {
+      return null;
+    }
+    
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {Object.entries(product.attributes).map(([key, value]) => (
+          <Badge 
+            key={`${product.id}-${key}`} 
+            variant="outline" 
+            className="text-xs bg-purple-50 text-purple-700 border-purple-200 flex items-center px-2 py-0.5"
+          >
+            <Tag className="h-3 w-3 mr-1" />
+            {key}: {value}
+          </Badge>
+        ))}
+      </div>
+    );
   };
 
   if (products.length === 0) {
@@ -193,7 +195,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       onValueChange={setExpandedGroups}
     >
       {Object.entries(groupedProducts).map(([groupKey, groupProducts], groupIndex) => {
-        // Pour le regroupement par modèle, le premier produit est le produit parent ou le seul produit
         const mainProduct = groupingOption === "model" 
           ? groupProducts.find(p => p.is_parent) || groupProducts[0]
           : null;
@@ -202,15 +203,19 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           ? (mainProduct?.name || "Produit")
           : groupKey;
         
-        // Récupérer toutes les variantes (excluant le produit parent)
         const variants = groupingOption === "model" 
           ? groupProducts.filter(p => p.id !== mainProduct?.id && (p.parent_id === mainProduct?.id || (!mainProduct?.is_parent && p.is_variation)))
           : [];
         
-        // Calculate the number of variants for the badge
         const variantsCount = mainProduct ? getVariantsCount(mainProduct) : 0;
         
-        // Log the variants for each group
+        const productType = mainProduct?.category ? 
+          (mainProduct.category === 'laptop' ? 'Ordinateur portable' : 
+          mainProduct.category === 'desktop' ? 'Ordinateur fixe' : 
+          mainProduct.category === 'tablet' ? 'Tablette' : 
+          mainProduct.category === 'smartphone' ? 'Smartphone' : 
+          mainProduct.category) : 'Produit';
+        
         console.log(`Variants for ${groupTitle}:`, variants.map(v => v.name));
         
         return (
@@ -239,7 +244,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                       <div className="flex-1 text-left">
                         <div className="font-medium">{mainProduct.name}</div>
                         <div className="text-xs text-muted-foreground flex items-center">
-                          {mainProduct.brand || "Sans marque"} • {mainProduct.category || "Sans catégorie"}
+                          {mainProduct.brand || "Sans marque"} • {productType}
                           {(mainProduct.is_parent || variantsCount > 0) && (
                             <span className="ml-2 flex items-center">
                               <Layers className="h-3 w-3 mr-1" /> {variantsCount} variante(s)
@@ -258,7 +263,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
               
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-4">
-                  {/* Afficher le produit principal pour le regroupement par modèle */}
                   {groupingOption === "model" && mainProduct && mainProduct.is_parent && (
                     <div className="border rounded-md overflow-hidden">
                       <div className="p-4 bg-gray-50 flex justify-between items-center">
@@ -322,10 +326,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     </div>
                   )}
                   
-                  {/* Afficher les variantes ou tous les produits pour le regroupement par marque */}
                   <div className="space-y-2">
-                    {/* Pour regroupement par modèle : afficher toutes les variantes */}
-                    {/* Pour regroupement par marque : afficher tous les produits */}
                     {(groupingOption === "model" 
                       ? variants 
                       : groupProducts).map((product) => (
@@ -356,20 +357,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                                   </Badge>
                                 )}
                               </div>
+                              
                               {groupingOption === "brand" && (
                                 <div className="text-xs text-muted-foreground">
                                   {product.category || "Sans catégorie"}
                                 </div>
                               )}
-                              {product.attributes && Object.keys(product.attributes).length > 0 && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {Object.entries(product.attributes).map(([key, value], index, arr) => (
-                                    <span key={key}>
-                                      {key}: <strong>{value}</strong>{index < arr.length - 1 ? ', ' : ''}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
+                              
+                              {renderAttributeTags(product)}
                             </div>
                           </div>
                           

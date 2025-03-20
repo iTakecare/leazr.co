@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
+import { Tag } from "lucide-react";
 
 interface ProductGridCardProps {
   product: Product;
@@ -65,6 +66,34 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     }
     
     return 0;
+  };
+  
+  // Fonction pour obtenir les attributs de variation disponibles
+  const getVariationAttributesList = (): JSX.Element | null => {
+    if (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
+      return null;
+    }
+    
+    // Limiter à 3 types d'attributs maximum pour l'affichage
+    const attributeEntries = Object.entries(product.variation_attributes).slice(0, 3);
+    
+    return (
+      <div className="flex flex-wrap gap-1 mt-2">
+        {attributeEntries.map(([key, values]) => {
+          // Afficher uniquement le nom de l'attribut, pas les valeurs
+          return (
+            <Badge 
+              key={key}
+              variant="outline" 
+              className="bg-purple-50 text-purple-700 border-purple-200 flex items-center px-2 py-0.5"
+            >
+              <Tag className="h-3 w-3 mr-1" />
+              {key}
+            </Badge>
+          );
+        })}
+      </div>
+    );
   };
   
   const monthlyPrice = getMinimumMonthlyPrice();
@@ -134,6 +163,9 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           {hasPrice && <span>à partir de </span>}
           <span className="font-bold text-indigo-700">{monthlyPriceLabel}</span>
         </div>
+        
+        {/* Afficher les badges des attributs de variation */}
+        {hasVariants && getVariationAttributesList()}
         
         {hasVariants && (
           <div className="mt-3 pt-3 border-t border-gray-100">
