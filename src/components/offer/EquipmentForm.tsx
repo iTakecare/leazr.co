@@ -22,6 +22,7 @@ interface EquipmentFormProps {
   setTargetMonthlyPayment: (value: number) => void;
   calculatedMargin: { percentage: number; amount: number };
   applyCalculatedMargin: () => void;
+  hideFinancialDetails?: boolean;
 }
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({
@@ -37,7 +38,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   targetMonthlyPayment,
   setTargetMonthlyPayment,
   calculatedMargin,
-  applyCalculatedMargin
+  applyCalculatedMargin,
+  hideFinancialDetails
 }) => {
   const [errors, setErrors] = useState({
     title: false,

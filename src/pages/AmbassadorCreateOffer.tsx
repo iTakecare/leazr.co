@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -49,9 +48,6 @@ const AmbassadorCreateOffer = () => {
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  
-  // Définir une constante pour masquer les détails financiers pour les ambassadeurs
-  const hideFinancialDetails = true;
   
   const {
     equipment,
@@ -148,7 +144,6 @@ const AmbassadorCreateOffer = () => {
             
             if (offer.equipment_description) {
               try {
-                // Try to parse as JSON first if it's JSON
                 const equipmentData = JSON.parse(offer.equipment_description);
                 if (Array.isArray(equipmentData) && equipmentData.length > 0) {
                   console.log("Found JSON equipment data:", equipmentData);
@@ -169,7 +164,6 @@ const AmbassadorCreateOffer = () => {
                   }
                 }
               } catch (e) {
-                // If not JSON, use original parsing method
                 console.log("Parsing equipment_description as string format:", offer.equipment_description);
                 const equipmentItems = offer.equipment_description.split(',').map(item => {
                   const match = item.trim().match(/(.+) \((\d+)x\)/);
@@ -267,7 +261,6 @@ const AmbassadorCreateOffer = () => {
     setIsSubmitting(true);
 
     try {
-      // Ensure all equipment data is properly preserved with correct types
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
@@ -279,7 +272,6 @@ const AmbassadorCreateOffer = () => {
       
       console.log("Saving equipment data with preserved margins:", equipmentData);
       
-      // Keep text format for compatibility
       const equipmentDescription = equipmentList
         .map(eq => `${eq.title} (${eq.quantity}x)`)
         .join(", ");
@@ -290,7 +282,7 @@ const AmbassadorCreateOffer = () => {
         client_email: clientEmail,
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
-        equipment_text: equipmentDescription,  // Text format for compatibility
+        equipment_text: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
@@ -356,8 +348,6 @@ const AmbassadorCreateOffer = () => {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div>
-                  {/* Le bouton de sélection du prestataire est maintenant masqué */}
-
                   <div className="mt-6">
                     <EquipmentForm
                       equipment={equipment}
@@ -373,7 +363,6 @@ const AmbassadorCreateOffer = () => {
                       setTargetMonthlyPayment={setTargetMonthlyPayment}
                       calculatedMargin={calculatedMargin}
                       applyCalculatedMargin={applyCalculatedMargin}
-                      hideFinancialDetails={hideFinancialDetails}
                     />
                   </div>
                 </div>
@@ -388,7 +377,6 @@ const AmbassadorCreateOffer = () => {
                     totalMonthlyPayment={totalMonthlyPayment}
                     globalMarginAdjustment={globalMarginAdjustment}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                    hideFinancialDetails={hideFinancialDetails}
                   />
                   
                   <ClientInfo
@@ -403,7 +391,6 @@ const AmbassadorCreateOffer = () => {
                     isSubmitting={isSubmitting}
                     selectedLeaser={selectedLeaser}
                     equipmentList={equipmentList}
-                    hideFinancialDetails={hideFinancialDetails}
                   />
                 </div>
               </div>
