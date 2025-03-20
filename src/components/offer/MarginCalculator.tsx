@@ -14,7 +14,6 @@ interface MarginCalculatorProps {
   applyCalculatedMargin: () => void;
   selectedLeaser: Leaser | null;
   coefficient: number;
-  hideFinancialDetails?: boolean;
 }
 
 const MarginCalculator: React.FC<MarginCalculatorProps> = ({
@@ -23,8 +22,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
   calculatedMargin,
   applyCalculatedMargin,
   selectedLeaser,
-  coefficient,
-  hideFinancialDetails = false
+  coefficient
 }) => {
   const [inputValue, setInputValue] = useState(targetMonthlyPayment ? targetMonthlyPayment.toString() : "");
 

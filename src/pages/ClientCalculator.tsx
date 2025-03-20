@@ -12,14 +12,12 @@ import {
   ArrowRight,
   Clock
 } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const ClientCalculator = () => {
   const [monthlyPrice, setMonthlyPrice] = useState<number>(0);
   const [duration, setDuration] = useState<number>(36);
   const [totalPrice, setTotalPrice] = useState<number | null>(null);
   const [residualValue, setResidualValue] = useState<number | null>(null);
-  const isMobile = useIsMobile();
 
   const calculateTotal = () => {
     if (!monthlyPrice) return;
@@ -41,7 +39,7 @@ const ClientCalculator = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-        <Card className="p-5 md:p-6 shadow-md rounded-xl card-gradient overflow-hidden border-0">
+        <Card className="p-5 md:p-6 shadow-md rounded-xl overflow-hidden border">
           <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-5 flex items-center">
             <span className="bg-primary/10 p-1.5 rounded-lg mr-2">
               <Euro className="h-4 w-4 text-primary" />
@@ -87,7 +85,7 @@ const ClientCalculator = () => {
             </div>
             
             <Button 
-              className="w-full mt-6 enhanced-button button-gradient py-6 rounded-lg" 
+              className="w-full mt-6 bg-blue-500 hover:bg-blue-600 py-6 rounded-lg" 
               onClick={calculateTotal}
               disabled={!monthlyPrice}
               size="lg"
@@ -98,7 +96,7 @@ const ClientCalculator = () => {
           </div>
         </Card>
         
-        <Card className="p-5 md:p-6 shadow-md rounded-xl overflow-hidden border-0">
+        <Card className="p-5 md:p-6 shadow-md rounded-xl overflow-hidden border">
           <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-5 flex items-center">
             <span className="bg-primary/10 p-1.5 rounded-lg mr-2">
               <Clock className="h-4 w-4 text-primary" />

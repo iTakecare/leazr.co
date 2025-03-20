@@ -16,7 +16,6 @@ interface EquipmentFormFieldsProps {
   };
   onOpenCatalog: () => void;
   calculatedMargin?: { percentage: number; amount: number };
-  hideFinancialDetails?: boolean;
 }
 
 const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
@@ -24,8 +23,7 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
   handleChange,
   errors,
   onOpenCatalog,
-  calculatedMargin,
-  hideFinancialDetails = false
+  calculatedMargin
 }) => {
   // Déterminer si on doit afficher la marge calculée
   const showCalculatedMargin = calculatedMargin && calculatedMargin.percentage > 0;

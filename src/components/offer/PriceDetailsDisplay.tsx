@@ -7,15 +7,13 @@ interface PriceDetailsDisplayProps {
   priceWithMargin: number;
   coefficient: number;
   displayMonthlyPayment: number;
-  hideFinancialDetails?: boolean;
 }
 
 const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   marginAmount,
   priceWithMargin,
   coefficient,
-  displayMonthlyPayment,
-  hideFinancialDetails = false
+  displayMonthlyPayment
 }) => {
   // Vérifier si la mensualité calculée correspond exactement à la formule PrixAvecMarge * Coefficient / 100
   const calculatedMonthly = (priceWithMargin * coefficient) / 100;
