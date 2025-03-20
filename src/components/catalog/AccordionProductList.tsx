@@ -14,6 +14,7 @@ import { Package, Layers, Edit, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Product } from "@/types/catalog"; 
 import { toast } from "@/components/ui/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface AccordionProductListProps {
   products: Product[];
@@ -31,6 +32,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   groupingOption 
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
   // Mettre à jour les produits locaux lorsque les produits initiaux changent
   useEffect(() => {
@@ -138,7 +140,12 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   };
 
   return (
-    <Accordion type="multiple" className="space-y-4">
+    <Accordion 
+      type="multiple" 
+      className="space-y-4" 
+      value={expandedGroups}
+      onValueChange={setExpandedGroups}
+    >
       {Object.entries(groupedProducts).map(([groupKey, groupProducts], groupIndex) => {
         // Pour le regroupement par modèle, le premier produit est le produit parent ou le seul produit
         const mainProduct = groupingOption === "model" 
@@ -150,7 +157,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           : groupKey;
         
         const variants = groupingOption === "model" 
-          ? groupProducts.filter(p => p.id !== mainProduct?.id)
+          ? groupProducts.filter(p => p.id !== mainProduct?.id || !mainProduct.is_parent)
           : [];
         
         return (
@@ -163,7 +170,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           >
             <AccordionItem value={groupKey} className="border rounded-md overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:bg-gray-50 data-[state=open]:bg-gray-50">
-                <div className="flex items-center">
+                <div className="flex items-center w-full">
                   {groupingOption === "model" && mainProduct ? (
                     <div className="flex flex-1 items-center">
                       <div className="w-10 h-10 mr-3 overflow-hidden rounded bg-gray-100 flex-shrink-0">
@@ -176,13 +183,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                           }}
                         />
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-left">{mainProduct.name}</div>
-                        <div className="text-xs text-muted-foreground text-left flex items-center">
-                          {mainProduct.is_parent && variants.length > 0 ? (
-                            <span className="flex items-center"><Layers className="h-3 w-3 mr-1" /> {variants.length} variante(s)</span>
-                          ) : (
-                            <span>{mainProduct.brand || "Sans marque"} • {mainProduct.category || "Sans catégorie"}</span>
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">{mainProduct.name}</div>
+                        <div className="text-xs text-muted-foreground flex items-center">
+                          {mainProduct.brand || "Sans marque"} • {mainProduct.category || "Sans catégorie"}
+                          {mainProduct.is_parent && variants.length > 0 && (
+                            <span className="ml-2 flex items-center">
+                              <Layers className="h-3 w-3 mr-1" /> {variants.length} variante(s)
+                            </span>
                           )}
                         </div>
                       </div>
@@ -197,15 +205,15 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
               
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-4">
-                  {/* Afficher le produit principal d'abord pour le regroupement par modèle */}
-                  {groupingOption === "model" && mainProduct && (
+                  {/* Afficher le produit principal pour le regroupement par modèle */}
+                  {groupingOption === "model" && mainProduct && mainProduct.is_parent && (
                     <div className="border rounded-md overflow-hidden">
                       <div className="p-4 bg-gray-50 flex justify-between items-center">
                         <div className="flex items-center">
                           <div className="font-medium">{mainProduct.name}</div>
-                          {mainProduct.is_parent && (
-                            <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">Produit parent</span>
-                          )}
+                          <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800">
+                            Produit parent
+                          </Badge>
                         </div>
                         
                         <div className="flex space-x-2">
@@ -225,7 +233,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Êtes-vous sûr de vouloir supprimer ce produit{mainProduct.is_parent ? " et toutes ses variantes" : ""} ?
+                                  Êtes-vous sûr de vouloir supprimer ce produit et toutes ses variantes ?
                                   Cette action ne peut pas être annulée.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
@@ -240,7 +248,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         </div>
                       </div>
                       
-                      {!mainProduct.is_parent && (
+                      {mainProduct.price > 0 && (
                         <div className="p-4 border-t">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
@@ -263,10 +271,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                   
                   {/* Afficher les variantes ou tous les produits pour le regroupement par marque */}
                   <div className="space-y-2">
-                    {(groupingOption === "model" ? variants : groupProducts).map((product) => (
+                    {/* Pour regroupement par modèle : afficher toutes les variantes */}
+                    {/* Pour regroupement par marque : afficher tous les produits */}
+                    {(groupingOption === "model" 
+                      ? (mainProduct?.is_parent ? variants : groupProducts) 
+                      : groupProducts).map((product) => (
                       <div key={product.id} className="border rounded-md overflow-hidden">
                         <div className="p-3 flex justify-between items-center">
-                          <div className="flex items-center">
+                          <div className="flex items-center flex-1">
                             <div className="w-8 h-8 mr-2 overflow-hidden rounded bg-gray-100 flex-shrink-0">
                               <img
                                 src={product.image_url || '/placeholder.svg'}
@@ -277,22 +289,41 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                                 }}
                               />
                             </div>
-                            <div>
-                              <div className="font-medium">{product.name}</div>
+                            <div className="flex-1">
+                              <div className="font-medium flex items-center">
+                                {product.name}
+                                {product.is_parent && (
+                                  <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800 text-xs">
+                                    Parent
+                                  </Badge>
+                                )}
+                                {product.parent_id && (
+                                  <Badge variant="outline" className="ml-2 text-xs">
+                                    Variante
+                                  </Badge>
+                                )}
+                              </div>
                               {groupingOption === "brand" && (
                                 <div className="text-xs text-muted-foreground">
                                   {product.category || "Sans catégorie"}
+                                </div>
+                              )}
+                              {product.attributes && Object.keys(product.attributes).length > 0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {Object.entries(product.attributes).map(([key, value], index, arr) => (
+                                    <span key={key}>
+                                      {key}: <strong>{value}</strong>{index < arr.length - 1 ? ', ' : ''}
+                                    </span>
+                                  ))}
                                 </div>
                               )}
                             </div>
                           </div>
                           
                           <div className="flex items-center space-x-3 ml-2">
-                            {!(product.is_parent && groupingOption === "brand") && (
-                              <div className="text-sm mr-4">
-                                {formatCurrency(product.price || 0)}
-                              </div>
-                            )}
+                            <div className="text-sm mr-4 whitespace-nowrap">
+                              {formatCurrency(product.price || 0)}
+                            </div>
                             
                             <div className="flex space-x-1">
                               <Link to={`/products/${product.id}`}>
@@ -311,7 +342,8 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Êtes-vous sûr de vouloir supprimer ce produit{product.is_parent ? " et toutes ses variantes" : ""} ?
+                                      Êtes-vous sûr de vouloir supprimer ce produit
+                                      {product.is_parent ? " et toutes ses variantes" : ""} ?
                                       Cette action ne peut pas être annulée.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>

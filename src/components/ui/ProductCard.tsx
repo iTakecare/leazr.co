@@ -3,6 +3,8 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
 import { Product } from "@/types/catalog";
+import { Badge } from "@/components/ui/badge";
+import { Layers } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -66,14 +68,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
                 {hasVariants ? "À partir de " : "Mensualité: "}{productMonthlyPrice}
               </p>
             </div>
-            <div className="mt-2 flex items-center">
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+            <div className="mt-2 flex items-center space-x-2 flex-wrap">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                 Disponible
-              </span>
-              {hasVariants && (
-                <span className="ml-2 inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                  {product.variants?.length || 0} option(s)
-                </span>
+              </Badge>
+              
+              {product.is_parent && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center">
+                  <Layers className="h-3 w-3 mr-1" />
+                  {(product.variants?.length || 0)} variante(s)
+                </Badge>
+              )}
+              
+              {product.parent_id && (
+                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                  Variante
+                </Badge>
               )}
             </div>
           </div>
