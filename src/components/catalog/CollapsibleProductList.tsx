@@ -1,5 +1,7 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -15,87 +17,77 @@ import {
   AlertDialogDescription, 
   AlertDialogFooter, 
   AlertDialogHeader, 
-  AlertDialogTitle
+  AlertDialogTitle, 
+  AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
 
 interface CollapsibleProductListProps {
-  products: Product[];
-  onDeleteProduct: (productId: string) => Promise<void>;
+  products?: Product[];
+  onDeleteProduct: (productId: string) => void;
 }
 
-const CollapsibleProductList = ({ products, onDeleteProduct }: CollapsibleProductListProps) => {
-  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }: CollapsibleProductListProps) => {
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
   
-  // Initialiser localProducts lorsque products change
-  React.useEffect(() => {
-    setLocalProducts(products || []);
-  }, [products]);
+  // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
+  const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
+    queryKey: ["products"],
+    queryFn: getProducts,
+    enabled: !providedProducts, // Ne récupère les produits que s'ils ne sont pas déjà fournis
+  });
 
-  if (!localProducts || localProducts.length === 0) {
+  // Mise à jour des produits locaux quand les produits fournis ou récupérés changent
+  useEffect(() => {
+    setLocalProducts(providedProducts || fetchedProducts);
+  }, [providedProducts, fetchedProducts]);
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
+  if (isLoading && !providedProducts) {
     return (
-      <div className="text-center py-12 border rounded-lg bg-muted/20">
-        <p className="text-muted-foreground">Aucun produit n'a été trouvé.</p>
-        <p className="text-sm text-muted-foreground mt-2">Ajoutez des produits pour les voir apparaître ici.</p>
+      <div className="space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
+        ))}
       </div>
     );
   }
 
-  const openDeleteConfirm = (productId: string, e: React.MouseEvent) => {
+  if (localProducts.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Aucun produit trouvé.</p>
+      </div>
+    );
+  }
+
+  const handleDeleteClick = async (productId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDeletingProductId(productId);
-    setConfirmDialogOpen(true);
-  };
-
-  const cancelDelete = () => {
-    setDeletingProductId(null);
-    setConfirmDialogOpen(false);
-  };
-
-  const confirmDelete = async () => {
-    if (!deletingProductId) return;
     
     try {
-      setIsDeleting(true);
+      await onDeleteProduct(productId);
       
-      // Suppression optimiste - supprimer immédiatement de l'UI
-      const updatedProducts = localProducts.filter(
-        product => product.id !== deletingProductId
-      );
-      setLocalProducts(updatedProducts);
-      
-      // Effectuer la suppression en base de données
-      await onDeleteProduct(deletingProductId);
+      // Mise à jour des produits locaux après la suppression
+      setLocalProducts(prevProducts => prevProducts.filter(product => product.id !== productId));
       
       toast({
         title: "Succès",
         description: "Le produit a été supprimé",
+        variant: "default",
       });
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
-      
-      // En cas d'échec, restaurer la liste originale
-      setLocalProducts(products);
-      
       toast({
         title: "Erreur",
         description: "Impossible de supprimer le produit",
         variant: "destructive",
       });
-    } finally {
-      setIsDeleting(false);
-      setDeletingProductId(null);
-      setConfirmDialogOpen(false);
     }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
   };
 
   return (
@@ -113,7 +105,7 @@ const CollapsibleProductList = ({ products, onDeleteProduct }: CollapsibleProduc
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-muted rounded overflow-hidden">
                   <img
-                    src={product.image_url || '/placeholder.svg'}
+                    src={product.image_url || product.imageUrl || '/placeholder.svg'}
                     alt={product.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -134,18 +126,28 @@ const CollapsibleProductList = ({ products, onDeleteProduct }: CollapsibleProduc
                   <Button variant="outline" size="sm">Modifier</Button>
                 </Link>
                 
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  disabled={isDeleting && deletingProductId === product.id}
-                  onClick={(e) => openDeleteConfirm(product.id, e)}
-                >
-                  {isDeleting && deletingProductId === product.id ? (
-                    <span className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full"></span>
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Êtes-vous sûr de vouloir supprimer ce produit{product.is_parent ? " et toutes ses variantes" : ""} ?
+                        Cette action ne peut pas être annulée.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={(e) => handleDeleteClick(product.id, e as React.MouseEvent)}>
+                        Supprimer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm">
@@ -181,30 +183,6 @@ const CollapsibleProductList = ({ products, onDeleteProduct }: CollapsibleProduc
           </Collapsible>
         </motion.div>
       ))}
-      
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer ce produit ? Cette action ne peut pas être annulée.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {isDeleting ? (
-                <span className="flex items-center">
-                  <span className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></span>
-                  Suppression...
-                </span>
-              ) : (
-                "Supprimer"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

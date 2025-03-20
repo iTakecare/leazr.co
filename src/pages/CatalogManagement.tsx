@@ -3,23 +3,37 @@ import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
-import { deleteProduct, getProducts } from "@/services/catalogService";
+import { deleteAllProducts, deleteProduct, getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Plus, Tag, Award, List, Grid3X3 } from "lucide-react";
+import { Plus, Trash2, Tag, Award, List, Grid3X3, Layers, Settings } from "lucide-react";
+import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "@/components/ui/use-toast";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import BrandManager from "@/components/catalog/BrandManager";
+import AttributeManager from "@/components/catalog/AttributeManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AccordionProductList from "@/components/catalog/AccordionProductList";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ProductGrid from "@/components/catalog/ProductGrid";
 import { useIsMobile } from "@/hooks/use-mobile";
-import CollapsibleProductList from "@/components/catalog/CollapsibleProductList";
 
 const CatalogManagement = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
   const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
   const [groupingOption, setGroupingOption] = useState<"model" | "brand">("model");
@@ -30,21 +44,40 @@ const CatalogManagement = () => {
   });
 
   useEffect(() => {
-    console.log(`Chargé ${products.length} produits:`, products);
+    console.log(`Loaded ${products.length} products:`, products);
   }, [products]);
 
   useEffect(() => {
     if (!isLoading && products.length === 0) {
-      console.log("No products found");
+      console.log("No products found, loading sample data would go here");
+      // This is where you could load sample data if needed
     }
   }, [isLoading, products]);
 
+  const deleteAllProductsMutation = useMutation({
+    mutationFn: deleteAllProducts,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({
+        title: "Succès",
+        description: "Tous les produits ont été supprimés",
+        variant: "default",
+      });
+    },
+    onError: (err: Error) => {
+      console.error("Erreur lors de la suppression des produits:", err);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer tous les produits",
+        variant: "destructive",
+      });
+    }
+  });
+
   const deleteProductMutation = useMutation({
     mutationFn: deleteProduct,
-    onSuccess: async () => {
-      console.log("Produit supprimé avec succès, invalidation du cache");
-      await queryClient.invalidateQueries({ queryKey: ["products"] });
-      await refetch(); // Forcer une actualisation explicite
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
         title: "Succès",
         description: "Le produit a été supprimé",
@@ -55,11 +88,39 @@ const CatalogManagement = () => {
       console.error("Erreur lors de la suppression du produit:", err);
       toast({
         title: "Erreur",
-        description: `Impossible de supprimer le produit: ${err.message}`,
+        description: "Impossible de supprimer le produit",
         variant: "destructive",
       });
     }
   });
+
+  const onProductAdded = () => {
+    setIsAddProductOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    toast({
+      title: "Succès",
+      description: "Produit ajouté avec succès",
+      variant: "default",
+    });
+  };
+
+  const handleDeleteAllProducts = () => {
+    deleteAllProductsMutation.mutate();
+  };
+
+  const handleSelectProduct = (product: Product) => {
+    navigate(`/products/${product.id}`);
+  };
+
+  const handleProductDeleted = async (productId: string) => {
+    try {
+      await deleteProductMutation.mutateAsync(productId);
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      return Promise.reject(error);
+    }
+  };
 
   const handleAddNewProduct = () => {
     navigate("/catalog/create-product");
@@ -70,19 +131,7 @@ const CatalogManagement = () => {
       setViewMode(value);
     }
   };
-
-  const handleDeleteProduct = async (productId: string) => {
-    try {
-      console.log(`Début de la suppression du produit ${productId}`);
-      await deleteProductMutation.mutateAsync(productId);
-      console.log(`Suppression du produit ${productId} réussie`);
-      return Promise.resolve();
-    } catch (error) {
-      console.error("Erreur lors de la suppression:", error);
-      return Promise.reject(error);
-    }
-  };
-
+  
   return (
     <Container>
       <div className="py-6 md:py-8">
@@ -92,6 +141,27 @@ const CatalogManagement = () => {
             <Button onClick={handleAddNewProduct} className="flex-1 sm:flex-initial">
               <Plus className="mr-2 h-4 w-4" /> {isMobile ? "Ajouter" : "Ajouter un produit"}
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="flex-1 sm:flex-initial">
+                  <Trash2 className="mr-2 h-4 w-4" /> {isMobile ? "Supprimer tout" : "Supprimer tous les produits"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir supprimer tous les produits du catalogue? Cette action ne peut pas être annulée.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAllProducts}>
+                    Supprimer tous les produits
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
@@ -105,6 +175,10 @@ const CatalogManagement = () => {
             <TabsTrigger value="brands">
               <Award className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Marques" : <span>Marques</span>}
+            </TabsTrigger>
+            <TabsTrigger value="attributes">
+              <Settings className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Attributs" : <span>Attributs</span>}
             </TabsTrigger>
           </TabsList>
           
@@ -159,9 +233,10 @@ const CatalogManagement = () => {
                     ))}
                   </div>
                 ) : viewMode === "accordion" ? (
-                  <CollapsibleProductList 
+                  <AccordionProductList 
                     products={products} 
-                    onDeleteProduct={handleDeleteProduct} 
+                    onProductDeleted={handleProductDeleted} 
+                    groupingOption={groupingOption} 
                   />
                 ) : (
                   <ProductGrid products={products} />
@@ -177,8 +252,19 @@ const CatalogManagement = () => {
           <TabsContent value="brands">
             <BrandManager />
           </TabsContent>
+          
+          <TabsContent value="attributes">
+            <AttributeManager />
+          </TabsContent>
         </Tabs>
       </div>
+
+      {/* Garder le ProductEditor comme solution de repli ou d'édition rapide */}
+      <ProductEditor 
+        isOpen={isAddProductOpen} 
+        onClose={() => setIsAddProductOpen(false)} 
+        onSuccess={onProductAdded}
+      />
     </Container>
   );
 };
