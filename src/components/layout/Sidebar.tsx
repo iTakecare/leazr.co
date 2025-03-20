@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -15,7 +14,7 @@ import {
   ChevronLeft,
   X,
   Receipt,
-  FileText, // Changed from FileContract to FileText which is available
+  FileText,
   LogOut
 } from "lucide-react";
 import {
@@ -51,18 +50,15 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/" },
     { label: "CRM", icon: Briefcase, href: "/clients" },
     { label: "Offres", icon: Receipt, href: "/offers" },
-    { label: "Contrats", icon: FileText, href: "/contracts" }, // Changed from FileContract to FileText
+    { label: "Contrats", icon: FileText, href: "/contracts" },
     { label: "Catalogue", icon: Package, href: "/catalog" },
     { label: "Pack iTakecare", icon: ShieldCheck, href: "/i-take-care" },
-    { label: "Calculateur", icon: Calculator, href: "/calculator" },
+    { label: "Calculateur", icon: Calculator, href: "/create-offer" },
     { label: "Paramètres", icon: Settings, href: "/settings" },
   ];
 
   const handleLogout = () => {
-    // You can add actual logout functionality here
     console.log("Logging out");
-    // If you have auth context: auth.signOut()
-    // Then navigate to login page: navigate('/login')
   };
 
   const isActive = (href: string) => {
@@ -72,7 +68,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     return location.pathname.startsWith(href) && href !== "/";
   };
 
-  // Handle mobile sidebar
   if (isMobile) {
     return (
       <>
@@ -312,4 +307,3 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
 };
 
 export default Sidebar;
-
