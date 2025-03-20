@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -52,7 +51,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       const attributeKeys = Object.keys(attributes);
       
       if (attributeKeys.length > 0) {
-        // Pour calculer toutes les combinaisons possibles, on multiplie le nombre de valeurs pour chaque attribut
         return attributeKeys.reduce((total, key) => {
           const values = attributes[key];
           return total * (Array.isArray(values) ? values.length : 1);
@@ -111,17 +109,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       }
     });
     
-    // Sort variants to appear after their parent product
     Object.keys(grouped).forEach(key => {
       const productsInGroup = grouped[key];
       
-      // Find parent product (if any)
       const parentProductIndex = productsInGroup.findIndex(p => p.is_parent || (!p.parent_id && productsInGroup.some(v => v.parent_id === p.id)));
       
       if (parentProductIndex > -1) {
         const parentProduct = productsInGroup[parentProductIndex];
         
-        // Sort array: parent first, then variants
         grouped[key] = [
           parentProduct,
           ...productsInGroup.filter((p, idx) => idx !== parentProductIndex && p.parent_id === parentProduct.id),
@@ -159,13 +154,11 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     }
   };
 
-  // Fonction pour rendre les attributs variés comme des tags
   const renderAttributeVariationTags = (key: string, values: string[]) => {
-    // Déterminer l'icône appropriée en fonction du type d'attribut
     const getAttributeIcon = (attrName: string) => {
       const lowerName = attrName.toLowerCase();
       if (lowerName.includes("processeur") || lowerName.includes("cpu")) return <Cpu className="h-3 w-3 mr-1" />;
-      if (lowerName.includes("mémoire") || lowerName.includes("ram")) return <Memory className="h-3 w-3 mr-1" />;
+      if (lowerName.includes("mémoire") || lowerName.includes("ram")) return <Tag className="h-3 w-3 mr-1" />;
       if (lowerName.includes("disque") || lowerName.includes("stockage") || lowerName.includes("ssd")) return <HardDrive className="h-3 w-3 mr-1" />;
       return <Tag className="h-3 w-3 mr-1" />;
     };
@@ -189,7 +182,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     );
   };
 
-  // Render attribute tags for variant products
   const renderAttributeTags = (product: Product) => {
     if (!product.attributes || Object.keys(product.attributes).length === 0) {
       return null;
@@ -211,7 +203,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     );
   };
 
-  // Render variation attribute options for parent products
   const renderVariationAttributes = (product: Product) => {
     if (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
       return null;
@@ -258,23 +249,18 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       onValueChange={setExpandedGroups}
     >
       {Object.entries(groupedProducts).map(([groupKey, groupProducts], groupIndex) => {
-        // Find the main product (parent or first if no parent)
         const parentProduct = groupProducts.find(p => p.is_parent) || 
                              groupProducts.find(p => !p.parent_id && groupProducts.some(v => v.parent_id === p.id)) ||
                              groupProducts[0];
         
-        // Get variants (products that have this product as parent)
         const variants = groupProducts.filter(p => p.parent_id === parentProduct.id);
         
-        // Calculate variants count
         const variantsCount = variants.length || getVariantsCount(parentProduct);
         
-        // Determine group title
         const groupTitle = groupingOption === "model" 
           ? (parentProduct.name)
           : groupKey;
         
-        // Get product category label
         const productType = parentProduct?.category ? 
           (parentProduct.category === 'laptop' ? 'Ordinateur portable' : 
           parentProduct.category === 'desktop' ? 'Ordinateur fixe' : 
@@ -327,7 +313,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
               
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-4">
-                  {/* Affichage des attributs de variation du produit parent */}
                   {groupingOption === "model" && parentProduct.variation_attributes && 
                    Object.keys(parentProduct.variation_attributes).length > 0 && (
                     <div className="border rounded-md p-4 bg-gray-50">
@@ -336,7 +321,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     </div>
                   )}
                   
-                  {/* Display parent product if we're grouping by model and it's a parent */}
                   {groupingOption === "model" && parentProduct.is_parent && (
                     <div className="border rounded-md overflow-hidden">
                       <div className="p-4 bg-gray-50 flex justify-between items-center">
@@ -405,7 +389,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     </div>
                   )}
                   
-                  {/* Display variants */}
                   {groupingOption === "model" && variants.length > 0 && (
                     <div className="space-y-2">
                       <h3 className="text-sm font-medium mb-2 text-gray-600">Variantes</h3>
@@ -460,7 +443,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     </div>
                   )}
                   
-                  {/* Display non-variant products or all products if grouping by brand */}
                   {(groupingOption === "brand" 
                     ? groupProducts 
                     : groupProducts.filter(p => !p.parent_id && !p.is_parent && variants.length === 0)).map((product) => (
