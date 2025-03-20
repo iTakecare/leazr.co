@@ -105,6 +105,9 @@ function App() {
               {/* Routes clients */}
               <Route path="/client/*" element={<ClientRoutes />} />
               
+              {/* Route spéciale pour le calculateur directement accessible */}
+              <Route path="/create-offer" element={<CreateOffer />} />
+              
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
