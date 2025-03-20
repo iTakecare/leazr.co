@@ -111,8 +111,6 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
       if (!providedProducts) {
         console.log("Restauration de la liste depuis l'API après échec");
         await refetch();
-        const { data } = await getProducts();
-        setLocalProducts(data || []);
       } else {
         setLocalProducts(providedProducts);
       }
