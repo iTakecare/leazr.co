@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
 import { deleteAllProducts, deleteProduct, getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Plus, Trash2, Tag, Award, List, Grid3X3, Layers, Settings, UploadCloud } from "lucide-react";
+import { Plus, Trash2, Tag, Award, List, Grid3X3, Layers, Settings } from "lucide-react";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "@/components/ui/use-toast";
 import { 
@@ -28,8 +28,6 @@ import AccordionProductList from "@/components/catalog/AccordionProductList";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ProductGrid from "@/components/catalog/ProductGrid";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { products as sampleProducts } from "@/data/products";
-import { sonner } from "sonner";
 
 const CatalogManagement = () => {
   const navigate = useNavigate();
@@ -51,7 +49,7 @@ const CatalogManagement = () => {
 
   useEffect(() => {
     if (!isLoading && products.length === 0) {
-      console.log("No products found, consider loading sample data");
+      console.log("No products found");
       toast({
         title: "Aucun produit trouvé",
         description: "Vous pouvez ajouter des produits manuellement ou importer depuis WooCommerce",
@@ -132,17 +130,6 @@ const CatalogManagement = () => {
     navigate("/catalog/create-product");
   };
   
-  const handleImportSampleProducts = () => {
-    // Normally you would import products from WooCommerce or another source
-    // For now, we'll just use the sample products
-    toast.success("Importation de produits d'exemple...");
-    
-    // Add sample products to queryClient cache to simulate import
-    queryClient.setQueryData(["products"], sampleProducts);
-    
-    toast.success("10 produits d'exemples importés avec succès!");
-  };
-
   const handleViewModeChange = (value: string) => {
     if (value === "grid" || value === "accordion") {
       setViewMode(value);
@@ -261,9 +248,6 @@ const CatalogManagement = () => {
                     <div className="flex flex-wrap gap-3 justify-center">
                       <Button onClick={handleAddNewProduct}>
                         <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
-                      </Button>
-                      <Button variant="outline" onClick={handleImportSampleProducts}>
-                        <UploadCloud className="mr-2 h-4 w-4" /> Importer des produits d'exemple
                       </Button>
                     </div>
                   </div>
