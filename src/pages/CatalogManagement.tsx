@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
 import { deleteAllProducts, deleteProduct, getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Plus, Trash2, Tag, Award, List, Grid3X3, Layers, Settings } from "lucide-react";
+import { Plus, Trash2, Tag, Award, List, Grid3X3, Layers, Settings, UploadCloud } from "lucide-react";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "@/components/ui/use-toast";
 import { 
@@ -28,6 +28,8 @@ import AccordionProductList from "@/components/catalog/AccordionProductList";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ProductGrid from "@/components/catalog/ProductGrid";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { products as sampleProducts } from "@/data/products";
+import { sonner } from "sonner";
 
 const CatalogManagement = () => {
   const navigate = useNavigate();
@@ -49,8 +51,12 @@ const CatalogManagement = () => {
 
   useEffect(() => {
     if (!isLoading && products.length === 0) {
-      console.log("No products found, loading sample data would go here");
-      // This is where you could load sample data if needed
+      console.log("No products found, consider loading sample data");
+      toast({
+        title: "Aucun produit trouvé",
+        description: "Vous pouvez ajouter des produits manuellement ou importer depuis WooCommerce",
+        variant: "default",
+      });
     }
   }, [isLoading, products]);
 
@@ -124,6 +130,17 @@ const CatalogManagement = () => {
 
   const handleAddNewProduct = () => {
     navigate("/catalog/create-product");
+  };
+  
+  const handleImportSampleProducts = () => {
+    // Normally you would import products from WooCommerce or another source
+    // For now, we'll just use the sample products
+    toast.success("Importation de produits d'exemple...");
+    
+    // Add sample products to queryClient cache to simulate import
+    queryClient.setQueryData(["products"], sampleProducts);
+    
+    toast.success("10 produits d'exemples importés avec succès!");
   };
 
   const handleViewModeChange = (value: string) => {
@@ -231,6 +248,24 @@ const CatalogManagement = () => {
                     {[...Array(5)].map((_, i) => (
                       <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
                     ))}
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center py-16 border rounded-lg bg-gray-50">
+                    <div className="mb-4 bg-gray-100 p-4 rounded-full">
+                      <Layers className="h-12 w-12 text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-medium mb-2">Aucun produit</h3>
+                    <p className="text-muted-foreground mb-6 max-w-md">
+                      Vous n'avez pas encore ajouté de produits à votre catalogue. Ajoutez des produits manuellement ou importez-les depuis WooCommerce.
+                    </p>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                      <Button onClick={handleAddNewProduct}>
+                        <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
+                      </Button>
+                      <Button variant="outline" onClick={handleImportSampleProducts}>
+                        <UploadCloud className="mr-2 h-4 w-4" /> Importer des produits d'exemple
+                      </Button>
+                    </div>
                   </div>
                 ) : viewMode === "accordion" ? (
                   <AccordionProductList 

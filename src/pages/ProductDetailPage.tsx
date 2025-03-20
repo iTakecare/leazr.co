@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -217,6 +218,12 @@ const ProductDetailPage = () => {
           <h2 className="text-2xl font-bold mb-4">Produit non trouvé</h2>
           <p className="text-gray-600 mb-8">Impossible de trouver les détails de ce produit.</p>
           <p className="text-sm text-gray-500 mb-4">L'identifiant du produit est: {id}</p>
+          <div className="mb-6 p-4 border border-amber-200 bg-amber-50 text-amber-700 rounded-md max-w-lg mx-auto">
+            <p className="flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              Une erreur s'est produite lors de la communication avec la base de données. Veuillez réessayer ou contacter l'administrateur.
+            </p>
+          </div>
           <Button onClick={handleBackToCatalog}>
             Retour au catalogue
           </Button>
