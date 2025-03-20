@@ -3,15 +3,8 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Calculator as CalculatorIcon, 
-  Euro, 
-  CalendarDays, 
-  ArrowRight,
-  Clock
-} from "lucide-react";
+import { Euro, ArrowRight, Clock } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 
 const Calculator = () => {
@@ -32,26 +25,21 @@ const Calculator = () => {
 
   return (
     <PageTransition>
-      <div className="container mx-auto p-3 md:py-6">
-        <div className="flex items-center mb-6 md:mb-8 space-x-3 border-b pb-4">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <CalculatorIcon className="h-5 w-5 md:h-6 md:w-6" />
-          </div>
-          <h1 className="text-xl md:text-3xl font-bold">Calculateur de contrat</h1>
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="flex items-center mb-6 space-x-3">
+          <h1 className="text-2xl font-bold">Calculateur de contrat</h1>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-          <Card className="p-5 md:p-6 shadow-md rounded-xl overflow-hidden border">
-            <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-5 flex items-center">
-              <span className="bg-primary/10 p-1.5 rounded-lg mr-2">
-                <Euro className="h-4 w-4 text-primary" />
-              </span>
-              Paramètres
-            </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="p-6 shadow-sm">
+            <div className="flex items-center mb-5">
+              <Euro className="mr-2 h-5 w-5 text-blue-500" />
+              <h2 className="text-lg font-medium">Paramètres</h2>
+            </div>
             
-            <div className="space-y-4 md:space-y-5">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="monthly-price" className="text-base font-medium">Mensualité (€)</Label>
+                <label htmlFor="monthly-price" className="block text-sm font-medium">Mensualité (€)</label>
                 <Input
                   id="monthly-price"
                   type="number"
@@ -60,21 +48,18 @@ const Calculator = () => {
                   step="0.01"
                   value={monthlyPrice || ''}
                   onChange={(e) => setMonthlyPrice(Number(e.target.value))}
-                  className="shadow-sm text-base"
+                  className="w-full"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="duration" className="text-base font-medium">Durée du contrat</Label>
+                <label htmlFor="duration" className="block text-sm font-medium">Durée du contrat</label>
                 <Select
                   value={duration.toString()}
                   onValueChange={(value) => setDuration(Number(value))}
                 >
-                  <SelectTrigger id="duration" className="shadow-sm text-base">
-                    <div className="flex items-center">
-                      <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <SelectValue placeholder="Sélectionnez une durée" />
-                    </div>
+                  <SelectTrigger id="duration" className="w-full">
+                    <SelectValue placeholder="36 mois" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="12">12 mois</SelectItem>
@@ -87,10 +72,9 @@ const Calculator = () => {
               </div>
               
               <Button 
-                className="w-full mt-6 bg-blue-500 hover:bg-blue-600 py-6 rounded-lg" 
+                className="w-full bg-blue-500 hover:bg-blue-600"
                 onClick={calculateTotal}
                 disabled={!monthlyPrice}
-                size="lg"
               >
                 Calculer
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -98,50 +82,39 @@ const Calculator = () => {
             </div>
           </Card>
           
-          <Card className="p-5 md:p-6 shadow-md rounded-xl overflow-hidden border">
-            <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-5 flex items-center">
-              <span className="bg-primary/10 p-1.5 rounded-lg mr-2">
-                <Clock className="h-4 w-4 text-primary" />
-              </span>
-              Résultats
-            </h2>
+          <Card className="p-6 shadow-sm">
+            <div className="flex items-center mb-5">
+              <Clock className="mr-2 h-5 w-5 text-blue-500" />
+              <h2 className="text-lg font-medium">Résultats</h2>
+            </div>
             
             {totalPrice !== null ? (
-              <div className="space-y-4 md:space-y-5">
-                <div className="p-4 md:p-5 bg-muted/50 rounded-lg shadow-inner">
-                  <div className="flex justify-between mb-3 items-center">
-                    <span className="font-medium text-muted-foreground">Mensualité:</span>
-                    <span className="text-lg font-semibold">{monthlyPrice.toFixed(2)} €</span>
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">Mensualité:</span>
+                    <span className="font-medium">{monthlyPrice.toFixed(2)} €</span>
                   </div>
-                  <div className="flex justify-between mb-3 items-center">
-                    <span className="font-medium text-muted-foreground">Durée:</span>
-                    <span className="text-lg font-semibold">{duration} mois</span>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">Durée:</span>
+                    <span className="font-medium">{duration} mois</span>
                   </div>
-                  <div className="flex justify-between mb-3 items-center border-t pt-3">
-                    <span className="font-medium text-muted-foreground">Coût total:</span>
-                    <span className="text-lg font-bold">{totalPrice.toFixed(2)} €</span>
+                  <div className="flex justify-between mb-2 pt-2 border-t">
+                    <span className="text-gray-600">Coût total:</span>
+                    <span className="font-medium">{totalPrice.toFixed(2)} €</span>
                   </div>
-                  <div className="flex justify-between items-center border-t pt-3">
-                    <span className="font-medium text-muted-foreground">Valeur résiduelle estimée:</span>
-                    <span className="text-lg font-bold text-primary">{residualValue} €</span>
+                  <div className="flex justify-between pt-2 border-t">
+                    <span className="text-gray-600">Valeur résiduelle estimée:</span>
+                    <span className="font-medium text-blue-600">{residualValue} €</span>
                   </div>
-                </div>
-                
-                <div className="mt-4 md:mt-5 bg-primary/5 p-4 md:p-5 rounded-lg border border-primary/10">
-                  <h3 className="font-medium mb-2 flex items-center">
-                    <CalculatorIcon className="h-4 w-4 mr-2 text-primary" />
-                    Informations
-                  </h3>
-                  <p className="text-sm md:text-base text-muted-foreground">
-                    Ce calculateur donne une estimation approximative du coût total et de la valeur résiduelle.
-                    Pour une offre personnalisée, veuillez contacter votre conseiller iTakecare.
-                  </p>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-52 md:h-64 text-muted-foreground">
-                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                  <CalculatorIcon className="h-8 w-8 opacity-50" />
+              <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+                <div className="h-16 w-16 mb-4 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="opacity-50">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
                 </div>
                 <p className="text-center max-w-xs">
                   Entrez les paramètres et cliquez sur Calculer pour voir les résultats
