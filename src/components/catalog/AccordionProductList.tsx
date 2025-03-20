@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -51,6 +52,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       const attributeKeys = Object.keys(attributes);
       
       if (attributeKeys.length > 0) {
+        // Pour calculer toutes les combinaisons possibles, on multiplie le nombre de valeurs pour chaque attribut
         return attributeKeys.reduce((total, key) => {
           const values = attributes[key];
           return total * (Array.isArray(values) ? values.length : 1);
@@ -142,6 +144,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     }
   };
 
+  // Afficher les attributs du produit sous forme de tags
   const renderAttributeTags = (product: Product) => {
     if (!product.attributes || Object.keys(product.attributes).length === 0) {
       return null;
@@ -158,6 +161,34 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
             <Tag className="h-3 w-3 mr-1" />
             {key}: {value}
           </Badge>
+        ))}
+      </div>
+    );
+  };
+
+  // Afficher les attributs de variation disponibles
+  const renderVariationAttributeTags = (product: Product) => {
+    if (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
+      return null;
+    }
+    
+    return (
+      <div className="flex flex-wrap gap-1 mt-2">
+        {Object.entries(product.variation_attributes).map(([attrName, attrValues]) => (
+          <div key={`var-${product.id}-${attrName}`} className="mb-2">
+            <div className="text-xs font-medium text-gray-700 mb-1">{attrName}:</div>
+            <div className="flex flex-wrap gap-1">
+              {Array.isArray(attrValues) && attrValues.map((value, index) => (
+                <Badge 
+                  key={`${product.id}-${attrName}-${index}`}
+                  variant="outline" 
+                  className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 px-2 py-0.5"
+                >
+                  {value}
+                </Badge>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     );
@@ -321,6 +352,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                               <div>{mainProduct.stock || "Non spécifié"}</div>
                             </div>
                           </div>
+                        </div>
+                      )}
+                      
+                      {/* Afficher les options de variation disponibles */}
+                      {mainProduct.variation_attributes && Object.keys(mainProduct.variation_attributes).length > 0 && (
+                        <div className="p-4 border-t">
+                          <h4 className="text-sm font-semibold mb-2">Options de configuration disponibles:</h4>
+                          {renderVariationAttributeTags(mainProduct)}
                         </div>
                       )}
                     </div>

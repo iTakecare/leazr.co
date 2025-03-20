@@ -113,23 +113,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
     );
   };
 
-  // Afficher les attributs de variation disponibles
+  // Afficher les attributs de variation avec leurs valeurs
   const renderVariationAttributeTags = () => {
     if (!isParent || !product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
       return null;
     }
     
     return (
-      <div className="flex flex-wrap gap-1 mt-1">
-        {Object.entries(product.variation_attributes).slice(0, 2).map(([key, _]) => (
-          <Badge 
-            key={`var-${product.id}-${key}`}
-            variant="outline" 
-            className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center px-2 py-0.5"
-          >
-            <Tag className="h-3 w-3 mr-1" />
-            {key}
-          </Badge>
+      <div className="flex flex-col gap-1 mt-2">
+        {Object.entries(product.variation_attributes).slice(0, 2).map(([key, values]) => (
+          <div key={`var-${product.id}-${key}`} className="mb-1">
+            <div className="text-xs font-medium text-gray-700">{key}:</div>
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {Array.isArray(values) && values.map((value, index) => (
+                <Badge 
+                  key={`${product.id}-${key}-${index}`}
+                  variant="outline" 
+                  className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 px-1.5 py-0.5"
+                >
+                  {value}
+                </Badge>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     );
