@@ -29,12 +29,6 @@ const ProductDetailPage = () => {
     queryKey: ["product", id],
     queryFn: () => getProductById(id || ""),
     enabled: !!id,
-    retry: 3, // Retry 3 times in case of failure
-    retryDelay: 1000, // Wait 1 second between retries
-    onError: (err) => {
-      console.error("Error loading product:", err);
-      toast.error("Impossible de charger les détails du produit");
-    },
   });
 
   // Initialize product data when loaded
@@ -245,7 +239,6 @@ const ProductDetailPage = () => {
         <div className="container mx-auto px-4 py-16 text-center">
           <h2 className="text-2xl font-bold mb-4">Produit non trouvé</h2>
           <p className="text-gray-600 mb-8">Impossible de trouver les détails de ce produit.</p>
-          <p className="text-sm text-gray-500 mb-4">L'identifiant du produit est: {id}</p>
           <Button onClick={handleBackToCatalog}>
             Retour au catalogue
           </Button>

@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product, ProductAttributes, ProductVariationAttributes } from "@/types/catalog";
 import { products as sampleProducts } from "@/data/products";
@@ -108,16 +107,16 @@ export async function getProductById(productId: string): Promise<Product> {
     console.log(`Fetching product with ID: ${productId}`);
     const supabase = getSupabaseClient();
     
-    // Get the base product data
-    const { data: product, error } = await supabase
+    // First get the product
+    const { data: product, error: productError } = await supabase
       .from('products')
       .select('*')
       .eq('id', productId)
       .single();
 
-    if (error) {
-      console.error("Error fetching product:", error);
-      throw new Error(`Error fetching product: ${error.message}`);
+    if (productError) {
+      console.error("Error fetching product:", productError);
+      throw new Error(`Error fetching product: ${productError.message}`);
     }
 
     if (!product) {
