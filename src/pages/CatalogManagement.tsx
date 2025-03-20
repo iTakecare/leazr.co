@@ -31,7 +31,7 @@ const CatalogManagement = () => {
   });
 
   useEffect(() => {
-    console.log(`Loaded ${products.length} products:`, products);
+    console.log(`Chargé ${products.length} produits:`, products);
   }, [products]);
 
   useEffect(() => {
@@ -43,6 +43,7 @@ const CatalogManagement = () => {
   const deleteProductMutation = useMutation({
     mutationFn: deleteProduct,
     onSuccess: () => {
+      console.log("Produit supprimé avec succès, invalidation du cache");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
         title: "Succès",
@@ -96,7 +97,7 @@ const CatalogManagement = () => {
       setViewMode(value);
     }
   };
-  
+
   return (
     <Container>
       <div className="py-6 md:py-8">

@@ -1,6 +1,5 @@
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { Product, ProductAttributes, ProductVariationAttributes } from "@/types/catalog";
-import { products as sampleProducts } from "@/data/products";
 
 export async function getProducts(): Promise<Product[]> {
   try {
@@ -534,26 +533,44 @@ export async function deleteProduct(productId: string): Promise<void> {
     console.log(`Tentative de suppression du produit ${productId}`);
     const supabase = getSupabaseClient();
     
-    // Supprimer d'abord toutes les variantes du produit s'il est parent
-    const { data: childProducts, error: childrenQueryError } = await supabase
+    // Vérifier si le produit existe
+    const { data: productToDelete, error: checkError } = await supabase
       .from('products')
-      .select('id')
-      .eq('parent_id', productId);
+      .select('*')
+      .eq('id', productId)
+      .single();
       
-    if (childrenQueryError) {
-      console.error(`Erreur lors de la recherche des variantes enfants: ${childrenQueryError.message}`);
-    } else if (childProducts && childProducts.length > 0) {
-      console.log(`Suppression de ${childProducts.length} variantes enfants pour le produit ${productId}`);
-      const childIds = childProducts.map(child => child.id);
-      
-      const { error: childrenDeleteError } = await supabase
+    if (checkError) {
+      console.error(`Erreur lors de la vérification du produit ${productId}:`, checkError);
+      throw new Error(`Produit non trouvé: ${checkError.message}`);
+    }
+    
+    // Supprimer d'abord toutes les variantes du produit s'il est parent
+    if (productToDelete.is_parent) {
+      console.log(`Le produit ${productId} est un parent, recherche des variantes à supprimer`);
+      const { data: childProducts, error: childrenQueryError } = await supabase
         .from('products')
-        .delete()
-        .in('id', childIds);
-      
-      if (childrenDeleteError) {
-        console.error(`Erreur lors de la suppression des variantes enfants: ${childrenDeleteError.message}`);
-        throw new Error(`Erreur lors de la suppression des variantes: ${childrenDeleteError.message}`);
+        .select('id')
+        .eq('parent_id', productId);
+        
+      if (childrenQueryError) {
+        console.error(`Erreur lors de la recherche des variantes enfants: ${childrenQueryError.message}`);
+      } else if (childProducts && childProducts.length > 0) {
+        console.log(`Suppression de ${childProducts.length} variantes enfants pour le produit ${productId}`);
+        const childIds = childProducts.map(child => child.id);
+        
+        for (const childId of childIds) {
+          const { error: childDeleteError } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', childId);
+          
+          if (childDeleteError) {
+            console.error(`Erreur lors de la suppression de la variante ${childId}: ${childDeleteError.message}`);
+          } else {
+            console.log(`Variante ${childId} supprimée avec succès`);
+          }
+        }
       }
     }
     
@@ -844,3 +861,4 @@ export async function convertProductToParent(
     throw error;
   }
 }
+

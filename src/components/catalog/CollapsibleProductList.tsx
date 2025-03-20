@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -29,6 +30,8 @@ interface CollapsibleProductListProps {
 const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }: CollapsibleProductListProps) => {
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
   
   const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
     queryKey: ["products"],
@@ -37,6 +40,10 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
   });
 
   useEffect(() => {
+    console.log("CollapsibleProductList: Mise à jour des produits", {
+      providedProducts: providedProducts?.length || 0,
+      fetchedProducts: fetchedProducts?.length || 0
+    });
     setLocalProducts(providedProducts || fetchedProducts);
   }, [providedProducts, fetchedProducts]);
 
@@ -63,20 +70,30 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
     );
   }
 
-  const handleDeleteClick = async (productId: string, e: React.MouseEvent) => {
+  const confirmDelete = (productId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setProductToDelete(productId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteClick = async () => {
+    if (!productToDelete) return;
     
     try {
-      console.log(`Tentative de suppression du produit: ${productId}`);
-      setIsDeleting(productId);
+      console.log(`Tentative de suppression du produit: ${productToDelete}`);
+      setIsDeleting(productToDelete);
       
-      setLocalProducts(prevProducts => 
-        prevProducts.filter(product => product.id !== productId && product.parent_id !== productId)
+      // Mise à jour optimiste - supprimer immédiatement de l'UI
+      const updatedProducts = localProducts.filter(
+        product => product.id !== productToDelete && product.parent_id !== productToDelete
       );
+      setLocalProducts(updatedProducts);
       
-      await onDeleteProduct(productId);
+      // Effectuer la suppression en base de données
+      await onDeleteProduct(productToDelete);
       
+      // Rafraîchir les données après la suppression
       if (!providedProducts) {
         console.log("Rafraîchissement de la liste des produits après suppression");
         await refetch();
@@ -90,8 +107,14 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
       
+      // En cas d'erreur, restaurer l'état précédent
       if (!providedProducts) {
+        console.log("Restauration de la liste depuis l'API après échec");
         await refetch();
+        const { data } = await getProducts();
+        setLocalProducts(data || []);
+      } else {
+        setLocalProducts(providedProducts);
       }
       
       toast({
@@ -101,6 +124,8 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
       });
     } finally {
       setIsDeleting(null);
+      setProductToDelete(null);
+      setDeleteConfirmOpen(false);
     }
   };
 
@@ -140,36 +165,18 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
                   <Button variant="outline" size="sm">Modifier</Button>
                 </Link>
                 
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      disabled={isDeleting === product.id}
-                    >
-                      {isDeleting === product.id ? (
-                        <span className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full"></span>
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Êtes-vous sûr de vouloir supprimer ce produit{product.is_parent ? " et toutes ses variantes" : ""} ?
-                        Cette action ne peut pas être annulée.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction onClick={(e) => handleDeleteClick(product.id, e as React.MouseEvent)}>
-                        Supprimer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  disabled={isDeleting === product.id}
+                  onClick={(e) => confirmDelete(product.id, e)}
+                >
+                  {isDeleting === product.id ? (
+                    <span className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full"></span>
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
                 
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm">
@@ -205,6 +212,31 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
           </Collapsible>
         </motion.div>
       ))}
+      
+      {/* Dialogue de confirmation séparé (non lié à un produit spécifique) */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce produit ? Cette action ne peut pas être annulée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProductToDelete(null)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteClick}>
+              {isDeleting ? (
+                <span className="flex items-center">
+                  <span className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></span>
+                  Suppression...
+                </span>
+              ) : (
+                "Supprimer"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
