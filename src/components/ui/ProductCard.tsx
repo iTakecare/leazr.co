@@ -40,11 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
     productMonthlyPrice = formatCurrency(product.monthly_price);
   }
   
-  // Get the main product image or first additional image if main is not available
-  const mainImageUrl = product?.image_url || 
-    (product?.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0 
-      ? product.image_urls[0] 
-      : "/placeholder.svg");
+  const productImage = product?.image_url || "/placeholder.svg";
 
   return (
     <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" onClick={onClick}>
@@ -52,7 +48,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
         <div className="flex">
           <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
             <img 
-              src={mainImageUrl} 
+              src={productImage} 
               alt={productName}
               className="object-contain h-20 w-20"
               onError={(e) => {
@@ -77,11 +73,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
               {hasVariants && (
                 <span className="ml-2 inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
                   {product.variants?.length || 0} option(s)
-                </span>
-              )}
-              {product?.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0 && (
-                <span className="ml-2 inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700">
-                  {product.image_urls.length + 1} images
                 </span>
               )}
             </div>
