@@ -397,13 +397,27 @@ export async function uploadProductImage(file: File, productId: string, isMain: 
   try {
     console.log(`Uploading ${isMain ? 'main' : 'additional'} image for product ${productId}: ${file.name}`);
     
-    // Generate a unique file name
-    const filename = `${file.name.split('.')[0]}-${Date.now()}.${file.name.split('.').pop()}`;
+    if (!file || !(file instanceof File)) {
+      throw new Error("Fichier invalide");
+    }
+    
+    // Générer un nom de fichier unique
+    const extension = file.name.split('.').pop() || 'jpeg';
+    const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${extension}`;
     const filePath = `${productId}/${filename}`;
     
     const supabase = getSupabaseClient();
     
-    // Upload file to storage
+    // Vérifier si le bucket existe, sinon le créer
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (!buckets?.find(b => b.name === 'product-images')) {
+      await supabase.storage.createBucket('product-images', {
+        public: true,
+        fileSizeLimit: 10485760 // 10MB
+      });
+    }
+    
+    // Upload du fichier
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('product-images')
       .upload(filePath, file, {
@@ -414,10 +428,10 @@ export async function uploadProductImage(file: File, productId: string, isMain: 
 
     if (uploadError) {
       console.error("Error uploading image to storage:", uploadError);
-      throw new Error(`Error uploading image: ${uploadError.message}`);
+      throw new Error(`Erreur lors du téléchargement: ${uploadError.message}`);
     }
 
-    // Get public URL for the uploaded file
+    // Récupérer l'URL publique
     const { data: publicUrlData } = supabase.storage
       .from('product-images')
       .getPublicUrl(filePath);
@@ -425,28 +439,37 @@ export async function uploadProductImage(file: File, productId: string, isMain: 
     const publicUrl = publicUrlData?.publicUrl;
 
     if (!publicUrl) {
-      throw new Error("Failed to get public URL for uploaded image");
+      throw new Error("Impossible d'obtenir l'URL publique de l'image");
     }
 
-    // Update the product record with the new image URL
-    const product = await getProductById(productId);
-    
+    console.log(`Image uploaded successfully. Public URL: ${publicUrl}`);
+
+    // Mettre à jour le produit avec la nouvelle URL d'image
     if (isMain) {
-      // Update main image
+      // Mise à jour de l'image principale
       const { error: updateError } = await supabase
         .from('products')
-        .update({ 
-          image_url: publicUrl,
-          image_alt: filename
-        })
+        .update({ image_url: publicUrl, image_alt: filename })
         .eq('id', productId);
 
       if (updateError) {
         console.error("Error updating main product image:", updateError);
-        throw new Error(`Error updating product image: ${updateError.message}`);
+        throw new Error(`Erreur lors de la mise à jour de l'image principale: ${updateError.message}`);
       }
     } else {
-      // Update or add to additional images
+      // Récupérer les URLs d'images actuelles
+      const { data: product, error: getError } = await supabase
+        .from('products')
+        .select('image_urls')
+        .eq('id', productId)
+        .single();
+
+      if (getError) {
+        console.error("Error getting product:", getError);
+        throw new Error(`Erreur lors de la récupération du produit: ${getError.message}`);
+      }
+
+      // Ajouter l'URL à la liste des images supplémentaires
       let imageUrls = product.image_urls || [];
       if (!Array.isArray(imageUrls)) {
         imageUrls = [];
@@ -461,11 +484,11 @@ export async function uploadProductImage(file: File, productId: string, isMain: 
 
       if (updateError) {
         console.error("Error updating additional product images:", updateError);
-        throw new Error(`Error updating additional images: ${updateError.message}`);
+        throw new Error(`Erreur lors de la mise à jour des images supplémentaires: ${updateError.message}`);
       }
     }
 
-    console.log(`Successfully uploaded ${isMain ? 'main' : 'additional'} image: ${publicUrl}`);
+    console.log(`Product ${productId} updated with new image URL: ${publicUrl}`);
     return publicUrl;
   } catch (error) {
     console.error("Error in uploadProductImage:", error);
@@ -542,7 +565,7 @@ export async function deleteProduct(productId: string): Promise<void> {
       
     if (checkError) {
       console.error(`Erreur lors de la vérification du produit ${productId}:`, checkError);
-      throw new Error(`Produit non trouvé: ${checkError.message}`);
+      throw new Error(`Erreur lors de la vérification: ${checkError.message}`);
     }
     
     if (!productToDelete) {
@@ -563,7 +586,7 @@ export async function deleteProduct(productId: string): Promise<void> {
       } else if (childProducts && childProducts.length > 0) {
         console.log(`Suppression de ${childProducts.length} variantes enfants pour le produit ${productId}`);
         
-        // Supprimer les variantes une par une pour garantir la suppression complète
+        // Supprimer les variantes une par une
         for (const childProduct of childProducts) {
           const { error: childDeleteError } = await supabase
             .from('products')
@@ -587,7 +610,7 @@ export async function deleteProduct(productId: string): Promise<void> {
     
     if (error) {
       console.error(`Erreur lors de la suppression du produit ${productId}: ${error.message}`);
-      throw new Error(`Erreur lors de la suppression du produit: ${error.message}`);
+      throw new Error(`Erreur lors de la suppression: ${error.message}`);
     }
     
     console.log(`Produit ${productId} supprimé avec succès`);

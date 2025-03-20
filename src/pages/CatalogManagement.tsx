@@ -6,13 +6,11 @@ import Container from "@/components/layout/Container";
 import { deleteProduct, getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Plus, Tag, Award, List, Grid3X3 } from "lucide-react";
-import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import BrandManager from "@/components/catalog/BrandManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AccordionProductList from "@/components/catalog/AccordionProductList";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ProductGrid from "@/components/catalog/ProductGrid";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -22,7 +20,6 @@ const CatalogManagement = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
   const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
   const [groupingOption, setGroupingOption] = useState<"model" | "brand">("model");
@@ -58,37 +55,11 @@ const CatalogManagement = () => {
       console.error("Erreur lors de la suppression du produit:", err);
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer le produit",
+        description: `Impossible de supprimer le produit: ${err.message}`,
         variant: "destructive",
       });
     }
   });
-
-  const onProductAdded = () => {
-    setIsAddProductOpen(false);
-    queryClient.invalidateQueries({ queryKey: ["products"] });
-    toast({
-      title: "Succès",
-      description: "Produit ajouté avec succès",
-      variant: "default",
-    });
-  };
-
-  const handleSelectProduct = (product: Product) => {
-    navigate(`/products/${product.id}`);
-  };
-
-  const handleProductDeleted = async (productId: string) => {
-    try {
-      console.log(`Début de la suppression du produit ${productId}`);
-      await deleteProductMutation.mutateAsync(productId);
-      console.log(`Suppression du produit ${productId} réussie`);
-      return Promise.resolve();
-    } catch (error) {
-      console.error("Erreur lors de la suppression:", error);
-      return Promise.reject(error);
-    }
-  };
 
   const handleAddNewProduct = () => {
     navigate("/catalog/create-product");
@@ -97,6 +68,18 @@ const CatalogManagement = () => {
   const handleViewModeChange = (value: string) => {
     if (value === "grid" || value === "accordion") {
       setViewMode(value);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      console.log(`Début de la suppression du produit ${productId}`);
+      await deleteProductMutation.mutateAsync(productId);
+      console.log(`Suppression du produit ${productId} réussie`);
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      return Promise.reject(error);
     }
   };
 
@@ -178,7 +161,7 @@ const CatalogManagement = () => {
                 ) : viewMode === "accordion" ? (
                   <CollapsibleProductList 
                     products={products} 
-                    onDeleteProduct={handleProductDeleted} 
+                    onDeleteProduct={handleDeleteProduct} 
                   />
                 ) : (
                   <ProductGrid products={products} />
@@ -196,12 +179,6 @@ const CatalogManagement = () => {
           </TabsContent>
         </Tabs>
       </div>
-
-      <ProductEditor 
-        isOpen={isAddProductOpen} 
-        onClose={() => setIsAddProductOpen(false)} 
-        onSuccess={onProductAdded}
-      />
     </Container>
   );
 };
