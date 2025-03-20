@@ -70,7 +70,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Équipements", icon: Laptop, href: "/client/equipment" },
     { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
     { label: "Catalogue", icon: Package, href: "/client/catalog" },
-    { label: "Calculateur", icon: Calculator, href: "/create-offer" }, // Modifié pour pointer vers la page CreateOffer
+    { label: "Calculateur", icon: Calculator, href: "/client/calculator" }, // Modification: pointer vers /client/calculator au lieu de /create-offer
     { label: "Pack iTakecare", icon: ShieldCheck, href: "/client/itakecare", isNew: true },
   ];
 
