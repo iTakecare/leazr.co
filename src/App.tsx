@@ -41,7 +41,6 @@ import CreateTestUsers from "./pages/CreateTestUsers";
 import Signup from "./pages/Signup";
 import ProductCreationPage from "@/components/catalog/ProductCreationPage";
 import ProductDetail from "./pages/ProductDetail";
-import Calculator from "./pages/Calculator";
 import Index from "./pages/Index";
 
 // Create a client
@@ -80,7 +79,6 @@ function App() {
                 <Route path="contracts/:id" element={<ContractDetail />} />
                 <Route path="i-take-care" element={<ITakecarePage />} />
                 <Route path="settings" element={<Settings />} />
-                <Route path="calculator" element={<Calculator />} />
                 <Route path="create-offer" element={<CreateOffer />} />
                 
                 {/* Routes ambassadeurs */}

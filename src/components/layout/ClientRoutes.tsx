@@ -3,7 +3,6 @@ import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
-import ClientCalculator from "@/pages/ClientCalculator";
 import ClientITakecarePage from "@/pages/ClientITakecarePage";
 import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
@@ -189,7 +188,6 @@ const ClientRoutes = () => {
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><ClientCatalog /></ClientLayout>} />
         <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
-        <Route path="calculator" element={<ClientLayout><ClientCalculator /></ClientLayout>} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>
     </ClientCheck>
