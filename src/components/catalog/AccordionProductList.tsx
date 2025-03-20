@@ -111,8 +111,23 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       }
     });
     
-    Object.entries(grouped).forEach(([key, products]) => {
-      console.log(`Group ${key}:`, products.map(p => `${p.name} (${p.id}, parent_id: ${p.parent_id}, is_parent: ${p.is_parent})`));
+    // Sort variants to appear after their parent product
+    Object.keys(grouped).forEach(key => {
+      const productsInGroup = grouped[key];
+      
+      // Find parent product (if any)
+      const parentProductIndex = productsInGroup.findIndex(p => p.is_parent || (!p.parent_id && productsInGroup.some(v => v.parent_id === p.id)));
+      
+      if (parentProductIndex > -1) {
+        const parentProduct = productsInGroup[parentProductIndex];
+        
+        // Sort array: parent first, then variants
+        grouped[key] = [
+          parentProduct,
+          ...productsInGroup.filter((p, idx) => idx !== parentProductIndex && p.parent_id === parentProduct.id),
+          ...productsInGroup.filter((p, idx) => idx !== parentProductIndex && p.parent_id !== parentProduct.id)
+        ];
+      }
     });
     
     return grouped;
@@ -144,21 +159,20 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     }
   };
 
-  // Afficher les attributs du produit sous forme de tags
+  // Render attribute tags for variant products
   const renderAttributeTags = (product: Product) => {
     if (!product.attributes || Object.keys(product.attributes).length === 0) {
       return null;
     }
     
     return (
-      <div className="flex flex-wrap gap-1 mt-1">
+      <div className="flex flex-wrap gap-2 mt-1">
         {Object.entries(product.attributes).map(([key, value]) => (
           <Badge 
             key={`${product.id}-${key}`} 
             variant="outline" 
-            className="text-xs bg-purple-50 text-purple-700 border-purple-200 flex items-center px-2 py-0.5"
+            className="text-xs bg-purple-100 text-purple-700 py-0.5 px-2"
           >
-            <Tag className="h-3 w-3 mr-1" />
             {key}: {value}
           </Badge>
         ))}
@@ -166,23 +180,23 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     );
   };
 
-  // Afficher les attributs de variation disponibles
-  const renderVariationAttributeTags = (product: Product) => {
+  // Render variation attribute options for parent products
+  const renderVariationAttributes = (product: Product) => {
     if (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
       return null;
     }
     
     return (
-      <div className="flex flex-wrap gap-1 mt-2">
-        {Object.entries(product.variation_attributes).map(([attrName, attrValues]) => (
-          <div key={`var-${product.id}-${attrName}`} className="mb-2">
-            <div className="text-xs font-medium text-gray-700 mb-1">{attrName}:</div>
-            <div className="flex flex-wrap gap-1">
-              {Array.isArray(attrValues) && attrValues.map((value, index) => (
+      <div className="space-y-2 mt-2">
+        {Object.entries(product.variation_attributes).map(([key, values]) => (
+          <div key={key}>
+            <span className="text-sm font-medium text-gray-600">{key}:</span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {Array.isArray(values) && values.map((value, idx) => (
                 <Badge 
-                  key={`${product.id}-${attrName}-${index}`}
+                  key={`${key}-${idx}`}
                   variant="outline" 
-                  className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 px-2 py-0.5"
+                  className="text-xs bg-blue-50 text-blue-700"
                 >
                   {value}
                 </Badge>
@@ -226,28 +240,29 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       onValueChange={setExpandedGroups}
     >
       {Object.entries(groupedProducts).map(([groupKey, groupProducts], groupIndex) => {
-        const mainProduct = groupingOption === "model" 
-          ? groupProducts.find(p => p.is_parent) || groupProducts[0]
-          : null;
+        // Find the main product (parent or first if no parent)
+        const parentProduct = groupProducts.find(p => p.is_parent) || 
+                             groupProducts.find(p => !p.parent_id && groupProducts.some(v => v.parent_id === p.id)) ||
+                             groupProducts[0];
         
+        // Get variants (products that have this product as parent)
+        const variants = groupProducts.filter(p => p.parent_id === parentProduct.id);
+        
+        // Calculate variants count
+        const variantsCount = variants.length || getVariantsCount(parentProduct);
+        
+        // Determine group title
         const groupTitle = groupingOption === "model" 
-          ? (mainProduct?.name || "Produit")
+          ? (parentProduct.name)
           : groupKey;
         
-        const variants = groupingOption === "model" 
-          ? groupProducts.filter(p => p.id !== mainProduct?.id && (p.parent_id === mainProduct?.id || (!mainProduct?.is_parent && p.is_variation)))
-          : [];
-        
-        const variantsCount = mainProduct ? getVariantsCount(mainProduct) : 0;
-        
-        const productType = mainProduct?.category ? 
-          (mainProduct.category === 'laptop' ? 'Ordinateur portable' : 
-          mainProduct.category === 'desktop' ? 'Ordinateur fixe' : 
-          mainProduct.category === 'tablet' ? 'Tablette' : 
-          mainProduct.category === 'smartphone' ? 'Smartphone' : 
-          mainProduct.category) : 'Produit';
-        
-        console.log(`Variants for ${groupTitle}:`, variants.map(v => v.name));
+        // Get product category label
+        const productType = parentProduct?.category ? 
+          (parentProduct.category === 'laptop' ? 'Ordinateur portable' : 
+          parentProduct.category === 'desktop' ? 'Ordinateur fixe' : 
+          parentProduct.category === 'tablet' ? 'Tablette' : 
+          parentProduct.category === 'smartphone' ? 'Smartphone' : 
+          parentProduct.category) : 'Produit';
         
         return (
           <motion.div
@@ -260,12 +275,12 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
             <AccordionItem value={groupKey} className="border rounded-md overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:bg-gray-50 data-[state=open]:bg-gray-50">
                 <div className="flex items-center w-full">
-                  {groupingOption === "model" && mainProduct ? (
+                  {groupingOption === "model" ? (
                     <div className="flex flex-1 items-center">
                       <div className="w-10 h-10 mr-3 overflow-hidden rounded bg-gray-100 flex-shrink-0">
                         <img
-                          src={mainProduct.image_url || '/placeholder.svg'}
-                          alt={mainProduct.name}
+                          src={parentProduct.image_url || '/placeholder.svg'}
+                          alt={parentProduct.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -273,13 +288,13 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         />
                       </div>
                       <div className="flex-1 text-left">
-                        <div className="font-medium">{mainProduct.name}</div>
+                        <div className="font-medium">{parentProduct.name}</div>
                         <div className="text-xs text-muted-foreground flex items-center">
-                          {mainProduct.brand || "Sans marque"} • {productType}
-                          {(mainProduct.is_parent || variantsCount > 0) && (
-                            <span className="ml-2 flex items-center">
-                              <Layers className="h-3 w-3 mr-1" /> {variantsCount} variante(s)
-                            </span>
+                          {parentProduct.brand || "Sans marque"} • {productType}
+                          {variantsCount > 0 && (
+                            <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-700">
+                              {variantsCount} variante{variantsCount > 1 ? 's' : ''}
+                            </Badge>
                           )}
                         </div>
                       </div>
@@ -294,18 +309,24 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
               
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-4">
-                  {groupingOption === "model" && mainProduct && mainProduct.is_parent && (
+                  {/* Display parent product if we're grouping by model and it's a parent */}
+                  {groupingOption === "model" && parentProduct.is_parent && (
                     <div className="border rounded-md overflow-hidden">
                       <div className="p-4 bg-gray-50 flex justify-between items-center">
                         <div className="flex items-center">
-                          <div className="font-medium">{mainProduct.name}</div>
+                          <div className="font-medium">{parentProduct.name}</div>
                           <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800">
                             Produit parent
                           </Badge>
+                          {variantsCount > 0 && (
+                            <Badge variant="outline" className="ml-2 bg-indigo-50 text-indigo-700">
+                              {variantsCount} variante{variantsCount > 1 ? 's' : ''}
+                            </Badge>
+                          )}
                         </div>
                         
                         <div className="flex space-x-2">
-                          <Link to={`/products/${mainProduct.id}`}>
+                          <Link to={`/products/${parentProduct.id}`}>
                             <Button size="sm" variant="outline">
                               <Edit className="h-4 w-4 mr-1" /> Modifier
                             </Button>
@@ -327,7 +348,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onProductDeleted(mainProduct.id)}>
+                                <AlertDialogAction onClick={() => onProductDeleted(parentProduct.id)}>
                                   Supprimer
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -336,118 +357,176 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         </div>
                       </div>
                       
-                      {mainProduct.price > 0 && (
+                      {parentProduct.price > 0 && (
                         <div className="p-4 border-t">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <div className="text-sm font-medium">Prix</div>
-                              <div>{formatCurrency(mainProduct.price || 0)}</div>
+                              <div>{formatCurrency(parentProduct.price || 0)}</div>
                             </div>
                             <div>
                               <div className="text-sm font-medium">Mensualité</div>
-                              <div>{formatCurrency(mainProduct.monthly_price || 0)}/mois</div>
+                              <div>{formatCurrency(parentProduct.monthly_price || 0)}/mois</div>
                             </div>
                             <div>
                               <div className="text-sm font-medium">Stock</div>
-                              <div>{mainProduct.stock || "Non spécifié"}</div>
+                              <div>{parentProduct.stock || "Non spécifié"}</div>
                             </div>
                           </div>
                         </div>
                       )}
                       
-                      {/* Afficher les options de variation disponibles */}
-                      {mainProduct.variation_attributes && Object.keys(mainProduct.variation_attributes).length > 0 && (
-                        <div className="p-4 border-t">
-                          <h4 className="text-sm font-semibold mb-2">Options de configuration disponibles:</h4>
-                          {renderVariationAttributeTags(mainProduct)}
-                        </div>
-                      )}
+                      {/* Display available variation options */}
+                      {renderVariationAttributes(parentProduct)}
                     </div>
                   )}
                   
-                  <div className="space-y-2">
-                    {(groupingOption === "model" 
-                      ? variants 
-                      : groupProducts).map((product) => (
-                      <div key={product.id} className="border rounded-md overflow-hidden">
-                        <div className="p-3 flex justify-between items-center">
-                          <div className="flex items-center flex-1">
-                            <div className="w-8 h-8 mr-2 overflow-hidden rounded bg-gray-100 flex-shrink-0">
-                              <img
-                                src={product.image_url || '/placeholder.svg'}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "/placeholder.svg";
-                                }}
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium flex items-center">
-                                {product.name}
-                                {product.is_parent && (
-                                  <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800 text-xs">
-                                    Parent
-                                  </Badge>
-                                )}
-                                {product.parent_id && (
-                                  <Badge variant="outline" className="ml-2 text-xs">
-                                    Variante
-                                  </Badge>
-                                )}
+                  {/* Display variants */}
+                  {groupingOption === "model" && variants.length > 0 && (
+                    <div className="space-y-2">
+                      {variants.map((variant) => (
+                        <div key={variant.id} className="border rounded-md p-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 mr-2 bg-gray-100 rounded flex-shrink-0 overflow-hidden">
+                                <img
+                                  src={variant.image_url || parentProduct.image_url || '/placeholder.svg'}
+                                  alt={variant.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                  }}
+                                />
                               </div>
-                              
-                              {groupingOption === "brand" && (
-                                <div className="text-xs text-muted-foreground">
-                                  {product.category || "Sans catégorie"}
-                                </div>
-                              )}
-                              
-                              {renderAttributeTags(product)}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-3 ml-2">
-                            <div className="text-sm mr-4 whitespace-nowrap">
-                              {formatCurrency(product.price || 0)}
+                              <div>
+                                <div className="font-medium">{variant.name}</div>
+                                {renderAttributeTags(variant)}
+                              </div>
                             </div>
                             
-                            <div className="flex space-x-1">
-                              <Link to={`/products/${product.id}`}>
-                                <Button size="sm" variant="ghost">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </Link>
+                            <div className="flex items-center space-x-4">
+                              <div className="text-right">
+                                <div className="font-medium">{formatCurrency(variant.price || 0)}</div>
+                                <div className="text-sm text-gray-500">{formatCurrency(variant.monthly_price || 0)}/mois</div>
+                              </div>
                               
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                                    <Trash2 className="h-4 w-4" />
+                              <div className="flex space-x-1">
+                                <Link to={`/products/${variant.id}`}>
+                                  <Button size="sm" variant="ghost">
+                                    <Edit className="h-4 w-4" />
                                   </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Êtes-vous sûr de vouloir supprimer ce produit
-                                      {product.is_parent ? " et toutes ses variantes" : ""} ?
-                                      Cette action ne peut pas être annulée.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onProductDeleted(product.id)}>
-                                      Supprimer
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                                </Link>
+                                
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Êtes-vous sûr de vouloir supprimer cette variante ?
+                                        Cette action ne peut pas être annulée.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => onProductDeleted(variant.id)}>
+                                        Supprimer
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             </div>
                           </div>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Display non-variant products or all products if grouping by brand */}
+                  {(groupingOption === "brand" 
+                    ? groupProducts 
+                    : groupProducts.filter(p => !p.parent_id && !p.is_parent && variants.length === 0)).map((product) => (
+                    <div key={product.id} className="border rounded-md overflow-hidden">
+                      <div className="p-3 flex justify-between items-center">
+                        <div className="flex items-center flex-1">
+                          <div className="w-8 h-8 mr-2 overflow-hidden rounded bg-gray-100 flex-shrink-0">
+                            <img
+                              src={product.image_url || '/placeholder.svg'}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium flex items-center">
+                              {product.name}
+                              {product.is_parent && (
+                                <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800 text-xs">
+                                  Parent
+                                </Badge>
+                              )}
+                              {product.parent_id && (
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  Variante
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {groupingOption === "brand" && (
+                              <div className="text-xs text-muted-foreground">
+                                {product.category || "Sans catégorie"}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 ml-2">
+                          <div className="text-sm mr-4 whitespace-nowrap">
+                            {formatCurrency(product.price || 0)}
+                          </div>
+                          
+                          <div className="flex space-x-1">
+                            <Link to={`/products/${product.id}`}>
+                              <Button size="sm" variant="ghost">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Êtes-vous sûr de vouloir supprimer ce produit
+                                    {product.is_parent ? " et toutes ses variantes" : ""} ?
+                                    Cette action ne peut pas être annulée.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => onProductDeleted(product.id)}>
+                                    Supprimer
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </AccordionContent>
             </AccordionItem>
