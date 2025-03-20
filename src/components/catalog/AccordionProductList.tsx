@@ -38,6 +38,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   
   // Fonction pour déterminer le nombre de variantes
   const getVariantsCount = (product: Product): number => {
+    // Ne compter que les vraies variantes, pas le produit parent
     if (product.variants && product.variants.length > 0) {
       return product.variants.length;
     }
@@ -204,8 +205,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                             groupProducts.find(p => !p.parent_id && groupProducts.some(v => v.parent_id === p.id)) ||
                             groupProducts[0];
         
+        // Uniquement les vraies variantes, sans compter le parent
         const variants = groupProducts.filter(p => p.parent_id === parentProduct.id);
-        const variantsCount = variants.length || getVariantsCount(parentProduct);
+        const variantsCount = variants.length;
         
         // Information sur la catégorie du produit
         const categoryLabel = parentProduct?.category === 'laptop' ? 'Ordinateur portable' : 
