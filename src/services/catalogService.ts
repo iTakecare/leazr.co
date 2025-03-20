@@ -531,29 +531,47 @@ export async function deleteAllProducts(): Promise<void> {
 
 export async function deleteProduct(productId: string): Promise<void> {
   try {
+    console.log(`Tentative de suppression du produit ${productId}`);
     const supabase = getSupabaseClient();
     
+    // Supprimer d'abord toutes les variantes du produit s'il est parent
+    const { data: childProducts, error: childrenQueryError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('parent_id', productId);
+      
+    if (childrenQueryError) {
+      console.error(`Erreur lors de la recherche des variantes enfants: ${childrenQueryError.message}`);
+    } else if (childProducts && childProducts.length > 0) {
+      console.log(`Suppression de ${childProducts.length} variantes enfants pour le produit ${productId}`);
+      const childIds = childProducts.map(child => child.id);
+      
+      const { error: childrenDeleteError } = await supabase
+        .from('products')
+        .delete()
+        .in('id', childIds);
+      
+      if (childrenDeleteError) {
+        console.error(`Erreur lors de la suppression des variantes enfants: ${childrenDeleteError.message}`);
+        throw new Error(`Erreur lors de la suppression des variantes: ${childrenDeleteError.message}`);
+      }
+    }
+    
+    // Supprimer ensuite le produit principal
     const { error } = await supabase
       .from('products')
       .delete()
       .eq('id', productId);
     
     if (error) {
-      throw new Error(`Error deleting product: ${error.message}`);
+      console.error(`Erreur lors de la suppression du produit ${productId}: ${error.message}`);
+      throw new Error(`Erreur lors de la suppression du produit: ${error.message}`);
     }
     
-    const { data: children, error: childrenError } = await supabase
-      .from('products')
-      .delete()
-      .eq('parent_id', productId);
-    
-    if (childrenError) {
-      console.error(`Error deleting child products: ${childrenError.message}`);
-    }
-    
+    console.log(`Produit ${productId} supprimé avec succès`);
     return Promise.resolve();
   } catch (error) {
-    console.error("Error in deleteProduct:", error);
+    console.error("Erreur dans deleteProduct:", error);
     return Promise.reject(error);
   }
 }

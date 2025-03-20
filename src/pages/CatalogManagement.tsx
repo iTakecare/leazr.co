@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -77,8 +76,9 @@ const CatalogManagement = () => {
 
   const handleProductDeleted = async (productId: string) => {
     try {
+      console.log(`Début de la suppression du produit ${productId}`);
       await deleteProductMutation.mutateAsync(productId);
-      // Après la suppression réussie, on rafraîchit la liste des produits
+      console.log(`Suppression du produit ${productId} réussie, rafraîchissement de la liste`);
       await refetch();
       return Promise.resolve();
     } catch (error) {
@@ -195,7 +195,6 @@ const CatalogManagement = () => {
         </Tabs>
       </div>
 
-      {/* Garder le ProductEditor comme solution de repli ou d'édition rapide */}
       <ProductEditor 
         isOpen={isAddProductOpen} 
         onClose={() => setIsAddProductOpen(false)} 

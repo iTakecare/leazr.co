@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -31,14 +30,12 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   
-  // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
   const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
-    enabled: !providedProducts, // Ne récupère les produits que s'ils ne sont pas déjà fournis
+    enabled: !providedProducts,
   });
 
-  // Mise à jour des produits locaux quand les produits fournis ou récupérés changent
   useEffect(() => {
     setLocalProducts(providedProducts || fetchedProducts);
   }, [providedProducts, fetchedProducts]);
@@ -71,14 +68,17 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
     e.stopPropagation();
     
     try {
+      console.log(`Tentative de suppression du produit: ${productId}`);
       setIsDeleting(productId);
+      
+      setLocalProducts(prevProducts => 
+        prevProducts.filter(product => product.id !== productId && product.parent_id !== productId)
+      );
+      
       await onDeleteProduct(productId);
       
-      // Mise à jour des produits locaux après la suppression
-      setLocalProducts(prevProducts => prevProducts.filter(product => product.id !== productId));
-      
-      // Rafraîchissement de la liste des produits
       if (!providedProducts) {
+        console.log("Rafraîchissement de la liste des produits après suppression");
         await refetch();
       }
       
@@ -89,6 +89,11 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
       });
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
+      
+      if (!providedProducts) {
+        await refetch();
+      }
+      
       toast({
         title: "Erreur",
         description: "Impossible de supprimer le produit",
