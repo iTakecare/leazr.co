@@ -23,6 +23,14 @@ export const getSupabaseClient = () => {
       global: {
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json, image/*, */*',
+        },
+        fetch: (url, options) => {
+          return fetch(url, {
+            ...options,
+            credentials: 'same-origin',
+            cache: 'no-cache',
+          });
         },
       },
     });
@@ -40,6 +48,14 @@ export const getAdminSupabaseClient = () => {
       global: {
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json, image/*, */*',
+        },
+        fetch: (url, options) => {
+          return fetch(url, {
+            ...options,
+            credentials: 'same-origin',
+            cache: 'no-cache',
+          });
         },
       },
     });
