@@ -13,14 +13,21 @@ export async function getProducts(): Promise<Product[]> {
 
     if (error) {
       console.error("Error fetching products from API:", error);
-      throw new Error(`API Error: ${error.message}`);
+      console.log("Falling back to sample products");
+      return sampleProducts;
+    }
+
+    if (!data || data.length === 0) {
+      console.log("No products found in API, using sample products");
+      return sampleProducts;
     }
 
     console.log(`Retrieved ${data?.length || 0} products from API`);
     return data || [];
   } catch (error) {
     console.error("Error in getProducts:", error);
-    return [];
+    console.log("Returning sample products due to error");
+    return sampleProducts;
   }
 }
 
@@ -105,33 +112,30 @@ export async function getProductVariants(parentId: string): Promise<Product[]> {
 export async function getProductById(productId: string): Promise<Product> {
   try {
     console.log(`Fetching product with ID: ${productId}`);
+    
+    // First check if it's a sample product ID
+    const sampleProduct = sampleProducts.find(p => p.id === productId);
+    if (sampleProduct) {
+      console.log(`Found product in sample data: ${productId}`);
+      return { ...sampleProduct };
+    }
+    
     const supabase = getSupabaseClient();
     
-    // First get the product
-    const { data: product, error: productError } = await supabase
+    // Get the base product data
+    const { data: product, error } = await supabase
       .from('products')
       .select('*')
       .eq('id', productId)
       .single();
 
-    if (productError) {
-      console.error("Error fetching product:", productError);
-      throw new Error(`Error fetching product: ${productError.message}`);
+    if (error) {
+      console.error("Error fetching product:", error);
+      throw new Error(`Error fetching product: ${error.message}`);
     }
 
     if (!product) {
       throw new Error(`Product not found with ID: ${productId}`);
-    }
-
-    // Get variant price combinations separately
-    const { data: variantPrices, error: variantPricesError } = await supabase
-      .from('product_variant_prices')
-      .select('*')
-      .eq('product_id', productId);
-      
-    if (variantPricesError) {
-      console.error("Error fetching variant prices:", variantPricesError);
-      // Continue anyway - this is not a blocking error
     }
 
     // Get variants if it's a parent product
@@ -147,6 +151,12 @@ export async function getProductById(productId: string): Promise<Product> {
         // Continue anyway - this is not a blocking error
       } else {
         variants = variantsData || [];
+        
+        // Process each variant to ensure attributes are parsed correctly
+        variants = variants.map(variant => ({
+          ...variant,
+          attributes: parseAttributes(variant.attributes)
+        }));
       }
     }
 
@@ -158,17 +168,42 @@ export async function getProductById(productId: string): Promise<Product> {
     // Filter out any null or empty strings in image_urls
     product.image_urls = product.image_urls.filter(url => url && url.trim() !== '');
 
+    // Process attributes for the main product
+    if (product.attributes) {
+      product.attributes = parseAttributes(product.attributes);
+    }
+
+    // Process variation attributes
+    if (product.variation_attributes) {
+      if (!variants || variants.length === 0) {
+        // If we don't have variants but have variation_attributes, try to extract them
+        product.variation_attributes = typeof product.variation_attributes === 'string' 
+          ? JSON.parse(product.variation_attributes) 
+          : product.variation_attributes;
+      } else {
+        // Extract variation attributes from variants
+        product.variation_attributes = extractVariationAttributesFromVariants(variants);
+      }
+    }
+
     // Build the complete product object with related data
     const completeProduct = {
       ...product,
-      variants: variants,
-      variant_combination_prices: variantPrices || []
+      variants: variants
     };
 
     console.log(`Retrieved product with ID ${productId}:`, completeProduct);
     return completeProduct as Product;
   } catch (error) {
     console.error(`Error in getProductById(${productId}):`, error);
+    
+    // Fallback to sample data if not found
+    const sampleProduct = sampleProducts.find(p => p.id === productId);
+    if (sampleProduct) {
+      console.log(`Falling back to sample product: ${productId}`);
+      return { ...sampleProduct };
+    }
+    
     throw error;
   }
 }

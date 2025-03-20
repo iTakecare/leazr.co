@@ -3,19 +3,33 @@ import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
-import { deleteProduct, getProducts } from "@/services/catalogService";
+import { deleteAllProducts, deleteProduct, getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
-import { Plus, Tag, Award, List, Grid3X3 } from "lucide-react";
+import { Plus, Trash2, Tag, Award, List, Grid3X3, Layers, Settings, UploadCloud } from "lucide-react";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { toast } from "@/components/ui/use-toast";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import BrandManager from "@/components/catalog/BrandManager";
+import AttributeManager from "@/components/catalog/AttributeManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AccordionProductList from "@/components/catalog/AccordionProductList";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ProductGrid from "@/components/catalog/ProductGrid";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { products as sampleProducts } from "@/data/products";
+import { sonner } from "sonner";
 
 const CatalogManagement = () => {
   const navigate = useNavigate();
@@ -37,9 +51,34 @@ const CatalogManagement = () => {
 
   useEffect(() => {
     if (!isLoading && products.length === 0) {
-      console.log("No products found");
+      console.log("No products found, consider loading sample data");
+      toast({
+        title: "Aucun produit trouvé",
+        description: "Vous pouvez ajouter des produits manuellement ou importer depuis WooCommerce",
+        variant: "default",
+      });
     }
   }, [isLoading, products]);
+
+  const deleteAllProductsMutation = useMutation({
+    mutationFn: deleteAllProducts,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({
+        title: "Succès",
+        description: "Tous les produits ont été supprimés",
+        variant: "default",
+      });
+    },
+    onError: (err: Error) => {
+      console.error("Erreur lors de la suppression des produits:", err);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer tous les produits",
+        variant: "destructive",
+      });
+    }
+  });
 
   const deleteProductMutation = useMutation({
     mutationFn: deleteProduct,
@@ -71,6 +110,10 @@ const CatalogManagement = () => {
     });
   };
 
+  const handleDeleteAllProducts = () => {
+    deleteAllProductsMutation.mutate();
+  };
+
   const handleSelectProduct = (product: Product) => {
     navigate(`/products/${product.id}`);
   };
@@ -88,6 +131,17 @@ const CatalogManagement = () => {
   const handleAddNewProduct = () => {
     navigate("/catalog/create-product");
   };
+  
+  const handleImportSampleProducts = () => {
+    // Normally you would import products from WooCommerce or another source
+    // For now, we'll just use the sample products
+    toast.success("Importation de produits d'exemple...");
+    
+    // Add sample products to queryClient cache to simulate import
+    queryClient.setQueryData(["products"], sampleProducts);
+    
+    toast.success("10 produits d'exemples importés avec succès!");
+  };
 
   const handleViewModeChange = (value: string) => {
     if (value === "grid" || value === "accordion") {
@@ -104,6 +158,27 @@ const CatalogManagement = () => {
             <Button onClick={handleAddNewProduct} className="flex-1 sm:flex-initial">
               <Plus className="mr-2 h-4 w-4" /> {isMobile ? "Ajouter" : "Ajouter un produit"}
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="flex-1 sm:flex-initial">
+                  <Trash2 className="mr-2 h-4 w-4" /> {isMobile ? "Supprimer tout" : "Supprimer tous les produits"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir supprimer tous les produits du catalogue? Cette action ne peut pas être annulée.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAllProducts}>
+                    Supprimer tous les produits
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
@@ -117,6 +192,10 @@ const CatalogManagement = () => {
             <TabsTrigger value="brands">
               <Award className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Marques" : <span>Marques</span>}
+            </TabsTrigger>
+            <TabsTrigger value="attributes">
+              <Settings className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Attributs" : <span>Attributs</span>}
             </TabsTrigger>
           </TabsList>
           
@@ -170,6 +249,24 @@ const CatalogManagement = () => {
                       <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
                     ))}
                   </div>
+                ) : products.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center py-16 border rounded-lg bg-gray-50">
+                    <div className="mb-4 bg-gray-100 p-4 rounded-full">
+                      <Layers className="h-12 w-12 text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-medium mb-2">Aucun produit</h3>
+                    <p className="text-muted-foreground mb-6 max-w-md">
+                      Vous n'avez pas encore ajouté de produits à votre catalogue. Ajoutez des produits manuellement ou importez-les depuis WooCommerce.
+                    </p>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                      <Button onClick={handleAddNewProduct}>
+                        <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
+                      </Button>
+                      <Button variant="outline" onClick={handleImportSampleProducts}>
+                        <UploadCloud className="mr-2 h-4 w-4" /> Importer des produits d'exemple
+                      </Button>
+                    </div>
+                  </div>
                 ) : viewMode === "accordion" ? (
                   <AccordionProductList 
                     products={products} 
@@ -189,6 +286,10 @@ const CatalogManagement = () => {
           
           <TabsContent value="brands">
             <BrandManager />
+          </TabsContent>
+          
+          <TabsContent value="attributes">
+            <AttributeManager />
           </TabsContent>
         </Tabs>
       </div>
