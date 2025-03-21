@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Equipment, Leaser } from "@/types/equipment";
@@ -49,7 +50,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const [isQuickCatalogOpen, setIsQuickCatalogOpen] = useState(false);
   const [productMonthlyPrice, setProductMonthlyPrice] = useState<number | null>(null);
   
-  const marginAmount = equipment.purchasePrice * (equipment.margin / 100);
+  // Utiliser la marge calculée si elle est disponible, sinon utiliser la marge de l'équipement
+  const displayMargin = calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin;
+  const marginAmount = calculatedMargin.percentage > 0 
+    ? calculatedMargin.amount 
+    : equipment.purchasePrice * (equipment.margin / 100);
   const priceWithMargin = equipment.purchasePrice + marginAmount;
 
   useEffect(() => {
@@ -80,6 +85,14 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const handleSubmit = () => {
     if (validateForm()) {
       console.log("Submitting with monthly payment:", displayMonthlyPayment);
+      
+      // Si nous avons une marge calculée et qu'elle n'a pas été appliquée,
+      // l'appliquer automatiquement avant d'ajouter à la liste
+      if (calculatedMargin.percentage > 0 && equipment.margin !== calculatedMargin.percentage) {
+        console.log("Auto-applying calculated margin before adding to list:", calculatedMargin.percentage);
+        applyCalculatedMargin();
+      }
+      
       addToList();
       setProductMonthlyPrice(null);
     }

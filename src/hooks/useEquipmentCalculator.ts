@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -139,11 +140,16 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       const currentMonthlyPayment = targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment;
       console.log("Adding to list with monthly payment:", currentMonthlyPayment);
       
+      // Utiliser la marge calculée si elle existe et a été appliquée
+      const marginToUse = calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin;
+      
       const equipmentToAdd = {
         ...equipment,
-        margin: Number(equipment.margin.toFixed(2)),
+        margin: Number(marginToUse.toFixed(2)),
         monthlyPayment: currentMonthlyPayment
       };
+      
+      console.log("Equipment being added with margin:", equipmentToAdd.margin);
       
       if (editingId) {
         setEquipmentList(equipmentList.map(eq => 
@@ -164,6 +170,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       });
       
       setTargetMonthlyPayment(0);
+      setCalculatedMargin({ percentage: 0, amount: 0 });
     }
   };
 
@@ -190,6 +197,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       monthlyPayment: 0,
     });
     setTargetMonthlyPayment(0);
+    setCalculatedMargin({ percentage: 0, amount: 0 });
   };
 
   const removeFromList = (id: string) => {

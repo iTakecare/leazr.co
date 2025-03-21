@@ -168,11 +168,11 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Coefficient actuel :</span>
-              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.currentCoef)}%</span>
+              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.currentCoef)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Nouveau coefficient :</span>
-              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.newCoef)}%</span>
+              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.newCoef)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Marge globale :</span>
