@@ -121,7 +121,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
 
           <Button 
             onClick={handleApplyMargin}
-            disabled={!hideFinancialDetails && calculatedMargin.percentage <= 0}
+            disabled={hideFinancialDetails ? false : calculatedMargin.percentage <= 0}
             className="w-full bg-blue-600 hover:bg-blue-700"
           >
             {hideFinancialDetails ? 'Appliquer cette mensualité' : 'Appliquer cette marge'}

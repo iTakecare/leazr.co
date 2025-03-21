@@ -86,6 +86,7 @@ const AmbassadorCreateOffer = () => {
       return { percentage: 20, amount: 0 };
     }
     
+    // Calcul correct de la marge basé sur la formule utilisée dans la partie admin
     const requiredTotal = target / coefficient;
     const marginAmount = requiredTotal - purchase;
     const marginPercentage = (marginAmount / purchase) * 100;
@@ -100,7 +101,9 @@ const AmbassadorCreateOffer = () => {
     if (calculatedMargin.percentage >= 0) {
       setEquipment({
         ...equipment,
-        margin: calculatedMargin.percentage
+        margin: calculatedMargin.percentage,
+        // S'assurer que la mensualité cible est également appliquée
+        monthlyPayment: targetMonthlyPayment > 0 ? targetMonthlyPayment : equipment.monthlyPayment
       });
       toast.success(`Marge de ${calculatedMargin.percentage}% appliquée`);
     }
@@ -120,15 +123,25 @@ const AmbassadorCreateOffer = () => {
   
   // Mise à jour du globalMarginAdjustment pour compatibilité avec EquipmentList
   useEffect(() => {
+    if (equipmentList.length === 0) {
+      return;
+    }
+    
     const totalPurchase = equipmentList.reduce((total, item) => 
       total + (item.purchasePrice * item.quantity), 0);
     const totalMonthly = equipmentList.reduce((total, item) => 
       total + ((item.monthlyPayment || 0) * item.quantity), 0);
     
+    // Calcul de la marge globale comme dans la partie admin
     if (totalPurchase > 0) {
+      // Calculer la marge réelle basée sur les prix et les mensualités
+      const impliedTotal = totalMonthly / coefficient;
+      const marginAmount = impliedTotal - totalPurchase;
+      const marginPercentage = (marginAmount / totalPurchase) * 100;
+      
       setGlobalMarginAdjustment({
-        percentage: 20,
-        amount: totalPurchase * 0.2,
+        percentage: parseFloat(marginPercentage.toFixed(2)),
+        amount: parseFloat(marginAmount.toFixed(2)),
         newMonthly: totalMonthly,
         currentCoef: coefficient,
         newCoef: coefficient,
@@ -144,7 +157,12 @@ const AmbassadorCreateOffer = () => {
       setEquipmentList(
         equipmentList.map((item) =>
           item.id === editingId
-            ? { ...equipment, monthlyPayment: monthlyPayment }
+            ? { 
+                ...equipment, 
+                // S'assurer d'utiliser la marge calculée si disponible
+                margin: calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin,
+                monthlyPayment: targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment 
+              }
             : item
         )
       );
@@ -153,7 +171,12 @@ const AmbassadorCreateOffer = () => {
       // Ajout d'un nouvel équipement
       setEquipmentList([
         ...equipmentList,
-        { ...equipment, monthlyPayment: monthlyPayment }
+        { 
+          ...equipment, 
+          // S'assurer d'utiliser la marge calculée si disponible
+          margin: calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin,
+          monthlyPayment: targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment 
+        }
       ]);
     }
     
@@ -167,6 +190,7 @@ const AmbassadorCreateOffer = () => {
       quantity: 1
     });
     setTargetMonthlyPayment(0);
+    setCalculatedMargin({ percentage: 0, amount: 0 });
   };
   
   const handleEditEquipment = (id: string) => {
@@ -174,6 +198,10 @@ const AmbassadorCreateOffer = () => {
     if (itemToEdit) {
       setEquipment(itemToEdit);
       setEditingId(id);
+      
+      if (itemToEdit.monthlyPayment && itemToEdit.monthlyPayment > 0) {
+        setTargetMonthlyPayment(itemToEdit.monthlyPayment);
+      }
     }
   };
   
@@ -192,6 +220,7 @@ const AmbassadorCreateOffer = () => {
       quantity: 1
     });
     setTargetMonthlyPayment(0);
+    setCalculatedMargin({ percentage: 0, amount: 0 });
   };
   
   // Fonction pour modifier la quantité d'un équipement (pour EquipmentList)
