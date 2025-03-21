@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { 
@@ -123,7 +122,6 @@ const ClientForm = () => {
     }
   };
 
-  // Vérification du numéro de TVA
   const handleVerifyVatNumber = async () => {
     const vatNumber = form.getValues("vat_number");
     if (!vatNumber) {
@@ -141,10 +139,9 @@ const ClientForm = () => {
       if (result.valid) {
         toast.success("Numéro de TVA valide");
         
-        // Auto-remplissage des champs si les données sont disponibles
         if (result.companyName) {
           form.setValue("company", result.companyName);
-          form.setValue("name", result.companyName); // Utiliser le nom de société comme nom principal
+          form.setValue("name", result.companyName);
         }
         
         if (result.address) {
@@ -177,7 +174,6 @@ const ClientForm = () => {
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Ensure name is provided (required by CreateClientData)
       const clientData = {
         name: data.name,
         email: data.email || undefined,
@@ -190,7 +186,6 @@ const ClientForm = () => {
         postal_code: data.postal_code || undefined,
         country: data.country || undefined,
         status: data.status || "active",
-        // Explicitly set user_id to null to prevent auto-assignment from current user
         user_id: null,
         has_user_account: false
       };
@@ -198,47 +193,21 @@ const ClientForm = () => {
       let result;
       
       if (isEditMode && clientId) {
-        // Update existing client
         result = await updateClient(clientId, clientData);
         if (result) {
           toast.success("Client mis à jour avec succès");
         }
       } else {
-        // Create new client
         result = await createClient(clientData);
         if (result) {
           toast.success("Client créé avec succès");
-          
-          // Si l'utilisateur est un ambassadeur, s'assurer que le client est associé à l'ambassadeur
-          if (isAmbassador() && user?.ambassador_id && result.id) {
-            try {
-              console.log("Ensuring client is linked to ambassador:", {
-                ambassadorId: user.ambassador_id,
-                clientId: result.id
-              });
-              
-              const linked = await linkClientToAmbassador(result.id, user.ambassador_id);
-              
-              if (!linked) {
-                toast.error("Erreur lors de l'association du client à l'ambassadeur");
-              } else {
-                console.log("Client successfully associated with ambassador");
-              }
-            } catch (associationError) {
-              console.error("Exception lors de l'association du client:", associationError);
-              toast.error("Erreur lors de l'association du client à l'ambassadeur");
-            }
-          }
         }
       }
       
-      // Redirection appropriée
       if (result) {
         if (isAmbassador()) {
-          // Rediriger vers la page clients de l'ambassadeur
           navigate("/ambassador/clients");
         } else {
-          // Redirection admin
           navigate("/clients");
         }
       }
@@ -542,3 +511,4 @@ const ClientForm = () => {
 };
 
 export default ClientForm;
+

@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -180,51 +181,91 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     console.log("Client created successfully:", data);
     
+    // Get user profile and check if user is an ambassador
     const { data: userProfile } = await supabase.auth.getUser();
+    
+    // Check if user is an ambassador from multiple possible sources
+    let isAmbassador = false;
+    let ambassadorId = null;
+    
+    // Check in user_metadata for role or ambassador_id
     if (userProfile?.user?.user_metadata?.role === 'ambassador' || 
         userProfile?.user?.user_metadata?.ambassador_id) {
+      isAmbassador = true;
+      ambassadorId = userProfile?.user?.user_metadata?.ambassador_id;
+    }
+    
+    // If ambassador_id not found in metadata, check user object directly
+    if (!ambassadorId && userProfile?.user?.ambassador_id) {
+      ambassadorId = userProfile?.user?.ambassador_id;
+      isAmbassador = true;
+    }
+    
+    // Finally, check directly in the ambassadors table
+    if (!ambassadorId) {
+      const { data: ambData, error: ambError } = await supabase
+        .from('ambassadors')
+        .select('id')
+        .eq('user_id', userProfile?.user?.id)
+        .single();
       
-      let ambassadorId = userProfile?.user?.user_metadata?.ambassador_id;
-      
-      // If ambassador_id is not in user_metadata, check in auth context
-      if (!ambassadorId) {
-        ambassadorId = userProfile?.user?.ambassador_id;
+      if (!ambError && ambData) {
+        ambassadorId = ambData.id;
+        isAmbassador = true;
+      } else if (ambError && ambError.code !== 'PGRST116') { // PGRST116 is 'not found' error
+        console.error("Error checking ambassador:", ambError);
       }
-      
-      // Directly check in the ambassadors table if still not found
-      if (!ambassadorId) {
-        const { data: ambData } = await supabase
-          .from('ambassadors')
-          .select('id')
-          .eq('user_id', userProfile.user.id)
-          .single();
+    }
+    
+    // If this is an ambassador creating a client, create the association
+    if (isAmbassador && ambassadorId && data.id) {
+      try {
+        console.log("Creating association between ambassador and client:", {
+          ambassadorId,
+          clientId: data.id
+        });
         
-        ambassadorId = ambData?.id;
-      }
-      
-      if (ambassadorId) {
-        try {
-          console.log("Associating client to ambassador from createClient:", {
-            ambassadorId,
-            clientId: data.id
-          });
+        // First check if association already exists
+        const { data: existingAssoc, error: checkError } = await supabase
+          .from('ambassador_clients')
+          .select('id')
+          .eq('ambassador_id', ambassadorId)
+          .eq('client_id', data.id);
+        
+        if (checkError) {
+          console.error("Error checking existing association:", checkError);
+        }
+        
+        if (existingAssoc && existingAssoc.length > 0) {
+          console.log("Association already exists:", existingAssoc[0]);
+        } else {
+          // Create new association directly here, not relying on linkClientToAmbassador
+          const { data: assocData, error: assocError } = await supabase
+            .from('ambassador_clients')
+            .insert({
+              ambassador_id: ambassadorId,
+              client_id: data.id
+            })
+            .select();
           
-          const linked = await linkClientToAmbassador(data.id, ambassadorId);
-          
-          if (!linked) {
-            console.error("Error associating client with ambassador");
+          if (assocError) {
+            console.error("Error creating ambassador-client association:", assocError);
             toast.error("Error associating client with ambassador");
           } else {
-            console.log("Client successfully associated with ambassador");
+            console.log("Successfully created ambassador-client association:", assocData);
             toast.success("Client created and associated with your ambassador account");
           }
-        } catch (associationError) {
-          console.error("Exception associating client:", associationError);
-          toast.error("Error associating client with ambassador");
         }
-      } else {
-        console.error("No ambassador ID found for the current user");
+      } catch (associationError) {
+        console.error("Exception creating ambassador-client association:", associationError);
+        toast.error("Error associating client with ambassador");
+      }
+    } else {
+      if (isAmbassador) {
+        console.error("Could not associate client: Ambassador ID not found", { isAmbassador, ambassadorId });
         toast.error("Could not associate client - ambassador ID not found");
+      } else {
+        console.log("Client created by non-ambassador user");
       }
     }
     
