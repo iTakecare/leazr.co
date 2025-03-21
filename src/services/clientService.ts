@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -157,15 +158,18 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     console.log("Creating client with data:", clientData);
     
-    const clientWithUserId = {
+    // Important: Don't use logged in user's ID for the client's user_id
+    // Instead, leave it null until a specific user account is created for this client
+    const clientToCreate = {
       ...clientData,
-      user_id: user.id,
       has_user_account: false
     };
     
+    console.log("Client to create:", clientToCreate);
+    
     const { data, error } = await supabase
       .from('clients')
-      .insert(clientWithUserId)
+      .insert(clientToCreate)
       .select()
       .single();
     
@@ -177,28 +181,50 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     console.log("Client created successfully:", data);
     
     const { data: userProfile } = await supabase.auth.getUser();
-    if (userProfile?.user?.user_metadata?.role === 'ambassador' && 
+    if (userProfile?.user?.user_metadata?.role === 'ambassador' || 
         userProfile?.user?.user_metadata?.ambassador_id) {
       
-      const ambassadorId = userProfile.user.user_metadata.ambassador_id;
+      let ambassadorId = userProfile?.user?.user_metadata?.ambassador_id;
       
-      try {
-        console.log("Associating client to ambassador from createClient:", {
-          ambassadorId,
-          clientId: data.id
-        });
+      // If ambassador_id is not in user_metadata, check in auth context
+      if (!ambassadorId) {
+        ambassadorId = userProfile?.user?.ambassador_id;
+      }
+      
+      // Directly check in the ambassadors table if still not found
+      if (!ambassadorId) {
+        const { data: ambData } = await supabase
+          .from('ambassadors')
+          .select('id')
+          .eq('user_id', userProfile.user.id)
+          .single();
         
-        const linked = await linkClientToAmbassador(data.id, ambassadorId);
-        
-        if (!linked) {
-          console.error("Error associating client with ambassador");
+        ambassadorId = ambData?.id;
+      }
+      
+      if (ambassadorId) {
+        try {
+          console.log("Associating client to ambassador from createClient:", {
+            ambassadorId,
+            clientId: data.id
+          });
+          
+          const linked = await linkClientToAmbassador(data.id, ambassadorId);
+          
+          if (!linked) {
+            console.error("Error associating client with ambassador");
+            toast.error("Error associating client with ambassador");
+          } else {
+            console.log("Client successfully associated with ambassador");
+            toast.success("Client created and associated with your ambassador account");
+          }
+        } catch (associationError) {
+          console.error("Exception associating client:", associationError);
           toast.error("Error associating client with ambassador");
-        } else {
-          console.log("Client successfully associated with ambassador");
         }
-      } catch (associationError) {
-        console.error("Exception associating client:", associationError);
-        toast.error("Error associating client with ambassador");
+      } else {
+        console.error("No ambassador ID found for the current user");
+        toast.error("Could not associate client - ambassador ID not found");
       }
     }
     
@@ -398,9 +424,10 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       clientId
     });
     
+    // First verify client exists
     const { data: clientExists, error: clientError } = await supabase
       .from("clients")
-      .select("id")
+      .select("id, name, email")
       .eq("id", clientId)
       .single();
     
@@ -410,9 +437,12 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       return false;
     }
     
+    console.log("Client verified:", clientExists);
+    
+    // Verify ambassador exists
     const { data: ambassadorExists, error: ambassadorError } = await supabase
       .from("ambassadors")
-      .select("id")
+      .select("id, name, email")
       .eq("id", ambassadorId)
       .single();
     
@@ -422,6 +452,9 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       return false;
     }
     
+    console.log("Ambassador verified:", ambassadorExists);
+    
+    // Check if relation already exists
     const { data: existingLink, error: checkError } = await supabase
       .from("ambassador_clients")
       .select("id")

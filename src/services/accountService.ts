@@ -1,4 +1,3 @@
-
 import { adminSupabase, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Partner } from "./partnerService";
@@ -54,18 +53,27 @@ export const createUserAccount = async (
     // Générer un mot de passe aléatoire
     const tempPassword = Math.random().toString(36).slice(-12);
     
-    // Créer l'utilisateur avec le client standard - le service_role est configuré côté serveur
-    const { data: userData, error: createError } = await supabase.auth.signUp({
+    // Important: Set proper role in user_metadata 
+    const metadata = { 
+      name: entity.name,
+      role: userType === "partner" ? "partner" : userType === "ambassador" ? "ambassador" : "client",
+    };
+    
+    // Add the entity ID to user metadata
+    if (userType === "partner" && entity.id) {
+      metadata.partner_id = entity.id;
+    } else if (userType === "ambassador" && entity.id) {
+      metadata.ambassador_id = entity.id;
+    } else if (userType === "client" && entity.id) {
+      metadata.client_id = entity.id;
+    }
+    
+    // Create the user account
+    const { data, error: createError } = await supabase.auth.signUp({
       email: entity.email,
       password: tempPassword,
       options: {
-        data: { 
-          name: entity.name,
-          // Utiliser la valeur appropriée pour le champ role
-          // Important: Ce champ doit correspondre aux valeurs acceptées par la contrainte profiles_role_check
-          role: userType === "partner" ? "partner" : userType === "ambassador" ? "ambassador" : "client",
-          [userType === "partner" ? "partner_id" : userType === "ambassador" ? "ambassador_id" : "client_id"]: entity.id
-        }
+        data: metadata
       }
     });
     
@@ -75,16 +83,15 @@ export const createUserAccount = async (
       return false;
     }
     
-    if (!userData || !userData.user) {
+    if (!data || !data.user) {
       console.error("Création de l'utilisateur n'a pas retourné les données attendues");
       toast.error("Erreur lors de la création du compte");
       return false;
     }
     
-    console.log("Utilisateur créé avec succès:", userData.user.id);
+    console.log("Utilisateur créé avec succès:", data.user.id);
     
-    // Mettre à jour l'entité dans la base de données
-    // Utiliser le client standard supabase au lieu de adminSupabase qui semble avoir des problèmes d'authentification
+    // Update the entity with the user ID in the database
     const tableName = userType === "partner" ? "partners" : userType === "ambassador" ? "ambassadors" : "clients";
     
     const { error: updateError } = await supabase
@@ -92,7 +99,7 @@ export const createUserAccount = async (
       .update({
         has_user_account: true,
         user_account_created_at: new Date().toISOString(),
-        user_id: userData.user.id
+        user_id: data.user.id
       })
       .eq('id', entity.id);
     
@@ -102,21 +109,7 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Ne plus envoyer l'email de réinitialisation de mot de passe automatiquement
-    // Décommenter la ligne ci-dessous si l'envoi d'email de réinitialisation est nécessaire
-    /*
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
-      redirectTo: `${window.location.origin}/update-password`,
-    });
-    
-    if (resetError) {
-      console.error("Erreur lors de l'envoi de l'email de réinitialisation:", resetError);
-      toast.warning("Compte créé mais problème d'envoi de l'email de réinitialisation");
-      // On continue malgré cette erreur
-    }
-    */
-    
-    // Envoyer l'email de bienvenue via notre système SMTP
+    // Send welcome email
     await sendWelcomeEmail(entity.email, entity.name, userType);
     
     toast.success(`Compte ${userType} créé et email de bienvenue envoyé`);

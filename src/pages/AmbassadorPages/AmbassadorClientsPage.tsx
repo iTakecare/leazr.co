@@ -39,24 +39,21 @@ const AmbassadorClientsPage = () => {
       
       console.log("Fetching clients for ambassador ID:", user.ambassador_id);
       
-      // Direct join query to get client data with ambassador association
-      const { data, error: queryError } = await supabase
+      // First get the ambassador-client relationships
+      const { data: relationships, error: relError } = await supabase
         .from("ambassador_clients")
-        .select(`
-          id,
-          client_id,
-          clients:client_id(*)
-        `)
+        .select("client_id")
         .eq("ambassador_id", user.ambassador_id);
-        
-      if (queryError) {
-        console.error("Error fetching ambassador clients:", queryError);
-        throw queryError;
+      
+      if (relError) {
+        console.error("Error fetching ambassador-client relationships:", relError);
+        throw relError;
       }
       
-      console.log("Raw ambassador-client data:", data);
+      console.log("Fetched relationships:", relationships);
       
-      if (!data || data.length === 0) {
+      // If no relationships found, set empty clients and return
+      if (!relationships || relationships.length === 0) {
         console.log("No clients found for this ambassador");
         setClients([]);
         setFilteredClients([]);
@@ -64,15 +61,31 @@ const AmbassadorClientsPage = () => {
         return;
       }
       
-      // Process the joined data to get the actual client records
-      const processedClients = data
-        .filter(item => item.clients) // Filter out any null client references
-        .map(item => ({
-          ...item.clients,
-          ambassador_client_id: item.id
-        }));
+      // Extract client IDs from relationships
+      const clientIds = relationships.map(rel => rel.client_id);
+      console.log("Client IDs to fetch:", clientIds);
       
-      console.log("Processed clients data:", processedClients);
+      // Fetch the actual client data
+      const { data: clientsData, error: clientsError } = await supabase
+        .from("clients")
+        .select("*")
+        .in("id", clientIds);
+      
+      if (clientsError) {
+        console.error("Error fetching client details:", clientsError);
+        throw clientsError;
+      }
+      
+      console.log("Fetched client data:", clientsData);
+      
+      // Add the ambassador_client relationship ID to each client
+      const processedClients = clientsData.map(client => {
+        const relationship = relationships.find(rel => rel.client_id === client.id);
+        return {
+          ...client,
+          ambassador_client_id: relationship ? relationship.id : null
+        };
+      });
       
       setClients(processedClients);
       setFilteredClients(processedClients);
