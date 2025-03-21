@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -188,13 +189,12 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     // Get user profile to check if user is an ambassador
     const userProfile = await supabase.auth.getUser();
+    console.log("User profile full data:", userProfile);
     
     let isAmbassador = false;
     let ambassadorId = null;
     
-    console.log("User profile:", userProfile);
-    
-    // Check in user_metadata for role or ambassador_id
+    // First check in user_metadata for role or ambassador_id
     if (userProfile?.data?.user?.user_metadata?.role === 'ambassador' || 
         userProfile?.data?.user?.user_metadata?.ambassador_id) {
       isAmbassador = true;
@@ -209,13 +209,27 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
       console.log("Ambassador identified from user object:", { isAmbassador, ambassadorId });
     }
     
+    // Check directly in the profiles table
+    if (!ambassadorId) {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (!profileError && profileData && profileData.role === 'ambassador') {
+        isAmbassador = true;
+        console.log("Ambassador identified from profiles table:", profileData);
+      }
+    }
+    
     // Finally, check directly in the ambassadors table
     if (!ambassadorId) {
       const { data: ambData, error: ambError } = await supabase
         .from('ambassadors')
         .select('id')
         .eq('user_id', userProfile?.data?.user?.id)
-        .single();
+        .maybeSingle();
       
       if (!ambError && ambData) {
         ambassadorId = ambData.id;
@@ -227,8 +241,26 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     }
     
     // If this is an ambassador creating a client, create the association
-    if (isAmbassador && ambassadorId && data.id) {
+    if (isAmbassador && data.id) {
       try {
+        // If we don't have ambassadorId yet but we know user is an ambassador, make one final attempt
+        if (!ambassadorId) {
+          const { data: latestAmbData, error: latestAmbError } = await supabase
+            .from('ambassadors')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (!latestAmbError && latestAmbData && latestAmbData.id) {
+            ambassadorId = latestAmbData.id;
+            console.log("Ambassador ID found in final check:", ambassadorId);
+          } else {
+            console.error("Could not find ambassador ID for user", user.id);
+            toast.error("Could not link client to ambassador - ambassador ID not found");
+            return data ? mapDbClientToClient(data) : null;
+          }
+        }
+        
         console.log("Creating association between ambassador and client:", {
           ambassadorId,
           clientId: data.id
@@ -250,11 +282,11 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
           .insert({
             ambassador_id: ambassadorId,
             client_id: data.id
-          })
-          .select();
+          });
         
         if (assocError) {
           console.error("Error creating ambassador-client association:", assocError);
+          console.error("Association data attempted:", { ambassador_id: ambassadorId, client_id: data.id });
           toast.error("Error associating client with ambassador");
         } else {
           console.log("Successfully created ambassador-client association:", assocData);
@@ -489,7 +521,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       .from("ambassadors")
       .select("id, name, email")
       .eq("id", ambassadorId)
-      .single();
+      .maybeSingle();
     
     if (ambassadorError || !ambassadorExists) {
       console.error("Error verifying ambassador existence:", ambassadorError);
