@@ -1,5 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import ProductSelector from "@/components/ui/ProductSelector";
 import VariantSelector from "@/components/catalog/VariantSelector";
 import { Product } from "@/types/catalog";
@@ -52,31 +55,52 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     onClose();
   };
   
+  // Go back to product selection
+  const handleBackToProducts = () => {
+    setShowVariantSelector(false);
+    setSelectedProduct(null);
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-0">
-        <DialogHeader className="p-4 border-b">
-          <DialogTitle>
-            {showVariantSelector ? "Sélectionner une variante" : "Sélectionner un produit"}
-          </DialogTitle>
+      <DialogContent className="sm:max-w-md md:max-w-2xl lg:max-w-4xl p-0 max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="p-4 border-b sticky top-0 bg-white z-10">
+          <div className="flex items-center">
+            {showVariantSelector && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mr-2" 
+                onClick={handleBackToProducts}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Retour
+              </Button>
+            )}
+            <DialogTitle className="text-xl">
+              {showVariantSelector ? "Sélectionner une configuration" : "Sélectionner un produit"}
+            </DialogTitle>
+          </div>
         </DialogHeader>
         
-        {showVariantSelector && selectedProduct ? (
-          <div className="p-4">
-            <VariantSelector 
-              product={selectedProduct}
-              onVariantSelect={onVariantSelect}
+        <div className="flex-1 overflow-y-auto">
+          {showVariantSelector && selectedProduct ? (
+            <div className="p-4">
+              <VariantSelector 
+                product={selectedProduct}
+                onVariantSelect={onVariantSelect}
+              />
+            </div>
+          ) : (
+            <ProductSelector
+              isOpen={isOpen && !showVariantSelector}
+              onClose={onClose}
+              onSelectProduct={onSelectProduct}
+              title="Sélectionner un produit"
+              description="Parcourez notre catalogue pour ajouter un produit à votre offre"
             />
-          </div>
-        ) : (
-          <ProductSelector
-            isOpen={isOpen && !showVariantSelector}
-            onClose={onClose}
-            onSelectProduct={onSelectProduct}
-            title="Sélectionner un produit"
-            description="Parcourez notre catalogue pour ajouter un produit à votre offre"
-          />
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

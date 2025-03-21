@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
+import { Check, ChevronRight } from "lucide-react";
 
 interface VariantSelectorProps {
   product: any;
@@ -103,17 +104,24 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
     return null;
   }
   
+  // Check if we have variants
+  const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Sélectionner une variante</CardTitle>
+    <Card className="border-0 shadow-none">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xl font-bold text-gray-900">
+          Sélectionner une configuration pour {product.name}
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Attribute Selection */}
           {Object.entries(availableOptions).map(([attributeName, options]) => (
-            <div key={attributeName} className="space-y-2">
-              <h3 className="text-sm font-medium">{attributeName}</h3>
+            <div key={attributeName} className="space-y-3">
+              <h3 className="text-md font-semibold text-gray-800">
+                {attributeName}
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {Array.isArray(options) && options.map((option) => {
                   const isAvailable = isOptionAvailable(attributeName, option);
@@ -124,11 +132,20 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
                       key={`${attributeName}-${option}`}
                       variant={isSelected ? "default" : "outline"}
                       size="sm"
-                      className={!isAvailable ? "opacity-50" : ""}
+                      className={`relative rounded-full px-4 py-2 transition-all ${
+                        isSelected ? "bg-primary text-white" : "bg-white"
+                      } ${!isAvailable ? "opacity-40" : ""}`}
                       disabled={!isAvailable}
                       onClick={() => handleSelectAttribute(attributeName, option)}
                     >
-                      {String(option)}
+                      {isSelected && (
+                        <span className="absolute left-2 flex h-4 w-4 items-center justify-center">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                      <span className={isSelected ? "pl-2" : ""}>
+                        {String(option)}
+                      </span>
                     </Button>
                   );
                 })}
@@ -138,37 +155,46 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
           
           {/* Selected Variant Information */}
           {selectedVariant ? (
-            <div className="mt-4 p-4 border rounded-md bg-gray-50">
-              <h3 className="font-medium mb-2">Variante sélectionnée</h3>
-              
-              <div className="flex flex-wrap gap-1 mb-3">
-                {Object.entries(selectedVariant.attributes || {}).map(([key, value]) => (
-                  <Badge key={key} variant="secondary" className="text-xs">
-                    {key}: {String(value)}
-                  </Badge>
-                ))}
+            <div className="mt-6 rounded-xl bg-gray-50 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-md font-medium text-gray-900">Configuration sélectionnée</h3>
+                <div className="flex gap-1">
+                  {Object.entries(selectedVariant.attributes || {}).map(([key, value]) => (
+                    <Badge key={key} variant="secondary" className="rounded-full bg-blue-100 text-blue-800 text-xs px-2 py-1">
+                      {key}: {String(value)}
+                    </Badge>
+                  ))}
+                </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Prix</p>
-                  <p className="text-lg font-semibold">{formatCurrency(selectedVariant.price)}</p>
+              <div className="mb-4 grid grid-cols-2 gap-6">
+                <div className="rounded-lg bg-white p-3 shadow-sm">
+                  <p className="text-sm text-gray-500">Prix</p>
+                  <p className="text-xl font-bold text-gray-900">{formatCurrency(selectedVariant.price)}</p>
                 </div>
                 {selectedVariant.monthly_price > 0 && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Mensualité</p>
-                    <p className="text-lg font-semibold">{formatCurrency(selectedVariant.monthly_price)}/mois</p>
+                  <div className="rounded-lg bg-white p-3 shadow-sm">
+                    <p className="text-sm text-gray-500">Mensualité</p>
+                    <p className="text-xl font-bold text-indigo-700">{formatCurrency(selectedVariant.monthly_price)}/mois</p>
                   </div>
                 )}
               </div>
               
-              <Button className="w-full" onClick={handleConfirmSelection}>
-                Sélectionner cette variante
+              <Button 
+                className="w-full gap-2 justify-center items-center bg-indigo-600 hover:bg-indigo-700 transition-colors" 
+                onClick={handleConfirmSelection}
+              >
+                Sélectionner cette configuration
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           ) : (
-            <div className="mt-4 p-4 border rounded-md bg-gray-50 text-center text-muted-foreground">
-              Aucune variante disponible pour cette combinaison d'attributs
+            <div className="mt-6 rounded-xl bg-amber-50 border border-amber-200 p-4 text-center">
+              <p className="text-amber-800">
+                {hasVariants 
+                  ? "Veuillez sélectionner une configuration valide"
+                  : "Aucune configuration disponible pour ce produit"}
+              </p>
             </div>
           )}
         </div>

@@ -3,6 +3,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
+import { Layers } from "lucide-react";
 
 interface ProductVariant {
   id: string;
@@ -87,94 +88,71 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   
   const productImage = product?.image_url || "/placeholder.svg";
   
-  // Determine the badge type based on product characteristics
-  const getBadgeType = () => {
-    if (hasVariationAttributes) return "info";
-    if (product.is_parent) return "success";
-    if (product.attributes && Object.keys(product.attributes).length > 0) return "secondary";
-    return "default";
-  };
+  // Count variants for display
+  const variantsCount = product.variant_combination_prices?.length || product.variants?.length || 0;
   
-  // Get the appropriate badge text
-  const getBadgeText = () => {
-    // For products with variant_combination_prices
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      return `${product.variant_combination_prices.length} variante(s)`;
-    }
-    
-    // For products with variation_attributes
-    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
-      const attributeCount = Object.keys(product.variation_attributes).length;
-      return `${attributeCount} attribut(s)`;
-    }
-    
-    // For parent products
-    if (product.is_parent) return "Produit parent";
-    
-    // For products with attributes
-    if (product.attributes && Object.keys(product.attributes).length > 0) return "Variante";
-    
-    // Default case
-    return "Produit standard";
-  };
-
-  // Format attributes for display
-  const formatAttributes = (attributes?: Record<string, any>) => {
-    if (!attributes || Object.keys(attributes).length === 0) return null;
-    
-    return (
-      <div className="mt-1">
-        {Object.entries(attributes).map(([key, value]) => (
-          <Badge key={key} variant="outline" className="mr-1 mb-1 text-xs">
-            {key}: {value}
-          </Badge>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <Card 
-      className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" 
+      className="h-full overflow-hidden hover:shadow-md transition-all cursor-pointer border rounded-xl bg-white" 
       onClick={onClick}
     >
       <CardContent className="p-0">
-        <div className="flex">
-          <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
+        <div className="flex flex-col md:flex-row">
+          <div className="md:w-1/3 bg-gray-50 flex items-center justify-center p-4">
             <img 
               src={productImage} 
               alt={productName}
-              className="object-contain h-20 w-20"
+              className="object-contain h-24 w-24"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/placeholder.svg";
               }}
             />
           </div>
-          <div className="w-2/3 p-4">
-            <h3 className="font-medium text-sm mb-1 line-clamp-2">{productName}</h3>
-            {productBrand && <p className="text-xs text-gray-500 mb-2">{productBrand}</p>}
+          <div className="md:w-2/3 p-5">
+            <h3 className="font-semibold text-lg mb-1 line-clamp-2 text-gray-900">{productName}</h3>
+            {productBrand && <p className="text-sm text-gray-500 mb-2">{productBrand}</p>}
             
-            {/* Show attributes if this is a variant product */}
-            {product.attributes && formatAttributes(product.attributes)}
-            
-            <div className="text-sm space-y-1 mt-2">
-              <p className="text-muted-foreground">
-                Prix: {productPrice}
-              </p>
-              <p className="text-muted-foreground">
-                {hasVariants ? "À partir de " : "Mensualité: "}{productMonthlyPrice}
-              </p>
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              <Badge variant={getBadgeType() as any} className="text-xs">
-                {getBadgeText()}
-              </Badge>
+            <div className="flex flex-wrap gap-2 my-2">
               {product.category && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="rounded-full text-xs bg-gray-100 text-gray-800">
                   {product.category}
                 </Badge>
               )}
+              
+              {hasVariants && (
+                <Badge className="rounded-full text-xs bg-indigo-100 text-indigo-800 flex items-center gap-1">
+                  <Layers className="h-3 w-3" /> 
+                  {variantsCount} configuration{variantsCount > 1 ? 's' : ''}
+                </Badge>
+              )}
             </div>
+            
+            <div className="mt-3 space-y-1">
+              {productPrice !== "0,00 €" && (
+                <p className="text-gray-700">
+                  Prix: <span className="font-semibold">{productPrice}</span>
+                </p>
+              )}
+              
+              {productMonthlyPrice !== "Non définie" && (
+                <p className="text-gray-700">
+                  {hasVariants ? "À partir de " : "Mensualité: "}
+                  <span className="font-bold text-indigo-700">{productMonthlyPrice}{hasVariants && "/mois"}</span>
+                </p>
+              )}
+            </div>
+            
+            {hasVariants && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <button 
+                  className="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                  onClick={onClick}
+                >
+                  Voir les configurations disponibles
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
