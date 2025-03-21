@@ -144,7 +144,6 @@ const PartnerCreateOffer = () => {
             
             if (offer.equipment_description) {
               try {
-                // Try to parse as JSON first if it's JSON
                 const equipmentData = JSON.parse(offer.equipment_description);
                 if (Array.isArray(equipmentData) && equipmentData.length > 0) {
                   console.log("Found JSON equipment data:", equipmentData);
@@ -165,7 +164,6 @@ const PartnerCreateOffer = () => {
                   }
                 }
               } catch (e) {
-                // If not JSON, use original parsing method
                 console.log("Parsing equipment_description as string format:", offer.equipment_description);
                 const equipmentItems = offer.equipment_description.split(',').map(item => {
                   const match = item.trim().match(/(.+) \((\d+)x\)/);
@@ -214,6 +212,8 @@ const PartnerCreateOffer = () => {
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
     
+    console.log("Selected product:", product);
+    
     const purchasePrice = product.price || 0;
     const monthlyPrice = product.monthly_price || 0;
     const coef = findCoefficient(purchasePrice);
@@ -231,6 +231,8 @@ const PartnerCreateOffer = () => {
       console.log("Setting target monthly payment:", monthlyPrice);
       setTargetMonthlyPayment(monthlyPrice);
     }
+    
+    setIsCatalogOpen(false);
   };
 
   const handleClientSelect = (client: { id: string; name: string; email: string; company: string }) => {
@@ -263,7 +265,6 @@ const PartnerCreateOffer = () => {
     setIsSubmitting(true);
 
     try {
-      // Ensure all equipment data is properly preserved with correct types
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
@@ -275,7 +276,6 @@ const PartnerCreateOffer = () => {
       
       console.log("Saving equipment data with preserved margins:", equipmentData);
       
-      // Keep text format for compatibility
       const equipmentDescription = equipmentList
         .map(eq => `${eq.title} (${eq.quantity}x)`)
         .join(", ");
@@ -286,7 +286,7 @@ const PartnerCreateOffer = () => {
         client_email: clientEmail,
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
-        equipment_text: equipmentDescription,  // Text format for compatibility
+        equipment_text: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
@@ -352,8 +352,6 @@ const PartnerCreateOffer = () => {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div>
-                  {/* Le bouton de sélection du prestataire est maintenant masqué */}
-
                   <div className="mt-6">
                     <EquipmentForm
                       equipment={equipment}
