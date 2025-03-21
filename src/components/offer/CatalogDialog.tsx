@@ -1,9 +1,19 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ProductSelector, { ProductWithVariants } from "@/components/ui/ProductSelector";
+import ProductSelector from "@/components/ui/ProductSelector";
 import VariantSelector from "@/components/catalog/VariantSelector";
+import type { Product } from "@/types/catalog";
+
+interface ProductWithVariants extends Omit<Product, 'variants'> {
+  variation_attributes?: Record<string, string[]>;
+  variant_combination_prices?: any[];
+  is_parent?: boolean;
+  selected_variant_id?: string;
+  attributes?: Record<string, any>;
+}
 
 interface CatalogDialogProps {
   isOpen: boolean;
@@ -19,6 +29,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<ProductWithVariants | null>(null);
   const [showVariantSelector, setShowVariantSelector] = useState(false);
   
+  // Clear selected product when dialog closes
   useEffect(() => {
     if (!isOpen) {
       setSelectedProduct(null);
@@ -26,22 +37,27 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   }, [isOpen]);
   
+  // Handle product selection from the selector
   const onSelectProduct = (product: ProductWithVariants) => {
     console.log("Product selected:", product);
     
+    // Check if the product has variants
     const hasVariants = 
       (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) &&
       (product.variant_combination_prices && product.variant_combination_prices.length > 0);
     
     if (hasVariants) {
+      // If product has variants, show the variant selector
       setSelectedProduct(product);
       setShowVariantSelector(true);
     } else {
+      // Otherwise, directly select the product
       handleProductSelect(product);
       onClose();
     }
   };
   
+  // Handle clicking on "Voir les configurations disponibles" in ProductCard
   const handleViewVariants = (product: ProductWithVariants, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -49,11 +65,13 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     setShowVariantSelector(true);
   };
   
+  // Handle variant selection
   const onVariantSelect = (productWithVariant: ProductWithVariants) => {
     handleProductSelect(productWithVariant);
     onClose();
   };
   
+  // Go back to product selection
   const handleBackToProducts = () => {
     setShowVariantSelector(false);
     setSelectedProduct(null);

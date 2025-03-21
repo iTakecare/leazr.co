@@ -34,19 +34,6 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
     }).format(margin) + " %";
   };
 
-  // Calculate the correct margin percentage
-  const calculateMarginPercentage = (): number => {
-    if (marginAmount <= 0 || priceWithMargin <= marginAmount) return 0;
-    
-    // Price without margin is the base price
-    const priceWithoutMargin = priceWithMargin - marginAmount;
-    
-    // Margin percentage is (margin amount / price without margin) * 100
-    return (marginAmount / priceWithoutMargin) * 100;
-  };
-
-  const marginPercentage = calculateMarginPercentage();
-
   return (
     <div className="space-y-2 border-t pt-4 mt-4">
       {!hideFinancialDetails && (
@@ -54,7 +41,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Marge :</span>
             <span className="font-medium">
-              {formatCurrency(marginAmount)} ({formatMarginPercentage(marginPercentage)})
+              {formatCurrency(marginAmount)} ({formatMarginPercentage(priceWithMargin > 0 ? (marginAmount / (priceWithMargin - marginAmount)) * 100 : 0)})
             </span>
           </div>
           <div className="flex justify-between items-center">
