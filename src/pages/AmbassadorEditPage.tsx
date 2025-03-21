@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAmbassadorById, updateAmbassador, Ambassador } from "@/services/ambassadorService";
 import { Loader2 } from "lucide-react";
@@ -34,8 +34,7 @@ import Container from "@/components/layout/Container";
 import { 
   CommissionLevel, 
   getCommissionLevelWithRates, 
-  getCommissionLevels,
-  updateAmbassadorCommissionLevel 
+  getCommissionLevels
 } from "@/services/commissionService";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
@@ -88,8 +87,8 @@ const AmbassadorEditPage = () => {
     },
   });
 
-  // Fonction pour charger les données de l'ambassadeur
-  const loadAmbassador = async () => {
+  // Fonction pour charger les données de l'ambassadeur - avec useCallback pour pouvoir l'appeler plusieurs fois
+  const loadAmbassador = useCallback(async () => {
     if (!id) return;
     
     try {
@@ -121,7 +120,7 @@ const AmbassadorEditPage = () => {
         country: ambassadorData.country || ""
       });
       
-      // Load commission data
+      // Charger les données de commission
       await loadCommissionLevels();
       
       if (ambassadorData.commission_level_id) {
@@ -148,7 +147,7 @@ const AmbassadorEditPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate, form]);
 
   useEffect(() => {
     if (!id) {
@@ -163,7 +162,7 @@ const AmbassadorEditPage = () => {
     }
 
     loadAmbassador();
-  }, [id, navigate]);
+  }, [id, navigate, loadAmbassador]);
   
   const loadCommissionLevels = async () => {
     try {
@@ -198,66 +197,53 @@ const AmbassadorEditPage = () => {
     }
   };
 
-  const handleUpdateCommissionLevel = async (levelId: string) => {
-    if (!ambassador?.id || !levelId) {
+  const handleUpdateCommissionLevel = async (newLevelId: string) => {
+    if (!ambassador?.id || !newLevelId) {
       console.error("[handleUpdateCommissionLevel] ID d'ambassadeur ou de barème manquant");
       return;
     }
     
-    if (levelId === currentLevelId) {
+    if (newLevelId === currentLevelId) {
       console.log("[handleUpdateCommissionLevel] Niveau de commission inchangé, aucune mise à jour nécessaire");
       return;
     }
     
-    console.log("[handleUpdateCommissionLevel] Mise à jour du barème:", currentLevelId, "->", levelId);
+    console.log("[handleUpdateCommissionLevel] Mise à jour du barème:", currentLevelId, "->", newLevelId);
     setUpdatingLevel(true);
     toast.info("Mise à jour du barème en cours...");
     
     try {
-      // Mettre à jour le niveau de commission dans la base de données
-      await updateAmbassadorCommissionLevel(ambassador.id, levelId);
+      // Mise à jour directe du champ commission_level_id dans Ambassador
+      const updatedData = {
+        ...form.getValues(),
+        commission_level_id: newLevelId
+      };
       
-      // Mettre à jour l'état local APRÈS confirmation de la mise à jour
-      setCurrentLevelId(levelId);
+      console.log("[handleUpdateCommissionLevel] Données à mettre à jour:", updatedData);
       
-      // Recharger les détails du nouveau barème
-      await loadCommissionLevel(levelId);
+      // Utilisation de updateAmbassador pour mettre à jour tout l'enregistrement
+      await updateAmbassador(ambassador.id, updatedData);
       
-      // Mettre à jour également l'objet ambassador pour que la valeur soit prise en compte lors de la sauvegarde
+      // Mettre à jour l'état local après confirmation de la mise à jour
+      setCurrentLevelId(newLevelId);
+      
+      // Mettre à jour l'objet ambassador pour cohérence de l'UI
       setAmbassador(prev => {
         if (!prev) return null;
-        
-        const updated = { 
-          ...prev, 
-          commission_level_id: levelId 
-        };
-        
-        console.log("[handleUpdateCommissionLevel] Objet ambassadeur mis à jour:", updated);
-        return updated;
+        return { ...prev, commission_level_id: newLevelId };
       });
+      
+      // Recharger les détails du nouveau barème
+      await loadCommissionLevel(newLevelId);
       
       toast.success("Barème de commissionnement mis à jour");
       
-      // Recharger l'ambassadeur pour confirmer la mise à jour
-      await getAmbassadorById(ambassador.id).then(refreshedData => {
-        if (refreshedData) {
-          console.log("[handleUpdateCommissionLevel] Données ambassadeur après mise à jour:", refreshedData);
-          
-          if (refreshedData.commission_level_id !== levelId) {
-            console.error("[handleUpdateCommissionLevel] ALERTE: Le barème n'a pas été mis à jour correctement en base!");
-            console.error(`Attendu: ${levelId}, Reçu: ${refreshedData.commission_level_id}`);
-            
-            // En cas d'incohérence, on force un rechargement complet 
-            loadAmbassador();
-          }
-        }
-      });
+      // Recharger complètement l'ambassadeur pour vérifier la cohérence
+      await loadAmbassador();
     } catch (error) {
       console.error("[handleUpdateCommissionLevel] Erreur:", error);
       toast.error("Erreur lors de la mise à jour du barème");
-      
-      // En cas d'erreur, on recharge l'ambassadeur pour récupérer l'état actuel
-      loadAmbassador();
+      await loadAmbassador(); // Recharger en cas d'erreur
     } finally {
       setUpdatingLevel(false);
     }
