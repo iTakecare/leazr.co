@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, Info } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { toast } from "sonner";
-import { Product } from "@/types/catalog";
+import { Product as CatalogProduct } from "@/types/catalog";
 
 interface ProductVariant {
   id: string;
@@ -19,6 +20,7 @@ interface ProductVariant {
   attributes: Record<string, any>;
 }
 
+// Define a custom Product interface for this component to avoid conflicts
 interface Product {
   id: string;
   name: string;
@@ -34,6 +36,18 @@ interface Product {
   variation_attributes?: Record<string, string[]>;
   attributes?: Record<string, any>;
   variant_combination_prices?: any[];
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+// Define the ProductSelectorProps interface
+interface ProductSelectorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectProduct: (product: Product) => void;
+  onViewVariants?: (product: Product, e: React.MouseEvent) => void;
+  title?: string;
+  description?: string;
 }
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
@@ -91,7 +105,9 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           ...product,
           variant_combination_prices: productVariantPrices,
           is_parent: isParent || product.is_parent,
-          variation_attributes: variationAttributes
+          variation_attributes: variationAttributes,
+          createdAt: product.created_at || new Date(),
+          updatedAt: product.updated_at || new Date()
         };
       });
       
@@ -276,7 +292,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="cursor-pointer" onClick={() => handleProductSelect(product)}>
                       <ProductCard 
-                        product={product} 
+                        product={product as any} 
                         onClick={() => handleProductSelect(product)}
                         onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
                       />
