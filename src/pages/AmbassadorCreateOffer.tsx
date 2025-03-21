@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
@@ -283,12 +283,10 @@ const AmbassadorCreateOffer = () => {
                     />
                   </div>
 
-                  {/* Affichage du barème de commission pour référence */}
-                  {ambassador && ambassador.commission_level_id && (
-                    <div className="mt-6">
-                      <CommissionDisplay />
-                    </div>
-                  )}
+                  {/* Affichage du barème de commission pour référence - moved outside the condition */}
+                  <div className="mt-6">
+                    <CommissionDisplay />
+                  </div>
                 </div>
 
                 <div className="space-y-8">

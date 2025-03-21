@@ -192,11 +192,13 @@ const CommissionManager = () => {
     if (!selectedLevel) return;
     
     try {
-      const rateData: Omit<CommissionRate, 'id' | 'created_at'> = {
+      const values = data as CommissionRate;
+      const rateData: Omit<CommissionRate, "id" | "created_at"> = {
         commission_level_id: selectedLevel.id,
-        min_amount: data.min_amount!,
-        max_amount: data.max_amount!,
-        rate: data.rate!
+        min_amount: values.min_amount,
+        max_amount: values.max_amount,
+        rate: values.rate,
+        updated_at: new Date().toISOString()
       };
       
       const newRate = await createCommissionRate(rateData);
