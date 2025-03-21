@@ -1,6 +1,6 @@
 
 import React from "react";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatPercentageWithComma } from "@/utils/formatters";
 
 interface PriceDetailsDisplayProps {
   marginAmount: number;
@@ -8,6 +8,7 @@ interface PriceDetailsDisplayProps {
   coefficient: number;
   displayMonthlyPayment: number;
   hideFinancialDetails?: boolean;
+  calculatedMargin?: { percentage: number; amount: number };
 }
 
 const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
@@ -15,20 +16,22 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   priceWithMargin,
   coefficient,
   displayMonthlyPayment,
-  hideFinancialDetails = false
+  hideFinancialDetails = false,
+  calculatedMargin
 }) => {
   // Calculate the price without margin (base price)
   const priceWithoutMargin = priceWithMargin - marginAmount;
   
-  // Calculate the margin percentage based on the price without margin
-  const marginPercentage = priceWithoutMargin > 0 
+  // Use calculated margin if available, otherwise calculate it
+  const marginPercentage = calculatedMargin?.percentage || (priceWithoutMargin > 0 
     ? (marginAmount / priceWithoutMargin) * 100 
-    : 0;
-    
-  // Function to format percentage with comma as decimal separator
-  const formatPercentageWithComma = (value: number): string => {
-    return value.toFixed(2).replace('.', ',') + '%';
-  };
+    : 0);
+  
+  // Use calculated margin amount if available
+  const displayMarginAmount = calculatedMargin?.amount || marginAmount;
+  
+  // Calculate the actual price with margin based on the calculated amount
+  const displayPriceWithMargin = priceWithoutMargin + displayMarginAmount;
 
   return (
     <div className="space-y-2 border-t pt-4 mt-4">
@@ -37,12 +40,12 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Marge :</span>
             <span className="font-medium">
-              {formatCurrency(marginAmount)} ({isNaN(marginPercentage) ? "NaN" : formatPercentageWithComma(marginPercentage)})
+              {formatCurrency(displayMarginAmount)} ({isNaN(marginPercentage) ? "NaN" : formatPercentageWithComma(marginPercentage)})
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Prix avec marge :</span>
-            <span className="font-medium">{formatCurrency(priceWithMargin)}</span>
+            <span className="font-medium">{formatCurrency(displayPriceWithMargin)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Coefficient appliqué :</span>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Equipment, Leaser } from "@/types/equipment";
@@ -131,6 +130,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             coefficient={coefficient}
             displayMonthlyPayment={displayMonthlyPayment}
             hideFinancialDetails={hideFinancialDetails}
+            calculatedMargin={calculatedMargin.percentage > 0 ? calculatedMargin : undefined}
           />
 
           <FormActionButtons

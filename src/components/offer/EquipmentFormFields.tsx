@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search, Package } from "lucide-react";
 import { Equipment } from "@/types/equipment";
+import { formatPercentageWithComma } from "@/utils/formatters";
 
 interface EquipmentFormFieldsProps {
   equipment: Equipment;
@@ -23,11 +24,6 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
   calculatedMargin,
   hideFinancialDetails = false
 }) => {
-  // Function to format percentage with comma as decimal separator
-  const formatPercentageWithComma = (value: number): string => {
-    return value.toFixed(2).replace('.', ',') + '%';
-  };
-
   return (
     <div className="space-y-4">
       <div>
