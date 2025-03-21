@@ -379,7 +379,11 @@ const PartnerCreateOffer = () => {
                     removeFromList={removeFromList}
                     updateQuantity={updateQuantity}
                     totalMonthlyPayment={totalMonthlyPayment}
-                    globalMarginAdjustment={globalMarginAdjustment}
+                    globalMarginAdjustment={{
+                      amount: globalMarginAdjustment.amount,
+                      newCoef: globalMarginAdjustment.newCoef,
+                      active: true
+                    }}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                   />
                   
