@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -23,6 +24,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ClientSelectorProps {
   isOpen: boolean;
@@ -45,6 +48,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { user, isAmbassador } = useAuth();
   
   const form = useForm<QuickClientFormValues>({
     resolver: zodResolver(quickClientSchema),
@@ -60,7 +64,24 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
       if (isOpen) {
         setLoading(true);
         try {
-          const data = await getClients();
+          let data;
+          
+          // Si l'utilisateur est un ambassadeur, charger uniquement ses clients
+          if (isAmbassador() && user?.ambassador_id) {
+            const { data: ambassadorClients, error: clientsError } = await supabase
+              .from("ambassador_clients")
+              .select("client_id, clients(*)")
+              .eq("ambassador_id", user.ambassador_id);
+              
+            if (clientsError) throw clientsError;
+            
+            // Transformer les données pour obtenir seulement les informations des clients
+            data = ambassadorClients.map(item => item.clients);
+          } else {
+            // Sinon, charger tous les clients (admin)
+            data = await getClients();
+          }
+          
           setClients(data);
         } catch (error) {
           console.error("Error fetching clients:", error);
@@ -71,7 +92,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
     };
 
     fetchClients();
-  }, [isOpen]);
+  }, [isOpen, user, isAmbassador]);
   
   const filteredClients = clients.filter(client => 
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,9 +122,28 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
       const newClient = await createClient(clientData);
       if (newClient) {
         toast.success("Client créé avec succès");
+        
+        // Si l'utilisateur est un ambassadeur, associer le client à l'ambassadeur
+        if (isAmbassador() && user?.ambassador_id) {
+          const { error: linkError } = await supabase
+            .from("ambassador_clients")
+            .insert({
+              ambassador_id: user.ambassador_id,
+              client_id: newClient.id
+            });
+            
+          if (linkError) {
+            console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
+            toast.error("Erreur lors de l'association du client à l'ambassadeur");
+          }
+        }
+        
         setClients([...clients, newClient]);
         form.reset();
         setShowForm(false);
+        
+        // Sélectionner immédiatement le nouveau client
+        handleSelectClient(newClient);
       }
     } catch (error) {
       console.error("Error creating client:", error);

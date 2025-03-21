@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -73,6 +72,11 @@ const AmbassadorClientsPage = () => {
   
   const handleCreateOffer = (clientId) => {
     navigate(`/ambassador/create-offer/${clientId}`);
+  };
+  
+  const handleAddClient = () => {
+    // Rediriger spécifiquement vers la page d'ajout de client de l'espace ambassadeur
+    navigate("/ambassador/clients/new");
   };
   
   const renderClientCards = () => {
@@ -170,7 +174,7 @@ const AmbassadorClientsPage = () => {
                 Gérez les clients que vous avez amenés
               </p>
             </div>
-            <Button onClick={() => navigate("/ambassador/clients/new")}>
+            <Button onClick={handleAddClient}>
               <Plus className="mr-2 h-4 w-4" />
               Ajouter un client
             </Button>
