@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,6 @@ const EquipmentList = ({
   });
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // Calcul de la commission basée sur le total de l'offre
   useEffect(() => {
     const calculateCommission = async () => {
       if (!totalMonthlyPayment || totalMonthlyPayment === 0) {
@@ -59,7 +57,6 @@ const EquipmentList = ({
       setIsCalculating(true);
       try {
         console.log(`Calculating commission for ambassador ${ambassadorId} with level ${commissionLevelId}`);
-        // Calculer la commission en fonction du barème spécifique de l'ambassadeur
         const commissionData = await calculateCommissionByLevel(
           globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
           commissionLevelId,
@@ -101,14 +98,12 @@ const EquipmentList = ({
     );
   }
 
-  // Calculate totals for summary section
   const totalBaseAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
   const totalMarginAmount = globalMarginAdjustment.amount;
   const globalMarginPercentage = totalMarginAmount > 0 && totalBaseAmount > 0 
     ? ((totalMarginAmount / totalBaseAmount) * 100).toFixed(2) 
     : "0.00";
   
-  // Calculate margin difference if available
   const marginDifference = globalMarginAdjustment.marginDifference || 0;
   const totalMarginWithDifference = totalMarginAmount + marginDifference;
 
@@ -218,11 +213,11 @@ const EquipmentList = ({
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <div>Coefficient actuel :</div>
-                <div className="font-medium">{(globalMarginAdjustment.newCoef * 100).toFixed(2)}%</div>
+                <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
               </div>
               <div className="flex justify-between items-center">
                 <div>Nouveau coefficient :</div>
-                <div className="font-medium">{(globalMarginAdjustment.newCoef * 100).toFixed(2)}%</div>
+                <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
               </div>
               <div className="flex justify-between items-center">
                 <div>Marge globale :</div>
