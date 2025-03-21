@@ -115,20 +115,20 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
             <div key={attributeName} className="space-y-2">
               <h3 className="text-sm font-medium">{attributeName}</h3>
               <div className="flex flex-wrap gap-2">
-                {options.map((option) => {
+                {Array.isArray(options) && options.map((option) => {
                   const isAvailable = isOptionAvailable(attributeName, option);
                   const isSelected = selectedAttributes[attributeName] === option;
                   
                   return (
                     <Button
-                      key={option}
+                      key={`${attributeName}-${option}`}
                       variant={isSelected ? "default" : "outline"}
                       size="sm"
                       className={!isAvailable ? "opacity-50" : ""}
                       disabled={!isAvailable}
                       onClick={() => handleSelectAttribute(attributeName, option)}
                     >
-                      {option}
+                      {String(option)}
                     </Button>
                   );
                 })}
@@ -144,7 +144,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
               <div className="flex flex-wrap gap-1 mb-3">
                 {Object.entries(selectedVariant.attributes || {}).map(([key, value]) => (
                   <Badge key={key} variant="secondary" className="text-xs">
-                    {key}: {value}
+                    {key}: {String(value)}
                   </Badge>
                 ))}
               </div>
