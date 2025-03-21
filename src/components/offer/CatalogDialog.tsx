@@ -4,7 +4,6 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ProductCard from "@/components/ui/ProductCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -63,21 +62,14 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       
       console.log(`Successfully fetched ${processedProducts.length} products`);
       
-      // Log parent-child relationships to debug
+      // Count parent and variant products
       const parentProducts = processedProducts.filter(p => p.is_parent);
-      console.log(`Found ${parentProducts.length} parent products`);
-      
       const variantProducts = processedProducts.filter(p => p.parent_id);
-      console.log(`Found ${variantProducts.length} variant products with parent_id`);
+      const standaloneProducts = processedProducts.filter(p => !p.is_parent && !p.parent_id);
       
-      // Log each parent product and its variants
-      parentProducts.forEach(parent => {
-        const variants = variantProducts.filter(v => v.parent_id === parent.id);
-        console.log(`Parent product "${parent.name}" (${parent.id}) has ${variants.length} variants`);
-        if (variants.length > 0) {
-          console.log(`First variant: "${variants[0].name}" (${variants[0].id})`);
-        }
-      });
+      console.log(`Found ${parentProducts.length} parent products`);
+      console.log(`Found ${variantProducts.length} variant products with parent_id`);
+      console.log(`Found ${standaloneProducts.length} standalone products`);
       
       setProducts(processedProducts || []);
     } catch (err) {
@@ -169,190 +161,51 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     return filtered;
   }, [products, searchTerm, selectedCategory, selectedBrand]);
 
-  // Render the products organized by parent/variant relationships
-  const renderProducts = () => {
-    if (!filteredProducts || filteredProducts.length === 0) {
-      return (
-        <div className="text-center py-10 text-muted-foreground">
-          Aucun produit trouvé
-        </div>
-      );
-    }
+  // Organizes products into a map of parent products with their variants
+  const organizedProducts = React.useMemo(() => {
+    // Group products by parent/variant structure
+    const parentsMap: Map<string, Product> = new Map();
+    const variantsMap: Map<string, Product[]> = new Map();
+    const standaloneProducts: Product[] = [];
     
-    // First, identify parent products and standalone products (products without parent or children)
-    const parentProducts = filteredProducts.filter(p => p.is_parent);
-    const standaloneProducts = filteredProducts.filter(p => !p.is_parent && !p.parent_id);
-    
-    // Create a map of parent IDs to their variant products
-    const variantMap = new Map<string, Product[]>();
-    
+    // First pass: identify parents, variants, and standalone products
     filteredProducts.forEach(product => {
-      if (product.parent_id) {
-        const variants = variantMap.get(product.parent_id) || [];
+      if (product.is_parent) {
+        parentsMap.set(product.id, product);
+        variantsMap.set(product.id, []);
+      } else if (product.parent_id) {
+        const variants = variantsMap.get(product.parent_id) || [];
         variants.push(product);
-        variantMap.set(product.parent_id, variants);
+        variantsMap.set(product.parent_id, variants);
+      } else {
+        standaloneProducts.push(product);
       }
     });
     
-    // Log parent-variant relationships
-    console.log(`Rendering ${parentProducts.length} parent products`);
-    console.log(`Rendering ${standaloneProducts.length} standalone products`);
-    console.log(`Found variants for ${variantMap.size} parent products`);
+    // Log what we found
+    console.log(`Organized ${parentsMap.size} parent products`);
+    console.log(`Found variants for ${variantsMap.size} parent products`);
+    console.log(`Found ${standaloneProducts.length} standalone products`);
     
-    // Render each parent product followed by its variants if showVariants is true
-    return (
-      <div className="space-y-6">
-        {/* Render parent products with their variants */}
-        {parentProducts.map(parent => {
-          const variants = variantMap.get(parent.id) || [];
-          console.log(`Rendering parent "${parent.name}" with ${variants.length} variants`);
-          
-          return (
-            <div key={parent.id} className="space-y-2">
-              <h3 className="font-medium text-sm text-muted-foreground">
-                {parent.name}
-              </h3>
-              
-              <div className="flex flex-col gap-2">
-                {/* Parent product */}
-                <div 
-                  key={parent.id} 
-                  onClick={() => handleProductSelect(parent)}
-                  className="cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow"
-                >
-                  <div className="flex p-3">
-                    <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
-                      <img 
-                        src={parent.image_url || parent.imageUrl || "/placeholder.svg"}
-                        alt={parent.name}
-                        className="object-contain h-16 w-16"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    </div>
-                    <div className="w-2/3 p-3">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-sm">{parent.name}</h3>
-                        <Badge variant="outline" className="text-xs">Parent</Badge>
-                      </div>
-                      
-                      <div className="text-sm space-y-1 mt-2">
-                        <p className="text-muted-foreground">
-                          Prix: {parent.price} €
-                        </p>
-                        {parent.monthly_price > 0 && (
-                          <p className="text-muted-foreground">
-                            Mensualité: {parent.monthly_price} €
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Variants */}
-                {showVariants && variants.length > 0 && (
-                  <div className="ml-4 space-y-2">
-                    {variants.map(variant => (
-                      <div 
-                        key={variant.id} 
-                        onClick={() => handleProductSelect(variant)}
-                        className="cursor-pointer border border-dashed rounded-md overflow-hidden hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex p-3">
-                          <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
-                            <img 
-                              src={variant.image_url || variant.imageUrl || "/placeholder.svg"}
-                              alt={variant.name}
-                              className="object-contain h-16 w-16"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/placeholder.svg";
-                              }}
-                            />
-                          </div>
-                          <div className="w-2/3 p-3">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium text-sm">{variant.name}</h3>
-                              <Badge variant="outline" className="text-xs">Variante</Badge>
-                            </div>
-                            
-                            {variant.attributes && 
-                              Object.keys(variant.attributes).length > 0 && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatAttributes(variant.attributes as ProductAttributes)}
-                              </p>
-                            )}
-                            
-                            <div className="text-sm space-y-1 mt-2">
-                              <p className="text-muted-foreground">
-                                Prix: {variant.price} €
-                              </p>
-                              {variant.monthly_price > 0 && (
-                                <p className="text-muted-foreground">
-                                  Mensualité: {variant.monthly_price} €
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        
-        {/* Render standalone products */}
-        {standaloneProducts.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="font-medium text-sm text-muted-foreground">
-              Produits individuels
-            </h3>
-            
-            <div className="flex flex-col gap-2">
-              {standaloneProducts.map(product => (
-                <div 
-                  key={product.id} 
-                  onClick={() => handleProductSelect(product)}
-                  className="cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow"
-                >
-                  <div className="flex p-3">
-                    <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
-                      <img 
-                        src={product.image_url || product.imageUrl || "/placeholder.svg"}
-                        alt={product.name}
-                        className="object-contain h-16 w-16"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    </div>
-                    <div className="w-2/3 p-3">
-                      <h3 className="font-medium text-sm">{product.name}</h3>
-                      
-                      <div className="text-sm space-y-1 mt-2">
-                        <p className="text-muted-foreground">
-                          Prix: {product.price} €
-                        </p>
-                        {product.monthly_price > 0 && (
-                          <p className="text-muted-foreground">
-                            Mensualité: {product.monthly_price} €
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+    // For debugging: log each parent and how many variants it has
+    parentsMap.forEach((parent, parentId) => {
+      const variants = variantsMap.get(parentId) || [];
+      console.log(`Parent "${parent.name}" (${parentId}) has ${variants.length} variants`);
+      
+      // Log first variant details if available
+      if (variants.length > 0) {
+        const firstVariant = variants[0];
+        console.log(`- First variant: "${firstVariant.name}" (${firstVariant.id})`);
+        console.log(`- Variant attributes:`, firstVariant.attributes);
+      }
+    });
+    
+    return {
+      parents: parentsMap,
+      variants: variantsMap,
+      standalone: standaloneProducts
+    };
+  }, [filteredProducts]);
 
   // Format attributes for display
   const formatAttributes = (attributes: ProductAttributes) => {
@@ -363,6 +216,106 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     return Object.entries(attributes)
       .map(([key, value]) => `${key}: ${value}`)
       .join(", ");
+  };
+
+  // Render a product card (for both parent and variants)
+  const renderProductCard = (product: Product, isVariant: boolean = false) => {
+    return (
+      <div 
+        key={product.id} 
+        onClick={() => handleProductSelect(product)}
+        className={`cursor-pointer border ${isVariant ? 'border-dashed ml-4' : ''} rounded-md overflow-hidden hover:shadow-md transition-shadow`}
+      >
+        <div className="flex p-3">
+          <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
+            <img 
+              src={product.image_url || product.imageUrl || "/placeholder.svg"}
+              alt={product.name}
+              className="object-contain h-16 w-16"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/placeholder.svg";
+              }}
+            />
+          </div>
+          <div className="w-2/3 p-3">
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-sm">{product.name}</h3>
+              {product.is_parent && <Badge variant="outline" className="text-xs">Parent</Badge>}
+              {product.parent_id && <Badge variant="outline" className="text-xs">Variante</Badge>}
+            </div>
+            
+            {product.attributes && 
+              Object.keys(product.attributes).length > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                {formatAttributes(product.attributes as ProductAttributes)}
+              </p>
+            )}
+            
+            <div className="text-sm space-y-1 mt-2">
+              <p className="text-muted-foreground">
+                Prix: {product.price} €
+              </p>
+              {product.monthly_price > 0 && (
+                <p className="text-muted-foreground">
+                  Mensualité: {product.monthly_price} €
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render the product list with parent/variant hierarchy
+  const renderProductList = () => {
+    const { parents, variants, standalone } = organizedProducts;
+    
+    if (parents.size === 0 && standalone.length === 0) {
+      return (
+        <div className="text-center py-10 text-muted-foreground">
+          Aucun produit trouvé
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Render parent products with their variants */}
+        {Array.from(parents.values()).map(parent => (
+          <div key={parent.id} className="space-y-2">
+            <h3 className="font-medium text-sm text-muted-foreground">
+              {parent.name}
+            </h3>
+            
+            <div className="flex flex-col gap-2">
+              {/* Parent product */}
+              {renderProductCard(parent)}
+              
+              {/* Variants (if showVariants is enabled) */}
+              {showVariants && 
+                variants.get(parent.id)?.map(variant => 
+                  renderProductCard(variant, true)
+                )
+              }
+            </div>
+          </div>
+        ))}
+        
+        {/* Render standalone products */}
+        {standalone.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm text-muted-foreground">
+              Produits individuels
+            </h3>
+            
+            <div className="flex flex-col gap-2">
+              {standalone.map(product => renderProductCard(product))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -432,7 +385,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
               ))}
             </div>
           ) : (
-            renderProducts()
+            renderProductList()
           )}
         </ScrollArea>
       </DialogContent>
