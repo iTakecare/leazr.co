@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   CommissionRate, 
   getCommissionRates as fetchCommissionRates, 
-  getDefaultCommissionLevel as fetchDefaultCommissionLevel 
+  getDefaultCommissionLevel as fetchDefaultCommissionLevel,
+  getAmbassadorCommissionLevel as fetchAmbassadorCommissionLevel 
 } from "@/services/commissionService";
 
 // Leasing coefficients (Grenke)
@@ -76,10 +77,20 @@ export const getCommissionRate = (amount: number): number => {
 /**
  * Calculate commission based on amount and commission level
  */
-export const calculateCommissionByLevel = async (amount: number, levelId?: string, type: 'partner' | 'ambassador' = 'partner'): Promise<{ rate: number, amount: number }> => {
+export const calculateCommissionByLevel = async (amount: number, levelId?: string, type: 'partner' | 'ambassador' = 'partner', ambassadorId?: string): Promise<{ rate: number, amount: number }> => {
   try {
-    console.log(`[calculateCommissionByLevel] Starting with amount: ${amount}, levelId: ${levelId}, type: ${type}`);
+    console.log(`[calculateCommissionByLevel] Starting with amount: ${amount}, levelId: ${levelId}, type: ${type}, ambassadorId: ${ambassadorId}`);
     let actualLevelId = levelId;
+    
+    // Si un ID d'ambassadeur est fourni, récupérer son niveau de commission
+    if (ambassadorId) {
+      console.log(`[calculateCommissionByLevel] Ambassador ID provided: ${ambassadorId}, fetching their commission level`);
+      const ambassadorLevel = await fetchAmbassadorCommissionLevel(ambassadorId);
+      if (ambassadorLevel) {
+        actualLevelId = ambassadorLevel.id;
+        console.log(`[calculateCommissionByLevel] Using ambassador's commission level: ${actualLevelId}`);
+      }
+    }
     
     // Si aucun ID de niveau n'est fourni, utiliser le niveau par défaut
     if (!actualLevelId) {

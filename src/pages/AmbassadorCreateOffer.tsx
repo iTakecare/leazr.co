@@ -306,7 +306,10 @@ const AmbassadorCreateOffer = () => {
                       <CardTitle>Barème de commissions</CardTitle>
                     </CardHeader>
                     <CardContent className="py-6">
-                      <CommissionDisplay />
+                      <CommissionDisplay 
+                        ambassadorId={ambassadorId} 
+                        commissionLevelId={ambassador?.commission_level_id} 
+                      />
                     </CardContent>
                   </Card>
                 </div>
