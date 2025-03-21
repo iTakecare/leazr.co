@@ -40,6 +40,8 @@ interface Product {
   active: boolean;
   variants?: ProductVariant[];
   is_parent?: boolean;
+  variation_attributes?: Record<string, string[]>;
+  attributes?: Record<string, any>;
 }
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
@@ -58,7 +60,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     console.log("Fetching products from Supabase");
     
     try {
-      // Récupérer les produits
+      // Récupérer les produits principaux
       const { data: productsData, error: productsError } = await supabase
         .from("products")
         .select("*")
@@ -71,50 +73,70 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       
       console.log(`Retrieved ${productsData.length} products`);
       
-      // Récupérer les variantes pour les produits
-      const { data: variantsData, error: variantsError } = await supabase
+      // Récupérer les prix des variantes
+      const { data: variantPricesData, error: variantPricesError } = await supabase
         .from("product_variant_prices")
         .select("*");
       
-      if (variantsError) {
-        console.error("Error fetching variants:", variantsError);
-        throw variantsError;
+      if (variantPricesError) {
+        console.error("Error fetching variant prices:", variantPricesError);
+        throw variantPricesError;
       }
       
-      console.log(`Retrieved ${variantsData.length} variants`);
+      console.log(`Retrieved ${variantPricesData.length} variant prices`);
       
-      // Organiser les variantes par produit parent
-      const variantsByProductId: Record<string, ProductVariant[]> = {};
-      
-      variantsData.forEach(variant => {
-        if (!variantsByProductId[variant.product_id]) {
-          variantsByProductId[variant.product_id] = [];
-        }
-        variantsByProductId[variant.product_id].push({
-          id: variant.id,
-          price: variant.price || 0,
-          monthly_price: variant.monthly_price || 0,
-          attributes: variant.attributes || {}
-        });
-      });
-      
-      // Ajouter les variantes aux produits
-      const processedProducts = productsData.map(product => {
-        const variants = variantsByProductId[product.id] || [];
-        const isParent = variants.length > 0;
+      // Associer les prix de variantes aux produits parents
+      const productsWithVariants = productsData.map(product => {
+        // Pour chaque produit, chercher les prix de variante associés
+        const productVariantPrices = variantPricesData.filter(price => 
+          price.product_id === product.id
+        );
         
+        // Si le produit a des prix de variante, le marquer comme parent
+        const isParent = productVariantPrices.length > 0;
+        
+        // Créer un objet produit enrichi
         return {
           ...product,
-          variants,
-          is_parent: isParent
+          variant_combination_prices: productVariantPrices,
+          is_parent: isParent || product.is_parent,
+          // Si le produit a des variation_attributes définis, les utiliser
+          variation_attributes: product.variation_attributes || 
+            // Sinon, extraire les attributs uniques des prix de variante
+            (isParent ? extractVariationAttributes(productVariantPrices) : undefined)
         };
       });
       
-      return processedProducts;
+      console.log("Processed products:", productsWithVariants);
+      return productsWithVariants;
     } catch (error) {
       console.error("Failed to fetch products:", error);
       throw error;
     }
+  };
+  
+  // Extraire les attributs de variation des prix de variante
+  const extractVariationAttributes = (variantPrices: any[]): Record<string, string[]> => {
+    const attributes: Record<string, Set<string>> = {};
+    
+    variantPrices.forEach(price => {
+      if (price.attributes) {
+        Object.entries(price.attributes).forEach(([key, value]) => {
+          if (!attributes[key]) {
+            attributes[key] = new Set();
+          }
+          attributes[key].add(String(value));
+        });
+      }
+    });
+    
+    // Convertir les Set en Array
+    const result: Record<string, string[]> = {};
+    Object.entries(attributes).forEach(([key, values]) => {
+      result[key] = Array.from(values);
+    });
+    
+    return result;
   };
 
   // Utiliser React Query pour récupérer les produits
@@ -146,9 +168,9 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(product => 
-        product.name.toLowerCase().includes(query) || 
-        (product.brand || '').toLowerCase().includes(query) ||
-        (product.description || '').toLowerCase().includes(query)
+        (product.name?.toLowerCase().includes(query)) || 
+        (product.brand?.toLowerCase().includes(query)) ||
+        (product.description?.toLowerCase().includes(query))
       );
     }
     
@@ -161,17 +183,28 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     if (selectedTab === "parents") {
       filtered = filtered.filter(product => product.is_parent);
     } else if (selectedTab === "variantes") {
-      filtered = filtered.filter(product => product.variants && product.variants.length > 0);
+      // Pour les variantes, nous cherchons des produits avec des attributs de variation
+      filtered = filtered.filter(product => 
+        product.variation_attributes && 
+        Object.keys(product.variation_attributes).length > 0
+      );
     } else if (selectedTab === "individuels") {
-      filtered = filtered.filter(product => !product.is_parent && (!product.variants || product.variants.length === 0));
+      filtered = filtered.filter(product => 
+        !product.is_parent && 
+        (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0)
+      );
     }
     
     return filtered;
   };
 
   const filteredProducts = getFilteredProducts();
-
-  const handleSelectProduct = (product: Product) => {
+  
+  // Fonction appelée quand un produit est sélectionné
+  const handleProductSelect = (product: Product) => {
+    // Si le produit a des attributs de variation, on garde ces informations
+    // pour permettre la sélection de variantes spécifiques plus tard
+    console.log("Selected product:", product);
     onSelectProduct(product);
     onClose();
   };
@@ -261,7 +294,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filteredProducts.map((product) => (
-                    <div key={product.id} className="cursor-pointer" onClick={() => handleSelectProduct(product)}>
+                    <div key={product.id} className="cursor-pointer" onClick={() => handleProductSelect(product)}>
                       <ProductCard product={product} />
                     </div>
                   ))}

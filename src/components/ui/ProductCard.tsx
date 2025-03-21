@@ -22,6 +22,8 @@ interface Product {
   variants?: ProductVariant[];
   is_parent?: boolean;
   active?: boolean;
+  variation_attributes?: Record<string, string[]>;
+  attributes?: Record<string, any>;
 }
 
 interface ProductCardProps {
@@ -30,6 +32,8 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
+  if (!product) return null;
+  
   // Ensure we have valid data for display
   const productName = product?.name || "Produit sans nom";
   const productBrand = product?.brand || "";
@@ -38,6 +42,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   let productMonthlyPrice: string | number = "Non définie";
   let productPrice: string | number = product?.price || 0;
   let hasVariants = false;
+  
+  // Check if the product has variation attributes defined
+  const hasVariationAttributes = product.variation_attributes && 
+    Object.keys(product.variation_attributes).length > 0;
   
   // Format the main product price
   if (typeof productPrice === 'number') {
@@ -64,21 +72,45 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   
   const productImage = product?.image_url || "/placeholder.svg";
   
-  // Déterminer le badge de statut
+  // Determine the badge type
   const getBadgeType = () => {
-    if (hasVariants) return "info";
+    if (hasVariationAttributes) return "info";
     if (product.is_parent) return "success";
+    if (product.attributes && Object.keys(product.attributes).length > 0) return "secondary";
     return "default";
   };
   
+  // Determine badge text
   const getBadgeText = () => {
-    if (hasVariants) return `${product.variants?.length || 0} option(s)`;
+    if (hasVariationAttributes) {
+      const attributeCount = Object.keys(product.variation_attributes || {}).length;
+      return `${attributeCount} attribut(s)`;
+    }
     if (product.is_parent) return "Produit parent";
+    if (product.attributes && Object.keys(product.attributes).length > 0) return "Variante";
     return "Produit standard";
   };
 
+  // Format attributes for display
+  const formatAttributes = (attributes?: Record<string, any>) => {
+    if (!attributes || Object.keys(attributes).length === 0) return null;
+    
+    return (
+      <div className="mt-1">
+        {Object.entries(attributes).map(([key, value]) => (
+          <Badge key={key} variant="outline" className="mr-1 mb-1 text-xs">
+            {key}: {value}
+          </Badge>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" onClick={onClick}>
+    <Card 
+      className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" 
+      onClick={onClick}
+    >
       <CardContent className="p-0">
         <div className="flex">
           <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
@@ -95,7 +127,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
             <h3 className="font-medium text-sm mb-1 line-clamp-2">{productName}</h3>
             {productBrand && <p className="text-xs text-gray-500 mb-2">{productBrand}</p>}
             
-            <div className="text-sm space-y-1">
+            {/* Show attributes if this is a variant product */}
+            {product.attributes && formatAttributes(product.attributes)}
+            
+            <div className="text-sm space-y-1 mt-2">
               <p className="text-muted-foreground">
                 Prix: {productPrice}
               </p>

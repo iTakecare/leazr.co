@@ -6,18 +6,12 @@ import {
   VariantCombinationPrice 
 } from "@/types/catalog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Euro, Package } from "lucide-react";
 import VariantAttributeSelector from "./VariantAttributeSelector";
 import { findVariantCombinationPrice } from "@/services/variantPriceService";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/utils/formatters";
 
 interface ProductVariantViewerProps {
   product: Product;
@@ -37,7 +31,10 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
     Object.keys(product.variation_attributes).length > 0;
   
   useEffect(() => {
+    console.log("Product in variant viewer:", product);
+    
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      console.log("Found variant combination prices:", product.variant_combination_prices);
       // Initialize with the first price's attributes
       setSelectedAttributes(product.variant_combination_prices[0].attributes);
       setSelectedPrice(product.variant_combination_prices[0]);
@@ -46,6 +43,7 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
         onVariantSelect(product.variant_combination_prices[0]);
       }
     } else {
+      console.log("No variant combination prices found");
       setSelectedAttributes({});
       setSelectedPrice(null);
       
@@ -53,17 +51,43 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
         onVariantSelect(null);
       }
     }
-  }, [product.variant_combination_prices]);
+  }, [product, onVariantSelect]);
   
   // Handle attribute selection
   const handleAttributesChange = async (attributes: ProductAttributes) => {
+    console.log("Selected attributes changed:", attributes);
     setSelectedAttributes(attributes);
     setIsLoading(true);
     
     try {
-      // Find the corresponding price
+      // Option 1: Look for a matching price in variant_combination_prices
+      if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+        const match = product.variant_combination_prices.find(price => {
+          if (!price.attributes) return false;
+          
+          return Object.keys(attributes).every(key => 
+            String(price.attributes[key]).toLowerCase() === String(attributes[key]).toLowerCase()
+          );
+        });
+        
+        if (match) {
+          console.log("Found matching price in variant_combination_prices:", match);
+          setSelectedPrice(match);
+          
+          if (onVariantSelect) {
+            onVariantSelect(match);
+          }
+          
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // Option 2: Fallback to API lookup
+      console.log("Searching for variant price via API");
       const priceMatch = await findVariantCombinationPrice(product.id, attributes);
       
+      console.log("API price match result:", priceMatch);
       setSelectedPrice(priceMatch);
       
       if (onVariantSelect) {
@@ -144,15 +168,15 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
                   <div>
                     <p className="text-sm text-muted-foreground">Prix</p>
                     <p className="text-2xl font-semibold flex items-center">
-                      {selectedPrice.price.toFixed(2)} <Euro className="h-4 w-4 ml-1" />
+                      {formatCurrency(selectedPrice.price)} <Euro className="h-4 w-4 ml-1" />
                     </p>
                   </div>
                   
-                  {selectedPrice.monthly_price !== undefined && (
+                  {selectedPrice.monthly_price !== undefined && selectedPrice.monthly_price > 0 && (
                     <div>
                       <p className="text-sm text-muted-foreground">Mensualité</p>
                       <p className="text-lg flex items-center">
-                        {selectedPrice.monthly_price.toFixed(2)} <Euro className="h-3 w-3 ml-1" />/mois
+                        {formatCurrency(selectedPrice.monthly_price)} <Euro className="h-3 w-3 ml-1" />/mois
                       </p>
                     </div>
                   )}
@@ -166,6 +190,17 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
                     </p>
                   </div>
                 )}
+                
+                <div>
+                  <p className="text-sm text-muted-foreground">Attributs</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {Object.entries(selectedPrice.attributes || {}).map(([key, value]) => (
+                      <Badge key={key} variant="secondary" className="text-xs">
+                        {key}: {value}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="flex items-center justify-center h-32 border rounded-md">

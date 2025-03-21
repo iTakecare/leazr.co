@@ -1,20 +1,59 @@
 
-import { formatDate, formatCurrency } from "@/lib/utils";
-import { formatDistanceToNow as formatDistanceToNowFns, format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+/**
+ * Format a number as a currency string (EUR by default)
+ */
+export const formatCurrency = (
+  value: number, 
+  locale = 'fr-FR', 
+  currency = 'EUR',
+  maximumFractionDigits = 2
+): string => {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return '0,00 €';
+  }
+  
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits
+  }).format(value);
+};
 
-export { formatDate, formatCurrency };
+/**
+ * Format a date string to a localized date format
+ */
+export const formatDate = (
+  date: string | Date, 
+  locale = 'fr-FR'
+): string => {
+  if (!date) return '';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(dateObj);
+};
 
-export function formatPercentage(value: number): string {
-  return `${value}%`;
-}
+/**
+ * Format attributes from a product variant into a readable string
+ */
+export const formatAttributes = (attributes: Record<string, any> | undefined): string => {
+  if (!attributes || Object.keys(attributes).length === 0) {
+    return '';
+  }
+  
+  return Object.entries(attributes)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(', ');
+};
 
-export function formatDistanceToNow(date: Date | string | number): string {
-  const parsedDate = typeof date === 'string' ? new Date(date) : date;
-  return formatDistanceToNowFns(parsedDate, { addSuffix: true, locale: fr });
-}
-
-export function formatDateToFrench(date: Date | string | number): string {
-  const parsedDate = typeof date === 'string' ? new Date(date) : date;
-  return format(parsedDate, 'dd/MM/yyyy', { locale: fr });
-}
+/**
+ * Truncate a string to a maximum length and add ellipsis if needed
+ */
+export const truncateText = (text: string, maxLength = 100): string => {
+  if (!text || text.length <= maxLength) return text;
+  return `${text.substring(0, maxLength)}...`;
+};
