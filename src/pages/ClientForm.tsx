@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { 
@@ -176,6 +177,46 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
     }
   };
 
+  const getAmbassadorProfile = async () => {
+    try {
+      // Get current user
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user) {
+        console.error("No authenticated user found:", userError);
+        toast.error("Vous devez être connecté pour associer un client");
+        return null;
+      }
+      
+      console.log("Current user:", userData.user.id);
+      
+      // Find ambassador record for current user
+      const { data: ambassadorData, error: ambassadorError } = await supabase
+        .from('ambassadors')
+        .select('id')
+        .eq('user_id', userData.user.id)
+        .single();
+      
+      if (ambassadorError) {
+        console.error("Error fetching ambassador data:", ambassadorError);
+        toast.error("Impossible de récupérer les informations de votre compte ambassadeur");
+        return null;
+      }
+      
+      if (!ambassadorData?.id) {
+        console.error("No ambassador profile found for user", userData.user.id);
+        toast.error("Impossible de trouver votre profil d'ambassadeur");
+        return null;
+      }
+      
+      console.log("Ambassador found:", ambassadorData.id);
+      return ambassadorData.id;
+    } catch (error) {
+      console.error("Error getting ambassador profile:", error);
+      toast.error("Erreur lors de la récupération du profil ambassadeur");
+      return null;
+    }
+  };
+
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
@@ -210,39 +251,18 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
             try {
               console.log("Ambassador flow: Linking client to ambassador");
               
-              // Get current user to find ambassador record
-              const { data: userData } = await supabase.auth.getUser();
-              if (!userData?.user) {
-                console.error("No authenticated user found");
-                toast.error("Vous devez être connecté pour associer un client");
+              // Get ambassador ID
+              const ambassadorId = await getAmbassadorProfile();
+              if (!ambassadorId) {
+                console.error("Failed to get ambassador ID");
+                toast.error("Impossible de récupérer votre profil ambassadeur");
                 return;
               }
               
-              console.log("Current user:", userData.user.id);
-              
-              // Find ambassador record for current user
-              const { data: ambassadorData, error: ambassadorError } = await supabase
-                .from('ambassadors')
-                .select('id')
-                .eq('user_id', userData.user.id)
-                .single();
-              
-              if (ambassadorError) {
-                console.error("Error fetching ambassador data:", ambassadorError);
-                toast.error("Impossible de récupérer les informations de votre compte ambassadeur");
-                return;
-              }
-              
-              if (!ambassadorData?.id) {
-                console.error("No ambassador profile found for user", userData.user.id);
-                toast.error("Impossible de trouver votre profil d'ambassadeur");
-                return;
-              }
-              
-              console.log("Ambassador found:", ambassadorData.id);
+              console.log("Linking client to ambassador ID:", ambassadorId);
               
               // Link the client to ambassador
-              const linked = await linkClientToAmbassador(result.id, ambassadorData.id);
+              const linked = await linkClientToAmbassador(result.id, ambassadorId);
               if (linked) {
                 toast.success("Client créé et associé à votre compte d'ambassadeur");
               } else {

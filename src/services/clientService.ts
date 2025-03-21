@@ -284,42 +284,51 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
 
 export const linkClientToAmbassador = async (clientId: string, ambassadorId: string): Promise<boolean> => {
   try {
+    console.log("🔗 Linking client to ambassador:", { clientId, ambassadorId });
+    
     if (!clientId || !ambassadorId) {
-      console.error("Missing required parameters for linkClientToAmbassador", { clientId, ambassadorId });
+      console.error("🚫 Missing required parameters for linkClientToAmbassador", { clientId, ambassadorId });
       toast.error("Missing client or ambassador ID");
       return false;
     }
     
-    console.log("Linking client to ambassador:", {
-      ambassadorId,
-      clientId
-    });
+    // First check if the link already exists to avoid duplicate entries
+    const { data: existingLinks, error: checkError } = await adminSupabase
+      .from("ambassador_clients")
+      .select("*")
+      .eq("ambassador_id", ambassadorId)
+      .eq("client_id", clientId);
+      
+    if (checkError) {
+      console.error("🚫 Error checking existing ambassador-client links:", checkError);
+      toast.error("Error checking existing client links");
+      return false;
+    }
     
-    // Use adminSupabase to bypass RLS
-    const { error } = await adminSupabase
+    // If link already exists, return success
+    if (existingLinks && existingLinks.length > 0) {
+      console.log("✅ Client is already linked to this ambassador");
+      return true;
+    }
+    
+    // Create the link using adminSupabase to bypass RLS policies
+    const { error: insertError } = await adminSupabase
       .from("ambassador_clients")
       .insert({
         ambassador_id: ambassadorId,
         client_id: clientId
       });
     
-    if (error) {
-      console.error("Error linking client to ambassador:", error);
-      
-      // Check if it's a duplicate key violation (client already linked)
-      if (error.code === "23505") {
-        console.log("Client is already linked to this ambassador");
-        return true;
-      }
-      
+    if (insertError) {
+      console.error("🚫 Error linking client to ambassador:", insertError);
       toast.error("Error linking client to ambassador");
       return false;
     }
     
-    console.log("Client successfully linked to ambassador");
+    console.log("✅ Client successfully linked to ambassador");
     return true;
   } catch (error) {
-    console.error("Exception when linking client to ambassador:", error);
+    console.error("🚫 Exception when linking client to ambassador:", error);
     toast.error("Error linking client to ambassador");
     return false;
   }
