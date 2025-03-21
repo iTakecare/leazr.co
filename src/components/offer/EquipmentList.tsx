@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,23 +56,6 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
 
   console.log("Rendering equipment list with items:", equipmentList);
 
-  // Fonction pour formater le coefficient correctement
-  const formatCoefficient = (value: number): string => {
-    return new Intl.NumberFormat('fr-FR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-  };
-  
-  // Fonction pour formater correctement le pourcentage de marge
-  const formatMarginPercentage = (value: number): string => {
-    return new Intl.NumberFormat('fr-FR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-      style: 'decimal'
-    }).format(value) + " %";
-  };
-
   return (
     <div className="space-y-6">
       <Card className="shadow-sm border-gray-200 rounded-lg">
@@ -128,7 +110,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatMarginPercentage(equipment.margin)}
+                    {formatPercentage(equipment.margin)}
                   </TableCell>
                   <TableCell className="text-right font-medium text-blue-600">
                     {formatCurrency((equipment.monthlyPayment || 0) * equipment.quantity)}
@@ -180,15 +162,15 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Coefficient actuel :</span>
-              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.currentCoef)}</span>
+              <span className="font-medium">{formatPercentage(globalMarginAdjustment.currentCoef)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Nouveau coefficient :</span>
-              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.newCoef)}</span>
+              <span className="font-medium">{formatPercentage(globalMarginAdjustment.newCoef)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Marge globale :</span>
-              <span className="font-medium">{formatMarginPercentage(globalMarginAdjustment.percentage)}</span>
+              <span className="font-medium">{formatPercentage(globalMarginAdjustment.percentage)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Marge totale en euros :</span>

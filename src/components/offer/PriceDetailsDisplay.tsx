@@ -1,6 +1,6 @@
 
 import React from "react";
-import { formatCurrency, formatPercentage } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 
 interface PriceDetailsDisplayProps {
   marginAmount: number;
@@ -17,26 +17,6 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   displayMonthlyPayment,
   hideFinancialDetails = false
 }) => {
-  // Formatter le coefficient comme un nombre décimal (pas un pourcentage)
-  const formatCoefficient = (value: number): string => {
-    return new Intl.NumberFormat('fr-FR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 3
-    }).format(value);
-  };
-
-  // Function to correctly format the margin percentage
-  const formatMarginPercentage = (amount: number, base: number): string => {
-    if (isNaN(amount) || base <= 0) return "NaN";
-    
-    const percentage = amount > 0 ? (amount / base) * 100 : 0;
-    return new Intl.NumberFormat('fr-FR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-      style: 'decimal'
-    }).format(percentage) + " %";
-  };
-
   return (
     <div className="space-y-2 border-t pt-4 mt-4">
       {!hideFinancialDetails && (
@@ -44,7 +24,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Marge :</span>
             <span className="font-medium">
-              {formatCurrency(marginAmount)} ({formatMarginPercentage(marginAmount, priceWithMargin - marginAmount)})
+              {formatCurrency(marginAmount)} ({isNaN(marginAmount) ? "NaN" : (marginAmount > 0 ? ((marginAmount / (priceWithMargin - marginAmount)) * 100).toFixed(2) : 0)}%)
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -53,7 +33,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Coefficient appliqué :</span>
-            <span className="font-medium">{formatCoefficient(coefficient)}</span>
+            <span className="font-medium">{coefficient.toFixed(3)}</span>
           </div>
         </>
       )}

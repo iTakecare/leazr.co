@@ -30,15 +30,6 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
   // Déterminer si on doit afficher la marge calculée
   const showCalculatedMargin = calculatedMargin && calculatedMargin.percentage > 0;
   
-  // Format margin percentage with proper French locale
-  const formatMarginPercentage = (value: number): string => {
-    return new Intl.NumberFormat('fr-FR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-      style: 'decimal'
-    }).format(value);
-  };
-  
   return (
     <>
       <div>
@@ -114,7 +105,7 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
               )}
               {showCalculatedMargin && (
                 <p className="text-green-600 text-xs mt-1">
-                  Marge calculée disponible: {formatMarginPercentage(calculatedMargin.percentage)} %
+                  Marge calculée disponible: {calculatedMargin.percentage.toFixed(2)}%
                 </p>
               )}
             </div>
