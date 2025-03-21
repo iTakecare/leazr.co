@@ -120,10 +120,10 @@ function App() {
                 <Route path="offers" element={<AmbassadorOffersPage />} />
                 <Route path="offers/:id" element={<OfferDetail />} />
                 <Route path="clients" element={<AmbassadorClientsPage />} />
-                <Route path="clients/new" element={<ClientForm />} />
-                <Route path="clients/create" element={<ClientForm />} />
+                <Route path="clients/new" element={<ClientForm isAmbassador={true} />} />
+                <Route path="clients/create" element={<ClientForm isAmbassador={true} />} />
                 <Route path="clients/:id" element={<ClientDetail />} />
-                <Route path="clients/edit/:id" element={<ClientForm />} />
+                <Route path="clients/edit/:id" element={<ClientForm isAmbassador={true} />} />
                 <Route path="create-offer" element={<AmbassadorCreateOffer />} />
                 <Route path="create-offer/:clientId" element={<AmbassadorCreateOffer />} />
                 <Route path="catalog" element={<AmbassadorCatalog />} />

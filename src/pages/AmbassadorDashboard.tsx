@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -164,7 +163,7 @@ const AmbassadorDashboard = () => {
               <CardContent>
                 <Button 
                   className="w-full" 
-                  onClick={() => navigate(`/ambassadors/${id}/clients`)}
+                  onClick={() => navigate(`/ambassador/clients`)}
                 >
                   Voir tous mes clients
                 </Button>
@@ -181,7 +180,7 @@ const AmbassadorDashboard = () => {
               <CardContent>
                 <Button 
                   className="w-full" 
-                  onClick={() => navigate(`/ambassadors/${id}/commissions`)}
+                  onClick={() => navigate(`/ambassador/commissions`)}
                 >
                   Voir toutes mes commissions
                 </Button>
