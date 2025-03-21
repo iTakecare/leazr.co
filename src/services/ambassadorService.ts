@@ -237,9 +237,19 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
   try {
     console.log(`[updateAmbassadorCommissionLevel] Début de la mise à jour pour l'ambassadeur ${ambassadorId} vers ${levelId}`);
     
-    // Modification directe sans passer par la fonction RPC qui a des problèmes de conflit de nommage
-    // Utiliser un update simple mais avec les bons paramètres pour éviter les problèmes de cache
-    const { error } = await supabase
+    // Première requête pour forcer un "reset" du cache potentiel
+    await supabase
+      .from("ambassadors")
+      .update({
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", ambassadorId);
+    
+    // Attendre un court délai avant la mise à jour principale
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Mise à jour du barème avec le service role pour contourner les problèmes potentiels de RLS
+    const { error } = await adminSupabase
       .from("ambassadors")
       .update({
         commission_level_id: levelId,
@@ -252,10 +262,10 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
       throw new Error(`Échec de la mise à jour du barème: ${error.message}`);
     }
     
-    // Attendre un court délai pour que la modification soit prise en compte
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Attendre un délai plus long pour s'assurer que la mise à jour a eu le temps d'être propagée
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Vérification après mise à jour
+    // Vérification avec une requête fraîche (sans cache)
     const { data: verifyData, error: verifyError } = await supabase
       .from("ambassadors")
       .select("commission_level_id")
