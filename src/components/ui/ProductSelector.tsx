@@ -81,8 +81,9 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   });
 
   // Obtenir les catégories uniques pour les filtres
-  const categories = products 
-    ? [...new Set(products.map(product => product.category))].filter(Boolean)
+  const categories: string[] = products 
+    ? [...new Set(products.map(product => product.category))]
+      .filter((category): category is string => typeof category === 'string' && Boolean(category))
     : [];
 
   // Filtrer les produits en fonction de la recherche et de la catégorie
