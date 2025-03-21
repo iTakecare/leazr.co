@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, Info } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { toast } from "sonner";
-import { Product } from "@/types/catalog";
+import type { Product as ProductType } from "@/types/catalog"; // Renamed to avoid conflict
 
 interface ProductVariant {
   id: string;
@@ -19,21 +20,22 @@ interface ProductVariant {
   attributes: Record<string, any>;
 }
 
-interface Product {
-  id: string;
-  name: string;
-  brand?: string;
-  category?: string;
-  description?: string;
-  price: number;
-  monthly_price?: number;
-  image_url?: string;
-  active: boolean;
+interface ProductWithVariants extends ProductType {
   variants?: ProductVariant[];
   is_parent?: boolean;
   variation_attributes?: Record<string, string[]>;
   attributes?: Record<string, any>;
   variant_combination_prices?: any[];
+  selected_variant_id?: string;
+}
+
+interface ProductSelectorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectProduct: (product: ProductWithVariants) => void;
+  onViewVariants?: (product: ProductWithVariants, e: React.MouseEvent) => void;
+  title?: string;
+  description?: string;
 }
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
@@ -48,7 +50,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("tous");
   
-  const fetchProducts = async (): Promise<Product[]> => {
+  const fetchProducts = async (): Promise<ProductWithVariants[]> => {
     console.log("Fetching products from Supabase");
     
     try {
@@ -91,8 +93,10 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           ...product,
           variant_combination_prices: productVariantPrices,
           is_parent: isParent || product.is_parent,
-          variation_attributes: variationAttributes
-        };
+          variation_attributes: variationAttributes,
+          createdAt: product.created_at || new Date(),
+          updatedAt: product.updated_at || new Date()
+        } as ProductWithVariants;
       });
       
       console.log("Processed products with variants:", productsWithVariants.length);
@@ -184,7 +188,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   const filteredProducts = getFilteredProducts();
   
-  const handleProductSelect = (product: Product) => {
+  const handleProductSelect = (product: ProductWithVariants) => {
     console.log("Selected product:", product);
     onSelectProduct(product);
     onClose();
