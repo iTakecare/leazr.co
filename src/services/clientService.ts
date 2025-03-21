@@ -398,6 +398,28 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       clientId
     });
     
+    const { data: clientExists, error: clientError } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("id", clientId)
+      .single();
+    
+    if (clientError) {
+      console.error("Error verifying client existence:", clientError);
+      throw new Error(`Client with ID ${clientId} not found`);
+    }
+    
+    const { data: ambassadorExists, error: ambassadorError } = await supabase
+      .from("ambassadors")
+      .select("id")
+      .eq("id", ambassadorId)
+      .single();
+    
+    if (ambassadorError) {
+      console.error("Error verifying ambassador existence:", ambassadorError);
+      throw new Error(`Ambassador with ID ${ambassadorId} not found`);
+    }
+    
     const { data: existingLink, error: checkError } = await supabase
       .from("ambassador_clients")
       .select("id")
@@ -415,7 +437,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
     }
     
     console.log("Creating new ambassador-client link");
-    const { data, error: linkError } = await supabase
+    const { data, error: insertError } = await supabase
       .from("ambassador_clients")
       .insert({
         ambassador_id: ambassadorId,
@@ -423,9 +445,9 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       })
       .select();
       
-    if (linkError) {
-      console.error("Error linking client to ambassador:", linkError);
-      throw linkError;
+    if (insertError) {
+      console.error("Error linking client to ambassador:", insertError);
+      throw insertError;
     }
     
     console.log("Client successfully linked to ambassador, result:", data);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -63,38 +62,48 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
     if (isOpen) {
       setLoading(true);
       try {
-        let data;
+        let clientsData: Client[] = [];
         
         if (isAmbassador() && user?.ambassador_id) {
           console.log("Loading ambassador clients for:", user.ambassador_id);
-          const { data: ambassadorClients, error: clientsError } = await supabase
+          
+          const { data: ambassadorClientLinks, error: linksError } = await supabase
             .from("ambassador_clients")
-            .select(`
-              id,
-              client_id,
-              clients (*)
-            `)
+            .select("id, client_id")
             .eq("ambassador_id", user.ambassador_id);
             
-          if (clientsError) {
-            console.error("Error loading ambassador clients:", clientsError);
-            throw clientsError;
+          if (linksError) {
+            console.error("Error fetching ambassador client links:", linksError);
+            throw linksError;
           }
           
-          console.log("Ambassador clients data:", ambassadorClients);
+          console.log("Ambassador client links from selector:", ambassadorClientLinks);
           
-          if (ambassadorClients && ambassadorClients.length > 0) {
-            data = ambassadorClients
-              .filter(item => item.clients) // Filter out any null references
-              .map(item => item.clients);
+          if (ambassadorClientLinks && ambassadorClientLinks.length > 0) {
+            const clientIds = ambassadorClientLinks.map(link => link.client_id);
+            console.log("Client IDs to fetch from selector:", clientIds);
+            
+            const { data: clientRecords, error: clientsError } = await supabase
+              .from("clients")
+              .select("*")
+              .in("id", clientIds);
+              
+            if (clientsError) {
+              console.error("Error fetching client details from selector:", clientsError);
+              throw clientsError;
+            }
+            
+            console.log("Fetched client data from selector:", clientRecords);
+            clientsData = clientRecords || [];
           } else {
-            data = [];
+            console.log("No client associations found for this ambassador in selector");
+            clientsData = [];
           }
         } else {
-          data = await getClients();
+          clientsData = await getClients();
         }
         
-        setClients(data);
+        setClients(clientsData);
       } catch (error) {
         console.error("Error fetching clients:", error);
         toast.error("Error loading clients");
@@ -153,13 +162,16 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
             
             await linkClientToAmbassador(newClient.id, user.ambassador_id);
             console.log("Client successfully associated with ambassador from selector");
-            await fetchClients(); // Refresh the client list
+            
+            setTimeout(() => {
+              fetchClients();
+            }, 500);
           } catch (associationError) {
             console.error("Exception associating client:", associationError);
             toast.error("Error associating client with ambassador");
           }
         } else {
-          setClients([...clients, newClient]);
+          setClients(prevClients => [...prevClients, newClient]);
         }
         
         form.reset();

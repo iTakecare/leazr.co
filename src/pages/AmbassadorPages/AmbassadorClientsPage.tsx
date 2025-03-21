@@ -37,35 +37,57 @@ const AmbassadorClientsPage = () => {
       
       console.log("Fetching clients for ambassador ID:", user.ambassador_id);
       
-      // Get all clients linked to this ambassador - use a more explicit join query
-      const { data: ambassadorClients, error: clientsError } = await supabase
+      // First fetch ambassador_clients associations
+      const { data: ambassadorClientLinks, error: linksError } = await supabase
         .from("ambassador_clients")
-        .select(`
-          id,
-          client_id,
-          clients (*)
-        `)
+        .select("id, client_id")
         .eq("ambassador_id", user.ambassador_id);
         
+      if (linksError) {
+        console.error("Error fetching ambassador client links:", linksError);
+        throw linksError;
+      }
+      
+      console.log("Ambassador client links:", ambassadorClientLinks);
+      
+      if (!ambassadorClientLinks || ambassadorClientLinks.length === 0) {
+        console.log("No client associations found for this ambassador");
+        setClients([]);
+        setFilteredClients([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Extract client IDs
+      const clientIds = ambassadorClientLinks.map(link => link.client_id);
+      console.log("Client IDs to fetch:", clientIds);
+      
+      // Fetch the actual client records
+      const { data: clientsData, error: clientsError } = await supabase
+        .from("clients")
+        .select("*")
+        .in("id", clientIds);
+        
       if (clientsError) {
-        console.error("Error fetching ambassador clients:", clientsError);
+        console.error("Error fetching client details:", clientsError);
         throw clientsError;
       }
       
-      console.log("Ambassador clients raw data:", ambassadorClients);
+      console.log("Fetched client data:", clientsData);
       
-      // Transform data to get only client information
-      if (ambassadorClients && ambassadorClients.length > 0) {
-        const clientsData = ambassadorClients
-          .filter(item => item.clients) // Filter out any null client references
-          .map(item => ({
-            ...item.clients,
-            ambassador_client_id: item.id // Keep reference to the association ID
-          }));
-          
-        console.log("Processed clients data:", clientsData);
-        setClients(clientsData);
-        setFilteredClients(clientsData);
+      if (clientsData && clientsData.length > 0) {
+        // Enrich client data with ambassador_client_id
+        const enrichedClients = clientsData.map(client => {
+          const link = ambassadorClientLinks.find(l => l.client_id === client.id);
+          return {
+            ...client,
+            ambassador_client_id: link ? link.id : null
+          };
+        });
+        
+        console.log("Processed clients data:", enrichedClients);
+        setClients(enrichedClients);
+        setFilteredClients(enrichedClients);
       } else {
         console.log("No clients found for this ambassador");
         setClients([]);
