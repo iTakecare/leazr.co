@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, Info } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { toast } from "sonner";
-import type { Product as ProductType } from "@/types/catalog"; // Renamed to avoid conflict
+import type { Product as ProductType } from "@/types/catalog";
 
 interface ProductVariant {
   id: string;
@@ -20,7 +19,7 @@ interface ProductVariant {
   attributes: Record<string, any>;
 }
 
-interface ProductWithVariants extends ProductType {
+interface ProductWithVariants extends Omit<ProductType, 'variants'> {
   variants?: ProductVariant[];
   is_parent?: boolean;
   variation_attributes?: Record<string, string[]>;

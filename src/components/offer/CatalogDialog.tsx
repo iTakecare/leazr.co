@@ -7,7 +7,7 @@ import ProductSelector from "@/components/ui/ProductSelector";
 import VariantSelector from "@/components/catalog/VariantSelector";
 import type { Product } from "@/types/catalog";
 
-interface ProductWithVariants extends Product {
+interface ProductWithVariants extends Omit<Product, 'variants'> {
   variation_attributes?: Record<string, string[]>;
   variant_combination_prices?: any[];
   is_parent?: boolean;
@@ -103,8 +103,8 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           {showVariantSelector && selectedProduct ? (
             <div className="p-4">
               <VariantSelector 
-                product={selectedProduct}
-                onVariantSelect={onVariantSelect}
+                product={selectedProduct as any}
+                onVariantSelect={onVariantSelect as any}
               />
             </div>
           ) : (

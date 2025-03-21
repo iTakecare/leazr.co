@@ -26,15 +26,12 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   };
 
   // Function to correctly format the margin percentage
-  const formatMarginPercentage = (amount: number, base: number): string => {
-    if (isNaN(amount) || base <= 0) return "NaN";
-    
-    const percentage = amount > 0 ? (amount / base) * 100 : 0;
+  const formatMarginPercentage = (margin: number): string => {
     return new Intl.NumberFormat('fr-FR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
       style: 'decimal'
-    }).format(percentage) + " %";
+    }).format(margin) + " %";
   };
 
   return (
@@ -44,7 +41,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Marge :</span>
             <span className="font-medium">
-              {formatCurrency(marginAmount)} ({formatMarginPercentage(marginAmount, priceWithMargin - marginAmount)})
+              {formatCurrency(marginAmount)} ({formatMarginPercentage(priceWithMargin > 0 ? (marginAmount / (priceWithMargin - marginAmount)) * 100 : 0)})
             </span>
           </div>
           <div className="flex justify-between items-center">
