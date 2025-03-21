@@ -38,7 +38,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
   totalMonthlyPayment,
   globalMarginAdjustment,
   toggleAdaptMonthlyPayment,
-  hideFinancialDetails
+  hideFinancialDetails = false
 }) => {
   // Helper function to format coefficient
   const formatCoefficient = (value: number): string => {
@@ -73,9 +73,13 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
             <TableHeader>
               <TableRow className="bg-gray-50 hover:bg-gray-50">
                 <TableHead className="font-medium">Équipement</TableHead>
-                <TableHead className="text-right font-medium">Prix unitaire</TableHead>
+                {!hideFinancialDetails && (
+                  <TableHead className="text-right font-medium">Prix unitaire</TableHead>
+                )}
                 <TableHead className="text-center font-medium">Qté</TableHead>
-                <TableHead className="text-right font-medium">Marge</TableHead>
+                {!hideFinancialDetails && (
+                  <TableHead className="text-right font-medium">Marge</TableHead>
+                )}
                 <TableHead className="text-right font-medium">Total</TableHead>
                 <TableHead className="text-center font-medium">Actions</TableHead>
               </TableRow>
@@ -89,9 +93,11 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
                   <TableCell>
                     <div className="font-medium">{equipment.title}</div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(equipment.purchasePrice)}
-                  </TableCell>
+                  {!hideFinancialDetails && (
+                    <TableCell className="text-right">
+                      {formatCurrency(equipment.purchasePrice)}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex items-center justify-center">
                       <Button 
@@ -115,9 +121,11 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
                       </Button>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {formatPercentageWithComma(equipment.margin)}
-                  </TableCell>
+                  {!hideFinancialDetails && (
+                    <TableCell className="text-right">
+                      {formatPercentageWithComma(equipment.margin)}
+                    </TableCell>
+                  )}
                   <TableCell className="text-right font-medium text-blue-600">
                     {formatCurrency((equipment.monthlyPayment || 0) * equipment.quantity)}
                   </TableCell>
@@ -148,7 +156,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={4} className="text-right font-medium">
+                <TableCell colSpan={hideFinancialDetails ? 2 : 4} className="text-right font-medium">
                   Mensualité totale :
                 </TableCell>
                 <TableCell colSpan={2} className="text-right text-blue-600 font-bold">
@@ -166,53 +174,59 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
         </CardHeader>
         <CardContent className="p-6">
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Coefficient actuel :</span>
-              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.currentCoef)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Nouveau coefficient :</span>
-              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.newCoef)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Marge globale :</span>
-              <span className="font-medium">{formatPercentageWithComma(globalMarginAdjustment.percentage)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Marge totale en euros :</span>
-              <span className="font-medium">{formatCurrency(globalMarginAdjustment.amount)}</span>
-            </div>
-            
-            {!globalMarginAdjustment.adaptMonthlyPayment && globalMarginAdjustment.marginDifference !== 0 && (
+            {!hideFinancialDetails && (
               <>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Différence de marge :</span>
-                  <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(globalMarginAdjustment.marginDifference)}
-                  </span>
+                  <span className="text-gray-600">Coefficient actuel :</span>
+                  <span className="font-medium">{formatCoefficient(globalMarginAdjustment.currentCoef)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Nouveau coefficient :</span>
+                  <span className="font-medium">{formatCoefficient(globalMarginAdjustment.newCoef)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Marge globale :</span>
+                  <span className="font-medium">{formatPercentageWithComma(globalMarginAdjustment.percentage)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Marge totale en euros :</span>
+                  <span className="font-medium">{formatCurrency(globalMarginAdjustment.amount)}</span>
                 </div>
                 
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Total marge avec différence :</span>
-                  <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-blue-600'}`}>
-                    {formatCurrency(globalMarginAdjustment.amount + globalMarginAdjustment.marginDifference)}
-                  </span>
-                </div>
+                {!globalMarginAdjustment.adaptMonthlyPayment && globalMarginAdjustment.marginDifference !== 0 && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Différence de marge :</span>
+                      <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(globalMarginAdjustment.marginDifference)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Total marge avec différence :</span>
+                      <span className={`font-medium ${globalMarginAdjustment.marginDifference > 0 ? 'text-green-600' : 'text-blue-600'}`}>
+                        {formatCurrency(globalMarginAdjustment.amount + globalMarginAdjustment.marginDifference)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </>
             )}
             
-            <div className="flex items-center justify-between py-2 border-t border-b mt-2">
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="adapt-monthly" 
-                  checked={globalMarginAdjustment.adaptMonthlyPayment}
-                  onCheckedChange={toggleAdaptMonthlyPayment}
-                />
-                <Label htmlFor="adapt-monthly" className="cursor-pointer">
-                  Adapter la mensualité au nouveau coefficient
-                </Label>
+            {!hideFinancialDetails && (
+              <div className="flex items-center justify-between py-2 border-t border-b mt-2">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="adapt-monthly" 
+                    checked={globalMarginAdjustment.adaptMonthlyPayment}
+                    onCheckedChange={toggleAdaptMonthlyPayment}
+                  />
+                  <Label htmlFor="adapt-monthly" className="cursor-pointer">
+                    Adapter la mensualité au nouveau coefficient
+                  </Label>
+                </div>
               </div>
-            </div>
+            )}
             
             <div className="flex justify-between items-center text-blue-600 mt-2">
               <span className="font-medium">Mensualité totale :</span>
