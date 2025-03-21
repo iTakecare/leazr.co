@@ -1,9 +1,8 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
-import { Layers } from "lucide-react";
+import { Layers, ChevronRight } from "lucide-react";
 
 interface ProductVariant {
   id: string;
@@ -36,32 +35,26 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   if (!product) return null;
   
-  // Ensure we have valid data for display
   const productName = product?.name || "Produit sans nom";
   const productBrand = product?.brand || "";
   
-  // Calculate minimum monthly price from variants if they exist
   let productMonthlyPrice: string | number = "Non définie";
   let productPrice: string | number = product?.price || 0;
   let hasVariants = false;
   
-  // Check if the product has variation attributes or variant_combination_prices
   const hasVariationAttributes = 
     (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) ||
     (product.variant_combination_prices && product.variant_combination_prices.length > 0);
   
-  // Format the main product price
   if (typeof productPrice === 'number') {
     productPrice = formatCurrency(productPrice);
   }
   
-  // Check if product has variants or variant_combination_prices
   if ((product?.variants && product.variants.length > 0) || 
       (product?.variant_combination_prices && product.variant_combination_prices.length > 0)) {
     hasVariants = true;
     
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      // Get all valid monthly prices from variant_combination_prices
       const variantPrices = product.variant_combination_prices
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
@@ -71,7 +64,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
         productMonthlyPrice = formatCurrency(minPrice);
       }
     } else if (product.variants && product.variants.length > 0) {
-      // Get all valid monthly prices from variants
       const variantPrices = product.variants
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
@@ -82,13 +74,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
       }
     }
   } else if (product?.monthly_price) {
-    // If no variants but product has monthly price
     productMonthlyPrice = formatCurrency(product.monthly_price);
   }
   
   const productImage = product?.image_url || "/placeholder.svg";
   
-  // Count variants for display
   const variantsCount = product.variant_combination_prices?.length || product.variants?.length || 0;
   
   return (
