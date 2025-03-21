@@ -24,6 +24,7 @@ interface Product {
   active?: boolean;
   variation_attributes?: Record<string, string[]>;
   attributes?: Record<string, any>;
+  variant_combination_prices?: any[];
 }
 
 interface ProductCardProps {
@@ -43,27 +44,41 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   let productPrice: string | number = product?.price || 0;
   let hasVariants = false;
   
-  // Check if the product has variation attributes defined
-  const hasVariationAttributes = product.variation_attributes && 
-    Object.keys(product.variation_attributes).length > 0;
+  // Check if the product has variation attributes or variant_combination_prices
+  const hasVariationAttributes = 
+    (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) ||
+    (product.variant_combination_prices && product.variant_combination_prices.length > 0);
   
   // Format the main product price
   if (typeof productPrice === 'number') {
     productPrice = formatCurrency(productPrice);
   }
   
-  // Check if product has variants
-  if (product?.variants && product.variants.length > 0) {
+  // Check if product has variants or variant_combination_prices
+  if ((product?.variants && product.variants.length > 0) || 
+      (product?.variant_combination_prices && product.variant_combination_prices.length > 0)) {
     hasVariants = true;
     
-    // Get all valid monthly prices from variants
-    const variantPrices = product.variants
-      .map(variant => variant.monthly_price || 0)
-      .filter(price => price > 0);
-      
-    if (variantPrices.length > 0) {
-      const minPrice = Math.min(...variantPrices);
-      productMonthlyPrice = formatCurrency(minPrice);
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      // Get all valid monthly prices from variant_combination_prices
+      const variantPrices = product.variant_combination_prices
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+        
+      if (variantPrices.length > 0) {
+        const minPrice = Math.min(...variantPrices);
+        productMonthlyPrice = formatCurrency(minPrice);
+      }
+    } else if (product.variants && product.variants.length > 0) {
+      // Get all valid monthly prices from variants
+      const variantPrices = product.variants
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+        
+      if (variantPrices.length > 0) {
+        const minPrice = Math.min(...variantPrices);
+        productMonthlyPrice = formatCurrency(minPrice);
+      }
     }
   } else if (product?.monthly_price) {
     // If no variants but product has monthly price
@@ -72,7 +87,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   
   const productImage = product?.image_url || "/placeholder.svg";
   
-  // Determine the badge type
+  // Determine the badge type based on product characteristics
   const getBadgeType = () => {
     if (hasVariationAttributes) return "info";
     if (product.is_parent) return "success";
@@ -80,14 +95,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
     return "default";
   };
   
-  // Determine badge text
+  // Get the appropriate badge text
   const getBadgeText = () => {
-    if (hasVariationAttributes) {
-      const attributeCount = Object.keys(product.variation_attributes || {}).length;
+    // For products with variant_combination_prices
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      return `${product.variant_combination_prices.length} variante(s)`;
+    }
+    
+    // For products with variation_attributes
+    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+      const attributeCount = Object.keys(product.variation_attributes).length;
       return `${attributeCount} attribut(s)`;
     }
+    
+    // For parent products
     if (product.is_parent) return "Produit parent";
+    
+    // For products with attributes
     if (product.attributes && Object.keys(product.attributes).length > 0) return "Variante";
+    
+    // Default case
     return "Produit standard";
   };
 
