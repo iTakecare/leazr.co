@@ -14,11 +14,7 @@ interface CommissionLevelFormProps {
   onClose: () => void;
   level: CommissionLevel | null;
   type: 'ambassador' | 'partner';
-  onSave: () => void;
-  // Ces props ne sont pas utilisées ici, mais sont exigées par CommissionManager
-  onSubmit?: (data: Partial<CommissionLevel>) => Promise<void>;
-  onCancel?: () => void;
-  initialData?: { name: string; is_default: boolean };
+  onSave: (data: Partial<CommissionLevel>) => void; // Updated the type to match how it's called
 }
 
 const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
@@ -27,17 +23,16 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
   level,
   type,
   onSave,
-  initialData
 }) => {
-  const [name, setName] = useState(initialData?.name || level?.name || '');
-  const [isDefault, setIsDefault] = useState(initialData?.is_default || level?.is_default || false);
+  const [name, setName] = useState(level?.name || '');
+  const [isDefault, setIsDefault] = useState(level?.is_default || false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = Boolean(level);
 
   const resetForm = () => {
-    setName(initialData?.name || level?.name || '');
-    setIsDefault(initialData?.is_default || level?.is_default || false);
+    setName(level?.name || '');
+    setIsDefault(level?.is_default || false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +58,13 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
         });
         toast.success("Barème créé avec succès");
       }
-      onSave();
+      
+      // Call onSave with the form data
+      onSave({ 
+        name, 
+        is_default: isDefault,
+        type
+      });
     } catch (error) {
       console.error("Error saving commission level:", error);
       toast.error("Erreur lors de l'enregistrement du barème");

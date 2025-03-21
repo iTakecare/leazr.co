@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -116,7 +115,6 @@ const CommissionManager = () => {
       if (data && data.length > 0) {
         setRates(data);
       } else {
-        // If no data, try with the service function
         const ratesData = await getCommissionRates(levelId);
         console.log("Loaded rates from service:", ratesData);
         setRates(ratesData);
