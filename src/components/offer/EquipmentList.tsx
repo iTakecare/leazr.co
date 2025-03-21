@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,14 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
   }
 
   console.log("Rendering equipment list with items:", equipmentList);
+
+  // Fonction pour formater le coefficient correctement
+  const formatCoefficient = (value: number): string => {
+    return new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
 
   return (
     <div className="space-y-6">
@@ -162,11 +171,11 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Coefficient actuel :</span>
-              <span className="font-medium">{formatPercentage(globalMarginAdjustment.currentCoef)}</span>
+              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.currentCoef)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Nouveau coefficient :</span>
-              <span className="font-medium">{formatPercentage(globalMarginAdjustment.newCoef)}</span>
+              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.newCoef)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Marge globale :</span>

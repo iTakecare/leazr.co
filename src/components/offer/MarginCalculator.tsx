@@ -28,6 +28,14 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState(targetMonthlyPayment ? targetMonthlyPayment.toString() : "");
 
+  // Formatter le coefficient comme un nombre décimal (pas un pourcentage)
+  const formatCoefficient = (value: number): string => {
+    return new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
   // Mettre à jour le champ d'entrée quand targetMonthlyPayment change
   useEffect(() => {
     if (targetMonthlyPayment > 0) {
@@ -97,7 +105,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="block text-sm text-gray-700">Coefficient appliqué :</span>
-                <span className="font-medium">{coefficient.toFixed(2)}</span>
+                <span className="font-medium">{formatCoefficient(coefficient)}</span>
               </div>
               <div>
                 <span className="block text-sm text-gray-700">Marge calculée :</span>
