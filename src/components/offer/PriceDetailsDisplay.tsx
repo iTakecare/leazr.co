@@ -25,7 +25,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
     ? (marginAmount / priceWithoutMargin) * 100 
     : 0;
     
-  // Fonction pour formater correctement le pourcentage avec la virgule comme séparateur décimal
+  // Function to format percentage with comma as decimal separator
   const formatPercentageWithComma = (value: number): string => {
     return value.toFixed(2).replace('.', ',') + '%';
   };

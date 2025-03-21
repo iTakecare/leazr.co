@@ -105,6 +105,17 @@ export const formatAttributes = (attributes: Record<string, any> | undefined): s
 };
 
 /**
+ * Format a number as a percentage with comma as decimal separator for French locale
+ */
+export const formatPercentageWithComma = (value: number): string => {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return '0,00%';
+  }
+  
+  return value.toFixed(2).replace('.', ',') + '%';
+};
+
+/**
  * Format a number as a percentage
  */
 export const formatPercentage = (value: number): string => {

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatPercentage } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaser } from "@/types/equipment";
@@ -28,7 +28,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState(targetMonthlyPayment ? targetMonthlyPayment.toString() : "");
 
-  // Mettre à jour le champ d'entrée quand targetMonthlyPayment change
+  // Update input field when targetMonthlyPayment changes
   useEffect(() => {
     if (targetMonthlyPayment > 0) {
       setInputValue(targetMonthlyPayment.toString());
@@ -53,12 +53,12 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
   };
 
   const handleApplyMargin = () => {
-    // D'abord définir explicitement la mensualité cible pour garantir sa mise à jour
+    // First explicitly set the target monthly payment to ensure it's updated
     const numValue = parseFloat(inputValue);
     if (!isNaN(numValue) && numValue > 0) {
       setTargetMonthlyPayment(numValue);
       
-      // Attendre le prochain cycle de rendu avant d'appliquer la marge calculée
+      // Wait for the next render cycle before applying the calculated margin
       setTimeout(() => {
         applyCalculatedMargin();
       }, 0);
@@ -67,7 +67,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
     }
   };
 
-  // Fonction pour formater correctement le pourcentage avec la virgule comme séparateur décimal
+  // Format percentage with comma as decimal separator
   const formatPercentageWithComma = (value: number): string => {
     return value.toFixed(2).replace('.', ',') + ' %';
   };
