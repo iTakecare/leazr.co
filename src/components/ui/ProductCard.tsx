@@ -1,8 +1,28 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
-import { Product } from "@/types/catalog";
+
+interface ProductVariant {
+  id: string;
+  price: number;
+  monthly_price?: number;
+  attributes?: Record<string, any>;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  brand?: string;
+  category?: string;
+  price: number;
+  monthly_price?: number;
+  image_url?: string;
+  variants?: ProductVariant[];
+  is_parent?: boolean;
+  active?: boolean;
+}
 
 interface ProductCardProps {
   product: Product;
@@ -12,14 +32,16 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   // Ensure we have valid data for display
   const productName = product?.name || "Produit sans nom";
+  const productBrand = product?.brand || "";
   
   // Calculate minimum monthly price from variants if they exist
-  let productMonthlyPrice = "Non définie";
-  let productPrice = "Non défini";
+  let productMonthlyPrice: string | number = "Non définie";
+  let productPrice: string | number = product?.price || 0;
   let hasVariants = false;
   
-  if (product?.price !== undefined) {
-    productPrice = formatCurrency(product.price);
+  // Format the main product price
+  if (typeof productPrice === 'number') {
+    productPrice = formatCurrency(productPrice);
   }
   
   // Check if product has variants
@@ -41,6 +63,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   }
   
   const productImage = product?.image_url || "/placeholder.svg";
+  
+  // Déterminer le badge de statut
+  const getBadgeType = () => {
+    if (hasVariants) return "info";
+    if (product.is_parent) return "success";
+    return "default";
+  };
+  
+  const getBadgeText = () => {
+    if (hasVariants) return `${product.variants?.length || 0} option(s)`;
+    if (product.is_parent) return "Produit parent";
+    return "Produit standard";
+  };
 
   return (
     <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white" onClick={onClick}>
@@ -58,6 +93,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
           </div>
           <div className="w-2/3 p-4">
             <h3 className="font-medium text-sm mb-1 line-clamp-2">{productName}</h3>
+            {productBrand && <p className="text-xs text-gray-500 mb-2">{productBrand}</p>}
+            
             <div className="text-sm space-y-1">
               <p className="text-muted-foreground">
                 Prix: {productPrice}
@@ -66,14 +103,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
                 {hasVariants ? "À partir de " : "Mensualité: "}{productMonthlyPrice}
               </p>
             </div>
-            <div className="mt-2 flex items-center">
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-                Disponible
-              </span>
-              {hasVariants && (
-                <span className="ml-2 inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                  {product.variants?.length || 0} option(s)
-                </span>
+            <div className="mt-2 flex items-center gap-2">
+              <Badge variant={getBadgeType() as any} className="text-xs">
+                {getBadgeText()}
+              </Badge>
+              {product.category && (
+                <Badge variant="outline" className="text-xs">
+                  {product.category}
+                </Badge>
               )}
             </div>
           </div>
