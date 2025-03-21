@@ -105,17 +105,19 @@ export const createAmbassador = async (
 export const updateAmbassador = async (
   id: string,
   ambassadorData: AmbassadorFormValues
-): Promise<Ambassador> => {
+): Promise<void> => {
   try {
-    const { data, error } = await supabase
+    // Correction: suppression de .select().single() qui cause des erreurs
+    // quand la mise à jour n'affecte aucune ligne (pas de changement)
+    const { error } = await supabase
       .from("ambassadors")
       .update(ambassadorData)
-      .eq("id", id)
-      .select()
-      .single();
+      .eq("id", id);
 
     if (error) throw error;
-    return data;
+    
+    // Au lieu de retourner les données, simplement retourner void
+    // Cette approche est plus robuste
   } catch (error) {
     console.error(`Error updating ambassador with ID ${id}:`, error);
     throw error;
