@@ -226,6 +226,14 @@ const AmbassadorCreateOffer = () => {
   // Flag pour masquer les détails financiers
   const hideFinancialDetails = true;
   
+  // Débogage: afficher les informations de l'ambassadeur
+  useEffect(() => {
+    if (ambassador) {
+      console.log("Ambassador state updated:", ambassador);
+      console.log("Commission level ID:", ambassador.commission_level_id);
+    }
+  }, [ambassador]);
+  
   return (
     <PageTransition>
       <Container>

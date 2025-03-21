@@ -57,6 +57,13 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
     marginDifferenceCommission: 0
   });
 
+  // Add debug logs to check values
+  useEffect(() => {
+    console.log("EquipmentList received commissionLevelId:", commissionLevelId);
+    console.log("EquipmentList received ambassadorId:", ambassadorId);
+    console.log("Global margin amount:", globalMarginAdjustment.amount);
+  }, [commissionLevelId, ambassadorId, globalMarginAdjustment]);
+
   // Calculate commission based on margin
   useEffect(() => {
     const calculateCommission = async () => {
@@ -265,7 +272,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
               </>
             )}
             
-            {/* Le switch pour adapter la mensualité est toujours visible, même avec hideFinancialDetails à true */}
+            {/* Cette section reste visible même avec hideFinancialDetails=true */}
             <div className="flex items-center space-x-2 py-2 border-t border-b mt-2">
               <Switch 
                 id="adapt-monthly" 
@@ -285,8 +292,8 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
         </CardContent>
       </Card>
 
-      {/* Afficher TOUJOURS le bloc de commissionnement lorsqu'un niveau de commission est disponible */}
-      {commissionLevelId && (
+      {/* Section de commissionnement - ajout d'une condition plus robuste */}
+      {commissionLevelId && commissionLevelId.length > 0 && (
         <Card className="shadow-sm border-gray-200 rounded-lg">
           <CardHeader className="pb-3 border-b">
             <div className="flex items-center space-x-2">

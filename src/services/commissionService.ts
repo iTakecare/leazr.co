@@ -8,339 +8,398 @@ export interface CommissionRate {
   max_amount: number;
   rate: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface CommissionLevel {
   id: string;
   name: string;
-  type: string;
+  type: 'partner' | 'ambassador';
   is_default: boolean;
   created_at: string;
-  rates?: CommissionRate[];
+  updated_at: string;
 }
 
-// Récupérer un niveau de commission par ID avec ses taux associés
-export const getCommissionLevelWithRates = async (
-  id: string
-): Promise<CommissionLevel | null> => {
+/**
+ * Récupère les niveaux de commission
+ */
+export const getCommissionLevels = async (type: 'partner' | 'ambassador' = 'partner'): Promise<CommissionLevel[]> => {
   try {
-    const { data: level, error: levelError } = await supabase
-      .from("commission_levels")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (levelError) {
-      console.error("Error fetching commission level:", levelError);
-      throw levelError;
-    }
-
-    if (!level) {
-      console.warn(`Commission level with ID ${id} not found.`);
-      return null;
-    }
-
-    // Check the actual column name in the database for commission_level_id
-    const { data: rates, error: ratesError } = await supabase
-      .from("commission_rates")
-      .select("*")
-      // Use level_id if commission_level_id doesn't exist
-      .eq("level_id", id);
-
-    if (ratesError) {
-      console.error("Error fetching commission rates:", ratesError);
-      
-      // For debugging, try to query the table structure
-      console.log("Attempting to diagnose commission_rates table structure...");
-      
-      // Create a fallback empty array for rates
-      const commissionLevelWithRates: CommissionLevel = {
-        ...level,
-        rates: [],
-      };
-      
-      return commissionLevelWithRates;
-    }
-
-    const commissionLevelWithRates: CommissionLevel = {
-      ...level,
-      rates: rates || [],
-    };
-
-    return commissionLevelWithRates;
-  } catch (error) {
-    console.error("Error fetching commission level with rates:", error);
-    return null;
-  }
-};
-
-// Récupérer tous les niveaux de commission pour un type donné (ambassador ou partner)
-export const getCommissionLevels = async (type: string): Promise<CommissionLevel[]> => {
-  try {
+    console.log(`[getCommissionLevels] Fetching commission levels for type: ${type}`);
     const { data, error } = await supabase
       .from('commission_levels')
       .select('*')
       .eq('type', type)
       .order('name');
-
-    if (error) throw error;
+    
+    if (error) {
+      console.error("[getCommissionLevels] Error fetching commission levels:", error);
+      throw error;
+    }
+    
+    console.log(`[getCommissionLevels] Found ${data?.length || 0} commission levels`);
     return data || [];
   } catch (error) {
-    console.error("Error fetching commission levels:", error);
+    console.error("[getCommissionLevels] Error:", error);
     return [];
   }
 };
 
-// Récupérer les taux pour un niveau spécifique
+/**
+ * Récupère les taux de commission pour un niveau donné
+ */
 export const getCommissionRates = async (levelId: string): Promise<CommissionRate[]> => {
   try {
+    console.log(`[getCommissionRates] Fetching rates for level: ${levelId}`);
     const { data, error } = await supabase
       .from('commission_rates')
       .select('*')
       .eq('commission_level_id', levelId)
       .order('min_amount');
-
-    if (error) throw error;
-    return data || [];
+    
+    if (error) {
+      console.error("[getCommissionRates] Error fetching commission rates:", error);
+      throw error;
+    }
+    
+    console.log(`[getCommissionRates] Found ${data?.length || 0} rates for level ${levelId}`);
+    
+    // Si aucun taux n'est trouvé, utiliser des taux par défaut
+    if (!data || data.length === 0) {
+      console.log("[getCommissionRates] No rates found, using default static rates");
+      return [
+        {
+          id: 'default-1',
+          commission_level_id: levelId,
+          min_amount: 500,
+          max_amount: 2500,
+          rate: 10,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 'default-2',
+          commission_level_id: levelId,
+          min_amount: 2500.01,
+          max_amount: 5000,
+          rate: 13,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 'default-3',
+          commission_level_id: levelId,
+          min_amount: 5000.01,
+          max_amount: 12500,
+          rate: 18,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 'default-4',
+          commission_level_id: levelId,
+          min_amount: 12500.01,
+          max_amount: 25000,
+          rate: 21,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 'default-5',
+          commission_level_id: levelId,
+          min_amount: 25000.01,
+          max_amount: 50000,
+          rate: 25,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
+    }
+    
+    return data;
   } catch (error) {
-    console.error("Error fetching commission rates:", error);
+    console.error("[getCommissionRates] Error:", error);
     return [];
   }
 };
 
-// Créer un nouveau niveau de commission
-export const createCommissionLevel = async (
-  levelData: Omit<CommissionLevel, 'id' | 'created_at'>
-): Promise<CommissionLevel | null> => {
+/**
+ * Récupère le niveau de commission par défaut
+ */
+export const getDefaultCommissionLevel = async (type: 'partner' | 'ambassador' = 'partner'): Promise<CommissionLevel | null> => {
   try {
-    const { data, error } = await supabase
-      .from('commission_levels')
-      .insert([levelData])
-      .select()
-      .single();
-
-    if (error) throw error;
-    
-    // Si ce niveau est défini par défaut, mettre à jour les autres niveaux du même type
-    if (levelData.is_default) {
-      await setDefaultCommissionLevel(data.id, levelData.type);
-    }
-    
-    return data;
-  } catch (error) {
-    console.error("Error creating commission level:", error);
-    return null;
-  }
-};
-
-// Mettre à jour un niveau de commission
-export const updateCommissionLevel = async (
-  id: string,
-  levelData: Partial<CommissionLevel>
-): Promise<CommissionLevel | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('commission_levels')
-      .update(levelData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    
-    // Si ce niveau est défini par défaut, mettre à jour les autres niveaux du même type
-    if (levelData.is_default) {
-      const { data: levelInfo } = await supabase
-        .from('commission_levels')
-        .select('type')
-        .eq('id', id)
-        .single();
-        
-      if (levelInfo) {
-        await setDefaultCommissionLevel(id, levelInfo.type);
-      }
-    }
-    
-    return data;
-  } catch (error) {
-    console.error("Error updating commission level:", error);
-    return null;
-  }
-};
-
-// Supprimer un niveau de commission
-export const deleteCommissionLevel = async (id: string): Promise<boolean> => {
-  try {
-    // Supprimer d'abord les taux associés
-    const { error: ratesError } = await supabase
-      .from('commission_rates')
-      .delete()
-      .eq('commission_level_id', id);
-
-    if (ratesError) throw ratesError;
-
-    // Puis supprimer le niveau
-    const { error } = await supabase
-      .from('commission_levels')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error("Error deleting commission level:", error);
-    return false;
-  }
-};
-
-// Définir un niveau comme niveau par défaut
-export const setDefaultCommissionLevel = async (id: string, type: string): Promise<boolean> => {
-  try {
-    // Mettre à jour tous les autres niveaux du même type pour ne pas être par défaut
-    const { error: updateOthersError } = await supabase
-      .from('commission_levels')
-      .update({ is_default: false })
-      .eq('type', type)
-      .neq('id', id);
-
-    if (updateOthersError) throw updateOthersError;
-
-    // Mettre à jour ce niveau comme étant par défaut
-    const { error } = await supabase
-      .from('commission_levels')
-      .update({ is_default: true })
-      .eq('id', id);
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error("Error setting default commission level:", error);
-    return false;
-  }
-};
-
-// Obtenir le niveau de commission par défaut pour un type donné
-export const getDefaultCommissionLevel = async (type: string): Promise<CommissionLevel | null> => {
-  try {
+    console.log(`[getDefaultCommissionLevel] Fetching default commission level for type: ${type}`);
     const { data, error } = await supabase
       .from('commission_levels')
       .select('*')
       .eq('type', type)
       .eq('is_default', true)
       .single();
-
-    if (error) throw error;
+    
+    if (error) {
+      console.error("[getDefaultCommissionLevel] Error fetching default commission level:", error);
+      
+      // Si une erreur se produit, essayer de récupérer n'importe quel niveau du type demandé
+      console.log("[getDefaultCommissionLevel] Trying to fetch any level of the requested type");
+      const { data: anyLevel, error: secondError } = await supabase
+        .from('commission_levels')
+        .select('*')
+        .eq('type', type)
+        .limit(1);
+      
+      if (secondError || !anyLevel || anyLevel.length === 0) {
+        console.error("[getDefaultCommissionLevel] Failed to get any commission level:", secondError);
+        return null;
+      }
+      
+      console.log("[getDefaultCommissionLevel] Found non-default level:", anyLevel[0]);
+      return anyLevel[0];
+    }
+    
+    console.log("[getDefaultCommissionLevel] Found default level:", data);
     return data;
   } catch (error) {
-    console.error("Error fetching default commission level:", error);
+    console.error("[getDefaultCommissionLevel] Error:", error);
     return null;
   }
 };
 
-// Créer un nouveau taux de commission
-export const createCommissionRate = async (
-  rateData: Omit<CommissionRate, 'id' | 'created_at'>
-): Promise<CommissionRate | null> => {
+/**
+ * Crée un niveau de commission
+ */
+export const createCommissionLevel = async (name: string, type: 'partner' | 'ambassador', isDefault: boolean = false): Promise<CommissionLevel | null> => {
   try {
-    // Adjust the property name if needed in the database
-    const dataToInsert = {
-      ...rateData,
-      // Map commission_level_id to level_id if that's what the database expects
-      level_id: rateData.commission_level_id,
-    };
-    
-    const { data, error } = await supabase
-      .from('commission_rates')
-      .insert([dataToInsert])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error creating commission rate:", error);
-    return null;
-  }
-};
-
-// Mettre à jour un taux de commission
-export const updateCommissionRate = async (
-  id: string,
-  rateData: Partial<CommissionRate>
-): Promise<CommissionRate | null> => {
-  try {
-    // Adjust property name if needed in the database
-    const dataToUpdate: any = { ...rateData };
-    
-    // Map commission_level_id to level_id if that's what the database expects
-    if (rateData.commission_level_id) {
-      dataToUpdate.level_id = rateData.commission_level_id;
-      delete dataToUpdate.commission_level_id;
+    if (isDefault) {
+      // Si le nouveau niveau est défini comme par défaut, mettre à jour tous les autres niveaux pour les définir comme non par défaut
+      await supabase
+        .from('commission_levels')
+        .update({ is_default: false })
+        .eq('type', type);
     }
     
     const { data, error } = await supabase
-      .from('commission_rates')
-      .update(dataToUpdate)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+      .from('commission_levels')
+      .insert([
+        { name, type, is_default: isDefault }
+      ])
+      .select();
+    
+    if (error) {
+      console.error("Error creating commission level:", error);
+      throw error;
+    }
+    
+    return data[0] || null;
   } catch (error) {
-    console.error("Error updating commission rate:", error);
+    console.error("Error:", error);
     return null;
   }
 };
 
-// Supprimer un taux de commission
+/**
+ * Met à jour un niveau de commission
+ */
+export const updateCommissionLevel = async (id: string, name: string, isDefault: boolean = false): Promise<CommissionLevel | null> => {
+  try {
+    const { data: levelData, error: levelError } = await supabase
+      .from('commission_levels')
+      .select('type')
+      .eq('id', id)
+      .single();
+    
+    if (levelError) {
+      console.error("Error fetching commission level type:", levelError);
+      throw levelError;
+    }
+    
+    const type = levelData.type;
+    
+    if (isDefault) {
+      // Si le niveau est défini comme par défaut, mettre à jour tous les autres niveaux pour les définir comme non par défaut
+      await supabase
+        .from('commission_levels')
+        .update({ is_default: false })
+        .eq('type', type);
+    }
+    
+    const { data, error } = await supabase
+      .from('commission_levels')
+      .update({ name, is_default: isDefault })
+      .eq('id', id)
+      .select();
+    
+    if (error) {
+      console.error("Error updating commission level:", error);
+      throw error;
+    }
+    
+    return data[0] || null;
+  } catch (error) {
+    console.error("Error:", error);
+    return null;
+  }
+};
+
+/**
+ * Supprime un niveau de commission
+ */
+export const deleteCommissionLevel = async (id: string): Promise<boolean> => {
+  try {
+    // Vérifier si c'est le niveau par défaut
+    const { data: levelData, error: levelError } = await supabase
+      .from('commission_levels')
+      .select('is_default, type')
+      .eq('id', id)
+      .single();
+    
+    if (levelError) {
+      console.error("Error fetching commission level:", levelError);
+      throw levelError;
+    }
+    
+    if (levelData.is_default) {
+      throw new Error("Cannot delete default commission level");
+    }
+    
+    // Supprimer les taux associés
+    await supabase
+      .from('commission_rates')
+      .delete()
+      .eq('commission_level_id', id);
+    
+    // Supprimer le niveau
+    const { error } = await supabase
+      .from('commission_levels')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error("Error deleting commission level:", error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error:", error);
+    return false;
+  }
+};
+
+/**
+ * Crée ou met à jour un taux de commission
+ */
+export const upsertCommissionRate = async (
+  levelId: string,
+  minAmount: number,
+  maxAmount: number,
+  rate: number,
+  rateId?: string
+): Promise<CommissionRate | null> => {
+  try {
+    if (rateId) {
+      // Mise à jour
+      const { data, error } = await supabase
+        .from('commission_rates')
+        .update({
+          min_amount: minAmount,
+          max_amount: maxAmount,
+          rate
+        })
+        .eq('id', rateId)
+        .select();
+      
+      if (error) {
+        console.error("Error updating commission rate:", error);
+        throw error;
+      }
+      
+      return data[0] || null;
+    } else {
+      // Création
+      const { data, error } = await supabase
+        .from('commission_rates')
+        .insert([
+          {
+            commission_level_id: levelId,
+            min_amount: minAmount,
+            max_amount: maxAmount,
+            rate
+          }
+        ])
+        .select();
+      
+      if (error) {
+        console.error("Error creating commission rate:", error);
+        throw error;
+      }
+      
+      return data[0] || null;
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    return null;
+  }
+};
+
+/**
+ * Supprime un taux de commission
+ */
 export const deleteCommissionRate = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('commission_rates')
       .delete()
       .eq('id', id);
-
-    if (error) throw error;
+    
+    if (error) {
+      console.error("Error deleting commission rate:", error);
+      throw error;
+    }
+    
     return true;
   } catch (error) {
-    console.error("Error deleting commission rate:", error);
+    console.error("Error:", error);
     return false;
   }
 };
 
-// Mettre à jour le niveau de commission d'un ambassadeur
-export const updateAmbassadorCommissionLevel = async (
-  ambassadorId: string,
-  commissionLevelId: string
-): Promise<void> => {
+/**
+ * Récupère le niveau de commission d'un ambassadeur
+ */
+export const getAmbassadorCommissionLevel = async (ambassadorId: string): Promise<CommissionLevel | null> => {
   try {
-    const { error } = await supabase
+    console.log(`[getAmbassadorCommissionLevel] Fetching commission level for ambassador: ${ambassadorId}`);
+    const { data: ambassador, error: ambassadorError } = await supabase
       .from('ambassadors')
-      .update({ commission_level_id: commissionLevelId })
-      .eq('id', ambassadorId);
-
-    if (error) throw error;
+      .select('commission_level_id')
+      .eq('id', ambassadorId)
+      .single();
+    
+    if (ambassadorError) {
+      console.error("[getAmbassadorCommissionLevel] Error fetching ambassador:", ambassadorError);
+      throw ambassadorError;
+    }
+    
+    if (!ambassador || !ambassador.commission_level_id) {
+      console.log("[getAmbassadorCommissionLevel] Ambassador has no commission level assigned, getting default");
+      return getDefaultCommissionLevel('ambassador');
+    }
+    
+    const { data: level, error: levelError } = await supabase
+      .from('commission_levels')
+      .select('*')
+      .eq('id', ambassador.commission_level_id)
+      .single();
+    
+    if (levelError) {
+      console.error("[getAmbassadorCommissionLevel] Error fetching commission level:", levelError);
+      throw levelError;
+    }
+    
+    console.log("[getAmbassadorCommissionLevel] Found level:", level);
+    return level;
   } catch (error) {
-    console.error("Error updating ambassador commission level:", error);
-    throw error;
-  }
-};
-
-// Mettre à jour le niveau de commission d'un partenaire
-export const updatePartnerCommissionLevel = async (
-  partnerId: string,
-  commissionLevelId: string
-): Promise<void> => {
-  try {
-    const { error } = await supabase
-      .from('partners')
-      .update({ commission_level_id: commissionLevelId })
-      .eq('id', partnerId);
-
-    if (error) throw error;
-  } catch (error) {
-    console.error("Error updating partner commission level:", error);
-    throw error;
+    console.error("[getAmbassadorCommissionLevel] Error:", error);
+    return null;
   }
 };

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   CommissionRate, 
@@ -77,17 +78,22 @@ export const getCommissionRate = (amount: number): number => {
  */
 export const calculateCommissionByLevel = async (amount: number, levelId?: string, type: 'partner' | 'ambassador' = 'partner'): Promise<{ rate: number, amount: number }> => {
   try {
+    console.log(`[calculateCommissionByLevel] Starting with amount: ${amount}, levelId: ${levelId}, type: ${type}`);
     let actualLevelId = levelId;
     
     // Si aucun ID de niveau n'est fourni, utiliser le niveau par défaut
     if (!actualLevelId) {
+      console.log("[calculateCommissionByLevel] No levelId provided, fetching default level");
       const defaultLevel = await fetchDefaultCommissionLevel(type);
+      console.log("[calculateCommissionByLevel] Default level:", defaultLevel);
       actualLevelId = defaultLevel?.id;
     }
     
     // Si toujours pas d'ID, utiliser les taux statiques
     if (!actualLevelId) {
+      console.log("[calculateCommissionByLevel] No level available, using static rates");
       const staticRate = getCommissionRate(amount);
+      console.log(`[calculateCommissionByLevel] Static rate for amount ${amount}: ${staticRate}%`);
       return {
         rate: staticRate,
         amount: (amount * staticRate) / 100
@@ -95,8 +101,9 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
     }
     
     // Récupérer les taux du niveau de commission
+    console.log(`[calculateCommissionByLevel] Fetching rates for level: ${actualLevelId}`);
     const rates = await fetchCommissionRates(actualLevelId);
-    console.log("Commission rates for calculation:", rates);
+    console.log("[calculateCommissionByLevel] Commission rates received:", rates);
     
     // Trouver le taux applicable en fonction du montant
     const applicableRate = rates.find(
@@ -104,18 +111,23 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
     );
     
     if (!applicableRate) {
+      console.log(`[calculateCommissionByLevel] No applicable rate found for amount: ${amount}`);
       return {
         rate: 0,
         amount: 0
       };
     }
     
+    console.log(`[calculateCommissionByLevel] Found applicable rate: ${applicableRate.rate}%`);
+    const calculatedAmount = (amount * applicableRate.rate) / 100;
+    console.log(`[calculateCommissionByLevel] Calculated commission amount: ${calculatedAmount}`);
+    
     return {
       rate: applicableRate.rate,
-      amount: (amount * applicableRate.rate) / 100
+      amount: calculatedAmount
     };
   } catch (error) {
-    console.error("Error calculating commission by level:", error);
+    console.error("[calculateCommissionByLevel] Error calculating commission:", error);
     return {
       rate: 0,
       amount: 0
