@@ -3,16 +3,15 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Plus, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
-import { getProducts, getCategories, getBrands } from "@/services/catalogService";
-import { Product } from "@/types/catalog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ProductCatalogProps {
   isOpen: boolean;
@@ -32,7 +31,14 @@ interface VariantCombinationPrice {
   stock?: number;
 }
 
-interface ProductWithVariants extends Product {
+interface ProductWithVariants {
+  id: string;
+  name: string;
+  price: number;
+  monthly_price?: number;
+  image_url?: string;
+  category?: string;
+  brand?: string;
   variant_combination_prices?: VariantCombinationPrice[];
 }
 
@@ -49,7 +55,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
   
-  // Fetch products directly from Supabase
+  // Fetch products directly from Supabase with debugging logs
   const fetchProductsDirectly = async () => {
     console.log("Fetching products from Supabase...");
     const { data, error } = await supabase
@@ -62,16 +68,44 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     }
     
     console.log("Fetched products:", data?.length || 0);
+    if (data && data.length > 0) {
+      console.log("Sample product:", data[0]);
+    } else {
+      console.log("No products found in Supabase");
+    }
     
-    return data.map(product => ({
-      ...product,
-      attributes: typeof product.attributes === 'string' 
-        ? JSON.parse(product.attributes) 
-        : product.attributes,
-      variant_combination_prices: typeof product.variant_combination_prices === 'string'
-        ? JSON.parse(product.variant_combination_prices)
-        : product.variant_combination_prices
-    }));
+    // Get variant prices
+    const { data: variantPrices, error: variantError } = await supabase
+      .from('product_variant_prices')
+      .select('*');
+    
+    if (variantError) {
+      console.error("Error fetching variant prices:", variantError);
+    } else {
+      console.log("Fetched variant prices:", variantPrices?.length || 0);
+    }
+    
+    // Map variants to products
+    return data?.map(product => {
+      const productVariants = variantPrices?.filter(v => v.product_id === product.id) || [];
+      
+      return {
+        ...product,
+        attributes: typeof product.attributes === 'string' 
+          ? JSON.parse(product.attributes) 
+          : product.attributes,
+        variant_combination_prices: productVariants.map(variant => ({
+          id: variant.id,
+          product_id: variant.product_id,
+          attributes: typeof variant.attributes === 'string' 
+            ? JSON.parse(variant.attributes) 
+            : variant.attributes,
+          price: variant.price,
+          monthly_price: variant.monthly_price,
+          stock: variant.stock
+        }))
+      };
+    }) || [];
   };
   
   // Utiliser useQuery pour récupérer les produits
@@ -79,6 +113,12 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     queryKey: ["products-direct"],
     queryFn: fetchProductsDirectly,
     enabled: isOpen, // Ne récupère les produits que lorsque le catalogue est ouvert
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2,
+    onError: (err) => {
+      console.error("Query error:", err);
+      toast.error("Erreur lors du chargement des produits");
+    }
   });
 
   // Récupérer les catégories
@@ -107,12 +147,14 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     queryKey: ["categories-direct"],
     queryFn: fetchCategories,
     enabled: isOpen,
+    staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
   const { data: brandsData = [] } = useQuery({
     queryKey: ["brands-direct"],
     queryFn: fetchBrands,
     enabled: isOpen,
+    staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
   useEffect(() => {
@@ -123,6 +165,8 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
         if (products[0].variant_combination_prices) {
           console.log("Has variants:", products[0].variant_combination_prices.length);
         }
+      } else {
+        console.log("No products loaded");
       }
     }
   }, [isOpen, products]);
@@ -170,7 +214,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     
     console.log("Filtering products:", products.length);
     
-    return products.filter((product: Product) => {
+    return products.filter((product: ProductWithVariants) => {
       // Search term filter
       const nameMatch = !searchTerm || 
         (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -313,6 +357,25 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     );
   };
 
+  const renderNoProductsMessage = () => {
+    return (
+      <div className="text-center py-10 text-muted-foreground">
+        <AlertCircle className="mx-auto h-10 w-10 text-yellow-500 mb-2" />
+        <p className="font-medium">Aucun produit trouvé</p>
+        <p className="text-sm mt-2">Aucun produit ne correspond à vos critères de recherche ou n'existe dans le catalogue</p>
+        <div className="mt-6 p-4 border rounded-md bg-slate-50 max-w-md mx-auto text-left text-xs text-slate-700">
+          <p className="font-semibold mb-1">Informations de débogage:</p>
+          <p>- Produits disponibles: {products?.length || 0}</p>
+          <p>- Produits après filtrage: {filteredProducts?.length || 0}</p>
+          <p>- Catégorie sélectionnée: {selectedCategory}</p>
+          <p>- Marque sélectionnée: {selectedBrand}</p>
+          <p>- Terme de recherche: {searchTerm || "(aucun)"}</p>
+          {error && <p className="text-red-500 mt-1">- Erreur: {String(error)}</p>}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <DialogOrSheet open={isOpen} onOpenChange={() => !isLoading && onClose()}>
       <ContentComponent className={isSheet ? "sm:max-w-md" : "sm:max-w-[700px]"}>
@@ -369,7 +432,8 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           </div>
         ) : error ? (
           <div className="text-center py-6 text-red-500">
-            Une erreur est survenue lors du chargement des produits.
+            <AlertCircle className="mx-auto h-8 w-8 mb-2" />
+            <p>Une erreur est survenue lors du chargement des produits.</p>
             <p className="text-xs mt-2">{String(error)}</p>
           </div>
         ) : (
@@ -378,14 +442,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               {filteredProducts && filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => renderProduct(product as ProductWithVariants))
               ) : (
-                <div className="text-center py-10 text-muted-foreground">
-                  Aucun produit trouvé
-                  <p className="text-xs mt-2">Aucun produit ne correspond à vos critères de recherche</p>
-                  <div className="mt-4">
-                    <p className="text-xs">Produits disponibles: {products?.length || 0}</p>
-                    <p className="text-xs">Produits filtrés: {filteredProducts?.length || 0}</p>
-                  </div>
-                </div>
+                renderNoProductsMessage()
               )}
             </div>
           </ScrollArea>
