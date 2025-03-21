@@ -211,18 +211,16 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
               </>
             )}
             
-            {/* Le switch pour adapter la mensualité est toujours visible, même lorsque hideFinancialDetails est true */}
-            <div className="flex items-center justify-between py-2 border-t border-b mt-2">
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="adapt-monthly" 
-                  checked={globalMarginAdjustment.adaptMonthlyPayment}
-                  onCheckedChange={toggleAdaptMonthlyPayment}
-                />
-                <Label htmlFor="adapt-monthly" className="cursor-pointer">
-                  Adapter la mensualité au nouveau coefficient
-                </Label>
-              </div>
+            {/* Le switch pour adapter la mensualité est toujours visible, même avec hideFinancialDetails à true */}
+            <div className="flex items-center space-x-2 py-2 border-t border-b mt-2">
+              <Switch 
+                id="adapt-monthly" 
+                checked={globalMarginAdjustment.adaptMonthlyPayment}
+                onCheckedChange={toggleAdaptMonthlyPayment}
+              />
+              <Label htmlFor="adapt-monthly" className="cursor-pointer">
+                Adapter la mensualité au nouveau coefficient
+              </Label>
             </div>
             
             <div className="flex justify-between items-center text-blue-600 mt-2">
