@@ -35,6 +35,15 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
       maximumFractionDigits: 2
     }).format(value);
   };
+  
+  // Format margin percentage with proper French locale
+  const formatMarginPercentage = (value: number): string => {
+    return new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      style: 'decimal'
+    }).format(value) + " %";
+  };
 
   // Mettre à jour le champ d'entrée quand targetMonthlyPayment change
   useEffect(() => {
@@ -110,7 +119,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
               <div>
                 <span className="block text-sm text-gray-700">Marge calculée :</span>
                 <span className="font-medium">
-                  {calculatedMargin.percentage > 0 ? formatPercentage(calculatedMargin.percentage) : '-'}
+                  {calculatedMargin.percentage > 0 ? formatMarginPercentage(calculatedMargin.percentage) : '-'}
                 </span>
               </div>
               <div>

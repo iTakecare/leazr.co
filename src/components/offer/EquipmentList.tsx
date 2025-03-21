@@ -64,6 +64,15 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
       maximumFractionDigits: 2
     }).format(value);
   };
+  
+  // Fonction pour formater correctement le pourcentage de marge
+  const formatMarginPercentage = (value: number): string => {
+    return new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      style: 'decimal'
+    }).format(value) + " %";
+  };
 
   return (
     <div className="space-y-6">
@@ -119,7 +128,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatPercentage(equipment.margin)}
+                    {formatMarginPercentage(equipment.margin)}
                   </TableCell>
                   <TableCell className="text-right font-medium text-blue-600">
                     {formatCurrency((equipment.monthlyPayment || 0) * equipment.quantity)}
@@ -179,7 +188,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Marge globale :</span>
-              <span className="font-medium">{formatPercentage(globalMarginAdjustment.percentage)}</span>
+              <span className="font-medium">{formatMarginPercentage(globalMarginAdjustment.percentage)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Marge totale en euros :</span>
