@@ -234,19 +234,22 @@ export const getAmbassadorCommissions = async (ambassadorId: string) => {
 };
 
 // Fonction spécifique pour mettre à jour le barème de commissionnement
-// Utilise la fonction RPC récemment créée pour éviter les problèmes de cache
+// Contourne les problèmes d'ambiguïté SQL avec une requête directe
 export const updateAmbassadorCommissionLevel = async (ambassadorId: string, levelId: string): Promise<void> => {
   try {
     console.log(`[updateAmbassadorCommissionLevel] DÉBUT - Mise à jour du barème pour l'ambassadeur ${ambassadorId} vers ${levelId}`);
     
-    // Appel à la fonction RPC qui gère mieux les problèmes de mise à jour
-    const { error } = await supabase.rpc('update_ambassador_commission_level', {
-      ambassador_id: ambassadorId,
-      commission_level_id: levelId
-    });
+    // Utiliser directement une requête SQL avec mise à jour classique au lieu de la RPC
+    const { error } = await supabase
+      .from('ambassadors')
+      .update({ 
+        commission_level_id: levelId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', ambassadorId);
     
     if (error) {
-      console.error(`[updateAmbassadorCommissionLevel] Erreur pendant la mise à jour RPC:`, error);
+      console.error(`[updateAmbassadorCommissionLevel] Erreur pendant la mise à jour:`, error);
       throw new Error(`Impossible de mettre à jour le barème: ${error.message}`);
     }
     
