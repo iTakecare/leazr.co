@@ -115,9 +115,11 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     enabled: isOpen, // Ne récupère les produits que lorsque le catalogue est ouvert
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 2,
-    onError: (err) => {
-      console.error("Query error:", err);
-      toast.error("Erreur lors du chargement des produits");
+    meta: {
+      onError: (err: Error) => {
+        console.error("Query error:", err);
+        toast.error("Erreur lors du chargement des produits");
+      }
     }
   });
 
