@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAmbassadorById, updateAmbassador, updateAmbassadorCommissionLevel, Ambassador } from "@/services/ambassadorService";
@@ -213,13 +212,16 @@ const AmbassadorEditPage = () => {
     toast.info("Mise à jour du barème en cours...");
     
     try {
-      // Utiliser directement la fonction dédiée avec RPC
-      await updateAmbassadorCommissionLevel(ambassador.id, newLevelId);
+      // Conserver l'ancien ID pour la restauration en cas d'erreur
+      const previousLevelId = currentLevelId;
       
-      // Mettre à jour l'état local
+      // Mise à jour optimiste de l'UI
       setCurrentLevelId(newLevelId);
       
-      // Mettre à jour l'objet ambassador pour cohérence de l'UI
+      // Mise à jour avec nouvelle fonction améliorée
+      await updateAmbassadorCommissionLevel(ambassador.id, newLevelId);
+      
+      // Mettre à jour l'objet ambassador pour cohérence
       setAmbassador(prev => {
         if (!prev) return null;
         return { ...prev, commission_level_id: newLevelId };
@@ -233,7 +235,7 @@ const AmbassadorEditPage = () => {
       console.error("[handleUpdateCommissionLevel] Erreur:", error);
       toast.error("Erreur lors de la mise à jour du barème");
       
-      // Réinitialiser l'UI pour montrer le barème actuel
+      // Restaurer l'état précédent en cas d'échec
       await loadAmbassador();
     } finally {
       setUpdatingLevel(false);
