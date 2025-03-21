@@ -2,12 +2,29 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Ambassador, getAmbassadorById } from "@/services/ambassadorService";
-import AmbassadorDetailComponent from "@/components/crm/detail/AmbassadorDetail";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MapPin } from "lucide-react";
+import ClientsView from "@/components/crm/detail/ClientsView";
+import CommissionsView from "@/components/crm/detail/CommissionsView";
+import { 
+  CommissionLevel, 
+  getCommissionLevelWithRates, 
+  getCommissionLevels,
+  updateAmbassadorCommissionLevel 
+} from "@/services/commissionService";
+import ContactInfoSection from "@/components/crm/detail/sections/ContactInfoSection";
+import CompanyInfoSection from "@/components/crm/detail/sections/CompanyInfoSection";
+import CommissionLevelSelector from "@/components/crm/detail/sections/CommissionLevelSelector";
+import StatsSummary from "@/components/crm/detail/sections/StatsSummary";
+import NotesSection from "@/components/crm/detail/sections/NotesSection";
+import { Card, CardContent } from "@/components/ui/card";
 
 const AmbassadorDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,7 +32,12 @@ const AmbassadorDetail = () => {
   const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [tab, setTab] = useState("overview");
+  const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
+  const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
+  const [currentLevelId, setCurrentLevelId] = useState<string>("");
+  const [clients, setClients] = useState<any[]>([]);
+  const [commissionLoading, setCommissionLoading] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -37,7 +59,17 @@ const AmbassadorDetail = () => {
         
         console.log("Ambassador data loaded:", data);
         setAmbassador(data);
-        setIsDetailOpen(true);
+        
+        // Load commission level
+        if (data.commission_level_id) {
+          setCurrentLevelId(data.commission_level_id);
+          loadCommissionLevel(data.commission_level_id);
+        } else {
+          setCommissionLevel(null);
+          setCurrentLevelId("");
+        }
+        
+        loadCommissionLevels();
       } catch (error: any) {
         console.error("Erreur lors du chargement de l'ambassadeur:", error);
         
@@ -57,6 +89,48 @@ const AmbassadorDetail = () => {
 
     loadAmbassador();
   }, [id, navigate]);
+
+  const loadCommissionLevels = async () => {
+    try {
+      const levels = await getCommissionLevels("ambassador");
+      setCommissionLevels(levels);
+    } catch (error) {
+      console.error("Error loading commission levels:", error);
+    }
+  };
+
+  const loadCommissionLevel = async (levelId: string) => {
+    setCommissionLoading(true);
+    try {
+      const level = await getCommissionLevelWithRates(levelId);
+      setCommissionLevel(level);
+    } catch (error) {
+      console.error("Error loading commission level:", error);
+    } finally {
+      setCommissionLoading(false);
+    }
+  };
+
+  const handleUpdateCommissionLevel = async (levelId: string) => {
+    try {
+      if (!ambassador?.id) return;
+      
+      console.log("Updating commission level to:", levelId);
+      await updateAmbassadorCommissionLevel(ambassador.id, levelId);
+      setCurrentLevelId(levelId);
+      loadCommissionLevel(levelId);
+      
+      // Mettre à jour l'ambassadeur dans le composant parent
+      if (ambassador && typeof ambassador === 'object') {
+        ambassador.commission_level_id = levelId;
+      }
+      
+      toast.success("Barème de commissionnement mis à jour");
+    } catch (error) {
+      console.error("Error updating commission level:", error);
+      toast.error("Erreur lors de la mise à jour du barème");
+    }
+  };
 
   // Fonction pour gérer l'édition de l'ambassadeur
   const handleEdit = () => {
@@ -106,6 +180,14 @@ const AmbassadorDetail = () => {
     );
   }
 
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
   return (
     <PageTransition>
       <Container>
@@ -138,13 +220,94 @@ const AmbassadorDetail = () => {
         </div>
         
         {ambassador && (
-          <AmbassadorDetailComponent
-            isOpen={isDetailOpen}
-            onClose={() => navigate("/ambassadors")}
-            ambassador={ambassador}
-            onEdit={handleEdit}
-            onCreateOffer={handleCreateOffer}
-          />
+          <div className="mt-4">
+            <div className="flex items-start gap-4 mb-6">
+              <Avatar className="h-16 w-16">
+                <AvatarFallback className="bg-primary text-white text-xl">
+                  {getInitials(ambassador.name)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-2xl font-bold">{ambassador.name}</h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge
+                    variant={ambassador.status === "active" ? "default" : "secondary"}
+                  >
+                    {ambassador.status === "active" ? "Actif" : "Inactif"}
+                  </Badge>
+                  {ambassador.region && (
+                    <span className="flex items-center text-xs gap-1 text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      {ambassador.region}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Card className="mb-6">
+              <CardContent className="pt-6">
+                <Tabs value={tab} onValueChange={setTab}>
+                  <TabsList className="mb-4 grid w-full grid-cols-3">
+                    <TabsTrigger value="overview">Aperçu</TabsTrigger>
+                    <TabsTrigger value="clients">Clients</TabsTrigger>
+                    <TabsTrigger value="commissions">Commissions</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview">
+                    <div className="space-y-6">
+                      <ContactInfoSection 
+                        email={ambassador.email} 
+                        phone={ambassador.phone} 
+                      />
+
+                      <CompanyInfoSection 
+                        company={ambassador.company}
+                        vat_number={ambassador.vat_number}
+                        address={ambassador.address}
+                        postal_code={ambassador.postal_code}
+                        city={ambassador.city}
+                        country={ambassador.country}
+                      />
+
+                      <CommissionLevelSelector 
+                        ambassadorId={ambassador.id}
+                        currentLevelId={currentLevelId}
+                        commissionLevel={commissionLevel}
+                        commissionLevels={commissionLevels}
+                        loading={commissionLoading}
+                        onUpdateCommissionLevel={handleUpdateCommissionLevel}
+                      />
+
+                      <StatsSummary 
+                        clientsCount={ambassador.clients_count || 0}
+                        commissionsTotal={ambassador.commissions_total || 0}
+                      />
+
+                      <NotesSection notes={ambassador.notes} />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="clients">
+                    <ClientsView 
+                      owner={{ id: ambassador.id, name: ambassador.name, type: 'ambassador' }}
+                      clients={clients}
+                      isOpen={tab === "clients"}
+                      onClose={() => setTab("overview")}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="commissions">
+                    <CommissionsView
+                      owner={{ id: ambassador.id, name: ambassador.name, type: 'ambassador' }}
+                      isOpen={tab === "commissions"}
+                      onClose={() => setTab("overview")}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </Container>
     </PageTransition>
