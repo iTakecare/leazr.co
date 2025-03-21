@@ -84,20 +84,20 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
     let actualLevelId = levelId;
     let levelName: string | undefined;
     
-    // Si un ID d'ambassadeur est fourni, récupérer son niveau de commission
+    // Si un ID d'ambassadeur est fourni, récupérer son niveau de commission directement de la base de données
     if (ambassadorId) {
-      console.log(`[calculateCommissionByLevel] Ambassador ID provided: ${ambassadorId}, fetching their commission level`);
+      console.log(`[calculateCommissionByLevel] Ambassador ID provided: ${ambassadorId}, fetching their commission level from database`);
       
-      // Get the ambassador record with commission_level_id
+      // Get the ambassador record with commission_level_id directly from the database to ensure we have the latest data
       const { data: ambassador, error: ambassadorError } = await supabase
         .from('ambassadors')
-        .select('commission_level_id')
+        .select('commission_level_id, name')
         .eq('id', ambassadorId)
         .single();
       
       if (!ambassadorError && ambassador && ambassador.commission_level_id) {
         actualLevelId = ambassador.commission_level_id;
-        console.log(`[calculateCommissionByLevel] Using ambassador's commission level: ${actualLevelId}`);
+        console.log(`[calculateCommissionByLevel] Using ambassador's commission level from database: ${actualLevelId}`);
         
         // Get the level name
         const { data: levelData } = await supabase
@@ -111,7 +111,9 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
           console.log(`[calculateCommissionByLevel] Level name: ${levelName}`);
         }
       } else {
-        console.log("[calculateCommissionByLevel] Ambassador doesn't have a commission level, falling back to default");
+        console.log("[calculateCommissionByLevel] Ambassador doesn't have a commission level or error occurred:", ambassadorError);
+        console.log("[calculateCommissionByLevel] Ambassador data:", ambassador);
+        console.log("[calculateCommissionByLevel] Falling back to default");
       }
     }
     

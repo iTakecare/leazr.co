@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { CommissionRate, getCommissionLevelWithRates } from "@/services/commissionService";
+import { CommissionRate, getCommissionLevelWithRates, getAmbassadorCommissionLevel } from "@/services/commissionService";
 import { Loader2 } from "lucide-react";
 
 interface CommissionDisplayProps {
@@ -24,8 +24,9 @@ const CommissionDisplay = ({ ambassadorId, commissionLevelId }: CommissionDispla
         
         let levelId = commissionLevelId;
         
-        // If we have an ambassador ID but no level ID, get the ambassador's level
+        // If we have an ambassador ID but no level ID, get the ambassador's level directly from the database
         if (ambassadorId && !levelId) {
+          console.log("Getting ambassador's commission level directly from database");
           const { data: ambassador, error: ambassadorError } = await supabase
             .from('ambassadors')
             .select('commission_level_id, name')
@@ -33,7 +34,7 @@ const CommissionDisplay = ({ ambassadorId, commissionLevelId }: CommissionDispla
             .single();
           
           if (!ambassadorError && ambassador && ambassador.commission_level_id) {
-            console.log("Got ambassador's commission level:", ambassador.commission_level_id);
+            console.log("Directly got ambassador's commission level:", ambassador.commission_level_id);
             levelId = ambassador.commission_level_id;
             
             // Get the level name
@@ -45,8 +46,10 @@ const CommissionDisplay = ({ ambassadorId, commissionLevelId }: CommissionDispla
               
             if (levelData) {
               setLevelName(levelData.name);
-              console.log("Commission level name:", levelData.name);
+              console.log("Commission level name from direct DB query:", levelData.name);
             }
+          } else {
+            console.log("Could not get ambassador level from database, error:", ambassadorError);
           }
         }
         
@@ -165,9 +168,9 @@ const CommissionDisplay = ({ ambassadorId, commissionLevelId }: CommissionDispla
     };
     
     fetchCommissionRates();
-  }, [ambassadorId, commissionLevelId, levelName]);
+  }, [ambassadorId, commissionLevelId]);
   
-  console.log("CommissionDisplay rendering with rates:", commissionRates);
+  console.log("CommissionDisplay rendering with rates:", commissionRates, "level name:", levelName);
   
   return (
     <div className="w-full">

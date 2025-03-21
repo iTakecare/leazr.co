@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,7 @@ const AmbassadorCreateOffer = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("ambassadors")
-        .select("*")
+        .select("*, commission_levels(name)")
         .eq("id", id)
         .single();
       
@@ -307,8 +308,8 @@ const AmbassadorCreateOffer = () => {
                     </CardHeader>
                     <CardContent className="py-6">
                       <CommissionDisplay 
-                        ambassadorId={ambassadorId} 
-                        commissionLevelId={ambassador?.commission_level_id} 
+                        ambassadorId={ambassadorId}
+                        commissionLevelId={ambassador?.commission_level_id}
                       />
                     </CardContent>
                   </Card>
