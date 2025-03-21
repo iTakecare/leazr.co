@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { 
@@ -207,34 +206,47 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
         result = await createClient(clientData);
         
         if (result) {
-          if (isAmbassador) {
+          if (isAmbassador || checkIsAmbassador()) {
             try {
+              console.log("Ambassador flow: Linking client to ambassador");
+              
               // Get current user to find ambassador record
               const { data: userData } = await supabase.auth.getUser();
-              if (userData?.user) {
-                // Find ambassador record for current user
-                const { data: ambassadorData, error: ambassadorError } = await supabase
-                  .from('ambassadors')
-                  .select('id')
-                  .eq('user_id', userData.user.id)
-                  .maybeSingle();
-                
-                if (ambassadorError) {
-                  console.error("Error fetching ambassador data:", ambassadorError);
-                  toast.error("Impossible de récupérer les informations de votre compte ambassadeur");
-                }
-                
-                if (ambassadorData?.id) {
-                  // Link the client to ambassador
-                  const linked = await linkClientToAmbassador(result.id, ambassadorData.id);
-                  if (linked) {
-                    toast.success("Client créé et associé à votre compte d'ambassadeur");
-                  } else {
-                    toast.error("Client créé mais impossible de l'associer à votre compte d'ambassadeur");
-                  }
-                } else {
-                  toast.error("Impossible de trouver votre profil d'ambassadeur");
-                }
+              if (!userData?.user) {
+                console.error("No authenticated user found");
+                toast.error("Vous devez être connecté pour associer un client");
+                return;
+              }
+              
+              console.log("Current user:", userData.user.id);
+              
+              // Find ambassador record for current user
+              const { data: ambassadorData, error: ambassadorError } = await supabase
+                .from('ambassadors')
+                .select('id')
+                .eq('user_id', userData.user.id)
+                .single();
+              
+              if (ambassadorError) {
+                console.error("Error fetching ambassador data:", ambassadorError);
+                toast.error("Impossible de récupérer les informations de votre compte ambassadeur");
+                return;
+              }
+              
+              if (!ambassadorData?.id) {
+                console.error("No ambassador profile found for user", userData.user.id);
+                toast.error("Impossible de trouver votre profil d'ambassadeur");
+                return;
+              }
+              
+              console.log("Ambassador found:", ambassadorData.id);
+              
+              // Link the client to ambassador
+              const linked = await linkClientToAmbassador(result.id, ambassadorData.id);
+              if (linked) {
+                toast.success("Client créé et associé à votre compte d'ambassadeur");
+              } else {
+                toast.error("Client créé mais impossible de l'associer à votre compte d'ambassadeur");
               }
             } catch (error) {
               console.error("Error in ambassador linking:", error);

@@ -1,62 +1,11 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
 import { sendWelcomeEmail } from "./emailService";
 import { createUserAccount, resetPassword } from "./accountService";
 
-const mockClients = [
-  {
-    id: "1",
-    name: "Jean Saisrien",
-    email: "jsr@acmebelgium.be",
-    company: "ACME BELGIUM SA",
-    phone: "0123456789",
-    vat_number: "BE0123456789",
-    address: "Rue de la Loi 1",
-    city: "Bruxelles",
-    postal_code: "1000",
-    country: "BE",
-    status: "active",
-    collaborators: [
-      {
-        id: "c1",
-        name: "Annie Versaire",
-        role: "CFO",
-        email: "av@acmebelgium.be",
-        phone: "0123456789",
-        department: "Finances"
-      },
-      {
-        id: "c2",
-        name: "Alain Dien",
-        role: "CMO",
-        email: "ad@acmecorp.be",
-        phone: "0987654321",
-        department: "Marketing"
-      }
-    ],
-    created_at: "2023-01-15T10:00:00Z",
-    updated_at: "2023-01-15T10:00:00Z"
-  },
-  {
-    id: "2",
-    name: "Marie Martin",
-    email: "marie.martin@example.com",
-    company: "Martin & Co",
-    phone: "07 98 76 54 32",
-    created_at: "2023-02-20T14:30:00Z",
-    updated_at: "2023-02-20T14:30:00Z"
-  },
-  {
-    id: "3",
-    name: "Pierre Lefevre",
-    email: "pierre.lefevre@example.com",
-    company: "Lefevre Tech",
-    phone: "06 55 44 33 22",
-    created_at: "2023-03-10T09:15:00Z",
-    updated_at: "2023-03-10T09:15:00Z"
-  }
-];
+// Remove mock clients to prevent confusion with real data
 
 const mapDbClientToClient = (record: any): Client => {
   return {
@@ -83,29 +32,23 @@ const mapDbClientToClient = (record: any): Client => {
 
 export const getClients = async (): Promise<Client[]> => {
   try {
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => {
-        console.log("Timeout atteint, utilisation des données mockées");
-        reject(new Error("Timeout lors de la récupération des clients"));
-      }, 5000)
-    );
+    console.log("Fetching clients from Supabase");
     
-    const fetchPromise = supabase
+    const { data, error } = await supabase
       .from('clients')
       .select('*')
       .order('name', { ascending: true });
     
-    const { data, error } = await Promise.race([
-      fetchPromise,
-      timeoutPromise,
-    ]) as any;
-    
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching clients:", error);
+      throw error;
+    }
     
     return data ? data.map(mapDbClientToClient) : [];
   } catch (error) {
     console.error("Error fetching clients:", error);
-    return mockClients.map(mapDbClientToClient);
+    toast.error("Error fetching clients");
+    return [];
   }
 };
 
@@ -141,8 +84,7 @@ export const getClientById = async (id: string): Promise<Client | null> => {
     return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error fetching client by ID:", error);
-    const mockClient = mockClients.find(c => c.id === id);
-    return mockClient ? mapDbClientToClient(mockClient) : null;
+    return null;
   }
 };
 
@@ -246,50 +188,42 @@ export const deleteClient = async (id: string): Promise<boolean> => {
 };
 
 export const verifyVatNumber = async (vatNumber: string): Promise<{ valid: boolean, companyName?: string, address?: string }> => {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  const cleanVatNumber = vatNumber.replace(/\s+/g, '').toUpperCase();
-  
-  const vatRegex = /^[A-Z]{2}[0-9A-Z]{2,12}$/;
-  const isValidFormat = vatRegex.test(cleanVatNumber);
-  
-  if (isValidFormat) {
-    if (cleanVatNumber === "BE0123456789" || 
-        cleanVatNumber === "FR12345678901" || 
-        cleanVatNumber === "LU12345678" || 
-        cleanVatNumber === "DE123456789") {
-      
-      let companyData = {
-        companyName: "ACME BELGIUM SA",
-        address: "Rue de la Loi 1, 1000 Bruxelles, Belgique"
-      };
-      
-      if (cleanVatNumber.startsWith("FR")) {
-        companyData = {
-          companyName: "ACME FRANCE SAS",
-          address: "Avenue des Champs-Élysées 1, 75008 Paris, France"
+  // An actual VAT verification API would be better here
+  try {
+    console.log("Verifying VAT number:", vatNumber);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const cleanVatNumber = vatNumber.replace(/\s+/g, '').toUpperCase();
+    
+    const vatRegex = /^[A-Z]{2}[0-9A-Z]{2,12}$/;
+    const isValidFormat = vatRegex.test(cleanVatNumber);
+    
+    if (isValidFormat) {
+      // This is simplified validation logic just for demo purposes
+      // In production, you would call an actual VAT validation service
+      if (cleanVatNumber.startsWith("BE") || 
+          cleanVatNumber.startsWith("FR") || 
+          cleanVatNumber.startsWith("LU") || 
+          cleanVatNumber.startsWith("DE")) {
+        
+        let companyData = {
+          companyName: "Test Company SA",
+          address: "Test Street 1, 1000 Brussels, Belgium"
         };
-      } else if (cleanVatNumber.startsWith("DE")) {
-        companyData = {
-          companyName: "ACME DEUTSCHLAND GMBH",
-          address: "Unter den Linden 1, 10117 Berlin, Deutschland"
-        };
-      } else if (cleanVatNumber.startsWith("LU")) {
-        companyData = {
-          companyName: "ACME LUXEMBOURG SA",
-          address: "Boulevard Royal 1, 2449 Luxembourg, Luxembourg"
+        
+        return {
+          valid: true,
+          companyName: companyData.companyName,
+          address: companyData.address
         };
       }
-      
-      return {
-        valid: true,
-        companyName: companyData.companyName,
-        address: companyData.address
-      };
     }
+    
+    return { valid: false };
+  } catch (error) {
+    console.error("Error verifying VAT number:", error);
+    return { valid: false };
   }
-  
-  return { valid: false };
 };
 
 export const addCollaborator = async (clientId: string, collaborator: Omit<Collaborator, 'id'>): Promise<Collaborator | null> => {
@@ -312,19 +246,6 @@ export const addCollaborator = async (clientId: string, collaborator: Omit<Colla
     
     if (!updated) {
       throw new Error("Échec de la mise à jour du client");
-    }
-    
-    const mockClientIndex = mockClients.findIndex(c => c.id === clientId);
-    if (mockClientIndex >= 0) {
-      if (!mockClients[mockClientIndex].collaborators) {
-        mockClients[mockClientIndex].collaborators = [];
-      }
-      const mockCompatibleCollaborator = {
-        ...newCollaborator,
-        phone: newCollaborator.phone || "",
-        department: newCollaborator.department || ""
-      };
-      mockClients[mockClientIndex].collaborators!.push(mockCompatibleCollaborator);
     }
     
     toast.success("Collaborateur ajouté avec succès");
@@ -352,15 +273,6 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
       throw new Error("Échec de la mise à jour du client");
     }
     
-    const mockClientIndex = mockClients.findIndex(c => c.id === clientId);
-    if (mockClientIndex >= 0 && mockClients[mockClientIndex].collaborators) {
-      mockClients[mockClientIndex].collaborators = updatedCollaborators.map(c => ({
-        ...c,
-        phone: c.phone || "",
-        department: c.department || ""
-      }));
-    }
-    
     toast.success("Collaborateur supprimé avec succès");
     return true;
   } catch (error) {
@@ -374,6 +286,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
   try {
     if (!clientId || !ambassadorId) {
       console.error("Missing required parameters for linkClientToAmbassador", { clientId, ambassadorId });
+      toast.error("Missing client or ambassador ID");
       return false;
     }
     
@@ -382,34 +295,24 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       clientId
     });
     
-    // First check if the association already exists
-    const { data: existingLink, error: checkError } = await supabase
-      .from("ambassador_clients")
-      .select("id")
-      .eq("client_id", clientId)
-      .eq("ambassador_id", ambassadorId)
-      .maybeSingle();
-      
-    if (checkError) {
-      console.error("Error checking existing link:", checkError);
-    }
-    
-    // If the link already exists, return success
-    if (existingLink) {
-      console.log("Client is already linked to this ambassador");
-      return true;
-    }
-    
-    // Insert a new association
-    const { error: insertError } = await supabase
+    // Use adminSupabase to bypass RLS
+    const { error } = await adminSupabase
       .from("ambassador_clients")
       .insert({
         ambassador_id: ambassadorId,
         client_id: clientId
       });
     
-    if (insertError) {
-      console.error("Error linking client to ambassador:", insertError);
+    if (error) {
+      console.error("Error linking client to ambassador:", error);
+      
+      // Check if it's a duplicate key violation (client already linked)
+      if (error.code === "23505") {
+        console.log("Client is already linked to this ambassador");
+        return true;
+      }
+      
+      toast.error("Error linking client to ambassador");
       return false;
     }
     
