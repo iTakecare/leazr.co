@@ -13,6 +13,9 @@ interface ProductWithVariants extends Omit<Product, 'variants'> {
   is_parent?: boolean;
   selected_variant_id?: string;
   attributes?: Record<string, any>;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  active: boolean;
 }
 
 interface CatalogDialogProps {

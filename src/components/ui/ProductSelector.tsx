@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +27,9 @@ interface ProductWithVariants extends Omit<ProductType, 'variants'> {
   attributes?: Record<string, any>;
   variant_combination_prices?: any[];
   selected_variant_id?: string;
+  createdAt: Date | string; // Make this required to match Product type
+  updatedAt: Date | string; // Make this required to match Product type
+  active: boolean; // Make this required to match Product type
 }
 
 interface ProductSelectorProps {
@@ -94,7 +98,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           is_parent: isParent || product.is_parent,
           variation_attributes: variationAttributes,
           createdAt: product.created_at || new Date(),
-          updatedAt: product.updated_at || new Date()
+          updatedAt: product.updated_at || new Date(),
+          active: product.active
         } as ProductWithVariants;
       });
       
@@ -141,9 +146,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     }
   });
 
+  // Fix the type issue by explicitly filtering and mapping to string
   const categories: string[] = products 
-    ? [...new Set(products.map(product => product.category))]
-      .filter((category): category is string => Boolean(category))
+    ? [...new Set(products.map(product => 
+        typeof product.category === 'string' ? product.category : ''
+      ).filter(Boolean))]
     : [];
     
   const getFilteredProducts = () => {
@@ -279,7 +286,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="cursor-pointer" onClick={() => handleProductSelect(product)}>
                       <ProductCard 
-                        product={product} 
+                        product={product as ProductType} 
                         onClick={() => handleProductSelect(product)}
                         onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
                       />
