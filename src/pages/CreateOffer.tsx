@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Leaser } from "@/types/equipment";
-import ProductCatalog from "@/components/ui/ProductCatalog";
+import ProductSelector from "@/components/ui/ProductSelector";
 import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { createOffer, getOfferById, updateOffer } from "@/services/offerService";
@@ -406,11 +407,10 @@ const CreateOffer = () => {
           </div>
         </div>
 
-        <ProductCatalog
+        <ProductSelector
           isOpen={isCatalogOpen}
           onClose={() => setIsCatalogOpen(false)}
           onSelectProduct={handleProductSelect}
-          isSheet={true}
           title="Ajouter un équipement"
           description="Sélectionnez un produit du catalogue à ajouter à votre offre"
         />
