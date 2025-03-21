@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { parseAttributes } from "@/services/catalogService";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface CatalogDialogProps {
   isOpen: boolean;
@@ -35,9 +37,11 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
-  // Structured data for display
-  const [parentProducts, setParentProducts] = useState<Product[]>([]);
-  const [variantsMap, setVariantsMap] = useState<Map<string, Product[]>>(new Map());
+  // New state for expanded product parents
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
+  
+  // New structured data approach
+  const [productFamilies, setProductFamilies] = useState<Map<string, Product[]>>(new Map());
   const [standaloneProducts, setStandaloneProducts] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -76,7 +80,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       }));
       
       setProducts(processedProducts);
-      organizeProdcuts(processedProducts);
+      organizeProducts(processedProducts);
       
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -84,46 +88,40 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   };
   
-  const organizeProdcuts = (products: Product[]) => {
-    // Reset structures
-    const parents: Product[] = [];
-    const variants = new Map<string, Product[]>();
+  const organizeProducts = (products: Product[]) => {
+    // New approach: use a Map to store parent-variants relationships
+    const families = new Map<string, Product[]>();
     const standalone: Product[] = [];
     
-    // First separate parents and standalone products
+    // First, identify all parents and create entries in the map
     products.forEach(product => {
       if (product.is_parent) {
-        parents.push(product);
-        variants.set(product.id, []);
-      } else if (!product.parent_id) {
+        families.set(product.id, [product]);
+      }
+    });
+    
+    // Then, assign variants to their parents or add standalone products
+    products.forEach(product => {
+      if (product.parent_id && families.has(product.parent_id)) {
+        // This is a variant of a parent product
+        const family = families.get(product.parent_id) || [];
+        family.push(product);
+        families.set(product.parent_id, family);
+      } else if (!product.is_parent && !product.parent_id) {
+        // This is a standalone product
         standalone.push(product);
       }
     });
     
-    // Then assign variants to their parents
-    products.forEach(product => {
-      if (product.parent_id && variants.has(product.parent_id)) {
-        const parentVariants = variants.get(product.parent_id) || [];
-        parentVariants.push(product);
-        variants.set(product.parent_id, parentVariants);
-      }
-    });
-    
     // Update state
-    setParentProducts(parents);
-    setVariantsMap(variants);
+    setProductFamilies(families);
     setStandaloneProducts(standalone);
     
     // Log for debugging
-    console.log(`Found ${parents.length} parent products`);
-    console.log(`Found ${standalone.length} standalone products`);
-    let totalVariants = 0;
-    parents.forEach(parent => {
-      const count = variants.get(parent.id)?.length || 0;
-      totalVariants += count;
-      console.log(`Parent "${parent.name}" has ${count} variants`);
+    console.log(`Organized ${families.size} product families and ${standalone.length} standalone products`);
+    families.forEach((family, parentId) => {
+      console.log(`Family ${parentId} has ${family.length} products (including parent)`);
     });
-    console.log(`Found ${totalVariants} total variant products`);
   };
 
   const fetchCategories = async () => {
@@ -160,11 +158,17 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   };
 
+  // Apply filters
+  useEffect(() => {
+    if (products.length) {
+      const filtered = applyFilters(products);
+      organizeProducts(filtered);
+    }
+  }, [searchTerm, selectedCategory, selectedBrand, products]);
+
   // Filter products based on search term and filters
-  const applyFilters = () => {
-    if (!products.length) return;
-    
-    const filtered = products.filter(product => {
+  const applyFilters = (productsList: Product[]) => {
+    return productsList.filter(product => {
       // Search filter
       const nameMatch = !searchTerm || 
         (product.name?.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -179,14 +183,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       
       return nameMatch && categoryMatch && brandMatch;
     });
-    
-    organizeProdcuts(filtered);
   };
-  
-  // Apply filters when search or filters change
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, selectedCategory, selectedBrand]);
 
   // Format attributes for display
   const formatAttributes = (attributes: ProductAttributes) => {
@@ -199,85 +196,144 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       .join(", ");
   };
 
-  // Render the product card UI
-  const renderProductCard = (product: Product, isVariant: boolean = false) => {
-    return (
-      <div 
-        key={product.id} 
-        onClick={() => handleProductSelect(product)}
-        className={`cursor-pointer border ${isVariant ? 'border-dashed ml-6 bg-gray-50' : ''} rounded-md overflow-hidden hover:shadow-md transition-shadow mb-3`}
-      >
-        <div className="flex p-3">
-          <div className="w-1/3 p-2 flex items-center justify-center bg-gray-100">
-            <img 
-              src={product.image_url || "/placeholder.svg"}
-              alt={product.name}
-              className="object-contain h-16 w-16"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "/placeholder.svg";
-              }}
-            />
-          </div>
-          
-          <div className="w-2/3 p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-medium text-sm">{product.name}</h3>
-              {product.is_parent && (
-                <Badge variant="outline" className="text-xs">Parent</Badge>
-              )}
-              {product.parent_id && (
-                <Badge variant="outline" className="text-xs">Variante</Badge>
-              )}
-            </div>
-            
-            {product.attributes && Object.keys(product.attributes).length > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                {formatAttributes(product.attributes as ProductAttributes)}
-              </p>
-            )}
-            
-            <div className="text-sm mt-2">
-              <p className="text-muted-foreground">
-                Prix: {product.price} €
-              </p>
-              {product.monthly_price > 0 && (
-                <p className="text-muted-foreground">
-                  Mensualité: {product.monthly_price} €
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  const hasVariants = (productId: string): boolean => {
-    const variants = variantsMap.get(productId) || [];
-    return variants.length > 0;
+  // Toggle product expansion
+  const toggleProductExpansion = (productId: string) => {
+    setExpandedProducts(prevExpanded => {
+      const newExpanded = new Set(prevExpanded);
+      if (newExpanded.has(productId)) {
+        newExpanded.delete(productId);
+      } else {
+        newExpanded.add(productId);
+      }
+      return newExpanded;
+    });
   };
 
-  // Render each parent product with its variants
-  const renderParentWithVariants = (parent: Product) => {
-    const variants = variantsMap.get(parent.id) || [];
-    const variantsCount = variants.length;
+  // Render product card
+  const renderProductCard = (product: Product, isVariant: boolean = false) => {
+    const isParent = product.is_parent;
+    const hasVariants = isParent && productFamilies.has(product.id) && productFamilies.get(product.id)!.length > 1;
+    const isExpanded = expandedProducts.has(product.id);
     
     return (
-      <div key={parent.id} className="border rounded-md p-4 mb-4">
-        {renderProductCard(parent)}
+      <div key={product.id} className={`border rounded-md mb-3 overflow-hidden ${isVariant ? 'border-dashed ml-6 bg-gray-50' : ''}`}>
+        <div className="p-3">
+          {hasVariants ? (
+            <div className="flex items-start">
+              <button 
+                onClick={() => toggleProductExpansion(product.id)}
+                className="p-1 mr-2 text-gray-400 hover:text-gray-600"
+              >
+                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </button>
+              <div className="flex-1" onClick={() => handleProductSelect(product)}>
+                <ProductCardContent product={product} isVariant={isVariant} />
+              </div>
+            </div>
+          ) : (
+            <div className="cursor-pointer" onClick={() => handleProductSelect(product)}>
+              <ProductCardContent product={product} isVariant={isVariant} />
+            </div>
+          )}
+        </div>
         
-        {showVariants && variantsCount > 0 && (
-          <div className="mt-3 pt-2 border-t">
+        {/* Render variants if this is an expanded parent product */}
+        {hasVariants && isExpanded && showVariants && (
+          <div className="border-t pt-2 pb-2 px-3">
             <p className="text-xs text-muted-foreground mb-2 ml-6">
-              Variantes disponibles ({variantsCount}):
+              Variantes disponibles ({productFamilies.get(product.id)!.length - 1}):
             </p>
             <div className="space-y-2">
-              {variants.map(variant => renderProductCard(variant, true))}
+              {productFamilies.get(product.id)!
+                .filter(p => p.id !== product.id) // Exclude the parent itself
+                .map(variant => (
+                  <div 
+                    key={variant.id}
+                    onClick={() => handleProductSelect(variant)}
+                    className="cursor-pointer border border-dashed rounded-md p-3 ml-6 bg-gray-50 hover:bg-gray-100"
+                  >
+                    <ProductCardContent product={variant} isVariant={true} />
+                  </div>
+                ))
+              }
             </div>
           </div>
         )}
       </div>
     );
+  };
+
+  // Extracted product card content to a separate component
+  const ProductCardContent = ({ product, isVariant }: { product: Product, isVariant: boolean }) => {
+    return (
+      <div className="flex">
+        <div className="w-1/3 p-2 flex items-center justify-center bg-gray-100 rounded">
+          <img 
+            src={product.image_url || "/placeholder.svg"}
+            alt={product.name}
+            className="object-contain h-16 w-16"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
+            }}
+          />
+        </div>
+        
+        <div className="w-2/3 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-medium text-sm">{product.name}</h3>
+            {product.is_parent && (
+              <Badge variant="outline" className="text-xs">Parent</Badge>
+            )}
+            {product.parent_id && (
+              <Badge variant="outline" className="text-xs">Variante</Badge>
+            )}
+          </div>
+          
+          {product.attributes && Object.keys(product.attributes).length > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              {formatAttributes(product.attributes as ProductAttributes)}
+            </p>
+          )}
+          
+          <div className="text-sm mt-2">
+            <p className="text-muted-foreground">
+              Prix: {product.price} €
+            </p>
+            {product.monthly_price > 0 && (
+              <p className="text-muted-foreground">
+                Mensualité: {product.monthly_price} €
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Count total products for display
+  const getTotalProductsCount = () => {
+    let count = standaloneProducts.length;
+    
+    // Add all variants from all families
+    productFamilies.forEach(family => {
+      count += family.length;
+    });
+    
+    return count;
+  };
+  
+  // Get count of parent products
+  const getParentProductsCount = () => {
+    return productFamilies.size;
+  };
+  
+  // Get count of products with variants (parents that actually have variants)
+  const getProductsWithVariantsCount = () => {
+    let count = 0;
+    productFamilies.forEach(family => {
+      if (family.length > 1) count++; // Only count parents with actual variants
+    });
+    return count;
   };
 
   return (
@@ -335,7 +391,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             onCheckedChange={setShowVariants}
           />
           <Label htmlFor="show-variants" className="cursor-pointer">
-            Afficher les variantes ({showVariants ? 'Oui' : 'Non'})
+            Afficher les variantes
           </Label>
         </div>
         
@@ -348,14 +404,51 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Parent products with variants */}
-              {parentProducts.length > 0 && (
+              {getTotalProductsCount() === 0 && (
+                <div className="text-center py-10 text-muted-foreground">
+                  Aucun produit trouvé
+                </div>
+              )}
+              
+              {/* Products with variants */}
+              {getProductsWithVariantsCount() > 0 && (
                 <div className="space-y-4">
                   <h3 className="font-medium text-sm text-muted-foreground">
-                    Produits avec variantes ({parentProducts.length})
+                    Produits avec variantes ({getProductsWithVariantsCount()})
                   </h3>
                   
-                  {parentProducts.map(parent => renderParentWithVariants(parent))}
+                  <div className="space-y-2">
+                    {Array.from(productFamilies.entries())
+                      .filter(([_, family]) => family.length > 1) // Only show families with variants
+                      .map(([parentId, family]) => {
+                        const parentProduct = family.find(p => p.id === parentId);
+                        if (!parentProduct) return null; // Safety check
+                        return renderProductCard(parentProduct);
+                      })
+                    }
+                  </div>
+                </div>
+              )}
+              
+              {/* Parents without variants - treat as standalone */}
+              {Array.from(productFamilies.entries())
+                .filter(([_, family]) => family.length === 1)
+                .length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-medium text-sm text-muted-foreground">
+                    Produits parents sans variantes ({
+                      Array.from(productFamilies.entries())
+                        .filter(([_, family]) => family.length === 1)
+                        .length
+                    })
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    {Array.from(productFamilies.entries())
+                      .filter(([_, family]) => family.length === 1)
+                      .map(([_, family]) => renderProductCard(family[0]))
+                    }
+                  </div>
                 </div>
               )}
               
@@ -369,13 +462,6 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                   <div className="space-y-2">
                     {standaloneProducts.map(product => renderProductCard(product))}
                   </div>
-                </div>
-              )}
-              
-              {/* No products found message */}
-              {parentProducts.length === 0 && standaloneProducts.length === 0 && (
-                <div className="text-center py-10 text-muted-foreground">
-                  Aucun produit trouvé
                 </div>
               )}
             </div>
