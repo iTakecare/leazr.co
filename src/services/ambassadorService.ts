@@ -109,17 +109,23 @@ export const updateAmbassador = async (
   try {
     console.log("Updating ambassador with data:", ambassadorData);
     
-    // Correction: suppression de .select().single() qui cause des erreurs
-    // quand la mise à jour n'affecte aucune ligne (pas de changement)
+    // Vérifier si le barème de commissionnement est inclus
+    if (ambassadorData.commission_level_id) {
+      console.log("Commission level ID included:", ambassadorData.commission_level_id);
+    }
+    
+    // Effectuer la mise à jour avec tous les champs, y compris commission_level_id
     const { error } = await supabase
       .from("ambassadors")
       .update(ambassadorData)
       .eq("id", id);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error during update:", error);
+      throw error;
+    }
     
-    // Au lieu de retourner les données, simplement retourner void
-    // Cette approche est plus robuste
+    console.log("Ambassador update successful");
   } catch (error) {
     console.error(`Error updating ambassador with ID ${id}:`, error);
     throw error;

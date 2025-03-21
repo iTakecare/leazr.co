@@ -108,6 +108,8 @@ const AmbassadorEditPage = () => {
           navigate("/ambassadors");
           return;
         }
+        
+        console.log("Ambassador data loaded:", ambassadorData);
         setAmbassador(ambassadorData);
         
         form.reset({
@@ -177,9 +179,16 @@ const AmbassadorEditPage = () => {
     setUpdatingLevel(true);
     
     try {
+      // Mettre à jour le niveau de commission
       await updateAmbassadorCommissionLevel(ambassador.id, levelId);
+      
+      // Mettre à jour l'état local
       setCurrentLevelId(levelId);
       loadCommissionLevel(levelId);
+      
+      // Mettre à jour également l'objet ambassador pour que la valeur soit prise en compte lors de la sauvegarde
+      setAmbassador(prev => prev ? { ...prev, commission_level_id: levelId } : null);
+      
       toast.success("Barème de commissionnement mis à jour");
     } catch (error) {
       console.error("Error updating commission level:", error);
@@ -197,11 +206,13 @@ const AmbassadorEditPage = () => {
     
     setIsSaving(true);
     try {
-      // Modification: inclure également le barème de commission actuel
+      // S'assurer d'inclure le barème de commission actuel dans les données
       const formDataWithCommission = {
         ...data,
         commission_level_id: currentLevelId
       };
+      
+      console.log("Saving ambassador with formDataWithCommission:", formDataWithCommission);
       
       await updateAmbassador(id, formDataWithCommission);
       toast.success(`L'ambassadeur ${data.name} a été mis à jour`);
