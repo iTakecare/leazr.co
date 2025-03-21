@@ -53,48 +53,66 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
         {errors.title && <p className="text-sm text-red-500 mt-1">Ce champ est requis</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="price" className="font-medium text-gray-700">Prix d'achat (€)</Label>
-          <div className="mt-1 relative">
-            <Input
-              id="price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={equipment.purchasePrice || ""}
-              onChange={(e) => handleChange("purchasePrice", e.target.value)}
-              className={`pl-8 ${errors.purchasePrice ? "border-red-500" : ""}`}
-              placeholder="0.00"
-            />
-            <span className="absolute left-3 top-2.5 text-gray-500 pointer-events-none">€</span>
+      {!hideFinancialDetails && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="price" className="font-medium text-gray-700">Prix d'achat (€)</Label>
+            <div className="mt-1 relative">
+              <Input
+                id="price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={equipment.purchasePrice || ""}
+                onChange={(e) => handleChange("purchasePrice", e.target.value)}
+                className={`pl-8 ${errors.purchasePrice ? "border-red-500" : ""}`}
+                placeholder="0.00"
+              />
+              <span className="absolute left-3 top-2.5 text-gray-500 pointer-events-none">€</span>
+            </div>
+            {errors.purchasePrice && <p className="text-sm text-red-500 mt-1">Entrez un prix valide</p>}
           </div>
-          {errors.purchasePrice && <p className="text-sm text-red-500 mt-1">Entrez un prix valide</p>}
-        </div>
 
-        <div>
-          <Label htmlFor="margin" className="font-medium text-gray-700">Marge (%)</Label>
-          <div className="mt-1 relative">
-            <Input
-              id="margin"
-              type="number"
-              min="0"
-              step="0.01"
-              value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
-              onChange={(e) => handleChange("margin", e.target.value)}
-              className={`pl-8 ${errors.margin ? "border-red-500" : ""} ${calculatedMargin.percentage > 0 ? "bg-green-50 border-green-300" : ""}`}
-              placeholder="0.00"
-            />
-            <span className="absolute left-3 top-2.5 text-gray-500 pointer-events-none">%</span>
+          <div>
+            <Label htmlFor="margin" className="font-medium text-gray-700">Marge (%)</Label>
+            <div className="mt-1 relative">
+              <Input
+                id="margin"
+                type="number"
+                min="0"
+                step="0.01"
+                value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
+                onChange={(e) => handleChange("margin", e.target.value)}
+                className={`pl-8 ${errors.margin ? "border-red-500" : ""} ${calculatedMargin.percentage > 0 ? "bg-green-50 border-green-300" : ""}`}
+                placeholder="0.00"
+              />
+              <span className="absolute left-3 top-2.5 text-gray-500 pointer-events-none">%</span>
+            </div>
+            {calculatedMargin.percentage > 0 && (
+              <p className="text-sm text-green-600 mt-1">
+                Marge calculée disponible: {formatPercentageWithComma(calculatedMargin.percentage)}
+              </p>
+            )}
+            {errors.margin && <p className="text-sm text-red-500 mt-1">Entrez une marge valide</p>}
           </div>
-          {calculatedMargin.percentage > 0 && (
-            <p className="text-sm text-green-600 mt-1">
-              Marge calculée disponible: {formatPercentageWithComma(calculatedMargin.percentage)}
-            </p>
-          )}
-          {errors.margin && <p className="text-sm text-red-500 mt-1">Entrez une marge valide</p>}
         </div>
-      </div>
+      )}
+
+      {/* Ajout de champs cachés pour conserver les valeurs sans les afficher */}
+      {hideFinancialDetails && (
+        <div className="hidden">
+          <Input
+            type="hidden"
+            value={equipment.purchasePrice || ""}
+            onChange={(e) => handleChange("purchasePrice", e.target.value)}
+          />
+          <Input
+            type="hidden"
+            value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
+            onChange={(e) => handleChange("margin", e.target.value)}
+          />
+        </div>
+      )}
     </div>
   );
 };

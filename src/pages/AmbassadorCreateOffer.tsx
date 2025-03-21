@@ -181,6 +181,19 @@ const AmbassadorCreateOffer = () => {
     hideFinancialDetails: true // Important: Cacher les détails financiers
   };
   
+  // Pré-remplir les valeurs par défaut pour les champs masqués
+  const handleAddEquipment = (title: string) => {
+    // Pour les ambassadeurs, on utilise des valeurs par défaut pour les champs masqués
+    setEquipment({
+      id: crypto.randomUUID(),
+      title: title || "",
+      purchasePrice: 1000, // Valeur par défaut
+      quantity: 1,
+      margin: 20, // Valeur par défaut
+      monthlyPayment: 0,
+    });
+  };
+  
   return (
     <PageTransition>
       <Container>
