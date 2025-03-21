@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft } from "lucide-react";
@@ -34,13 +35,21 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     
     // Convert to the expected Product type if needed
     const catalogProduct: Product = {
-      ...product,
+      id: product.id,
+      name: product.name,
       brand: product.brand || "",
       category: product.category || "",
       description: product.description || "",
+      price: product.price || 0,
+      monthly_price: product.monthly_price,
+      image_url: product.image_url,
+      active: product.active !== undefined ? product.active : true,
+      variation_attributes: product.variation_attributes,
+      variant_combination_prices: product.variant_combination_prices,
+      is_parent: product.is_parent,
+      attributes: product.attributes,
       createdAt: product.createdAt || new Date(),
-      updatedAt: product.updatedAt || new Date(),
-      active: product.active !== undefined ? product.active : true
+      updatedAt: product.updatedAt || new Date()
     };
     
     // Check if the product has variants
@@ -66,13 +75,21 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     
     // Convert to the expected Product type
     const catalogProduct: Product = {
-      ...product,
+      id: product.id,
+      name: product.name,
       brand: product.brand || "",
       category: product.category || "",
       description: product.description || "",
+      price: product.price || 0,
+      monthly_price: product.monthly_price,
+      image_url: product.image_url,
+      active: product.active !== undefined ? product.active : true,
+      variation_attributes: product.variation_attributes,
+      variant_combination_prices: product.variant_combination_prices,
+      is_parent: product.is_parent,
+      attributes: product.attributes,
       createdAt: product.createdAt || new Date(),
-      updatedAt: product.updatedAt || new Date(),
-      active: product.active !== undefined ? product.active : true
+      updatedAt: product.updatedAt || new Date()
     };
     
     setSelectedProduct(catalogProduct);

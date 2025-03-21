@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +19,6 @@ interface ProductVariant {
   attributes: Record<string, any>;
 }
 
-// Define a custom Product interface for this component to avoid conflicts
 interface Product {
   id: string;
   name: string;
@@ -40,7 +38,6 @@ interface Product {
   updatedAt: Date | string;
 }
 
-// Define the ProductSelectorProps interface
 interface ProductSelectorProps {
   isOpen: boolean;
   onClose: () => void;
