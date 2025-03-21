@@ -96,7 +96,7 @@ const AmbassadorDashboard = () => {
               </h1>
               <p className="text-muted-foreground">Votre tableau de bord ambassadeur</p>
             </div>
-            <Button onClick={() => navigate("/ambassadors/clients/create")}>
+            <Button onClick={() => navigate("/ambassador/clients/create")}>
               <Plus className="mr-2 h-4 w-4" />
               Ajouter un client
             </Button>

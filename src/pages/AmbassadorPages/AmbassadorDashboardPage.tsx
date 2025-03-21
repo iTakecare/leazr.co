@@ -247,7 +247,7 @@ const AmbassadorDashboardPage = () => {
                   </p>
                 )}
                 <div className="mt-6">
-                  <Button className="w-full" onClick={() => navigate("/ambassador/clients/new")}>
+                  <Button className="w-full" onClick={() => navigate("/ambassador/clients/create")}>
                     <Plus className="mr-2 h-4 w-4" />
                     Ajouter un client
                   </Button>
