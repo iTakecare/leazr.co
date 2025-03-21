@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { calculateCommissionByLevel } from "@/utils/calculator";
 import CommissionDisplay from "@/components/ui/CommissionDisplay";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 interface EquipmentListProps {
   equipmentList: any[];
@@ -38,7 +40,11 @@ const EquipmentList = ({
   ambassadorId,
   commissionLevelId
 }: EquipmentListProps) => {
-  const [commission, setCommission] = useState({ amount: 0, rate: 0, levelName: "" });
+  const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({ 
+    amount: 0, 
+    rate: 0, 
+    levelName: "" 
+  });
   const [isCalculating, setIsCalculating] = useState(false);
 
   // Calcul de la commission basée sur le total de l'offre
@@ -60,7 +66,6 @@ const EquipmentList = ({
           ambassadorId
         );
         
-        // Fix for TypeScript error - ensure levelName is a string even if it's undefined
         setCommission({ 
           amount: commissionData.amount, 
           rate: commissionData.rate,
@@ -95,100 +100,101 @@ const EquipmentList = ({
     );
   }
 
+  // Calculate totals for summary section
+  const totalBaseAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+  const totalMarginAmount = globalMarginAdjustment.amount;
+  const globalMarginPercentage = totalMarginAmount > 0 && totalBaseAmount > 0 
+    ? ((totalMarginAmount / totalBaseAmount) * 100).toFixed(2) 
+    : "0.00";
+  
+  // Calculate margin difference if available
+  const marginDifference = globalMarginAdjustment.marginDifference || 0;
+  const totalMarginWithDifference = totalMarginAmount + marginDifference;
+
   return (
     <>
       <Card className="border border-gray-200 shadow-sm">
         <CardHeader className="pb-2 border-b">
-          <CardTitle>Liste d'équipements</CardTitle>
+          <CardTitle>Liste des équipements</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-0">
-          <div className="space-y-4">
-            {equipmentList.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-gray-100"
-              >
-                <div className="flex-1 mb-2 sm:mb-0">
-                  <div className="font-semibold">{item.title}</div>
-                  {!hideFinancialDetails && (
-                    <div className="text-sm text-muted-foreground">
-                      Prix: {formatCurrency(item.purchasePrice)} - Marge: {item.margin}%
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                    >
-                      <MinusCircle className="h-4 w-4" />
-                    </Button>
-                    <span className="w-6 text-center">{item.quantity}</span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    >
-                      <PlusCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => startEditing(item.id)}
-                      disabled={!!editingId}
-                      className="h-7 w-7 text-blue-600"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeFromList(item.id)}
-                      disabled={!!editingId}
-                      className="h-7 w-7 text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2">Équipement</th>
+                  <th className="text-left py-2">Prix unitaire</th>
+                  <th className="text-center py-2">Qté</th>
+                  {!hideFinancialDetails && <th className="text-right py-2">Marge</th>}
+                  <th className="text-right py-2">Total</th>
+                  <th className="text-right py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {equipmentList.map((item) => (
+                  <tr key={item.id} className="border-b border-gray-100">
+                    <td className="py-3">{item.title}</td>
+                    <td className="py-3">{formatCurrency(item.purchasePrice)}</td>
+                    <td className="py-3">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                        >
+                          <MinusCircle className="h-4 w-4" />
+                        </Button>
+                        <span className="w-6 text-center">{item.quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                    {!hideFinancialDetails && (
+                      <td className="text-right py-3">{item.margin.toFixed(2)} %</td>
+                    )}
+                    <td className="text-right py-3 text-blue-600 font-medium">
+                      {formatCurrency((item.monthlyPayment || 0) * item.quantity)}
+                    </td>
+                    <td className="text-right py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => startEditing(item.id)}
+                          disabled={!!editingId}
+                          className="h-7 w-7 text-blue-600"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeFromList(item.id)}
+                          disabled={!!editingId}
+                          className="h-7 w-7 text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          <div className="py-4 border-t">
-            <div className="flex justify-between items-center">
-              <div className="font-semibold">Mensualité totale</div>
-              <div className="text-lg font-bold">
-                {formatCurrency(totalMonthlyPayment)}
-              </div>
+          <div className="flex justify-end pt-4 pb-2 border-t mt-2">
+            <div className="font-medium">Mensualité totale : </div>
+            <div className="text-lg font-bold text-blue-600 ml-2">
+              {formatCurrency(totalMonthlyPayment)}
             </div>
-            {!hideFinancialDetails && (
-              <div className="text-sm text-right text-muted-foreground">
-                {globalMarginAdjustment.active && (
-                  <span>
-                    Coefficient: {globalMarginAdjustment.newCoef.toFixed(2)}
-                  </span>
-                )}
-              </div>
-            )}
-            {commission.amount > 0 && (
-              <div className="mt-2 flex justify-between items-center">
-                <div className="font-semibold">Votre commission</div>
-                <div className="text-green-600 font-bold flex items-center gap-1">
-                  <DollarSign className="h-4 w-4" />
-                  {formatCurrency(commission.amount)}
-                  <span className="text-sm text-muted-foreground">
-                    ({commission.rate}%)
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
           
           {ambassadorId && (
@@ -201,6 +207,73 @@ const EquipmentList = ({
           )}
         </CardContent>
       </Card>
+
+      {!hideFinancialDetails && (
+        <Card className="border border-gray-200 shadow-sm mt-4">
+          <CardHeader className="pb-2 border-b">
+            <CardTitle>Récapitulatif global</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <div>Coefficient actuel :</div>
+                <div className="font-medium">{(globalMarginAdjustment.newCoef * 100).toFixed(2)}%</div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div>Nouveau coefficient :</div>
+                <div className="font-medium">{(globalMarginAdjustment.newCoef * 100).toFixed(2)}%</div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div>Marge globale :</div>
+                <div className="font-medium">{globalMarginPercentage}%</div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div>Marge totale en euros :</div>
+                <div className="font-medium">{formatCurrency(totalMarginAmount)}</div>
+              </div>
+              {marginDifference !== 0 && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <div>Différence de marge :</div>
+                    <div className="font-medium text-green-600">{formatCurrency(marginDifference)}</div>
+                  </div>
+                  <div className="flex justify-between items-center border-t pt-2">
+                    <div>Total marge avec différence :</div>
+                    <div className="font-medium text-green-600">{formatCurrency(totalMarginWithDifference)}</div>
+                  </div>
+                </>
+              )}
+              
+              <div className="pt-2 flex items-center justify-between border-t mt-3">
+                <label htmlFor="adapt-monthly" className="cursor-pointer">
+                  Adapter la mensualité au nouveau coefficient
+                </label>
+                <Switch
+                  id="adapt-monthly"
+                  checked={globalMarginAdjustment.active}
+                  onCheckedChange={toggleAdaptMonthlyPayment}
+                />
+              </div>
+              
+              <div className="flex justify-between items-center pt-4 border-t mt-3">
+                <div className="text-lg font-medium text-blue-600">Mensualité totale :</div>
+                <div className="text-lg font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</div>
+              </div>
+              
+              {commission.amount > 0 && (
+                <div className="flex justify-between items-center pt-2">
+                  <div className="font-medium">Votre commission :</div>
+                  <div className="text-green-600 font-medium flex items-center gap-1">
+                    <DollarSign className="h-4 w-4" />
+                    {formatCurrency(commission.amount)}
+                    <span className="text-sm text-muted-foreground">({commission.rate}%)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 };
