@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,16 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, Info } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { toast } from "sonner";
+import { Product } from "@/types/catalog";
 
-interface ProductSelectorProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelectProduct: (product: any) => void;
-  title?: string;
-  description?: string;
-}
-
-// Interface for the products and their variants
 interface ProductVariant {
   id: string;
   price: number;
@@ -49,6 +40,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   isOpen,
   onClose,
   onSelectProduct,
+  onViewVariants,
   title = "Sélectionner un produit",
   description = "Parcourez notre catalogue pour ajouter un produit à votre offre"
 }) => {
@@ -56,12 +48,10 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("tous");
   
-  // Function to fetch products from Supabase
   const fetchProducts = async (): Promise<Product[]> => {
     console.log("Fetching products from Supabase");
     
     try {
-      // Fetch all active products
       const { data: productsData, error: productsError } = await supabase
         .from("products")
         .select("*")
@@ -74,7 +64,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       
       console.log(`Retrieved ${productsData.length} products`);
       
-      // Fetch all variant prices
       const { data: variantPricesData, error: variantPricesError } = await supabase
         .from("product_variant_prices")
         .select("*");
@@ -86,23 +75,18 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       
       console.log(`Retrieved ${variantPricesData.length} variant prices`);
       
-      // Associate variant prices with their parent products
       const productsWithVariants = productsData.map(product => {
-        // Find all variant prices for this product
         const productVariantPrices = variantPricesData.filter(price => 
           price.product_id === product.id
         );
         
-        // Check if this product is a parent product
         const isParent = productVariantPrices.length > 0;
         
-        // Create variation attributes from variant prices if they don't already exist
         let variationAttributes = product.variation_attributes;
         if (isParent && (!variationAttributes || Object.keys(variationAttributes).length === 0)) {
           variationAttributes = extractVariationAttributes(productVariantPrices);
         }
         
-        // Create enriched product object
         return {
           ...product,
           variant_combination_prices: productVariantPrices,
@@ -119,7 +103,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     }
   };
   
-  // Extract variation attributes from variant prices
   const extractVariationAttributes = (variantPrices: any[]): Record<string, string[]> => {
     const attributes: Record<string, Set<string>> = {};
     
@@ -134,7 +117,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       }
     });
     
-    // Convert Sets to Arrays
     const result: Record<string, string[]> = {};
     Object.entries(attributes).forEach(([key, values]) => {
       result[key] = Array.from(values);
@@ -143,12 +125,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     return result;
   };
 
-  // Use React Query to fetch products
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ["products-selector"],
     queryFn: fetchProducts,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: isOpen, // Only fetch when the selector is open
+    staleTime: 5 * 60 * 1000,
+    enabled: isOpen,
     meta: {
       onError: (err: Error) => {
         console.error("Products query failed:", err);
@@ -157,19 +138,16 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     }
   });
 
-  // Get unique categories for filtering
   const categories: string[] = products 
     ? [...new Set(products.map(product => product.category))]
       .filter((category): category is string => Boolean(category))
     : [];
     
-  // Filter products based on search, category, and tab
   const getFilteredProducts = () => {
     if (!products) return [];
     
     let filtered = products;
     
-    // Filter by search text
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(product => 
@@ -179,12 +157,10 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       );
     }
     
-    // Filter by category
     if (selectedCategory !== "all") {
       filtered = filtered.filter(product => product.category === selectedCategory);
     }
     
-    // Filter by product type (parent, variant, individual)
     if (selectedTab === "parents") {
       filtered = filtered.filter(product => 
         product.is_parent || 
@@ -208,14 +184,12 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   const filteredProducts = getFilteredProducts();
   
-  // Handle product selection
   const handleProductSelect = (product: Product) => {
     console.log("Selected product:", product);
     onSelectProduct(product);
     onClose();
   };
   
-  // Reset filters when opening the selector
   useEffect(() => {
     if (isOpen) {
       setSearchQuery("");
@@ -301,7 +275,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="cursor-pointer" onClick={() => handleProductSelect(product)}>
-                      <ProductCard product={product} />
+                      <ProductCard 
+                        product={product} 
+                        onClick={() => handleProductSelect(product)}
+                        onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
+                      />
                     </div>
                   ))}
                 </div>

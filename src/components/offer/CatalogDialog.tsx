@@ -49,6 +49,14 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   };
   
+  // Handle clicking on "Voir les configurations disponibles" in ProductCard
+  const handleViewVariants = (product: Product, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedProduct(product);
+    setShowVariantSelector(true);
+  };
+  
   // Handle variant selection
   const onVariantSelect = (productWithVariant: Product) => {
     handleProductSelect(productWithVariant);
@@ -96,6 +104,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
               isOpen={isOpen && !showVariantSelector}
               onClose={onClose}
               onSelectProduct={onSelectProduct}
+              onViewVariants={handleViewVariants}
               title="Sélectionner un produit"
               description="Parcourez notre catalogue pour ajouter un produit à votre offre"
             />

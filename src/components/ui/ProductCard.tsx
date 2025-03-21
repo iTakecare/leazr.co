@@ -1,8 +1,10 @@
+
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
 import { Layers, ChevronRight } from "lucide-react";
+import { Product } from "@/types/catalog";
 
 interface ProductVariant {
   id: string;
@@ -11,28 +13,13 @@ interface ProductVariant {
   attributes?: Record<string, any>;
 }
 
-interface Product {
-  id: string;
-  name: string;
-  brand?: string;
-  category?: string;
-  price: number;
-  monthly_price?: number;
-  image_url?: string;
-  variants?: ProductVariant[];
-  is_parent?: boolean;
-  active?: boolean;
-  variation_attributes?: Record<string, string[]>;
-  attributes?: Record<string, any>;
-  variant_combination_prices?: any[];
-}
-
 interface ProductCardProps {
   product: Product;
   onClick?: () => void;
+  onViewVariants?: (e: React.MouseEvent) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onViewVariants }) => {
   if (!product) return null;
   
   const productName = product?.name || "Produit sans nom";
@@ -132,11 +119,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
               )}
             </div>
             
-            {hasVariants && (
+            {hasVariants && onViewVariants && (
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <button 
                   className="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
-                  onClick={onClick}
+                  onClick={onViewVariants}
                 >
                   Voir les configurations disponibles
                   <ChevronRight className="h-4 w-4" />
