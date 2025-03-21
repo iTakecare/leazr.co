@@ -13,6 +13,9 @@ import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { useAuth } from "@/context/AuthContext";
 import { v4 as uuidv4 } from "uuid";
+import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+import { defaultLeasers } from "@/data/leasers";
+import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 
 // Version du calculateur adaptée pour les ambassadeurs
 const AmbassadorCreateOffer = () => {
@@ -24,31 +27,33 @@ const AmbassadorCreateOffer = () => {
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
-  const [equipment, setEquipment] = useState<Equipment>({
-    id: uuidv4(),
-    title: "",
-    purchasePrice: 0,
-    margin: 20,
-    monthlyPayment: 0,
-    quantity: 1
-  });
-  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [targetMonthlyPayment, setTargetMonthlyPayment] = useState(0);
-  const [coefficient, setCoefficient] = useState(0.039);
-  const [calculatedMargin, setCalculatedMargin] = useState({ percentage: 20, amount: 0 });
   
-  // État global des marges pour compatibilité avec EquipmentList
-  const [globalMarginAdjustment, setGlobalMarginAdjustment] = useState<GlobalMarginAdjustment>({
-    percentage: 20,
-    amount: 0,
-    newMonthly: 0,
-    currentCoef: coefficient,
-    newCoef: coefficient,
-    adaptMonthlyPayment: true,
-    marginDifference: 0
-  });
+  // Nous utilisons le hook useEquipmentCalculator pour une cohérence parfaite avec CreateOffer
+  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  
+  const {
+    equipment,
+    setEquipment,
+    monthlyPayment,
+    targetMonthlyPayment,
+    setTargetMonthlyPayment,
+    coefficient,
+    calculatedMargin,
+    equipmentList,
+    setEquipmentList,
+    totalMonthlyPayment,
+    globalMarginAdjustment,
+    setGlobalMarginAdjustment,
+    editingId,
+    applyCalculatedMargin,
+    addToList,
+    startEditing,
+    cancelEditing,
+    removeFromList,
+    updateQuantity,
+    findCoefficient,
+    toggleAdaptMonthlyPayment
+  } = useEquipmentCalculator(selectedLeaser);
   
   // Si clientId est présent, charger les informations du client
   useEffect(() => {
@@ -76,172 +81,15 @@ const AmbassadorCreateOffer = () => {
     }
   };
   
-  const calculateMonthlyPayment = (equipment: Equipment): number => {
-    // Pour les ambassadeurs, on calcule simplement la mensualité sans montrer les marges
-    return parseFloat((equipment.purchasePrice * coefficient).toFixed(2));
+  // Pour l'ouverture du sélecteur de client (adaptation pour ClientInfo)
+  const handleOpenClientSelector = () => {
+    // Fonctionnalité à implémenter si nécessaire
+    toast.info("La sélection de client n'est pas disponible dans cette version");
   };
   
-  const calculateCalculatedMargin = (purchase: number, target: number): { percentage: number; amount: number } => {
-    if (purchase <= 0 || target <= 0 || !coefficient) {
-      return { percentage: 20, amount: 0 };
-    }
-    
-    // Utiliser exactement la même formule que dans l'interface admin
-    const requiredTotal = target / coefficient * 100;
-    const marginAmount = requiredTotal - purchase;
-    const marginPercentage = (marginAmount / purchase) * 100;
-    
-    return {
-      percentage: parseFloat(marginPercentage.toFixed(2)),
-      amount: parseFloat(marginAmount.toFixed(2))
-    };
-  };
-  
-  const applyCalculatedMargin = () => {
-    if (calculatedMargin.percentage >= 0) {
-      setEquipment({
-        ...equipment,
-        margin: calculatedMargin.percentage,
-        // S'assurer que la mensualité cible est également appliquée
-        monthlyPayment: targetMonthlyPayment > 0 ? targetMonthlyPayment : equipment.monthlyPayment
-      });
-      toast.success(`Marge de ${calculatedMargin.percentage}% appliquée`);
-    }
-  };
-  
-  useEffect(() => {
-    if (targetMonthlyPayment > 0 && equipment.purchasePrice > 0) {
-      const margin = calculateCalculatedMargin(
-        equipment.purchasePrice,
-        targetMonthlyPayment
-      );
-      setCalculatedMargin(margin);
-    }
-  }, [targetMonthlyPayment, equipment.purchasePrice, coefficient]);
-  
-  const monthlyPayment = calculateMonthlyPayment(equipment);
-  
-  // Mise à jour du globalMarginAdjustment pour compatibilité avec EquipmentList
-  useEffect(() => {
-    if (equipmentList.length === 0) {
-      return;
-    }
-    
-    const totalPurchase = equipmentList.reduce((total, item) => 
-      total + (item.purchasePrice * item.quantity), 0);
-    const totalMonthly = equipmentList.reduce((total, item) => 
-      total + ((item.monthlyPayment || 0) * item.quantity), 0);
-    
-    // Utiliser exactement la même formule que dans l'interface admin pour le calcul global
-    if (totalPurchase > 0 && totalMonthly > 0) {
-      // Calculer la marge réelle basée sur les prix et les mensualités
-      const impliedTotal = totalMonthly / coefficient * 100;
-      const marginAmount = impliedTotal - totalPurchase;
-      const marginPercentage = (marginAmount / totalPurchase) * 100;
-      
-      setGlobalMarginAdjustment({
-        percentage: parseFloat(marginPercentage.toFixed(2)),
-        amount: parseFloat(marginAmount.toFixed(2)),
-        newMonthly: totalMonthly,
-        currentCoef: coefficient,
-        newCoef: coefficient,
-        adaptMonthlyPayment: true,
-        marginDifference: 0
-      });
-    }
-  }, [equipmentList, coefficient]);
-  
-  const handleAddEquipment = () => {
-    if (editingId) {
-      // Mise à jour d'un équipement existant
-      setEquipmentList(
-        equipmentList.map((item) =>
-          item.id === editingId
-            ? { 
-                ...equipment, 
-                // S'assurer d'utiliser la marge calculée si disponible
-                margin: calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin,
-                monthlyPayment: targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment 
-              }
-            : item
-        )
-      );
-      setEditingId(null);
-    } else {
-      // Ajout d'un nouvel équipement
-      setEquipmentList([
-        ...equipmentList,
-        { 
-          ...equipment, 
-          // S'assurer d'utiliser la marge calculée si disponible
-          margin: calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin,
-          monthlyPayment: targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment 
-        }
-      ]);
-    }
-    
-    // Réinitialiser le formulaire
-    setEquipment({
-      id: uuidv4(),
-      title: "",
-      purchasePrice: 0,
-      margin: 20,
-      monthlyPayment: 0,
-      quantity: 1
-    });
-    setTargetMonthlyPayment(0);
-    setCalculatedMargin({ percentage: 0, amount: 0 });
-  };
-  
-  const handleEditEquipment = (id: string) => {
-    const itemToEdit = equipmentList.find((item) => item.id === id);
-    if (itemToEdit) {
-      setEquipment(itemToEdit);
-      setEditingId(id);
-      
-      if (itemToEdit.monthlyPayment && itemToEdit.monthlyPayment > 0) {
-        setTargetMonthlyPayment(itemToEdit.monthlyPayment);
-      }
-    }
-  };
-  
-  const handleDeleteEquipment = (id: string) => {
-    setEquipmentList(equipmentList.filter((item) => item.id !== id));
-  };
-  
-  const handleCancelEditing = () => {
-    setEditingId(null);
-    setEquipment({
-      id: uuidv4(),
-      title: "",
-      purchasePrice: 0,
-      margin: 20,
-      monthlyPayment: 0,
-      quantity: 1
-    });
-    setTargetMonthlyPayment(0);
-    setCalculatedMargin({ percentage: 0, amount: 0 });
-  };
-  
-  // Fonction pour modifier la quantité d'un équipement (pour EquipmentList)
-  const updateQuantity = (id: string, change: number) => {
-    setEquipmentList(
-      equipmentList.map((item) => {
-        if (item.id === id) {
-          const newQuantity = Math.max(1, item.quantity + change);
-          return { ...item, quantity: newQuantity };
-        }
-        return item;
-      })
-    );
-  };
-  
-  // Fonction pour basculer l'adaptation des mensualités (pour EquipmentList)
-  const toggleAdaptMonthlyPayment = () => {
-    setGlobalMarginAdjustment(prev => ({
-      ...prev,
-      adaptMonthlyPayment: !prev.adaptMonthlyPayment
-    }));
+  // Pour l'ouverture du catalogue (adaptation pour EquipmentForm)
+  const handleOpenCatalog = () => {
+    // Fonctionnalité à implémenter si nécessaire
   };
   
   const handleSaveOffer = async () => {
@@ -270,8 +118,19 @@ const AmbassadorCreateOffer = () => {
       );
       
       // Décrire l'équipement
-      const equipmentDescription = equipmentList
-        .map((item) => `${item.title} (${item.monthlyPayment}€/mois) x${item.quantity}`)
+      const equipmentDescription = JSON.stringify(
+        equipmentList.map(eq => ({
+          id: eq.id,
+          title: eq.title,
+          purchasePrice: eq.purchasePrice,
+          quantity: eq.quantity,
+          margin: eq.margin,
+          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+        }))
+      );
+      
+      const equipmentText = equipmentList
+        .map((item) => `${item.title} (${item.quantity}x)`)
         .join(", ");
       
       // Créer l'offre dans la base de données
@@ -280,9 +139,12 @@ const AmbassadorCreateOffer = () => {
           client_id: client.id,
           client_name: client.name,
           client_email: client.email,
-          amount: totalPurchasePrice,
-          monthly_payment: totalMonthlyPayment,
           equipment_description: equipmentDescription,
+          equipment_text: equipmentText,
+          amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
+          coefficient: globalMarginAdjustment.newCoef,
+          monthly_payment: totalMonthlyPayment,
+          commission: totalMonthlyPayment * 0.1,
           workflow_status: "draft",
           type: "ambassador_offer",
           user_id: user?.id,
@@ -303,17 +165,6 @@ const AmbassadorCreateOffer = () => {
     }
   };
   
-  // Pour l'ouverture du sélecteur de client (adaptation pour ClientInfo)
-  const handleOpenClientSelector = () => {
-    // Fonctionnalité à implémenter si nécessaire
-    toast.info("La sélection de client n'est pas disponible dans cette version");
-  };
-  
-  // Pour l'ouverture du catalogue (adaptation pour EquipmentForm)
-  const handleOpenCatalog = () => {
-    // Fonctionnalité à implémenter si nécessaire
-  };
-  
   // Préparation des props pour le composant ClientInfo
   const clientInfoProps = {
     clientId: client?.id || null,
@@ -327,85 +178,89 @@ const AmbassadorCreateOffer = () => {
     isSubmitting: isSubmitting,
     selectedLeaser: selectedLeaser,
     equipmentList: equipmentList,
-    hideFinancialDetails: true
+    hideFinancialDetails: false
   };
-  
-  // Récupération du montant mensuel total
-  const totalMonthlyPayment = equipmentList.reduce(
-    (sum, item) => sum + ((item.monthlyPayment || 0) * item.quantity),
-    0
-  );
   
   return (
     <PageTransition>
       <Container>
-        <div className="w-full space-y-8 p-4 md:p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Calculateur d'offre</h1>
-              <p className="text-muted-foreground">
-                Calculez une offre adaptée pour votre client
-              </p>
+        <div className="py-12 px-4">
+          <div className="max-w-[90rem] mx-auto">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-3">
+                <CalcIcon className="h-8 w-8 text-blue-600" />
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Calculateur de Mensualités iTakecare
+                </h1>
+              </div>
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/ambassador/offers')}
+                >
+                  Retour
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate(-1)}
-              >
-                Annuler
-              </Button>
-              <Button 
-                onClick={handleSaveOffer}
-                disabled={loading || equipmentList.length === 0 || !client}
-              >
-                {isSubmitting ? "Sauvegarde..." : "Sauvegarder l'offre"}
-              </Button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
-            <div className="lg:col-span-2">
-              <ClientInfo {...clientInfoProps} />
-              
-              <Card className="mt-6">
-                <CardContent className="p-6">
-                  <div className="mb-4 text-lg font-medium">
-                    Mensualité totale: {equipmentList.reduce((sum, item) => sum + ((item.monthlyPayment || 0) * item.quantity), 0).toFixed(2)}€
+
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Chargement...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                  <div className="mt-6">
+                    <EquipmentForm
+                      equipment={equipment}
+                      setEquipment={setEquipment}
+                      selectedLeaser={selectedLeaser}
+                      addToList={addToList}
+                      editingId={editingId}
+                      cancelEditing={cancelEditing}
+                      onOpenCatalog={handleOpenCatalog}
+                      coefficient={coefficient}
+                      monthlyPayment={monthlyPayment}
+                      targetMonthlyPayment={targetMonthlyPayment}
+                      setTargetMonthlyPayment={setTargetMonthlyPayment}
+                      calculatedMargin={calculatedMargin}
+                      applyCalculatedMargin={applyCalculatedMargin}
+                      hideFinancialDetails={false}
+                    />
                   </div>
-                  
+                </div>
+
+                <div className="space-y-8">
                   <EquipmentList
                     equipmentList={equipmentList}
                     editingId={editingId}
-                    startEditing={handleEditEquipment}
-                    removeFromList={handleDeleteEquipment}
+                    startEditing={startEditing}
+                    removeFromList={removeFromList}
                     updateQuantity={updateQuantity}
                     totalMonthlyPayment={totalMonthlyPayment}
                     globalMarginAdjustment={globalMarginAdjustment}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                    hideFinancialDetails={true}
+                    hideFinancialDetails={false}
                   />
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="lg:col-span-3">
-              <EquipmentForm
-                equipment={equipment}
-                setEquipment={setEquipment}
-                selectedLeaser={selectedLeaser}
-                addToList={handleAddEquipment}
-                editingId={editingId}
-                cancelEditing={handleCancelEditing}
-                onOpenCatalog={handleOpenCatalog}
-                coefficient={coefficient}
-                monthlyPayment={monthlyPayment}
-                targetMonthlyPayment={targetMonthlyPayment}
-                setTargetMonthlyPayment={setTargetMonthlyPayment}
-                calculatedMargin={calculatedMargin}
-                applyCalculatedMargin={applyCalculatedMargin}
-                hideFinancialDetails={true}
-              />
-            </div>
+                  
+                  <ClientInfo
+                    clientId={clientInfoProps.clientId}
+                    clientName={clientInfoProps.clientName}
+                    clientEmail={clientInfoProps.clientEmail}
+                    clientCompany={clientInfoProps.clientCompany}
+                    remarks={clientInfoProps.remarks}
+                    setRemarks={clientInfoProps.setRemarks}
+                    onOpenClientSelector={clientInfoProps.onOpenClientSelector}
+                    handleSaveOffer={clientInfoProps.handleSaveOffer}
+                    isSubmitting={clientInfoProps.isSubmitting}
+                    selectedLeaser={clientInfoProps.selectedLeaser}
+                    equipmentList={clientInfoProps.equipmentList}
+                    hideFinancialDetails={false}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Container>
