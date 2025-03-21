@@ -161,48 +161,45 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     return filtered;
   }, [products, searchTerm, selectedCategory, selectedBrand]);
 
-  // Group products by parent/variant structure
+  // Group products and find parent-variant relationships
   const groupedProducts = React.useMemo(() => {
-    const result: {
-      parents: Product[];
-      variantGroups: Map<string, Product[]>;
-      standalone: Product[];
-    } = {
-      parents: [],
-      variantGroups: new Map(),
-      standalone: [],
-    };
+    // Map to store parent products with their respective variants
+    const parentVariantMap = new Map<string, Product[]>();
     
-    // First separate products into parent, variant, or standalone
+    // Separate products by type
+    const parents: Product[] = [];
+    const standalone: Product[] = [];
+    
+    // First, identify parents and standalone products
     filteredProducts.forEach(product => {
       if (product.is_parent) {
-        result.parents.push(product);
-        // Initialize empty array for variants
-        result.variantGroups.set(product.id, []);
-      } else if (product.parent_id) {
-        // Add variant to its parent's group (create if not exists)
-        const variants = result.variantGroups.get(product.parent_id) || [];
+        parents.push(product);
+        parentVariantMap.set(product.id, []);
+      } else if (!product.parent_id) {
+        standalone.push(product);
+      }
+    });
+    
+    // Then, assign variants to their respective parents
+    filteredProducts.forEach(product => {
+      if (product.parent_id && parentVariantMap.has(product.parent_id)) {
+        const variants = parentVariantMap.get(product.parent_id) || [];
         variants.push(product);
-        result.variantGroups.set(product.parent_id, variants);
-      } else {
-        result.standalone.push(product);
+        parentVariantMap.set(product.parent_id, variants);
       }
     });
     
-    // Count products by type
-    console.log(`Grouped ${result.parents.length} parent products`);
-    console.log(`Grouped ${result.standalone.length} standalone products`);
-    console.log(`Found variants for ${result.variantGroups.size} parent products`);
+    // Log detailed information for debugging
+    console.log(`Grouped ${parents.length} parent products`);
+    console.log(`Found ${standalone.length} standalone products`);
     
-    // Log each parent's variants
-    result.variantGroups.forEach((variants, parentId) => {
-      const parent = result.parents.find(p => p.id === parentId);
-      if (parent) {
-        console.log(`Parent "${parent.name}" (${parentId}) has ${variants.length} variants`);
-      }
+    // Log variants for each parent
+    parents.forEach(parent => {
+      const variants = parentVariantMap.get(parent.id) || [];
+      console.log(`Parent "${parent.name}" (${parent.id}) has ${variants.length} variants`);
     });
     
-    return result;
+    return { parents, parentVariantMap, standalone };
   }, [filteredProducts]);
 
   // Format attributes for display
@@ -222,7 +219,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       <div 
         key={product.id} 
         onClick={() => handleProductSelect(product)}
-        className={`cursor-pointer border ${isVariant ? 'border-dashed ml-4 bg-gray-50' : ''} rounded-md overflow-hidden hover:shadow-md transition-shadow mb-2`}
+        className={`cursor-pointer border ${isVariant ? 'border-dashed ml-6 bg-gray-50' : ''} rounded-md overflow-hidden hover:shadow-md transition-shadow mb-2`}
       >
         <div className="flex p-3">
           <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
@@ -341,15 +338,20 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                   </h3>
                   
                   {groupedProducts.parents.map(parent => {
-                    const variants = groupedProducts.variantGroups.get(parent.id) || [];
+                    const variants = groupedProducts.parentVariantMap.get(parent.id) || [];
                     
                     return (
-                      <div key={parent.id} className="space-y-2 border-b pb-4">
+                      <div key={parent.id} className="space-y-2 border rounded-md p-4 mb-4">
                         {renderProductCard(parent)}
                         
                         {showVariants && variants.length > 0 && (
-                          <div className="pl-4 space-y-2">
-                            {variants.map(variant => renderProductCard(variant, true))}
+                          <div className="mt-2 pt-2 border-t">
+                            <p className="text-xs text-muted-foreground mb-2 ml-6">
+                              Variantes disponibles ({variants.length}):
+                            </p>
+                            <div className="space-y-2">
+                              {variants.map(variant => renderProductCard(variant, true))}
+                            </div>
                           </div>
                         )}
                       </div>
