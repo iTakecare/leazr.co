@@ -178,7 +178,7 @@ const AmbassadorCreateOffer = () => {
     isSubmitting: isSubmitting,
     selectedLeaser: selectedLeaser,
     equipmentList: equipmentList,
-    hideFinancialDetails: false // Important: Afficher tous les détails financiers
+    hideFinancialDetails: true // Important: Cacher les détails financiers
   };
   
   return (
@@ -226,7 +226,7 @@ const AmbassadorCreateOffer = () => {
                       setTargetMonthlyPayment={setTargetMonthlyPayment}
                       calculatedMargin={calculatedMargin}
                       applyCalculatedMargin={applyCalculatedMargin}
-                      hideFinancialDetails={false} // Important: Afficher tous les détails financiers
+                      hideFinancialDetails={true} // Important: Cacher les détails financiers
                     />
                   </div>
                 </div>
@@ -241,7 +241,7 @@ const AmbassadorCreateOffer = () => {
                     totalMonthlyPayment={totalMonthlyPayment}
                     globalMarginAdjustment={globalMarginAdjustment}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                    hideFinancialDetails={false} // Important: Afficher tous les détails financiers
+                    hideFinancialDetails={true} // Important: Cacher les détails financiers
                   />
                   
                   <ClientInfo
@@ -256,7 +256,7 @@ const AmbassadorCreateOffer = () => {
                     isSubmitting={clientInfoProps.isSubmitting}
                     selectedLeaser={clientInfoProps.selectedLeaser}
                     equipmentList={clientInfoProps.equipmentList}
-                    hideFinancialDetails={false} // Important: Afficher tous les détails financiers
+                    hideFinancialDetails={true} // Important: Cacher les détails financiers
                   />
                 </div>
               </div>

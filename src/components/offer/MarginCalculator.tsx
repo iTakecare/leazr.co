@@ -72,10 +72,18 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
     return value.toFixed(2).replace('.', ',') + ' %';
   };
 
+  const cardTitle = hideFinancialDetails 
+    ? "Mensualité souhaitée" 
+    : "Calcul de la marge à partir de la mensualité souhaitée";
+
+  const buttonText = hideFinancialDetails
+    ? 'Appliquer cette mensualité'
+    : 'Appliquer cette marge';
+
   return (
     <Card className="shadow-sm border-gray-200 rounded-lg">
       <CardHeader className="pb-3 border-b">
-        <CardTitle className="text-lg font-medium">Calcul de la marge à partir de la mensualité souhaitée</CardTitle>
+        <CardTitle className="text-lg font-medium">{cardTitle}</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-5">
@@ -124,7 +132,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
             disabled={false} // Permettre l'application même sans marge calculée
             className="w-full bg-blue-600 hover:bg-blue-700"
           >
-            {hideFinancialDetails ? 'Appliquer cette mensualité' : 'Appliquer cette marge'}
+            {buttonText}
           </Button>
         </div>
       </CardContent>
