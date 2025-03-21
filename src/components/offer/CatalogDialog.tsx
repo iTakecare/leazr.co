@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,12 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       }));
       
       console.log(`Successfully fetched ${processedProducts.length} products`);
+      console.log("Product sample:", processedProducts.slice(0, 2));
+      
+      // Log variant products to debug
+      const variants = processedProducts.filter(p => p.parent_id || p.is_variation);
+      console.log(`Found ${variants.length} variant products:`, variants.slice(0, 3));
+      
       setProducts(processedProducts || []);
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -151,48 +158,51 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     return filtered;
   }, [products, searchTerm, selectedCategory, selectedBrand]);
 
-  // Group products by model or parent/child relationship
+  // Group products by parent/child relationship
   const groupedProducts = React.useMemo(() => {
     if (!filteredProducts || filteredProducts.length === 0) {
       return {};
     }
     
+    // Log for debugging
+    console.log("Grouping filtered products:", filteredProducts.length);
+    
     const grouped: Record<string, Product[]> = {};
     
-    // First, add all parent products to their respective groups
-    filteredProducts.forEach(product => {
-      if (product.is_parent) {
-        const modelKey = product.id;
-        if (!grouped[modelKey]) {
-          grouped[modelKey] = [product];
-        }
-      }
+    // First, identify all parent products
+    const parentProducts = filteredProducts.filter(p => p.is_parent);
+    console.log(`Found ${parentProducts.length} parent products`);
+    
+    // Create groups for each parent product
+    parentProducts.forEach(parent => {
+      grouped[parent.id] = [parent];
     });
     
-    // Then, add all variants to their parent's group
-    filteredProducts.forEach(product => {
-      if (product.parent_id && !product.is_parent) {
-        const parentKey = product.parent_id;
-        
-        if (grouped[parentKey]) {
-          // Only add variant if showVariants is true
-          if (showVariants) {
-            grouped[parentKey].push(product);
-          }
-        } else if (!product.is_variation) {
-          // If it's not a variant or if the parent is not in filtered products,
-          // create a new group for this product
-          const productKey = product.id;
-          grouped[productKey] = [product];
-        }
-      } else if (!product.is_parent && !product.parent_id) {
-        // Standalone products (not parent, not variant)
-        const productKey = product.id;
-        if (!grouped[productKey]) {
-          grouped[productKey] = [product];
-        }
-      }
+    // Add standalone products (not parents, not variants)
+    const standaloneProducts = filteredProducts.filter(p => !p.is_parent && !p.parent_id);
+    console.log(`Found ${standaloneProducts.length} standalone products`);
+    
+    standaloneProducts.forEach(product => {
+      grouped[product.id] = [product];
     });
+    
+    // Add variants to their parent's group if showVariants is true
+    if (showVariants) {
+      const variantProducts = filteredProducts.filter(p => p.parent_id);
+      console.log(`Found ${variantProducts.length} variants to add to groups`);
+      
+      variantProducts.forEach(variant => {
+        if (variant.parent_id && grouped[variant.parent_id]) {
+          grouped[variant.parent_id].push(variant);
+        }
+      });
+    }
+    
+    // Log the final group structure
+    console.log("Final grouped products:", Object.keys(grouped).length);
+    for (const [key, group] of Object.entries(grouped)) {
+      console.log(`Group ${key}: ${group.length} products`);
+    }
     
     return grouped;
   }, [filteredProducts, showVariants]);
