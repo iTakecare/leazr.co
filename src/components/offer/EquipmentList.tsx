@@ -20,7 +20,7 @@ interface EquipmentListProps {
     amount: number;
     newCoef: number;
     active: boolean;
-    marginDifference?: number; // Make this property optional
+    marginDifference?: number; // Optional property
   };
   toggleAdaptMonthlyPayment: () => void;
   hideFinancialDetails?: boolean;

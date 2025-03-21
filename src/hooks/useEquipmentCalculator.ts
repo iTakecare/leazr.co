@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -33,10 +32,15 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const toggleAdaptMonthlyPayment = () => {
-    setGlobalMarginAdjustment(prev => ({
-      ...prev,
-      adaptMonthlyPayment: !prev.adaptMonthlyPayment
-    }));
+    console.log("Toggling adaptMonthlyPayment from:", globalMarginAdjustment.adaptMonthlyPayment);
+    setGlobalMarginAdjustment(prev => {
+      const newValue = !prev.adaptMonthlyPayment;
+      console.log("Setting adaptMonthlyPayment to:", newValue);
+      return {
+        ...prev,
+        adaptMonthlyPayment: newValue
+      };
+    });
   };
 
   const calculateFinancedAmount = (eq: Equipment) => {
@@ -208,7 +212,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     setEquipmentList(equipmentList.filter(eq => eq.id !== id));
   };
 
-  // FIX: Update the updateQuantity function to set the exact quantity value
   const updateQuantity = (id: string, newQuantity: number) => {
     console.log(`Updating quantity for item ${id} to ${newQuantity}`);
     setEquipmentList(prevList => 
@@ -301,7 +304,10 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     equipmentList,
     setEquipmentList,
     totalMonthlyPayment,
-    globalMarginAdjustment,
+    globalMarginAdjustment: {
+      ...globalMarginAdjustment,
+      active: globalMarginAdjustment.adaptMonthlyPayment
+    },
     setGlobalMarginAdjustment,
     editingId,
     applyCalculatedMargin,

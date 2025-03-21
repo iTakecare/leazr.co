@@ -279,7 +279,8 @@ const AmbassadorCreateOffer = () => {
                       globalMarginAdjustment={{
                         amount: globalMarginAdjustment.amount,
                         newCoef: globalMarginAdjustment.newCoef,
-                        active: true
+                        active: globalMarginAdjustment.adaptMonthlyPayment,
+                        marginDifference: globalMarginAdjustment.marginDifference
                       }}
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                       hideFinancialDetails={hideFinancialDetails}
