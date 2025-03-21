@@ -205,27 +205,40 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
         }
       } else {
         result = await createClient(clientData);
+        
         if (result) {
           if (isAmbassador) {
-            // Get the ambassador ID directly if we're in ambassador mode
-            const { data: userData } = await supabase.auth.getUser();
-            if (userData?.user) {
-              // Fetch the ambassador's ID for the current user
-              const { data: ambassadorData } = await supabase
-                .from('ambassadors')
-                .select('id')
-                .eq('user_id', userData.user.id)
-                .single();
-              
-              if (ambassadorData?.id) {
-                // Link the newly created client to this ambassador
-                const linked = await linkClientToAmbassador(result.id, ambassadorData.id);
-                if (linked) {
-                  toast.success("Client créé et associé à votre compte d'ambassadeur");
+            try {
+              // Get current user to find ambassador record
+              const { data: userData } = await supabase.auth.getUser();
+              if (userData?.user) {
+                // Find ambassador record for current user
+                const { data: ambassadorData, error: ambassadorError } = await supabase
+                  .from('ambassadors')
+                  .select('id')
+                  .eq('user_id', userData.user.id)
+                  .maybeSingle();
+                
+                if (ambassadorError) {
+                  console.error("Error fetching ambassador data:", ambassadorError);
+                  toast.error("Impossible de récupérer les informations de votre compte ambassadeur");
+                }
+                
+                if (ambassadorData?.id) {
+                  // Link the client to ambassador
+                  const linked = await linkClientToAmbassador(result.id, ambassadorData.id);
+                  if (linked) {
+                    toast.success("Client créé et associé à votre compte d'ambassadeur");
+                  } else {
+                    toast.error("Client créé mais impossible de l'associer à votre compte d'ambassadeur");
+                  }
                 } else {
-                  toast.error("Client créé mais impossible de l'associer à votre compte d'ambassadeur");
+                  toast.error("Impossible de trouver votre profil d'ambassadeur");
                 }
               }
+            } catch (error) {
+              console.error("Error in ambassador linking:", error);
+              toast.error("Erreur lors de l'association du client à votre compte d'ambassadeur");
             }
           } else {
             toast.success("Client créé avec succès");

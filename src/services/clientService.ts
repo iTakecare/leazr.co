@@ -186,40 +186,6 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     console.log("Client created successfully:", data);
     
-    // Check if the user is an ambassador to associate the client
-    try {
-      // First check if the current user is an ambassador by checking ambassador_id
-      const { data: ambassadorData, error: ambassadorError } = await supabase
-        .from('ambassadors')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (ambassadorError && ambassadorError.code !== 'PGRST116') {
-        console.error("Error checking ambassador status:", ambassadorError);
-      }
-      
-      if (ambassadorData && ambassadorData.id) {
-        console.log("Current user is an ambassador with ID:", ambassadorData.id);
-        
-        // Associate client with ambassador
-        const linked = await linkClientToAmbassador(data.id, ambassadorData.id);
-        
-        if (linked) {
-          console.log("Client successfully linked to ambassador");
-          toast.success("Client created and associated with your ambassador account");
-        } else {
-          console.error("Failed to associate client with ambassador");
-          toast.error("Client created but couldn't be associated with your ambassador account");
-        }
-      } else {
-        console.log("Current user is not an ambassador or ambassador ID not found");
-      }
-    } catch (associationError) {
-      console.error("Exception in ambassador-client association:", associationError);
-      toast.error("Client created but couldn't be associated with your account");
-    }
-    
     return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error creating client:", error);
@@ -416,70 +382,38 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       clientId
     });
     
-    // Use a transaction to ensure both checks and updates complete together
-    const { data, error } = await supabase.rpc('link_client_to_ambassador', {
-      p_client_id: clientId,
-      p_ambassador_id: ambassadorId
-    });
-    
-    if (error) {
-      console.error("Error in link_client_to_ambassador procedure:", error);
+    // First check if the association already exists
+    const { data: existingLink, error: checkError } = await supabase
+      .from("ambassador_clients")
+      .select("id")
+      .eq("client_id", clientId)
+      .eq("ambassador_id", ambassadorId)
+      .maybeSingle();
       
-      // Fallback approach if RPC fails
-      console.log("Attempting fallback direct insert...");
-      
-      try {
-        // First directly verify client exists
-        const { data: clientExists } = await supabase
-          .from("clients")
-          .select("id")
-          .eq("id", clientId)
-          .limit(1);
-          
-        if (!clientExists || clientExists.length === 0) {
-          console.error(`Client with ID ${clientId} not found`);
-          return false;
-        }
-        
-        // Verify ambassador exists
-        const { data: ambassadorExists } = await supabase
-          .from("ambassadors")
-          .select("id")
-          .eq("id", ambassadorId)
-          .limit(1);
-          
-        if (!ambassadorExists || ambassadorExists.length === 0) {
-          console.error(`Ambassador with ID ${ambassadorId} not found`);
-          return false;
-        }
-        
-        // Remove any existing associations
-        await supabase
-          .from("ambassador_clients")
-          .delete()
-          .eq("client_id", clientId);
-        
-        // Insert new association
-        const { error: insertError } = await supabase
-          .from("ambassador_clients")
-          .insert({
-            ambassador_id: ambassadorId,
-            client_id: clientId
-          });
-          
-        if (insertError) {
-          console.error("Fallback insertion error:", insertError);
-          return false;
-        }
-        
-        return true;
-      } catch (fallbackError) {
-        console.error("Error in fallback client-ambassador linking:", fallbackError);
-        return false;
-      }
+    if (checkError) {
+      console.error("Error checking existing link:", checkError);
     }
     
-    console.log("Client successfully linked to ambassador via RPC");
+    // If the link already exists, return success
+    if (existingLink) {
+      console.log("Client is already linked to this ambassador");
+      return true;
+    }
+    
+    // Insert a new association
+    const { error: insertError } = await supabase
+      .from("ambassador_clients")
+      .insert({
+        ambassador_id: ambassadorId,
+        client_id: clientId
+      });
+    
+    if (insertError) {
+      console.error("Error linking client to ambassador:", insertError);
+      return false;
+    }
+    
+    console.log("Client successfully linked to ambassador");
     return true;
   } catch (error) {
     console.error("Exception when linking client to ambassador:", error);
