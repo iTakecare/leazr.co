@@ -390,7 +390,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
   try {
     if (!clientId || !ambassadorId) {
       console.error("Missing required parameters for linkClientToAmbassador", { clientId, ambassadorId });
-      return false;
+      throw new Error("Missing client ID or ambassador ID");
     }
     
     console.log("Linking client to ambassador:", {
@@ -400,7 +400,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
     
     const { data: existingLink, error: checkError } = await supabase
       .from("ambassador_clients")
-      .select("*")
+      .select("id")
       .eq("ambassador_id", ambassadorId)
       .eq("client_id", clientId);
       
@@ -410,10 +410,11 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
     }
     
     if (existingLink && existingLink.length > 0) {
-      console.log("Client is already associated with this ambassador");
+      console.log("Client is already associated with this ambassador, ID:", existingLink[0].id);
       return true;
     }
     
+    console.log("Creating new ambassador-client link");
     const { data, error: linkError } = await supabase
       .from("ambassador_clients")
       .insert({

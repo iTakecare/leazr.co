@@ -37,10 +37,14 @@ const AmbassadorClientsPage = () => {
       
       console.log("Fetching clients for ambassador ID:", user.ambassador_id);
       
-      // Get all clients linked to this ambassador
+      // Get all clients linked to this ambassador - use a more explicit join query
       const { data: ambassadorClients, error: clientsError } = await supabase
         .from("ambassador_clients")
-        .select("client_id, clients(*)")
+        .select(`
+          id,
+          client_id,
+          clients (*)
+        `)
         .eq("ambassador_id", user.ambassador_id);
         
       if (clientsError) {

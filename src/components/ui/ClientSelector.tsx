@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -68,7 +69,11 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
           console.log("Loading ambassador clients for:", user.ambassador_id);
           const { data: ambassadorClients, error: clientsError } = await supabase
             .from("ambassador_clients")
-            .select("client_id, clients(*)")
+            .select(`
+              id,
+              client_id,
+              clients (*)
+            `)
             .eq("ambassador_id", user.ambassador_id);
             
           if (clientsError) {
@@ -146,14 +151,9 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
               clientId: newClient.id
             });
             
-            const linked = await linkClientToAmbassador(newClient.id, user.ambassador_id);
-            
-            if (!linked) {
-              toast.error("Error associating client with ambassador");
-            } else {
-              console.log("Client successfully associated with ambassador from selector");
-              await fetchClients(); // Refresh the client list
-            }
+            await linkClientToAmbassador(newClient.id, user.ambassador_id);
+            console.log("Client successfully associated with ambassador from selector");
+            await fetchClients(); // Refresh the client list
           } catch (associationError) {
             console.error("Exception associating client:", associationError);
             toast.error("Error associating client with ambassador");
