@@ -293,7 +293,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
     }
     
     // First check if the link already exists to avoid duplicate entries
-    const { data: existingLinks, error: checkError } = await adminSupabase
+    const { data: existingLinks, error: checkError } = await supabase
       .from("ambassador_clients")
       .select("*")
       .eq("ambassador_id", ambassadorId)
@@ -311,8 +311,8 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       return true;
     }
     
-    // Create the link using adminSupabase to bypass RLS policies
-    const { error: insertError } = await adminSupabase
+    // Create the link (now using regular supabase client since RLS policies are set up)
+    const { error: insertError } = await supabase
       .from("ambassador_clients")
       .insert({
         ambassador_id: ambassadorId,

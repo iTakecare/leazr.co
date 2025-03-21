@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { 
@@ -37,7 +36,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Define the component props
 interface ClientFormProps {
   isAmbassador?: boolean;
 }
@@ -179,7 +177,6 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
 
   const getAmbassadorProfile = async () => {
     try {
-      // Get current user
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData?.user) {
         console.error("No authenticated user found:", userError);
@@ -189,7 +186,6 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
       
       console.log("Current user:", userData.user.id);
       
-      // Find ambassador record for current user
       const { data: ambassadorData, error: ambassadorError } = await supabase
         .from('ambassadors')
         .select('id')
@@ -198,7 +194,11 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
       
       if (ambassadorError) {
         console.error("Error fetching ambassador data:", ambassadorError);
-        toast.error("Impossible de récupérer les informations de votre compte ambassadeur");
+        if (ambassadorError.code === 'PGRST116') {
+          toast.error("Vous n'avez pas de profil ambassadeur. Veuillez contacter l'administrateur.");
+        } else {
+          toast.error("Impossible de récupérer les informations de votre compte ambassadeur");
+        }
         return null;
       }
       
@@ -251,22 +251,22 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
             try {
               console.log("Ambassador flow: Linking client to ambassador");
               
-              // Get ambassador ID
               const ambassadorId = await getAmbassadorProfile();
               if (!ambassadorId) {
                 console.error("Failed to get ambassador ID");
                 toast.error("Impossible de récupérer votre profil ambassadeur");
+                toast.success("Client créé avec succès, mais impossible de l'associer à votre compte d'ambassadeur");
+                navigateBack();
                 return;
               }
               
               console.log("Linking client to ambassador ID:", ambassadorId);
               
-              // Link the client to ambassador
               const linked = await linkClientToAmbassador(result.id, ambassadorId);
               if (linked) {
                 toast.success("Client créé et associé à votre compte d'ambassadeur");
               } else {
-                toast.error("Client créé mais impossible de l'associer à votre compte d'ambassadeur");
+                toast.warning("Client créé mais impossible de l'associer à votre compte d'ambassadeur. Veuillez contacter l'administrateur.");
               }
             } catch (error) {
               console.error("Error in ambassador linking:", error);
@@ -279,11 +279,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
       }
       
       if (result) {
-        if (isAmbassador || checkIsAmbassador()) {
-          navigate("/ambassador/clients");
-        } else {
-          navigate("/clients");
-        }
+        navigateBack();
       }
     } catch (error) {
       console.error("Erreur lors de l'opération sur le client:", error);
