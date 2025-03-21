@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -25,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClientSelectorProps {
   isOpen: boolean;
@@ -67,36 +69,35 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
         if (isAmbassador() && user?.ambassador_id) {
           console.log("Loading ambassador clients for:", user.ambassador_id);
           
-          const { data: ambassadorClientLinks, error: linksError } = await supabase
+          // Direct join query to get client data with ambassador association
+          const { data, error: queryError } = await supabase
             .from("ambassador_clients")
-            .select("id, client_id")
+            .select(`
+              id,
+              client_id,
+              clients:client_id(*)
+            `)
             .eq("ambassador_id", user.ambassador_id);
-            
-          if (linksError) {
-            console.error("Error fetching ambassador client links:", linksError);
-            throw linksError;
+          
+          if (queryError) {
+            console.error("Error fetching ambassador clients from selector:", queryError);
+            throw queryError;
           }
           
-          console.log("Ambassador client links from selector:", ambassadorClientLinks);
+          console.log("Raw ambassador-client data from selector:", data);
           
-          if (ambassadorClientLinks && ambassadorClientLinks.length > 0) {
-            const clientIds = ambassadorClientLinks.map(link => link.client_id);
-            console.log("Client IDs to fetch from selector:", clientIds);
+          if (data && data.length > 0) {
+            // Process the joined data to get the actual client records
+            clientsData = data
+              .filter(item => item.clients) // Filter out any null client references
+              .map(item => ({
+                ...item.clients,
+                ambassador_client_id: item.id
+              }));
             
-            const { data: clientRecords, error: clientsError } = await supabase
-              .from("clients")
-              .select("*")
-              .in("id", clientIds);
-              
-            if (clientsError) {
-              console.error("Error fetching client details from selector:", clientsError);
-              throw clientsError;
-            }
-            
-            console.log("Fetched client data from selector:", clientRecords);
-            clientsData = clientRecords || [];
+            console.log("Processed clients data from selector:", clientsData);
           } else {
-            console.log("No client associations found for this ambassador in selector");
+            console.log("No clients found for this ambassador in selector");
             clientsData = [];
           }
         } else {
@@ -160,23 +161,31 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
               clientId: newClient.id
             });
             
-            await linkClientToAmbassador(newClient.id, user.ambassador_id);
-            console.log("Client successfully associated with ambassador from selector");
+            const linked = await linkClientToAmbassador(newClient.id, user.ambassador_id);
             
-            setTimeout(() => {
-              fetchClients();
-            }, 500);
+            if (linked) {
+              console.log("Client successfully associated with ambassador from selector");
+              // Wait a moment then refresh to show the new client
+              setTimeout(() => {
+                fetchClients();
+              }, 500);
+            } else {
+              console.error("Failed to associate client with ambassador from selector");
+              toast.error("Error associating client with ambassador");
+            }
           } catch (associationError) {
             console.error("Exception associating client:", associationError);
             toast.error("Error associating client with ambassador");
           }
         } else {
+          // For non-ambassadors, add the new client to the current list
           setClients(prevClients => [...prevClients, newClient]);
         }
         
         form.reset();
         setShowForm(false);
         
+        // Automatically select the newly created client
         handleSelectClient(newClient);
       }
     } catch (error) {

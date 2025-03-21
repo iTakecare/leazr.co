@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ClientsEmptyState } from "@/components/clients/ClientsEmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AmbassadorClientsPage = () => {
   const navigate = useNavigate();
@@ -26,7 +28,7 @@ const AmbassadorClientsPage = () => {
 
   const fetchClients = useCallback(async () => {
     if (!user?.ambassador_id) {
-      console.warn("No ambassador_id found for current user");
+      console.error("No ambassador_id found for current user");
       setLoading(false);
       return;
     }
@@ -37,62 +39,43 @@ const AmbassadorClientsPage = () => {
       
       console.log("Fetching clients for ambassador ID:", user.ambassador_id);
       
-      // First fetch ambassador_clients associations
-      const { data: ambassadorClientLinks, error: linksError } = await supabase
+      // Direct join query to get client data with ambassador association
+      const { data, error: queryError } = await supabase
         .from("ambassador_clients")
-        .select("id, client_id")
+        .select(`
+          id,
+          client_id,
+          clients:client_id(*)
+        `)
         .eq("ambassador_id", user.ambassador_id);
         
-      if (linksError) {
-        console.error("Error fetching ambassador client links:", linksError);
-        throw linksError;
+      if (queryError) {
+        console.error("Error fetching ambassador clients:", queryError);
+        throw queryError;
       }
       
-      console.log("Ambassador client links:", ambassadorClientLinks);
+      console.log("Raw ambassador-client data:", data);
       
-      if (!ambassadorClientLinks || ambassadorClientLinks.length === 0) {
-        console.log("No client associations found for this ambassador");
+      if (!data || data.length === 0) {
+        console.log("No clients found for this ambassador");
         setClients([]);
         setFilteredClients([]);
         setLoading(false);
         return;
       }
       
-      // Extract client IDs
-      const clientIds = ambassadorClientLinks.map(link => link.client_id);
-      console.log("Client IDs to fetch:", clientIds);
+      // Process the joined data to get the actual client records
+      const processedClients = data
+        .filter(item => item.clients) // Filter out any null client references
+        .map(item => ({
+          ...item.clients,
+          ambassador_client_id: item.id
+        }));
       
-      // Fetch the actual client records
-      const { data: clientsData, error: clientsError } = await supabase
-        .from("clients")
-        .select("*")
-        .in("id", clientIds);
-        
-      if (clientsError) {
-        console.error("Error fetching client details:", clientsError);
-        throw clientsError;
-      }
+      console.log("Processed clients data:", processedClients);
       
-      console.log("Fetched client data:", clientsData);
-      
-      if (clientsData && clientsData.length > 0) {
-        // Enrich client data with ambassador_client_id
-        const enrichedClients = clientsData.map(client => {
-          const link = ambassadorClientLinks.find(l => l.client_id === client.id);
-          return {
-            ...client,
-            ambassador_client_id: link ? link.id : null
-          };
-        });
-        
-        console.log("Processed clients data:", enrichedClients);
-        setClients(enrichedClients);
-        setFilteredClients(enrichedClients);
-      } else {
-        console.log("No clients found for this ambassador");
-        setClients([]);
-        setFilteredClients([]);
-      }
+      setClients(processedClients);
+      setFilteredClients(processedClients);
     } catch (err) {
       console.error("Error loading clients:", err);
       setError("Unable to load clients");
@@ -182,11 +165,21 @@ const AmbassadorClientsPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredClients.length > 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={4}>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredClients.length > 0 ? (
               filteredClients.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.email}</TableCell>
+                  <TableCell>{client.email || "-"}</TableCell>
                   <TableCell>{client.company || "-"}</TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
@@ -196,12 +189,7 @@ const AmbassadorClientsPage = () => {
                 </TableRow>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center h-24">
-                  <User className="h-10 w-10 mx-auto text-gray-300 mb-2" />
-                  <p className="text-muted-foreground">No clients found</p>
-                </TableCell>
-              </TableRow>
+              <ClientsEmptyState />
             )}
           </TableBody>
         </Table>
@@ -209,7 +197,7 @@ const AmbassadorClientsPage = () => {
     );
   };
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <PageTransition>
         <Container>

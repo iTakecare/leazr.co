@@ -390,7 +390,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
   try {
     if (!clientId || !ambassadorId) {
       console.error("Missing required parameters for linkClientToAmbassador", { clientId, ambassadorId });
-      throw new Error("Missing client ID or ambassador ID");
+      return false;
     }
     
     console.log("Linking client to ambassador:", {
@@ -404,9 +404,10 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       .eq("id", clientId)
       .single();
     
-    if (clientError) {
+    if (clientError || !clientExists) {
       console.error("Error verifying client existence:", clientError);
-      throw new Error(`Client with ID ${clientId} not found`);
+      toast.error(`Client with ID ${clientId} not found`);
+      return false;
     }
     
     const { data: ambassadorExists, error: ambassadorError } = await supabase
@@ -415,9 +416,10 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       .eq("id", ambassadorId)
       .single();
     
-    if (ambassadorError) {
+    if (ambassadorError || !ambassadorExists) {
       console.error("Error verifying ambassador existence:", ambassadorError);
-      throw new Error(`Ambassador with ID ${ambassadorId} not found`);
+      toast.error(`Ambassador with ID ${ambassadorId} not found`);
+      return false;
     }
     
     const { data: existingLink, error: checkError } = await supabase
@@ -428,7 +430,8 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       
     if (checkError) {
       console.error("Error checking existing client-ambassador link:", checkError);
-      throw checkError;
+      toast.error("Error checking client association");
+      return false;
     }
     
     if (existingLink && existingLink.length > 0) {
@@ -447,14 +450,16 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       
     if (insertError) {
       console.error("Error linking client to ambassador:", insertError);
-      throw insertError;
+      toast.error("Error linking client to ambassador");
+      return false;
     }
     
     console.log("Client successfully linked to ambassador, result:", data);
     return true;
   } catch (error) {
     console.error("Exception when linking client to ambassador:", error);
-    throw error;
+    toast.error("Error linking client to ambassador");
+    return false;
   }
 };
 
