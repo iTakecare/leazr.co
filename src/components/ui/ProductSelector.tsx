@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Loader2, Info } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { toast } from "sonner";
-import type { Product as CatalogProduct } from "@/types/catalog"; // Renamed to avoid conflict
+import type { Product as ProductType } from "@/types/catalog"; // Renamed to avoid conflict
 
 // Define the ProductVariant interface
 interface ProductVariant {
@@ -39,6 +40,7 @@ export interface ProductWithVariants {
   selected_variant_id?: string;
   attributes?: Record<string, any>;
   monthly_price?: number;
+  active?: boolean; // Add active property to match Product interface
 }
 
 // Define the props interface
@@ -87,12 +89,12 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   // Fetch categories and brands on component mount
   useEffect(() => {
     if (products) {
-      // Extract unique categories
-      const uniqueCategories = ['all', ...new Set(products.map(product => product.category))];
+      // Extract unique categories and cast to string array
+      const uniqueCategories = ['all', ...new Set(products.map(product => String(product.category)))];
       setCategories(uniqueCategories);
 
-			// Extract unique brands
-			const uniqueBrands = ['all', ...new Set(products.map(product => product.brand))];
+			// Extract unique brands and cast to string array
+			const uniqueBrands = ['all', ...new Set(products.map(product => String(product.brand)))];
 			setBrands(uniqueBrands);
     }
   }, [products]);
@@ -145,7 +147,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         variant_combination_prices: product.variant_combination_prices || [],
         createdAt: product.created_at || '',
         updatedAt: product.updated_at || '',
-        monthly_price: product.monthly_price || 0
+        monthly_price: product.monthly_price || 0,
+        active: product.active // Include active property
       })) as ProductWithVariants[];
   }, [products, searchQuery, selectedCategory, selectedBrand]);
 
