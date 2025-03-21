@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -207,10 +208,14 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     setEquipmentList(equipmentList.filter(eq => eq.id !== id));
   };
 
-  const updateQuantity = (id: string, change: number) => {
-    setEquipmentList(equipmentList.map(eq => 
-      eq.id === id ? { ...eq, quantity: Math.max(1, eq.quantity + change) } : eq
-    ));
+  // FIX: Update the updateQuantity function to set the exact quantity value
+  const updateQuantity = (id: string, newQuantity: number) => {
+    console.log(`Updating quantity for item ${id} to ${newQuantity}`);
+    setEquipmentList(prevList => 
+      prevList.map(eq => 
+        eq.id === id ? { ...eq, quantity: newQuantity } : eq
+      )
+    );
   };
 
   useEffect(() => {
