@@ -1,20 +1,18 @@
 
 import React, { useEffect, useState } from "react";
-import { Search, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Product, ProductAttributes } from "@/types/catalog";
-import { Badge } from "@/components/ui/badge";
-import { parseAttributes } from "@/services/catalogService";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Product, ProductAttributes } from "@/types/catalog";
 
 interface CatalogDialogProps {
   isOpen: boolean;
@@ -31,17 +29,18 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [showVariants, setShowVariants] = useState<boolean>(true);
+  const [loading, setLoading] = useState(false);
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   
-  // New state for expanded product parents
-  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
+  // State for expanded product parents
+  const [expandedProductIds, setExpandedProductIds] = useState<Set<string>>(new Set());
   
-  // New structured data approach
-  const [productFamilies, setProductFamilies] = useState<Map<string, Product[]>>(new Map());
+  // Structured data for parent products and their variants
+  const [parentProducts, setParentProducts] = useState<Map<string, Product>>(new Map());
+  const [productVariants, setProductVariants] = useState<Map<string, Product[]>>(new Map());
   const [standaloneProducts, setStandaloneProducts] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -50,36 +49,46 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   }, [isOpen]);
   
+  // Fetch all data needed for the catalog
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([
-      fetchProducts(),
-      fetchCategories(),
-      fetchBrands()
-    ]);
-    setLoading(false);
+    try {
+      await Promise.all([
+        fetchProducts(),
+        fetchCategories(),
+        fetchBrands()
+      ]);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Erreur lors du chargement des données");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Fetch products from the database
   const fetchProducts = async () => {
     try {
-      console.log("Fetching products...");
-      
-      const { data, error } = await supabase
+      // First, fetch all products
+      const { data: allProducts, error } = await supabase
         .from('products')
         .select('*')
         .eq('active', true)
         .order('created_at', { ascending: false });
         
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      const processedProducts = data.map(product => ({
+      // Process products (parse attributes, etc.)
+      const processedProducts = allProducts.map(product => ({
         ...product,
-        attributes: parseAttributes(product.attributes)
+        attributes: typeof product.attributes === 'string' 
+          ? JSON.parse(product.attributes) 
+          : product.attributes
       }));
       
       setProducts(processedProducts);
+      
+      // Organize products into parents, variants, and standalone
       organizeProducts(processedProducts);
       
     } catch (err) {
@@ -88,42 +97,44 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   };
   
-  const organizeProducts = (products: Product[]) => {
-    // New approach: use a Map to store parent-variants relationships
-    const families = new Map<string, Product[]>();
+  // Organize products into parent products, variants, and standalone products
+  const organizeProducts = (productsList: Product[]) => {
+    const parents = new Map<string, Product>();
+    const variants = new Map<string, Product[]>();
     const standalone: Product[] = [];
     
-    // First, identify all parents and create entries in the map
-    products.forEach(product => {
+    // First pass: identify parent products and standalone products
+    productsList.forEach(product => {
       if (product.is_parent) {
-        families.set(product.id, [product]);
-      }
-    });
-    
-    // Then, assign variants to their parents or add standalone products
-    products.forEach(product => {
-      if (product.parent_id && families.has(product.parent_id)) {
-        // This is a variant of a parent product
-        const family = families.get(product.parent_id) || [];
-        family.push(product);
-        families.set(product.parent_id, family);
-      } else if (!product.is_parent && !product.parent_id) {
-        // This is a standalone product
+        parents.set(product.id, product);
+        variants.set(product.id, []);
+      } else if (!product.parent_id) {
         standalone.push(product);
       }
     });
     
+    // Second pass: assign variants to their parents
+    productsList.forEach(product => {
+      if (product.parent_id && parents.has(product.parent_id)) {
+        const parentVariants = variants.get(product.parent_id) || [];
+        parentVariants.push(product);
+        variants.set(product.parent_id, parentVariants);
+      }
+    });
+    
     // Update state
-    setProductFamilies(families);
+    setParentProducts(parents);
+    setProductVariants(variants);
     setStandaloneProducts(standalone);
     
-    // Log for debugging
-    console.log(`Organized ${families.size} product families and ${standalone.length} standalone products`);
-    families.forEach((family, parentId) => {
-      console.log(`Family ${parentId} has ${family.length} products (including parent)`);
-    });
+    // Log results for debugging
+    console.log(`Found ${parents.size} parent products, ${standalone.length} standalone products`);
+    let totalVariants = 0;
+    variants.forEach(v => totalVariants += v.length);
+    console.log(`Found ${totalVariants} variants`);
   };
 
+  // Fetch categories from the database
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
@@ -131,9 +142,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         .select('*')
         .order('name');
         
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
       setCategories(data || []);
     } catch (err) {
@@ -141,6 +150,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   };
 
+  // Fetch brands from the database
   const fetchBrands = async () => {
     try {
       const { data, error } = await supabase
@@ -148,9 +158,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         .select('*')
         .order('name');
         
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
       setBrands(data || []);
     } catch (err) {
@@ -158,15 +166,15 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   };
 
-  // Apply filters
+  // Apply filters to products
   useEffect(() => {
-    if (products.length) {
-      const filtered = applyFilters(products);
-      organizeProducts(filtered);
+    if (products.length > 0) {
+      const filteredProducts = applyFilters(products);
+      organizeProducts(filteredProducts);
     }
   }, [searchTerm, selectedCategory, selectedBrand, products]);
 
-  // Filter products based on search term and filters
+  // Filter products based on search term, category, and brand
   const applyFilters = (productsList: Product[]) => {
     return productsList.filter(product => {
       // Search filter
@@ -186,7 +194,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   };
 
   // Format attributes for display
-  const formatAttributes = (attributes: ProductAttributes) => {
+  const formatAttributes = (attributes: ProductAttributes | undefined) => {
     if (!attributes || Object.keys(attributes).length === 0) {
       return "";
     }
@@ -196,66 +204,178 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       .join(", ");
   };
 
-  // Toggle product expansion
+  // Toggle product expansion to show/hide variants
   const toggleProductExpansion = (productId: string) => {
-    setExpandedProducts(prevExpanded => {
-      const newExpanded = new Set(prevExpanded);
-      if (newExpanded.has(productId)) {
-        newExpanded.delete(productId);
+    setExpandedProductIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
       } else {
-        newExpanded.add(productId);
+        newSet.add(productId);
       }
-      return newExpanded;
+      return newSet;
     });
   };
 
-  // Render product card
+  // Check if a product has variants
+  const hasVariants = (productId: string): boolean => {
+    const variants = productVariants.get(productId);
+    return variants !== undefined && variants.length > 0;
+  };
+
+  // Get the number of variants for a product
+  const getVariantCount = (productId: string): number => {
+    const variants = productVariants.get(productId);
+    return variants ? variants.length : 0;
+  };
+
+  // Render a product card
   const renderProductCard = (product: Product, isVariant: boolean = false) => {
-    const isParent = product.is_parent;
-    const hasVariants = isParent && productFamilies.has(product.id) && productFamilies.get(product.id)!.length > 1;
-    const isExpanded = expandedProducts.has(product.id);
+    const productId = product.id;
+    const isExpanded = expandedProductIds.has(productId);
+    const variantCount = getVariantCount(productId);
     
     return (
-      <div key={product.id} className={`border rounded-md mb-3 overflow-hidden ${isVariant ? 'border-dashed ml-6 bg-gray-50' : ''}`}>
+      <div 
+        key={productId} 
+        className={`border rounded-md mb-3 overflow-hidden ${isVariant ? 'border-dashed ml-6 bg-gray-50' : ''}`}
+      >
         <div className="p-3">
-          {hasVariants ? (
-            <div className="flex items-start">
+          <div className="flex items-start">
+            {product.is_parent && hasVariants(productId) ? (
               <button 
-                onClick={() => toggleProductExpansion(product.id)}
-                className="p-1 mr-2 text-gray-400 hover:text-gray-600"
+                onClick={() => toggleProductExpansion(productId)}
+                className="p-1 mr-2 text-gray-400 hover:text-gray-600 flex-shrink-0"
               >
                 {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
-              <div className="flex-1" onClick={() => handleProductSelect(product)}>
-                <ProductCardContent product={product} isVariant={isVariant} />
+            ) : (
+              <div className="w-6 mr-2"></div> // Spacer for alignment
+            )}
+            
+            <div 
+              className="flex-1 cursor-pointer" 
+              onClick={() => handleProductSelect(product)}
+            >
+              <div className="flex">
+                <div className="w-1/3 p-2 flex items-center justify-center bg-gray-100 rounded">
+                  <img 
+                    src={product.image_url || "/placeholder.svg"}
+                    alt={product.name}
+                    className="object-contain h-16 w-16"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "/placeholder.svg";
+                    }}
+                  />
+                </div>
+                
+                <div className="w-2/3 p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-medium text-sm">{product.name}</h3>
+                    {product.is_parent && (
+                      <Badge variant="outline" className="text-xs">Parent</Badge>
+                    )}
+                    {isVariant && (
+                      <Badge variant="outline" className="text-xs">Variante</Badge>
+                    )}
+                  </div>
+                  
+                  {product.attributes && Object.keys(product.attributes).length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatAttributes(product.attributes as ProductAttributes)}
+                    </p>
+                  )}
+                  
+                  <div className="text-sm mt-2">
+                    <p className="text-muted-foreground">
+                      Prix: {product.price || 0} €
+                    </p>
+                    {product.monthly_price > 0 && (
+                      <p className="text-muted-foreground">
+                        Mensualité: {product.monthly_price} €
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="cursor-pointer" onClick={() => handleProductSelect(product)}>
-              <ProductCardContent product={product} isVariant={isVariant} />
-            </div>
-          )}
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-2 flex-shrink-0"
+              onClick={() => handleProductSelect(product)}
+            >
+              <Plus size={16} />
+            </Button>
+          </div>
         </div>
         
-        {/* Render variants if this is an expanded parent product */}
-        {hasVariants && isExpanded && showVariants && (
+        {/* Render variants if this product has them and is expanded */}
+        {product.is_parent && hasVariants(productId) && isExpanded && showVariants && (
           <div className="border-t pt-2 pb-2 px-3">
             <p className="text-xs text-muted-foreground mb-2 ml-6">
-              Variantes disponibles ({productFamilies.get(product.id)!.length - 1}):
+              Variantes disponibles ({variantCount}):
             </p>
             <div className="space-y-2">
-              {productFamilies.get(product.id)!
-                .filter(p => p.id !== product.id) // Exclude the parent itself
-                .map(variant => (
-                  <div 
-                    key={variant.id}
-                    onClick={() => handleProductSelect(variant)}
-                    className="cursor-pointer border border-dashed rounded-md p-3 ml-6 bg-gray-50 hover:bg-gray-100"
-                  >
-                    <ProductCardContent product={variant} isVariant={true} />
+              {productVariants.get(productId)?.map(variant => (
+                <div 
+                  key={variant.id}
+                  className="border border-dashed rounded-md p-3 ml-6 bg-gray-50 hover:bg-gray-100"
+                >
+                  <div className="flex items-center">
+                    <div 
+                      className="flex-1 cursor-pointer" 
+                      onClick={() => handleProductSelect(variant)}
+                    >
+                      <div className="flex">
+                        <div className="w-1/4 p-2 flex items-center justify-center bg-gray-100 rounded">
+                          <img 
+                            src={variant.image_url || "/placeholder.svg"}
+                            alt={variant.name}
+                            className="object-contain h-12 w-12"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder.svg";
+                            }}
+                          />
+                        </div>
+                        
+                        <div className="w-3/4 p-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium text-sm">{variant.name}</h3>
+                            <Badge variant="outline" className="text-xs">Variante</Badge>
+                          </div>
+                          
+                          {variant.attributes && Object.keys(variant.attributes).length > 0 && (
+                            <p className="text-xs text-gray-500">
+                              {formatAttributes(variant.attributes as ProductAttributes)}
+                            </p>
+                          )}
+                          
+                          <div className="text-sm mt-1">
+                            <p className="text-muted-foreground">
+                              Prix: {variant.price || 0} €
+                            </p>
+                            {variant.monthly_price > 0 && (
+                              <p className="text-muted-foreground">
+                                Mensualité: {variant.monthly_price} €
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleProductSelect(variant)}
+                    >
+                      <Plus size={16} />
+                    </Button>
                   </div>
-                ))
-              }
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -263,78 +383,16 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     );
   };
 
-  // Extracted product card content to a separate component
-  const ProductCardContent = ({ product, isVariant }: { product: Product, isVariant: boolean }) => {
-    return (
-      <div className="flex">
-        <div className="w-1/3 p-2 flex items-center justify-center bg-gray-100 rounded">
-          <img 
-            src={product.image_url || "/placeholder.svg"}
-            alt={product.name}
-            className="object-contain h-16 w-16"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder.svg";
-            }}
-          />
-        </div>
-        
-        <div className="w-2/3 p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-medium text-sm">{product.name}</h3>
-            {product.is_parent && (
-              <Badge variant="outline" className="text-xs">Parent</Badge>
-            )}
-            {product.parent_id && (
-              <Badge variant="outline" className="text-xs">Variante</Badge>
-            )}
-          </div>
-          
-          {product.attributes && Object.keys(product.attributes).length > 0 && (
-            <p className="text-xs text-gray-500 mt-1">
-              {formatAttributes(product.attributes as ProductAttributes)}
-            </p>
-          )}
-          
-          <div className="text-sm mt-2">
-            <p className="text-muted-foreground">
-              Prix: {product.price} €
-            </p>
-            {product.monthly_price > 0 && (
-              <p className="text-muted-foreground">
-                Mensualité: {product.monthly_price} €
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Count total products for display
-  const getTotalProductsCount = () => {
-    let count = standaloneProducts.length;
-    
-    // Add all variants from all families
-    productFamilies.forEach(family => {
-      count += family.length;
-    });
-    
-    return count;
-  };
-  
-  // Get count of parent products
-  const getParentProductsCount = () => {
-    return productFamilies.size;
-  };
-  
-  // Get count of products with variants (parents that actually have variants)
-  const getProductsWithVariantsCount = () => {
+  // Calculate counts for display
+  const getParentProductCount = () => parentProducts.size;
+  const getParentProductsWithVariantsCount = () => {
     let count = 0;
-    productFamilies.forEach(family => {
-      if (family.length > 1) count++; // Only count parents with actual variants
+    parentProducts.forEach((_, id) => {
+      if (hasVariants(id)) count++;
     });
     return count;
   };
+  const getStandaloneProductCount = () => standaloneProducts.length;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -404,50 +462,40 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </div>
           ) : (
             <div className="space-y-6">
-              {getTotalProductsCount() === 0 && (
+              {getParentProductCount() === 0 && getStandaloneProductCount() === 0 && (
                 <div className="text-center py-10 text-muted-foreground">
                   Aucun produit trouvé
                 </div>
               )}
               
               {/* Products with variants */}
-              {getProductsWithVariantsCount() > 0 && (
+              {getParentProductsWithVariantsCount() > 0 && (
                 <div className="space-y-4">
                   <h3 className="font-medium text-sm text-muted-foreground">
-                    Produits avec variantes ({getProductsWithVariantsCount()})
+                    Produits avec variantes ({getParentProductsWithVariantsCount()})
                   </h3>
                   
                   <div className="space-y-2">
-                    {Array.from(productFamilies.entries())
-                      .filter(([_, family]) => family.length > 1) // Only show families with variants
-                      .map(([parentId, family]) => {
-                        const parentProduct = family.find(p => p.id === parentId);
-                        if (!parentProduct) return null; // Safety check
-                        return renderProductCard(parentProduct);
-                      })
-                    }
+                    {Array.from(parentProducts.values())
+                      .filter(parent => hasVariants(parent.id))
+                      .map(parent => renderProductCard(parent))}
                   </div>
                 </div>
               )}
               
-              {/* Parents without variants - treat as standalone */}
-              {Array.from(productFamilies.entries())
-                .filter(([_, family]) => family.length === 1)
-                .length > 0 && (
+              {/* Parent products without variants */}
+              {Array.from(parentProducts.values()).filter(parent => !hasVariants(parent.id)).length > 0 && (
                 <div className="space-y-4">
                   <h3 className="font-medium text-sm text-muted-foreground">
                     Produits parents sans variantes ({
-                      Array.from(productFamilies.entries())
-                        .filter(([_, family]) => family.length === 1)
-                        .length
+                      Array.from(parentProducts.values()).filter(parent => !hasVariants(parent.id)).length
                     })
                   </h3>
                   
                   <div className="space-y-2">
-                    {Array.from(productFamilies.entries())
-                      .filter(([_, family]) => family.length === 1)
-                      .map(([_, family]) => renderProductCard(family[0]))
-                    }
+                    {Array.from(parentProducts.values())
+                      .filter(parent => !hasVariants(parent.id))
+                      .map(parent => renderProductCard(parent))}
                   </div>
                 </div>
               )}
