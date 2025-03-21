@@ -98,20 +98,22 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
         </div>
       )}
 
-      {/* Ajout de champs cachés pour conserver les valeurs sans les afficher */}
+      {/* Champs cachés pour conserver les valeurs sans les afficher */}
       {hideFinancialDetails && (
-        <div className="hidden">
-          <Input
-            type="hidden"
-            value={equipment.purchasePrice || ""}
-            onChange={(e) => handleChange("purchasePrice", e.target.value)}
-          />
-          <Input
-            type="hidden"
-            value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
-            onChange={(e) => handleChange("margin", e.target.value)}
-          />
-        </div>
+        <input
+          type="hidden"
+          name="purchasePrice"
+          value={equipment.purchasePrice || ""}
+          onChange={(e) => handleChange("purchasePrice", e.target.value)}
+        />
+      )}
+      {hideFinancialDetails && (
+        <input
+          type="hidden"
+          name="margin"
+          value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
+          onChange={(e) => handleChange("margin", e.target.value)}
+        />
       )}
     </div>
   );

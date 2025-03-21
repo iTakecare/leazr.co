@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -193,6 +194,9 @@ const AmbassadorCreateOffer = () => {
     });
   };
   
+  // Flag pour masquer les détails financiers
+  const hideFinancialDetails = true;
+  
   return (
     <PageTransition>
       <Container>
@@ -238,7 +242,7 @@ const AmbassadorCreateOffer = () => {
                       setTargetMonthlyPayment={setTargetMonthlyPayment}
                       calculatedMargin={calculatedMargin}
                       applyCalculatedMargin={applyCalculatedMargin}
-                      hideFinancialDetails={true} // Important: Cacher les détails financiers
+                      hideFinancialDetails={hideFinancialDetails} // Important: toujours masquer les détails financiers
                     />
                   </div>
                 </div>
@@ -253,7 +257,7 @@ const AmbassadorCreateOffer = () => {
                     totalMonthlyPayment={totalMonthlyPayment}
                     globalMarginAdjustment={globalMarginAdjustment}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                    hideFinancialDetails={true} // Important: Cacher les détails financiers
+                    hideFinancialDetails={hideFinancialDetails} // Important: toujours masquer les détails financiers
                   />
                   
                   <ClientInfo
@@ -268,7 +272,7 @@ const AmbassadorCreateOffer = () => {
                     isSubmitting={clientInfoProps.isSubmitting}
                     selectedLeaser={clientInfoProps.selectedLeaser}
                     equipmentList={clientInfoProps.equipmentList}
-                    hideFinancialDetails={true} // Important: Cacher les détails financiers
+                    hideFinancialDetails={hideFinancialDetails} // Important: toujours masquer les détails financiers
                   />
                 </div>
               </div>
