@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAmbassadorById, updateAmbassador, Ambassador } from "@/services/ambassadorService";
+import { getAmbassadorById, updateAmbassador, updateAmbassadorCommissionLevel, Ambassador } from "@/services/ambassadorService";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,7 +86,7 @@ const AmbassadorEditPage = () => {
     },
   });
 
-  // Fonction pour charger les données de l'ambassadeur - avec useCallback pour pouvoir l'appeler plusieurs fois
+  // Fonction pour charger les données de l'ambassadeur
   const loadAmbassador = useCallback(async () => {
     if (!id) return;
     
@@ -213,18 +212,10 @@ const AmbassadorEditPage = () => {
     toast.info("Mise à jour du barème en cours...");
     
     try {
-      // Mise à jour directe du champ commission_level_id dans Ambassador
-      const updatedData = {
-        ...form.getValues(),
-        commission_level_id: newLevelId
-      };
+      // Appeler directement la fonction spécialisée
+      await updateAmbassadorCommissionLevel(ambassador.id, newLevelId);
       
-      console.log("[handleUpdateCommissionLevel] Données à mettre à jour:", updatedData);
-      
-      // Utilisation de updateAmbassador pour mettre à jour tout l'enregistrement
-      await updateAmbassador(ambassador.id, updatedData);
-      
-      // Mettre à jour l'état local après confirmation de la mise à jour
+      // Mettre à jour l'état local
       setCurrentLevelId(newLevelId);
       
       // Mettre à jour l'objet ambassador pour cohérence de l'UI
@@ -237,9 +228,6 @@ const AmbassadorEditPage = () => {
       await loadCommissionLevel(newLevelId);
       
       toast.success("Barème de commissionnement mis à jour");
-      
-      // Recharger complètement l'ambassadeur pour vérifier la cohérence
-      await loadAmbassador();
     } catch (error) {
       console.error("[handleUpdateCommissionLevel] Erreur:", error);
       toast.error("Erreur lors de la mise à jour du barème");

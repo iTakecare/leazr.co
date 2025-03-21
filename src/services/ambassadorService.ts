@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -101,7 +102,7 @@ export const createAmbassador = async (
   }
 };
 
-// Mettre à jour un ambassadeur existant - version complètement réécrite pour résoudre le problème
+// Mettre à jour un ambassadeur existant
 export const updateAmbassador = async (
   id: string,
   ambassadorData: AmbassadorFormValues
@@ -110,58 +111,10 @@ export const updateAmbassador = async (
     console.log(`[updateAmbassador] Début de la mise à jour pour l'ambassadeur ${id}`);
     console.log(`[updateAmbassador] Données à mettre à jour:`, ambassadorData);
     
-    // Traiter la mise à jour du barème séparément
-    let levelUpdated = false;
-    if (ambassadorData.commission_level_id) {
-      console.log(`[updateAmbassador] Mise à jour du barème demandée: ${ambassadorData.commission_level_id}`);
-      
-      try {
-        // Mise à jour DIRECTE du barème dans la table ambassadors
-        const { error: levelError } = await supabase
-          .from("ambassadors")
-          .update({ 
-            commission_level_id: ambassadorData.commission_level_id,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", id);
-          
-        if (levelError) {
-          console.error(`[updateAmbassador] Erreur lors de la mise à jour du barème:`, levelError);
-          throw new Error(`Erreur lors de la mise à jour du barème: ${levelError.message}`);
-        }
-        
-        // Vérification immédiate que la mise à jour a bien été appliquée
-        const { data: verifyData, error: verifyError } = await supabase
-          .from("ambassadors")
-          .select("commission_level_id")
-          .eq("id", id)
-          .single();
-          
-        if (verifyError) {
-          console.error(`[updateAmbassador] Erreur lors de la vérification:`, verifyError);
-          throw new Error(`Erreur lors de la vérification: ${verifyError.message}`);
-        }
-        
-        if (verifyData.commission_level_id !== ambassadorData.commission_level_id) {
-          console.error(`[updateAmbassador] La mise à jour du barème n'a pas été prise en compte!`);
-          console.error(`Attendu: ${ambassadorData.commission_level_id}, Reçu: ${verifyData.commission_level_id}`);
-          throw new Error("La mise à jour du barème n'a pas été appliquée correctement");
-        }
-        
-        levelUpdated = true;
-        console.log(`[updateAmbassador] Barème mis à jour avec succès: ${ambassadorData.commission_level_id}`);
-      } 
-      catch (e) {
-        console.error(`[updateAmbassador] Erreur critique lors de la mise à jour du barème:`, e);
-        toast.error("Erreur lors de la mise à jour du barème");
-        throw e;
-      }
-    }
-    
-    // Préparer les données pour la mise à jour
+    // Supprimer commission_level_id des données principales si présent
     const { commission_level_id, ...updateData } = ambassadorData;
     
-    // Mise à jour des autres données
+    // Mise à jour des données générales de l'ambassadeur
     const { error: updateError } = await supabase
       .from("ambassadors")
       .update(updateData)
@@ -172,10 +125,12 @@ export const updateAmbassador = async (
       throw updateError;
     }
     
-    console.log(`[updateAmbassador] Mise à jour terminée avec succès pour l'ambassadeur ${id}`);
-    if (levelUpdated) {
-      console.log(`[updateAmbassador] Récapitulatif: barème mis à jour: ${ambassadorData.commission_level_id}`);
+    // Si un ID de barème est fourni, mettre à jour séparément
+    if (commission_level_id) {
+      await updateAmbassadorCommissionLevel(id, commission_level_id);
     }
+    
+    console.log(`[updateAmbassador] Mise à jour terminée avec succès pour l'ambassadeur ${id}`);
   } catch (error) {
     console.error(`[updateAmbassador] Erreur générale:`, error);
     throw error;
@@ -283,25 +238,21 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
   try {
     console.log(`[updateAmbassadorCommissionLevel] DÉBUT - Mise à jour du barème pour l'ambassadeur ${ambassadorId} vers ${levelId}`);
     
-    // Force une mise à jour directe avec un timestamp unique pour éviter les problèmes de cache
-    const timestamp = new Date().toISOString();
-    const { error } = await supabase
-      .from("ambassadors")
-      .update({ 
-        commission_level_id: levelId,
-        updated_at: timestamp
-      })
-      .eq("id", ambassadorId);
-      
+    // Exécution d'une requête SQL directe avec le champ updated_at mis à jour
+    const { error } = await supabase.rpc('update_ambassador_commission_level', {
+      ambassador_id: ambassadorId,
+      commission_level_id: levelId
+    });
+    
     if (error) {
-      console.error(`[updateAmbassadorCommissionLevel] Erreur:`, error);
-      throw error;
+      console.error(`[updateAmbassadorCommissionLevel] Erreur pendant la mise à jour SQL:`, error);
+      throw new Error(`Impossible de mettre à jour le barème: ${error.message}`);
     }
-
-    // Vérification immédiate que la mise à jour a été appliquée
-    const { data, error: verifyError } = await supabase
+    
+    // Vérification de la mise à jour
+    const { data: verifyData, error: verifyError } = await supabase
       .from("ambassadors")
-      .select("id, commission_level_id")
+      .select("commission_level_id")
       .eq("id", ambassadorId)
       .single();
       
@@ -310,46 +261,14 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
       throw verifyError;
     }
     
-    if (data.commission_level_id !== levelId) {
-      console.error(`[updateAmbassadorCommissionLevel] Échec de la mise à jour!`);
-      console.error(`Attendu: ${levelId}, Reçu: ${data.commission_level_id}`);
-      
-      // Dernière tentative avec un timestamp encore plus récent
-      const newTimestamp = new Date().toISOString();
-      const { error: retryError } = await supabase
-        .from("ambassadors")
-        .update({ 
-          commission_level_id: levelId,
-          updated_at: newTimestamp
-        })
-        .eq("id", ambassadorId);
-        
-      if (retryError) {
-        console.error(`[updateAmbassadorCommissionLevel] Erreur lors de la dernière tentative:`, retryError);
-        throw new Error(`Impossible de mettre à jour le barème après plusieurs tentatives`);
-      }
-      
-      // Vérification finale
-      const { data: finalData, error: finalError } = await supabase
-        .from("ambassadors")
-        .select("commission_level_id")
-        .eq("id", ambassadorId)
-        .single();
-        
-      if (finalError) {
-        console.error(`[updateAmbassadorCommissionLevel] Erreur lors de la vérification finale:`, finalError);
-        throw finalError;
-      }
-      
-      if (finalData.commission_level_id !== levelId) {
-        console.error(`[updateAmbassadorCommissionLevel] Échec total de la mise à jour.`);
-        throw new Error(`Mise à jour du barème impossible: ${finalData.commission_level_id} au lieu de ${levelId}`);
-      }
-      
-      console.log(`[updateAmbassadorCommissionLevel] Mise à jour réussie après dernière tentative: ${finalData.commission_level_id}`);
-    } else {
-      console.log(`[updateAmbassadorCommissionLevel] Mise à jour réussie: ${data.commission_level_id}`);
+    // Si la mise à jour n'a pas été appliquée, lancer une erreur
+    if (verifyData.commission_level_id !== levelId) {
+      console.error(`[updateAmbassadorCommissionLevel] La mise à jour n'a pas été appliquée. Attendu: ${levelId}, Reçu: ${verifyData.commission_level_id}`);
+      throw new Error(`La mise à jour du barème n'a pas été appliquée correctement. Niveau actuel: ${verifyData.commission_level_id}`);
     }
+    
+    console.log(`[updateAmbassadorCommissionLevel] Mise à jour réussie du barème vers: ${verifyData.commission_level_id}`);
+    
   } catch (error) {
     console.error(`[updateAmbassadorCommissionLevel] ERREUR CRITIQUE:`, error);
     throw error;
