@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, User, Loader2, RefreshCw } from "lucide-react";
+import { Plus, Search, RefreshCw, User, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,7 +54,10 @@ const AmbassadorClientsPage = () => {
       if (ambassadorClients && ambassadorClients.length > 0) {
         const clientsData = ambassadorClients
           .filter(item => item.clients) // Filter out any null client references
-          .map(item => item.clients);
+          .map(item => ({
+            ...item.clients,
+            ambassador_client_id: item.id // Keep reference to the association ID
+          }));
           
         console.log("Processed clients data:", clientsData);
         setClients(clientsData);
@@ -99,7 +102,6 @@ const AmbassadorClientsPage = () => {
   };
   
   const handleAddClient = () => {
-    // Redirect to standard client creation page
     navigate("/clients/create");
   };
   

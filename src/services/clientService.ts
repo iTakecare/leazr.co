@@ -406,7 +406,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       
     if (checkError) {
       console.error("Error checking existing client-ambassador link:", checkError);
-      return false;
+      throw checkError;
     }
     
     if (existingLink && existingLink.length > 0) {
@@ -431,7 +431,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
     return true;
   } catch (error) {
     console.error("Exception when linking client to ambassador:", error);
-    return false;
+    throw error;
   }
 };
 
