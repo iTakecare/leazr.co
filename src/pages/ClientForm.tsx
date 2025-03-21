@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { 
@@ -36,6 +37,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Define the component props
+interface ClientFormProps {
+  isAmbassador?: boolean;
+}
+
 const formSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide").optional().or(z.literal("")),
@@ -52,11 +58,11 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const ClientForm = () => {
+const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
-  const { user, isAmbassador } = useAuth();
+  const { user, isAmbassador: checkIsAmbassador } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -115,7 +121,7 @@ const ClientForm = () => {
   }, [clientId, form]);
 
   const navigateBack = () => {
-    if (isAmbassador()) {
+    if (isAmbassador || checkIsAmbassador()) {
       navigate("/ambassador/clients");
     } else {
       navigate("/clients");
@@ -511,4 +517,3 @@ const ClientForm = () => {
 };
 
 export default ClientForm;
-
