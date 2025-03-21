@@ -151,7 +151,7 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      toast.error("Vous devez être connecté pour créer un client");
+      toast.error("You must be logged in to create a client");
       return null;
     }
     
@@ -183,34 +183,29 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
       const ambassadorId = userProfile.user.user_metadata.ambassador_id;
       
       try {
-        console.log("Associating client to ambassador:", {
+        console.log("Associating client to ambassador from createClient:", {
           ambassadorId,
           clientId: data.id
         });
         
-        const { error: linkError } = await supabase
-          .from("ambassador_clients")
-          .insert({
-            ambassador_id: ambassadorId,
-            client_id: data.id
-          });
-          
-        if (linkError) {
-          console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
-          toast.error("Erreur lors de l'association du client à l'ambassadeur");
+        const linked = await linkClientToAmbassador(data.id, ambassadorId);
+        
+        if (!linked) {
+          console.error("Error associating client with ambassador");
+          toast.error("Error associating client with ambassador");
         } else {
           console.log("Client successfully associated with ambassador");
         }
       } catch (associationError) {
-        console.error("Exception lors de l'association du client:", associationError);
-        toast.error("Erreur lors de l'association du client à l'ambassadeur");
+        console.error("Exception associating client:", associationError);
+        toast.error("Error associating client with ambassador");
       }
     }
     
     return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error creating client:", error);
-    toast.error("Erreur lors de la création du client");
+    toast.error("Error creating client");
     return null;
   }
 };
@@ -229,7 +224,7 @@ export const updateClient = async (id: string, clientData: Partial<CreateClientD
     return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error updating client:", error);
-    toast.error("Erreur lors de la mise à jour du client");
+    toast.error("Error updating client");
     return null;
   }
 };
@@ -261,7 +256,7 @@ export const deleteClient = async (id: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Error deleting client:", error);
-    toast.error("Erreur lors de la suppression du client");
+    toast.error("Error deleting client");
     return false;
   }
 };
@@ -393,7 +388,12 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
 
 export const linkClientToAmbassador = async (clientId: string, ambassadorId: string): Promise<boolean> => {
   try {
-    console.log("Manually linking client to ambassador:", {
+    if (!clientId || !ambassadorId) {
+      console.error("Missing required parameters for linkClientToAmbassador", { clientId, ambassadorId });
+      return false;
+    }
+    
+    console.log("Linking client to ambassador:", {
       ambassadorId,
       clientId
     });
@@ -402,32 +402,32 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       .from("ambassador_clients")
       .select("*")
       .eq("ambassador_id", ambassadorId)
-      .eq("client_id", clientId)
-      .single();
+      .eq("client_id", clientId);
       
-    if (checkError && checkError.code !== 'PGRST116') {
+    if (checkError) {
       console.error("Error checking existing client-ambassador link:", checkError);
       return false;
     }
     
-    if (existingLink) {
+    if (existingLink && existingLink.length > 0) {
       console.log("Client is already associated with this ambassador");
       return true;
     }
     
-    const { error: linkError } = await supabase
+    const { data, error: linkError } = await supabase
       .from("ambassador_clients")
       .insert({
         ambassador_id: ambassadorId,
         client_id: clientId
-      });
+      })
+      .select();
       
     if (linkError) {
       console.error("Error linking client to ambassador:", linkError);
       throw linkError;
     }
     
-    console.log("Client successfully linked to ambassador");
+    console.log("Client successfully linked to ambassador, result:", data);
     return true;
   } catch (error) {
     console.error("Exception when linking client to ambassador:", error);

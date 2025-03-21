@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, User, Loader2 } from "lucide-react";
+import { Plus, Search, Filter, User, Loader2, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,9 +22,14 @@ const AmbassadorClientsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchClients = async () => {
-    if (!user?.ambassador_id) return;
+  const fetchClients = useCallback(async () => {
+    if (!user?.ambassador_id) {
+      console.warn("No ambassador_id found for current user");
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -32,7 +37,7 @@ const AmbassadorClientsPage = () => {
       
       console.log("Fetching clients for ambassador ID:", user.ambassador_id);
       
-      // Récupérer tous les clients liés à cet ambassadeur
+      // Get all clients linked to this ambassador
       const { data: ambassadorClients, error: clientsError } = await supabase
         .from("ambassador_clients")
         .select("client_id, clients(*)")
@@ -45,26 +50,35 @@ const AmbassadorClientsPage = () => {
       
       console.log("Ambassador clients raw data:", ambassadorClients);
       
-      // Transformer les données pour obtenir seulement les informations des clients
-      const clientsData = ambassadorClients.map(item => item.clients);
-      console.log("Processed clients data:", clientsData);
-      
-      setClients(clientsData);
-      setFilteredClients(clientsData);
+      // Transform data to get only client information
+      if (ambassadorClients && ambassadorClients.length > 0) {
+        const clientsData = ambassadorClients
+          .filter(item => item.clients) // Filter out any null client references
+          .map(item => item.clients);
+          
+        console.log("Processed clients data:", clientsData);
+        setClients(clientsData);
+        setFilteredClients(clientsData);
+      } else {
+        console.log("No clients found for this ambassador");
+        setClients([]);
+        setFilteredClients([]);
+      }
     } catch (err) {
-      console.error("Erreur lors du chargement des clients:", err);
-      setError("Impossible de charger les clients");
-      toast.error("Erreur lors du chargement des clients");
+      console.error("Error loading clients:", err);
+      setError("Unable to load clients");
+      toast.error("Error loading clients");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [user?.ambassador_id]);
   
   useEffect(() => {
     fetchClients();
-  }, [user?.ambassador_id]);
+  }, [fetchClients]);
   
-  // Filtrage des clients
+  // Client filtering
   useEffect(() => {
     if (!clients.length) return;
     
@@ -85,13 +99,14 @@ const AmbassadorClientsPage = () => {
   };
   
   const handleAddClient = () => {
-    // Rediriger vers la page de création de client standard
+    // Redirect to standard client creation page
     navigate("/clients/create");
   };
   
-  const handleRefresh = () => {
-    fetchClients();
-    toast.success("Liste des clients actualisée");
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchClients();
+    toast.success("Client list refreshed");
   };
   
   const renderClientCards = () => {
@@ -99,7 +114,7 @@ const AmbassadorClientsPage = () => {
       return (
         <div className="text-center p-10">
           <User className="h-10 w-10 mx-auto text-gray-300 mb-2" />
-          <p className="text-muted-foreground">Aucun client trouvé</p>
+          <p className="text-muted-foreground">No clients found</p>
         </div>
       );
     }
@@ -117,7 +132,7 @@ const AmbassadorClientsPage = () => {
                 )}
               </div>
               <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
-                <Plus className="h-4 w-4 mr-1" /> Offre
+                <Plus className="h-4 w-4 mr-1" /> Offer
               </Button>
             </div>
           </Card>
@@ -132,9 +147,9 @@ const AmbassadorClientsPage = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nom</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Entreprise</TableHead>
+              <TableHead>Company</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -147,7 +162,7 @@ const AmbassadorClientsPage = () => {
                   <TableCell>{client.company || "-"}</TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
-                      <Plus className="h-4 w-4 mr-1" /> Créer une offre
+                      <Plus className="h-4 w-4 mr-1" /> Create offer
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -156,7 +171,7 @@ const AmbassadorClientsPage = () => {
               <TableRow>
                 <TableCell colSpan={4} className="text-center h-24">
                   <User className="h-10 w-10 mx-auto text-gray-300 mb-2" />
-                  <p className="text-muted-foreground">Aucun client trouvé</p>
+                  <p className="text-muted-foreground">No clients found</p>
                 </TableCell>
               </TableRow>
             )}
@@ -184,19 +199,27 @@ const AmbassadorClientsPage = () => {
         <div className="p-4 md:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Mes clients</h1>
+              <h1 className="text-3xl font-bold tracking-tight">My Clients</h1>
               <p className="text-muted-foreground">
-                Gérez les clients que vous avez amenés
+                Manage clients you've brought in
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={handleRefresh}>
-                <Loader2 className="mr-2 h-4 w-4" />
-                Actualiser
+              <Button 
+                variant="outline" 
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                {refreshing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Refresh
               </Button>
               <Button onClick={handleAddClient}>
                 <Plus className="mr-2 h-4 w-4" />
-                Ajouter un client
+                Add a client
               </Button>
             </div>
           </div>
@@ -205,7 +228,7 @@ const AmbassadorClientsPage = () => {
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher un client..."
+                placeholder="Search for a client..."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -213,7 +236,16 @@ const AmbassadorClientsPage = () => {
             </div>
           </div>
           
-          {isMobile ? renderClientCards() : renderClientTable()}
+          {error ? (
+            <div className="text-center p-10">
+              <p className="text-red-500 mb-4">{error}</p>
+              <Button variant="outline" onClick={handleRefresh}>
+                Try again
+              </Button>
+            </div>
+          ) : (
+            isMobile ? renderClientCards() : renderClientTable()
+          )}
         </div>
       </Container>
     </PageTransition>
