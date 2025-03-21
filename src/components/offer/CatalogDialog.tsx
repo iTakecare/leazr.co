@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -65,8 +64,11 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       console.log("Product sample:", processedProducts.slice(0, 2));
       
       // Log variant products to debug
-      const variants = processedProducts.filter(p => p.parent_id || p.is_variation);
-      console.log(`Found ${variants.length} variant products:`, variants.slice(0, 3));
+      const variants = processedProducts.filter(p => p.parent_id);
+      console.log(`Found ${variants.length} variant products with parent_id:`, variants.slice(0, 3));
+      
+      const variationsFlag = processedProducts.filter(p => p.is_variation);
+      console.log(`Found ${variationsFlag.length} products with is_variation flag:`, variationsFlag.slice(0, 3));
       
       setProducts(processedProducts || []);
     } catch (err) {
@@ -164,45 +166,47 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       return {};
     }
     
-    // Log for debugging
     console.log("Grouping filtered products:", filteredProducts.length);
     
+    // This will hold our grouped products
     const grouped: Record<string, Product[]> = {};
     
-    // First, identify all parent products
-    const parentProducts = filteredProducts.filter(p => p.is_parent);
-    console.log(`Found ${parentProducts.length} parent products`);
-    
-    // Create groups for each parent product
-    parentProducts.forEach(parent => {
-      grouped[parent.id] = [parent];
+    // First pass: Add all parent products and standalone products to groups
+    filteredProducts.forEach(product => {
+      // If it's a parent product, create a group for it
+      if (product.is_parent) {
+        grouped[product.id] = [product];
+      } 
+      // If it's a standalone product (not a parent and not a variant), create its own group
+      else if (!product.is_parent && !product.parent_id) {
+        grouped[product.id] = [product];
+      }
     });
     
-    // Add standalone products (not parents, not variants)
-    const standaloneProducts = filteredProducts.filter(p => !p.is_parent && !p.parent_id);
-    console.log(`Found ${standaloneProducts.length} standalone products`);
-    
-    standaloneProducts.forEach(product => {
-      grouped[product.id] = [product];
-    });
-    
-    // Add variants to their parent's group if showVariants is true
+    // Second pass: Add variants to their parent's group if showVariants is true
     if (showVariants) {
-      const variantProducts = filteredProducts.filter(p => p.parent_id);
-      console.log(`Found ${variantProducts.length} variants to add to groups`);
-      
-      variantProducts.forEach(variant => {
-        if (variant.parent_id && grouped[variant.parent_id]) {
-          grouped[variant.parent_id].push(variant);
+      filteredProducts.forEach(product => {
+        // If it has a parent_id, it's a variant
+        if (product.parent_id) {
+          // Add it to the parent's group if the parent exists in our grouped object
+          if (grouped[product.parent_id]) {
+            grouped[product.parent_id].push(product);
+          } else {
+            // If parent isn't in our groups (maybe filtered out), add as standalone
+            grouped[product.id] = [product];
+          }
         }
       });
     }
     
-    // Log the final group structure
     console.log("Final grouped products:", Object.keys(grouped).length);
-    for (const [key, group] of Object.entries(grouped)) {
-      console.log(`Group ${key}: ${group.length} products`);
-    }
+    
+    // Log a sample of the groups to check structure
+    const sampleKeys = Object.keys(grouped).slice(0, 3);
+    sampleKeys.forEach(key => {
+      console.log(`Group ${key}: ${grouped[key].length} products`, 
+        grouped[key].map(p => ({ id: p.id, name: p.name, isParent: p.is_parent, parentId: p.parent_id })));
+    });
     
     return grouped;
   }, [filteredProducts, showVariants]);
@@ -274,7 +278,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
               onCheckedChange={setShowVariants}
             />
             <Label htmlFor="show-variants" className="cursor-pointer">
-              Afficher les variantes
+              Afficher les variantes ({showVariants ? 'Oui' : 'Non'})
             </Label>
           </div>
         </div>
@@ -289,15 +293,15 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           ) : Object.keys(groupedProducts).length > 0 ? (
             <div className="space-y-6">
               {Object.entries(groupedProducts).map(([groupKey, groupItems]) => {
-                // Sort items so parent comes first, then variants
-                const sortedItems = [...groupItems].sort((a, b) => {
-                  if (a.is_parent) return -1;
-                  if (b.is_parent) return 1;
-                  return 0;
-                });
-                
                 // Get the main product for the group (typically the parent)
-                const mainProduct = sortedItems[0];
+                const mainProduct = groupItems.find(p => p.is_parent) || groupItems[0];
+                const variants = groupItems.filter(p => p.id !== mainProduct.id);
+                
+                console.log(`Rendering group ${groupKey}:`, {
+                  mainProduct: mainProduct.name,
+                  variantsCount: variants.length,
+                  showVariants
+                });
                 
                 return (
                   <div key={groupKey} className="space-y-2">
@@ -306,19 +310,57 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                     </h3>
                     
                     <div className="flex flex-col gap-2">
-                      {sortedItems.map((product) => (
+                      {/* Main product */}
+                      <div 
+                        key={mainProduct.id} 
+                        onClick={() => handleProductSelect(mainProduct)}
+                        className="cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex p-3">
+                          <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
+                            <img 
+                              src={mainProduct.image_url || mainProduct.imageUrl || "/placeholder.svg"}
+                              alt={mainProduct.name}
+                              className="object-contain h-16 w-16"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              }}
+                            />
+                          </div>
+                          <div className="w-2/3 p-3">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-sm">{mainProduct.name}</h3>
+                              {mainProduct.is_parent && (
+                                <Badge variant="outline" className="text-xs">Parent</Badge>
+                              )}
+                            </div>
+                            
+                            <div className="text-sm space-y-1 mt-2">
+                              <p className="text-muted-foreground">
+                                Prix: {mainProduct.price} €
+                              </p>
+                              {mainProduct.monthly_price > 0 && (
+                                <p className="text-muted-foreground">
+                                  Mensualité: {mainProduct.monthly_price} €
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Variants */}
+                      {showVariants && variants.length > 0 && variants.map(variant => (
                         <div 
-                          key={product.id} 
-                          onClick={() => handleProductSelect(product)}
-                          className={`cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${
-                            product.is_variation || product.parent_id ? 'border-dashed' : ''
-                          }`}
+                          key={variant.id} 
+                          onClick={() => handleProductSelect(variant)}
+                          className="cursor-pointer border border-dashed rounded-md overflow-hidden hover:shadow-md transition-shadow ml-4"
                         >
                           <div className="flex p-3">
                             <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
                               <img 
-                                src={product.image_url || product.imageUrl || "/placeholder.svg"}
-                                alt={product.name}
+                                src={variant.image_url || variant.imageUrl || "/placeholder.svg"}
+                                alt={variant.name}
                                 className="object-contain h-16 w-16"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -327,30 +369,24 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                             </div>
                             <div className="w-2/3 p-3">
                               <div className="flex items-center gap-2">
-                                <h3 className="font-medium text-sm">{product.name}</h3>
-                                {product.is_parent && (
-                                  <Badge variant="outline" className="text-xs">Parent</Badge>
-                                )}
-                                {(product.is_variation || product.parent_id) && !product.is_parent && (
-                                  <Badge variant="outline" className="text-xs">Variante</Badge>
-                                )}
+                                <h3 className="font-medium text-sm">{variant.name}</h3>
+                                <Badge variant="outline" className="text-xs">Variante</Badge>
                               </div>
                               
-                              {(product.is_variation || product.parent_id) && 
-                                product.attributes && 
-                                Object.keys(product.attributes).length > 0 && (
+                              {variant.attributes && 
+                                Object.keys(variant.attributes).length > 0 && (
                                 <p className="text-xs text-gray-500 mt-1">
-                                  {formatAttributes(product.attributes as ProductAttributes)}
+                                  {formatAttributes(variant.attributes as ProductAttributes)}
                                 </p>
                               )}
                               
                               <div className="text-sm space-y-1 mt-2">
                                 <p className="text-muted-foreground">
-                                  Prix: {product.price} €
+                                  Prix: {variant.price} €
                                 </p>
-                                {product.monthly_price > 0 && (
+                                {variant.monthly_price > 0 && (
                                   <p className="text-muted-foreground">
-                                    Mensualité: {product.monthly_price} €
+                                    Mensualité: {variant.monthly_price} €
                                   </p>
                                 )}
                               </div>
