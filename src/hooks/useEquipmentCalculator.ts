@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -79,36 +78,39 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
 
     const ranges = leaser?.ranges || defaultLeasers[0].ranges;
     
+    // Trouver le coef correct en fonction du montant
     let coef = ranges[0].coefficient;
-    let finalCoef = coef;
-    
-    const requiredFinancedAmount = (targetMonthlyPayment * 100) / coef;
-    
     for (const range of ranges) {
-      if (requiredFinancedAmount >= range.min && requiredFinancedAmount <= range.max) {
-        finalCoef = range.coefficient;
+      // On cherche un coef approximatif pour commencer, on l'affinera plus tard
+      const financedAmountEstimate = (targetMonthlyPayment * 100) / range.coefficient;
+      if (financedAmountEstimate >= range.min && financedAmountEstimate <= range.max) {
+        coef = range.coefficient;
         break;
       }
     }
     
-    const finalRequiredFinancedAmount = (targetMonthlyPayment * 100) / finalCoef;
+    // Calculer le montant financé requis pour cette mensualité
+    const requiredTotal = (targetMonthlyPayment * 100) / coef;
     
-    const marginAmount = finalRequiredFinancedAmount - equipment.purchasePrice;
+    // Calculer la marge nécessaire pour atteindre ce montant financé
+    const marginAmount = requiredTotal - equipment.purchasePrice;
     
+    // Calculer le pourcentage de marge
     const marginPercentage = (marginAmount / equipment.purchasePrice) * 100;
+    
+    console.log("Target monthly:", targetMonthlyPayment);
+    console.log("Purchase price:", equipment.purchasePrice);
+    console.log("Applied coefficient:", coef);
+    console.log("Required total amount:", requiredTotal);
+    console.log("Calculated margin amount:", marginAmount);
+    console.log("Calculated margin percentage:", marginPercentage);
     
     setCalculatedMargin({
       percentage: Number(marginPercentage.toFixed(2)),
       amount: marginAmount
     });
     
-    setCoefficient(finalCoef);
-    
-    console.log("Target monthly:", targetMonthlyPayment);
-    console.log("Applied coefficient:", finalCoef);
-    console.log("Required financed amount:", finalRequiredFinancedAmount);
-    console.log("Calculated margin percentage:", marginPercentage);
-    console.log("Calculated margin amount:", marginAmount);
+    setCoefficient(coef);
   };
 
   const applyCalculatedMargin = () => {
@@ -140,7 +142,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       const currentMonthlyPayment = targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment;
       console.log("Adding to list with monthly payment:", currentMonthlyPayment);
       
-      // Utiliser la marge calculée si elle existe et a été appliquée
+      // Utiliser la marge calculée si elle existe
       const marginToUse = calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin;
       
       const equipmentToAdd = {
@@ -150,6 +152,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       };
       
       console.log("Equipment being added with margin:", equipmentToAdd.margin);
+      console.log("Equipment being added with monthly payment:", equipmentToAdd.monthlyPayment);
       
       if (editingId) {
         setEquipmentList(equipmentList.map(eq => 
