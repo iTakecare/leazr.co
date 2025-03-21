@@ -73,6 +73,7 @@ export default function AmbassadorDetail() {
   const [loadingCommission, setLoadingCommission] = useState(false);
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
   const [updatingLevel, setUpdatingLevel] = useState(false);
+  const [currentLevelId, setCurrentLevelId] = useState<string>("");
 
   const fetchAmbassador = async () => {
     if (!id) {
@@ -106,6 +107,7 @@ export default function AmbassadorDetail() {
       setAmbassador(detailAmbassador);
 
       if (ambassadorData.commission_level_id) {
+        setCurrentLevelId(ambassadorData.commission_level_id);
         fetchCommissionLevel(ambassadorData.commission_level_id);
       }
     } catch (error) {
@@ -134,6 +136,7 @@ export default function AmbassadorDetail() {
   const loadCommissionLevels = async () => {
     try {
       const levels = await getCommissionLevels("ambassador");
+      console.log("All commission levels:", levels);
       setCommissionLevels(levels);
     } catch (error) {
       console.error("Error loading commission levels:", error);
@@ -145,11 +148,19 @@ export default function AmbassadorDetail() {
     
     setUpdatingLevel(true);
     try {
+      console.log("Updating commission level to:", levelId);
       await updateAmbassadorCommissionLevel(id, levelId);
-      await fetchAmbassador();
-      if (levelId) {
-        await fetchCommissionLevel(levelId);
-      }
+      setCurrentLevelId(levelId);
+      await fetchCommissionLevel(levelId);
+      
+      setAmbassador(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          commission_level_id: levelId
+        };
+      });
+      
       toast.success("Barème de commissionnement mis à jour");
     } catch (error) {
       console.error("Error updating commission level:", error);
@@ -348,7 +359,7 @@ export default function AmbassadorDetail() {
                         Changer le barème
                       </label>
                       <Select
-                        value={ambassador?.commission_level_id || ""}
+                        value={currentLevelId}
                         onValueChange={handleUpdateCommissionLevel}
                         disabled={updatingLevel}
                       >
@@ -363,7 +374,7 @@ export default function AmbassadorDetail() {
                                 {level.is_default && (
                                   <Badge variant="outline" className="text-xs">Par défaut</Badge>
                                 )}
-                                {level.id === ambassador?.commission_level_id && (
+                                {level.id === currentLevelId && (
                                   <Check className="h-3 w-3 text-primary ml-1" />
                                 )}
                               </div>
@@ -628,3 +639,4 @@ export default function AmbassadorDetail() {
     </div>
   );
 }
+

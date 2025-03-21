@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface CommissionRate {
@@ -18,7 +17,7 @@ export interface CommissionLevel {
   is_default: boolean;
   created_at: string;
   updated_at: string;
-  rates?: CommissionRate[]; // Add rates property that components are expecting
+  rates?: CommissionRate[];
 }
 
 /**
@@ -334,9 +333,10 @@ export const getAmbassadorCommissionLevel = async (ambassadorId: string): Promis
 /**
  * Met à jour le niveau de commission d'un ambassadeur
  */
-export const updateAmbassadorCommissionLevel = async (ambassadorId: string, levelId: string): Promise<boolean> => {
+export const updateAmbassadorCommissionLevel = async (ambassadorId: string, levelId: string): Promise<void> => {
   try {
-    console.log(`[updateAmbassadorCommissionLevel] Updating commission level for ambassador ${ambassadorId} to ${levelId}`);
+    console.log("[updateAmbassadorCommissionLevel] Updating commission level for ambassador", ambassadorId, "to", levelId);
+    
     const { error } = await supabase
       .from('ambassadors')
       .update({ commission_level_id: levelId })
@@ -348,10 +348,9 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
     }
     
     console.log("[updateAmbassadorCommissionLevel] Successfully updated");
-    return true;
   } catch (error) {
     console.error("[updateAmbassadorCommissionLevel] Error:", error);
-    return false;
+    throw error;
   }
 };
 

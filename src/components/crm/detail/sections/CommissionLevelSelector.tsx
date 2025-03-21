@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BadgePercent, Check, Loader2 } from "lucide-react";
 import { CommissionLevel } from "@/services/commissionService";
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +29,25 @@ const CommissionLevelSelector = ({
   onUpdateCommissionLevel,
 }: CommissionLevelSelectorProps) => {
   const [updatingLevel, setUpdatingLevel] = useState(false);
+  const [selectedLevelId, setSelectedLevelId] = useState<string>("");
+  
+  useEffect(() => {
+    if (currentLevelId) {
+      setSelectedLevelId(currentLevelId);
+    }
+  }, [currentLevelId]);
 
   const handleUpdateCommissionLevel = async (levelId: string) => {
     if (!ambassadorId || !levelId) return;
     
     setUpdatingLevel(true);
+    setSelectedLevelId(levelId); // Mettre à jour l'état immédiatement pour l'UI
+    
     try {
       await onUpdateCommissionLevel(levelId);
+    } catch (error) {
+      // En cas d'erreur, réinitialiser à l'ancienne valeur
+      setSelectedLevelId(currentLevelId || "");
     } finally {
       setUpdatingLevel(false);
     }
@@ -55,7 +67,7 @@ const CommissionLevelSelector = ({
               Changer le barème
             </label>
             <Select
-              value={currentLevelId || ""}
+              value={selectedLevelId}
               onValueChange={handleUpdateCommissionLevel}
               disabled={updatingLevel}
             >
@@ -70,7 +82,7 @@ const CommissionLevelSelector = ({
                       {level.is_default && (
                         <Badge variant="outline" className="text-xs">Par défaut</Badge>
                       )}
-                      {level.id === currentLevelId && (
+                      {level.id === selectedLevelId && (
                         <Check className="h-3 w-3 text-primary ml-1" />
                       )}
                     </div>

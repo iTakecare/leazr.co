@@ -1,4 +1,6 @@
 
+// Pour le composant AmbassadorDetail.tsx dans les détails des composants, apportons les mêmes correctifs
+
 import React, { useState, useEffect } from "react";
 import {
   Sheet,
@@ -48,17 +50,21 @@ const AmbassadorDetail = ({
   const [loading, setLoading] = useState(false);
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [currentLevelId, setCurrentLevelId] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
       loadCommissionLevels();
       if (ambassador?.commission_level_id) {
+        setCurrentLevelId(ambassador.commission_level_id);
         loadCommissionLevel(ambassador.commission_level_id);
       } else {
         setCommissionLevel(null);
+        setCurrentLevelId("");
       }
     } else {
       setCommissionLevel(null);
+      setCurrentLevelId("");
     }
   }, [isOpen, ambassador]);
 
@@ -85,8 +91,18 @@ const AmbassadorDetail = ({
 
   const handleUpdateCommissionLevel = async (levelId: string) => {
     try {
+      if (!ambassador?.id) return;
+      
+      console.log("Updating commission level to:", levelId);
       await updateAmbassadorCommissionLevel(ambassador.id, levelId);
+      setCurrentLevelId(levelId);
       loadCommissionLevel(levelId);
+      
+      // Mettre à jour l'ambassadeur dans le composant parent
+      if (ambassador && typeof ambassador === 'object') {
+        ambassador.commission_level_id = levelId;
+      }
+      
       toast.success("Barème de commissionnement mis à jour");
     } catch (error) {
       console.error("Error updating commission level:", error);
@@ -158,7 +174,7 @@ const AmbassadorDetail = ({
 
               <CommissionLevelSelector 
                 ambassadorId={ambassador.id}
-                currentLevelId={ambassador.commission_level_id}
+                currentLevelId={currentLevelId}
                 commissionLevel={commissionLevel}
                 commissionLevels={commissionLevels}
                 loading={loading}
