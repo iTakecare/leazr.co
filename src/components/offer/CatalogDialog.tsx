@@ -22,9 +22,29 @@ interface CatalogDialogProps {
   handleProductSelect: (product: Product) => void;
 }
 
-interface ProductFamily {
-  parent: Product;
-  variants: Product[];
+interface VariantCombinationPrice {
+  id: string;
+  product_id: string;
+  attributes: ProductAttributes;
+  price: number;
+  monthly_price?: number;
+  stock?: number;
+}
+
+interface ProductWithVariants extends Product {
+  variant_combination_prices?: VariantCombinationPrice[];
+}
+
+interface PseudoVariant {
+  id: string;
+  name: string;
+  parent_id: string;
+  attributes: ProductAttributes;
+  price: number;
+  monthly_price?: number;
+  image_url?: string;
+  brand?: string;
+  category?: string;
 }
 
 const CatalogDialog: React.FC<CatalogDialogProps> = ({
@@ -39,12 +59,13 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [loading, setLoading] = useState(false);
   
   // All products raw data
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductWithVariants[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   
   // Organized data
-  const [productFamilies, setProductFamilies] = useState<ProductFamily[]>([]);
+  const [parentProducts, setParentProducts] = useState<ProductWithVariants[]>([]);
+  const [pseudoVariants, setPseudoVariants] = useState<PseudoVariant[]>([]);
   const [standaloneProducts, setStandaloneProducts] = useState<Product[]>([]);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
 
@@ -71,7 +92,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   };
 
-  // Fetch and organize products
+  // Fetch products
   const fetchProducts = async () => {
     try {
       // Fetch all products
@@ -88,7 +109,10 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         ...product,
         attributes: typeof product.attributes === 'string' 
           ? JSON.parse(product.attributes) 
-          : product.attributes
+          : product.attributes,
+        variant_combination_prices: typeof product.variant_combination_prices === 'string'
+          ? JSON.parse(product.variant_combination_prices)
+          : product.variant_combination_prices
       }));
       
       setAllProducts(processedProducts);
@@ -100,43 +124,50 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   };
   
-  // Organize products into families (parent + variants)
-  const organizeProducts = (products: Product[]) => {
-    const families: ProductFamily[] = [];
+  // Organize products into parents, variants, and standalone
+  const organizeProducts = (products: ProductWithVariants[]) => {
+    const parents: ProductWithVariants[] = [];
+    const variants: PseudoVariant[] = [];
     const standalone: Product[] = [];
-    const parentMap = new Map<string, Product>();
     
-    // First, identify all parent products
     products.forEach(product => {
-      if (product.is_parent) {
-        parentMap.set(product.id, product);
-      }
-    });
-    
-    // Then organize products into families or standalone
-    products.forEach(product => {
-      if (product.is_parent) {
-        // Initialize the family with the parent product
-        families.push({
-          parent: product,
-          variants: []
+      // Check if the product is a parent with variant_combination_prices
+      if (product.is_parent && product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+        parents.push(product);
+        
+        // Create pseudo variants from variant_combination_prices
+        product.variant_combination_prices.forEach(variant => {
+          // Create a name for the variant based on attributes
+          const attributesList = Object.entries(variant.attributes || {})
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(", ");
+            
+          const variantName = `${product.name} (${attributesList})`;
+          
+          variants.push({
+            id: variant.id,
+            name: variantName,
+            parent_id: product.id,
+            attributes: variant.attributes || {},
+            price: variant.price || 0,
+            monthly_price: variant.monthly_price,
+            image_url: product.image_url,
+            brand: product.brand,
+            category: product.category
+          });
         });
-      } else if (product.parent_id && parentMap.has(product.parent_id)) {
-        // Find the family and add this variant to it
-        const familyIndex = families.findIndex(f => f.parent.id === product.parent_id);
-        if (familyIndex !== -1) {
-          families[familyIndex].variants.push(product);
-        }
-      } else if (!product.parent_id) {
-        // This is a standalone product
+      } 
+      // Check if product is a standalone product (not a parent and has no parent_id)
+      else if (!product.is_parent && !product.parent_id) {
         standalone.push(product);
       }
     });
     
-    setProductFamilies(families);
+    setParentProducts(parents);
+    setPseudoVariants(variants);
     setStandaloneProducts(standalone);
     
-    console.log(`Organized ${families.length} product families and ${standalone.length} standalone products`);
+    console.log(`Organized ${parents.length} parent products, ${variants.length} variants, and ${standalone.length} standalone products`);
   };
 
   // Fetch categories
@@ -169,7 +200,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     }
   };
   
-  // Apply filters to products when search, category, or brand changes
+  // Apply filters
   useEffect(() => {
     if (allProducts.length > 0) {
       const filteredProducts = applyFilters(allProducts);
@@ -178,7 +209,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   }, [searchTerm, selectedCategory, selectedBrand, allProducts, activeTab]);
 
   // Filter products based on search term, category, and brand
-  const applyFilters = (products: Product[]) => {
+  const applyFilters = (products: ProductWithVariants[]) => {
     return products.filter(product => {
       // Search filter
       const nameMatch = !searchTerm || 
@@ -192,11 +223,16 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       const brandMatch = selectedBrand === "all" || 
         product.brand === selectedBrand;
       
-      // Tab filter - Skip this filter if we're on the "all" tab
-      const tabMatch = activeTab === "all" || 
-        (activeTab === "parents" && product.is_parent) ||
-        (activeTab === "variants" && !product.is_parent && product.parent_id) ||
-        (activeTab === "standalone" && !product.is_parent && !product.parent_id);
+      // Tab filter
+      let tabMatch = true;
+      if (activeTab === "parents") {
+        tabMatch = !!product.is_parent && !!(product.variant_combination_prices?.length);
+      } else if (activeTab === "variants") {
+        // We'll handle variants specially, since they're generated from variant_combination_prices
+        tabMatch = false;
+      } else if (activeTab === "standalone") {
+        tabMatch = !product.is_parent && !product.parent_id;
+      }
       
       return nameMatch && categoryMatch && brandMatch && tabMatch;
     });
@@ -214,58 +250,208 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   };
 
   // Toggle product family expansion
-  const toggleFamilyExpansion = (familyId: string) => {
+  const toggleFamilyExpansion = (productId: string) => {
     setExpandedFamilies(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(familyId)) {
-        newSet.delete(familyId);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
       } else {
-        newSet.add(familyId);
+        newSet.add(productId);
       }
       return newSet;
     });
   };
   
-  // Get filtered families based on current tab
-  const getFilteredFamilies = () => {
-    if (activeTab === "variants") return [];
+  // Get filtered variants based on current tab and filters
+  const getFilteredVariants = () => {
+    if (activeTab !== "variants" && activeTab !== "all") return [];
     
-    return productFamilies.filter(family => {
-      // For the "variants" tab, we don't show any families
-      if (activeTab === "variants") return false;
+    return pseudoVariants.filter(variant => {
+      // If we're on the variants tab, apply the search/category/brand filters to variants
+      const nameMatch = !searchTerm || 
+        variant.name.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // For the "all" tab, show all families
-      if (activeTab === "all") return true;
+      const categoryMatch = selectedCategory === "all" || 
+        variant.category === selectedCategory;
       
-      // For the "parents" tab, show families with variants
-      if (activeTab === "parents") return family.variants.length > 0;
-      
-      // For the "standalone" tab, no families should be shown
-      return false;
+      const brandMatch = selectedBrand === "all" || 
+        variant.brand === selectedBrand;
+        
+      return nameMatch && categoryMatch && brandMatch;
     });
   };
   
-  // Get filtered standalone products based on current tab
-  const getFilteredStandaloneProducts = () => {
-    if (activeTab === "parents" || activeTab === "variants") return [];
-    return standaloneProducts;
-  };
-  
-  // Get all variants from all families (for the variants tab)
-  const getAllVariants = () => {
-    if (activeTab !== "variants") return [];
+  // Handle variant selection
+  const handleVariantSelect = (variant: PseudoVariant) => {
+    // Find parent product
+    const parent = parentProducts.find(p => p.id === variant.parent_id);
     
-    const allVariants: Product[] = [];
-    productFamilies.forEach(family => {
-      allVariants.push(...family.variants);
-    });
-    return allVariants;
+    if (parent) {
+      // Create a composite product by combining parent and variant data
+      const productWithVariant: Product = {
+        ...parent,
+        id: parent.id, // Keep the parent ID as the main ID
+        name: variant.name, // Use the detailed variant name
+        price: variant.price,
+        monthly_price: variant.monthly_price,
+        attributes: variant.attributes, // Include the variant attributes
+        selected_variant_id: variant.id, // Add a reference to the selected variant
+      };
+      
+      handleProductSelect(productWithVariant);
+    }
   };
 
-  // Render a product card
-  const renderProductCard = (product: Product, isVariant: boolean = false) => {
+  // Render a parent product card
+  const renderParentProductCard = (product: ProductWithVariants) => {
+    const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;
+    const isExpanded = expandedFamilies.has(product.id);
+    const variantCount = product.variant_combination_prices?.length || 0;
+    
     return (
-      <Card key={product.id} className={`mb-3 overflow-hidden transition-all hover:bg-gray-50 ${isVariant ? 'border-dashed' : ''}`}>
+      <Card key={product.id} className="mb-4 overflow-hidden">
+        <CardContent className="p-4">
+          <div className="flex items-start">
+            <div className="w-20 h-20 flex-shrink-0 overflow-hidden bg-gray-100 rounded mr-4 flex items-center justify-center">
+              <img 
+                src={product.image_url || "/placeholder.svg"}
+                alt={product.name}
+                className="object-contain max-h-16 max-w-16"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/placeholder.svg";
+                }}
+              />
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-medium line-clamp-2">{product.name}</h3>
+                <Badge variant="outline" className="bg-indigo-100 text-indigo-800 border-indigo-200">Parent</Badge>
+              </div>
+              
+              <div className="text-sm mt-2 flex flex-wrap gap-x-4">
+                <p className="text-muted-foreground">
+                  Prix: {product.price || 0} €
+                </p>
+                {product.monthly_price > 0 && (
+                  <p className="text-muted-foreground">
+                    Mensualité: {product.monthly_price} €
+                  </p>
+                )}
+              </div>
+              
+              {hasVariants && (
+                <div className="mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => toggleFamilyExpansion(product.id)}
+                  >
+                    {isExpanded ? (
+                      <>
+                        <ChevronUp size={14} className="mr-1" />
+                        Masquer les variantes ({variantCount})
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown size={14} className="mr-1" />
+                        Afficher les variantes ({variantCount})
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => handleProductSelect(product)}
+            >
+              <Plus size={18} />
+            </Button>
+          </div>
+        </CardContent>
+        
+        {hasVariants && isExpanded && (
+          <div className="border-t bg-gray-50 p-3">
+            <h4 className="text-sm font-medium mb-2 text-gray-600 pl-2">Variantes disponibles:</h4>
+            <div className="space-y-2">
+              {product.variant_combination_prices.map(variant => {
+                const attributeDisplay = formatAttributes(variant.attributes);
+                
+                return (
+                  <div key={variant.id} className="bg-white border rounded-md p-3">
+                    <div className="flex items-center">
+                      <div className="w-16 h-16 flex-shrink-0 overflow-hidden bg-gray-100 rounded mr-3 flex items-center justify-center">
+                        <img 
+                          src={product.image_url || "/placeholder.svg"}
+                          alt={product.name}
+                          className="object-contain max-h-12 max-w-12"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h5 className="font-medium text-sm line-clamp-1">{attributeDisplay}</h5>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">Variante</Badge>
+                        </div>
+                        
+                        <div className="text-xs mt-1 flex flex-wrap gap-x-3">
+                          <p className="text-muted-foreground">
+                            Prix: {variant.price || 0} €
+                          </p>
+                          {variant.monthly_price > 0 && (
+                            <p className="text-muted-foreground">
+                              Mensualité: {variant.monthly_price} €
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          // Find the corresponding pseudo variant
+                          const pseudoVariant = pseudoVariants.find(pv => pv.id === variant.id);
+                          if (pseudoVariant) {
+                            handleVariantSelect(pseudoVariant);
+                          } else {
+                            // Fallback if pseudo variant not found
+                            const variantProduct = {
+                              ...product,
+                              id: product.id,
+                              price: variant.price,
+                              monthly_price: variant.monthly_price,
+                              attributes: variant.attributes,
+                              selected_variant_id: variant.id
+                            };
+                            handleProductSelect(variantProduct);
+                          }
+                        }}
+                      >
+                        <Plus size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Card>
+    );
+  };
+
+  // Render a standalone product card
+  const renderStandaloneProductCard = (product: Product) => {
+    return (
+      <Card key={product.id} className="mb-3 overflow-hidden">
         <CardContent className="p-4">
           <div className="flex items-start">
             <div className="w-20 h-20 flex-shrink-0 overflow-hidden bg-gray-100 rounded mr-4 flex items-center justify-center">
@@ -282,12 +468,6 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-medium text-sm line-clamp-2">{product.name}</h3>
-                {product.is_parent && (
-                  <Badge variant="outline" className="text-xs">Parent</Badge>
-                )}
-                {isVariant && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">Variante</Badge>
-                )}
               </div>
               
               {product.attributes && Object.keys(product.attributes).length > 0 && (
@@ -322,143 +502,56 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     );
   };
 
-  // Render a product family (parent + variants)
-  const renderProductFamily = (family: ProductFamily) => {
-    const { parent, variants } = family;
-    const isExpanded = expandedFamilies.has(parent.id);
-    
+  // Render a variant card
+  const renderVariantCard = (variant: PseudoVariant) => {
     return (
-      <div key={parent.id} className="mb-4">
-        <div 
-          className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow transition-all"
-        >
-          <div className="p-4">
-            <div className="flex items-start">
-              <div className="w-24 h-24 flex-shrink-0 overflow-hidden bg-gray-100 rounded mr-4 flex items-center justify-center">
-                <img 
-                  src={parent.image_url || "/placeholder.svg"}
-                  alt={parent.name}
-                  className="object-contain max-h-20 max-w-20"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/placeholder.svg";
-                  }}
-                />
+      <Card key={variant.id} className="mb-3 overflow-hidden border-dashed">
+        <CardContent className="p-4">
+          <div className="flex items-start">
+            <div className="w-20 h-20 flex-shrink-0 overflow-hidden bg-gray-100 rounded mr-4 flex items-center justify-center">
+              <img 
+                src={variant.image_url || "/placeholder.svg"}
+                alt={variant.name}
+                className="object-contain max-h-16 max-w-16"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/placeholder.svg";
+                }}
+              />
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-medium text-sm line-clamp-2">{variant.name}</h3>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">Variante</Badge>
               </div>
               
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-medium">{parent.name}</h3>
-                  <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200">Parent</Badge>
-                </div>
-                
-                {parent.attributes && Object.keys(parent.attributes).length > 0 && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    {formatAttributes(parent.attributes as ProductAttributes)}
-                  </p>
-                )}
-                
-                <div className="text-sm mt-2 flex flex-wrap gap-x-4">
+              <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                {formatAttributes(variant.attributes)}
+              </p>
+              
+              <div className="text-sm mt-2 flex flex-wrap gap-x-4">
+                <p className="text-muted-foreground">
+                  Prix: {variant.price || 0} €
+                </p>
+                {variant.monthly_price > 0 && (
                   <p className="text-muted-foreground">
-                    Prix: {parent.price || 0} €
+                    Mensualité: {variant.monthly_price} €
                   </p>
-                  {parent.monthly_price > 0 && (
-                    <p className="text-muted-foreground">
-                      Mensualité: {parent.monthly_price} €
-                    </p>
-                  )}
-                </div>
-                
-                {variants.length > 0 && (
-                  <div className="mt-3">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => toggleFamilyExpansion(parent.id)}
-                    >
-                      {isExpanded ? (
-                        <>
-                          <ChevronUp size={14} className="mr-1" />
-                          Masquer les variantes ({variants.length})
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown size={14} className="mr-1" />
-                          Afficher les variantes ({variants.length})
-                        </>
-                      )}
-                    </Button>
-                  </div>
                 )}
               </div>
-              
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => handleProductSelect(parent)}
-              >
-                <Plus size={18} />
-              </Button>
             </div>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-2 flex-shrink-0"
+              onClick={() => handleVariantSelect(variant)}
+            >
+              <Plus size={16} />
+            </Button>
           </div>
-          
-          {variants.length > 0 && isExpanded && (
-            <div className="border-t bg-gray-50 p-3">
-              <h4 className="text-sm font-medium mb-2 text-gray-600 pl-2">Variantes disponibles:</h4>
-              <div className="space-y-2">
-                {variants.map(variant => (
-                  <div key={variant.id} className="bg-white border rounded-md p-3">
-                    <div className="flex items-center">
-                      <div className="w-16 h-16 flex-shrink-0 overflow-hidden bg-gray-100 rounded mr-3 flex items-center justify-center">
-                        <img 
-                          src={variant.image_url || "/placeholder.svg"}
-                          alt={variant.name}
-                          className="object-contain max-h-12 max-w-12"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.svg";
-                          }}
-                        />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h5 className="font-medium text-sm line-clamp-1">{variant.name}</h5>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">Variante</Badge>
-                        </div>
-                        
-                        {variant.attributes && Object.keys(variant.attributes).length > 0 && (
-                          <p className="text-xs text-gray-500 line-clamp-1">
-                            {formatAttributes(variant.attributes as ProductAttributes)}
-                          </p>
-                        )}
-                        
-                        <div className="text-xs mt-1 flex flex-wrap gap-x-3">
-                          <p className="text-muted-foreground">
-                            Prix: {variant.price || 0} €
-                          </p>
-                          {variant.monthly_price > 0 && (
-                            <p className="text-muted-foreground">
-                              Mensualité: {variant.monthly_price} €
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleProductSelect(variant)}
-                      >
-                        <Plus size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -528,53 +621,55 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             ) : (
               <ScrollArea className="h-[400px] pr-4">
                 <div className="p-1">
-                  {/* Product Families */}
-                  {getFilteredFamilies().length > 0 && (
+                  {/* Parent Products */}
+                  {parentProducts.length > 0 && (activeTab === "all" || activeTab === "parents") && (
                     <div className="mb-6">
                       {activeTab !== "parents" && (
                         <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                          Produits avec variantes ({getFilteredFamilies().length})
+                          Produits avec variantes ({parentProducts.length})
                         </h3>
                       )}
                       
                       <div className="space-y-4">
-                        {getFilteredFamilies().map(family => renderProductFamily(family))}
+                        {parentProducts.map(product => renderParentProductCard(product))}
                       </div>
                     </div>
                   )}
                   
-                  {/* Variants (only in variants tab) */}
-                  {activeTab === "variants" && getAllVariants().length > 0 && (
+                  {/* Variants */}
+                  {getFilteredVariants().length > 0 && (activeTab === "all" || activeTab === "variants") && (
                     <div className="mb-6">
-                      <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                        Variantes ({getAllVariants().length})
-                      </h3>
+                      {activeTab !== "variants" && (
+                        <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                          Variantes ({getFilteredVariants().length})
+                        </h3>
+                      )}
                       
                       <div className="space-y-2">
-                        {getAllVariants().map(variant => renderProductCard(variant, true))}
+                        {getFilteredVariants().map(variant => renderVariantCard(variant))}
                       </div>
                     </div>
                   )}
                   
                   {/* Standalone Products */}
-                  {getFilteredStandaloneProducts().length > 0 && (
+                  {standaloneProducts.length > 0 && (activeTab === "all" || activeTab === "standalone") && (
                     <div className="mb-6">
                       {activeTab !== "standalone" && (
                         <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                          Produits individuels ({getFilteredStandaloneProducts().length})
+                          Produits individuels ({standaloneProducts.length})
                         </h3>
                       )}
                       
                       <div className="space-y-2">
-                        {getFilteredStandaloneProducts().map(product => renderProductCard(product))}
+                        {standaloneProducts.map(product => renderStandaloneProductCard(product))}
                       </div>
                     </div>
                   )}
                   
                   {/* No Results */}
-                  {getFilteredFamilies().length === 0 && 
-                   getFilteredStandaloneProducts().length === 0 && 
-                   getAllVariants().length === 0 && (
+                  {parentProducts.length === 0 && 
+                   standaloneProducts.length === 0 && 
+                   getFilteredVariants().length === 0 && (
                     <div className="text-center py-10 text-muted-foreground">
                       Aucun produit trouvé
                     </div>
