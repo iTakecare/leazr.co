@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,6 @@ import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import CommissionDisplay from "@/components/ui/CommissionDisplay";
 
-// Version du calculateur adaptée pour les ambassadeurs
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
   const { clientId, ambassadorId } = useParams();
@@ -30,7 +28,6 @@ const AmbassadorCreateOffer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ambassador, setAmbassador] = useState(null);
   
-  // Nous utilisons le hook useEquipmentCalculator pour une cohérence parfaite avec CreateOffer
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
   const {
@@ -57,14 +54,12 @@ const AmbassadorCreateOffer = () => {
     toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
   
-  // Si clientId est présent, charger les informations du client
   useEffect(() => {
     if (clientId) {
       fetchClient(clientId);
     }
   }, [clientId]);
   
-  // Si ambassadorId est présent, charger les informations de l'ambassadeur
   useEffect(() => {
     if (ambassadorId) {
       fetchAmbassador(ambassadorId);
@@ -110,13 +105,10 @@ const AmbassadorCreateOffer = () => {
     }
   };
   
-  // Pour l'ouverture du sélecteur de client (adaptation pour ClientInfo)
   const handleOpenClientSelector = () => {
-    // Fonctionnalité à implémenter si nécessaire
     toast.info("La sélection de client n'est pas disponible dans cette version");
   };
   
-  // Pour l'ouverture du catalogue (adaptation pour EquipmentForm)
   const handleOpenCatalog = () => {
     // Fonctionnalité à implémenter si nécessaire
   };
@@ -135,7 +127,6 @@ const AmbassadorCreateOffer = () => {
     try {
       setIsSubmitting(true);
       
-      // Calculer le montant total
       const totalMonthlyPayment = equipmentList.reduce(
         (sum, item) => sum + ((item.monthlyPayment || 0) * item.quantity),
         0
@@ -146,7 +137,6 @@ const AmbassadorCreateOffer = () => {
         0
       );
       
-      // Décrire l'équipement avec toutes les informations de marge
       const equipmentDescription = JSON.stringify(
         equipmentList.map(eq => ({
           id: eq.id,
@@ -162,7 +152,6 @@ const AmbassadorCreateOffer = () => {
         .map((item) => `${item.title} (${item.quantity}x)`)
         .join(", ");
       
-      // Créer l'offre dans la base de données
       const { data, error } = await supabase.from("offers").insert([
         {
           client_id: client.id,
@@ -184,7 +173,6 @@ const AmbassadorCreateOffer = () => {
       
       toast.success("Offre créée avec succès!");
       
-      // Rediriger vers la page des offres
       navigate("/ambassador/offers");
     } catch (error) {
       console.error("Erreur lors de la sauvegarde de l'offre:", error);
@@ -194,39 +182,34 @@ const AmbassadorCreateOffer = () => {
     }
   };
   
-  // Préparation des props pour le composant ClientInfo
   const clientInfoProps = {
     clientId: client?.id || null,
     clientName: client?.name || "",
     clientEmail: client?.email || "",
     clientCompany: client?.company || "",
     remarks: "",
-    setRemarks: () => {}, // No-op pour cette version simplifiée
+    setRemarks: () => {},
     onOpenClientSelector: handleOpenClientSelector,
     handleSaveOffer: handleSaveOffer,
     isSubmitting: isSubmitting,
     selectedLeaser: selectedLeaser,
     equipmentList: equipmentList,
-    hideFinancialDetails: true // Important: Cacher les détails financiers
+    hideFinancialDetails: true
   };
   
-  // Pré-remplir les valeurs par défaut pour les champs masqués
   const handleAddEquipment = (title: string) => {
-    // Pour les ambassadeurs, on utilise des valeurs par défaut pour les champs masqués
     setEquipment({
       id: crypto.randomUUID(),
       title: title || "",
-      purchasePrice: 1000, // Valeur par défaut
+      purchasePrice: 1000,
       quantity: 1,
-      margin: 20, // Valeur par défaut
+      margin: 20,
       monthlyPayment: 0,
     });
   };
   
-  // Flag pour masquer les détails financiers
   const hideFinancialDetails = true;
   
-  // Débogage: afficher les informations de l'ambassadeur
   useEffect(() => {
     if (ambassador) {
       console.log("Ambassador state updated:", ambassador);
@@ -262,64 +245,72 @@ const AmbassadorCreateOffer = () => {
                 <span className="ml-2">Chargement...</span>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                  <div className="mt-6">
-                    <EquipmentForm
-                      equipment={equipment}
-                      setEquipment={setEquipment}
-                      selectedLeaser={selectedLeaser}
-                      addToList={addToList}
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div>
+                    <div className="mt-6">
+                      <EquipmentForm
+                        equipment={equipment}
+                        setEquipment={setEquipment}
+                        selectedLeaser={selectedLeaser}
+                        addToList={addToList}
+                        editingId={editingId}
+                        cancelEditing={cancelEditing}
+                        onOpenCatalog={handleOpenCatalog}
+                        coefficient={coefficient}
+                        monthlyPayment={monthlyPayment}
+                        targetMonthlyPayment={targetMonthlyPayment}
+                        setTargetMonthlyPayment={setTargetMonthlyPayment}
+                        calculatedMargin={calculatedMargin}
+                        applyCalculatedMargin={applyCalculatedMargin}
+                        hideFinancialDetails={hideFinancialDetails}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-8">
+                    <EquipmentList
+                      equipmentList={equipmentList}
                       editingId={editingId}
-                      cancelEditing={cancelEditing}
-                      onOpenCatalog={handleOpenCatalog}
-                      coefficient={coefficient}
-                      monthlyPayment={monthlyPayment}
-                      targetMonthlyPayment={targetMonthlyPayment}
-                      setTargetMonthlyPayment={setTargetMonthlyPayment}
-                      calculatedMargin={calculatedMargin}
-                      applyCalculatedMargin={applyCalculatedMargin}
-                      hideFinancialDetails={hideFinancialDetails} // Important: toujours masquer les détails financiers
+                      startEditing={startEditing}
+                      removeFromList={removeFromList}
+                      updateQuantity={updateQuantity}
+                      totalMonthlyPayment={totalMonthlyPayment}
+                      globalMarginAdjustment={globalMarginAdjustment}
+                      toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                      hideFinancialDetails={hideFinancialDetails}
+                      ambassadorId={ambassadorId}
+                      commissionLevelId={ambassador?.commission_level_id}
+                    />
+                    
+                    <ClientInfo
+                      clientId={clientInfoProps.clientId}
+                      clientName={clientInfoProps.clientName}
+                      clientEmail={clientInfoProps.clientEmail}
+                      clientCompany={clientInfoProps.clientCompany}
+                      remarks={clientInfoProps.remarks}
+                      setRemarks={clientInfoProps.setRemarks}
+                      onOpenClientSelector={clientInfoProps.onOpenClientSelector}
+                      handleSaveOffer={clientInfoProps.handleSaveOffer}
+                      isSubmitting={clientInfoProps.isSubmitting}
+                      selectedLeaser={clientInfoProps.selectedLeaser}
+                      equipmentList={clientInfoProps.equipmentList}
+                      hideFinancialDetails={hideFinancialDetails}
                     />
                   </div>
-
-                  {/* Affichage du barème de commission pour référence - moved outside the condition */}
-                  <div className="mt-6">
-                    <CommissionDisplay />
-                  </div>
                 </div>
-
-                <div className="space-y-8">
-                  <EquipmentList
-                    equipmentList={equipmentList}
-                    editingId={editingId}
-                    startEditing={startEditing}
-                    removeFromList={removeFromList}
-                    updateQuantity={updateQuantity}
-                    totalMonthlyPayment={totalMonthlyPayment}
-                    globalMarginAdjustment={globalMarginAdjustment}
-                    toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                    hideFinancialDetails={hideFinancialDetails} // Important: toujours masquer les détails financiers
-                    ambassadorId={ambassadorId} // Passer l'ID de l'ambassadeur
-                    commissionLevelId={ambassador?.commission_level_id} // Passer le niveau de commission
-                  />
-                  
-                  <ClientInfo
-                    clientId={clientInfoProps.clientId}
-                    clientName={clientInfoProps.clientName}
-                    clientEmail={clientInfoProps.clientEmail}
-                    clientCompany={clientInfoProps.clientCompany}
-                    remarks={clientInfoProps.remarks}
-                    setRemarks={clientInfoProps.setRemarks}
-                    onOpenClientSelector={clientInfoProps.onOpenClientSelector}
-                    handleSaveOffer={clientInfoProps.handleSaveOffer}
-                    isSubmitting={clientInfoProps.isSubmitting}
-                    selectedLeaser={clientInfoProps.selectedLeaser}
-                    equipmentList={clientInfoProps.equipmentList}
-                    hideFinancialDetails={hideFinancialDetails} // Important: toujours masquer les détails financiers
-                  />
+                
+                <div className="mt-12">
+                  <Card className="w-full border border-gray-200 shadow-sm">
+                    <CardHeader className="pb-2 border-b">
+                      <CardTitle>Barème de commissions</CardTitle>
+                    </CardHeader>
+                    <CardContent className="py-6">
+                      <CommissionDisplay />
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
