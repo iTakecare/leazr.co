@@ -196,6 +196,7 @@ const AmbassadorEditPage = () => {
     }
   };
 
+  // Fonction mise à jour pour une meilleure gestion des erreurs et comportement optimiste de l'UI
   const handleUpdateCommissionLevel = async (newLevelId: string) => {
     if (!ambassador?.id || !newLevelId) {
       console.error("[handleUpdateCommissionLevel] ID d'ambassadeur ou de barème manquant");
@@ -211,31 +212,46 @@ const AmbassadorEditPage = () => {
     setUpdatingLevel(true);
     toast.info("Mise à jour du barème en cours...");
     
+    // Sauvegarde de l'ancien niveau pour restauration
+    const previousLevelId = currentLevelId;
+    
+    // Mise à jour optimiste de l'interface
+    setCurrentLevelId(newLevelId);
+    
     try {
-      // Conserver l'ancien ID pour la restauration en cas d'erreur
-      const previousLevelId = currentLevelId;
+      // Trouver le niveau dans la liste
+      const selectedLevel = commissionLevels.find(level => level.id === newLevelId);
+      if (selectedLevel) {
+        // Pré-charger le nom du niveau pour une expérience plus rapide
+        setCommissionLevel(prev => {
+          if (!prev) return { id: newLevelId, name: selectedLevel.name, type: "ambassador", is_default: selectedLevel.is_default, rates: [] };
+          return { ...prev, id: newLevelId, name: selectedLevel.name, is_default: selectedLevel.is_default };
+        });
+      }
       
-      // Mise à jour optimiste de l'UI
-      setCurrentLevelId(newLevelId);
-      
-      // Mise à jour avec nouvelle fonction améliorée
+      // Tentative de mise à jour en utilisant la version améliorée de la fonction
       await updateAmbassadorCommissionLevel(ambassador.id, newLevelId);
       
-      // Mettre à jour l'objet ambassador pour cohérence
-      setAmbassador(prev => {
-        if (!prev) return null;
-        return { ...prev, commission_level_id: newLevelId };
-      });
+      // Mettre à jour l'ambassadeur pour cohérence
+      setAmbassador(prev => prev ? { ...prev, commission_level_id: newLevelId } : null);
       
-      // Recharger les détails du nouveau barème
+      // Charger les détails complets du niveau après confirmation de mise à jour
       await loadCommissionLevel(newLevelId);
       
       toast.success("Barème de commissionnement mis à jour");
+      console.log("[handleUpdateCommissionLevel] Mise à jour réussie");
     } catch (error) {
+      // Gestion d'erreur plus détaillée
       console.error("[handleUpdateCommissionLevel] Erreur:", error);
-      toast.error("Erreur lors de la mise à jour du barème");
       
-      // Restaurer l'état précédent en cas d'échec
+      // Message d'erreur plus clair pour l'utilisateur
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+      toast.error(`Erreur lors de la mise à jour du barème: ${errorMessage}`);
+      
+      // Restaurer l'état précédent
+      setCurrentLevelId(previousLevelId);
+      
+      // Recharger l'état complet de l'ambassadeur depuis le serveur
       await loadAmbassador();
     } finally {
       setUpdatingLevel(false);
