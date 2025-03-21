@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -99,10 +100,29 @@ const CommissionManager = () => {
 
   const loadRates = async (levelId: string) => {
     try {
-      const ratesData = await getCommissionRates(levelId);
-      setRates(ratesData);
+      console.log("Loading rates for level ID:", levelId);
+      const { data, error } = await supabase
+        .from('commission_rates')
+        .select('*')
+        .eq('commission_level_id', levelId);
+      
+      if (error) {
+        console.error("Error loading commission rates from DB:", error);
+        toast.error("Erreur lors du chargement des taux de commission");
+        return;
+      }
+      
+      console.log("Loaded rates from DB:", data);
+      if (data && data.length > 0) {
+        setRates(data);
+      } else {
+        // If no data, try with the service function
+        const ratesData = await getCommissionRates(levelId);
+        console.log("Loaded rates from service:", ratesData);
+        setRates(ratesData);
+      }
     } catch (error) {
-      console.error("Error loading commission rates:", error);
+      console.error("Error in loadRates:", error);
       toast.error("Erreur lors du chargement des taux de commission");
     }
   };
@@ -282,25 +302,45 @@ const CommissionManager = () => {
                     onClose={() => setIsAddLevelOpen(false)}
                     level={null}
                     type={activeTab as 'ambassador' | 'partner'}
-                    onSave={loadCommissionLevels}
+                    onSave={handleAddLevel}
                   />
                 </DialogContent>
               </Dialog>
             </div>
             
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {currentLevels.length > 0 ? currentLevels.map((level) => (
-                <Card 
-                  key={level.id}
-                  className={`relative ${selectedLevel?.id === level.id ? 'border-primary' : ''}`}
-                  onClick={() => handleSelectLevel(level)}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{level.name}</CardTitle>
-                      <div className="flex items-center space-x-1">
+            <div className="grid md:grid-cols-1 gap-4">
+              {currentLevels.length > 0 ? (
+                <ul className="space-y-2">
+                  {currentLevels.map((level) => (
+                    <li 
+                      key={level.id} 
+                      className={`flex items-center justify-between p-3 rounded-md cursor-pointer ${
+                        selectedLevel?.id === level.id 
+                          ? 'bg-primary/10 border border-primary/30' 
+                          : 'hover:bg-muted border'
+                      }`}
+                      onClick={() => handleSelectLevel(level)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{level.name}</span>
                         {level.is_default && (
-                          <Badge variant="outline" className="text-xs">Défaut</Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            Par défaut
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!level.is_default && selectedLevel?.id === level.id && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetDefault(level);
+                            }}
+                          >
+                            <span className="text-xs">Définir par défaut</span>
+                          </Button>
                         )}
                         <Dialog open={isEditLevelOpen && selectedLevel?.id === level.id} onOpenChange={(open) => {
                           if (!open) setIsEditLevelOpen(false);
@@ -309,14 +349,14 @@ const CommissionManager = () => {
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-6 w-6"
+                              className="h-8 w-8"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedLevel(level);
                                 setIsEditLevelOpen(true);
                               }}
                             >
-                              <Edit className="h-3.5 w-3.5" />
+                              <Edit className="h-4 w-4" />
                               <span className="sr-only">Modifier</span>
                             </Button>
                           </DialogTrigger>
@@ -329,57 +369,15 @@ const CommissionManager = () => {
                               onClose={() => setIsEditLevelOpen(false)}
                               level={selectedLevel}
                               type={activeTab as 'ambassador' | 'partner'}
-                              onSave={loadCommissionLevels}
+                              onSave={handleEditLevel}
                             />
                           </DialogContent>
                         </Dialog>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {loading ? (
-                      <div className="flex justify-center p-4">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                      </div>
-                    ) : (
-                      <ul className="space-y-2">
-                        {currentLevels.map((level) => (
-                          <li 
-                            key={level.id} 
-                            className={`flex items-center justify-between p-3 rounded-md cursor-pointer ${
-                              selectedLevel?.id === level.id 
-                                ? 'bg-primary/10 border border-primary/30' 
-                                : 'hover:bg-muted'
-                            }`}
-                            onClick={() => handleSelectLevel(level)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{level.name}</span>
-                              {level.is_default && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Par défaut
-                                </Badge>
-                              )}
-                            </div>
-                            {!level.is_default && selectedLevel?.id === level.id && (
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSetDefault(level);
-                                }}
-                              >
-                                <span className="text-xs">Définir par défaut</span>
-                              </Button>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </CardContent>
-                </Card>
-              )) : (
+                    </li>
+                  ))}
+                </ul>
+              ) : (
                 <div className="col-span-full text-center py-8 bg-muted/20 rounded-lg">
                   <p className="text-muted-foreground">
                     Aucun barème de commission défini pour les {activeTab === 'partner' ? 'partenaires' : 'ambassadeurs'}.
@@ -416,14 +414,7 @@ const CommissionManager = () => {
                       <CommissionRateForm 
                         isOpen={isAddRateOpen}
                         onClose={() => setIsAddRateOpen(false)}
-                        onSave={(data) => {
-                          if (selectedLevel) {
-                            handleAddRate({
-                              ...data, 
-                              commission_level_id: selectedLevel.id
-                            });
-                          }
-                        }}
+                        onSave={handleAddRate}
                         levelId={selectedLevel.id}
                       />
                     </DialogContent>
@@ -431,9 +422,9 @@ const CommissionManager = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {rates.length > 0 ? (
+                  {rates && rates.length > 0 ? (
                     rates
-                      .sort((a, b) => b.min_amount - a.min_amount)
+                      .sort((a, b) => Number(b.min_amount) - Number(a.min_amount))
                       .map((rate) => (
                         <div 
                           key={rate.id} 
@@ -454,7 +445,7 @@ const CommissionManager = () => {
                                 <div>
                                   <span className="text-sm text-muted-foreground">Plage</span>
                                   <div>
-                                    {rate.min_amount.toLocaleString('fr-FR')}€ - {rate.max_amount.toLocaleString('fr-FR')}€
+                                    {Number(rate.min_amount).toLocaleString('fr-FR')}€ - {Number(rate.max_amount).toLocaleString('fr-FR')}€
                                   </div>
                                 </div>
                                 <div>

@@ -291,84 +291,6 @@ export const deleteCommissionLevel = async (id: string): Promise<boolean> => {
 };
 
 /**
- * Crée ou met à jour un taux de commission
- */
-export const upsertCommissionRate = async (
-  levelId: string,
-  minAmount: number,
-  maxAmount: number,
-  rate: number,
-  rateId?: string
-): Promise<CommissionRate | null> => {
-  try {
-    if (rateId) {
-      // Mise à jour
-      const { data, error } = await supabase
-        .from('commission_rates')
-        .update({
-          min_amount: minAmount,
-          max_amount: maxAmount,
-          rate
-        })
-        .eq('id', rateId)
-        .select();
-      
-      if (error) {
-        console.error("Error updating commission rate:", error);
-        throw error;
-      }
-      
-      return data[0] || null;
-    } else {
-      // Création
-      const { data, error } = await supabase
-        .from('commission_rates')
-        .insert([
-          {
-            commission_level_id: levelId,
-            min_amount: minAmount,
-            max_amount: maxAmount,
-            rate
-          }
-        ])
-        .select();
-      
-      if (error) {
-        console.error("Error creating commission rate:", error);
-        throw error;
-      }
-      
-      return data[0] || null;
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    return null;
-  }
-};
-
-/**
- * Supprime un taux de commission
- */
-export const deleteCommissionRate = async (id: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('commission_rates')
-      .delete()
-      .eq('id', id);
-    
-    if (error) {
-      console.error("Error deleting commission rate:", error);
-      throw error;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error:", error);
-    return false;
-  }
-};
-
-/**
  * Récupère le niveau de commission d'un ambassadeur
  */
 export const getAmbassadorCommissionLevel = async (ambassadorId: string): Promise<CommissionLevel | null> => {
@@ -500,21 +422,19 @@ export const setDefaultCommissionLevel = async (levelId: string, type: 'partner'
 /**
  * Crée un taux de commission
  */
-export const createCommissionRate = async (rateData: { commission_level_id: string; min_amount: number; max_amount: number; rate: number }): Promise<CommissionRate | null> => {
+export const createCommissionRate = async (rateData: Omit<CommissionRate, "id" | "created_at">): Promise<CommissionRate | null> => {
   try {
-    const { commission_level_id, min_amount, max_amount, rate } = rateData;
+    const { commission_level_id, min_amount, max_amount, rate, updated_at } = rateData;
     
     const { data, error } = await supabase
       .from('commission_rates')
-      .insert([
-        { 
-          commission_level_id, 
-          min_amount, 
-          max_amount, 
-          rate,
-          updated_at: new Date().toISOString() 
-        }
-      ])
+      .insert([{ 
+        commission_level_id, 
+        min_amount, 
+        max_amount, 
+        rate,
+        updated_at
+      }])
       .select();
     
     if (error) {
