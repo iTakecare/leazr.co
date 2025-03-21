@@ -14,12 +14,10 @@ import { MapPin } from "lucide-react";
 import { 
   CommissionLevel, 
   getCommissionLevelWithRates, 
-  getCommissionLevels,
-  updateAmbassadorCommissionLevel 
+  getCommissionLevels
 } from "@/services/commissionService";
 import ContactInfoSection from "@/components/crm/detail/sections/ContactInfoSection";
 import CompanyInfoSection from "@/components/crm/detail/sections/CompanyInfoSection";
-import CommissionLevelSelector from "@/components/crm/detail/sections/CommissionLevelSelector";
 import StatsSummary from "@/components/crm/detail/sections/StatsSummary";
 import NotesSection from "@/components/crm/detail/sections/NotesSection";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +34,6 @@ const AmbassadorDetail = () => {
   const [tab, setTab] = useState("overview");
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
-  const [currentLevelId, setCurrentLevelId] = useState<string>("");
   const [clients, setClients] = useState<any[]>([]);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [commissionLoading, setCommissionLoading] = useState(false);
@@ -64,11 +61,9 @@ const AmbassadorDetail = () => {
         
         // Load commission level
         if (data.commission_level_id) {
-          setCurrentLevelId(data.commission_level_id);
           loadCommissionLevel(data.commission_level_id);
         } else {
           setCommissionLevel(null);
-          setCurrentLevelId("");
         }
         
         loadCommissionLevels();
@@ -130,27 +125,6 @@ const AmbassadorDetail = () => {
       console.error("Error loading commission level:", error);
     } finally {
       setCommissionLoading(false);
-    }
-  };
-
-  const handleUpdateCommissionLevel = async (levelId: string) => {
-    try {
-      if (!ambassador?.id) return;
-      
-      console.log("Updating commission level to:", levelId);
-      await updateAmbassadorCommissionLevel(ambassador.id, levelId);
-      setCurrentLevelId(levelId);
-      loadCommissionLevel(levelId);
-      
-      // Mettre à jour l'ambassadeur dans le composant parent
-      if (ambassador && typeof ambassador === 'object') {
-        ambassador.commission_level_id = levelId;
-      }
-      
-      toast.success("Barème de commissionnement mis à jour");
-    } catch (error) {
-      console.error("Error updating commission level:", error);
-      toast.error("Erreur lors de la mise à jour du barème");
     }
   };
 
@@ -290,15 +264,6 @@ const AmbassadorDetail = () => {
                         postal_code={ambassador.postal_code}
                         city={ambassador.city}
                         country={ambassador.country}
-                      />
-
-                      <CommissionLevelSelector 
-                        ambassadorId={ambassador.id}
-                        currentLevelId={currentLevelId}
-                        commissionLevel={commissionLevel}
-                        commissionLevels={commissionLevels}
-                        loading={commissionLoading}
-                        onUpdateCommissionLevel={handleUpdateCommissionLevel}
                       />
 
                       <StatsSummary 
