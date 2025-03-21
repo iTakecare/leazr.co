@@ -1,19 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ProductSelector from "@/components/ui/ProductSelector";
+import ProductSelector, { ProductWithVariants } from "@/components/ui/ProductSelector";
 import VariantSelector from "@/components/catalog/VariantSelector";
-import type { Product } from "@/types/catalog";
-
-interface ProductWithVariants extends Omit<Product, 'variants'> {
-  variation_attributes?: Record<string, string[]>;
-  variant_combination_prices?: any[];
-  is_parent?: boolean;
-  selected_variant_id?: string;
-  attributes?: Record<string, any>;
-}
 
 interface CatalogDialogProps {
   isOpen: boolean;
