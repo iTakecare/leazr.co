@@ -86,8 +86,8 @@ const AmbassadorCreateOffer = () => {
       return { percentage: 20, amount: 0 };
     }
     
-    // Calcul correct de la marge basé sur la formule utilisée dans la partie admin
-    const requiredTotal = target / coefficient;
+    // Utiliser exactement la même formule que dans l'interface admin
+    const requiredTotal = target / coefficient * 100;
     const marginAmount = requiredTotal - purchase;
     const marginPercentage = (marginAmount / purchase) * 100;
     
@@ -132,10 +132,10 @@ const AmbassadorCreateOffer = () => {
     const totalMonthly = equipmentList.reduce((total, item) => 
       total + ((item.monthlyPayment || 0) * item.quantity), 0);
     
-    // Calcul de la marge globale comme dans la partie admin
-    if (totalPurchase > 0) {
+    // Utiliser exactement la même formule que dans l'interface admin pour le calcul global
+    if (totalPurchase > 0 && totalMonthly > 0) {
       // Calculer la marge réelle basée sur les prix et les mensualités
-      const impliedTotal = totalMonthly / coefficient;
+      const impliedTotal = totalMonthly / coefficient * 100;
       const marginAmount = impliedTotal - totalPurchase;
       const marginPercentage = (marginAmount / totalPurchase) * 100;
       
