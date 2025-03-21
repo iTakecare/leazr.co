@@ -17,6 +17,14 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   displayMonthlyPayment,
   hideFinancialDetails = false
 }) => {
+  // Calculate the price without margin (base price)
+  const priceWithoutMargin = priceWithMargin - marginAmount;
+  
+  // Calculate the margin percentage based on the price without margin
+  const marginPercentage = priceWithoutMargin > 0 
+    ? (marginAmount / priceWithoutMargin) * 100 
+    : 0;
+
   return (
     <div className="space-y-2 border-t pt-4 mt-4">
       {!hideFinancialDetails && (
@@ -24,7 +32,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Marge :</span>
             <span className="font-medium">
-              {formatCurrency(marginAmount)} ({isNaN(marginAmount) ? "NaN" : (marginAmount > 0 ? ((marginAmount / (priceWithMargin - marginAmount)) * 100).toFixed(2) : 0)}%)
+              {formatCurrency(marginAmount)} ({isNaN(marginAmount) ? "NaN" : (marginPercentage > 0 ? marginPercentage.toFixed(2) : 0)}%)
             </span>
           </div>
           <div className="flex justify-between items-center">
