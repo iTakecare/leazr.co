@@ -24,6 +24,11 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   const marginPercentage = priceWithoutMargin > 0 
     ? (marginAmount / priceWithoutMargin) * 100 
     : 0;
+    
+  // Fonction pour formater correctement le pourcentage avec la virgule comme séparateur décimal
+  const formatPercentageWithComma = (value: number): string => {
+    return value.toFixed(2).replace('.', ',') + '%';
+  };
 
   return (
     <div className="space-y-2 border-t pt-4 mt-4">
@@ -32,7 +37,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Marge :</span>
             <span className="font-medium">
-              {formatCurrency(marginAmount)} ({isNaN(marginAmount) ? "NaN" : (marginPercentage > 0 ? marginPercentage.toFixed(2) : 0)}%)
+              {formatCurrency(marginAmount)} ({isNaN(marginAmount) ? "NaN" : (marginPercentage > 0 ? formatPercentageWithComma(marginPercentage) : "0,00%")})
             </span>
           </div>
           <div className="flex justify-between items-center">

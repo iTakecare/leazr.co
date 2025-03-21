@@ -67,6 +67,11 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
     }
   };
 
+  // Fonction pour formater correctement le pourcentage avec la virgule comme séparateur décimal
+  const formatPercentageWithComma = (value: number): string => {
+    return value.toFixed(2).replace('.', ',') + ' %';
+  };
+
   return (
     <Card className="shadow-sm border-gray-200 rounded-lg">
       <CardHeader className="pb-3 border-b">
@@ -102,7 +107,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
               <div>
                 <span className="block text-sm text-gray-700">Marge calculée :</span>
                 <span className="font-medium">
-                  {calculatedMargin.percentage > 0 ? formatPercentage(calculatedMargin.percentage) : '-'}
+                  {calculatedMargin.percentage > 0 ? formatPercentageWithComma(calculatedMargin.percentage) : '-'}
                 </span>
               </div>
               <div>
