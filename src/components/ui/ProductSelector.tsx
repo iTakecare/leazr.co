@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, Info } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { toast } from "sonner";
-import { Product as CatalogProduct } from "@/types/catalog";
 
 interface ProductVariant {
   id: string;
