@@ -115,6 +115,9 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           : product.variant_combination_prices
       }));
       
+      console.log("Fetched products:", processedProducts.length);
+      console.log("Sample product:", processedProducts[0]);
+      
       setAllProducts(processedProducts);
       organizeProducts(processedProducts);
       
@@ -147,7 +150,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           variants.push({
             id: variant.id,
             name: variantName,
-            parent_id: product.id,
+            parent_id: product.id || "",
             attributes: variant.attributes || {},
             price: variant.price || 0,
             monthly_price: variant.monthly_price,
@@ -295,17 +298,28 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         price: variant.price,
         monthly_price: variant.monthly_price,
         attributes: variant.attributes, // Include the variant attributes
-        selected_variant_id: variant.id, // Add a reference to the selected variant
+        // Add a non-typed property for later reference in your application
       };
       
-      handleProductSelect(productWithVariant);
+      // Add the variant_id in a type-safe way
+      const customData = {
+        selected_variant_id: variant.id
+      };
+      
+      // Combine both objects
+      const finalProduct = {
+        ...productWithVariant,
+        ...customData
+      };
+      
+      handleProductSelect(finalProduct);
     }
   };
 
   // Render a parent product card
   const renderParentProductCard = (product: ProductWithVariants) => {
     const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;
-    const isExpanded = expandedFamilies.has(product.id);
+    const isExpanded = expandedFamilies.has(product.id || "");
     const variantCount = product.variant_combination_prices?.length || 0;
     
     return (
@@ -346,7 +360,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                     variant="outline" 
                     size="sm"
                     className="text-xs"
-                    onClick={() => toggleFamilyExpansion(product.id)}
+                    onClick={() => toggleFamilyExpansion(product.id || "")}
                   >
                     {isExpanded ? (
                       <>
@@ -421,17 +435,6 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                           const pseudoVariant = pseudoVariants.find(pv => pv.id === variant.id);
                           if (pseudoVariant) {
                             handleVariantSelect(pseudoVariant);
-                          } else {
-                            // Fallback if pseudo variant not found
-                            const variantProduct = {
-                              ...product,
-                              id: product.id,
-                              price: variant.price,
-                              monthly_price: variant.monthly_price,
-                              attributes: variant.attributes,
-                              selected_variant_id: variant.id
-                            };
-                            handleProductSelect(variantProduct);
                           }
                         }}
                       >
