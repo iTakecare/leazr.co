@@ -68,12 +68,18 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
           
           // Si l'utilisateur est un ambassadeur, charger uniquement ses clients
           if (isAmbassador() && user?.ambassador_id) {
+            console.log("Loading ambassador clients for:", user.ambassador_id);
             const { data: ambassadorClients, error: clientsError } = await supabase
               .from("ambassador_clients")
               .select("client_id, clients(*)")
               .eq("ambassador_id", user.ambassador_id);
               
-            if (clientsError) throw clientsError;
+            if (clientsError) {
+              console.error("Error loading ambassador clients:", clientsError);
+              throw clientsError;
+            }
+            
+            console.log("Ambassador clients data:", ambassadorClients);
             
             // Transformer les données pour obtenir seulement les informations des clients
             data = ambassadorClients.map(item => item.clients);
@@ -125,15 +131,27 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
         
         // Si l'utilisateur est un ambassadeur, associer le client à l'ambassadeur
         if (isAmbassador() && user?.ambassador_id) {
-          const { error: linkError } = await supabase
-            .from("ambassador_clients")
-            .insert({
-              ambassador_id: user.ambassador_id,
-              client_id: newClient.id
+          try {
+            console.log("Associating client to ambassador from selector:", {
+              ambassadorId: user.ambassador_id,
+              clientId: newClient.id
             });
             
-          if (linkError) {
-            console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
+            const { error: linkError } = await supabase
+              .from("ambassador_clients")
+              .insert({
+                ambassador_id: user.ambassador_id,
+                client_id: newClient.id
+              });
+              
+            if (linkError) {
+              console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
+              toast.error("Erreur lors de l'association du client à l'ambassadeur");
+            } else {
+              console.log("Client successfully associated with ambassador from selector");
+            }
+          } catch (associationError) {
+            console.error("Exception lors de l'association du client:", associationError);
             toast.error("Erreur lors de l'association du client à l'ambassadeur");
           }
         }

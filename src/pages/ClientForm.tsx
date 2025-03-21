@@ -202,15 +202,27 @@ const ClientForm = () => {
           
           // Si l'utilisateur est un ambassadeur, associer le client à l'ambassadeur
           if (isAmbassador() && user?.ambassador_id) {
-            const { error: linkError } = await supabase
-              .from("ambassador_clients")
-              .insert({
-                ambassador_id: user.ambassador_id,
-                client_id: result.id
+            try {
+              console.log("Associating client to ambassador:", {
+                ambassadorId: user.ambassador_id,
+                clientId: result.id
               });
               
-            if (linkError) {
-              console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
+              const { error: linkError } = await supabase
+                .from("ambassador_clients")
+                .insert({
+                  ambassador_id: user.ambassador_id,
+                  client_id: result.id
+                });
+                
+              if (linkError) {
+                console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
+                toast.error("Erreur lors de l'association du client à l'ambassadeur");
+              } else {
+                console.log("Client successfully associated with ambassador");
+              }
+            } catch (associationError) {
+              console.error("Exception lors de l'association du client:", associationError);
               toast.error("Erreur lors de l'association du client à l'ambassadeur");
             }
           }
