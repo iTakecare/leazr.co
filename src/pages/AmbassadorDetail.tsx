@@ -11,8 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin } from "lucide-react";
-import ClientsView from "@/components/crm/detail/ClientsView";
-import CommissionsView from "@/components/crm/detail/CommissionsView";
 import { 
   CommissionLevel, 
   getCommissionLevelWithRates, 
@@ -25,6 +23,9 @@ import CommissionLevelSelector from "@/components/crm/detail/sections/Commission
 import StatsSummary from "@/components/crm/detail/sections/StatsSummary";
 import NotesSection from "@/components/crm/detail/sections/NotesSection";
 import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Building2 } from "lucide-react";
+import { formatDateToFrench } from "@/utils/formatters";
 
 const AmbassadorDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +38,7 @@ const AmbassadorDetail = () => {
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
   const [currentLevelId, setCurrentLevelId] = useState<string>("");
   const [clients, setClients] = useState<any[]>([]);
+  const [commissions, setCommissions] = useState<any[]>([]);
   const [commissionLoading, setCommissionLoading] = useState(false);
 
   useEffect(() => {
@@ -70,6 +72,26 @@ const AmbassadorDetail = () => {
         }
         
         loadCommissionLevels();
+        
+        // Simulation de clients pour l'ambassadeur
+        // Dans un cas réel, vous chargeriez ces données depuis une API
+        setClients([
+          {
+            id: "client1",
+            name: "Client 1",
+            company: "Entreprise A",
+            status: "active",
+            createdAt: "2023-10-15T14:30:00.000Z",
+          },
+          {
+            id: "client2",
+            name: "Client 2",
+            company: "Entreprise B",
+            status: "inactive",
+            createdAt: "2023-11-20T09:15:00.000Z",
+          }
+        ]);
+        
       } catch (error: any) {
         console.error("Erreur lors du chargement de l'ambassadeur:", error);
         
@@ -289,20 +311,61 @@ const AmbassadorDetail = () => {
                   </TabsContent>
 
                   <TabsContent value="clients">
-                    <ClientsView 
-                      owner={{ id: ambassador.id, name: ambassador.name, type: 'ambassador' }}
-                      clients={clients}
-                      isOpen={tab === "clients"}
-                      onClose={() => setTab("overview")}
-                    />
+                    <div className="space-y-4">
+                      <h2 className="text-lg font-semibold">Clients de {ambassador.name}</h2>
+                      
+                      {clients.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Statut</TableHead>
+                              <TableHead>Date</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {clients.map((client) => (
+                              <TableRow key={client.id}>
+                                <TableCell>
+                                  <div className="font-medium">{client.name}</div>
+                                  {client.company && (
+                                    <div className="flex items-center text-xs text-muted-foreground">
+                                      <Building2 className="h-3 w-3 mr-1" />
+                                      {client.company}
+                                    </div>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={client.status === 'active' ? 'default' : 'secondary'} className={
+                                    client.status === 'active' 
+                                      ? "bg-green-100 text-green-800 hover:bg-green-100" 
+                                      : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                                  }>
+                                    {client.status === 'active' ? 'Actif' : 'Inactif'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {formatDateToFrench(new Date(client.createdAt))}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <div className="text-center py-8 bg-gray-50 rounded-md">
+                          <p className="text-muted-foreground">Aucun client n'est attribué</p>
+                        </div>
+                      )}
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="commissions">
-                    <CommissionsView
-                      owner={{ id: ambassador.id, name: ambassador.name, type: 'ambassador' }}
-                      isOpen={tab === "commissions"}
-                      onClose={() => setTab("overview")}
-                    />
+                    <div className="space-y-4">
+                      <h2 className="text-lg font-semibold">Commissions - {ambassador.name}</h2>
+                      <div className="p-8 text-center bg-gray-50 rounded-md">
+                        <p className="text-muted-foreground">Commissions ambassadeur en cours de développement</p>
+                      </div>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </CardContent>
