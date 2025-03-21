@@ -1,6 +1,4 @@
 
-// Pour le composant AmbassadorDetail.tsx dans les détails des composants, apportons les mêmes correctifs
-
 import React, { useState, useEffect } from "react";
 import {
   Sheet,
