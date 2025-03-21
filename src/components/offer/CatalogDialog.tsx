@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft } from "lucide-react";
@@ -30,30 +29,53 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   }, [isOpen]);
   
   // Handle product selection from the selector
-  const onSelectProduct = (product: Product) => {
+  const onSelectProduct = (product: any) => {
     console.log("Product selected:", product);
+    
+    // Convert to the expected Product type if needed
+    const catalogProduct: Product = {
+      ...product,
+      brand: product.brand || "",
+      category: product.category || "",
+      description: product.description || "",
+      createdAt: product.createdAt || new Date(),
+      updatedAt: product.updatedAt || new Date(),
+      active: product.active !== undefined ? product.active : true
+    };
     
     // Check if the product has variants
     const hasVariants = 
-      (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) &&
-      (product.variant_combination_prices && product.variant_combination_prices.length > 0);
+      (catalogProduct.variation_attributes && Object.keys(catalogProduct.variation_attributes).length > 0) &&
+      (catalogProduct.variant_combination_prices && catalogProduct.variant_combination_prices.length > 0);
     
     if (hasVariants) {
       // If product has variants, show the variant selector
-      setSelectedProduct(product);
+      setSelectedProduct(catalogProduct);
       setShowVariantSelector(true);
     } else {
       // Otherwise, directly select the product
-      handleProductSelect(product);
+      handleProductSelect(catalogProduct);
       onClose();
     }
   };
   
   // Handle clicking on "Voir les configurations disponibles" in ProductCard
-  const handleViewVariants = (product: Product, e: React.MouseEvent) => {
+  const handleViewVariants = (product: any, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setSelectedProduct(product);
+    
+    // Convert to the expected Product type
+    const catalogProduct: Product = {
+      ...product,
+      brand: product.brand || "",
+      category: product.category || "",
+      description: product.description || "",
+      createdAt: product.createdAt || new Date(),
+      updatedAt: product.updatedAt || new Date(),
+      active: product.active !== undefined ? product.active : true
+    };
+    
+    setSelectedProduct(catalogProduct);
     setShowVariantSelector(true);
   };
   
