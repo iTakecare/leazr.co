@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -237,8 +238,7 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
   try {
     console.log(`[updateAmbassadorCommissionLevel] Début de la mise à jour pour l'ambassadeur ${ambassadorId} vers ${levelId}`);
     
-    // Utiliser la fonction RPC dédiée pour cette opération
-    // Cette fonction côté base de données est conçue pour gérer correctement cette mise à jour
+    // Utiliser la fonction RPC dédiée pour cette opération qui a été corrigée pour éviter l'ambiguïté de colonne
     const { error } = await supabase
       .rpc('update_ambassador_commission_level', {
         ambassador_id: ambassadorId,
