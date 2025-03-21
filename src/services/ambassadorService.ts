@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -107,27 +106,56 @@ export const updateAmbassador = async (
   ambassadorData: AmbassadorFormValues
 ): Promise<void> => {
   try {
-    console.log("Updating ambassador with data:", ambassadorData);
+    console.log("Mise à jour de l'ambassadeur - Données complètes:", ambassadorData);
     
     // Vérifier si le barème de commissionnement est inclus
     if (ambassadorData.commission_level_id) {
-      console.log("Commission level ID included:", ambassadorData.commission_level_id);
+      console.log("Barème de commissionnement inclus dans la requête de mise à jour:", ambassadorData.commission_level_id);
+    } else {
+      console.warn("Attention: commission_level_id n'est pas défini dans les données de mise à jour");
     }
     
-    // Effectuer la mise à jour avec tous les champs, y compris commission_level_id
+    // Effectuer la mise à jour directement à l'aide d'une requête d'update simple
     const { error } = await supabase
       .from("ambassadors")
-      .update(ambassadorData)
+      .update({
+        name: ambassadorData.name,
+        email: ambassadorData.email,
+        phone: ambassadorData.phone,
+        status: ambassadorData.status,
+        notes: ambassadorData.notes,
+        company: ambassadorData.company,
+        vat_number: ambassadorData.vat_number,
+        address: ambassadorData.address,
+        city: ambassadorData.city,
+        postal_code: ambassadorData.postal_code,
+        country: ambassadorData.country,
+        commission_level_id: ambassadorData.commission_level_id
+      })
       .eq("id", id);
 
     if (error) {
-      console.error("Error during update:", error);
+      console.error("Erreur lors de la mise à jour de l'ambassadeur:", error);
       throw error;
     }
     
-    console.log("Ambassador update successful");
+    console.log("Mise à jour de l'ambassadeur réussie avec le barème:", ambassadorData.commission_level_id);
+    
+    // Vérifier que la mise à jour a bien été appliquée
+    const { data: updatedAmbassador, error: checkError } = await supabase
+      .from("ambassadors")
+      .select("*")
+      .eq("id", id)
+      .single();
+      
+    if (checkError) {
+      console.error("Erreur lors de la vérification après mise à jour:", checkError);
+    } else {
+      console.log("État de l'ambassadeur après mise à jour:", updatedAmbassador);
+      console.log("Barème de commissionnement après mise à jour:", updatedAmbassador.commission_level_id);
+    }
   } catch (error) {
-    console.error(`Error updating ambassador with ID ${id}:`, error);
+    console.error(`Erreur lors de la mise à jour de l'ambassadeur avec l'ID ${id}:`, error);
     throw error;
   }
 };
@@ -225,5 +253,27 @@ export const getAmbassadorCommissions = async (ambassadorId: string) => {
   } catch (error) {
     console.error(`Error fetching commissions for ambassador ${ambassadorId}:`, error);
     return [];
+  }
+};
+
+// Mettre à jour spécifiquement le niveau de commission d'un ambassadeur
+export const updateAmbassadorCommissionLevel = async (ambassadorId: string, levelId: string): Promise<void> => {
+  try {
+    console.log(`[updateAmbassadorCommissionLevel] Updating commission level for ambassador ${ambassadorId} to ${levelId}`);
+    
+    const { error } = await supabase
+      .from("ambassadors")
+      .update({ commission_level_id: levelId })
+      .eq("id", ambassadorId);
+
+    if (error) {
+      console.error("[updateAmbassadorCommissionLevel] Error:", error);
+      throw error;
+    }
+    
+    console.log("[updateAmbassadorCommissionLevel] Successfully updated");
+  } catch (error) {
+    console.error(`[updateAmbassadorCommissionLevel] Error for ambassador ${ambassadorId}:`, error);
+    throw error;
   }
 };
