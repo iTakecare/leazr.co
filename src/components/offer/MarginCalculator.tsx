@@ -102,7 +102,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="block text-sm text-gray-700">Coefficient appliqué :</span>
-                <span className="font-medium">{coefficient.toFixed(2)}</span>
+                <span className="font-medium">{coefficient.toFixed(3)}</span>
               </div>
               <div>
                 <span className="block text-sm text-gray-700">Marge calculée :</span>

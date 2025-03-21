@@ -84,7 +84,7 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
               type="number"
               min="0"
               step="0.01"
-              value={equipment.margin || ""}
+              value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
               onChange={(e) => handleChange("margin", e.target.value)}
               className={`pl-8 ${errors.margin ? "border-red-500" : ""} ${calculatedMargin.percentage > 0 ? "bg-green-50 border-green-300" : ""}`}
               placeholder="0.00"

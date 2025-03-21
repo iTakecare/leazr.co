@@ -37,7 +37,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Marge :</span>
             <span className="font-medium">
-              {formatCurrency(marginAmount)} ({isNaN(marginAmount) ? "NaN" : (marginPercentage > 0 ? formatPercentageWithComma(marginPercentage) : "0,00%")})
+              {formatCurrency(marginAmount)} ({isNaN(marginPercentage) ? "NaN" : formatPercentageWithComma(marginPercentage)})
             </span>
           </div>
           <div className="flex justify-between items-center">
