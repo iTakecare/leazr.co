@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -61,14 +62,22 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       }));
       
       console.log(`Successfully fetched ${processedProducts.length} products`);
-      console.log("Product sample:", processedProducts.slice(0, 2));
       
-      // Log variant products to debug
-      const variants = processedProducts.filter(p => p.parent_id);
-      console.log(`Found ${variants.length} variant products with parent_id:`, variants.slice(0, 3));
+      // Log parent-child relationships to debug
+      const parentProducts = processedProducts.filter(p => p.is_parent);
+      console.log(`Found ${parentProducts.length} parent products`);
       
-      const variationsFlag = processedProducts.filter(p => p.is_variation);
-      console.log(`Found ${variationsFlag.length} products with is_variation flag:`, variationsFlag.slice(0, 3));
+      const variantProducts = processedProducts.filter(p => p.parent_id);
+      console.log(`Found ${variantProducts.length} variant products with parent_id`);
+      
+      // Log each parent product and its variants
+      parentProducts.forEach(parent => {
+        const variants = variantProducts.filter(v => v.parent_id === parent.id);
+        console.log(`Parent product "${parent.name}" (${parent.id}) has ${variants.length} variants`);
+        if (variants.length > 0) {
+          console.log(`First variant: "${variants[0].name}" (${variants[0].id})`);
+        }
+      });
       
       setProducts(processedProducts || []);
     } catch (err) {
@@ -160,56 +169,190 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     return filtered;
   }, [products, searchTerm, selectedCategory, selectedBrand]);
 
-  // Group products by parent/child relationship
-  const groupedProducts = React.useMemo(() => {
+  // Render the products organized by parent/variant relationships
+  const renderProducts = () => {
     if (!filteredProducts || filteredProducts.length === 0) {
-      return {};
+      return (
+        <div className="text-center py-10 text-muted-foreground">
+          Aucun produit trouvé
+        </div>
+      );
     }
     
-    console.log("Grouping filtered products:", filteredProducts.length);
+    // First, identify parent products and standalone products (products without parent or children)
+    const parentProducts = filteredProducts.filter(p => p.is_parent);
+    const standaloneProducts = filteredProducts.filter(p => !p.is_parent && !p.parent_id);
     
-    // This will hold our grouped products
-    const grouped: Record<string, Product[]> = {};
+    // Create a map of parent IDs to their variant products
+    const variantMap = new Map<string, Product[]>();
     
-    // First pass: Add all parent products and standalone products to groups
     filteredProducts.forEach(product => {
-      // If it's a parent product, create a group for it
-      if (product.is_parent) {
-        grouped[product.id] = [product];
-      } 
-      // If it's a standalone product (not a parent and not a variant), create its own group
-      else if (!product.is_parent && !product.parent_id) {
-        grouped[product.id] = [product];
+      if (product.parent_id) {
+        const variants = variantMap.get(product.parent_id) || [];
+        variants.push(product);
+        variantMap.set(product.parent_id, variants);
       }
     });
     
-    // Second pass: Add variants to their parent's group if showVariants is true
-    if (showVariants) {
-      filteredProducts.forEach(product => {
-        // If it has a parent_id, it's a variant
-        if (product.parent_id) {
-          // Add it to the parent's group if the parent exists in our grouped object
-          if (grouped[product.parent_id]) {
-            grouped[product.parent_id].push(product);
-          } else {
-            // If parent isn't in our groups (maybe filtered out), add as standalone
-            grouped[product.id] = [product];
-          }
-        }
-      });
-    }
+    // Log parent-variant relationships
+    console.log(`Rendering ${parentProducts.length} parent products`);
+    console.log(`Rendering ${standaloneProducts.length} standalone products`);
+    console.log(`Found variants for ${variantMap.size} parent products`);
     
-    console.log("Final grouped products:", Object.keys(grouped).length);
-    
-    // Log a sample of the groups to check structure
-    const sampleKeys = Object.keys(grouped).slice(0, 3);
-    sampleKeys.forEach(key => {
-      console.log(`Group ${key}: ${grouped[key].length} products`, 
-        grouped[key].map(p => ({ id: p.id, name: p.name, isParent: p.is_parent, parentId: p.parent_id })));
-    });
-    
-    return grouped;
-  }, [filteredProducts, showVariants]);
+    // Render each parent product followed by its variants if showVariants is true
+    return (
+      <div className="space-y-6">
+        {/* Render parent products with their variants */}
+        {parentProducts.map(parent => {
+          const variants = variantMap.get(parent.id) || [];
+          console.log(`Rendering parent "${parent.name}" with ${variants.length} variants`);
+          
+          return (
+            <div key={parent.id} className="space-y-2">
+              <h3 className="font-medium text-sm text-muted-foreground">
+                {parent.name}
+              </h3>
+              
+              <div className="flex flex-col gap-2">
+                {/* Parent product */}
+                <div 
+                  key={parent.id} 
+                  onClick={() => handleProductSelect(parent)}
+                  className="cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="flex p-3">
+                    <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
+                      <img 
+                        src={parent.image_url || parent.imageUrl || "/placeholder.svg"}
+                        alt={parent.name}
+                        className="object-contain h-16 w-16"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
+                      />
+                    </div>
+                    <div className="w-2/3 p-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-sm">{parent.name}</h3>
+                        <Badge variant="outline" className="text-xs">Parent</Badge>
+                      </div>
+                      
+                      <div className="text-sm space-y-1 mt-2">
+                        <p className="text-muted-foreground">
+                          Prix: {parent.price} €
+                        </p>
+                        {parent.monthly_price > 0 && (
+                          <p className="text-muted-foreground">
+                            Mensualité: {parent.monthly_price} €
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Variants */}
+                {showVariants && variants.length > 0 && (
+                  <div className="ml-4 space-y-2">
+                    {variants.map(variant => (
+                      <div 
+                        key={variant.id} 
+                        onClick={() => handleProductSelect(variant)}
+                        className="cursor-pointer border border-dashed rounded-md overflow-hidden hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex p-3">
+                          <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
+                            <img 
+                              src={variant.image_url || variant.imageUrl || "/placeholder.svg"}
+                              alt={variant.name}
+                              className="object-contain h-16 w-16"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              }}
+                            />
+                          </div>
+                          <div className="w-2/3 p-3">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-sm">{variant.name}</h3>
+                              <Badge variant="outline" className="text-xs">Variante</Badge>
+                            </div>
+                            
+                            {variant.attributes && 
+                              Object.keys(variant.attributes).length > 0 && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {formatAttributes(variant.attributes as ProductAttributes)}
+                              </p>
+                            )}
+                            
+                            <div className="text-sm space-y-1 mt-2">
+                              <p className="text-muted-foreground">
+                                Prix: {variant.price} €
+                              </p>
+                              {variant.monthly_price > 0 && (
+                                <p className="text-muted-foreground">
+                                  Mensualité: {variant.monthly_price} €
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        
+        {/* Render standalone products */}
+        {standaloneProducts.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm text-muted-foreground">
+              Produits individuels
+            </h3>
+            
+            <div className="flex flex-col gap-2">
+              {standaloneProducts.map(product => (
+                <div 
+                  key={product.id} 
+                  onClick={() => handleProductSelect(product)}
+                  className="cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="flex p-3">
+                    <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
+                      <img 
+                        src={product.image_url || product.imageUrl || "/placeholder.svg"}
+                        alt={product.name}
+                        className="object-contain h-16 w-16"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
+                      />
+                    </div>
+                    <div className="w-2/3 p-3">
+                      <h3 className="font-medium text-sm">{product.name}</h3>
+                      
+                      <div className="text-sm space-y-1 mt-2">
+                        <p className="text-muted-foreground">
+                          Prix: {product.price} €
+                        </p>
+                        {product.monthly_price > 0 && (
+                          <p className="text-muted-foreground">
+                            Mensualité: {product.monthly_price} €
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Format attributes for display
   const formatAttributes = (attributes: ProductAttributes) => {
@@ -270,17 +413,15 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           </Select>
         </div>
         
-        <div className="flex items-center mb-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="show-variants"
-              checked={showVariants}
-              onCheckedChange={setShowVariants}
-            />
-            <Label htmlFor="show-variants" className="cursor-pointer">
-              Afficher les variantes ({showVariants ? 'Oui' : 'Non'})
-            </Label>
-          </div>
+        <div className="flex items-center space-x-2 mb-4">
+          <Switch
+            id="show-variants"
+            checked={showVariants}
+            onCheckedChange={setShowVariants}
+          />
+          <Label htmlFor="show-variants" className="cursor-pointer">
+            Afficher les variantes ({showVariants ? 'Oui' : 'Non'})
+          </Label>
         </div>
         
         <ScrollArea className="h-[400px] pr-4">
@@ -290,119 +431,8 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
             </div>
-          ) : Object.keys(groupedProducts).length > 0 ? (
-            <div className="space-y-6">
-              {Object.entries(groupedProducts).map(([groupKey, groupItems]) => {
-                // Get the main product for the group (typically the parent)
-                const mainProduct = groupItems.find(p => p.is_parent) || groupItems[0];
-                const variants = groupItems.filter(p => p.id !== mainProduct.id);
-                
-                console.log(`Rendering group ${groupKey}:`, {
-                  mainProduct: mainProduct.name,
-                  variantsCount: variants.length,
-                  showVariants
-                });
-                
-                return (
-                  <div key={groupKey} className="space-y-2">
-                    <h3 className="font-medium text-sm text-muted-foreground">
-                      {mainProduct.name}
-                    </h3>
-                    
-                    <div className="flex flex-col gap-2">
-                      {/* Main product */}
-                      <div 
-                        key={mainProduct.id} 
-                        onClick={() => handleProductSelect(mainProduct)}
-                        className="cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex p-3">
-                          <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
-                            <img 
-                              src={mainProduct.image_url || mainProduct.imageUrl || "/placeholder.svg"}
-                              alt={mainProduct.name}
-                              className="object-contain h-16 w-16"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/placeholder.svg";
-                              }}
-                            />
-                          </div>
-                          <div className="w-2/3 p-3">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium text-sm">{mainProduct.name}</h3>
-                              {mainProduct.is_parent && (
-                                <Badge variant="outline" className="text-xs">Parent</Badge>
-                              )}
-                            </div>
-                            
-                            <div className="text-sm space-y-1 mt-2">
-                              <p className="text-muted-foreground">
-                                Prix: {mainProduct.price} €
-                              </p>
-                              {mainProduct.monthly_price > 0 && (
-                                <p className="text-muted-foreground">
-                                  Mensualité: {mainProduct.monthly_price} €
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Variants */}
-                      {showVariants && variants.length > 0 && variants.map(variant => (
-                        <div 
-                          key={variant.id} 
-                          onClick={() => handleProductSelect(variant)}
-                          className="cursor-pointer border border-dashed rounded-md overflow-hidden hover:shadow-md transition-shadow ml-4"
-                        >
-                          <div className="flex p-3">
-                            <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
-                              <img 
-                                src={variant.image_url || variant.imageUrl || "/placeholder.svg"}
-                                alt={variant.name}
-                                className="object-contain h-16 w-16"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "/placeholder.svg";
-                                }}
-                              />
-                            </div>
-                            <div className="w-2/3 p-3">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-medium text-sm">{variant.name}</h3>
-                                <Badge variant="outline" className="text-xs">Variante</Badge>
-                              </div>
-                              
-                              {variant.attributes && 
-                                Object.keys(variant.attributes).length > 0 && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {formatAttributes(variant.attributes as ProductAttributes)}
-                                </p>
-                              )}
-                              
-                              <div className="text-sm space-y-1 mt-2">
-                                <p className="text-muted-foreground">
-                                  Prix: {variant.price} €
-                                </p>
-                                {variant.monthly_price > 0 && (
-                                  <p className="text-muted-foreground">
-                                    Mensualité: {variant.monthly_price} €
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           ) : (
-            <div className="text-center py-10 text-muted-foreground">
-              Aucun produit trouvé
-            </div>
+            renderProducts()
           )}
         </ScrollArea>
       </DialogContent>
