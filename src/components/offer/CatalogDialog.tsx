@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -44,46 +43,25 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       setLoading(true);
       console.log("Fetching products from Supabase...");
       
-      // Fetch parent products first
-      const { data: parentProducts, error: parentError } = await supabase
+      // Fetch all products (both parents and variants)
+      const { data: allProducts, error: productsError } = await supabase
         .from('products')
         .select('*')
         .eq('active', true)
         .order('created_at', { ascending: false });
         
-      if (parentError) {
-        throw parentError;
+      if (productsError) {
+        throw productsError;
       }
       
-      // Process parent products
-      const processedParentProducts = parentProducts.map(product => ({
+      // Process all products
+      const processedProducts = allProducts.map(product => ({
         ...product,
         attributes: parseAttributes(product.attributes)
       }));
       
-      // Now fetch all variant products
-      const { data: variantProducts, error: variantError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('active', true)
-        .not('parent_id', 'is', null)
-        .order('created_at', { ascending: false });
-        
-      if (variantError) {
-        throw variantError;
-      }
-      
-      // Process variant products
-      const processedVariantProducts = variantProducts.map(product => ({
-        ...product,
-        attributes: parseAttributes(product.attributes)
-      }));
-      
-      // Combine both sets of products
-      const allProducts = [...processedParentProducts, ...processedVariantProducts];
-      
-      console.log(`Successfully fetched ${allProducts.length} products`);
-      setProducts(allProducts || []);
+      console.log(`Successfully fetched ${processedProducts.length} products`);
+      setProducts(processedProducts || []);
     } catch (err) {
       console.error("Error fetching products:", err);
       toast.error("Erreur lors du chargement des produits");
@@ -151,14 +129,9 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       return [];
     }
     
-    let filtered = products;
+    let filtered = [...products];
     
-    // Remove variants if not showing variants
-    if (!showVariants) {
-      filtered = filtered.filter(product => !product.is_variation);
-    }
-    
-    // Apply filters
+    // Apply search and category/brand filters
     filtered = filtered.filter((product) => {
       // Search term filter
       const nameMatch = !searchTerm || 
@@ -176,54 +149,60 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     });
     
     return filtered;
-  }, [products, searchTerm, selectedCategory, selectedBrand, showVariants]);
+  }, [products, searchTerm, selectedCategory, selectedBrand]);
 
-  // Group products by model
-  const groupedByModel = React.useMemo(() => {
+  // Group products by model or parent/child relationship
+  const groupedProducts = React.useMemo(() => {
     if (!filteredProducts || filteredProducts.length === 0) {
       return {};
     }
     
     const grouped: Record<string, Product[]> = {};
     
+    // First, add all parent products to their respective groups
     filteredProducts.forEach(product => {
       if (product.is_parent) {
-        // Parent products get their own group
         const modelKey = product.id;
         if (!grouped[modelKey]) {
           grouped[modelKey] = [product];
         }
-      } else if (product.parent_id) {
-        // Variant products go in their parent's group
-        const modelKey = product.parent_id;
-        if (!grouped[modelKey]) {
-          // Find the parent product
-          const parentProduct = filteredProducts.find(p => p.id === product.parent_id);
-          if (parentProduct) {
-            grouped[modelKey] = [parentProduct, product];
-          } else {
-            // If parent not in filtered products, create a new group for this variant
-            grouped[product.id] = [product];
+      }
+    });
+    
+    // Then, add all variants to their parent's group
+    filteredProducts.forEach(product => {
+      if (product.parent_id && !product.is_parent) {
+        const parentKey = product.parent_id;
+        
+        if (grouped[parentKey]) {
+          // Only add variant if showVariants is true
+          if (showVariants) {
+            grouped[parentKey].push(product);
           }
-        } else {
-          grouped[modelKey].push(product);
+        } else if (!product.is_variation) {
+          // If it's not a variant or if the parent is not in filtered products,
+          // create a new group for this product
+          const productKey = product.id;
+          grouped[productKey] = [product];
         }
-      } else {
-        // Standalone products get their own group
-        const modelKey = product.model || product.name || product.id;
-        if (!grouped[modelKey]) {
-          grouped[modelKey] = [product];
-        } else {
-          grouped[modelKey].push(product);
+      } else if (!product.is_parent && !product.parent_id) {
+        // Standalone products (not parent, not variant)
+        const productKey = product.id;
+        if (!grouped[productKey]) {
+          grouped[productKey] = [product];
         }
       }
     });
     
     return grouped;
-  }, [filteredProducts]);
+  }, [filteredProducts, showVariants]);
 
   // Format attributes for display
   const formatAttributes = (attributes: ProductAttributes) => {
+    if (!attributes || Object.keys(attributes).length === 0) {
+      return "";
+    }
+    
     return Object.entries(attributes)
       .map(([key, value]) => `${key}: ${value}`)
       .join(", ");
@@ -297,29 +276,33 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
             </div>
-          ) : Object.keys(groupedByModel).length > 0 ? (
+          ) : Object.keys(groupedProducts).length > 0 ? (
             <div className="space-y-6">
-              {Object.entries(groupedByModel).map(([modelName, modelProducts]) => {
-                // Sort products so parent comes first, then variants
-                const sortedProducts = [...modelProducts].sort((a, b) => {
+              {Object.entries(groupedProducts).map(([groupKey, groupItems]) => {
+                // Sort items so parent comes first, then variants
+                const sortedItems = [...groupItems].sort((a, b) => {
                   if (a.is_parent) return -1;
                   if (b.is_parent) return 1;
                   return 0;
                 });
                 
-                // Get parent product for the group heading
-                const parentProduct = sortedProducts.find(p => p.is_parent) || sortedProducts[0];
+                // Get the main product for the group (typically the parent)
+                const mainProduct = sortedItems[0];
                 
                 return (
-                  <div key={modelName} className="space-y-2">
-                    <h3 className="font-medium text-sm text-muted-foreground">{parentProduct.name}</h3>
+                  <div key={groupKey} className="space-y-2">
+                    <h3 className="font-medium text-sm text-muted-foreground">
+                      {mainProduct.name}
+                    </h3>
                     
                     <div className="flex flex-col gap-2">
-                      {sortedProducts.map((product) => (
+                      {sortedItems.map((product) => (
                         <div 
                           key={product.id} 
                           onClick={() => handleProductSelect(product)}
-                          className={`cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${product.is_variation ? 'border-dashed' : ''}`}
+                          className={`cursor-pointer border rounded-md overflow-hidden hover:shadow-md transition-shadow ${
+                            product.is_variation || product.parent_id ? 'border-dashed' : ''
+                          }`}
                         >
                           <div className="flex p-3">
                             <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
@@ -338,12 +321,14 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
                                 {product.is_parent && (
                                   <Badge variant="outline" className="text-xs">Parent</Badge>
                                 )}
-                                {product.is_variation && (
+                                {(product.is_variation || product.parent_id) && !product.is_parent && (
                                   <Badge variant="outline" className="text-xs">Variante</Badge>
                                 )}
                               </div>
                               
-                              {product.is_variation && product.attributes && Object.keys(product.attributes).length > 0 && (
+                              {(product.is_variation || product.parent_id) && 
+                                product.attributes && 
+                                Object.keys(product.attributes).length > 0 && (
                                 <p className="text-xs text-gray-500 mt-1">
                                   {formatAttributes(product.attributes as ProductAttributes)}
                                 </p>
