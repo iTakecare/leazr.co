@@ -1,7 +1,7 @@
 
-import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { createClient } from "@/services/clientService";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { createClient, getClientById, updateClient } from "@/services/clientService";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -38,8 +38,12 @@ type FormValues = z.infer<typeof formSchema>;
 const ClientForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams();
   const { user, isAmbassador } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const clientId = params.id;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -52,6 +56,42 @@ const ClientForm = () => {
       notes: "",
     },
   });
+
+  useEffect(() => {
+    if (clientId) {
+      setIsEditMode(true);
+      setIsLoading(true);
+      getClientById(clientId).then(client => {
+        if (client) {
+          form.reset({
+            name: client.name,
+            email: client.email || "",
+            company: client.company || "",
+            phone: client.phone || "",
+            address: client.address || "",
+            notes: client.notes || ""
+          });
+        } else {
+          toast.error("Client introuvable");
+          navigateBack();
+        }
+        setIsLoading(false);
+      }).catch(error => {
+        console.error("Erreur lors du chargement du client:", error);
+        toast.error("Erreur lors du chargement du client");
+        setIsLoading(false);
+        navigateBack();
+      });
+    }
+  }, [clientId, form]);
+
+  const navigateBack = () => {
+    if (isAmbassador()) {
+      navigate("/ambassador/clients");
+    } else {
+      navigate("/clients");
+    }
+  };
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
@@ -66,24 +106,40 @@ const ClientForm = () => {
         notes: data.notes || undefined
       };
       
-      const newClient = await createClient(clientData);
-      if (newClient) {
-        toast.success("Client créé avec succès");
-        
-        // Si l'utilisateur est un ambassadeur, associer le client à l'ambassadeur
-        if (isAmbassador() && user?.ambassador_id) {
-          const { error: linkError } = await supabase
-            .from("ambassador_clients")
-            .insert({
-              ambassador_id: user.ambassador_id,
-              client_id: newClient.id
-            });
-            
-          if (linkError) {
-            console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
-            toast.error("Erreur lors de l'association du client à l'ambassadeur");
-          }
+      let result;
+      
+      if (isEditMode && clientId) {
+        // Update existing client
+        result = await updateClient(clientId, clientData);
+        if (result) {
+          toast.success("Client mis à jour avec succès");
+        }
+      } else {
+        // Create new client
+        result = await createClient(clientData);
+        if (result) {
+          toast.success("Client créé avec succès");
           
+          // Si l'utilisateur est un ambassadeur, associer le client à l'ambassadeur
+          if (isAmbassador() && user?.ambassador_id) {
+            const { error: linkError } = await supabase
+              .from("ambassador_clients")
+              .insert({
+                ambassador_id: user.ambassador_id,
+                client_id: result.id
+              });
+              
+            if (linkError) {
+              console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
+              toast.error("Erreur lors de l'association du client à l'ambassadeur");
+            }
+          }
+        }
+      }
+      
+      // Redirection appropriée
+      if (result) {
+        if (isAmbassador()) {
           // Rediriger vers la page clients de l'ambassadeur
           navigate("/ambassador/clients");
         } else {
@@ -92,12 +148,24 @@ const ClientForm = () => {
         }
       }
     } catch (error) {
-      console.error("Erreur lors de la création du client:", error);
-      toast.error("Erreur lors de la création du client");
+      console.error("Erreur lors de l'opération sur le client:", error);
+      toast.error(isEditMode ? "Erreur lors de la mise à jour du client" : "Erreur lors de la création du client");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex justify-center items-center h-[50vh]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
@@ -105,9 +173,9 @@ const ClientForm = () => {
         <div className="flex justify-center">
           <Card className="w-full max-w-2xl">
             <CardHeader>
-              <CardTitle>Créer un client</CardTitle>
+              <CardTitle>{isEditMode ? "Modifier le client" : "Créer un client"}</CardTitle>
               <CardDescription>
-                Ajoutez un nouveau client à votre liste.
+                {isEditMode ? "Modifiez les informations du client." : "Ajoutez un nouveau client à votre liste."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -195,15 +263,18 @@ const ClientForm = () => {
                       </FormItem>
                     )}
                   />
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={navigateBack}>
+                      Annuler
+                    </Button>
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enregistrement...
+                          {isEditMode ? "Mise à jour..." : "Enregistrement..."}
                         </>
                       ) : (
-                        "Enregistrer"
+                        isEditMode ? "Mettre à jour" : "Enregistrer"
                       )}
                     </Button>
                   </div>

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
@@ -73,7 +74,9 @@ function App() {
                 <Route index element={<Dashboard />} />
                 <Route path="clients" element={<Clients />} />
                 <Route path="clients/new" element={<ClientForm />} />
+                <Route path="clients/create" element={<ClientForm />} />
                 <Route path="clients/:id" element={<ClientDetail />} />
+                <Route path="clients/edit/:id" element={<ClientForm />} />
                 <Route path="clients/:id/create-offer" element={<CreateOffer />} />
                 <Route path="catalog" element={<CatalogManagement />} />
                 <Route path="catalog/create-product" element={<ProductCreationPage />} />
@@ -118,7 +121,9 @@ function App() {
                 <Route path="offers/:id" element={<OfferDetail />} />
                 <Route path="clients" element={<AmbassadorClientsPage />} />
                 <Route path="clients/new" element={<ClientForm />} />
+                <Route path="clients/create" element={<ClientForm />} />
                 <Route path="clients/:id" element={<ClientDetail />} />
+                <Route path="clients/edit/:id" element={<ClientForm />} />
                 <Route path="create-offer" element={<AmbassadorCreateOffer />} />
                 <Route path="create-offer/:clientId" element={<AmbassadorCreateOffer />} />
                 <Route path="catalog" element={<AmbassadorCatalog />} />

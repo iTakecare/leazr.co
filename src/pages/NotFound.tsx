@@ -1,4 +1,3 @@
-
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent, Users, Calculator } from "lucide-react";
@@ -64,9 +63,9 @@ const NotFound = () => {
               <p className="text-amber-700 text-sm mb-4">
                 Si vous essayez de modifier le client, veuillez utiliser le lien ci-dessous:
               </p>
-              <Link to={`/clients/${clientId}`}>
+              <Link to={`/clients/edit/${clientId}`}>
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <ArrowLeft className="h-4 w-4" /> Voir la fiche client
+                  <ArrowLeft className="h-4 w-4" /> Modifier la fiche client
                 </Button>
               </Link>
             </div>
@@ -77,7 +76,7 @@ const NotFound = () => {
               <p className="text-amber-700 text-sm mb-4">
                 Si vous essayez de modifier le partenaire, veuillez utiliser le lien ci-dessous:
               </p>
-              <Link to={`/partners/${partnerId}`}>
+              <Link to={`/partners/edit/${partnerId}`}>
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2">
                   <Building className="h-4 w-4" /> Voir la fiche partenaire
                 </Button>
@@ -90,7 +89,7 @@ const NotFound = () => {
               <p className="text-amber-700 text-sm mb-4">
                 Si vous essayez de modifier l'ambassadeur, veuillez utiliser le lien ci-dessous:
               </p>
-              <Link to={`/ambassadors/${ambassadorId}`}>
+              <Link to={`/ambassadors/edit/${ambassadorId}`}>
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2">
                   <User className="h-4 w-4" /> Voir la fiche ambassadeur
                 </Button>
