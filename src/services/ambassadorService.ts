@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -236,21 +235,21 @@ export const getAmbassadorCommissions = async (ambassadorId: string) => {
 // Mise à jour du barème de commissionnement d'un ambassadeur
 export const updateAmbassadorCommissionLevel = async (ambassadorId: string, levelId: string): Promise<void> => {
   try {
-    console.log(`[updateAmbassadorCommissionLevel] Début de la mise à jour du barème pour l'ambassadeur ${ambassadorId} vers ${levelId}`);
+    console.log(`[updateAmbassadorCommissionLevel] Appel de la fonction RPC pour l'ambassadeur ${ambassadorId} vers ${levelId}`);
     
-    // Utiliser le client standard (sans privilèges admin) pour la mise à jour
-    const { error } = await supabase
-      .from('ambassadors')
-      .update({ 
-        commission_level_id: levelId,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', ambassadorId);
+    // Utiliser la fonction RPC du côté serveur pour assurer une mise à jour atomique
+    const { error } = await supabase.rpc('update_ambassador_commission_level', {
+      ambassador_id: ambassadorId,
+      commission_level_id: levelId
+    });
     
     if (error) {
-      console.error(`[updateAmbassadorCommissionLevel] Erreur de mise à jour:`, error);
+      console.error(`[updateAmbassadorCommissionLevel] Erreur RPC:`, error);
       throw new Error(`Échec de la mise à jour du barème: ${error.message}`);
     }
+    
+    // Attendre un court délai pour que la modification soit prise en compte
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Vérification après mise à jour
     const { data: verifyData, error: verifyError } = await supabase
