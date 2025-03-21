@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Container from "@/components/layout/Container";
@@ -384,7 +383,11 @@ const CreateOffer = () => {
                     removeFromList={removeFromList}
                     updateQuantity={updateQuantity}
                     totalMonthlyPayment={totalMonthlyPayment}
-                    globalMarginAdjustment={globalMarginAdjustment}
+                    globalMarginAdjustment={{
+                      amount: globalMarginAdjustment.amount,
+                      newCoef: globalMarginAdjustment.newCoef,
+                      active: true
+                    }}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                   />
                   
