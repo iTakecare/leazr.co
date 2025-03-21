@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -187,122 +186,38 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     console.log("Client created successfully:", data);
     
-    // Get user profile to check if user is an ambassador
-    const userProfile = await supabase.auth.getUser();
-    console.log("User profile full data:", userProfile);
-    
-    let isAmbassador = false;
-    let ambassadorId = null;
-    
-    // First check in user_metadata for role or ambassador_id
-    if (userProfile?.data?.user?.user_metadata?.role === 'ambassador' || 
-        userProfile?.data?.user?.user_metadata?.ambassador_id) {
-      isAmbassador = true;
-      ambassadorId = userProfile?.data?.user?.user_metadata?.ambassador_id;
-      console.log("Ambassador identified from metadata:", { isAmbassador, ambassadorId });
-    }
-    
-    // If ambassador_id not found in metadata, check user object directly
-    if (!ambassadorId && userProfile?.data?.user?.ambassador_id) {
-      ambassadorId = userProfile?.data?.user?.ambassador_id;
-      isAmbassador = true;
-      console.log("Ambassador identified from user object:", { isAmbassador, ambassadorId });
-    }
-    
-    // Check directly in the profiles table
-    if (!ambassadorId) {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      if (!profileError && profileData && profileData.role === 'ambassador') {
-        isAmbassador = true;
-        console.log("Ambassador identified from profiles table:", profileData);
-      }
-    }
-    
-    // Finally, check directly in the ambassadors table
-    if (!ambassadorId) {
-      const { data: ambData, error: ambError } = await supabase
+    // Check if the user is an ambassador to associate the client
+    try {
+      // First check if the current user is an ambassador by checking ambassador_id
+      const { data: ambassadorData, error: ambassadorError } = await supabase
         .from('ambassadors')
         .select('id')
-        .eq('user_id', userProfile?.data?.user?.id)
+        .eq('user_id', user.id)
         .maybeSingle();
       
-      if (!ambError && ambData) {
-        ambassadorId = ambData.id;
-        isAmbassador = true;
-        console.log("Ambassador identified from ambassadors table:", { isAmbassador, ambassadorId });
-      } else if (ambError && ambError.code !== 'PGRST116') { // PGRST116 is 'not found' error
-        console.error("Error checking ambassador:", ambError);
+      if (ambassadorError && ambassadorError.code !== 'PGRST116') {
+        console.error("Error checking ambassador status:", ambassadorError);
       }
-    }
-    
-    // If this is an ambassador creating a client, create the association
-    if (isAmbassador && data.id) {
-      try {
-        // If we don't have ambassadorId yet but we know user is an ambassador, make one final attempt
-        if (!ambassadorId) {
-          const { data: latestAmbData, error: latestAmbError } = await supabase
-            .from('ambassadors')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (!latestAmbError && latestAmbData && latestAmbData.id) {
-            ambassadorId = latestAmbData.id;
-            console.log("Ambassador ID found in final check:", ambassadorId);
-          } else {
-            console.error("Could not find ambassador ID for user", user.id);
-            toast.error("Could not link client to ambassador - ambassador ID not found");
-            return data ? mapDbClientToClient(data) : null;
-          }
-        }
+      
+      if (ambassadorData && ambassadorData.id) {
+        console.log("Current user is an ambassador with ID:", ambassadorData.id);
         
-        console.log("Creating association between ambassador and client:", {
-          ambassadorId,
-          clientId: data.id
-        });
+        // Associate client with ambassador
+        const linked = await linkClientToAmbassador(data.id, ambassadorData.id);
         
-        // First remove any existing associations for this client
-        const { error: deleteError } = await supabase
-          .from('ambassador_clients')
-          .delete()
-          .eq('client_id', data.id);
-        
-        if (deleteError) {
-          console.error("Error removing old associations:", deleteError);
-        }
-        
-        // Then create the new association
-        const { data: assocData, error: assocError } = await supabase
-          .from('ambassador_clients')
-          .insert({
-            ambassador_id: ambassadorId,
-            client_id: data.id
-          });
-        
-        if (assocError) {
-          console.error("Error creating ambassador-client association:", assocError);
-          console.error("Association data attempted:", { ambassador_id: ambassadorId, client_id: data.id });
-          toast.error("Error associating client with ambassador");
-        } else {
-          console.log("Successfully created ambassador-client association:", assocData);
+        if (linked) {
+          console.log("Client successfully linked to ambassador");
           toast.success("Client created and associated with your ambassador account");
+        } else {
+          console.error("Failed to associate client with ambassador");
+          toast.error("Client created but couldn't be associated with your ambassador account");
         }
-      } catch (associationError) {
-        console.error("Exception creating ambassador-client association:", associationError);
-        toast.error("Error associating client with ambassador");
-      }
-    } else {
-      if (isAmbassador) {
-        console.error("Could not associate client: Ambassador ID not found", { isAmbassador, ambassadorId });
-        toast.error("Could not associate client - ambassador ID not found");
       } else {
-        console.log("Client created by non-ambassador user");
+        console.log("Current user is not an ambassador or ambassador ID not found");
       }
+    } catch (associationError) {
+      console.error("Exception in ambassador-client association:", associationError);
+      toast.error("Client created but couldn't be associated with your account");
     }
     
     return data ? mapDbClientToClient(data) : null;
@@ -501,62 +416,70 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       clientId
     });
     
-    // First verify client exists
-    const { data: clientExists, error: clientError } = await supabase
-      .from("clients")
-      .select("id, name, email")
-      .eq("id", clientId)
-      .single();
+    // Use a transaction to ensure both checks and updates complete together
+    const { data, error } = await supabase.rpc('link_client_to_ambassador', {
+      p_client_id: clientId,
+      p_ambassador_id: ambassadorId
+    });
     
-    if (clientError || !clientExists) {
-      console.error("Error verifying client existence:", clientError);
-      toast.error(`Client with ID ${clientId} not found`);
-      return false;
-    }
-    
-    console.log("Client verified:", clientExists);
-    
-    // Verify ambassador exists
-    const { data: ambassadorExists, error: ambassadorError } = await supabase
-      .from("ambassadors")
-      .select("id, name, email")
-      .eq("id", ambassadorId)
-      .maybeSingle();
-    
-    if (ambassadorError || !ambassadorExists) {
-      console.error("Error verifying ambassador existence:", ambassadorError);
-      toast.error(`Ambassador with ID ${ambassadorId} not found`);
-      return false;
-    }
-    
-    console.log("Ambassador verified:", ambassadorExists);
-    
-    // Remove any existing associations for this client
-    const { error: deleteError } = await supabase
-      .from("ambassador_clients")
-      .delete()
-      .eq("client_id", clientId);
+    if (error) {
+      console.error("Error in link_client_to_ambassador procedure:", error);
       
-    if (deleteError) {
-      console.error("Error removing old links:", deleteError);
-    }
-    
-    // Create new association
-    const { data, error: insertError } = await supabase
-      .from("ambassador_clients")
-      .insert({
-        ambassador_id: ambassadorId,
-        client_id: clientId
-      })
-      .select();
+      // Fallback approach if RPC fails
+      console.log("Attempting fallback direct insert...");
       
-    if (insertError) {
-      console.error("Error linking client to ambassador:", insertError);
-      toast.error("Error linking client to ambassador");
-      return false;
+      try {
+        // First directly verify client exists
+        const { data: clientExists } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("id", clientId)
+          .limit(1);
+          
+        if (!clientExists || clientExists.length === 0) {
+          console.error(`Client with ID ${clientId} not found`);
+          return false;
+        }
+        
+        // Verify ambassador exists
+        const { data: ambassadorExists } = await supabase
+          .from("ambassadors")
+          .select("id")
+          .eq("id", ambassadorId)
+          .limit(1);
+          
+        if (!ambassadorExists || ambassadorExists.length === 0) {
+          console.error(`Ambassador with ID ${ambassadorId} not found`);
+          return false;
+        }
+        
+        // Remove any existing associations
+        await supabase
+          .from("ambassador_clients")
+          .delete()
+          .eq("client_id", clientId);
+        
+        // Insert new association
+        const { error: insertError } = await supabase
+          .from("ambassador_clients")
+          .insert({
+            ambassador_id: ambassadorId,
+            client_id: clientId
+          });
+          
+        if (insertError) {
+          console.error("Fallback insertion error:", insertError);
+          return false;
+        }
+        
+        return true;
+      } catch (fallbackError) {
+        console.error("Error in fallback client-ambassador linking:", fallbackError);
+        return false;
+      }
     }
     
-    console.log("Client successfully linked to ambassador, result:", data);
+    console.log("Client successfully linked to ambassador via RPC");
     return true;
   } catch (error) {
     console.error("Exception when linking client to ambassador:", error);
