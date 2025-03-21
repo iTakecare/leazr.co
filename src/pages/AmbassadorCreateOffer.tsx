@@ -208,7 +208,7 @@ const AmbassadorCreateOffer = () => {
     });
   };
   
-  const hideFinancialDetails = true;
+  const hideFinancialDetails = false;
   
   useEffect(() => {
     if (ambassador) {

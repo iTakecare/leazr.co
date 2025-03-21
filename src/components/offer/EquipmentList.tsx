@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -204,72 +205,75 @@ const EquipmentList = ({
         </CardContent>
       </Card>
 
-      {!hideFinancialDetails && (
-        <Card className="border border-gray-200 shadow-sm mt-4">
-          <CardHeader className="pb-2 border-b">
-            <CardTitle>Récapitulatif global</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <div>Coefficient actuel :</div>
-                <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div>Nouveau coefficient :</div>
-                <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div>Marge globale :</div>
-                <div className="font-medium">{globalMarginPercentage}%</div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div>Marge totale en euros :</div>
-                <div className="font-medium">{formatCurrency(totalMarginAmount)}</div>
-              </div>
-              {marginDifference !== 0 && (
-                <>
-                  <div className="flex justify-between items-center">
-                    <div>Différence de marge :</div>
-                    <div className="font-medium text-green-600">{formatCurrency(marginDifference)}</div>
-                  </div>
-                  <div className="flex justify-between items-center border-t pt-2">
-                    <div>Total marge avec différence :</div>
-                    <div className="font-medium text-green-600">{formatCurrency(totalMarginWithDifference)}</div>
-                  </div>
-                </>
-              )}
-              
-              <div className="pt-2 flex items-center justify-between border-t mt-3">
-                <label htmlFor="adapt-monthly" className="cursor-pointer">
-                  Adapter la mensualité au nouveau coefficient
-                </label>
-                <Switch
-                  id="adapt-monthly"
-                  checked={globalMarginAdjustment.active}
-                  onCheckedChange={toggleAdaptMonthlyPayment}
-                />
-              </div>
-              
-              <div className="flex justify-between items-center pt-4 border-t mt-3">
-                <div className="text-lg font-medium text-blue-600">Mensualité totale :</div>
-                <div className="text-lg font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</div>
-              </div>
-              
-              {commission.amount > 0 && (
-                <div className="flex justify-between items-center pt-2">
-                  <div className="font-medium">Votre commission :</div>
-                  <div className="text-green-600 font-medium flex items-center gap-1">
-                    <DollarSign className="h-4 w-4" />
-                    {formatCurrency(commission.amount)}
-                    <span className="text-sm text-muted-foreground">({commission.rate}%)</span>
-                  </div>
-                </div>
-              )}
+      {/* Add the margin adjustment card for the ambassador view regardless of hideFinancialDetails */}
+      <Card className="border border-gray-200 shadow-sm mt-4">
+        <CardHeader className="pb-2 border-b">
+          <CardTitle>Récapitulatif global</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <div>Coefficient actuel :</div>
+              <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div className="flex justify-between items-center">
+              <div>Nouveau coefficient :</div>
+              <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
+            </div>
+            {!hideFinancialDetails && (
+              <>
+                <div className="flex justify-between items-center">
+                  <div>Marge globale :</div>
+                  <div className="font-medium">{globalMarginPercentage}%</div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div>Marge totale en euros :</div>
+                  <div className="font-medium">{formatCurrency(totalMarginAmount)}</div>
+                </div>
+                {marginDifference !== 0 && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <div>Différence de marge :</div>
+                      <div className="font-medium text-green-600">{formatCurrency(marginDifference)}</div>
+                    </div>
+                    <div className="flex justify-between items-center border-t pt-2">
+                      <div>Total marge avec différence :</div>
+                      <div className="font-medium text-green-600">{formatCurrency(totalMarginWithDifference)}</div>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+            
+            <div className="pt-2 flex items-center justify-between border-t mt-3">
+              <label htmlFor="adapt-monthly" className="cursor-pointer">
+                Adapter la mensualité au nouveau coefficient
+              </label>
+              <Switch
+                id="adapt-monthly"
+                checked={globalMarginAdjustment.active}
+                onCheckedChange={toggleAdaptMonthlyPayment}
+              />
+            </div>
+            
+            <div className="flex justify-between items-center pt-4 border-t mt-3">
+              <div className="text-lg font-medium text-blue-600">Mensualité totale :</div>
+              <div className="text-lg font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</div>
+            </div>
+            
+            {commission.amount > 0 && (
+              <div className="flex justify-between items-center pt-2">
+                <div className="font-medium">Votre commission :</div>
+                <div className="text-green-600 font-medium flex items-center gap-1">
+                  <DollarSign className="h-4 w-4" />
+                  {formatCurrency(commission.amount)}
+                  <span className="text-sm text-muted-foreground">({commission.rate}%)</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </>
   );
 };
