@@ -51,13 +51,17 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   
   // Fetch products directly from Supabase
   const fetchProductsDirectly = async () => {
+    console.log("Fetching products from Supabase...");
     const { data, error } = await supabase
       .from('products')
-      .select('*')
-      .eq('active', true)
-      .order('created_at', { ascending: false });
+      .select('*');
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching products:", error);
+      throw error;
+    }
+    
+    console.log("Fetched products:", data?.length || 0);
     
     return data.map(product => ({
       ...product,
@@ -78,22 +82,42 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   });
 
   // Récupérer les catégories
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name');
+    
+    if (error) throw error;
+    return data || [];
+  };
+
+  // Récupérer les marques
+  const fetchBrands = async () => {
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*')
+      .order('name');
+    
+    if (error) throw error;
+    return data || [];
+  };
+
   const { data: categoriesData = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: getCategories,
+    queryKey: ["categories-direct"],
+    queryFn: fetchCategories,
     enabled: isOpen,
   });
 
-  // Récupérer les marques
   const { data: brandsData = [] } = useQuery({
-    queryKey: ["brands"],
-    queryFn: getBrands,
+    queryKey: ["brands-direct"],
+    queryFn: fetchBrands,
     enabled: isOpen,
   });
 
   useEffect(() => {
     if (isOpen) {
-      console.log("Catalog opened with products:", products?.length);
+      console.log("Catalog opened, products:", products?.length);
       if (products && products.length > 0) {
         console.log("Sample product:", products[0]);
         if (products[0].variant_combination_prices) {
@@ -139,27 +163,27 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
   // Filter products
   const filteredProducts = React.useMemo(() => {
-    if (!products || !Array.isArray(products)) {
-      console.log("Products is not an array:", products);
+    if (!products) {
+      console.log("No products available");
       return [];
     }
     
+    console.log("Filtering products:", products.length);
+    
     return products.filter((product: Product) => {
-      try {
-        // Search term filter
-        const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        // Category filter
-        const categoryMatch = selectedCategory === "all" || (product.category && product.category === selectedCategory);
-        
-        // Brand filter
-        const brandMatch = selectedBrand === "all" || (product.brand && product.brand === selectedBrand);
-        
-        return nameMatch && categoryMatch && brandMatch;
-      } catch (error) {
-        console.error("Error filtering product:", error, product);
-        return false;
-      }
+      // Search term filter
+      const nameMatch = !searchTerm || 
+        (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      // Category filter
+      const categoryMatch = selectedCategory === "all" || 
+        (product.category && product.category === selectedCategory);
+      
+      // Brand filter
+      const brandMatch = selectedBrand === "all" || 
+        (product.brand && product.brand === selectedBrand);
+      
+      return nameMatch && categoryMatch && brandMatch;
     });
   }, [products, searchTerm, selectedCategory, selectedBrand]);
 
@@ -172,6 +196,8 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
   // Handle variant selection
   const handleVariantSelect = (product: ProductWithVariants, variant: VariantCombinationPrice) => {
+    console.log("Selected variant:", variant);
+    
     const variantName = product.name + " - " + formatAttributes(variant.attributes);
     
     const productWithVariant = {
@@ -182,6 +208,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
       selected_variant_id: variant.id
     };
     
+    console.log("Passing product with variant to parent:", productWithVariant);
     onSelectProduct(productWithVariant);
   };
 
@@ -286,89 +313,15 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     );
   };
 
-  // For modal/dialog display (calculator or client requests)
-  if (isSheet || (isOpen !== true)) {
-    return (
-      <DialogOrSheet open={isOpen} onOpenChange={() => !isLoading && onClose()}>
-        <ContentComponent className={isSheet ? "sm:max-w-md" : "sm:max-w-[700px]"}>
-          <HeaderComponent>
-            <TitleComponent>{title}</TitleComponent>
-            <DescriptionComponent>{description}</DescriptionComponent>
-          </HeaderComponent>
-          
-          <div className="relative my-4">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher un produit..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 my-4">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les catégories</SelectItem>
-                {categories && categories.length > 0 ? categories.map((category) => (
-                  <SelectItem key={category.name} value={category.name}>
-                    {category.translation || category.name}
-                  </SelectItem>
-                )) : null}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-              <SelectTrigger>
-                <SelectValue placeholder="Marque" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les marques</SelectItem>
-                {brands && brands.length > 0 ? brands.map((brand) => (
-                  <SelectItem key={brand.name} value={brand.name}>
-                    {brand.translation || brand.name}
-                  </SelectItem>
-                )) : null}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {isLoading ? (
-            <div className="flex flex-col gap-4 my-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />
-              ))}
-            </div>
-          ) : error ? (
-            <div className="text-center py-6 text-red-500">
-              Une erreur est survenue lors du chargement des produits.
-            </div>
-          ) : (
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="flex flex-col gap-4 my-4">
-                {filteredProducts && filteredProducts.length > 0 ? (
-                  filteredProducts.map((product) => renderProduct(product as ProductWithVariants))
-                ) : (
-                  <div className="text-center py-10 text-muted-foreground">
-                    Aucun produit trouvé
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          )}
-        </ContentComponent>
-      </DialogOrSheet>
-    );
-  }
-
-  // For regular catalog display (full page)
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="relative w-full md:w-[300px]">
+    <DialogOrSheet open={isOpen} onOpenChange={() => !isLoading && onClose()}>
+      <ContentComponent className={isSheet ? "sm:max-w-md" : "sm:max-w-[700px]"}>
+        <HeaderComponent>
+          <TitleComponent>{title}</TitleComponent>
+          <DescriptionComponent>{description}</DescriptionComponent>
+        </HeaderComponent>
+        
+        <div className="relative my-4">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher un produit..."
@@ -377,61 +330,68 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+
+        <div className="grid grid-cols-2 gap-4 my-4">
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger>
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les catégories</SelectItem>
               {categories && categories.length > 0 ? categories.map((category) => (
                 <SelectItem key={category.name} value={category.name}>
-                  {category.translation}
+                  {category.translation || category.name}
                 </SelectItem>
               )) : null}
             </SelectContent>
           </Select>
-          
+
           <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger>
               <SelectValue placeholder="Marque" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les marques</SelectItem>
               {brands && brands.length > 0 ? brands.map((brand) => (
                 <SelectItem key={brand.name} value={brand.name}>
-                  {brand.translation}
+                  {brand.translation || brand.name}
                 </SelectItem>
               )) : null}
             </SelectContent>
           </Select>
         </div>
-      </div>
-      
-      {isLoading ? (
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="text-center py-10 border rounded-lg">
-          <div className="text-red-500 font-medium">Une erreur est survenue lors du chargement des produits.</div>
-          <div className="text-sm text-muted-foreground mt-2">Veuillez réessayer plus tard ou contactez l'administrateur.</div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => renderProduct(product as ProductWithVariants))
-          ) : (
-            <div className="text-center py-10 border rounded-lg">
-              <div className="text-muted-foreground">Aucun produit trouvé</div>
+        
+        {isLoading ? (
+          <div className="flex flex-col gap-4 my-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-6 text-red-500">
+            Une erreur est survenue lors du chargement des produits.
+            <p className="text-xs mt-2">{String(error)}</p>
+          </div>
+        ) : (
+          <ScrollArea className="h-[400px] pr-4">
+            <div className="flex flex-col gap-4 my-4">
+              {filteredProducts && filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => renderProduct(product as ProductWithVariants))
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">
+                  Aucun produit trouvé
+                  <p className="text-xs mt-2">Aucun produit ne correspond à vos critères de recherche</p>
+                  <div className="mt-4">
+                    <p className="text-xs">Produits disponibles: {products?.length || 0}</p>
+                    <p className="text-xs">Produits filtrés: {filteredProducts?.length || 0}</p>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
-    </div>
+          </ScrollArea>
+        )}
+      </ContentComponent>
+    </DialogOrSheet>
   );
 };
 
