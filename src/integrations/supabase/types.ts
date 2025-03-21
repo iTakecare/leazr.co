@@ -316,27 +316,27 @@ export type Database = {
       }
       commission_rates: {
         Row: {
+          commission_level_id: string
           created_at: string
           id: string
-          level_id: string
           max_amount: number
           min_amount: number
           rate: number
           updated_at: string
         }
         Insert: {
+          commission_level_id: string
           created_at?: string
           id?: string
-          level_id: string
           max_amount: number
           min_amount: number
           rate: number
           updated_at?: string
         }
         Update: {
+          commission_level_id?: string
           created_at?: string
           id?: string
-          level_id?: string
           max_amount?: number
           min_amount?: number
           rate?: number
@@ -345,7 +345,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "commission_rates_level_id_fkey"
-            columns: ["level_id"]
+            columns: ["commission_level_id"]
             isOneToOne: false
             referencedRelation: "commission_levels"
             referencedColumns: ["id"]

@@ -424,7 +424,7 @@ const CommissionManager = () => {
                 <div className="space-y-4">
                   {rates && rates.length > 0 ? (
                     rates
-                      .sort((a, b) => Number(b.min_amount) - Number(a.min_amount))
+                      .sort((a, b) => Number(a.min_amount) - Number(b.min_amount))
                       .map((rate) => (
                         <div 
                           key={rate.id} 

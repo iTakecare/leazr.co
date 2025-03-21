@@ -478,3 +478,25 @@ export const updateCommissionRate = async (id: string, rateData: { min_amount?: 
     return null;
   }
 };
+
+/**
+ * Supprime un taux de commission
+ */
+export const deleteCommissionRate = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('commission_rates')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error("Error deleting commission rate:", error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error:", error);
+    return false;
+  }
+};
