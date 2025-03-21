@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -238,27 +237,23 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
   try {
     console.log(`[updateAmbassadorCommissionLevel] Début de la mise à jour pour l'ambassadeur ${ambassadorId} vers ${levelId}`);
     
-    // Correction du problème "Invalid API key" - n'utilisons pas adminSupabase mais une 
-    // approche plus directe avec des délais et vérifications
-
-    // Première étape : mise à jour avec délai pour éviter les problèmes de cache
-    const { error: updateError } = await supabase
-      .from("ambassadors")
-      .update({
-        commission_level_id: levelId,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", ambassadorId);
+    // Utiliser la fonction RPC dédiée pour cette opération
+    // Cette fonction côté base de données est conçue pour gérer correctement cette mise à jour
+    const { error } = await supabase
+      .rpc('update_ambassador_commission_level', {
+        ambassador_id: ambassadorId,
+        commission_level_id: levelId
+      });
     
-    if (updateError) {
-      console.error(`[updateAmbassadorCommissionLevel] Erreur lors de la mise à jour:`, updateError);
-      throw new Error(`Échec de la mise à jour du barème: ${updateError.message}`);
+    if (error) {
+      console.error(`[updateAmbassadorCommissionLevel] Erreur lors de l'appel RPC:`, error);
+      throw new Error(`Échec de la mise à jour du barème: ${error.message}`);
     }
     
-    // Attendre un délai pour s'assurer que la mise à jour a eu le temps d'être propagée
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Attendre un délai pour s'assurer que la mise à jour a été propagée
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Vérification avec une requête fraîche (sans cache)
+    // Vérification avec une requête fraîche
     const { data: verifyData, error: verifyError } = await supabase
       .from("ambassadors")
       .select("commission_level_id")
@@ -274,37 +269,7 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
     
     if (verifyData.commission_level_id !== levelId) {
       console.error(`[updateAmbassadorCommissionLevel] Vérification échouée: attendu ${levelId}, reçu ${verifyData.commission_level_id}`);
-      
-      // Deuxième tentative de mise à jour - avec écriture forcée
-      const { error: retryError } = await supabase
-        .from("ambassadors")
-        .update({
-          commission_level_id: levelId,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", ambassadorId);
-        
-      if (retryError) {
-        throw new Error(`Échec de la nouvelle tentative de mise à jour: ${retryError.message}`);
-      }
-      
-      // Attendre encore un peu plus longtemps
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Vérifier à nouveau
-      const { data: finalData, error: finalError } = await supabase
-        .from("ambassadors")
-        .select("commission_level_id")
-        .eq("id", ambassadorId)
-        .single();
-        
-      if (finalError) {
-        throw finalError;
-      }
-      
-      if (finalData.commission_level_id !== levelId) {
-        throw new Error(`La mise à jour n'a pas été appliquée correctement. Barème actuel: ${finalData.commission_level_id}`);
-      }
+      throw new Error(`La mise à jour n'a pas été appliquée correctement. Barème actuel: ${verifyData.commission_level_id}`);
     }
     
     console.log(`[updateAmbassadorCommissionLevel] Mise à jour réussie et vérifiée: ${levelId}`);
