@@ -34,58 +34,100 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Structured data for display
+  const [parentProducts, setParentProducts] = useState<Product[]>([]);
+  const [variantsMap, setVariantsMap] = useState<Map<string, Product[]>>(new Map());
+  const [standaloneProducts, setStandaloneProducts] = useState<Product[]>([]);
 
-  // Fetch products and their variants directly from Supabase
+  useEffect(() => {
+    if (isOpen) {
+      fetchData();
+    }
+  }, [isOpen]);
+  
+  const fetchData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchProducts(),
+      fetchCategories(),
+      fetchBrands()
+    ]);
+    setLoading(false);
+  };
+
   const fetchProducts = async () => {
-    if (!isOpen) return;
-    
     try {
-      setLoading(true);
-      console.log("Fetching products from Supabase...");
+      console.log("Fetching products...");
       
-      // Fetch all products (both parents and variants)
-      const { data: allProducts, error: productsError } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('active', true)
         .order('created_at', { ascending: false });
         
-      if (productsError) {
-        throw productsError;
+      if (error) {
+        throw error;
       }
       
-      // Process all products
-      const processedProducts = allProducts.map(product => ({
+      const processedProducts = data.map(product => ({
         ...product,
         attributes: parseAttributes(product.attributes)
       }));
       
-      console.log(`Successfully fetched ${processedProducts.length} products`);
+      setProducts(processedProducts);
+      organizeProdcuts(processedProducts);
       
-      // Count parent and variant products
-      const parentProducts = processedProducts.filter(p => p.is_parent);
-      const variantProducts = processedProducts.filter(p => p.parent_id);
-      const standaloneProducts = processedProducts.filter(p => !p.is_parent && !p.parent_id);
-      
-      console.log(`Found ${parentProducts.length} parent products`);
-      console.log(`Found ${variantProducts.length} variant products with parent_id`);
-      console.log(`Found ${standaloneProducts.length} standalone products`);
-      
-      setProducts(processedProducts || []);
     } catch (err) {
       console.error("Error fetching products:", err);
       toast.error("Erreur lors du chargement des produits");
-    } finally {
-      setLoading(false);
     }
   };
-
-  // Fetch categories directly from Supabase
-  const fetchCategories = async () => {
-    if (!isOpen) return;
+  
+  const organizeProdcuts = (products: Product[]) => {
+    // Reset structures
+    const parents: Product[] = [];
+    const variants = new Map<string, Product[]>();
+    const standalone: Product[] = [];
     
+    // First separate parents and standalone products
+    products.forEach(product => {
+      if (product.is_parent) {
+        parents.push(product);
+        variants.set(product.id, []);
+      } else if (!product.parent_id) {
+        standalone.push(product);
+      }
+    });
+    
+    // Then assign variants to their parents
+    products.forEach(product => {
+      if (product.parent_id && variants.has(product.parent_id)) {
+        const parentVariants = variants.get(product.parent_id) || [];
+        parentVariants.push(product);
+        variants.set(product.parent_id, parentVariants);
+      }
+    });
+    
+    // Update state
+    setParentProducts(parents);
+    setVariantsMap(variants);
+    setStandaloneProducts(standalone);
+    
+    // Log for debugging
+    console.log(`Found ${parents.length} parent products`);
+    console.log(`Found ${standalone.length} standalone products`);
+    let totalVariants = 0;
+    parents.forEach(parent => {
+      const count = variants.get(parent.id)?.length || 0;
+      totalVariants += count;
+      console.log(`Parent "${parent.name}" has ${count} variants`);
+    });
+    console.log(`Found ${totalVariants} total variant products`);
+  };
+
+  const fetchCategories = async () => {
     try {
-      console.log("Fetching categories from Supabase...");
       const { data, error } = await supabase
         .from('categories')
         .select('*')
@@ -95,19 +137,14 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         throw error;
       }
       
-      console.log(`Successfully fetched ${data?.length} categories`);
       setCategories(data || []);
     } catch (err) {
       console.error("Error fetching categories:", err);
     }
   };
 
-  // Fetch brands directly from Supabase
   const fetchBrands = async () => {
-    if (!isOpen) return;
-    
     try {
-      console.log("Fetching brands from Supabase...");
       const { data, error } = await supabase
         .from('brands')
         .select('*')
@@ -117,90 +154,39 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         throw error;
       }
       
-      console.log(`Successfully fetched ${data?.length} brands`);
       setBrands(data || []);
     } catch (err) {
       console.error("Error fetching brands:", err);
     }
   };
 
-  // Fetch all data when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchProducts();
-      fetchCategories();
-      fetchBrands();
-    }
-  }, [isOpen]);
-
-  // Filter products client-side
-  const filteredProducts = React.useMemo(() => {
-    if (!products || !Array.isArray(products)) {
-      return [];
-    }
+  // Filter products based on search term and filters
+  const applyFilters = () => {
+    if (!products.length) return;
     
-    let filtered = [...products];
-    
-    // Apply search and category/brand filters
-    filtered = filtered.filter((product) => {
-      // Search term filter
+    const filtered = products.filter(product => {
+      // Search filter
       const nameMatch = !searchTerm || 
-        (product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        (product.name?.toLowerCase().includes(searchTerm.toLowerCase()));
       
       // Category filter
       const categoryMatch = selectedCategory === "all" || 
-        (product.category && product.category === selectedCategory);
+        product.category === selectedCategory;
       
       // Brand filter
       const brandMatch = selectedBrand === "all" || 
-        (product.brand && product.brand === selectedBrand);
+        product.brand === selectedBrand;
       
       return nameMatch && categoryMatch && brandMatch;
     });
     
-    return filtered;
-  }, [products, searchTerm, selectedCategory, selectedBrand]);
-
-  // Group products and find parent-variant relationships
-  const groupedProducts = React.useMemo(() => {
-    // Map to store parent products with their respective variants
-    const parentVariantMap = new Map<string, Product[]>();
-    
-    // Separate products by type
-    const parents: Product[] = [];
-    const standalone: Product[] = [];
-    
-    // First, identify parents and standalone products
-    filteredProducts.forEach(product => {
-      if (product.is_parent) {
-        parents.push(product);
-        parentVariantMap.set(product.id, []);
-      } else if (!product.parent_id) {
-        standalone.push(product);
-      }
-    });
-    
-    // Then, assign variants to their respective parents
-    filteredProducts.forEach(product => {
-      if (product.parent_id && parentVariantMap.has(product.parent_id)) {
-        const variants = parentVariantMap.get(product.parent_id) || [];
-        variants.push(product);
-        parentVariantMap.set(product.parent_id, variants);
-      }
-    });
-    
-    // Log detailed information for debugging
-    console.log(`Grouped ${parents.length} parent products`);
-    console.log(`Found ${standalone.length} standalone products`);
-    
-    // Log variants for each parent
-    parents.forEach(parent => {
-      const variants = parentVariantMap.get(parent.id) || [];
-      console.log(`Parent "${parent.name}" (${parent.id}) has ${variants.length} variants`);
-    });
-    
-    return { parents, parentVariantMap, standalone };
-  }, [filteredProducts]);
+    organizeProdcuts(filtered);
+  };
+  
+  // Apply filters when search or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [searchTerm, selectedCategory, selectedBrand]);
 
   // Format attributes for display
   const formatAttributes = (attributes: ProductAttributes) => {
@@ -213,18 +199,18 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       .join(", ");
   };
 
-  // Render a product card
+  // Render the product card UI
   const renderProductCard = (product: Product, isVariant: boolean = false) => {
     return (
       <div 
         key={product.id} 
         onClick={() => handleProductSelect(product)}
-        className={`cursor-pointer border ${isVariant ? 'border-dashed ml-6 bg-gray-50' : ''} rounded-md overflow-hidden hover:shadow-md transition-shadow mb-2`}
+        className={`cursor-pointer border ${isVariant ? 'border-dashed ml-6 bg-gray-50' : ''} rounded-md overflow-hidden hover:shadow-md transition-shadow mb-3`}
       >
         <div className="flex p-3">
-          <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
+          <div className="w-1/3 p-2 flex items-center justify-center bg-gray-100">
             <img 
-              src={product.image_url || product.imageUrl || "/placeholder.svg"}
+              src={product.image_url || "/placeholder.svg"}
               alt={product.name}
               className="object-contain h-16 w-16"
               onError={(e) => {
@@ -232,21 +218,25 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
               }}
             />
           </div>
+          
           <div className="w-2/3 p-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-1">
               <h3 className="font-medium text-sm">{product.name}</h3>
-              {product.is_parent && <Badge variant="outline" className="text-xs">Parent</Badge>}
-              {product.parent_id && <Badge variant="outline" className="text-xs">Variante</Badge>}
+              {product.is_parent && (
+                <Badge variant="outline" className="text-xs">Parent</Badge>
+              )}
+              {product.parent_id && (
+                <Badge variant="outline" className="text-xs">Variante</Badge>
+              )}
             </div>
             
-            {product.attributes && 
-              Object.keys(product.attributes).length > 0 && (
+            {product.attributes && Object.keys(product.attributes).length > 0 && (
               <p className="text-xs text-gray-500 mt-1">
                 {formatAttributes(product.attributes as ProductAttributes)}
               </p>
             )}
             
-            <div className="text-sm space-y-1 mt-2">
+            <div className="text-sm mt-2">
               <p className="text-muted-foreground">
                 Prix: {product.price} €
               </p>
@@ -258,6 +248,34 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </div>
           </div>
         </div>
+      </div>
+    );
+  };
+  
+  const hasVariants = (productId: string): boolean => {
+    const variants = variantsMap.get(productId) || [];
+    return variants.length > 0;
+  };
+
+  // Render each parent product with its variants
+  const renderParentWithVariants = (parent: Product) => {
+    const variants = variantsMap.get(parent.id) || [];
+    const variantsCount = variants.length;
+    
+    return (
+      <div key={parent.id} className="border rounded-md p-4 mb-4">
+        {renderProductCard(parent)}
+        
+        {showVariants && variantsCount > 0 && (
+          <div className="mt-3 pt-2 border-t">
+            <p className="text-xs text-muted-foreground mb-2 ml-6">
+              Variantes disponibles ({variantsCount}):
+            </p>
+            <div className="space-y-2">
+              {variants.map(variant => renderProductCard(variant, true))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -323,58 +341,39 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
         
         <ScrollArea className="h-[400px] pr-4">
           {loading ? (
-            <div className="flex flex-col gap-4 my-4">
+            <div className="flex flex-col gap-4">
               {[1, 2, 3, 4].map((i) => (
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Parent products with their variants */}
-              {groupedProducts.parents.length > 0 && (
+              {/* Parent products with variants */}
+              {parentProducts.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="font-medium text-sm text-muted-foreground">
-                    Produits avec variantes ({groupedProducts.parents.length})
+                    Produits avec variantes ({parentProducts.length})
                   </h3>
                   
-                  {groupedProducts.parents.map(parent => {
-                    const variants = groupedProducts.parentVariantMap.get(parent.id) || [];
-                    
-                    return (
-                      <div key={parent.id} className="space-y-2 border rounded-md p-4 mb-4">
-                        {renderProductCard(parent)}
-                        
-                        {showVariants && variants.length > 0 && (
-                          <div className="mt-2 pt-2 border-t">
-                            <p className="text-xs text-muted-foreground mb-2 ml-6">
-                              Variantes disponibles ({variants.length}):
-                            </p>
-                            <div className="space-y-2">
-                              {variants.map(variant => renderProductCard(variant, true))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {parentProducts.map(parent => renderParentWithVariants(parent))}
                 </div>
               )}
               
               {/* Standalone products */}
-              {groupedProducts.standalone.length > 0 && (
+              {standaloneProducts.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="font-medium text-sm text-muted-foreground">
-                    Produits individuels ({groupedProducts.standalone.length})
+                    Produits individuels ({standaloneProducts.length})
                   </h3>
                   
                   <div className="space-y-2">
-                    {groupedProducts.standalone.map(product => renderProductCard(product))}
+                    {standaloneProducts.map(product => renderProductCard(product))}
                   </div>
                 </div>
               )}
               
               {/* No products found message */}
-              {groupedProducts.parents.length === 0 && groupedProducts.standalone.length === 0 && (
+              {parentProducts.length === 0 && standaloneProducts.length === 0 && (
                 <div className="text-center py-10 text-muted-foreground">
                   Aucun produit trouvé
                 </div>
