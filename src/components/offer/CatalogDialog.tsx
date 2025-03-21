@@ -161,50 +161,48 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     return filtered;
   }, [products, searchTerm, selectedCategory, selectedBrand]);
 
-  // Organizes products into a map of parent products with their variants
-  const organizedProducts = React.useMemo(() => {
-    // Group products by parent/variant structure
-    const parentsMap: Map<string, Product> = new Map();
-    const variantsMap: Map<string, Product[]> = new Map();
-    const standaloneProducts: Product[] = [];
+  // Group products by parent/variant structure
+  const groupedProducts = React.useMemo(() => {
+    const result: {
+      parents: Product[];
+      variantGroups: Map<string, Product[]>;
+      standalone: Product[];
+    } = {
+      parents: [],
+      variantGroups: new Map(),
+      standalone: [],
+    };
     
-    // First pass: identify parents, variants, and standalone products
+    // First separate products into parent, variant, or standalone
     filteredProducts.forEach(product => {
       if (product.is_parent) {
-        parentsMap.set(product.id, product);
-        variantsMap.set(product.id, []);
+        result.parents.push(product);
+        // Initialize empty array for variants
+        result.variantGroups.set(product.id, []);
       } else if (product.parent_id) {
-        const variants = variantsMap.get(product.parent_id) || [];
+        // Add variant to its parent's group (create if not exists)
+        const variants = result.variantGroups.get(product.parent_id) || [];
         variants.push(product);
-        variantsMap.set(product.parent_id, variants);
+        result.variantGroups.set(product.parent_id, variants);
       } else {
-        standaloneProducts.push(product);
+        result.standalone.push(product);
       }
     });
     
-    // Log what we found
-    console.log(`Organized ${parentsMap.size} parent products`);
-    console.log(`Found variants for ${variantsMap.size} parent products`);
-    console.log(`Found ${standaloneProducts.length} standalone products`);
+    // Count products by type
+    console.log(`Grouped ${result.parents.length} parent products`);
+    console.log(`Grouped ${result.standalone.length} standalone products`);
+    console.log(`Found variants for ${result.variantGroups.size} parent products`);
     
-    // For debugging: log each parent and how many variants it has
-    parentsMap.forEach((parent, parentId) => {
-      const variants = variantsMap.get(parentId) || [];
-      console.log(`Parent "${parent.name}" (${parentId}) has ${variants.length} variants`);
-      
-      // Log first variant details if available
-      if (variants.length > 0) {
-        const firstVariant = variants[0];
-        console.log(`- First variant: "${firstVariant.name}" (${firstVariant.id})`);
-        console.log(`- Variant attributes:`, firstVariant.attributes);
+    // Log each parent's variants
+    result.variantGroups.forEach((variants, parentId) => {
+      const parent = result.parents.find(p => p.id === parentId);
+      if (parent) {
+        console.log(`Parent "${parent.name}" (${parentId}) has ${variants.length} variants`);
       }
     });
     
-    return {
-      parents: parentsMap,
-      variants: variantsMap,
-      standalone: standaloneProducts
-    };
+    return result;
   }, [filteredProducts]);
 
   // Format attributes for display
@@ -218,13 +216,13 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
       .join(", ");
   };
 
-  // Render a product card (for both parent and variants)
+  // Render a product card
   const renderProductCard = (product: Product, isVariant: boolean = false) => {
     return (
       <div 
         key={product.id} 
         onClick={() => handleProductSelect(product)}
-        className={`cursor-pointer border ${isVariant ? 'border-dashed ml-4' : ''} rounded-md overflow-hidden hover:shadow-md transition-shadow`}
+        className={`cursor-pointer border ${isVariant ? 'border-dashed ml-4 bg-gray-50' : ''} rounded-md overflow-hidden hover:shadow-md transition-shadow mb-2`}
       >
         <div className="flex p-3">
           <div className="w-1/3 bg-gray-100 h-full flex items-center justify-center p-2">
@@ -263,57 +261,6 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             </div>
           </div>
         </div>
-      </div>
-    );
-  };
-
-  // Render the product list with parent/variant hierarchy
-  const renderProductList = () => {
-    const { parents, variants, standalone } = organizedProducts;
-    
-    if (parents.size === 0 && standalone.length === 0) {
-      return (
-        <div className="text-center py-10 text-muted-foreground">
-          Aucun produit trouvé
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        {/* Render parent products with their variants */}
-        {Array.from(parents.values()).map(parent => (
-          <div key={parent.id} className="space-y-2">
-            <h3 className="font-medium text-sm text-muted-foreground">
-              {parent.name}
-            </h3>
-            
-            <div className="flex flex-col gap-2">
-              {/* Parent product */}
-              {renderProductCard(parent)}
-              
-              {/* Variants (if showVariants is enabled) */}
-              {showVariants && 
-                variants.get(parent.id)?.map(variant => 
-                  renderProductCard(variant, true)
-                )
-              }
-            </div>
-          </div>
-        ))}
-        
-        {/* Render standalone products */}
-        {standalone.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="font-medium text-sm text-muted-foreground">
-              Produits individuels
-            </h3>
-            
-            <div className="flex flex-col gap-2">
-              {standalone.map(product => renderProductCard(product))}
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -385,7 +332,52 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
               ))}
             </div>
           ) : (
-            renderProductList()
+            <div className="space-y-6">
+              {/* Parent products with their variants */}
+              {groupedProducts.parents.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-medium text-sm text-muted-foreground">
+                    Produits avec variantes ({groupedProducts.parents.length})
+                  </h3>
+                  
+                  {groupedProducts.parents.map(parent => {
+                    const variants = groupedProducts.variantGroups.get(parent.id) || [];
+                    
+                    return (
+                      <div key={parent.id} className="space-y-2 border-b pb-4">
+                        {renderProductCard(parent)}
+                        
+                        {showVariants && variants.length > 0 && (
+                          <div className="pl-4 space-y-2">
+                            {variants.map(variant => renderProductCard(variant, true))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {/* Standalone products */}
+              {groupedProducts.standalone.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-medium text-sm text-muted-foreground">
+                    Produits individuels ({groupedProducts.standalone.length})
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    {groupedProducts.standalone.map(product => renderProductCard(product))}
+                  </div>
+                </div>
+              )}
+              
+              {/* No products found message */}
+              {groupedProducts.parents.length === 0 && groupedProducts.standalone.length === 0 && (
+                <div className="text-center py-10 text-muted-foreground">
+                  Aucun produit trouvé
+                </div>
+              )}
+            </div>
           )}
         </ScrollArea>
       </DialogContent>
