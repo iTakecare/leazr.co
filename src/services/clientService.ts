@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
@@ -474,6 +473,16 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
     }
     
     console.log("Creating new ambassador-client link");
+
+    const { error: deleteError } = await supabase
+      .from("ambassador_clients")
+      .delete()
+      .eq("client_id", clientId);
+      
+    if (deleteError) {
+      console.error("Error removing old links:", deleteError);
+    }
+    
     const { data, error: insertError } = await supabase
       .from("ambassador_clients")
       .insert({

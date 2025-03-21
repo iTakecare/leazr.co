@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const AmbassadorClientsPage = () => {
       console.log("Fetching clients for ambassador ID:", user.ambassador_id);
       
       // Use a JOIN query to get both the relationship and client data in one go
+      // This ensures we're getting the correct relationships from the ambassador_clients table
       const { data, error: queryError } = await supabase
         .from("ambassador_clients")
         .select(`
@@ -64,10 +66,16 @@ const AmbassadorClientsPage = () => {
       }
       
       // Process the joined data to extract client information
-      const processedClients = data.map(item => ({
-        ...item.clients,
-        ambassador_client_id: item.id
-      }));
+      const processedClients = data.map(item => {
+        if (!item.clients) {
+          console.error(`Missing client data for association ${item.id}, client_id: ${item.client_id}`);
+          return null;
+        }
+        return {
+          ...item.clients,
+          ambassador_client_id: item.id
+        };
+      }).filter(client => client !== null);
       
       console.log("Processed clients:", processedClients);
       
