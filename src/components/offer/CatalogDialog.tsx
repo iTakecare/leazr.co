@@ -5,23 +5,12 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductSelector from "@/components/ui/ProductSelector";
 import VariantSelector from "@/components/catalog/VariantSelector";
-import type { Product } from "@/types/catalog";
-
-interface ProductWithVariants extends Omit<Product, 'variants'> {
-  variation_attributes?: Record<string, string[]>;
-  variant_combination_prices?: any[];
-  is_parent?: boolean;
-  selected_variant_id?: string;
-  attributes?: Record<string, any>;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  active: boolean;
-}
+import { Product } from "@/types/catalog";
 
 interface CatalogDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  handleProductSelect: (product: ProductWithVariants) => void;
+  handleProductSelect: (product: Product) => void;
 }
 
 const CatalogDialog: React.FC<CatalogDialogProps> = ({
@@ -29,7 +18,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   onClose,
   handleProductSelect
 }) => {
-  const [selectedProduct, setSelectedProduct] = useState<ProductWithVariants | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showVariantSelector, setShowVariantSelector] = useState(false);
   
   // Clear selected product when dialog closes
@@ -41,7 +30,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   }, [isOpen]);
   
   // Handle product selection from the selector
-  const onSelectProduct = (product: ProductWithVariants) => {
+  const onSelectProduct = (product: Product) => {
     console.log("Product selected:", product);
     
     // Check if the product has variants
@@ -61,7 +50,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   };
   
   // Handle clicking on "Voir les configurations disponibles" in ProductCard
-  const handleViewVariants = (product: ProductWithVariants, e: React.MouseEvent) => {
+  const handleViewVariants = (product: Product, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedProduct(product);
@@ -69,7 +58,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   };
   
   // Handle variant selection
-  const onVariantSelect = (productWithVariant: ProductWithVariants) => {
+  const onVariantSelect = (productWithVariant: Product) => {
     handleProductSelect(productWithVariant);
     onClose();
   };
@@ -106,8 +95,8 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           {showVariantSelector && selectedProduct ? (
             <div className="p-4">
               <VariantSelector 
-                product={selectedProduct as any}
-                onVariantSelect={onVariantSelect as any}
+                product={selectedProduct}
+                onVariantSelect={onVariantSelect}
               />
             </div>
           ) : (
