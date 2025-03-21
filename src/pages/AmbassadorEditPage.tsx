@@ -88,6 +88,64 @@ const AmbassadorEditPage = () => {
     },
   });
 
+  // Fonction pour charger les données de l'ambassadeur
+  const loadAmbassador = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      const ambassadorData = await getAmbassadorById(id);
+      
+      if (!ambassadorData) {
+        toast.error("Ambassadeur introuvable");
+        navigate("/ambassadors");
+        return;
+      }
+      
+      console.log("Ambassador data loaded:", ambassadorData);
+      setAmbassador(ambassadorData);
+      
+      form.reset({
+        name: ambassadorData.name,
+        email: ambassadorData.email,
+        phone: ambassadorData.phone || "",
+        status: ambassadorData.status as "active" | "inactive",
+        notes: ambassadorData.notes || "",
+        company: ambassadorData.company || "",
+        vat_number: ambassadorData.vat_number || "",
+        address: ambassadorData.address || "",
+        city: ambassadorData.city || "",
+        postal_code: ambassadorData.postal_code || "",
+        country: ambassadorData.country || ""
+      });
+      
+      // Load commission data
+      await loadCommissionLevels();
+      
+      if (ambassadorData.commission_level_id) {
+        console.log("Setting current level ID:", ambassadorData.commission_level_id);
+        setCurrentLevelId(ambassadorData.commission_level_id);
+        await loadCommissionLevel(ambassadorData.commission_level_id);
+      } else {
+        console.warn("No commission level ID in ambassador data");
+      }
+    } catch (error: any) {
+      console.error("Erreur lors du chargement de l'ambassadeur:", error);
+      
+      if (error.message && error.message.includes("invalid input syntax for type uuid")) {
+        setError("L'identifiant fourni n'est pas valide");
+        toast.error("ID d'ambassadeur invalide");
+      } else {
+        setError("Erreur lors du chargement de l'ambassadeur");
+        toast.error("Erreur lors du chargement de l'ambassadeur");
+      }
+      
+      setTimeout(() => navigate("/ambassadors"), 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!id) {
       toast.error("ID d'ambassadeur manquant");
@@ -100,60 +158,8 @@ const AmbassadorEditPage = () => {
       return;
     }
 
-    const loadAmbassador = async () => {
-      try {
-        const ambassadorData = await getAmbassadorById(id);
-        if (!ambassadorData) {
-          toast.error("Ambassadeur introuvable");
-          navigate("/ambassadors");
-          return;
-        }
-        
-        console.log("Ambassador data loaded:", ambassadorData);
-        setAmbassador(ambassadorData);
-        
-        form.reset({
-          name: ambassadorData.name,
-          email: ambassadorData.email,
-          phone: ambassadorData.phone || "",
-          status: ambassadorData.status as "active" | "inactive",
-          notes: ambassadorData.notes || "",
-          company: ambassadorData.company || "",
-          vat_number: ambassadorData.vat_number || "",
-          address: ambassadorData.address || "",
-          city: ambassadorData.city || "",
-          postal_code: ambassadorData.postal_code || "",
-          country: ambassadorData.country || ""
-        });
-        
-        // Load commission data
-        loadCommissionLevels();
-        if (ambassadorData.commission_level_id) {
-          console.log("Setting current level ID:", ambassadorData.commission_level_id);
-          setCurrentLevelId(ambassadorData.commission_level_id);
-          loadCommissionLevel(ambassadorData.commission_level_id);
-        } else {
-          console.warn("No commission level ID in ambassador data");
-        }
-        
-        setLoading(false);
-      } catch (error: any) {
-        console.error("Erreur lors du chargement de l'ambassadeur:", error);
-        
-        if (error.message && error.message.includes("invalid input syntax for type uuid")) {
-          setError("L'identifiant fourni n'est pas valide");
-          toast.error("ID d'ambassadeur invalide");
-        } else {
-          setError("Erreur lors du chargement de l'ambassadeur");
-          toast.error("Erreur lors du chargement de l'ambassadeur");
-        }
-        
-        setTimeout(() => navigate("/ambassadors"), 2000);
-      }
-    };
-
     loadAmbassador();
-  }, [id, navigate, form]);
+  }, [id, navigate]);
   
   const loadCommissionLevels = async () => {
     try {
@@ -181,6 +187,10 @@ const AmbassadorEditPage = () => {
 
   const handleUpdateCommissionLevel = async (levelId: string) => {
     if (!ambassador?.id || !levelId) return;
+    if (levelId === currentLevelId) {
+      console.log("Niveau de commission inchangé, aucune mise à jour nécessaire");
+      return;
+    }
     
     console.log("Updating commission level from", currentLevelId, "to", levelId);
     setUpdatingLevel(true);
@@ -191,7 +201,7 @@ const AmbassadorEditPage = () => {
       
       // Mettre à jour l'état local
       setCurrentLevelId(levelId);
-      loadCommissionLevel(levelId);
+      await loadCommissionLevel(levelId);
       
       // Mettre à jour également l'objet ambassador pour que la valeur soit prise en compte lors de la sauvegarde
       setAmbassador(prev => {
@@ -202,6 +212,9 @@ const AmbassadorEditPage = () => {
       });
       
       toast.success("Barème de commissionnement mis à jour");
+      
+      // Recharger l'ambassadeur pour vérifier la mise à jour
+      await loadAmbassador();
     } catch (error) {
       console.error("Error updating commission level:", error);
       toast.error("Erreur lors de la mise à jour du barème");
@@ -211,7 +224,7 @@ const AmbassadorEditPage = () => {
   };
 
   const onSubmit = async (data: AmbassadorFormData) => {
-    if (!id) {
+    if (!id || !ambassador) {
       console.error("Aucun ID d'ambassadeur fourni pour la sauvegarde");
       return;
     }
@@ -234,11 +247,20 @@ const AmbassadorEditPage = () => {
       // Rafraîchir les données immédiatement pour vérification
       const updatedAmbassador = await getAmbassadorById(id);
       console.log("Ambassador after update:", updatedAmbassador);
+      
       if (updatedAmbassador?.commission_level_id !== currentLevelId) {
         console.warn("Commission level mismatch after update!", {
           expected: currentLevelId,
           actual: updatedAmbassador?.commission_level_id
         });
+        
+        // Forcer la mise à jour du niveau si nécessaire
+        if (updatedAmbassador) {
+          setCurrentLevelId(updatedAmbassador.commission_level_id || "");
+          if (updatedAmbassador.commission_level_id) {
+            await loadCommissionLevel(updatedAmbassador.commission_level_id);
+          }
+        }
       }
       
       toast.success(`L'ambassadeur ${data.name} a été mis à jour`);
