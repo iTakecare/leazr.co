@@ -162,7 +162,8 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     // Instead, leave it null until a specific user account is created for this client
     const clientToCreate = {
       ...clientData,
-      has_user_account: false
+      has_user_account: false,
+      user_id: null // Explicitly set to null to avoid auto-assignments
     };
     
     console.log("Client to create:", clientToCreate);

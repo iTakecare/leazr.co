@@ -189,7 +189,10 @@ const ClientForm = () => {
         city: data.city || undefined,
         postal_code: data.postal_code || undefined,
         country: data.country || undefined,
-        status: data.status || "active"
+        status: data.status || "active",
+        // Explicitly set user_id to null to prevent auto-assignment from current user
+        user_id: null,
+        has_user_account: false
       };
       
       let result;

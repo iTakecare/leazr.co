@@ -1,3 +1,4 @@
+
 import { adminSupabase, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Partner } from "./partnerService";
@@ -54,7 +55,7 @@ export const createUserAccount = async (
     const tempPassword = Math.random().toString(36).slice(-12);
     
     // Important: Set proper role in user_metadata 
-    const metadata = { 
+    const metadata: Record<string, any> = { 
       name: entity.name,
       role: userType === "partner" ? "partner" : userType === "ambassador" ? "ambassador" : "client",
     };
