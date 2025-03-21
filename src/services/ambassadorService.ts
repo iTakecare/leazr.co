@@ -111,7 +111,7 @@ export const updateAmbassador = async (
     console.log(`[updateAmbassador] Début de la mise à jour pour l'ambassadeur ${id}`);
     console.log(`[updateAmbassador] Données à mettre à jour:`, ambassadorData);
     
-    // Supprimer commission_level_id des données principales si présent
+    // Extraire commission_level_id des données générales
     const { commission_level_id, ...updateData } = ambassadorData;
     
     // Mise à jour des données générales de l'ambassadeur
@@ -234,18 +234,19 @@ export const getAmbassadorCommissions = async (ambassadorId: string) => {
 };
 
 // Fonction spécifique pour mettre à jour le barème de commissionnement
+// Utilise la fonction RPC récemment créée pour éviter les problèmes de cache
 export const updateAmbassadorCommissionLevel = async (ambassadorId: string, levelId: string): Promise<void> => {
   try {
     console.log(`[updateAmbassadorCommissionLevel] DÉBUT - Mise à jour du barème pour l'ambassadeur ${ambassadorId} vers ${levelId}`);
     
-    // Exécution d'une requête SQL directe avec le champ updated_at mis à jour
+    // Appel à la fonction RPC qui gère mieux les problèmes de mise à jour
     const { error } = await supabase.rpc('update_ambassador_commission_level', {
       ambassador_id: ambassadorId,
       commission_level_id: levelId
     });
     
     if (error) {
-      console.error(`[updateAmbassadorCommissionLevel] Erreur pendant la mise à jour SQL:`, error);
+      console.error(`[updateAmbassadorCommissionLevel] Erreur pendant la mise à jour RPC:`, error);
       throw new Error(`Impossible de mettre à jour le barème: ${error.message}`);
     }
     
@@ -261,13 +262,13 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
       throw verifyError;
     }
     
+    console.log(`[updateAmbassadorCommissionLevel] Mise à jour réussie du barème. Vérifié: ${verifyData.commission_level_id}`);
+    
     // Si la mise à jour n'a pas été appliquée, lancer une erreur
     if (verifyData.commission_level_id !== levelId) {
       console.error(`[updateAmbassadorCommissionLevel] La mise à jour n'a pas été appliquée. Attendu: ${levelId}, Reçu: ${verifyData.commission_level_id}`);
       throw new Error(`La mise à jour du barème n'a pas été appliquée correctement. Niveau actuel: ${verifyData.commission_level_id}`);
     }
-    
-    console.log(`[updateAmbassadorCommissionLevel] Mise à jour réussie du barème vers: ${verifyData.commission_level_id}`);
     
   } catch (error) {
     console.error(`[updateAmbassadorCommissionLevel] ERREUR CRITIQUE:`, error);

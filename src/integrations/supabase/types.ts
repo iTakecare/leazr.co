@@ -1331,6 +1331,13 @@ export type Database = {
         }
         Returns: Json
       }
+      update_ambassador_commission_level: {
+        Args: {
+          ambassador_id: string
+          commission_level_id: string
+        }
+        Returns: undefined
+      }
       update_brand: {
         Args: {
           original_name: string
