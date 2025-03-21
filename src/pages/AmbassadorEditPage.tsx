@@ -197,7 +197,13 @@ const AmbassadorEditPage = () => {
     
     setIsSaving(true);
     try {
-      await updateAmbassador(id, data);
+      // Modification: inclure également le barème de commission actuel
+      const formDataWithCommission = {
+        ...data,
+        commission_level_id: currentLevelId
+      };
+      
+      await updateAmbassador(id, formDataWithCommission);
       toast.success(`L'ambassadeur ${data.name} a été mis à jour`);
       navigate(`/ambassadors/${id}`);
     } catch (error) {

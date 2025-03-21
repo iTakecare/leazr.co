@@ -107,6 +107,8 @@ export const updateAmbassador = async (
   ambassadorData: AmbassadorFormValues
 ): Promise<void> => {
   try {
+    console.log("Updating ambassador with data:", ambassadorData);
+    
     // Correction: suppression de .select().single() qui cause des erreurs
     // quand la mise à jour n'affecte aucune ligne (pas de changement)
     const { error } = await supabase
