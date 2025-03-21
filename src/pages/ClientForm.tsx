@@ -1,7 +1,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import { createClient, getClientById, updateClient, verifyVatNumber } from "@/services/clientService";
+import { 
+  createClient, 
+  getClientById, 
+  updateClient, 
+  verifyVatNumber,
+  linkClientToAmbassador
+} from "@/services/clientService";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -200,23 +206,17 @@ const ClientForm = () => {
         if (result) {
           toast.success("Client créé avec succès");
           
-          // Si l'utilisateur est un ambassadeur, associer le client à l'ambassadeur
-          if (isAmbassador() && user?.ambassador_id) {
+          // Si l'utilisateur est un ambassadeur, s'assurer que le client est associé à l'ambassadeur
+          if (isAmbassador() && user?.ambassador_id && result.id) {
             try {
-              console.log("Associating client to ambassador:", {
+              console.log("Ensuring client is linked to ambassador:", {
                 ambassadorId: user.ambassador_id,
                 clientId: result.id
               });
               
-              const { error: linkError } = await supabase
-                .from("ambassador_clients")
-                .insert({
-                  ambassador_id: user.ambassador_id,
-                  client_id: result.id
-                });
-                
-              if (linkError) {
-                console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
+              const linked = await linkClientToAmbassador(result.id, user.ambassador_id);
+              
+              if (!linked) {
                 toast.error("Erreur lors de l'association du client à l'ambassadeur");
               } else {
                 console.log("Client successfully associated with ambassador");

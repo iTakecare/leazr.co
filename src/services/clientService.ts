@@ -176,6 +176,37 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     console.log("Client created successfully:", data);
     
+    const { data: userProfile } = await supabase.auth.getUser();
+    if (userProfile?.user?.user_metadata?.role === 'ambassador' && 
+        userProfile?.user?.user_metadata?.ambassador_id) {
+      
+      const ambassadorId = userProfile.user.user_metadata.ambassador_id;
+      
+      try {
+        console.log("Associating client to ambassador:", {
+          ambassadorId,
+          clientId: data.id
+        });
+        
+        const { error: linkError } = await supabase
+          .from("ambassador_clients")
+          .insert({
+            ambassador_id: ambassadorId,
+            client_id: data.id
+          });
+          
+        if (linkError) {
+          console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
+          toast.error("Erreur lors de l'association du client à l'ambassadeur");
+        } else {
+          console.log("Client successfully associated with ambassador");
+        }
+      } catch (associationError) {
+        console.error("Exception lors de l'association du client:", associationError);
+        toast.error("Erreur lors de l'association du client à l'ambassadeur");
+      }
+    }
+    
     return data ? mapDbClientToClient(data) : null;
   } catch (error) {
     console.error("Error creating client:", error);
@@ -356,6 +387,50 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
   } catch (error) {
     console.error("Error removing collaborator:", error);
     toast.error("Erreur lors de la suppression du collaborateur");
+    return false;
+  }
+};
+
+export const linkClientToAmbassador = async (clientId: string, ambassadorId: string): Promise<boolean> => {
+  try {
+    console.log("Manually linking client to ambassador:", {
+      ambassadorId,
+      clientId
+    });
+    
+    const { data: existingLink, error: checkError } = await supabase
+      .from("ambassador_clients")
+      .select("*")
+      .eq("ambassador_id", ambassadorId)
+      .eq("client_id", clientId)
+      .single();
+      
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error("Error checking existing client-ambassador link:", checkError);
+      return false;
+    }
+    
+    if (existingLink) {
+      console.log("Client is already associated with this ambassador");
+      return true;
+    }
+    
+    const { error: linkError } = await supabase
+      .from("ambassador_clients")
+      .insert({
+        ambassador_id: ambassadorId,
+        client_id: clientId
+      });
+      
+    if (linkError) {
+      console.error("Error linking client to ambassador:", linkError);
+      throw linkError;
+    }
+    
+    console.log("Client successfully linked to ambassador");
+    return true;
+  } catch (error) {
+    console.error("Exception when linking client to ambassador:", error);
     return false;
   }
 };

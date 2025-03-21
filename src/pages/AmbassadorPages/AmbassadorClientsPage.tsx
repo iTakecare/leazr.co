@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, User } from "lucide-react";
+import { Plus, Search, Filter, User, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,35 +23,44 @@ const AmbassadorClientsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchClients = async () => {
-      if (!user?.ambassador_id) return;
-      
-      try {
-        setLoading(true);
-        
-        // Récupérer tous les clients liés à cet ambassadeur
-        const { data: ambassadorClients, error: clientsError } = await supabase
-          .from("ambassador_clients")
-          .select("client_id, clients(*)")
-          .eq("ambassador_id", user.ambassador_id);
-          
-        if (clientsError) throw clientsError;
-        
-        // Transformer les données pour obtenir seulement les informations des clients
-        const clientsData = ambassadorClients.map(item => item.clients);
-        
-        setClients(clientsData);
-        setFilteredClients(clientsData);
-      } catch (err) {
-        console.error("Erreur lors du chargement des clients:", err);
-        setError("Impossible de charger les clients");
-        toast.error("Erreur lors du chargement des clients");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchClients = async () => {
+    if (!user?.ambassador_id) return;
     
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log("Fetching clients for ambassador ID:", user.ambassador_id);
+      
+      // Récupérer tous les clients liés à cet ambassadeur
+      const { data: ambassadorClients, error: clientsError } = await supabase
+        .from("ambassador_clients")
+        .select("client_id, clients(*)")
+        .eq("ambassador_id", user.ambassador_id);
+        
+      if (clientsError) {
+        console.error("Error fetching ambassador clients:", clientsError);
+        throw clientsError;
+      }
+      
+      console.log("Ambassador clients raw data:", ambassadorClients);
+      
+      // Transformer les données pour obtenir seulement les informations des clients
+      const clientsData = ambassadorClients.map(item => item.clients);
+      console.log("Processed clients data:", clientsData);
+      
+      setClients(clientsData);
+      setFilteredClients(clientsData);
+    } catch (err) {
+      console.error("Erreur lors du chargement des clients:", err);
+      setError("Impossible de charger les clients");
+      toast.error("Erreur lors du chargement des clients");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchClients();
   }, [user?.ambassador_id]);
   
@@ -76,8 +86,12 @@ const AmbassadorClientsPage = () => {
   
   const handleAddClient = () => {
     // Rediriger vers la page de création de client standard
-    // Cela utilisera la même fiche de création que l'admin
     navigate("/clients/create");
+  };
+  
+  const handleRefresh = () => {
+    fetchClients();
+    toast.success("Liste des clients actualisée");
   };
   
   const renderClientCards = () => {
@@ -157,7 +171,7 @@ const AmbassadorClientsPage = () => {
       <PageTransition>
         <Container>
           <div className="h-screen flex items-center justify-center">
-            <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-primary"></div>
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
         </Container>
       </PageTransition>
@@ -175,10 +189,16 @@ const AmbassadorClientsPage = () => {
                 Gérez les clients que vous avez amenés
               </p>
             </div>
-            <Button onClick={handleAddClient}>
-              <Plus className="mr-2 h-4 w-4" />
-              Ajouter un client
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={handleRefresh}>
+                <Loader2 className="mr-2 h-4 w-4" />
+                Actualiser
+              </Button>
+              <Button onClick={handleAddClient}>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter un client
+              </Button>
+            </div>
           </div>
           
           <div className="flex justify-between items-center mb-6">

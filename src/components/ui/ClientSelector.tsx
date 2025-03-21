@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -10,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, User, Building2, Mail, Plus, Loader2 } from "lucide-react";
-import { getClients, createClient } from "@/services/clientService";
+import { getClients, createClient, linkClientToAmbassador } from "@/services/clientService";
 import { Client, CreateClientData } from "@/types/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +32,6 @@ interface ClientSelectorProps {
   onSelectClient: (client: { id: string; name: string; email: string; company: string }) => void;
 }
 
-// Schéma de validation pour le formulaire rapide
 const quickClientSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
   email: z.string().email("Email invalide").optional().or(z.literal("")),
@@ -66,7 +64,6 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
         try {
           let data;
           
-          // Si l'utilisateur est un ambassadeur, charger uniquement ses clients
           if (isAmbassador() && user?.ambassador_id) {
             console.log("Loading ambassador clients for:", user.ambassador_id);
             const { data: ambassadorClients, error: clientsError } = await supabase
@@ -81,10 +78,8 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
             
             console.log("Ambassador clients data:", ambassadorClients);
             
-            // Transformer les données pour obtenir seulement les informations des clients
             data = ambassadorClients.map(item => item.clients);
           } else {
-            // Sinon, charger tous les clients (admin)
             data = await getClients();
           }
           
@@ -129,38 +124,40 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
       if (newClient) {
         toast.success("Client créé avec succès");
         
-        // Si l'utilisateur est un ambassadeur, associer le client à l'ambassadeur
         if (isAmbassador() && user?.ambassador_id) {
           try {
-            console.log("Associating client to ambassador from selector:", {
+            console.log("Ensuring client is linked to ambassador from selector:", {
               ambassadorId: user.ambassador_id,
               clientId: newClient.id
             });
             
-            const { error: linkError } = await supabase
-              .from("ambassador_clients")
-              .insert({
-                ambassador_id: user.ambassador_id,
-                client_id: newClient.id
-              });
-              
-            if (linkError) {
-              console.error("Erreur lors de l'association du client à l'ambassadeur:", linkError);
+            const linked = await linkClientToAmbassador(newClient.id, user.ambassador_id);
+            
+            if (!linked) {
               toast.error("Erreur lors de l'association du client à l'ambassadeur");
             } else {
               console.log("Client successfully associated with ambassador from selector");
+              const { data: ambassadorClients, error: refreshError } = await supabase
+                .from("ambassador_clients")
+                .select("client_id, clients(*)")
+                .eq("ambassador_id", user.ambassador_id);
+                
+              if (!refreshError && ambassadorClients) {
+                const refreshedClients = ambassadorClients.map(item => item.clients);
+                setClients(refreshedClients);
+              }
             }
           } catch (associationError) {
             console.error("Exception lors de l'association du client:", associationError);
             toast.error("Erreur lors de l'association du client à l'ambassadeur");
           }
+        } else {
+          setClients([...clients, newClient]);
         }
         
-        setClients([...clients, newClient]);
         form.reset();
         setShowForm(false);
         
-        // Sélectionner immédiatement le nouveau client
         handleSelectClient(newClient);
       }
     } catch (error) {
