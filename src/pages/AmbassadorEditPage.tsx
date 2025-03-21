@@ -33,7 +33,8 @@ import Container from "@/components/layout/Container";
 import { 
   CommissionLevel, 
   getCommissionLevelWithRates, 
-  getCommissionLevels
+  getCommissionLevels,
+  CommissionRate
 } from "@/services/commissionService";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
@@ -196,7 +197,7 @@ const AmbassadorEditPage = () => {
     }
   };
 
-  // Fonction mise à jour pour une meilleure gestion des erreurs et comportement optimiste de l'UI
+  // Fonction mise à jour pour une meilleure gestion des erreurs
   const handleUpdateCommissionLevel = async (newLevelId: string) => {
     if (!ambassador?.id || !newLevelId) {
       console.error("[handleUpdateCommissionLevel] ID d'ambassadeur ou de barème manquant");
@@ -219,17 +220,20 @@ const AmbassadorEditPage = () => {
     setCurrentLevelId(newLevelId);
     
     try {
-      // Trouver le niveau dans la liste
+      // Trouver le niveau dans la liste pour mise à jour optimiste
       const selectedLevel = commissionLevels.find(level => level.id === newLevelId);
-      if (selectedLevel) {
-        // Pré-charger le nom du niveau pour une expérience plus rapide
-        setCommissionLevel(prev => {
-          if (!prev) return { id: newLevelId, name: selectedLevel.name, type: "ambassador", is_default: selectedLevel.is_default, rates: [] };
-          return { ...prev, id: newLevelId, name: selectedLevel.name, is_default: selectedLevel.is_default };
+      if (selectedLevel && commissionLevel) {
+        // Type-safe way to update CommissionLevel with minimal fields for optimistic UI update
+        setCommissionLevel({
+          ...commissionLevel,
+          id: newLevelId,
+          name: selectedLevel.name,
+          is_default: selectedLevel.is_default,
+          // Keep other properties from existing commissionLevel
         });
       }
       
-      // Tentative de mise à jour en utilisant la version améliorée de la fonction
+      // Tentative de mise à jour
       await updateAmbassadorCommissionLevel(ambassador.id, newLevelId);
       
       // Mettre à jour l'ambassadeur pour cohérence
@@ -240,7 +244,7 @@ const AmbassadorEditPage = () => {
       
       toast.success("Barème de commissionnement mis à jour");
       console.log("[handleUpdateCommissionLevel] Mise à jour réussie");
-    } catch (error) {
+    } catch (error: any) {
       // Gestion d'erreur plus détaillée
       console.error("[handleUpdateCommissionLevel] Erreur:", error);
       

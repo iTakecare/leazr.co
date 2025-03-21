@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -232,13 +233,13 @@ export const getAmbassadorCommissions = async (ambassadorId: string) => {
   }
 };
 
-// Fonction complètement réécrite pour utiliser adminSupabase et une approche plus directe
+// Mise à jour du barème de commissionnement d'un ambassadeur
 export const updateAmbassadorCommissionLevel = async (ambassadorId: string, levelId: string): Promise<void> => {
   try {
-    console.log(`[updateAmbassadorCommissionLevel] Tentative de mise à jour directe pour ambassadeur ${ambassadorId} vers niveau ${levelId}`);
+    console.log(`[updateAmbassadorCommissionLevel] Début de la mise à jour du barème pour l'ambassadeur ${ambassadorId} vers ${levelId}`);
     
-    // Utiliser le client admin qui a plus de privilèges
-    const { error } = await adminSupabase
+    // Utiliser le client standard (sans privilèges admin) pour la mise à jour
+    const { error } = await supabase
       .from('ambassadors')
       .update({ 
         commission_level_id: levelId,
@@ -262,6 +263,8 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, leve
       console.error(`[updateAmbassadorCommissionLevel] Erreur de vérification:`, verifyError);
       throw verifyError;
     }
+    
+    console.log(`[updateAmbassadorCommissionLevel] Vérification après mise à jour: ${verifyData?.commission_level_id}`);
     
     if (verifyData.commission_level_id !== levelId) {
       console.error(`[updateAmbassadorCommissionLevel] Vérification échouée: attendu ${levelId}, reçu ${verifyData.commission_level_id}`);
