@@ -205,7 +205,7 @@ const EquipmentList = ({
         </CardContent>
       </Card>
 
-      {/* Add the margin adjustment card for the ambassador view regardless of hideFinancialDetails */}
+      {/* Adding Récapitulatif global section with switch */}
       <Card className="border border-gray-200 shadow-sm mt-4">
         <CardHeader className="pb-2 border-b">
           <CardTitle>Récapitulatif global</CardTitle>
@@ -245,6 +245,7 @@ const EquipmentList = ({
               </>
             )}
             
+            {/* Always show the switch, regardless of hideFinancialDetails */}
             <div className="pt-2 flex items-center justify-between border-t mt-3">
               <label htmlFor="adapt-monthly" className="cursor-pointer">
                 Adapter la mensualité au nouveau coefficient
@@ -261,7 +262,7 @@ const EquipmentList = ({
               <div className="text-lg font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</div>
             </div>
             
-            {commission.amount > 0 && (
+            {commission?.amount > 0 && (
               <div className="flex justify-between items-center pt-2">
                 <div className="font-medium">Votre commission :</div>
                 <div className="text-green-600 font-medium flex items-center gap-1">

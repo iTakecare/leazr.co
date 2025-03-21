@@ -194,7 +194,7 @@ const AmbassadorCreateOffer = () => {
     isSubmitting: isSubmitting,
     selectedLeaser: selectedLeaser,
     equipmentList: equipmentList,
-    hideFinancialDetails: true
+    hideFinancialDetails: false
   };
   
   const handleAddEquipment = (title: string) => {
