@@ -116,7 +116,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatPercentage(equipment.margin)}
+                    {formatPercentageWithComma(equipment.margin)}
                   </TableCell>
                   <TableCell className="text-right font-medium text-blue-600">
                     {formatCurrency((equipment.monthlyPayment || 0) * equipment.quantity)}
