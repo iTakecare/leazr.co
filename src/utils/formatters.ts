@@ -123,12 +123,14 @@ export const formatPercentage = (value: number): string => {
     return '0%';
   }
   
-  // Convert decimal to percentage (e.g., 0.25 to 25%)
+  // La conversion multiplie par 100 ici, nous devons donc diviser par 100 pour les coefficients qui sont déjà en pourcentage
+  const valueToFormat = value < 1 ? value : value / 100;
+  
   return new Intl.NumberFormat('fr-FR', {
     style: 'percent',
     minimumFractionDigits: 1,
     maximumFractionDigits: 2
-  }).format(value);
+  }).format(valueToFormat);
 };
 
 /**

@@ -1,7 +1,8 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatPercentage } from "@/utils/formatters";
+import { formatCurrency, formatPercentage, formatPercentageWithComma } from "@/utils/formatters";
 import { Trash2, Edit, Plus, Minus, PenLine } from "lucide-react";
 import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import {
@@ -39,6 +40,11 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
   toggleAdaptMonthlyPayment,
   hideFinancialDetails
 }) => {
+  // Helper function to format coefficient
+  const formatCoefficient = (value: number): string => {
+    return value.toFixed(2).replace('.', ',');
+  };
+
   if (equipmentList.length === 0) {
     return (
       <Card className="shadow-sm border-gray-200 rounded-lg">
@@ -162,15 +168,15 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Coefficient actuel :</span>
-              <span className="font-medium">{formatPercentage(globalMarginAdjustment.currentCoef)}</span>
+              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.currentCoef)}%</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Nouveau coefficient :</span>
-              <span className="font-medium">{formatPercentage(globalMarginAdjustment.newCoef)}</span>
+              <span className="font-medium">{formatCoefficient(globalMarginAdjustment.newCoef)}%</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Marge globale :</span>
-              <span className="font-medium">{formatPercentage(globalMarginAdjustment.percentage)}</span>
+              <span className="font-medium">{formatPercentageWithComma(globalMarginAdjustment.percentage)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Marge totale en euros :</span>
