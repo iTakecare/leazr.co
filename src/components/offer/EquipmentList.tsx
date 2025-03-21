@@ -61,12 +61,15 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
   useEffect(() => {
     const calculateCommission = async () => {
       if (globalMarginAdjustment.amount > 0 && commissionLevelId) {
+        console.log("Calculating commission for level ID:", commissionLevelId);
         // Calculer la commission sur la marge
         const commission = await calculateCommissionByLevel(
           globalMarginAdjustment.amount, 
           commissionLevelId,
           'ambassador'
         );
+
+        console.log("Commission calculation result:", commission);
 
         // Calculer la commission sur la différence de marge
         let marginDifferenceCommission = 0;
@@ -282,7 +285,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
         </CardContent>
       </Card>
 
-      {/* Nouveau bloc pour le commissionnement */}
+      {/* Afficher TOUJOURS le bloc de commissionnement lorsqu'un niveau de commission est disponible */}
       {commissionLevelId && (
         <Card className="shadow-sm border-gray-200 rounded-lg">
           <CardHeader className="pb-3 border-b">

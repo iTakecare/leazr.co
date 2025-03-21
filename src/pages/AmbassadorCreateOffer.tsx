@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
+import CommissionDisplay from "@/components/ui/CommissionDisplay";
 
 // Version du calculateur adaptée pour les ambassadeurs
 const AmbassadorCreateOffer = () => {
@@ -81,6 +82,7 @@ const AmbassadorCreateOffer = () => {
       
       if (error) throw error;
       setAmbassador(data);
+      console.log("Ambassador data loaded:", data);
     } catch (error) {
       console.error("Erreur lors du chargement de l'ambassadeur:", error);
       toast.error("Impossible de charger les informations de l'ambassadeur");
@@ -272,6 +274,13 @@ const AmbassadorCreateOffer = () => {
                       hideFinancialDetails={hideFinancialDetails} // Important: toujours masquer les détails financiers
                     />
                   </div>
+
+                  {/* Affichage du barème de commission pour référence */}
+                  {ambassador && ambassador.commission_level_id && (
+                    <div className="mt-6">
+                      <CommissionDisplay />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-8">
