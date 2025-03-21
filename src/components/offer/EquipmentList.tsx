@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -131,7 +130,7 @@ const EquipmentList = ({
                 {equipmentList.map((item) => (
                   <tr key={item.id} className="border-b border-gray-100">
                     <td className="py-3">{item.title}</td>
-                    <td className="py-3">{formatCurrency(item.purchasePrice)}</td>
+                    <td className="py-3">{hideFinancialDetails ? "—" : formatCurrency(item.purchasePrice)}</td>
                     <td className="py-3">
                       <div className="flex items-center justify-center gap-1">
                         <Button
@@ -212,16 +211,16 @@ const EquipmentList = ({
         </CardHeader>
         <CardContent className="pt-4">
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <div>Coefficient actuel :</div>
-              <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
-            </div>
-            <div className="flex justify-between items-center">
-              <div>Nouveau coefficient :</div>
-              <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
-            </div>
             {!hideFinancialDetails && (
               <>
+                <div className="flex justify-between items-center">
+                  <div>Coefficient actuel :</div>
+                  <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div>Nouveau coefficient :</div>
+                  <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
+                </div>
                 <div className="flex justify-between items-center">
                   <div>Marge globale :</div>
                   <div className="font-medium">{globalMarginPercentage}%</div>

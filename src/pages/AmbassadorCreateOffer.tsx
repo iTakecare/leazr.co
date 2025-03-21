@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -194,7 +195,7 @@ const AmbassadorCreateOffer = () => {
     isSubmitting: isSubmitting,
     selectedLeaser: selectedLeaser,
     equipmentList: equipmentList,
-    hideFinancialDetails: false
+    hideFinancialDetails: true
   };
   
   const handleAddEquipment = (title: string) => {
@@ -208,7 +209,8 @@ const AmbassadorCreateOffer = () => {
     });
   };
   
-  const hideFinancialDetails = false;
+  // Set hideFinancialDetails to true for ambassador view
+  const hideFinancialDetails = true;
   
   useEffect(() => {
     if (ambassador) {

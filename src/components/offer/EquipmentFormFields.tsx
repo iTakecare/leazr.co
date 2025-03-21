@@ -98,7 +98,7 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
         </div>
       )}
 
-      {/* Champs cachés pour conserver les valeurs sans les afficher */}
+      {/* Hidden inputs for preserving values when fields are hidden */}
       {hideFinancialDetails && (
         <input
           type="hidden"
