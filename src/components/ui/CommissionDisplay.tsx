@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { CommissionRate, getCommissionLevelWithRates, getAmbassadorCommissionLevel } from "@/services/commissionService";
+import { CommissionRate, getCommissionLevelWithRates } from "@/services/commissionService";
 import { Loader2 } from "lucide-react";
 
 interface CommissionDisplayProps {

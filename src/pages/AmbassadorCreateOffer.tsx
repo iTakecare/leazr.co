@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -299,20 +298,6 @@ const AmbassadorCreateOffer = () => {
                       hideFinancialDetails={hideFinancialDetails}
                     />
                   </div>
-                </div>
-                
-                <div className="mt-12">
-                  <Card className="w-full border border-gray-200 shadow-sm">
-                    <CardHeader className="pb-2 border-b">
-                      <CardTitle>Barème de commissions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="py-6">
-                      <CommissionDisplay 
-                        ambassadorId={ambassadorId}
-                        commissionLevelId={ambassador?.commission_level_id}
-                      />
-                    </CardContent>
-                  </Card>
                 </div>
               </>
             )}
