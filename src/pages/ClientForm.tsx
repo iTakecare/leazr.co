@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createClient } from "@/services/clientService";
@@ -55,7 +56,17 @@ const ClientForm = () => {
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      const newClient = await createClient(data);
+      // Ensure name is provided (required by CreateClientData)
+      const clientData = {
+        name: data.name,
+        email: data.email || undefined,
+        company: data.company || undefined,
+        phone: data.phone || undefined,
+        address: data.address || undefined,
+        notes: data.notes || undefined
+      };
+      
+      const newClient = await createClient(clientData);
       if (newClient) {
         toast.success("Client créé avec succès");
         

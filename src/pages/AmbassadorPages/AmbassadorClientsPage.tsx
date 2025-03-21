@@ -75,8 +75,9 @@ const AmbassadorClientsPage = () => {
   };
   
   const handleAddClient = () => {
-    // Rediriger spécifiquement vers la page d'ajout de client de l'espace ambassadeur
-    navigate("/ambassador/clients/new");
+    // Rediriger vers la page de création de client standard
+    // Cela utilisera la même fiche de création que l'admin
+    navigate("/clients/create");
   };
   
   const renderClientCards = () => {
