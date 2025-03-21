@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,12 +61,7 @@ const EquipmentList = ({
           ambassadorId
         );
         
-        // Fix for TypeScript error - ensure levelName is a string even if it's undefined
-        setCommission({ 
-          amount: commissionData.amount, 
-          rate: commissionData.rate,
-          levelName: commissionData.levelName || ""
-        });
+        setCommission(commissionData);
         console.log("Commission calculated:", commissionData);
       } catch (error) {
         console.error("Error calculating commission:", error);
