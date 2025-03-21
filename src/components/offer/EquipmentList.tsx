@@ -1,9 +1,9 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatPercentage, formatPercentageWithComma } from "@/utils/formatters";
-import { Trash2, Edit, Plus, Minus, PenLine } from "lucide-react";
+import { Trash2, Edit, Plus, Minus, PenLine, Coins } from "lucide-react";
 import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import {
   Table,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { calculateCommissionByLevel } from "@/utils/calculator";
 
 interface EquipmentListProps {
   equipmentList: Equipment[];
@@ -27,6 +28,8 @@ interface EquipmentListProps {
   globalMarginAdjustment: GlobalMarginAdjustment;
   toggleAdaptMonthlyPayment: () => void;
   hideFinancialDetails?: boolean;
+  ambassadorId?: string;
+  commissionLevelId?: string;
 }
 
 const EquipmentList: React.FC<EquipmentListProps> = ({
@@ -38,12 +41,60 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
   totalMonthlyPayment,
   globalMarginAdjustment,
   toggleAdaptMonthlyPayment,
-  hideFinancialDetails = false
+  hideFinancialDetails = false,
+  ambassadorId,
+  commissionLevelId
 }) => {
   // Helper function to format coefficient
   const formatCoefficient = (value: number): string => {
     return value.toFixed(2).replace('.', ',');
   };
+
+  // State for commission information
+  const [commissionData, setCommissionData] = useState({
+    rate: 0,
+    amount: 0,
+    marginDifferenceCommission: 0
+  });
+
+  // Calculate commission based on margin
+  useEffect(() => {
+    const calculateCommission = async () => {
+      if (globalMarginAdjustment.amount > 0 && commissionLevelId) {
+        // Calculer la commission sur la marge
+        const commission = await calculateCommissionByLevel(
+          globalMarginAdjustment.amount, 
+          commissionLevelId,
+          'ambassador'
+        );
+
+        // Calculer la commission sur la différence de marge
+        let marginDifferenceCommission = 0;
+        if (!globalMarginAdjustment.adaptMonthlyPayment && globalMarginAdjustment.marginDifference !== 0) {
+          const diffCommission = await calculateCommissionByLevel(
+            globalMarginAdjustment.marginDifference,
+            commissionLevelId,
+            'ambassador'
+          );
+          marginDifferenceCommission = diffCommission.amount;
+        }
+
+        setCommissionData({
+          rate: commission.rate,
+          amount: commission.amount,
+          marginDifferenceCommission
+        });
+      } else {
+        setCommissionData({
+          rate: 0,
+          amount: 0,
+          marginDifferenceCommission: 0
+        });
+      }
+    };
+
+    calculateCommission();
+  }, [globalMarginAdjustment, commissionLevelId]);
 
   if (equipmentList.length === 0) {
     return (
@@ -230,6 +281,40 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Nouveau bloc pour le commissionnement */}
+      {commissionLevelId && (
+        <Card className="shadow-sm border-gray-200 rounded-lg">
+          <CardHeader className="pb-3 border-b">
+            <div className="flex items-center space-x-2">
+              <Coins className="h-5 w-5 text-yellow-500" />
+              <CardTitle className="text-lg font-medium">Commissionnement</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Commission totale :</span>
+                <span className="font-medium text-green-600">{formatCurrency(commissionData.amount)}</span>
+              </div>
+              
+              {!globalMarginAdjustment.adaptMonthlyPayment && globalMarginAdjustment.marginDifference !== 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Commission totale avec différence :</span>
+                  <span className="font-medium text-green-600">
+                    {formatCurrency(commissionData.amount + commissionData.marginDifferenceCommission)}
+                  </span>
+                </div>
+              )}
+              
+              <div className="flex justify-between items-center pt-2 text-sm text-gray-500">
+                <span>Taux de commission appliqué :</span>
+                <span>{formatPercentageWithComma(commissionData.rate)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

@@ -20,13 +20,14 @@ import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 // Version du calculateur adaptée pour les ambassadeurs
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
-  const { clientId } = useParams();
+  const { clientId, ambassadorId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ambassador, setAmbassador] = useState(null);
   
   // Nous utilisons le hook useEquipmentCalculator pour une cohérence parfaite avec CreateOffer
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
@@ -61,6 +62,32 @@ const AmbassadorCreateOffer = () => {
       fetchClient(clientId);
     }
   }, [clientId]);
+  
+  // Si ambassadorId est présent, charger les informations de l'ambassadeur
+  useEffect(() => {
+    if (ambassadorId) {
+      fetchAmbassador(ambassadorId);
+    }
+  }, [ambassadorId]);
+  
+  const fetchAmbassador = async (id: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("ambassadors")
+        .select("*")
+        .eq("id", id)
+        .single();
+      
+      if (error) throw error;
+      setAmbassador(data);
+    } catch (error) {
+      console.error("Erreur lors du chargement de l'ambassadeur:", error);
+      toast.error("Impossible de charger les informations de l'ambassadeur");
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const fetchClient = async (id: string) => {
     try {
@@ -258,6 +285,8 @@ const AmbassadorCreateOffer = () => {
                     globalMarginAdjustment={globalMarginAdjustment}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                     hideFinancialDetails={hideFinancialDetails} // Important: toujours masquer les détails financiers
+                    ambassadorId={ambassadorId} // Passer l'ID de l'ambassadeur
+                    commissionLevelId={ambassador?.commission_level_id} // Passer le niveau de commission
                   />
                   
                   <ClientInfo
