@@ -17,6 +17,7 @@ interface PDFPreviewProps {
   onFieldSelect?: (fieldId: string) => void;
   selectedFieldId?: string;
   availableFields?: PDFField[];
+  onFieldStyleUpdate?: (fieldId: string, style: any) => void;
 }
 
 const PDFPreview = ({ 
@@ -28,7 +29,8 @@ const PDFPreview = ({
   onFieldMove,
   onFieldSelect,
   selectedFieldId,
-  availableFields = []
+  availableFields = [],
+  onFieldStyleUpdate
 }: PDFPreviewProps) => {
   const [activeTab, setActiveTab] = useState('page1');
   const [scale, setScale] = useState(0.5);
@@ -203,7 +205,7 @@ const PDFPreview = ({
     
     const previewRect = previewRef.current.getBoundingClientRect();
     
-    // Calculate position relative to preview container
+    // Calculate position relative to preview container and adjust for scale
     const x = (event.clientX - previewRect.left) / scale;
     const y = (event.clientY - previewRect.top) / scale;
     

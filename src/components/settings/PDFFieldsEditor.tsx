@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Eye, EyeOff, List, Bold, Italic, Search } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, List, Bold, Italic, Search, Underline, Type } from 'lucide-react';
 import { PDFField } from '@/types/pdf';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 
 interface PDFFieldsEditorProps {
   fields: PDFField[];
@@ -243,50 +244,30 @@ const PDFFieldsEditor = ({
             
             {selectedFieldId === field.id && (
               <div className="mt-3 border-t pt-3">
-                <Label className="text-xs mb-2 block">Style de texte</Label>
-                <div className="flex flex-wrap gap-2">
-                  <div className="flex-1 min-w-[120px]">
-                    <Label className="text-xs">Taille</Label>
-                    <div className="flex items-center">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="h-7 w-7 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const fontSize = Math.max(6, ((field.style?.fontSize || 10) - 1));
-                          handleStyleChange(field.id, 'fontSize', fontSize);
-                        }}
-                      >
-                        -
-                      </Button>
-                      <Input 
-                        type="number" 
-                        value={field.style?.fontSize || 10}
-                        className="h-7 mx-1 text-center"
-                        min={6}
-                        max={36}
-                        onChange={(e) => {
-                          const fontSize = Math.max(6, Math.min(36, Number(e.target.value)));
-                          handleStyleChange(field.id, 'fontSize', fontSize);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="h-7 w-7 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStyleChange(field.id, 'fontSize', (field.style?.fontSize || 10) + 1);
-                        }}
-                      >
-                        +
-                      </Button>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs flex items-center">
+                    <Type className="h-3 w-3 mr-1" /> Taille de police
+                  </Label>
+                  <span className="text-xs font-medium">{field.style?.fontSize || 10}pt</span>
+                </div>
+                
+                <div className="flex items-center space-x-2 mb-4">
+                  <span className="text-xs">6</span>
+                  <Slider
+                    value={[field.style?.fontSize || 10]}
+                    min={6}
+                    max={36}
+                    step={1}
+                    onValueChange={(value) => handleStyleChange(field.id, 'fontSize', value[0])}
+                    className="flex-1"
+                  />
+                  <span className="text-xs">36</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs">Style de texte</Label>
                   
-                  <div className="flex-1 flex justify-end items-end space-x-1">
+                  <div className="flex space-x-2">
                     <Button
                       size="sm"
                       variant={(field.style?.fontWeight === 'bold') ? "default" : "outline"}
@@ -332,10 +313,62 @@ const PDFFieldsEditor = ({
                         );
                       }}
                     >
-                      <u>U</u>
+                      <Underline className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
+                
+                {field.position && (
+                  <div className="mt-3 pt-3 border-t">
+                    <Label className="text-xs mb-2 block">Position</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">X</Label>
+                        <Input
+                          type="number"
+                          value={field.position.x}
+                          onChange={(e) => {
+                            const x = parseFloat(e.target.value) || 0;
+                            const updatedFields = fields.map(f => {
+                              if (f.id === field.id) {
+                                return {
+                                  ...f,
+                                  position: { ...f.position, x }
+                                };
+                              }
+                              return f;
+                            });
+                            onChange(updatedFields);
+                          }}
+                          className="w-full"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Y</Label>
+                        <Input
+                          type="number"
+                          value={field.position.y}
+                          onChange={(e) => {
+                            const y = parseFloat(e.target.value) || 0;
+                            const updatedFields = fields.map(f => {
+                              if (f.id === field.id) {
+                                return {
+                                  ...f,
+                                  position: { ...f.position, y }
+                                };
+                              }
+                              return f;
+                            });
+                            onChange(updatedFields);
+                          }}
+                          className="w-full"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

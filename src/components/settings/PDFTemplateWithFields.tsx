@@ -572,6 +572,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
             selectedFieldId={selectedFieldId}
             onSelectField={handleFieldSelect}
             onFieldMove={handleFieldMove}
+            onFieldStyleUpdate={handleFieldStyleUpdate}
             onAddFieldToPage={handleAddFieldToPage}
             allFields={currentTemplate.fields}
             onSave={handleSaveTemplate}
