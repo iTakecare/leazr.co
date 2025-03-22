@@ -123,6 +123,11 @@ export const AmbassadorEditPage = () => {
     }
   }, [id, navigate, form, loadCommissionLevels, loadCommissionLevel, loadPDFTemplates]);
 
+  // Load ambassador data when component mounts or ID changes
+  useEffect(() => {
+    loadAmbassador();
+  }, [loadAmbassador]);
+
   // Just a mock component rendering to fix the build error
   return (
     <div>
