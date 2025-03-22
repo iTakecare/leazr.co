@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import AmbassadorSidebar from "./AmbassadorSidebar";
 import Navbar from "./Navbar";
 
-export const AmbassadorLayout = () => {
+export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) => {
   const { user, isLoading, userRoleChecked, isAmbassador } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,7 +39,7 @@ export const AmbassadorLayout = () => {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Navbar onMenuClick={handleMenuClick} />
         <main className="flex-1 overflow-auto">
-          <Outlet />
+          {children || <Outlet />}
         </main>
       </div>
     </div>

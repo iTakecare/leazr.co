@@ -5,11 +5,9 @@ import AmbassadorClientForm from "@/components/ambassador/AmbassadorClientForm";
 
 const AmbassadorClientCreatePage = () => {
   return (
-    <AmbassadorLayout>
-      <div className="w-full">
-        <AmbassadorClientForm />
-      </div>
-    </AmbassadorLayout>
+    <div className="w-full">
+      <AmbassadorClientForm />
+    </div>
   );
 };
 
