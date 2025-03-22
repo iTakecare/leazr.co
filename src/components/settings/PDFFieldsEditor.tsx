@@ -107,7 +107,7 @@ const PDFFieldsEditor = ({
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [fieldToRemove, setFieldToRemove] = useState(null);
   const [directPositionMode, setDirectPositionMode] = useState(false);
-  const [stepSize, setStepSize] = useState(0.5); // Taille des déplacements précis en mm
+  const [stepSize, setStepSize] = useState(0.5);
   const [manualPosition, setManualPosition] = useState({ x: 0, y: 0 });
   const [newField, setNewField] = useState({
     id: "",
@@ -173,7 +173,6 @@ const PDFFieldsEditor = ({
   };
   
   const updateFieldPosition = (fieldId, newPosition, page = activePage) => {
-    // Arrondissement à 0.1mm près pour plus de précision
     const precisePosition = {
       x: parseFloat(newPosition.x.toFixed(1)),
       y: parseFloat(newPosition.y.toFixed(1))
@@ -221,25 +220,20 @@ const PDFFieldsEditor = ({
     
     const rect = canvas.getBoundingClientRect();
     
-    // Dimensions d'une page A4 en mm
     const pageWidth = 210;
     const pageHeight = 297;
     
-    // Calculer le ratio pour convertir les pixels en mm
     const scaleRatio = {
       x: pageWidth / (rect.width * zoomLevel),
       y: pageHeight / (rect.height * zoomLevel)
     };
     
-    // Position du curseur relative au canvas
     const cursorX = e.clientX - rect.left;
     const cursorY = e.clientY - rect.top;
     
-    // Convertir en mm et appliquer l'offset
     const mmX = cursorX * scaleRatio.x - initialClickOffset.current.x;
     const mmY = cursorY * scaleRatio.y - initialClickOffset.current.y;
     
-    // Limiter aux dimensions de la page
     const x = Math.max(0, Math.min(pageWidth, mmX));
     const y = Math.max(0, Math.min(pageHeight, mmY));
     
@@ -250,7 +244,6 @@ const PDFFieldsEditor = ({
     if (positionedField && isDragging.current && dragEnabled) {
       const position = calculatePrecisePosition(e);
       
-      // Appliquer la grille si activée
       const snappedPosition = gridEnabled 
         ? snapToGrid(position) 
         : { 
@@ -260,9 +253,7 @@ const PDFFieldsEditor = ({
       
       setCanvasPosition(snappedPosition);
       
-      // Pour un positionnement en temps réel, mettre à jour immédiatement
-      // Facultatif: Peut ajouter une latence
-      // updateFieldPosition(positionedField, snappedPosition, activePage);
+      updateFieldPosition(positionedField, snappedPosition, activePage);
     }
   };
 
@@ -276,17 +267,14 @@ const PDFFieldsEditor = ({
       
       const rect = canvas.getBoundingClientRect();
       
-      // Position du champ en pixels dans le canvas
       const fieldPositionPx = {
         x: (field.position.x * rect.width * zoomLevel) / 210,
         y: (field.position.y * rect.height * zoomLevel) / 297
       };
       
-      // Position du clic par rapport au coin supérieur gauche du champ
       const clickX = e.clientX - rect.left;
       const clickY = e.clientY - rect.top;
       
-      // Calculer le décalage entre le clic et la position du champ
       initialClickOffset.current = {
         x: (clickX * 210) / (rect.width * zoomLevel) - field.position.x,
         y: (clickY * 297) / (rect.height * zoomLevel) - field.position.y
@@ -299,7 +287,6 @@ const PDFFieldsEditor = ({
   
   const handleCanvasMouseUp = () => {
     if (positionedField && isDragging.current) {
-      // Mettre à jour la position finale en arrondissant à 0.1mm près
       const precisePosition = {
         x: parseFloat(canvasPosition.x.toFixed(1)),
         y: parseFloat(canvasPosition.y.toFixed(1))
@@ -326,7 +313,6 @@ const PDFFieldsEditor = ({
     setCanvasPosition(initialPosition);
     setManualPosition(initialPosition);
     
-    // Réinitialiser l'offset pour un nouveau positionnement
     initialClickOffset.current = { x: 0, y: 0 };
     
     if (field.page !== activePage) {
@@ -334,7 +320,6 @@ const PDFFieldsEditor = ({
     }
   };
   
-  // Fonction pour appliquer un mouvement précis avec les flèches du clavier
   const applyPreciseMovement = (direction) => {
     if (!positionedField) return;
     
@@ -355,7 +340,6 @@ const PDFFieldsEditor = ({
         break;
     }
     
-    // Arrondir à 0.1mm près
     newPosition = {
       x: parseFloat(newPosition.x.toFixed(1)),
       y: parseFloat(newPosition.y.toFixed(1))
@@ -365,7 +349,6 @@ const PDFFieldsEditor = ({
     updateFieldPosition(positionedField, newPosition, activePage);
   };
   
-  // Positionnement manuel direct en saisissant des coordonnées
   const handleManualPositionChange = (axis, value) => {
     const parsedValue = parseFloat(value);
     
@@ -384,7 +367,6 @@ const PDFFieldsEditor = ({
   
   const applyManualPosition = () => {
     if (positionedField) {
-      // Arrondissement à 0.1mm près
       const precisePosition = {
         x: parseFloat(manualPosition.x.toFixed(1)),
         y: parseFloat(manualPosition.y.toFixed(1))
@@ -882,4 +864,300 @@ const PDFFieldsEditor = ({
                     onValueChange={(values) => setZoomLevel(values[0] / 100)}
                     className="w-full"
                   />
-                  <span className
+                  <span className="text-xs whitespace-nowrap">{Math.round(zoomLevel * 100)}%</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <Label className="text-xs whitespace-nowrap">Pas de déplacement:</Label>
+                  <Select 
+                    value={stepSize.toString()} 
+                    onValueChange={(value) => setStepSize(parseFloat(value))}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue placeholder="Pas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0.1">0.1mm</SelectItem>
+                      <SelectItem value="0.5">0.5mm</SelectItem>
+                      <SelectItem value="1">1mm</SelectItem>
+                      <SelectItem value="2">2mm</SelectItem>
+                      <SelectItem value="5">5mm</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {positionedField && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs font-medium">Positionnement du champ</Label>
+                    
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs whitespace-nowrap">X:</Label>
+                      <Input
+                        className="w-16 h-7 text-xs"
+                        type="number"
+                        min="0"
+                        max="210"
+                        step="0.1"
+                        value={manualPosition.x}
+                        onChange={(e) => handleManualPositionChange('x', e.target.value)}
+                      />
+                      <Label className="text-xs whitespace-nowrap">Y:</Label>
+                      <Input
+                        className="w-16 h-7 text-xs"
+                        type="number"
+                        min="0"
+                        max="297"
+                        step="0.1"
+                        value={manualPosition.y}
+                        onChange={(e) => handleManualPositionChange('y', e.target.value)}
+                      />
+                      <Button 
+                        size="sm" 
+                        className="h-7 text-xs px-2" 
+                        onClick={applyManualPosition}
+                      >
+                        Appliquer
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center border rounded-md p-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyPreciseMovement('up')}>
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <div className="flex flex-col">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyPreciseMovement('left')}>
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyPreciseMovement('right')}>
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyPreciseMovement('down')}>
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onPageChange(activePage > 0 ? activePage - 1 : 0)} 
+                    disabled={activePage === 0}
+                    className="text-xs"
+                  >
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Page précédente
+                  </Button>
+                  <div className="text-sm">
+                    Page {activePage + 1} / {totalPages}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onPageChange(activePage < totalPages - 1 ? activePage + 1 : activePage)} 
+                    disabled={activePage >= totalPages - 1}
+                    className="text-xs"
+                  >
+                    Page suivante
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div 
+                className="relative border rounded-lg overflow-hidden bg-white"
+                style={{ height: 'calc(100vh - 380px)', minHeight: '400px' }}
+              >
+                {positionedField && (
+                  <div 
+                    className="absolute top-2 left-2 z-10 bg-white border rounded-md p-2 shadow-md text-xs"
+                  >
+                    <div className="font-medium mb-1">Positionnement</div>
+                    <div>X: {canvasPosition.x.toFixed(1)}mm</div>
+                    <div>Y: {canvasPosition.y.toFixed(1)}mm</div>
+                    <div className="flex items-center mt-1 text-gray-500 text-xs">
+                      <Move className="h-3 w-3 mr-1" />
+                      <span>
+                        {dragEnabled 
+                          ? "Glisser-déposer activé" 
+                          : "Utiliser les flèches ou positions manuelles"
+                        }
+                      </span>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full mt-2 h-6 text-xs" 
+                      onClick={() => setPositionedField(null)}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Terminer le positionnement
+                    </Button>
+                  </div>
+                )}
+                
+                <div 
+                  ref={canvasRef}
+                  className="relative w-full h-full overflow-auto"
+                  onMouseMove={handleCanvasMouseMove}
+                  onMouseDown={handleCanvasMouseDown}
+                  onMouseUp={handleCanvasMouseUp}
+                  onMouseLeave={handleCanvasMouseLeave}
+                  onKeyDown={handleKeyDown}
+                  tabIndex={0}
+                  style={{ 
+                    cursor: positionedField && dragEnabled ? 'move' : 'default',
+                  }}
+                >
+                  <div className="relative" style={{ 
+                    width: `${210 * zoomLevel}mm`, 
+                    height: `${297 * zoomLevel}mm`,
+                    margin: '0 auto'
+                  }}>
+                    {gridEnabled && zoomLevel > 0.4 && (
+                      <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ 
+                        backgroundSize: `${gridSize * zoomLevel}mm ${gridSize * zoomLevel}mm`,
+                        backgroundImage: 'linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)',
+                      }} />
+                    )}
+                    
+                    {getCurrentPageBackground() ? (
+                      <img 
+                        src={getCurrentPageBackground()}
+                        className="w-full h-full object-contain border border-gray-200 bg-white"
+                        onError={handleImageError}
+                        onLoad={handleImageLoad}
+                        alt={`Template page ${activePage + 1}`}
+                      />
+                    ) : (
+                      <div className="w-full h-full border border-gray-200 bg-white flex items-center justify-center">
+                        <p className="text-muted-foreground">Aucune image de template pour cette page</p>
+                      </div>
+                    )}
+                    
+                    {fields.map(field => {
+                      if ((field.page !== activePage && !(activePage === 0 && field.page === undefined)) || !field.isVisible) {
+                        return null;
+                      }
+                      
+                      const isBeingPositioned = field.id === positionedField;
+                      const position = isBeingPositioned 
+                        ? canvasPosition 
+                        : field.position;
+                      
+                      return (
+                        <div
+                          key={field.id}
+                          className={`absolute text-black p-1 rounded-sm border ${isBeingPositioned ? 'bg-blue-100 border-blue-400 shadow-sm' : 'border-transparent hover:border-blue-300 hover:bg-blue-50'}`}
+                          style={{
+                            left: `${position.x * zoomLevel}mm`,
+                            top: `${position.y * zoomLevel}mm`,
+                            fontSize: `${8 * zoomLevel}px`,
+                            lineHeight: 1.2,
+                            zIndex: isBeingPositioned ? 20 : 10,
+                            cursor: dragEnabled ? 'move' : 'default',
+                            maxWidth: field.type === 'table' ? '100mm' : '60mm',
+                            fontFamily: 'Arial, sans-serif',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            
+                            if (!dragEnabled) {
+                              if (field.id === positionedField) {
+                                setPositionedField(null);
+                              } else {
+                                startPositioning(field.id, field.position);
+                              }
+                            }
+                          }}
+                        >
+                          <div className="whitespace-nowrap">
+                            {field.type === 'table' ? (
+                              <div className="border border-dashed border-gray-400 p-1 bg-white" style={{ fontSize: `${10 * zoomLevel}px` }}>
+                                <span className="text-gray-500">[Tableau] {field.label}</span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-800" title={field.value}>{field.value}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dupliquer sur une autre page</DialogTitle>
+            <DialogDescription>
+              Choisissez la page sur laquelle vous souhaitez dupliquer le champ <strong>{fieldToDuplicate?.label}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="target-page">Page cible</Label>
+            <Select 
+              value={duplicateTargetPage.toString()} 
+              onValueChange={(value) => setDuplicateTargetPage(parseInt(value))}
+            >
+              <SelectTrigger id="target-page">
+                <SelectValue placeholder="Sélectionner une page" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <SelectItem 
+                    key={i} 
+                    value={i.toString()}
+                    disabled={i === fieldToDuplicate?.page}
+                  >
+                    Page {i + 1} {i === fieldToDuplicate?.page ? "(page actuelle)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDuplicateDialog(false)}>Annuler</Button>
+            <Button onClick={handleDuplicateField}>Dupliquer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Retirer de la page</DialogTitle>
+            <DialogDescription>
+              Voulez-vous retirer le champ <strong>{fieldToRemove?.label}</strong> de la page {fieldToRemove?.page !== undefined ? fieldToRemove.page + 1 : 1} ?
+              <br />
+              <span className="text-destructive">Cette action ne supprime pas complètement le champ, il reste disponible pour d'autres pages.</span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRemoveDialog(false)}>Annuler</Button>
+            <Button 
+              variant="default" 
+              className="bg-red-600 hover:bg-red-700 text-white" 
+              onClick={handleRemoveFieldFromPage}
+            >
+              Retirer de la page
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default PDFFieldsEditor;
