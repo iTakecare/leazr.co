@@ -20,16 +20,6 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     try {
       setIsUploading(true);
       
-      // Vérifier si le bucket 'pdf-templates' existe, sinon le créer
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketExists = buckets?.some(b => b.name === 'pdf-templates');
-      
-      if (!bucketExists) {
-        await supabase.storage.createBucket('pdf-templates', {
-          public: true
-        });
-      }
-      
       // Générer un nom de fichier unique
       const fileExt = file.name.split('.').pop();
       const fileName = `${uuidv4()}.${fileExt}`;
@@ -37,7 +27,10 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       // Uploader le fichier
       const { data, error } = await supabase.storage
         .from('pdf-templates')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
         
       if (error) {
         console.error("Erreur lors de l'upload:", error);
