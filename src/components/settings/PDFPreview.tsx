@@ -17,6 +17,7 @@ interface PDFPreviewProps {
   activeTab?: string;
   onTabChange?: (value: string) => void;
   showAvailableFields?: boolean;
+  onDownload?: () => void;
 }
 
 const PDFPreview = ({
@@ -29,7 +30,8 @@ const PDFPreview = ({
   availableFields = [],
   activeTab = 'page1',
   onTabChange = () => {},
-  showAvailableFields = false
+  showAvailableFields = false,
+  onDownload
 }: PDFPreviewProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragFieldId, setDragFieldId] = useState<string | null>(null);
@@ -137,18 +139,23 @@ const PDFPreview = ({
     }
   };
 
+  // Make sure pages exists and has at least one item
+  const pages = template.pages && template.pages.length > 0 
+    ? template.pages 
+    : [{ imageUrl: '' }];
+
   return (
     <div className="w-full">
       <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
-          {template.pages.map((_, index) => (
+          {pages.map((_, index) => (
             <TabsTrigger key={`page${index + 1}`} value={`page${index + 1}`}>
               Page {index + 1}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {template.pages.map((page, pageIndex) => (
+        {pages.map((page, pageIndex) => (
           <TabsContent key={`page${pageIndex + 1}`} value={`page${pageIndex + 1}`}>
             <div className="flex flex-col md:flex-row gap-4">
               {/* PDF Preview Area */}

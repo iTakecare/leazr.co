@@ -21,6 +21,10 @@ export interface PDFField {
   };
 }
 
+export interface PDFPage {
+  imageUrl?: string;
+}
+
 export interface PDFTemplateImage {
   id: string;
   name: string;
@@ -42,4 +46,5 @@ export interface PDFTemplate {
   footerText: string;
   templateImages?: PDFTemplateImage[];
   fields: PDFField[];
+  pages: PDFPage[];
 }

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +6,7 @@ import PDFFieldsEditor from './PDFFieldsEditor';
 import PDFVisualEditor from './PDFVisualEditor';
 import PDFPreview from './PDFPreview';
 import { toast } from "sonner";
-import { PDFField } from '@/types/pdf';
+import { PDFField, PDFPage } from '@/types/pdf';
 
 // Default fields for the PDF template if none exist yet
 const DEFAULT_FIELDS = [
@@ -404,32 +403,47 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     headerText: 'OFFRE N° {offer_id}',
     footerText: 'Cette offre est valable 30 jours à compter de sa date d\'émission.',
     templateImages: [],
-    fields: DEFAULT_FIELDS
+    fields: DEFAULT_FIELDS,
+    pages: [{ imageUrl: '' }]
   });
   
   const [selectedPage, setSelectedPage] = useState(0);
   const [activeTab, setActiveTab] = useState("template");
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   
-  // Update template images when they change
   const handleImagesChange = (newImages) => {
-    setCurrentTemplate({
-      ...currentTemplate,
-      templateImages: newImages
+    const updatedPages: PDFPage[] = [];
+    
+    newImages.forEach((image) => {
+      while (updatedPages.length <= image.page) {
+        updatedPages.push({ imageUrl: '' });
+      }
+      
+      updatedPages[image.page] = { 
+        ...updatedPages[image.page], 
+        imageUrl: image.url 
+      };
     });
     
-    // Auto-save the template
+    if (updatedPages.length === 0) {
+      updatedPages.push({ imageUrl: '' });
+    }
+    
+    const updatedTemplate = {
+      ...currentTemplate,
+      templateImages: newImages,
+      pages: updatedPages
+    };
+    
+    setCurrentTemplate(updatedTemplate);
+    
     if (onSave) {
-      onSave({
-        ...currentTemplate,
-        templateImages: newImages
-      });
+      onSave(updatedTemplate);
     }
     
     toast.success("Images du modèle enregistrées");
   };
   
-  // Update fields when they change
   const handleFieldsChange = (newFields) => {
     setCurrentTemplate({
       ...currentTemplate,
@@ -437,7 +451,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     });
   };
 
-  // Save the template with updated fields
   const handleSaveTemplate = () => {
     if (onSave) {
       onSave({
@@ -447,7 +460,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     }
   };
 
-  // Add a new field to the template
   const handleAddField = (field) => {
     const newFields = [...currentTemplate.fields, field];
     handleFieldsChange(newFields);
@@ -455,7 +467,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     toast.success(`Champ "${field.label}" ajouté`);
   };
 
-  // Delete a field from the template
   const handleDeleteField = (fieldId) => {
     const newFields = currentTemplate.fields.filter(field => field.id !== fieldId);
     handleFieldsChange(newFields);
@@ -465,19 +476,17 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     toast.success("Champ supprimé");
   };
   
-  // Handle field position update via drag and drop or direct input
   const handleFieldMove = (fieldId: string, x: number, y: number) => {
     const updatedFields = currentTemplate.fields.map(field => {
       if (field.id === fieldId) {
-        // Ensure values are valid numbers
         const newX = isNaN(x) ? 0 : Math.max(0, x);
         const newY = isNaN(y) ? 0 : Math.max(0, y);
         
         return {
           ...field,
           position: { x: newX, y: newY },
-          isVisible: true,  // Make sure it's visible when positioned
-          page: selectedPage  // Assign to current page
+          isVisible: true,
+          page: selectedPage
         };
       }
       return field;
@@ -486,7 +495,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     handleFieldsChange(updatedFields);
   };
   
-  // Handle field style update
   const handleFieldStyleUpdate = (fieldId: string, newStyle: any) => {
     const updatedFields = currentTemplate.fields.map(field => {
       if (field.id === fieldId) {
@@ -504,12 +512,10 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     handleFieldsChange(updatedFields);
   };
   
-  // Handle field selection
   const handleFieldSelect = (fieldId: string | null) => {
     setSelectedFieldId(fieldId);
   };
 
-  // Set a field to be visible on the current page
   const handleAddFieldToPage = (fieldId: string) => {
     const updatedFields = currentTemplate.fields.map(field => {
       if (field.id === fieldId) {
@@ -517,7 +523,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
           ...field,
           isVisible: true,
           page: selectedPage,
-          position: field.position || { x: 50, y: 50 } // Default position if none exists
+          position: field.position || { x: 50, y: 50 }
         };
       }
       return field;
@@ -584,7 +590,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
             <CardContent className="p-6">
               <PDFPreview 
                 template={currentTemplate}
-                onDownload={() => {}} 
                 editMode={false}
               />
             </CardContent>
