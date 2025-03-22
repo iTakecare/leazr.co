@@ -24,6 +24,8 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${uuidv4()}.${fileExt}`;
       
+      console.log("Tentative d'upload du fichier:", fileName);
+      
       // Uploader le fichier
       const { data, error } = await supabase.storage
         .from('pdf-templates')
@@ -34,15 +36,19 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
         
       if (error) {
         console.error("Erreur lors de l'upload:", error);
-        toast.error("Erreur lors de l'upload du fichier");
+        toast.error(`Erreur lors de l'upload du fichier: ${error.message}`);
         return null;
       }
+      
+      console.log("Fichier uploadé avec succès:", data);
       
       // Récupérer l'URL publique
       const { data: { publicUrl } } = supabase.storage
         .from('pdf-templates')
         .getPublicUrl(fileName);
         
+      console.log("URL publique générée:", publicUrl);
+      
       return {
         id: fileName,
         name: file.name,
@@ -51,7 +57,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       };
     } catch (error) {
       console.error("Erreur lors de l'upload:", error);
-      toast.error("Erreur lors de l'upload du fichier");
+      toast.error(`Erreur lors de l'upload du fichier: ${error.message || error}`);
       return null;
     } finally {
       setIsUploading(false);
@@ -61,6 +67,8 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   // Supprimer une image
   const deleteImage = async (imageId) => {
     try {
+      console.log("Tentative de suppression du fichier:", imageId);
+      
       // Supprimer le fichier du storage
       const { error } = await supabase.storage
         .from('pdf-templates')
@@ -68,18 +76,26 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
         
       if (error) {
         console.error("Erreur lors de la suppression:", error);
-        toast.error("Erreur lors de la suppression du fichier");
+        toast.error(`Erreur lors de la suppression du fichier: ${error.message}`);
         return;
       }
       
+      console.log("Fichier supprimé avec succès");
+      
       // Mettre à jour la liste des images
       const updatedImages = templateImages.filter(img => img.id !== imageId);
+      
+      // Réindexer les numéros de page
+      updatedImages.forEach((img, idx) => {
+        img.page = idx;
+      });
+      
       onChange(updatedImages);
       
       toast.success("Image supprimée avec succès");
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
-      toast.error("Erreur lors de la suppression du fichier");
+      toast.error(`Erreur lors de la suppression du fichier: ${error.message || error}`);
     }
   };
   
@@ -93,6 +109,8 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       toast.error("Veuillez sélectionner une image");
       return;
     }
+    
+    console.log("Début du processus d'upload pour:", file.name);
     
     const uploadedImage = await uploadImage(file);
     if (uploadedImage) {
