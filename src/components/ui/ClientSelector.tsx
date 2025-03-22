@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -10,7 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, User, Building2, Mail, Plus, Loader2, RefreshCw } from "lucide-react";
-import { getClients, createClient, linkClientToAmbassador } from "@/services/clientService";
+import { getClients, createClient } from "@/services/clientService";
+import { linkClientToAmbassador } from "@/services/ambassadorClientService";
 import { Client, CreateClientData } from "@/types/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,7 +69,6 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
         if (isAmbassador() && user?.ambassador_id) {
           console.log("Loading ambassador clients for:", user.ambassador_id);
           
-          // Direct join query to get client data with ambassador association
           const { data, error: queryError } = await supabase
             .from("ambassador_clients")
             .select(`
@@ -87,9 +86,8 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
           console.log("Raw ambassador-client data from selector:", data);
           
           if (data && data.length > 0) {
-            // Process the joined data to get the actual client records
             clientsData = data
-              .filter(item => item.clients) // Filter out any null client references
+              .filter(item => item.clients)
               .map(item => ({
                 ...item.clients,
                 ambassador_client_id: item.id
@@ -165,7 +163,6 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
             
             if (linked) {
               console.log("Client successfully associated with ambassador from selector");
-              // Wait a moment then refresh to show the new client
               setTimeout(() => {
                 fetchClients();
               }, 500);
@@ -178,14 +175,12 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
             toast.error("Error associating client with ambassador");
           }
         } else {
-          // For non-ambassadors, add the new client to the current list
           setClients(prevClients => [...prevClients, newClient]);
         }
         
         form.reset();
         setShowForm(false);
         
-        // Automatically select the newly created client
         handleSelectClient(newClient);
       }
     } catch (error) {

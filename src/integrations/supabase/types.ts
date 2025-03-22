@@ -469,6 +469,33 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          created_at: string
+          error_context: string | null
+          error_message: string | null
+          id: string
+          request_data: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_context?: string | null
+          error_message?: string | null
+          id?: string
+          request_data?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_context?: string | null
+          error_message?: string | null
+          id?: string
+          request_data?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       leaser_ranges: {
         Row: {
           coefficient: number
@@ -1330,6 +1357,10 @@ export type Database = {
           user_id: string
         }
         Returns: Json
+      }
+      is_ambassador: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       update_ambassador_commission_level: {
         Args: {
