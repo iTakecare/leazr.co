@@ -189,7 +189,7 @@ const PDFPreview = ({ template }) => {
     }
     
     return (
-      <table className="w-full border-collapse text-xs" style={{ fontSize: "9px" }}>
+      <table className="w-full border-collapse" style={{ fontSize: "9px" }}>
         <thead>
           <tr className="bg-gray-100">
             <th className="border px-1 py-0.5 text-left">Désignation</th>
@@ -325,23 +325,32 @@ const PDFPreview = ({ template }) => {
                       
                       {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
                       {pageLoaded && getCurrentPageFields().map((field) => {
+                        // Déterminer le style pour le champ spécifique
+                        const fieldStyle = {
+                          position: "absolute",
+                          left: `${field.position?.x || 0}mm`,
+                          top: `${field.position?.y || 0}mm`,
+                          zIndex: 5,
+                        };
+                        
+                        // Style spécifique pour le tableau d'équipements
+                        if (field.id === 'equipment_table') {
+                          fieldStyle.fontSize = "9px";
+                          // Pas de transform pour le tableau pour éviter des problèmes de mise en page
+                        } else {
+                          // Pas de transform pour les autres champs pour que leur placement corresponde exactement à l'éditeur
+                        }
+                        
                         return (
                           <div 
                             key={field.id}
                             className="absolute"
-                            style={{
-                              position: "absolute",
-                              left: `${field.position?.x || 0}mm`,
-                              top: `${field.position?.y || 0}mm`,
-                              zIndex: 5,
-                              transform: "translateY(-50%)",
-                              fontSize: field.id === 'equipment_table' ? "9px" : "inherit"
-                            }}
+                            style={fieldStyle}
                           >
                             {field.id === 'equipment_table' ? (
                               renderEquipmentTable(SAMPLE_OFFER.equipment_description)
                             ) : (
-                              resolveFieldValue(field.value)
+                              <span>{resolveFieldValue(field.value)}</span>
                             )}
                           </div>
                         );
