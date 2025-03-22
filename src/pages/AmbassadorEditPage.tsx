@@ -134,7 +134,19 @@ export const AmbassadorEditPage = () => {
     
     try {
       await updateAmbassador(id, {
-        ...ambassador!,
+        name: ambassador!.name,
+        email: ambassador!.email,
+        phone: ambassador!.phone,
+        status: ambassador!.status as "active" | "inactive",
+        notes: ambassador!.notes,
+        region: ambassador!.region,
+        company: ambassador!.company,
+        vat_number: ambassador!.vat_number,
+        address: ambassador!.address,
+        city: ambassador!.city,
+        postal_code: ambassador!.postal_code,
+        country: ambassador!.country,
+        commission_level_id: ambassador!.commission_level_id,
         pdf_template_id: value
       });
       toast.success("Modèle PDF mis à jour avec succès");
@@ -144,41 +156,42 @@ export const AmbassadorEditPage = () => {
     }
   };
 
-  // Just a mock component rendering to fix the build error
   return (
-    <div>
-      <h1>Edit Ambassador</h1>
+    <div className="space-y-6 p-6">
+      <h1 className="text-2xl font-bold">Modification de l'ambassadeur</h1>
       {loading ? (
-        <p>Loading...</p>
+        <p>Chargement...</p>
       ) : error ? (
-        <p>{error}</p>
+        <p className="text-red-500">{error}</p>
       ) : ambassador ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Modèle PDF pour les offres</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Sélectionnez le modèle PDF qui sera utilisé pour générer les offres de cet ambassadeur.
-            </p>
-            <Select 
-              value={selectedTemplateId} 
-              onValueChange={handleTemplateChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Sélectionner un modèle PDF" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Modèle par défaut</SelectItem>
-                {pdfTemplates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Modèle PDF pour les offres</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Sélectionnez le modèle PDF qui sera utilisé pour générer les offres de cet ambassadeur.
+              </p>
+              <Select 
+                value={selectedTemplateId} 
+                onValueChange={handleTemplateChange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sélectionner un modèle PDF" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Modèle par défaut</SelectItem>
+                  {pdfTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+        </div>
       ) : null}
     </div>
   );
