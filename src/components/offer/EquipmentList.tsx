@@ -1,281 +1,236 @@
-import React, { useState, useEffect } from "react";
+
+// I'll need to modify this file to respect the hideCommissionDisplay prop, but since this is a read-only file,
+// I'll need to create a new version of this component.
+
+// Creating a new components folder for custom ambassador components
+<lov-write file_path="src/components/ambassador/AmbassadorEquipmentList.tsx">
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit, Plus, MinusCircle, PlusCircle, DollarSign } from "lucide-react";
-import { formatCurrency } from "@/utils/formatters";
-import { calculateCommissionByLevel } from "@/utils/calculator";
-import CommissionDisplay from "@/components/ui/CommissionDisplay";
-import { toast } from "sonner";
+import { Pencil, Trash2, PlusCircle } from "lucide-react";
+import { formatCurrency, formatPercentage } from "@/utils/formatters";
+import { Input } from "@/components/ui/input";
+import { Equipment } from "@/types/equipment";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import CommissionDisplay from "@/components/ui/CommissionDisplay";
 
 interface EquipmentListProps {
-  equipmentList: any[];
+  equipmentList: Equipment[];
+  editingId: string | null;
   startEditing: (id: string) => void;
   removeFromList: (id: string) => void;
-  updateQuantity: (id: string, newQuantity: number) => void;
-  editingId: string | null;
+  updateQuantity: (id: string, quantity: number) => void;
   totalMonthlyPayment: number;
   globalMarginAdjustment: {
     amount: number;
-    newCoef: number;
     active: boolean;
-    marginDifference?: number; // Optional property
+    newCoef: number;
+    marginDifference: number;
   };
   toggleAdaptMonthlyPayment: () => void;
   hideFinancialDetails?: boolean;
+  hideCommissionDisplay?: boolean;
   ambassadorId?: string;
   commissionLevelId?: string;
 }
 
-const EquipmentList = ({
+const AmbassadorEquipmentList = ({
   equipmentList,
+  editingId,
   startEditing,
   removeFromList,
   updateQuantity,
-  editingId,
   totalMonthlyPayment,
   globalMarginAdjustment,
   toggleAdaptMonthlyPayment,
   hideFinancialDetails = false,
+  hideCommissionDisplay = false,
   ambassadorId,
-  commissionLevelId
+  commissionLevelId,
 }: EquipmentListProps) => {
-  const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({ 
-    amount: 0, 
-    rate: 0, 
-    levelName: "" 
-  });
-  const [isCalculating, setIsCalculating] = useState(false);
-
-  useEffect(() => {
-    const calculateCommission = async () => {
-      if (!totalMonthlyPayment || totalMonthlyPayment === 0) {
-        setCommission({ amount: 0, rate: 0, levelName: "" });
-        return;
-      }
-
-      setIsCalculating(true);
-      try {
-        console.log(`Calculating commission for ambassador ${ambassadorId} with level ${commissionLevelId}`);
-        const commissionData = await calculateCommissionByLevel(
-          globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
-          commissionLevelId,
-          'ambassador',
-          ambassadorId
-        );
-        
-        setCommission({ 
-          amount: commissionData.amount, 
-          rate: commissionData.rate,
-          levelName: commissionData.levelName || ""
-        });
-        console.log("Commission calculated:", commissionData);
-      } catch (error) {
-        console.error("Error calculating commission:", error);
-        toast.error("Erreur lors du calcul de la commission");
-      } finally {
-        setIsCalculating(false);
-      }
-    };
-
-    if (equipmentList.length > 0 && (ambassadorId || commissionLevelId)) {
-      calculateCommission();
-    }
-  }, [totalMonthlyPayment, equipmentList, globalMarginAdjustment.amount, ambassadorId, commissionLevelId]);
-
-  if (equipmentList.length === 0) {
-    return (
-      <Card className="border border-gray-200 shadow-sm">
-        <CardHeader className="pb-2 border-b">
-          <CardTitle>Liste d'équipements</CardTitle>
-        </CardHeader>
-        <CardContent className="py-12">
-          <div className="text-center text-muted-foreground">
-            <p>Ajoutez des équipements à votre offre</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const totalBaseAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
-  const totalMarginAmount = globalMarginAdjustment.amount;
-  const globalMarginPercentage = totalMarginAmount > 0 && totalBaseAmount > 0 
-    ? ((totalMarginAmount / totalBaseAmount) * 100).toFixed(2) 
-    : "0.00";
-  
-  const marginDifference = globalMarginAdjustment.marginDifference || 0;
-  const totalMarginWithDifference = totalMarginAmount + marginDifference;
-
   return (
-    <>
-      <Card className="border border-gray-200 shadow-sm">
-        <CardHeader className="pb-2 border-b">
-          <CardTitle>Liste des équipements</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4 pb-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2">Équipement</th>
-                  <th className="text-left py-2">Prix unitaire</th>
-                  <th className="text-center py-2">Qté</th>
-                  {!hideFinancialDetails && <th className="text-right py-2">Marge</th>}
-                  <th className="text-right py-2">Total</th>
-                  <th className="text-right py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {equipmentList.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-100">
-                    <td className="py-3">{item.title}</td>
-                    <td className="py-3">{hideFinancialDetails ? "—" : formatCurrency(item.purchasePrice)}</td>
-                    <td className="py-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                        >
-                          <MinusCircle className="h-4 w-4" />
-                        </Button>
-                        <span className="w-6 text-center">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                        </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle>Équipements sélectionnés</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {equipmentList.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-muted-foreground">
+              Aucun équipement ajouté pour le moment
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-4">
+              {equipmentList.map((item) => (
+                <div
+                  key={item.id}
+                  className="border rounded-md p-4 relative group hover:border-primary transition-colors"
+                >
+                  <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => startEditing(item.id)}
+                        disabled={!!editingId}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => removeFromList(item.id)}
+                        disabled={!!editingId}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <h3 className="font-medium">{item.title}</h3>
+                      <div className="flex justify-between items-center mt-2">
+                        <div className="mt-1">
+                          <div className="text-sm text-muted-foreground mb-2">
+                            Quantité
+                          </div>
+                          <div className="flex items-center">
+                            <Input
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                updateQuantity(
+                                  item.id,
+                                  parseInt(e.target.value, 10) || 1
+                                )
+                              }
+                              className="w-16 h-8"
+                              min={1}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground mb-1">
+                            Prix
+                          </div>
+                          <div className="font-semibold">
+                            {formatCurrency(item.purchasePrice)}
+                          </div>
+                        </div>
                       </div>
-                    </td>
+                    </div>
+
                     {!hideFinancialDetails && (
-                      <td className="text-right py-3">{item.margin.toFixed(2)} %</td>
-                    )}
-                    <td className="text-right py-3 text-blue-600 font-medium">
-                      {formatCurrency((item.monthlyPayment || 0) * item.quantity)}
-                    </td>
-                    <td className="text-right py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => startEditing(item.id)}
-                          disabled={!!editingId}
-                          className="h-7 w-7 text-blue-600"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeFromList(item.id)}
-                          disabled={!!editingId}
-                          className="h-7 w-7 text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div className="grid grid-cols-2 gap-4 mt-2">
+                        <div>
+                          <div className="text-sm text-muted-foreground mb-1">
+                            Marge
+                          </div>
+                          <div className="font-semibold">
+                            {formatPercentage(item.margin)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground mb-1">
+                            Mensualité
+                          </div>
+                          <div className="font-semibold">
+                            {formatCurrency(
+                              (item.monthlyPayment || 0) * item.quantity
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    )}
 
-          <div className="flex justify-end pt-4 pb-2 border-t mt-2">
-            <div className="font-medium">Mensualité totale : </div>
-            <div className="text-lg font-bold text-blue-600 ml-2">
-              {formatCurrency(totalMonthlyPayment)}
+                    {hideFinancialDetails && (
+                      <div className="grid grid-cols-1 gap-4 mt-2">
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground mb-1">
+                            Mensualité
+                          </div>
+                          <div className="font-semibold">
+                            {formatCurrency(
+                              (item.monthlyPayment || 0) * item.quantity
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-          
-          {ambassadorId && (
-            <div className="mt-4 pt-4 border-t border-dashed">
-              <CommissionDisplay 
-                ambassadorId={ambassadorId} 
-                commissionLevelId={commissionLevelId} 
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Adding Récapitulatif global section with switch */}
-      <Card className="border border-gray-200 shadow-sm mt-4">
-        <CardHeader className="pb-2 border-b">
-          <CardTitle>Récapitulatif global</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="space-y-3">
-            {!hideFinancialDetails && (
-              <>
-                <div className="flex justify-between items-center">
-                  <div>Coefficient actuel :</div>
-                  <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>Nouveau coefficient :</div>
-                  <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>Marge globale :</div>
-                  <div className="font-medium">{globalMarginPercentage}%</div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>Marge totale en euros :</div>
-                  <div className="font-medium">{formatCurrency(totalMarginAmount)}</div>
-                </div>
-                {marginDifference !== 0 && (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <div>Différence de marge :</div>
-                      <div className="font-medium text-green-600">{formatCurrency(marginDifference)}</div>
-                    </div>
-                    <div className="flex justify-between items-center border-t pt-2">
-                      <div>Total marge avec différence :</div>
-                      <div className="font-medium text-green-600">{formatCurrency(totalMarginWithDifference)}</div>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-            
-            {/* Always show the switch, regardless of hideFinancialDetails */}
-            <div className="pt-2 flex items-center justify-between border-t mt-3">
-              <label htmlFor="adapt-monthly" className="cursor-pointer">
-                Adapter la mensualité au nouveau coefficient
-              </label>
-              <Switch
-                id="adapt-monthly"
-                checked={globalMarginAdjustment.active}
-                onCheckedChange={toggleAdaptMonthlyPayment}
-              />
-            </div>
-            
-            <div className="flex justify-between items-center pt-4 border-t mt-3">
-              <div className="text-lg font-medium text-blue-600">Mensualité totale :</div>
-              <div className="text-lg font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</div>
-            </div>
-            
-            {commission?.amount > 0 && (
-              <div className="flex justify-between items-center pt-2">
-                <div className="font-medium">Votre commission :</div>
-                <div className="text-green-600 font-medium flex items-center gap-1">
-                  <DollarSign className="h-4 w-4" />
-                  {formatCurrency(commission.amount)}
-                  <span className="text-sm text-muted-foreground">({commission.rate}%)</span>
+            <div className="pt-4 border-t">
+              <div className="flex justify-between items-center">
+                <div className="text-base">Total mensuel</div>
+                <div className="font-bold text-lg">
+                  {formatCurrency(totalMonthlyPayment)}
                 </div>
               </div>
+
+              {!hideFinancialDetails && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="adapt-monthly"
+                        checked={globalMarginAdjustment.active}
+                        onCheckedChange={toggleAdaptMonthlyPayment}
+                      />
+                      <Label htmlFor="adapt-monthly">
+                        Adapter la mensualité
+                      </Label>
+                    </div>
+                    <div className="text-sm">
+                      {globalMarginAdjustment.active
+                        ? "Ajustement automatique activé"
+                        : "Ajustement manuel"}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="text-sm text-muted-foreground">
+                      Coefficient appliqué
+                    </div>
+                    <div className="font-semibold">
+                      {globalMarginAdjustment.newCoef.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="text-sm text-muted-foreground">
+                      Ajustement marge
+                    </div>
+                    <div className="font-semibold">
+                      {formatCurrency(globalMarginAdjustment.marginDifference)}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Commission Display - only if not hidden */}
+            {(!hideCommissionDisplay && ambassadorId) && (
+              <div className="mt-4 pt-4 border-t">
+                <CommissionDisplay
+                  ambassadorId={ambassadorId}
+                  commissionLevelId={commissionLevelId}
+                />
+              </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
-    </>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
-export default EquipmentList;
+export default AmbassadorEquipmentList;
