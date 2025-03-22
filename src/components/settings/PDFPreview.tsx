@@ -133,6 +133,14 @@ const PDFPreview = ({ template }) => {
       f.isVisible && (f.page === currentPage || (currentPage === 0 && f.page === undefined))
     ) || [];
   };
+
+  // Vérifier si des images de template sont disponibles
+  const hasTemplateImages = template?.templateImages && Array.isArray(template.templateImages) && template.templateImages.length > 0;
+  
+  // Debug
+  console.log("Template images:", template?.templateImages);
+  console.log("Current page:", currentPage);
+  console.log("Current background:", getCurrentPageBackground());
   
   return (
     <div className="space-y-4">
@@ -186,22 +194,33 @@ const PDFPreview = ({ template }) => {
               )}
               
               {/* Fond de page si un template a été uploadé */}
-              {getCurrentPageBackground() ? (
+              {hasTemplateImages ? (
                 <div className="relative">
-                  <img 
-                    src={getCurrentPageBackground()} 
-                    alt={`Template page ${currentPage + 1}`}
-                    className="w-full h-auto"
-                  />
+                  {getCurrentPageBackground() ? (
+                    <img 
+                      src={getCurrentPageBackground()} 
+                      alt={`Template page ${currentPage + 1}`}
+                      className="w-full h-auto"
+                      onError={(e) => {
+                        console.error("Erreur de chargement de l'image:", getCurrentPageBackground());
+                        e.currentTarget.src = "/placeholder.svg"; // Image de fallback
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-[842px] bg-white flex items-center justify-center border">
+                      <p className="text-gray-400">Pas d'image pour la page {currentPage + 1}</p>
+                    </div>
+                  )}
                   
                   {/* Champs positionnés */}
                   {getCurrentPageFields().map((field) => (
                     <div 
                       key={field.id}
-                      className="absolute text-sm"
+                      className="absolute text-sm bg-white bg-opacity-75 p-1 rounded"
                       style={{
                         left: `${field.position.x}px`,
                         top: `${field.position.y}px`,
+                        zIndex: 5
                       }}
                     >
                       {field.id === 'equipment_table' ? (
