@@ -1,13 +1,14 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
-import PDFVisualEditor from './PDFVisualEditor';
 import PDFPreview from './PDFPreview';
 import { toast } from "sonner";
-import { PDFField, PDFPage } from '@/types/pdf';
+import { OfferData, EquipmentItem } from '@/services/offers/types';
 
+// Default fields for the PDF template if none exist yet
 const DEFAULT_FIELDS = [
   // Client fields
   {
@@ -402,152 +403,110 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     headerText: 'OFFRE N° {offer_id}',
     footerText: 'Cette offre est valable 30 jours à compter de sa date d\'émission.',
     templateImages: [],
-    fields: DEFAULT_FIELDS,
-    pages: [{ imageUrl: '' }]
+    fields: DEFAULT_FIELDS
   });
   
   const [selectedPage, setSelectedPage] = useState(0);
   const [activeTab, setActiveTab] = useState("template");
-  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   
+  // Update template images when they change
   const handleImagesChange = (newImages) => {
-    const updatedPages: PDFPage[] = [];
-    
-    newImages.forEach((image) => {
-      while (updatedPages.length <= image.page) {
-        updatedPages.push({ imageUrl: '' });
-      }
-      
-      updatedPages[image.page] = { 
-        ...updatedPages[image.page], 
-        imageUrl: image.url 
-      };
+    setCurrentTemplate({
+      ...currentTemplate,
+      templateImages: newImages
     });
     
-    if (updatedPages.length === 0) {
-      updatedPages.push({ imageUrl: '' });
-    }
-    
-    const updatedTemplate = {
-      ...currentTemplate,
-      templateImages: newImages,
-      pages: updatedPages
-    };
-    
-    setCurrentTemplate(updatedTemplate);
-    
+    // Auto-save the template
     if (onSave) {
-      onSave(updatedTemplate);
+      onSave({
+        ...currentTemplate,
+        templateImages: newImages
+      });
     }
     
     toast.success("Images du modèle enregistrées");
   };
   
+  // Update fields when they change
   const handleFieldsChange = (newFields) => {
     setCurrentTemplate({
       ...currentTemplate,
       fields: newFields
     });
-  };
-
-  const handleSaveTemplate = () => {
+    
+    // Auto-save the template
     if (onSave) {
       onSave({
-        ...currentTemplate
+        ...currentTemplate,
+        fields: newFields
       });
-      toast.success("Modèle enregistré avec succès");
     }
   };
 
+  // Add a new field to the template
   const handleAddField = (field) => {
     const newFields = [...currentTemplate.fields, field];
     handleFieldsChange(newFields);
-    setSelectedFieldId(field.id);
     toast.success(`Champ "${field.label}" ajouté`);
   };
 
+  // Delete a field from the template
   const handleDeleteField = (fieldId) => {
     const newFields = currentTemplate.fields.filter(field => field.id !== fieldId);
     handleFieldsChange(newFields);
-    if (selectedFieldId === fieldId) {
-      setSelectedFieldId(null);
-    }
     toast.success("Champ supprimé");
   };
   
-  const handleFieldMove = (fieldId: string, x: number, y: number) => {
-    const updatedFields = currentTemplate.fields.map(field => {
-      if (field.id === fieldId) {
-        const newX = isNaN(x) ? 0 : Math.max(0, x);
-        const newY = isNaN(y) ? 0 : Math.max(0, y);
-        
-        return {
-          ...field,
-          position: { x: newX, y: newY },
-          isVisible: true,
-          page: selectedPage
-        };
-      }
-      return field;
-    });
+  // Duplicate a field for a different page
+  const handleDuplicateField = (fieldId, targetPage) => {
+    const fieldToDuplicate = currentTemplate.fields.find(field => field.id === fieldId);
     
-    handleFieldsChange(updatedFields);
+    if (!fieldToDuplicate) return;
+    
+    // Create a new ID for the duplicated field
+    const newId = `${fieldToDuplicate.id}_page${targetPage}`;
+    
+    // Check if this field already exists on the target page to avoid duplicates
+    const fieldExistsOnPage = currentTemplate.fields.some(
+      field => field.id === newId || (field.id === fieldId && field.page === targetPage)
+    );
+    
+    if (fieldExistsOnPage) {
+      toast.error(`Ce champ existe déjà sur la page ${targetPage + 1}`);
+      return;
+    }
+    
+    // Create the duplicated field for the target page
+    const duplicatedField = {
+      ...fieldToDuplicate,
+      id: newId,
+      page: targetPage
+    };
+    
+    const newFields = [...currentTemplate.fields, duplicatedField];
+    handleFieldsChange(newFields);
+    toast.success(`Champ "${fieldToDuplicate.label}" ajouté à la page ${targetPage + 1}`);
   };
   
-  const handleFieldStyleUpdate = (fieldId: string, newStyle: any) => {
-    const updatedFields = currentTemplate.fields.map(field => {
-      if (field.id === fieldId) {
-        return {
-          ...field,
-          style: {
-            ...field.style,
-            ...newStyle
-          }
-        };
-      }
-      return field;
-    });
+  // Remove a field from a specific page only
+  const handleRemoveFieldFromPage = (fieldId, page) => {
+    // Find the field
+    const fieldToRemove = currentTemplate.fields.find(field => field.id === fieldId && field.page === page);
     
-    handleFieldsChange(updatedFields);
-  };
-  
-  const handleFieldSelect = (fieldId: string | null) => {
-    setSelectedFieldId(fieldId);
-  };
-
-  const handleAddFieldToPage = (fieldId: string) => {
-    const updatedFields = currentTemplate.fields.map(field => {
-      if (field.id === fieldId) {
-        const width = field.style?.width || 100;
-        const height = field.style?.height || 30;
-        
-        return {
-          ...field,
-          isVisible: true,
-          page: selectedPage,
-          position: field.position || { x: 50, y: 50 },
-          style: {
-            ...field.style,
-            width,
-            height
-          }
-        };
-      }
-      return field;
-    });
+    if (!fieldToRemove) return;
     
-    handleFieldsChange(updatedFields);
-    setSelectedFieldId(fieldId);
-    toast.success("Champ ajouté à la page courante");
+    // Remove the field from the array
+    const newFields = currentTemplate.fields.filter(field => !(field.id === fieldId && field.page === page));
+    handleFieldsChange(newFields);
+    toast.success(`Champ supprimé de la page ${page + 1}`);
   };
   
   return (
     <div className="space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="template">Pages du modèle</TabsTrigger>
-          <TabsTrigger value="fields">Liste des champs</TabsTrigger>
-          <TabsTrigger value="visual">Positionnement visuel</TabsTrigger>
+          <TabsTrigger value="fields">Champs et positionnement</TabsTrigger>
           <TabsTrigger value="preview">Aperçu</TabsTrigger>
         </TabsList>
         
@@ -570,37 +529,16 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
             onChange={handleFieldsChange}
             activePage={selectedPage}
             onPageChange={setSelectedPage}
+            template={currentTemplate}
             onDeleteField={handleDeleteField}
             onAddField={handleAddField}
-            selectedFieldId={selectedFieldId}
-            onSelectField={handleFieldSelect}
+            onDuplicateField={handleDuplicateField}
+            onRemoveFieldFromPage={handleRemoveFieldFromPage}
           />
         </TabsContent>
         
-        <TabsContent value="visual" className="mt-6">
-          <PDFVisualEditor
-            template={currentTemplate}
-            selectedPage={selectedPage}
-            onPageChange={setSelectedPage}
-            selectedFieldId={selectedFieldId}
-            onSelectField={handleFieldSelect}
-            onFieldMove={handleFieldMove}
-            onFieldStyleUpdate={handleFieldStyleUpdate}
-            onAddFieldToPage={handleAddFieldToPage}
-            allFields={currentTemplate.fields}
-            onSave={handleSaveTemplate}
-          />
-        </TabsContent>
-
         <TabsContent value="preview" className="mt-6">
-          <Card>
-            <CardContent className="p-6">
-              <PDFPreview 
-                template={currentTemplate}
-                editMode={false}
-              />
-            </CardContent>
-          </Card>
+          <PDFPreview template={currentTemplate} />
         </TabsContent>
       </Tabs>
     </div>
