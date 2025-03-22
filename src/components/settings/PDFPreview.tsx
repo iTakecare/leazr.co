@@ -189,7 +189,7 @@ const PDFPreview = ({ template }) => {
     }
     
     return (
-      <table className="w-full border-collapse text-xs">
+      <table className="w-full border-collapse text-xs" style={{ fontSize: "9px" }}>
         <thead>
           <tr className="bg-gray-100">
             <th className="border px-1 py-0.5 text-left">Désignation</th>
@@ -330,9 +330,12 @@ const PDFPreview = ({ template }) => {
                             key={field.id}
                             className="absolute"
                             style={{
+                              position: "absolute",
                               left: `${field.position?.x || 0}mm`,
                               top: `${field.position?.y || 0}mm`,
-                              zIndex: 5
+                              zIndex: 5,
+                              transform: "translateY(-50%)",
+                              fontSize: field.id === 'equipment_table' ? "9px" : "inherit"
                             }}
                           >
                             {field.id === 'equipment_table' ? (
