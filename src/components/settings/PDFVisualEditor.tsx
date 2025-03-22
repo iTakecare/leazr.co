@@ -96,9 +96,14 @@ const PDFVisualEditor = ({
               onFieldSelect={onSelectField}
               onFieldMove={onFieldMove}
               onFieldStyleUpdate={onFieldStyleUpdate}
-              selectedPage={selectedPage} 
-              onPageChange={onPageChange}
               availableFields={getAvailableFields()}
+              activeTab={`page${selectedPage + 1}`} 
+              onTabChange={(tab) => {
+                // Extract page number from tab string (e.g., "page1" -> 0)
+                const pageNumber = parseInt(tab.replace('page', '')) - 1;
+                onPageChange(pageNumber);
+              }}
+              showAvailableFields={true}
             />
           </CardContent>
         </Card>

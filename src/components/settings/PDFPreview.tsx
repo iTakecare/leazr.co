@@ -2,10 +2,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Move, Plus } from 'lucide-react';
+import { Loader2, Move, Plus, MoveHorizontal } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { generateOfferPdf } from '@/utils/pdfGenerator';
 import { PDFTemplate, PDFField } from '@/types/pdf';
+import { toast } from 'sonner';
 
 interface PDFPreviewProps {
   template: PDFTemplate;
@@ -15,9 +16,12 @@ interface PDFPreviewProps {
   editMode?: boolean;
   onFieldMove?: (fieldId: string, x: number, y: number) => void;
   onFieldSelect?: (fieldId: string) => void;
-  selectedFieldId?: string;
+  selectedFieldId?: string | null;
   availableFields?: PDFField[];
   onFieldStyleUpdate?: (fieldId: string, style: any) => void;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
+  showAvailableFields?: boolean;
 }
 
 const PDFPreview = ({ 
@@ -30,15 +34,35 @@ const PDFPreview = ({
   onFieldSelect,
   selectedFieldId,
   availableFields = [],
-  onFieldStyleUpdate
+  onFieldStyleUpdate,
+  activeTab,
+  onTabChange,
+  showAvailableFields = false
 }: PDFPreviewProps) => {
-  const [activeTab, setActiveTab] = useState('page1');
+  const [internalActiveTab, setInternalActiveTab] = useState(activeTab || 'page1');
   const [scale, setScale] = useState(0.5);
   const [previewOffer, setPreviewOffer] = useState<any>(null);
   const [draggedField, setDraggedField] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [showAvailableFields, setShowAvailableFields] = useState(false);
+  const [showAvailableFieldsPanel, setShowAvailableFieldsPanel] = useState(showAvailableFields);
+  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+  const [dragFieldPos, setDragFieldPos] = useState({ x: 0, y: 0 });
   const previewRef = useRef<HTMLDivElement>(null);
+  
+  // Sync active tab state with parent component if provided
+  useEffect(() => {
+    if (activeTab) {
+      setInternalActiveTab(activeTab);
+    }
+  }, [activeTab]);
+
+  // Handle tab change internally and notify parent if callback provided
+  const handleTabChange = (newTab: string) => {
+    setInternalActiveTab(newTab);
+    if (onTabChange) {
+      onTabChange(newTab);
+    }
+  };
   
   useEffect(() => {
     // Create a sample offer for preview with realistic data
@@ -99,8 +123,10 @@ const PDFPreview = ({
     
     try {
       await generateOfferPdf(previewOffer);
+      toast.success("PDF téléchargé avec succès");
     } catch (error) {
       console.error("Error generating PDF:", error);
+      toast.error("Erreur lors du téléchargement du PDF");
     }
   };
 
@@ -187,9 +213,24 @@ const PDFPreview = ({
     
     event.preventDefault();
     event.stopPropagation();
+    
+    // Find the field being dragged
+    const field = template.fields.find(f => f.id === fieldId);
+    if (!field || !field.position) return;
+    
+    // Record initial positions
     setDraggedField(fieldId);
     setIsDragging(true);
+    setDragStartPos({
+      x: event.clientX,
+      y: event.clientY
+    });
+    setDragFieldPos({
+      x: field.position.x,
+      y: field.position.y
+    });
     
+    // Select the field
     if (onFieldSelect) {
       onFieldSelect(fieldId);
     }
@@ -203,18 +244,46 @@ const PDFPreview = ({
   const handleDragMove = (event: MouseEvent) => {
     if (!isDragging || !draggedField || !previewRef.current || !onFieldMove) return;
     
-    const previewRect = previewRef.current.getBoundingClientRect();
+    // Calculate movement delta
+    const deltaX = (event.clientX - dragStartPos.x) / scale;
+    const deltaY = (event.clientY - dragStartPos.y) / scale;
     
-    // Calculate position relative to preview container and adjust for scale
-    const x = (event.clientX - previewRect.left) / scale;
-    const y = (event.clientY - previewRect.top) / scale;
+    // Calculate new position
+    const newX = Math.max(0, dragFieldPos.x + deltaX);
+    const newY = Math.max(0, dragFieldPos.y + deltaY);
     
-    // Update field position
-    onFieldMove(draggedField, x, y);
+    // Update field position immediately for visual feedback
+    const fieldElement = document.getElementById(`pdf-field-${draggedField}`);
+    if (fieldElement) {
+      fieldElement.style.left = `${newX * scale}px`;
+      fieldElement.style.top = `${newY * scale}px`;
+    }
+    
+    // For real-time updates (optional, can cause performance issues if too frequent)
+    // onFieldMove(draggedField, newX, newY);
   };
   
   // Handle end dragging a field
-  const handleDragEnd = () => {
+  const handleDragEnd = (event: MouseEvent) => {
+    if (!isDragging || !draggedField || !onFieldMove) {
+      setDraggedField(null);
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+      return;
+    }
+    
+    // Calculate final position
+    const deltaX = (event.clientX - dragStartPos.x) / scale;
+    const deltaY = (event.clientY - dragStartPos.y) / scale;
+    
+    const newX = Math.max(0, dragFieldPos.x + deltaX);
+    const newY = Math.max(0, dragFieldPos.y + deltaY);
+    
+    // Update field position in the data model
+    onFieldMove(draggedField, newX, newY);
+    
+    // Reset drag state
     setDraggedField(null);
     setIsDragging(false);
     
@@ -243,7 +312,7 @@ const PDFPreview = ({
 
   // Get current page number from active tab
   const getCurrentPageNumber = () => {
-    return parseInt(activeTab.replace('page', '')) - 1;
+    return parseInt(internalActiveTab.replace('page', '')) - 1;
   };
 
   // Get available fields for the current page that aren't already visible
@@ -267,7 +336,7 @@ const PDFPreview = ({
         ref={previewRef} 
         className="relative bg-white shadow-md" 
         style={{ width: `${210 * scale}mm`, height: `${297 * scale}mm` }}
-        onClick={() => onFieldSelect && onFieldSelect('')}
+        onClick={() => onFieldSelect && onFieldSelect(null)}
       >
         {/* Background image */}
         {pageImages.map((img, index) => (
@@ -303,6 +372,7 @@ const PDFPreview = ({
             
             return (
               <div 
+                id={`pdf-field-${field.id}`}
                 key={index} 
                 style={fieldStyle}
                 className={editMode ? 'hover:outline hover:outline-blue-500' : ''}
@@ -327,7 +397,7 @@ const PDFPreview = ({
               width: getScaledWidth(field.style?.width, scale),
               cursor: editMode ? 'move' : 'default',
               userSelect: 'none' as const,
-              padding: editMode ? '2px' : '0',
+              padding: editMode ? '6px' : '0',
               border: selectedFieldId === field.id ? '2px solid #2563eb' : editMode ? '1px dashed transparent' : 'none',
               borderRadius: '4px',
               backgroundColor: selectedFieldId === field.id ? 'rgba(219, 234, 254, 0.3)' : 'transparent',
@@ -336,13 +406,14 @@ const PDFPreview = ({
             
             return (
               <div 
+                id={`pdf-field-${field.id}`}
                 key={index} 
                 style={fieldStyle}
                 className={editMode ? 'hover:outline hover:outline-blue-500 hover:bg-blue-50' : ''}
                 onClick={(e) => handleFieldClick(e, field.id)}
                 onMouseDown={(e) => handleDragStart(e, field.id)}
               >
-                {editMode && <Move size={12} className="inline mr-1 text-blue-500" />}
+                {editMode && <MoveHorizontal size={12} className="inline mr-1 text-blue-500" />}
                 {resolveFieldValue(field.value)}
               </div>
             );
@@ -350,14 +421,14 @@ const PDFPreview = ({
         })}
 
         {/* Available Fields Panel */}
-        {editMode && showAvailableFields && (
+        {editMode && showAvailableFieldsPanel && (
           <div className="absolute top-2 right-2 w-64 bg-white shadow-lg rounded-md p-3 border border-gray-200 z-20">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-sm font-medium">Champs disponibles</h3>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setShowAvailableFields(false)}
+                onClick={() => setShowAvailableFieldsPanel(false)}
               >
                 ×
               </Button>
@@ -415,7 +486,7 @@ const PDFPreview = ({
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => setShowAvailableFields(!showAvailableFields)}
+              onClick={() => setShowAvailableFieldsPanel(!showAvailableFieldsPanel)}
             >
               <Plus className="h-4 w-4 mr-1" />
               Ajouter un champ
@@ -451,7 +522,7 @@ const PDFPreview = ({
         </div>
       )}
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+      <Tabs value={internalActiveTab} onValueChange={handleTabChange} className="flex-1">
         <TabsList className="mb-4">
           {availablePages.map((page, index) => (
             <TabsTrigger key={page} value={`page${index + 1}`}>
