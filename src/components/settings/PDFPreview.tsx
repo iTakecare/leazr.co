@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, FileDown, Printer, Maximize2, ArrowLeft, ArrowRight } from "lucide-react";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/utils";
 
 const PDFPreview = ({ template }) => {
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,7 @@ const PDFPreview = ({ template }) => {
   useEffect(() => {
     setPageLoaded(false);
   }, [currentPage]);
-
+  
   // Exemple d'offre pour l'aperçu
   const SAMPLE_OFFER = {
     id: "abcdef1234567890",
@@ -90,7 +91,7 @@ const PDFPreview = ({ template }) => {
       setCurrentPage(currentPage - 1);
     }
   };
-  
+
   // Obtenir l'image de fond de la page actuelle
   const getCurrentPageBackground = () => {
     if (template?.templateImages && template.templateImages.length > 0) {
@@ -151,6 +152,68 @@ const PDFPreview = ({ template }) => {
       if (value === undefined || value === null) return '';
       return typeof value === 'object' ? JSON.stringify(value) : String(value);
     });
+  };
+  
+  // Parse equipment data from JSON string to array of objects
+  const parseEquipmentData = (jsonString) => {
+    try {
+      if (!jsonString) return [];
+      
+      // If it's already an array, return it
+      if (Array.isArray(jsonString)) return jsonString;
+      
+      // Try to parse the JSON string
+      return JSON.parse(jsonString);
+    } catch (error) {
+      console.error("Error parsing equipment data:", error);
+      return [];
+    }
+  };
+  
+  // Calculate the total price for an equipment item
+  const calculateItemTotal = (item) => {
+    const price = parseFloat(item.purchasePrice || 0);
+    const quantity = parseInt(item.quantity || 1);
+    const margin = parseFloat(item.margin || 0) / 100;
+    
+    return price * quantity * (1 + margin);
+  };
+  
+  // Render the equipment table
+  const renderEquipmentTable = (jsonData) => {
+    const equipment = parseEquipmentData(jsonData);
+    
+    if (!equipment || equipment.length === 0) {
+      return <p className="text-sm italic">Aucun équipement disponible</p>;
+    }
+    
+    return (
+      <table className="w-full border-collapse text-xs">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border px-1 py-0.5 text-left">Désignation</th>
+            <th className="border px-1 py-0.5 text-right">Prix</th>
+            <th className="border px-1 py-0.5 text-center">Qté</th>
+            <th className="border px-1 py-0.5 text-center">Marge</th>
+            <th className="border px-1 py-0.5 text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {equipment.map((item, index) => {
+            const totalPrice = calculateItemTotal(item);
+            return (
+              <tr key={index}>
+                <td className="border px-1 py-0.5 text-left">{item.title}</td>
+                <td className="border px-1 py-0.5 text-right">{formatCurrency(item.purchasePrice)}</td>
+                <td className="border px-1 py-0.5 text-center">{item.quantity}</td>
+                <td className="border px-1 py-0.5 text-center">{item.margin}%</td>
+                <td className="border px-1 py-0.5 text-right">{formatCurrency(totalPrice)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    );
   };
   
   // Obtenir les champs pour la page actuelle
@@ -274,24 +337,11 @@ const PDFPreview = ({ template }) => {
                             padding: "0"
                           }}
                         >
-                          {field.id === 'equipment_table' ? (
-                            <table className="border-collapse text-xs">
-                              <thead>
-                                <tr className="bg-gray-100">
-                                  <th className="border p-1">Désignation</th>
-                                  <th className="border p-1">Prix</th>
-                                  <th className="border p-1">Qté</th>
-                                  <th className="border p-1">Total</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <tr><td className="border p-1">MacBook Pro</td><td className="border p-1">2 399 €</td><td className="border p-1">1</td><td className="border p-1">2 399 €</td></tr>
-                                <tr><td className="border p-1">Écran Dell</td><td className="border p-1">399 €</td><td className="border p-1">2</td><td className="border p-1">798 €</td></tr>
-                              </tbody>
-                            </table>
-                          ) : (
+                          {field.id === 'equipment_table' ? 
+                            renderEquipmentTable(SAMPLE_OFFER.equipment_description) 
+                            : 
                             <span>{resolveFieldValue(field.value)}</span>
-                          )}
+                          }
                         </div>
                       ))}
                     </div>
