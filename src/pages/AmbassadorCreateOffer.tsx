@@ -68,8 +68,10 @@ const AmbassadorCreateOffer = () => {
   useEffect(() => {
     if (ambassadorId) {
       fetchAmbassador(ambassadorId);
+    } else if (user?.ambassador_id) {
+      fetchAmbassador(user.ambassador_id);
     }
-  }, [ambassadorId]);
+  }, [ambassadorId, user]);
   
   const fetchAmbassador = async (id: string) => {
     try {
@@ -307,7 +309,7 @@ const AmbassadorCreateOffer = () => {
                       }}
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                       hideFinancialDetails={hideFinancialDetails}
-                      ambassadorId={ambassadorId}
+                      ambassadorId={ambassadorId || user?.ambassador_id}
                       commissionLevelId={ambassador?.commission_level_id}
                     />
                     

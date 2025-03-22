@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClientSelectorProps {
@@ -67,11 +66,13 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
       try {
         let clientsData: Client[] = [];
         
+        // Explicitly check if the user is an ambassador to load their clients
         if (isAmbassador() && user?.ambassador_id) {
-          console.log("Loading ambassador clients from getAmbassadorClients for:", user.ambassador_id);
+          console.log("Loading ambassador clients for:", user.ambassador_id);
           clientsData = await getAmbassadorClients(user.ambassador_id);
           console.log("Ambassador clients loaded:", clientsData);
         } else {
+          // For non-ambassadors, load all clients
           clientsData = await getClients();
         }
         
@@ -87,8 +88,10 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
   };
 
   useEffect(() => {
-    fetchClients();
-  }, [isOpen, user, isAmbassador]);
+    if (isOpen) {
+      fetchClients();
+    }
+  }, [isOpen, user]);
   
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -136,6 +139,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
             
             if (linked) {
               console.log("Client associé avec succès à l'ambassadeur");
+              // Add a slight delay to ensure the DB operations complete before refreshing
               setTimeout(() => {
                 fetchClients();
               }, 500);

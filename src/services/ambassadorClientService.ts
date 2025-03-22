@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateClientData, Client } from "@/types/client";
@@ -72,8 +73,9 @@ export const getAmbassadorClients = async (ambassadorId?: string): Promise<Clien
       return [];
     }
     
+    // Make sure to filter out null clients and map to the Client type
     const processedClients = data
-      .filter(item => item.clients) // Filter out any null client references
+      .filter(item => item.clients !== null) // Filter out any null client references
       .map(item => ({
         ...item.clients,
         ambassador_client_id: item.id,
