@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -185,6 +186,15 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
     );
   };
 
+  // Get available pages
+  const getAvailablePages = () => {
+    if (!template.templateImages || template.templateImages.length === 0) return [0];
+    const pageNumbers = template.templateImages.map(img => img.page);
+    return [...new Set(pageNumbers)].sort((a, b) => a - b);
+  };
+
+  const availablePages = getAvailablePages();
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
@@ -225,19 +235,22 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
         <TabsList className="mb-4">
-          <TabsTrigger value="page1">Page 1</TabsTrigger>
-          {template.templateImages && template.templateImages.some(img => img.page > 0) && (
-            <TabsTrigger value="page2">Page 2</TabsTrigger>
-          )}
+          {availablePages.map((page, index) => (
+            <TabsTrigger key={page} value={`page${index + 1}`}>
+              Page {page + 1}
+            </TabsTrigger>
+          ))}
         </TabsList>
         
-        <TabsContent value="page1" className="flex-1 overflow-auto p-4 bg-gray-100 flex justify-center">
-          {renderPage(0)}
-        </TabsContent>
-        
-        <TabsContent value="page2" className="flex-1 overflow-auto p-4 bg-gray-100 flex justify-center">
-          {renderPage(1)}
-        </TabsContent>
+        {availablePages.map((page, index) => (
+          <TabsContent 
+            key={page}
+            value={`page${index + 1}`} 
+            className="flex-1 overflow-auto p-4 bg-gray-100 flex justify-center"
+          >
+            {renderPage(page)}
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
