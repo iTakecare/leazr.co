@@ -8,6 +8,10 @@ import { FileUp, Trash, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { getAdminSupabaseClient, supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
+import { 
+  detectMimeTypeFromSignature, 
+  getMimeTypeFromExtension 
+} from "@/services/imageService";
 
 const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -24,16 +28,26 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       const fileName = `${uuidv4()}.${fileExt}`;
       
       console.log("Tentative d'upload du fichier:", fileName);
-      console.log("Type de fichier:", file.type);
+      console.log("Type de fichier original:", file.type);
       console.log("Taille du fichier:", file.size);
+      
+      // Détecter le bon type MIME basé sur la signature du fichier ou l'extension
+      const detectedMimeType = await detectMimeTypeFromSignature(file);
+      const contentType = detectedMimeType || getMimeTypeFromExtension(fileExt, 'image/png');
+      
+      console.log("Type MIME détecté:", contentType);
+      
+      // Créer un nouveau blob avec le bon type MIME
+      const arrayBuffer = await file.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: contentType });
       
       // Essayer d'abord avec le client standard
       let { data, error } = await supabase.storage
         .from('pdf-templates')
-        .upload(fileName, file, {
+        .upload(fileName, blob, {
           cacheControl: '3600',
           upsert: true,
-          contentType: file.type
+          contentType: contentType // Utiliser le type MIME détecté
         });
         
       if (error) {
@@ -43,10 +57,10 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
         const adminSupabase = getAdminSupabaseClient();
         const result = await adminSupabase.storage
           .from('pdf-templates')
-          .upload(fileName, file, {
+          .upload(fileName, blob, {
             cacheControl: '3600',
             upsert: true,
-            contentType: file.type
+            contentType: contentType // Utiliser le type MIME détecté
           });
           
         if (result.error) {
