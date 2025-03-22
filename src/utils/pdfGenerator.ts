@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -253,9 +252,26 @@ export const generateOfferPdf = async (offer: any) => {
               let equipmentItems = [];
               try {
                 if (offer.equipment_description) {
-                  equipmentItems = typeof offer.equipment_description === 'string'
-                    ? JSON.parse(offer.equipment_description)
-                    : offer.equipment_description;
+                  if (typeof offer.equipment_description === 'string') {
+                    try {
+                      equipmentItems = JSON.parse(offer.equipment_description);
+                    } catch (e) {
+                      console.error("Erreur lors de l'analyse des données d'équipement:", e);
+                      // Tenter une approche alternative si le parsing JSON échoue
+                      if (offer.equipment_description.includes('[{') && offer.equipment_description.includes('}]')) {
+                        try {
+                          const cleanedString = offer.equipment_description
+                            .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":')
+                            .replace(/'/g, '"');
+                          equipmentItems = JSON.parse(cleanedString);
+                        } catch (evalError) {
+                          console.error("Échec de l'évaluation de la chaîne d'équipement:", evalError);
+                        }
+                      }
+                    }
+                  } else if (Array.isArray(offer.equipment_description)) {
+                    equipmentItems = offer.equipment_description;
+                  }
                 }
               } catch (e) {
                 console.error("Erreur lors de l'analyse des données d'équipement:", e);
@@ -398,9 +414,26 @@ export const generateOfferPdf = async (offer: any) => {
             let equipmentItems = [];
             try {
               if (offer.equipment_description) {
-                equipmentItems = typeof offer.equipment_description === 'string'
-                  ? JSON.parse(offer.equipment_description)
-                  : offer.equipment_description;
+                if (typeof offer.equipment_description === 'string') {
+                  try {
+                    equipmentItems = JSON.parse(offer.equipment_description);
+                  } catch (e) {
+                    console.error("Erreur lors de l'analyse des données d'équipement:", e);
+                    // Tenter une approche alternative si le parsing JSON échoue
+                    if (offer.equipment_description.includes('[{') && offer.equipment_description.includes('}]')) {
+                      try {
+                        const cleanedString = offer.equipment_description
+                          .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":')
+                          .replace(/'/g, '"');
+                        equipmentItems = JSON.parse(cleanedString);
+                      } catch (evalError) {
+                        console.error("Échec de l'évaluation de la chaîne d'équipement:", evalError);
+                      }
+                    }
+                  }
+                } else if (Array.isArray(offer.equipment_description)) {
+                  equipmentItems = offer.equipment_description;
+                }
               }
             } catch (e) {
               console.error("Erreur lors de l'analyse des données d'équipement:", e);

@@ -174,7 +174,33 @@ const PDFPreview = ({ template }) => {
   };
 
   const renderEquipmentTable = (jsonData) => {
-    const equipment = parseEquipmentData(jsonData);
+    let equipment = [];
+    
+    try {
+      if (typeof jsonData === 'string') {
+        try {
+          equipment = JSON.parse(jsonData);
+        } catch (e) {
+          console.error("Failed to parse JSON string:", e);
+          
+          if (jsonData.includes('[{') && jsonData.includes('}]')) {
+            try {
+              const cleanedString = jsonData
+                .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":')
+                .replace(/'/g, '"');
+              
+              equipment = JSON.parse(cleanedString);
+            } catch (evalError) {
+              console.error("Failed to evaluate equipment string:", evalError);
+            }
+          }
+        }
+      } else if (Array.isArray(jsonData)) {
+        equipment = jsonData;
+      }
+    } catch (error) {
+      console.error("Error processing equipment data:", error);
+    }
     
     if (!equipment || equipment.length === 0) {
       return <p className="text-sm italic">Aucun équipement disponible</p>;
@@ -272,6 +298,7 @@ const PDFPreview = ({ template }) => {
     
     if (field.id === 'equipment_table') {
       style.maxWidth = "150mm";
+      style.width = "150mm";
     }
     
     return style;
