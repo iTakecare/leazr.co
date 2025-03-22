@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -5,18 +6,77 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown, Eye, EyeOff, MoveHorizontal, User, Calendar, CreditCard, Layout, FileText, Package, Grid, Grip } from "lucide-react";
+import { 
+  ChevronUp, 
+  ChevronDown, 
+  Eye, 
+  EyeOff, 
+  MoveHorizontal, 
+  User, 
+  Calendar, 
+  CreditCard, 
+  Layout, 
+  FileText, 
+  Package, 
+  Grid, 
+  Grip, 
+  Trash2, 
+  Plus, 
+  BookUser,
+  Mail,
+  Phone,
+  Building,
+  DollarSign,
+  TagIcon,
+  ClipboardList,
+  AlertCircle
+} from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 const FIELD_CATEGORIES = [
   { id: "client", label: "Client", icon: User },
   { id: "offer", label: "Offre", icon: FileText },
   { id: "equipment", label: "Équipement", icon: Package },
+  { id: "user", label: "Vendeur", icon: BookUser },
   { id: "general", label: "Général", icon: Layout },
 ];
 
-const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, template }) => {
+const FIELD_TYPES = [
+  { value: "text", label: "Texte" },
+  { value: "date", label: "Date" },
+  { value: "email", label: "Email" },
+  { value: "currency", label: "Montant" },
+  { value: "number", label: "Nombre" },
+  { value: "table", label: "Tableau" }
+];
+
+// Categories icons mapping
+const CATEGORY_ICONS = {
+  client: User,
+  offer: FileText,
+  equipment: Package,
+  user: BookUser,
+  general: Layout
+};
+
+// Generate a unique ID
+const generateId = (prefix) => {
+  return `${prefix}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+const PDFFieldsEditor = ({ 
+  fields, 
+  onChange, 
+  activePage = 0, 
+  onPageChange, 
+  template,
+  onDeleteField,
+  onAddField
+}) => {
   const [activeCategory, setActiveCategory] = useState("client");
   const [positionedField, setPositionedField] = useState(null);
   const [canvasPosition, setCanvasPosition] = useState({ x: 0, y: 0 });
@@ -26,6 +86,18 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, templ
   const [gridSize, setGridSize] = useState(5); // Grid size in mm
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(0.5);
+  const [showAddFieldDialog, setShowAddFieldDialog] = useState(false);
+  const [newField, setNewField] = useState({
+    id: "",
+    label: "",
+    type: "text",
+    category: "general",
+    isVisible: true,
+    value: "",
+    position: { x: 20, y: 20 },
+    page: 0
+  });
+  
   const canvasRef = useRef(null);
   const isDragging = useRef(false);
   
@@ -206,8 +278,7 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, templ
   };
   
   const getCategoryIcon = (categoryId) => {
-    const category = FIELD_CATEGORIES.find(cat => cat.id === categoryId);
-    const Icon = category ? category.icon : Layout;
+    const Icon = CATEGORY_ICONS[categoryId] || Layout;
     return <Icon className="h-4 w-4 mr-2" />;
   };
   
@@ -235,6 +306,53 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, templ
   const handleImageLoad = () => {
     console.log("Image chargée avec succès");
     setPageLoaded(true);
+  };
+
+  // Delete a field
+  const handleDeleteField = (fieldId) => {
+    // If the field is currently positioned, clear the positioning
+    if (fieldId === positionedField) {
+      setPositionedField(null);
+    }
+    
+    // Call the delete function passed from the parent
+    if (onDeleteField) {
+      onDeleteField(fieldId);
+    }
+  };
+
+  // Handle new field creation
+  const handleAddNewField = () => {
+    // Generate a unique ID based on the category
+    const id = generateId(newField.category);
+    
+    // Create the new field
+    const fieldToAdd = {
+      ...newField,
+      id,
+      page: activePage,
+      position: { x: 20, y: 20 } // Default position
+    };
+    
+    // Add the field
+    if (onAddField) {
+      onAddField(fieldToAdd);
+      
+      // Reset the form
+      setNewField({
+        id: "",
+        label: "",
+        type: "text",
+        category: "general",
+        isVisible: true,
+        value: "",
+        position: { x: 20, y: 20 },
+        page: 0
+      });
+      
+      // Close the dialog
+      setShowAddFieldDialog(false);
+    }
   };
 
   // Déterminer le nombre total de pages
@@ -328,8 +446,91 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, templ
       <div className="md:col-span-1">
         <Card>
           <CardContent className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-medium">Champs disponibles</h3>
+              <Dialog open={showAddFieldDialog} onOpenChange={setShowAddFieldDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Ajouter un champ
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Ajouter un nouveau champ</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="field-label">Nom du champ</Label>
+                      <Input 
+                        id="field-label" 
+                        value={newField.label} 
+                        onChange={(e) => setNewField({...newField, label: e.target.value})}
+                        placeholder="Ex: Numéro de téléphone client"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="field-value">Valeur du champ</Label>
+                      <Input 
+                        id="field-value" 
+                        value={newField.value} 
+                        onChange={(e) => setNewField({...newField, value: e.target.value})}
+                        placeholder="Ex: {clients.phone} ou texte statique"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="field-category">Catégorie</Label>
+                        <Select 
+                          value={newField.category} 
+                          onValueChange={(value) => setNewField({...newField, category: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Catégorie" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FIELD_CATEGORIES.map(category => (
+                              <SelectItem key={category.id} value={category.id}>
+                                <div className="flex items-center">
+                                  {React.createElement(category.icon, { className: "h-4 w-4 mr-2" })}
+                                  {category.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="field-type">Type</Label>
+                        <Select 
+                          value={newField.type} 
+                          onValueChange={(value) => setNewField({...newField, type: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FIELD_TYPES.map(type => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button onClick={handleAddNewField} disabled={!newField.label || !newField.value}>
+                      Ajouter le champ
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
             <Tabs defaultValue={activeCategory} onValueChange={setActiveCategory}>
-              <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-4">
+              <TabsList className="grid grid-cols-2 md:grid-cols-5 mb-4">
                 {FIELD_CATEGORIES.map(category => (
                   <TabsTrigger key={category.id} value={category.id} className="flex items-center">
                     {React.createElement(category.icon, { className: "h-4 w-4 mr-2" })}
@@ -344,6 +545,12 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, templ
                     {React.createElement(category.icon, { className: "h-4 w-4 mr-2" })}
                     Champs {category.label}
                   </h3>
+                  
+                  {fieldsByCategory[category.id]?.length === 0 && (
+                    <div className="text-sm text-muted-foreground text-center p-4 bg-gray-50 rounded-md">
+                      Aucun champ dans cette catégorie
+                    </div>
+                  )}
                   
                   <Accordion type="multiple" className="space-y-2">
                     {fieldsByCategory[category.id]?.map((field, index) => (
@@ -374,6 +581,17 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, templ
                               >
                                 <Grip className="h-4 w-4" />
                               </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteField(field.id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         </AccordionTrigger>
@@ -403,6 +621,10 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, templ
                                   Mettre sur page courante
                                 </Button>
                               </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs">Valeur:</Label>
+                              <span className="text-xs truncate max-w-[150px]" title={field.value}>{field.value}</span>
                             </div>
                           </div>
                         </AccordionContent>
@@ -662,6 +884,12 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, templ
                 </p>
                 <p>
                   <span className="font-semibold">Zoom:</span> Ajustez le niveau de zoom pour un positionnement plus précis.
+                </p>
+                <p>
+                  <span className="font-semibold">Supprimer:</span> Utilisez l'icône <Trash2 className="inline h-4 w-4" /> pour supprimer un champ.
+                </p>
+                <p>
+                  <span className="font-semibold">Ajouter:</span> Utilisez le bouton "Ajouter un champ" pour créer de nouveaux champs personnalisés.
                 </p>
                 <p>
                   <span className="font-semibold">Annulation:</span> Appuyez sur la touche Échap pour annuler le positionnement en cours.

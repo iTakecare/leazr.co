@@ -6,6 +6,7 @@ import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
 import PDFPreview from './PDFPreview';
 import { toast } from "sonner";
+import { OfferData, EquipmentItem } from '@/services/offers/types';
 
 // Default fields for the PDF template if none exist yet
 const DEFAULT_FIELDS = [
@@ -38,6 +39,26 @@ const DEFAULT_FIELDS = [
     isVisible: true,
     value: '{clients.email}',
     position: { x: 20, y: 60 },
+    page: 0
+  },
+  {
+    id: 'client_address',
+    label: 'Adresse',
+    type: 'text',
+    category: 'client',
+    isVisible: true,
+    value: '{clients.address}',
+    position: { x: 20, y: 70 },
+    page: 0
+  },
+  {
+    id: 'client_phone',
+    label: 'Téléphone',
+    type: 'text',
+    category: 'client',
+    isVisible: true,
+    value: '{clients.phone}',
+    position: { x: 20, y: 80 },
     page: 0
   },
   
@@ -92,6 +113,46 @@ const DEFAULT_FIELDS = [
     position: { x: 150, y: 100 },
     page: 0
   },
+  {
+    id: 'offer_type',
+    label: 'Type d\'offre',
+    type: 'text',
+    category: 'offer',
+    isVisible: true,
+    value: '{type}',
+    position: { x: 150, y: 110 },
+    page: 0
+  },
+  {
+    id: 'offer_remarks',
+    label: 'Remarques',
+    type: 'text',
+    category: 'offer',
+    isVisible: true,
+    value: '{remarks}',
+    position: { x: 20, y: 200 },
+    page: 0
+  },
+  {
+    id: 'workflow_status',
+    label: 'Statut',
+    type: 'text',
+    category: 'offer',
+    isVisible: true,
+    value: '{workflow_status}',
+    position: { x: 150, y: 120 },
+    page: 0
+  },
+  {
+    id: 'commission',
+    label: 'Commission',
+    type: 'currency',
+    category: 'offer',
+    isVisible: true,
+    value: '{commission}',
+    position: { x: 150, y: 130 },
+    page: 0
+  },
   
   // Equipment field (special table type)
   {
@@ -104,6 +165,48 @@ const DEFAULT_FIELDS = [
     position: { x: 20, y: 120 },
     page: 0
   },
+  {
+    id: 'equipment_total',
+    label: 'Total équipement',
+    type: 'currency',
+    category: 'equipment',
+    isVisible: true,
+    value: '{equipment_total}',
+    position: { x: 150, y: 170 },
+    page: 0
+  },
+  
+  // User/Vendor fields
+  {
+    id: 'user_name',
+    label: 'Nom du vendeur',
+    type: 'text',
+    category: 'user',
+    isVisible: true,
+    value: '{user.name}',
+    position: { x: 20, y: 230 },
+    page: 0
+  },
+  {
+    id: 'user_email',
+    label: 'Email du vendeur',
+    type: 'email',
+    category: 'user',
+    isVisible: true,
+    value: '{user.email}',
+    position: { x: 20, y: 240 },
+    page: 0
+  },
+  {
+    id: 'user_phone',
+    label: 'Téléphone du vendeur',
+    type: 'text',
+    category: 'user',
+    isVisible: true,
+    value: '{user.phone}',
+    position: { x: 20, y: 250 },
+    page: 0
+  },
   
   // General fields
   {
@@ -114,6 +217,36 @@ const DEFAULT_FIELDS = [
     isVisible: true,
     value: 'Page {page_number}',
     position: { x: 180, y: 280 },
+    page: 0
+  },
+  {
+    id: 'total_pages',
+    label: 'Nombre total de pages',
+    type: 'text',
+    category: 'general',
+    isVisible: true,
+    value: 'sur {total_pages}',
+    position: { x: 200, y: 280 },
+    page: 0
+  },
+  {
+    id: 'current_date',
+    label: 'Date actuelle',
+    type: 'date',
+    category: 'general',
+    isVisible: true,
+    value: '{current_date}',
+    position: { x: 20, y: 280 },
+    page: 0
+  },
+  {
+    id: 'validity_period',
+    label: 'Période de validité',
+    type: 'text',
+    category: 'general',
+    isVisible: true,
+    value: 'Offre valable 30 jours',
+    position: { x: 20, y: 260 },
     page: 0
   }
 ];
@@ -171,6 +304,20 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       });
     }
   };
+
+  // Add a new field to the template
+  const handleAddField = (field) => {
+    const newFields = [...currentTemplate.fields, field];
+    handleFieldsChange(newFields);
+    toast.success(`Champ "${field.label}" ajouté`);
+  };
+
+  // Delete a field from the template
+  const handleDeleteField = (fieldId) => {
+    const newFields = currentTemplate.fields.filter(field => field.id !== fieldId);
+    handleFieldsChange(newFields);
+    toast.success("Champ supprimé");
+  };
   
   return (
     <div className="space-y-8">
@@ -201,6 +348,8 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
             activePage={selectedPage}
             onPageChange={setSelectedPage}
             template={currentTemplate}
+            onDeleteField={handleDeleteField}
+            onAddField={handleAddField}
           />
         </TabsContent>
         
