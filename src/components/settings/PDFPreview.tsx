@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -124,7 +123,7 @@ const PDFPreview = ({ template }) => {
       
       // Format appropriately
       if (key === 'page_number') {
-        return (currentPage + 1).toString();
+        return String(currentPage + 1);
       }
       
       // For date fields
@@ -133,7 +132,7 @@ const PDFPreview = ({ template }) => {
           return new Date(value).toLocaleDateString();
         } catch (e) {
           console.error("Error formatting date:", e);
-          return value?.toString() || '';
+          return value ? String(value) : '';
         }
       }
       
@@ -143,7 +142,7 @@ const PDFPreview = ({ template }) => {
           return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
         } catch (e) {
           console.error("Error formatting currency:", e);
-          return typeof value === 'number' ? value.toString() : '';
+          return typeof value === 'number' ? String(value) : '';
         }
       }
       
