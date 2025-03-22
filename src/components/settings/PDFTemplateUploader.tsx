@@ -157,14 +157,6 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     window.open(imageUrl, '_blank');
   };
   
-  // Force immediate saving to parent component when images change
-  useEffect(() => {
-    if (localImages.length > 0) {
-      console.log("Synchronizing template images with parent component:", localImages);
-      onChange(localImages);
-    }
-  }, [localImages]);
-  
   return (
     <div className="space-y-6">
       <div className="border rounded-md p-4">
