@@ -8,25 +8,105 @@ import { FileUp, Trash, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { getAdminSupabaseClient, supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
-import { 
-  uploadImage
-} from "@/services/imageService";
+import { uploadImage } from "@/services/imageService";
 
 const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [localImages, setLocalImages] = useState([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(true);
   
   console.log("PDFTemplateUploader render with templateImages:", templateImages);
   
-  // Initialize local state once on mount and when templateImages changes significantly
+  // On mount, check if templateImages is available and fetch images from storage if needed
   useEffect(() => {
-    console.log("useEffect triggered with templateImages:", templateImages);
-    // Only update if templateImages exists and is different from current localImages
-    if (templateImages && Array.isArray(templateImages)) {
-      console.log("Setting localImages state to:", templateImages);
-      setLocalImages(templateImages);
-    }
-  }, [templateImages]);
+    const initializeImages = async () => {
+      console.log("Initializing images with templateImages:", templateImages);
+      setIsLoadingImages(true);
+      
+      try {
+        if (templateImages && Array.isArray(templateImages) && templateImages.length > 0) {
+          console.log("Using provided templateImages:", templateImages);
+          
+          // Verify that images in templateImages actually exist in storage
+          const verifiedImages = await Promise.all(
+            templateImages.map(async (img) => {
+              try {
+                // Check if the image exists in storage
+                const { data, error } = await supabase.storage
+                  .from('pdf-templates')
+                  .download(img.id);
+                  
+                if (error) {
+                  console.error("Error verifying image existence:", error);
+                  return null;
+                }
+                
+                return {
+                  ...img,
+                  verified: true
+                };
+              } catch (error) {
+                console.error("Exception when verifying image:", error);
+                return null;
+              }
+            })
+          );
+          
+          const filteredImages = verifiedImages.filter(img => img !== null);
+          console.log("Verified images:", filteredImages);
+          
+          if (filteredImages.length !== templateImages.length) {
+            console.warn("Some images could not be verified. Expected:", templateImages.length, "Actual:", filteredImages.length);
+          }
+          
+          setLocalImages(filteredImages);
+        } else {
+          // If no templateImages provided, try to list all images in the bucket
+          console.log("No templateImages provided, listing from storage");
+          const { data: storageFiles, error } = await supabase.storage
+            .from('pdf-templates')
+            .list();
+            
+          if (error) {
+            console.error("Error listing files from storage:", error);
+            toast.error("Erreur lors de la récupération des fichiers");
+            setLocalImages([]);
+          } else if (storageFiles && storageFiles.length > 0) {
+            console.log("Files found in storage:", storageFiles);
+            
+            // Map storage files to our expected format
+            const mappedImages = storageFiles.map((file, index) => {
+              const imageUrl = supabase.storage
+                .from('pdf-templates')
+                .getPublicUrl(file.name).data.publicUrl;
+                
+              return {
+                id: file.name,
+                name: file.name,
+                url: imageUrl,
+                page: index
+              };
+            });
+            
+            console.log("Mapped images from storage:", mappedImages);
+            setLocalImages(mappedImages);
+            onChange(mappedImages); // Update parent component with found images
+          } else {
+            console.log("No files found in storage");
+            setLocalImages([]);
+          }
+        }
+      } catch (err) {
+        console.error("Exception during image initialization:", err);
+        toast.error("Une erreur est survenue lors de l'initialisation des images");
+        setLocalImages([]);
+      } finally {
+        setIsLoadingImages(false);
+      }
+    };
+    
+    initializeImages();
+  }, []); // Run only on mount
   
   // Upload an image using the service
   const handleImageUpload = async (file) => {
@@ -219,7 +299,14 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       <div className="space-y-4">
         <h3 className="text-sm font-medium">Pages du modèle ({localImages.length})</h3>
         
-        {localImages.length === 0 ? (
+        {isLoadingImages ? (
+          <div className="text-center p-8 border border-dashed rounded-md">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-sm text-muted-foreground">
+              Chargement des pages du modèle...
+            </p>
+          </div>
+        ) : localImages.length === 0 ? (
           <div className="text-center p-8 border border-dashed rounded-md">
             <p className="text-sm text-muted-foreground">
               Aucune page n'a encore été uploadée. Utilisez le formulaire ci-dessus pour ajouter des pages à votre modèle.
@@ -291,4 +378,3 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
 };
 
 export default PDFTemplateUploader;
-
