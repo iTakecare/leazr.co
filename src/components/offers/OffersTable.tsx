@@ -1,39 +1,45 @@
 
 import React from "react";
-import { 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableRow, 
-  TableHead, 
-  TableCell 
+import { useNavigate } from "react-router-dom";
+import { formatCurrency } from "@/utils/formatters";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { 
+import { Button } from "@/components/ui/button";
+import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, FileText, RefreshCw, Trash2, Download, Building, Send, CheckCircle, HelpCircle } from "lucide-react";
-import { formatDate, formatCurrency } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
-import { Offer } from "@/hooks/offers/useFetchOffers";
-import OfferStatusBadge, { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import RequestInfoModal from "./RequestInfoModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { MoreHorizontal, Trash2, Send, Eye, FileDown } from "lucide-react";
+import OfferStatusBadge from "./OfferStatusBadge";
+import { useAuth } from "@/context/AuthContext";
 
 interface OffersTableProps {
-  offers: Offer[];
-  onStatusChange: (offerId: string, newStatus: string, reason?: string) => Promise<void>;
-  onDeleteOffer: (id: string) => Promise<void>;
-  onResendOffer: (id: string) => void;
-  onDownloadPdf: (id: string) => void;
+  offers: any[];
+  onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
+  onDeleteOffer: (offerId: string) => Promise<void>;
+  onResendOffer?: (offerId: string) => void;
+  onDownloadPdf?: (offerId: string) => void;
   isUpdatingStatus: boolean;
-  onRequestInfo?: (offerId: string, requestedDocs: string[], customMessage: string) => Promise<void>;
 }
 
 const OffersTable: React.FC<OffersTableProps> = ({
@@ -43,266 +49,173 @@ const OffersTable: React.FC<OffersTableProps> = ({
   onResendOffer,
   onDownloadPdf,
   isUpdatingStatus,
-  onRequestInfo
 }) => {
   const navigate = useNavigate();
-  const [statusDialogOpen, setStatusDialogOpen] = React.useState(false);
-  const [selectedOffer, setSelectedOffer] = React.useState<Offer | null>(null);
-  const [targetStatus, setTargetStatus] = React.useState<string>('');
-  const [statusChangeReason, setStatusChangeReason] = React.useState('');
-  const [infoRequestDialogOpen, setInfoRequestDialogOpen] = React.useState(false);
-  
-  const handleRowClick = (offerId: string) => {
-    navigate(`/offers/${offerId}`);
-  };
-  
-  const openStatusChangeDialog = (offer: Offer, status: string) => {
-    setSelectedOffer(offer);
-    setTargetStatus(status);
-    setStatusChangeReason('');
-    setStatusDialogOpen(true);
-  };
-  
-  const handleStatusChange = async () => {
-    if (selectedOffer && targetStatus) {
-      await onStatusChange(selectedOffer.id, targetStatus, statusChangeReason);
-      setStatusDialogOpen(false);
-    }
-  };
-  
-  const openInfoRequestDialog = (offer: Offer) => {
-    setSelectedOffer(offer);
-    setInfoRequestDialogOpen(true);
-  };
-  
-  const handleInfoRequest = async (requestedDocs: string[], customMessage: string) => {
-    if (selectedOffer && onRequestInfo) {
-      await onRequestInfo(selectedOffer.id, requestedDocs, customMessage);
-      setInfoRequestDialogOpen(false);
-    }
-  };
-  
-  const getAvailableActions = (offer: Offer) => {
-    const actions = [];
-    
-    actions.push({
-      label: "Voir détails",
-      icon: FileText,
-      onClick: () => navigate(`/offers/${offer.id}`),
-    });
-    
-    switch (offer.workflow_status) {
-      case OFFER_STATUSES.DRAFT.id:
-        actions.push({
-          label: "Envoyer au client",
-          icon: Send,
-          onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.SENT.id),
-        });
-        break;
-        
-      case OFFER_STATUSES.SENT.id:
-        actions.push({
-          label: "Marquer comme validée ITC",
-          icon: CheckCircle,
-          onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.VALID_ITC.id),
-        });
-        actions.push({
-          label: "Renvoyer l'offre",
-          icon: RefreshCw,
-          onClick: () => onResendOffer(offer.id),
-        });
-        break;
-        
-      case OFFER_STATUSES.VALID_ITC.id:
-        actions.push({
-          label: "Marquer comme approuvée",
-          icon: Building,
-          onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.APPROVED.id),
-        });
-        if (onRequestInfo) {
-          actions.push({
-            label: "Demander des infos",
-            icon: HelpCircle,
-            onClick: () => openInfoRequestDialog(offer),
-          });
-        }
-        break;
-        
-      case OFFER_STATUSES.APPROVED.id:
-        actions.push({
-          label: "Validation bailleur",
-          icon: Building,
-          onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.LEASER_REVIEW.id),
-        });
-        break;
-        
-      case OFFER_STATUSES.LEASER_REVIEW.id:
-        actions.push({
-          label: "Marquer comme financée",
-          icon: RefreshCw,
-          onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.FINANCED.id),
-        });
-        // Add the ability to request info at the leaser_review stage
-        if (onRequestInfo) {
-          actions.push({
-            label: "Demander des infos",
-            icon: HelpCircle,
-            onClick: () => openInfoRequestDialog(offer),
-          });
-        }
-        actions.push({
-          label: "Rejeter l'offre",
-          icon: Trash2,
-          onClick: () => openStatusChangeDialog(offer, OFFER_STATUSES.REJECTED.id),
-        });
-        break;
-    }
-    
-    actions.push({
-      label: "Télécharger PDF",
-      icon: Download,
-      onClick: () => onDownloadPdf(offer.id),
-    });
-    
-    if (!offer.converted_to_contract) {
-      actions.push({
-        label: "Supprimer",
-        icon: Trash2,
-        className: "text-red-600 hover:text-red-700",
-        onClick: () => onDeleteOffer(offer.id),
-      });
-    }
-    
-    return actions;
-  };
+  const { isAdmin, isAmbassador } = useAuth();
+  const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
 
-  if (offers.length === 0) {
+  if (!offers.length) {
     return (
-      <div className="border rounded-md p-8 text-center">
-        <p className="text-muted-foreground mb-4">Aucune offre trouvée</p>
-        <Button asChild>
-          <a href="/create-offer">Créer une offre</a>
-        </Button>
+      <div className="text-center p-8 bg-gray-50 rounded-md">
+        <p className="text-gray-500">Aucune offre trouvée.</p>
       </div>
     );
   }
 
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
+    } catch (error) {
+      return "Date incorrecte";
+    }
+  };
+
+  const handleViewDetails = (offerId: string) => {
+    if (isAmbassador()) {
+      navigate(`/ambassador/offers/${offerId}`);
+    } else {
+      navigate(`/offers/${offerId}`);
+    }
+  };
+
+  const handleSendToClient = async (offerId: string) => {
+    await onStatusChange(offerId, "sent");
+  };
+
   return (
     <>
       <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Référence</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Montant</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {offers.map((offer) => {
-              const availableActions = getAvailableActions(offer);
-              
-              return (
-                <TableRow 
-                  key={offer.id}
-                  className={offer.converted_to_contract ? "bg-green-50/50" : ""}
-                >
-                  <TableCell 
-                    className="font-medium cursor-pointer"
-                    onClick={() => handleRowClick(offer.id)}
-                  >
-                    {`OFF-${offer.id.slice(0, 8)}`}
-                    {offer.converted_to_contract && (
-                      <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
-                        Contrat actif
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{offer.client_name}</TableCell>
-                  <TableCell>{formatCurrency(offer.amount || 0)}</TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Équipement</TableHead>
+                {!isAmbassador() && <TableHead className="text-right">Montant</TableHead>}
+                <TableHead className="text-right">Mensualité</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {offers.map((offer) => (
+                <TableRow key={offer.id}>
                   <TableCell>{formatDate(offer.created_at)}</TableCell>
+                  <TableCell className="font-medium">{offer.client_name}</TableCell>
+                  <TableCell className="max-w-[180px] truncate">
+                    {offer.equipment_description &&
+                      typeof offer.equipment_description === "string" &&
+                      (offer.equipment_description.startsWith("[") ||
+                        offer.equipment_description.startsWith("{"))
+                      ? (() => {
+                          try {
+                            const equipmentData = JSON.parse(
+                              offer.equipment_description
+                            );
+                            if (Array.isArray(equipmentData)) {
+                              return equipmentData
+                                .map((item) => item.title)
+                                .join(", ");
+                            }
+                            return equipmentData.title || "Équipement sans titre";
+                          } catch (e) {
+                            return "Format d'équipement non valide";
+                          }
+                        })()
+                      : offer.equipment_description || "Non spécifié"}
+                  </TableCell>
+                  {!isAmbassador() && (
+                    <TableCell className="text-right">
+                      {formatCurrency(offer.amount)}
+                    </TableCell>
+                  )}
+                  <TableCell className="text-right font-medium">
+                    {formatCurrency(offer.monthly_payment)}
+                  </TableCell>
                   <TableCell>
-                    <OfferStatusBadge status={offer.workflow_status} isConverted={offer.converted_to_contract} />
+                    <OfferStatusBadge status={offer.workflow_status} />
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="w-4 h-4" />
+                        <Button
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          aria-label="Plus d'options"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        {availableActions.map((action, index) => (
-                          <React.Fragment key={action.label}>
-                            {index > 0 && index === availableActions.length - 1 && <DropdownMenuSeparator />}
-                            <DropdownMenuItem 
-                              onClick={action.onClick}
-                              className={action.className}
-                              disabled={isUpdatingStatus}
-                            >
-                              <action.icon className="w-4 h-4 mr-2" />
-                              {action.label}
-                            </DropdownMenuItem>
-                          </React.Fragment>
-                        ))}
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetails(offer.id)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Voir détails
+                        </DropdownMenuItem>
+                        
+                        {offer.workflow_status === "draft" && (
+                          <DropdownMenuItem
+                            onClick={() => handleSendToClient(offer.id)}
+                            disabled={isUpdatingStatus}
+                          >
+                            <Send className="mr-2 h-4 w-4" />
+                            Envoyer au client
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {onDownloadPdf && (
+                          <DropdownMenuItem onClick={() => onDownloadPdf(offer.id)}>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Télécharger PDF
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {onResendOffer && offer.workflow_status === "sent" && (
+                          <DropdownMenuItem onClick={() => onResendOffer(offer.id)}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Renvoyer
+                          </DropdownMenuItem>
+                        )}
+                        
+                        <DropdownMenuItem onClick={() => setConfirmDelete(offer.id)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-      
-      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Changer le statut de l'offre</DialogTitle>
-            <DialogDescription>
-              {targetStatus === OFFER_STATUSES.REJECTED.id 
-                ? "Veuillez indiquer la raison du rejet de cette offre."
-                : "Vous pouvez ajouter une note facultative pour ce changement de statut."}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <Textarea
-              placeholder={targetStatus === OFFER_STATUSES.REJECTED.id 
-                ? "Raison du rejet..." 
-                : "Note (facultatif)..."}
-              value={statusChangeReason}
-              onChange={(e) => setStatusChangeReason(e.target.value)}
-              rows={4}
-              required={targetStatus === OFFER_STATUSES.REJECTED.id}
-            />
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button 
-              onClick={handleStatusChange}
-              disabled={targetStatus === OFFER_STATUSES.REJECTED.id && !statusChangeReason.trim()}
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action ne peut pas être annulée. Cela supprimera
+              définitivement cette offre.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmDelete) {
+                  onDeleteOffer(confirmDelete);
+                  setConfirmDelete(null);
+                }
+              }}
+              className="bg-red-500 hover:bg-red-600"
             >
-              Confirmer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {onRequestInfo && (
-        <RequestInfoModal 
-          isOpen={infoRequestDialogOpen}
-          onClose={() => setInfoRequestDialogOpen(false)}
-          onSendRequest={handleInfoRequest}
-          offerId={selectedOffer?.id || ''}
-        />
-      )}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

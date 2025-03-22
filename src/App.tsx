@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
@@ -42,6 +43,7 @@ import ProductCreationPage from "@/components/catalog/ProductCreationPage";
 import ProductDetail from "./pages/ProductDetail";
 import AmbassadorDashboardPage from "./pages/AmbassadorPages/AmbassadorDashboardPage";
 import AmbassadorOffersPage from "./pages/AmbassadorPages/AmbassadorOffersPage";
+import AmbassadorOfferDetail from "./pages/AmbassadorPages/AmbassadorOfferDetail";
 import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage";
 import AmbassadorLayout from "./components/layout/AmbassadorLayout";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
@@ -117,7 +119,7 @@ function App() {
                 <Route index element={<AmbassadorDashboardPage />} />
                 <Route path="dashboard" element={<AmbassadorDashboardPage />} />
                 <Route path="offers" element={<AmbassadorOffersPage />} />
-                <Route path="offers/:id" element={<OfferDetail />} />
+                <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
                 <Route path="clients" element={<AmbassadorClientsPage />} />
                 <Route path="clients/new" element={<ClientForm isAmbassador={true} />} />
                 <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
