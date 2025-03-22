@@ -185,7 +185,7 @@ const AmbassadorCreateOffer = () => {
           workflow_status: "draft",
           type: "ambassador_offer",
           user_id: user?.id,
-          additional_info: remarks
+          remarks: remarks // Changed from additional_info to remarks
         }
       ]).select();
       

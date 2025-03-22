@@ -83,12 +83,12 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
       type: offerData.type || 'admin_offer',
       user_id: offerData.user_id === 'user-123' ? 
         '00000000-0000-0000-0000-000000000000' : offerData.user_id,
-      additional_info: offerData.additional_info || offerData.remarks,
+      remarks: offerData.remarks || offerData.additional_info,
       equipment_description: offerData.equipment_description || offerData.equipment_text
     };
     
-    if ('remarks' in dataToSend) {
-      delete dataToSend.remarks;
+    if ('additional_info' in dataToSend) {
+      delete dataToSend.additional_info;
     }
     
     if ('equipment_text' in dataToSend) {
