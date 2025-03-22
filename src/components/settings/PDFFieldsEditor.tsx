@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -306,6 +305,10 @@ const PDFFieldsEditor = ({
     }
   };
   
+  const getCurrentPageFields = () => {
+    return fields.filter(f => f.page === activePage || (activePage === 0 && (f.page === undefined || f.page === null)));
+  };
+  
   const startPositioning = (fieldId, initialPosition) => {
     const field = fields.find(f => f.id === fieldId);
     if (!field) return;
@@ -316,7 +319,9 @@ const PDFFieldsEditor = ({
     
     initialClickOffset.current = { x: 0, y: 0 };
     
-    if (field.page !== activePage) {
+    if (field.page !== activePage && field.page !== null) {
+      updateFieldPage(fieldId, activePage);
+    } else if (field.page === null) {
       updateFieldPage(fieldId, activePage);
     }
   };
@@ -407,7 +412,6 @@ const PDFFieldsEditor = ({
     setPageLoaded(true);
   };
 
-  // Quick remove field action - new function
   const quickRemoveField = (fieldId, page, e) => {
     e.stopPropagation();
     
@@ -539,10 +543,6 @@ const PDFFieldsEditor = ({
     
     setFieldToRemove(field);
     setShowRemoveDialog(true);
-  };
-
-  const getCurrentPageFields = () => {
-    return fields.filter(f => f.page === activePage || (activePage === 0 && f.page === undefined));
   };
 
   const totalPages = template?.templateImages?.length || 1;
@@ -678,7 +678,6 @@ const PDFFieldsEditor = ({
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  {/* Added quick remove button */}
                                   <Button
                                     variant="ghost"
                                     size="icon"
@@ -772,7 +771,6 @@ const PDFFieldsEditor = ({
                         size="sm"
                         className="h-7 text-xs"
                         onClick={() => {
-                          // Add all fields of this category to current page
                           const fieldsToAdd = fieldsByCategory[category.id]
                             ?.filter(field => field.page !== activePage && !(activePage === 0 && field.page === undefined))
                             ?.filter(field => !getCurrentPageFields().some(f => f.id === field.id));
@@ -1109,7 +1107,6 @@ const PDFFieldsEditor = ({
                             }
                           }}
                         >
-                          {/* Add a small "x" button */}
                           <Button
                             variant="ghost"
                             size="icon"

@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -208,7 +207,7 @@ export const generateOfferPdf = async (offer: any) => {
       // Ajouter les champs pour cette page
       if (template?.fields) {
         template.fields
-          .filter(field => field.isVisible && (field.page === index || (index === 0 && field.page === undefined)))
+          .filter(field => field.isVisible && (field.page === index || field.page === null))
           .forEach(field => {
             // Conversion des millimètres en points (unité utilisée par jsPDF)
             // 1 mm = 2.83464567 points
@@ -347,7 +346,7 @@ export const generateOfferPdf = async (offer: any) => {
     if (template?.fields) {
       // Parcourir tous les champs visibles et les ajouter au PDF
       template.fields
-        .filter(field => field.isVisible && (field.page === 0 || field.page === undefined))
+        .filter(field => field.isVisible && (field.page === 0 || field.page === null))
         .forEach(field => {
           // Positionner les coordonnées du champ
           const x = field.position.x;

@@ -16,50 +16,50 @@ const DEFAULT_FIELDS = [
     label: 'Nom du client',
     type: 'text',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.name}',
     position: { x: 20, y: 40 },
-    page: 0
+    page: null
   },
   {
     id: 'client_company',
     label: 'Société',
     type: 'text',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.company}',
     position: { x: 20, y: 50 },
-    page: 0
+    page: null
   },
   {
     id: 'client_email',
     label: 'Email',
     type: 'email',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.email}',
     position: { x: 20, y: 60 },
-    page: 0
+    page: null
   },
   {
     id: 'client_address',
     label: 'Adresse',
     type: 'text',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.address}',
     position: { x: 20, y: 70 },
-    page: 0
+    page: null
   },
   {
     id: 'client_phone',
     label: 'Téléphone',
     type: 'text',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.phone}',
     position: { x: 20, y: 80 },
-    page: 0
+    page: null
   },
   
   // Offer fields
@@ -68,90 +68,90 @@ const DEFAULT_FIELDS = [
     label: 'Numéro d\'offre',
     type: 'text',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{id}',
     position: { x: 150, y: 40 },
-    page: 0
+    page: null
   },
   {
     id: 'offer_date',
     label: 'Date de l\'offre',
     type: 'date',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{created_at}',
     position: { x: 150, y: 50 },
-    page: 0
+    page: null
   },
   {
     id: 'offer_amount',
     label: 'Montant total',
     type: 'currency',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{amount}',
     position: { x: 150, y: 80 },
-    page: 0
+    page: null
   },
   {
     id: 'monthly_payment',
     label: 'Mensualité',
     type: 'currency',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{monthly_payment}',
     position: { x: 150, y: 90 },
-    page: 0
+    page: null
   },
   {
     id: 'coefficient',
     label: 'Coefficient',
     type: 'number',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{coefficient}',
     position: { x: 150, y: 100 },
-    page: 0
+    page: null
   },
   {
     id: 'offer_type',
     label: 'Type d\'offre',
     type: 'text',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{type}',
     position: { x: 150, y: 110 },
-    page: 0
+    page: null
   },
   {
     id: 'offer_remarks',
     label: 'Remarques',
     type: 'text',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{remarks}',
     position: { x: 20, y: 200 },
-    page: 0
+    page: null
   },
   {
     id: 'workflow_status',
     label: 'Statut',
     type: 'text',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{workflow_status}',
     position: { x: 150, y: 120 },
-    page: 0
+    page: null
   },
   {
     id: 'commission',
     label: 'Commission',
     type: 'currency',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{commission}',
     position: { x: 150, y: 130 },
-    page: 0
+    page: null
   },
   
   // Equipment field (special table type)
@@ -160,20 +160,20 @@ const DEFAULT_FIELDS = [
     label: 'Tableau des équipements',
     type: 'table',
     category: 'equipment',
-    isVisible: true,
+    isVisible: false,
     value: '{equipment_description}',
     position: { x: 20, y: 120 },
-    page: 0
+    page: null
   },
   {
     id: 'equipment_total',
     label: 'Total équipement',
     type: 'currency',
     category: 'equipment',
-    isVisible: true,
+    isVisible: false,
     value: '{equipment_total}',
     position: { x: 150, y: 170 },
-    page: 0
+    page: null
   },
   
   // User/Vendor fields
@@ -182,30 +182,30 @@ const DEFAULT_FIELDS = [
     label: 'Nom du vendeur',
     type: 'text',
     category: 'user',
-    isVisible: true,
+    isVisible: false,
     value: '{user.name}',
     position: { x: 20, y: 230 },
-    page: 0
+    page: null
   },
   {
     id: 'user_email',
     label: 'Email du vendeur',
     type: 'email',
     category: 'user',
-    isVisible: true,
+    isVisible: false,
     value: '{user.email}',
     position: { x: 20, y: 240 },
-    page: 0
+    page: null
   },
   {
     id: 'user_phone',
     label: 'Téléphone du vendeur',
     type: 'text',
     category: 'user',
-    isVisible: true,
+    isVisible: false,
     value: '{user.phone}',
     position: { x: 20, y: 250 },
-    page: 0
+    page: null
   },
   
   // General fields
@@ -214,40 +214,40 @@ const DEFAULT_FIELDS = [
     label: 'Numéro de page',
     type: 'text',
     category: 'general',
-    isVisible: true,
+    isVisible: false,
     value: 'Page {page_number}',
     position: { x: 180, y: 280 },
-    page: 0
+    page: null
   },
   {
     id: 'total_pages',
     label: 'Nombre total de pages',
     type: 'text',
     category: 'general',
-    isVisible: true,
+    isVisible: false,
     value: 'sur {total_pages}',
     position: { x: 200, y: 280 },
-    page: 0
+    page: null
   },
   {
     id: 'current_date',
     label: 'Date actuelle',
     type: 'date',
     category: 'general',
-    isVisible: true,
+    isVisible: false,
     value: '{current_date}',
     position: { x: 20, y: 280 },
-    page: 0
+    page: null
   },
   {
     id: 'validity_period',
     label: 'Période de validité',
     type: 'text',
     category: 'general',
-    isVisible: true,
+    isVisible: false,
     value: 'Offre valable 30 jours',
     position: { x: 20, y: 260 },
-    page: 0
+    page: null
   }
 ];
 
