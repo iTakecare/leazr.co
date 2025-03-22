@@ -16,12 +16,13 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [localImages, setLocalImages] = useState(templateImages);
   
-  // Synchronize local state with incoming props
+  // Synchronize local state with incoming props when they change
   useEffect(() => {
-    setLocalImages(templateImages);
-  }, [templateImages]);
+    console.log("Template images from props:", templateImages);
+    setLocalImages(templateImages || []);
+  }, [JSON.stringify(templateImages)]); // Use JSON.stringify to properly detect changes in the array
   
-  // Uploader une image en utilisant le service d'upload qui fonctionne
+  // Upload an image using the service
   const handleImageUpload = async (file) => {
     if (!file) return null;
     
@@ -30,10 +31,11 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       
       console.log("Début du processus d'upload pour:", file.name);
       
-      // Utiliser la fonction uploadImage qui gère correctement le type MIME
+      // Use uploadImage function that correctly handles MIME type
       const result = await uploadImage(file, uuidv4(), 'pdf-templates');
       
       if (result && result.url) {
+        console.log("Upload successful, image URL:", result.url);
         return {
           id: result.url.split('/').pop(),
           name: file.name,
@@ -52,12 +54,12 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     }
   };
   
-  // Supprimer une image
+  // Delete an image
   const deleteImage = async (imageId) => {
     try {
       console.log("Tentative de suppression du fichier:", imageId);
       
-      // Essayer d'abord avec le client standard
+      // Try with the standard client first
       let { error } = await supabase.storage
         .from('pdf-templates')
         .remove([imageId]);
@@ -65,7 +67,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       if (error) {
         console.log("Erreur avec le client standard. Tentative avec le client admin...");
         
-        // Si ça échoue, essayer avec le client admin
+        // If it fails, try with the admin client
         const adminSupabase = getAdminSupabaseClient();
         const result = await adminSupabase.storage
           .from('pdf-templates')
@@ -80,10 +82,10 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       
       console.log("Fichier supprimé avec succès");
       
-      // Mettre à jour la liste des images
+      // Update the image list
       const updatedImages = localImages.filter(img => img.id !== imageId);
       
-      // Réindexer les numéros de page
+      // Reindex page numbers
       updatedImages.forEach((img, idx) => {
         img.page = idx;
       });
@@ -98,12 +100,12 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     }
   };
   
-  // Gérer l'upload de fichier
+  // Handle file upload
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Vérifier le type de fichier (image uniquement)
+    // Check file type (images only)
     if (!file.type.startsWith('image/')) {
       toast.error("Veuillez sélectionner une image");
       return;
@@ -114,45 +116,46 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     const uploadedImage = await handleImageUpload(file);
     if (uploadedImage) {
       const newImages = [...localImages, uploadedImage];
+      console.log("New images array after upload:", newImages);
       setLocalImages(newImages);
-      onChange(newImages);
+      onChange(newImages); // Notify parent component immediately
       toast.success("Image uploadée avec succès");
     }
   };
 
-  // Déplacer une image vers le haut
+  // Move an image up
   const moveUp = (index) => {
     if (index === 0) return;
     
     const newImages = [...localImages];
     [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
     
-    // Mettre à jour les numéros de page
+    // Update page numbers
     newImages.forEach((img, idx) => {
       img.page = idx;
     });
     
     setLocalImages(newImages);
-    onChange(newImages);
+    onChange(newImages); // Notify parent component immediately
   };
   
-  // Déplacer une image vers le bas
+  // Move an image down
   const moveDown = (index) => {
     if (index === localImages.length - 1) return;
     
     const newImages = [...localImages];
     [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
     
-    // Mettre à jour les numéros de page
+    // Update page numbers
     newImages.forEach((img, idx) => {
       img.page = idx;
     });
     
     setLocalImages(newImages);
-    onChange(newImages);
+    onChange(newImages); // Notify parent component immediately
   };
   
-  // Prévisualiser une image
+  // Preview an image
   const previewImage = (imageUrl) => {
     window.open(imageUrl, '_blank');
   };
@@ -187,9 +190,9 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       </div>
       
       <div className="space-y-4">
-        <h3 className="text-sm font-medium">Pages du modèle</h3>
+        <h3 className="text-sm font-medium">Pages du modèle ({localImages?.length || 0})</h3>
         
-        {localImages.length === 0 ? (
+        {(!localImages || localImages.length === 0) ? (
           <div className="text-center p-8 border border-dashed rounded-md">
             <p className="text-sm text-muted-foreground">
               Aucune page n'a encore été uploadée. Utilisez le formulaire ci-dessus pour ajouter des pages à votre modèle.
@@ -198,12 +201,16 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {localImages.map((image, index) => (
-              <Card key={image.id || index} className="overflow-hidden">
+              <Card key={image.id || `image-${index}`} className="overflow-hidden">
                 <div className="relative bg-gray-100 h-40 flex items-center justify-center">
                   <img 
                     src={image.url} 
                     alt={`Template page ${index + 1}`} 
                     className="max-h-full max-w-full object-contain"
+                    onError={(e) => {
+                      console.error("Image failed to load:", image.url);
+                      e.target.src = "/placeholder.svg";
+                    }}
                   />
                   <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
                     Page {index + 1}
@@ -211,7 +218,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
                 </div>
                 <CardContent className="p-3">
                   <div className="flex justify-between items-center">
-                    <div className="truncate text-sm">{image.name}</div>
+                    <div className="truncate text-sm">{image.name || `Page ${index + 1}`}</div>
                     <div className="flex gap-1">
                       <Button 
                         variant="ghost" 
