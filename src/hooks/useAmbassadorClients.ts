@@ -1,17 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { Client, CreateClientData } from '@/types/client';
-import { getAmbassadorClients } from '@/services/ambassadorClientService';
-import { createClient } from '@/services/clientService';
+import { getAmbassadorClients, getCurrentAmbassadorProfile, linkClientToAmbassador, createClientAsAmbassadorDb } from '@/services/ambassadorClientService';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { getCurrentAmbassadorProfile, linkClientToAmbassador } from '@/services/ambassadorClientService';
 
 export const useAmbassadorClients = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   // Charger les clients de l'ambassadeur
   const loadClients = async () => {
@@ -43,28 +39,20 @@ export const useAmbassadorClients = () => {
       
       console.log("Creating client as ambassador with ID:", ambassadorId);
       
-      // 2. Créer le client
-      const newClient = await createClient(clientData);
+      // 2. Utiliser notre fonction de base de données SECURITY DEFINER
+      const newClientId = await createClientAsAmbassadorDb(clientData, ambassadorId);
       
-      if (!newClient) {
+      if (!newClientId) {
         toast.error("Échec de la création du client");
         return false;
       }
       
-      // 3. Lier le client à l'ambassadeur
-      const linked = await linkClientToAmbassador(newClient.id, ambassadorId);
+      toast.success("Client créé et associé à votre compte ambassadeur");
       
-      if (linked) {
-        toast.success("Client créé et associé à votre compte ambassadeur");
-        
-        // 4. Recharger la liste des clients
-        await loadClients();
-        
-        return true;
-      } else {
-        toast.warning("Client créé mais impossible de l'associer à votre compte. Veuillez contacter l'administrateur.");
-        return false;
-      }
+      // 3. Recharger la liste des clients
+      await loadClients();
+      
+      return true;
     } catch (err) {
       console.error("Error creating client as ambassador:", err);
       toast.error("Erreur lors de la création du client");

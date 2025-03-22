@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CreateClientData } from "@/types/client";
 
 // Obtenir le profil ambassadeur de l'utilisateur actuel
 export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
@@ -129,5 +130,29 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
   } catch (error) {
     console.error("Exception in linkClientToAmbassador:", error);
     return false;
+  }
+};
+
+// Créer un client en tant qu'ambassadeur en utilisant une fonction SECURITY DEFINER
+export const createClientAsAmbassadorDb = async (clientData: CreateClientData, ambassadorId: string): Promise<string | null> => {
+  try {
+    console.log("Using database function to create client as ambassador:", { ambassadorId, clientData });
+    
+    const { data, error } = await supabase
+      .rpc('create_client_as_ambassador', {
+        client_data: clientData,
+        ambassador_id: ambassadorId
+      });
+    
+    if (error) {
+      console.error("Error creating client through RPC:", error);
+      throw error;
+    }
+    
+    console.log("Client created successfully through RPC function:", data);
+    return data;
+  } catch (error) {
+    console.error("Exception in createClientAsAmbassadorDb:", error);
+    return null;
   }
 };
