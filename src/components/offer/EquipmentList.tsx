@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,15 +56,16 @@ const EquipmentList = ({
       setIsCalculating(true);
       try {
         console.log(`Calculating commission for ambassador ${ambassadorId} with level ${commissionLevelId}`);
+        const totalEquipmentAmount = globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
         const commissionData = await calculateCommissionByLevel(
-          globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
+          totalEquipmentAmount,
           commissionLevelId,
           'ambassador',
           ambassadorId
         );
         
         setCommission({ 
-          amount: 123.63, 
+          amount: commissionData.amount, 
           rate: commissionData.rate,
           levelName: commissionData.levelName || ""
         });

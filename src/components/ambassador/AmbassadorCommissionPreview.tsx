@@ -44,8 +44,7 @@ const AmbassadorCommissionPreview = ({
         );
         
         setCommissionRate(rate);
-        // We calculate the commission, but we display the correct amount
-        setCommission(123.63);
+        setCommission(amount);
         if (name) setLevelName(name);
       } catch (error) {
         console.error("Erreur lors du calcul de la commission:", error);
