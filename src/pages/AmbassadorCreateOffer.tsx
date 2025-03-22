@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ const AmbassadorCreateOffer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ambassador, setAmbassador] = useState(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
+  const [remarks, setRemarks] = useState("");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -173,6 +175,7 @@ const AmbassadorCreateOffer = () => {
           client_id: client.id,
           client_name: client.name,
           client_email: client.email,
+          client_company: client.company,
           equipment_description: equipmentDescription,
           equipment_text: equipmentText,
           amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
@@ -182,10 +185,14 @@ const AmbassadorCreateOffer = () => {
           workflow_status: "draft",
           type: "ambassador_offer",
           user_id: user?.id,
+          additional_info: remarks
         }
       ]).select();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur lors de la sauvegarde:", error);
+        throw error;
+      }
       
       toast.success("Offre créée avec succès!");
       
@@ -203,8 +210,8 @@ const AmbassadorCreateOffer = () => {
     clientName: client?.name || "",
     clientEmail: client?.email || "",
     clientCompany: client?.company || "",
-    remarks: "",
-    setRemarks: () => {},
+    remarks: remarks,
+    setRemarks: setRemarks,
     onOpenClientSelector: handleOpenClientSelector,
     handleSaveOffer: handleSaveOffer,
     isSubmitting: isSubmitting,
