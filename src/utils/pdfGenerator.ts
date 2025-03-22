@@ -81,11 +81,17 @@ export const generateOfferPdf = async (offer) => {
       // Simuler un délai pour imiter l'API
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Retourner un nom de fichier fictif
+      // En développement, créer un blob PDF fictif pour le téléchargement
       const mockFilename = `offre_${offer.id}_${new Date().getTime()}.pdf`;
       console.log("Mock PDF generated:", mockFilename);
       
-      return mockFilename;
+      // Retourner un objet avec le nom de fichier et un flag indiquant qu'il s'agit d'un mock
+      return {
+        filename: mockFilename,
+        isMock: true,
+        pdfUrl: null,
+        pdfBlob: new Blob(['Contenu PDF fictif pour test en développement'], { type: 'application/pdf' })
+      };
     }
     
     // Appel à l'API pour générer le PDF en mode production
@@ -108,7 +114,13 @@ export const generateOfferPdf = async (offer) => {
     const result = await response.json();
     console.log("PDF generated successfully:", result);
     
-    return result.filename;
+    // Retourner les informations complètes (incluant l'URL du PDF s'il est disponible)
+    return {
+      filename: result.filename,
+      isMock: false,
+      pdfUrl: result.pdfUrl || null,
+      pdfBlob: null
+    };
   } catch (error) {
     console.error("Error generating PDF:", error);
     toast.error("Erreur lors de la génération du PDF");
@@ -116,9 +128,58 @@ export const generateOfferPdf = async (offer) => {
     // En cas d'erreur en développement, retourner un fichier fictif plutôt que de bloquer l'utilisateur
     if (import.meta.env.DEV) {
       console.log("Returning mock filename due to error in development mode");
-      return `error_mock_${new Date().getTime()}.pdf`;
+      return {
+        filename: `error_mock_${new Date().getTime()}.pdf`,
+        isMock: true,
+        pdfUrl: null,
+        pdfBlob: new Blob(['Erreur PDF - Document fictif'], { type: 'application/pdf' })
+      };
     }
     
     throw error;
   }
+};
+
+// Fonction utilitaire pour télécharger un fichier
+export const downloadFile = (data, filename, mimeType = 'application/pdf') => {
+  // Créer un élément a pour le téléchargement
+  const downloadLink = document.createElement('a');
+  
+  // Si les données sont déjà un Blob, les utiliser directement
+  let blob;
+  if (data instanceof Blob) {
+    blob = data;
+  } else if (typeof data === 'string') {
+    // Si c'est une URL, définir l'attribut href
+    if (data.startsWith('http')) {
+      downloadLink.href = data;
+    } else {
+      // Sinon, créer un blob à partir de la chaîne
+      blob = new Blob([data], { type: mimeType });
+    }
+  } else {
+    console.error("Type de données non pris en charge pour le téléchargement");
+    return;
+  }
+  
+  // Si nous avons un blob, créer une URL d'objet
+  if (blob) {
+    const blobUrl = URL.createObjectURL(blob);
+    downloadLink.href = blobUrl;
+    
+    // Nettoyer l'URL de l'objet après le téléchargement
+    downloadLink.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+    };
+  }
+  
+  // Définir le nom du fichier téléchargé
+  downloadLink.download = filename;
+  
+  // Ajouter temporairement à la page et cliquer
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  
+  // Supprimer le lien après le déclenchement du téléchargement
+  document.body.removeChild(downloadLink);
 };

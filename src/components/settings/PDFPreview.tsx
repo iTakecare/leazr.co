@@ -1,8 +1,9 @@
+
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, FileDown, Printer, Maximize2, ArrowLeft, ArrowRight } from "lucide-react";
-import { generateOfferPdf } from "@/utils/pdfGenerator";
+import { generateOfferPdf, downloadFile } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 
@@ -73,9 +74,33 @@ const PDFPreview = ({ template }) => {
         __template: template
       };
       
-      const pdfFilename = await generateOfferPdf(offerWithTemplate);
+      const pdfResult = await generateOfferPdf(offerWithTemplate);
       
-      toast.success(`PDF généré avec succès : ${pdfFilename}`);
+      toast.success(`PDF généré avec succès : ${pdfResult.filename}`);
+      
+      // Télécharger le PDF généré
+      if (pdfResult.isMock) {
+        // Si c'est un PDF fictif, télécharger le blob
+        if (pdfResult.pdfBlob) {
+          downloadFile(pdfResult.pdfBlob, pdfResult.filename);
+        }
+      } else if (pdfResult.pdfUrl) {
+        // Si nous avons une URL, télécharger à partir de cette URL
+        downloadFile(pdfResult.pdfUrl, pdfResult.filename);
+      } else {
+        // Sinon, créer un blob à partir du nom de fichier
+        const mockPdfContent = `PDF de démonstration pour l'offre ${SAMPLE_OFFER.id}
+        
+Client: ${SAMPLE_OFFER.clients.name}
+Société: ${SAMPLE_OFFER.clients.company}
+Montant: ${SAMPLE_OFFER.amount} €
+Mensualité: ${SAMPLE_OFFER.monthly_payment} €
+
+Ce PDF est un exemple généré automatiquement pour la prévisualisation du modèle.`;
+        
+        const mockBlob = new Blob([mockPdfContent], { type: 'application/pdf' });
+        downloadFile(mockBlob, pdfResult.filename);
+      }
     } catch (error) {
       console.error("Erreur lors de la génération du PDF:", error);
       toast.error("Erreur lors de la génération du PDF");

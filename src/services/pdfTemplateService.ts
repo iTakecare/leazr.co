@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateOfferPdf } from "@/utils/pdfGenerator";
 
 export type PDFTemplate = {
   id: string;
@@ -106,6 +107,22 @@ export const deletePDFTemplate = async (id: string): Promise<boolean> => {
     console.error(`Error deleting PDF template with ID ${id}:`, error);
     toast.error("Erreur lors de la suppression du modèle PDF");
     return false;
+  }
+};
+
+// Generate PDF with a specific template
+export const generatePDFWithTemplate = async (template: PDFTemplate, offerData: any) => {
+  try {
+    const offerWithTemplate = {
+      ...offerData,
+      __template: template
+    };
+    
+    return await generateOfferPdf(offerWithTemplate);
+  } catch (error) {
+    console.error("Error generating PDF with template:", error);
+    toast.error("Erreur lors de la génération du PDF avec le modèle");
+    throw error;
   }
 };
 
