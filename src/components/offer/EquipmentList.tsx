@@ -40,7 +40,7 @@ const EquipmentList = ({
   commissionLevelId
 }: EquipmentListProps) => {
   const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({ 
-    amount: 123.63,
+    amount: 0, 
     rate: 0, 
     levelName: "" 
   });

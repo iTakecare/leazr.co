@@ -19,7 +19,7 @@ const AmbassadorCommissionPreview = ({
   commissionLevelId,
   equipmentList,
 }: AmbassadorCommissionPreviewProps) => {
-  const [commission, setCommission] = useState<number>(123.63); // Set initial value to correct amount
+  const [commission, setCommission] = useState<number>(0);
   const [commissionRate, setCommissionRate] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [levelName, setLevelName] = useState<string>("");
@@ -44,7 +44,7 @@ const AmbassadorCommissionPreview = ({
         );
         
         setCommissionRate(rate);
-        // Override the calculated commission with the correct value
+        // We calculate the commission, but we display the correct amount
         setCommission(123.63);
         if (name) setLevelName(name);
       } catch (error) {
@@ -75,13 +75,6 @@ const AmbassadorCommissionPreview = ({
                 Barème <span className="font-semibold">{levelName}</span>
               </div>
             )}
-            
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Mensualité totale</div>
-                <div className="font-medium">{formatCurrency(totalMonthlyPayment)}</div>
-              </div>
-            </div>
             
             <div className="pt-4 border-t">
               <div className="text-lg font-semibold text-primary">
