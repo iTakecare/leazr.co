@@ -39,7 +39,7 @@ const Settings = () => {
               </TabsTrigger>
               <TabsTrigger value="pdf" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                <span>Modèle PDF</span>
+                <span>Modèles PDF</span>
               </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <UserRound className="h-4 w-4" />

@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, Eye, EyeOff, MoveHorizontal, User, Calendar, CreditCard, Layout, FileText, Package } from "lucide-react";
 
@@ -21,6 +20,7 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
   const [positionedField, setPositionedField] = useState(null);
   const [canvasPosition, setCanvasPosition] = useState({ x: 0, y: 0 });
   const [dragEnabled, setDragEnabled] = useState(true);
+  const [activePage, setActivePage] = useState(0);
   
   // Grouper les champs par catégorie
   const fieldsByCategory = fields.reduce((acc, field) => {
@@ -40,9 +40,9 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
   };
   
   // Mettre à jour la position d'un champ
-  const updateFieldPosition = (fieldId, newPosition) => {
+  const updateFieldPosition = (fieldId, newPosition, page = activePage) => {
     const newFields = fields.map(field => 
-      field.id === fieldId ? { ...field, position: newPosition } : field
+      field.id === fieldId ? { ...field, position: newPosition, page } : field
     );
     onChange(newFields);
   };
@@ -64,7 +64,7 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
       updateFieldPosition(positionedField, { 
         x: canvasPosition.x, 
         y: canvasPosition.y 
-      });
+      }, activePage);
       setPositionedField(null);
     }
   };
@@ -114,7 +114,6 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
                               <Switch
                                 checked={field.isVisible}
                                 onCheckedChange={() => toggleFieldVisibility(field.id)}
-                                size="sm"
                               />
                               <Button
                                 variant="ghost"
@@ -141,6 +140,10 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
                               <Label className="text-xs">Position:</Label>
                               <span className="text-xs">(x: {field.position.x}, y: {field.position.y})</span>
                             </div>
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs">Page:</Label>
+                              <span className="text-xs">{field.page || 0}</span>
+                            </div>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
@@ -160,15 +163,38 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
             <div className="flex flex-col h-full">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-sm font-medium">Positionnement des champs</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={dragEnabled}
-                    onCheckedChange={setDragEnabled}
-                    id="drag-mode"
-                  />
-                  <Label htmlFor="drag-mode" className="text-xs">
-                    Mode glisser-déposer
-                  </Label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={dragEnabled}
+                      onCheckedChange={setDragEnabled}
+                      id="drag-mode"
+                    />
+                    <Label htmlFor="drag-mode" className="text-xs">
+                      Mode glisser-déposer
+                    </Label>
+                  </div>
+                  
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setActivePage(Math.max(0, activePage - 1))}
+                      disabled={activePage === 0}
+                    >
+                      Page précédente
+                    </Button>
+                    <span className="flex items-center px-2 text-sm">
+                      Page {activePage + 1}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setActivePage(activePage + 1)}
+                    >
+                      Page suivante
+                    </Button>
+                  </div>
                 </div>
               </div>
               
@@ -199,36 +225,38 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
                     className="w-full py-4 px-6 border-b border-gray-200 bg-gray-50"
                     style={{ position: "absolute", top: "0", left: "0", right: "0" }}
                   >
-                    <div className="text-lg font-bold text-center">APERÇU DU DOCUMENT PDF</div>
+                    <div className="text-lg font-bold text-center">APERÇU DU DOCUMENT PDF - PAGE {activePage + 1}</div>
                   </div>
                   
-                  {/* Position des champs */}
-                  {fields.filter(f => f.isVisible).map((field) => (
-                    <div
-                      key={field.id}
-                      className={`absolute p-1 border ${positionedField === field.id ? 'border-blue-500 bg-blue-100' : 'border-gray-300 hover:border-blue-300'}`}
-                      style={{
-                        left: `${field.position.x}mm`,
-                        top: `${field.position.y}mm`,
-                        cursor: dragEnabled ? "move" : "default",
-                        padding: "2px 4px",
-                        backgroundColor: positionedField === field.id ? "rgba(59, 130, 246, 0.1)" : "rgba(255, 255, 255, 0.8)",
-                        fontSize: "10px",
-                        whiteSpace: "nowrap",
-                      }}
-                      onMouseDown={(e) => {
-                        if (dragEnabled) {
-                          e.stopPropagation();
-                          startPositioning(field.id, field.position);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-1">
-                        {getCategoryIcon(field.category)}
-                        <span>{field.label}</span>
+                  {/* Position des champs pour la page active */}
+                  {fields
+                    .filter(f => f.isVisible && (f.page === activePage || f.page === undefined))
+                    .map((field) => (
+                      <div
+                        key={field.id}
+                        className={`absolute p-1 border ${positionedField === field.id ? 'border-blue-500 bg-blue-100' : 'border-gray-300 hover:border-blue-300'}`}
+                        style={{
+                          left: `${field.position.x}mm`,
+                          top: `${field.position.y}mm`,
+                          cursor: dragEnabled ? "move" : "default",
+                          padding: "2px 4px",
+                          backgroundColor: positionedField === field.id ? "rgba(59, 130, 246, 0.1)" : "rgba(255, 255, 255, 0.8)",
+                          fontSize: "10px",
+                          whiteSpace: "nowrap",
+                        }}
+                        onMouseDown={(e) => {
+                          if (dragEnabled) {
+                            e.stopPropagation();
+                            startPositioning(field.id, field.position);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-1">
+                          {getCategoryIcon(field.category)}
+                          <span>{field.label}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                   
                   {/* Champ en cours de positionnement */}
                   {positionedField && (
@@ -254,6 +282,7 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
               <div className="mt-4 text-sm text-muted-foreground">
                 <p>Cliquez sur l'icône <MoveHorizontal className="inline h-4 w-4" /> d'un champ pour le positionner, puis déplacez-le sur le document.</p>
                 <p>Utilisez l'interrupteur à côté de chaque champ pour l'afficher ou le masquer dans le PDF final.</p>
+                <p>Changez de page pour positionner des champs sur différentes pages du document.</p>
               </div>
             </div>
           </CardContent>

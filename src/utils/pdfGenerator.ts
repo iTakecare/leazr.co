@@ -31,6 +31,7 @@ const ensurePDFTemplateTableExists = async () => {
             "secondaryColor" TEXT NOT NULL,
             "headerText" TEXT NOT NULL,
             "footerText" TEXT NOT NULL,
+            "templateImages" JSONB,
             fields JSONB NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
@@ -79,6 +80,28 @@ const getPDFTemplate = async () => {
   }
 };
 
+// Précharger les images des modèles
+const preloadImages = async (templateImages) => {
+  if (!templateImages || templateImages.length === 0) return [];
+  
+  const loadImage = (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = url;
+    });
+  };
+  
+  try {
+    const imagePromises = templateImages.map(img => loadImage(img.url).then(image => ({ ...img, image })));
+    return await Promise.all(imagePromises);
+  } catch (error) {
+    console.error("Erreur lors du préchargement des images:", error);
+    return [];
+  }
+};
+
 export const generateOfferPdf = async (offer: any) => {
   // Si l'offre contient déjà un template, l'utiliser (pour les aperçus)
   const template = offer.__template || await getPDFTemplate();
@@ -115,165 +138,309 @@ export const generateOfferPdf = async (offer: any) => {
   };
   
   const primaryRgb = hexToRgb(primaryColor);
-  const secondaryRgb = hexToRgb(secondaryColor);
   
-  // Ajouter le logo de l'entreprise s'il existe
-  if (template?.logoURL) {
-    try {
-      const img = new Image();
-      img.src = template.logoURL;
-      await new Promise<void>((resolve) => {
-        img.onload = () => resolve();
-        img.onerror = () => resolve();
-      });
+  // Fonction pour résoudre les valeurs des champs
+  const resolveFieldValue = (pattern: string) => {
+    return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
+      const keyParts = key.split('.');
+      let value = offer;
       
-      // Si l'image est une URL data
-      if (template.logoURL.startsWith('data:')) {
-        doc.addImage(template.logoURL, 'PNG', 10, 10, 40, 20);
-      } else {
-        doc.addImage(template.logoURL, 'PNG', 10, 10, 40, 20);
+      for (const part of keyParts) {
+        if (value === undefined || value === null) {
+          return '';
+        }
+        value = value[part];
       }
-    } catch (error) {
-      console.error("Erreur lors du chargement du logo:", error);
-    }
-  }
-  
-  // Ajouter le titre du document
-  doc.setFontSize(20);
-  doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
-  const headerText = template?.headerText?.replace('{offer_id}', `OFF-${offer.id.slice(0, 8)}`) || 
-                    `OFFRE N° OFF-${offer.id.slice(0, 8)}`;
-  doc.text(headerText, 105, 30, { align: 'center' });
-  
-  // Ajouter les champs selon le modèle personnalisé
-  if (template?.fields) {
-    // Fonction pour résoudre les valeurs des champs
-    const resolveFieldValue = (pattern: string) => {
-      return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
-        const keyParts = key.split('.');
-        let value = offer;
-        
-        for (const part of keyParts) {
-          if (value === undefined || value === null) {
-            return '';
-          }
-          value = value[part];
+      
+      // Formater selon le type
+      if (typeof value === 'number') {
+        // Détecter si c'est une valeur monétaire
+        if (key.includes('amount') || key.includes('payment') || key.includes('price')) {
+          return formatCurrency(value);
         }
-        
-        // Formater selon le type
-        if (typeof value === 'number') {
-          // Détecter si c'est une valeur monétaire
-          if (key.includes('amount') || key.includes('payment') || key.includes('price')) {
-            return formatCurrency(value);
-          }
-          return value.toString();
-        } else if (value instanceof Date || (typeof value === 'string' && Date.parse(value))) {
-          return formatDate(value);
-        }
-        
-        return value || 'Non renseigné';
-      });
-    };
+        return value.toString();
+      } else if (value instanceof Date || (typeof value === 'string' && Date.parse(value))) {
+        return formatDate(value);
+      }
+      
+      return value || 'Non renseigné';
+    });
+  };
+  
+  // Vérifier si nous avons des images de template
+  const hasTemplateImages = template?.templateImages && template.templateImages.length > 0;
+  
+  if (hasTemplateImages) {
+    // Précharger les images de template
+    const loadedImages = await preloadImages(template.templateImages);
     
-    // Parcourir tous les champs visibles et les ajouter au PDF
-    template.fields
-      .filter(field => field.isVisible)
-      .forEach(field => {
-        // Positionner les coordonnées du champ
-        const x = field.position.x;
-        const y = field.position.y;
+    // Trier les images par numéro de page
+    const sortedImages = loadedImages.sort((a, b) => a.page - b.page);
+    
+    // Générer chaque page avec l'image correspondante
+    sortedImages.forEach((pageImage, index) => {
+      // Ajouter une nouvelle page si ce n'est pas la première
+      if (index > 0) {
+        doc.addPage();
+      }
+      
+      // Ajouter l'image de fond
+      try {
+        const { width, height } = pageImage.image;
         
-        if (field.id === 'equipment_table') {
-          // Cas spécial pour le tableau d'équipements
-          let equipmentItems = [];
-          try {
-            if (offer.equipment_description) {
-              equipmentItems = typeof offer.equipment_description === 'string'
-                ? JSON.parse(offer.equipment_description)
-                : offer.equipment_description;
-            }
-          } catch (e) {
-            console.error("Erreur lors de l'analyse des données d'équipement:", e);
-          }
-          
-          if (equipmentItems && equipmentItems.length > 0) {
-            doc.setFontSize(12);
-            doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
-            doc.text('ÉQUIPEMENTS', x, y);
+        // Ajuster les dimensions pour qu'elles tiennent sur la page A4
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        
+        const ratio = Math.min(pageWidth / width, pageHeight / height);
+        const scaledWidth = width * ratio;
+        const scaledHeight = height * ratio;
+        
+        // Centrer l'image sur la page
+        const offsetX = (pageWidth - scaledWidth) / 2;
+        const offsetY = (pageHeight - scaledHeight) / 2;
+        
+        doc.addImage(pageImage.image, 'JPEG', offsetX, offsetY, scaledWidth, scaledHeight);
+      } catch (error) {
+        console.error(`Erreur lors de l'ajout de l'image pour la page ${index + 1}:`, error);
+      }
+      
+      // Ajouter les champs pour cette page
+      if (template?.fields) {
+        template.fields
+          .filter(field => field.isVisible && (field.page === index || (index === 0 && field.page === undefined)))
+          .forEach(field => {
+            const x = field.position.x;
+            const y = field.position.y;
             
-            const tableHeaders = [['Désignation', 'Prix unitaire', 'Quantité', 'Marge', 'Total']];
-            
-            const tableData = equipmentItems.map((item: any) => {
-              const unitPrice = item.purchasePrice || 0;
-              const quantity = item.quantity || 1;
-              const margin = item.margin || 0;
-              const totalPrice = unitPrice * quantity * (1 + margin / 100);
+            if (field.id === 'equipment_table') {
+              // Tableau d'équipements - uniquement si nous sommes sur la page appropriée
+              let equipmentItems = [];
+              try {
+                if (offer.equipment_description) {
+                  equipmentItems = typeof offer.equipment_description === 'string'
+                    ? JSON.parse(offer.equipment_description)
+                    : offer.equipment_description;
+                }
+              } catch (e) {
+                console.error("Erreur lors de l'analyse des données d'équipement:", e);
+              }
               
-              return [
-                item.title,
-                formatCurrency(unitPrice),
-                quantity.toString(),
-                `${margin}%`,
-                formatCurrency(totalPrice)
-              ];
-            });
-            
-            autoTable(doc, {
-              head: tableHeaders,
-              body: tableData,
-              startY: y + 5,
-              theme: 'grid',
-              styles: { fontSize: 9, cellPadding: 3 },
-              headStyles: { fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b], textColor: [255, 255, 255] },
-              columnStyles: {
-                0: { cellWidth: 'auto' },
-                1: { cellWidth: 30, halign: 'right' },
-                2: { cellWidth: 20, halign: 'center' },
-                3: { cellWidth: 20, halign: 'center' },
-                4: { cellWidth: 30, halign: 'right' }
-              },
-            });
-          }
+              if (equipmentItems && equipmentItems.length > 0) {
+                const tableHeaders = [['Désignation', 'Prix unitaire', 'Quantité', 'Marge', 'Total']];
+                
+                const tableData = equipmentItems.map((item: any) => {
+                  const unitPrice = item.purchasePrice || 0;
+                  const quantity = item.quantity || 1;
+                  const margin = item.margin || 0;
+                  const totalPrice = unitPrice * quantity * (1 + margin / 100);
+                  
+                  return [
+                    item.title,
+                    formatCurrency(unitPrice),
+                    quantity.toString(),
+                    `${margin}%`,
+                    formatCurrency(totalPrice)
+                  ];
+                });
+                
+                autoTable(doc, {
+                  head: tableHeaders,
+                  body: tableData,
+                  startY: y,
+                  theme: 'grid',
+                  styles: { fontSize: 8, cellPadding: 2 },
+                  headStyles: { fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b], textColor: [255, 255, 255] },
+                  columnStyles: {
+                    0: { cellWidth: 'auto' },
+                    1: { cellWidth: 25, halign: 'right' },
+                    2: { cellWidth: 15, halign: 'center' },
+                    3: { cellWidth: 15, halign: 'center' },
+                    4: { cellWidth: 25, halign: 'right' }
+                  },
+                  margin: { left: x }
+                });
+              }
+            } else {
+              // Texte simple
+              doc.setFontSize(10);
+              doc.setTextColor(0, 0, 0);
+              
+              if (field.category === 'offer' && field.type === 'currency') {
+                doc.setFont('helvetica', 'bold');
+              }
+              
+              const resolvedValue = resolveFieldValue(field.value);
+              doc.text(resolvedValue, x, y);
+              
+              // Réinitialiser la police
+              doc.setFont('helvetica', 'normal');
+            }
+          });
+      }
+    });
+    
+    // Ajouter le pied de page sur la dernière page
+    const lastPage = doc.getNumberOfPages();
+    doc.setPage(lastPage);
+    
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      template?.footerText || 
+      'Cette offre est valable 30 jours à compter de sa date d\'émission. Cette offre est soumise à l\'acceptation finale du bailleur.',
+      doc.internal.pageSize.getWidth() / 2, 
+      doc.internal.pageSize.getHeight() - 20,
+      { align: 'center' }
+    );
+    
+    doc.text(
+      `${template?.companyName || 'iTakeCare'} - ${template?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}`,
+      doc.internal.pageSize.getWidth() / 2, 
+      doc.internal.pageSize.getHeight() - 15,
+      { align: 'center' }
+    );
+    
+    doc.text(
+      `${template?.companySiret || 'TVA: BE 0795.642.894'} - ${template?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}`,
+      doc.internal.pageSize.getWidth() / 2, 
+      doc.internal.pageSize.getHeight() - 10,
+      { align: 'center' }
+    );
+    
+  } else {
+    // Générer le PDF standard sans images de template
+    
+    // Ajouter le logo de l'entreprise s'il existe
+    if (template?.logoURL) {
+      try {
+        const img = new Image();
+        img.src = template.logoURL;
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+        
+        // Si l'image est une URL data
+        if (template.logoURL.startsWith('data:')) {
+          doc.addImage(template.logoURL, 'PNG', 10, 10, 40, 20);
         } else {
-          // Pour les autres types de champs, ajouter du texte
-          doc.setFontSize(10);
-          doc.setTextColor(0, 0, 0);
-          
-          if (field.category === 'offer' && field.type === 'currency') {
-            doc.setFont('helvetica', 'bold');
-          }
-          
-          const resolvedValue = resolveFieldValue(field.value);
-          doc.text(resolvedValue, x, y);
-          
-          // Réinitialiser la police
-          doc.setFont('helvetica', 'normal');
+          doc.addImage(template.logoURL, 'PNG', 10, 10, 40, 20);
         }
-      });
+      } catch (error) {
+        console.error("Erreur lors du chargement du logo:", error);
+      }
+    }
+    
+    // Ajouter le titre du document
+    doc.setFontSize(20);
+    doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
+    const headerText = template?.headerText?.replace('{offer_id}', `OFF-${offer.id.slice(0, 8)}`) || 
+                      `OFFRE N° OFF-${offer.id.slice(0, 8)}`;
+    doc.text(headerText, 105, 30, { align: 'center' });
+    
+    // Ajouter les champs selon le modèle personnalisé
+    if (template?.fields) {
+      // Parcourir tous les champs visibles et les ajouter au PDF
+      template.fields
+        .filter(field => field.isVisible && (field.page === 0 || field.page === undefined))
+        .forEach(field => {
+          // Positionner les coordonnées du champ
+          const x = field.position.x;
+          const y = field.position.y;
+          
+          if (field.id === 'equipment_table') {
+            // Cas spécial pour le tableau d'équipements
+            let equipmentItems = [];
+            try {
+              if (offer.equipment_description) {
+                equipmentItems = typeof offer.equipment_description === 'string'
+                  ? JSON.parse(offer.equipment_description)
+                  : offer.equipment_description;
+              }
+            } catch (e) {
+              console.error("Erreur lors de l'analyse des données d'équipement:", e);
+            }
+            
+            if (equipmentItems && equipmentItems.length > 0) {
+              doc.setFontSize(12);
+              doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
+              doc.text('ÉQUIPEMENTS', x, y);
+              
+              const tableHeaders = [['Désignation', 'Prix unitaire', 'Quantité', 'Marge', 'Total']];
+              
+              const tableData = equipmentItems.map((item: any) => {
+                const unitPrice = item.purchasePrice || 0;
+                const quantity = item.quantity || 1;
+                const margin = item.margin || 0;
+                const totalPrice = unitPrice * quantity * (1 + margin / 100);
+                
+                return [
+                  item.title,
+                  formatCurrency(unitPrice),
+                  quantity.toString(),
+                  `${margin}%`,
+                  formatCurrency(totalPrice)
+                ];
+              });
+              
+              autoTable(doc, {
+                head: tableHeaders,
+                body: tableData,
+                startY: y + 5,
+                theme: 'grid',
+                styles: { fontSize: 9, cellPadding: 3 },
+                headStyles: { fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b], textColor: [255, 255, 255] },
+                columnStyles: {
+                  0: { cellWidth: 'auto' },
+                  1: { cellWidth: 30, halign: 'right' },
+                  2: { cellWidth: 20, halign: 'center' },
+                  3: { cellWidth: 20, halign: 'center' },
+                  4: { cellWidth: 30, halign: 'right' }
+                },
+              });
+            }
+          } else {
+            // Pour les autres types de champs, ajouter du texte
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            
+            if (field.category === 'offer' && field.type === 'currency') {
+              doc.setFont('helvetica', 'bold');
+            }
+            
+            const resolvedValue = resolveFieldValue(field.value);
+            doc.text(resolvedValue, x, y);
+            
+            // Réinitialiser la police
+            doc.setFont('helvetica', 'normal');
+          }
+        });
+    }
+    
+    // Ajouter le résumé en bas
+    const finalY = (doc as any).lastAutoTable?.finalY + 20 || 200;
+    
+    doc.setFontSize(11);
+    doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
+    doc.text(`Montant total: ${formatCurrency(offer.amount || 0)}`, 150, finalY);
+    doc.text(`Mensualité: ${formatCurrency(offer.monthly_payment || 0)}`, 150, finalY + 7);
+    
+    // Ajouter les conditions générales
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      template?.footerText || 
+      'Cette offre est valable 30 jours à compter de sa date d\'émission. Cette offre est soumise à l\'acceptation finale du bailleur.',
+      14, 270
+    );
+    
+    // Ajouter le pied de page avec les informations de l'entreprise
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`${template?.companyName || 'iTakeCare'} - ${template?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}`, 105, 280, { align: 'center' });
+    doc.text(`${template?.companySiret || 'TVA: BE 0795.642.894'} - ${template?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}`, 105, 285, { align: 'center' });
   }
-  
-  // Ajouter le résumé en bas
-  const finalY = (doc as any).lastAutoTable?.finalY + 20 || 200;
-  
-  doc.setFontSize(11);
-  doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
-  doc.text(`Montant total: ${formatCurrency(offer.amount || 0)}`, 150, finalY);
-  doc.text(`Mensualité: ${formatCurrency(offer.monthly_payment || 0)}`, 150, finalY + 7);
-  
-  // Ajouter les conditions générales
-  doc.setFontSize(9);
-  doc.setTextColor(100, 100, 100);
-  doc.text(
-    template?.footerText || 
-    'Cette offre est valable 30 jours à compter de sa date d\'émission. Cette offre est soumise à l\'acceptation finale du bailleur.',
-    14, 270
-  );
-  
-  // Ajouter le pied de page avec les informations de l'entreprise
-  doc.setFontSize(8);
-  doc.setTextColor(120, 120, 120);
-  doc.text(`${template?.companyName || 'iTakeCare SAS'} - ${template?.companyAddress || '123 Avenue de la République - 75011 Paris'}`, 105, 280, { align: 'center' });
-  doc.text(`${template?.companySiret || 'SIRET: 123 456 789 00011'} - ${template?.companyContact || 'contact@itakecare.fr - www.itakecare.fr'}`, 105, 285, { align: 'center' });
   
   // Enregistrer le PDF avec un nom de fichier approprié
   const filename = `Offre_${offer.id.slice(0, 8)}_${offer.client_name.replace(/\s+/g, '_')}.pdf`;

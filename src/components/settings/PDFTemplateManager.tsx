@@ -9,11 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Save, Upload, Eye, Trash, FileDown, Palette, Layout, Info, FileText, User, Building, ShoppingBag, Calendar, CreditCard } from "lucide-react";
+import { Save, Upload, Eye, Trash, FileDown, Palette, Layout, Info, FileText, User, Building, ShoppingBag, Calendar, CreditCard, FileUp } from "lucide-react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import PDFFieldsEditor from "./PDFFieldsEditor";
 import PDFPreview from "./PDFPreview";
 import PDFCompanyInfo from "./PDFCompanyInfo";
+import PDFTemplateUploader from "./PDFTemplateUploader";
 
 const DEFAULT_TEMPLATE = {
   id: "default",
@@ -27,15 +28,16 @@ const DEFAULT_TEMPLATE = {
   secondaryColor: "#3498DB",
   headerText: "OFFRE N° OFF-{offer_id}",
   footerText: "Cette offre est valable 30 jours à compter de sa date d'émission. Cette offre est soumise à l'acceptation finale du bailleur.",
+  templateImages: [],
   fields: [
-    { id: "created_at", label: "Date", type: "date", category: "general", isVisible: true, position: { x: 170, y: 40 }, value: "Date: {created_at}" },
-    { id: "client_name", label: "Nom du client", type: "text", category: "client", isVisible: true, position: { x: 14, y: 60 }, value: "Client: {client_name}" },
-    { id: "client_email", label: "Email du client", type: "text", category: "client", isVisible: true, position: { x: 14, y: 70 }, value: "Email: {client_email}" },
-    { id: "client_company", label: "Société du client", type: "text", category: "client", isVisible: true, position: { x: 14, y: 80 }, value: "Société: {clients.company}" },
-    { id: "amount", label: "Montant total", type: "currency", category: "offer", isVisible: true, position: { x: 14, y: 100 }, value: "Montant total: {amount}" },
-    { id: "monthly_payment", label: "Mensualité", type: "currency", category: "offer", isVisible: true, position: { x: 14, y: 110 }, value: "Mensualité: {monthly_payment}" },
-    { id: "coefficient", label: "Coefficient", type: "number", category: "offer", isVisible: true, position: { x: 14, y: 120 }, value: "Coefficient: {coefficient}" },
-    { id: "equipment_table", label: "Tableau des équipements", type: "table", category: "equipment", isVisible: true, position: { x: 14, y: 140 }, value: "Équipements" }
+    { id: "created_at", label: "Date", type: "date", category: "general", isVisible: true, position: { x: 170, y: 40 }, page: 0, value: "Date: {created_at}" },
+    { id: "client_name", label: "Nom du client", type: "text", category: "client", isVisible: true, position: { x: 14, y: 60 }, page: 0, value: "Client: {client_name}" },
+    { id: "client_email", label: "Email du client", type: "text", category: "client", isVisible: true, position: { x: 14, y: 70 }, page: 0, value: "Email: {client_email}" },
+    { id: "client_company", label: "Société du client", type: "text", category: "client", isVisible: true, position: { x: 14, y: 80 }, page: 0, value: "Société: {clients.company}" },
+    { id: "amount", label: "Montant total", type: "currency", category: "offer", isVisible: true, position: { x: 14, y: 100 }, page: 0, value: "Montant total: {amount}" },
+    { id: "monthly_payment", label: "Mensualité", type: "currency", category: "offer", isVisible: true, position: { x: 14, y: 110 }, page: 0, value: "Mensualité: {monthly_payment}" },
+    { id: "coefficient", label: "Coefficient", type: "number", category: "offer", isVisible: true, position: { x: 14, y: 120 }, page: 0, value: "Coefficient: {coefficient}" },
+    { id: "equipment_table", label: "Tableau des équipements", type: "table", category: "equipment", isVisible: true, position: { x: 14, y: 140 }, page: 0, value: "Équipements" }
   ]
 };
 
@@ -73,6 +75,7 @@ const PDFTemplateManager = () => {
                 "secondaryColor" TEXT NOT NULL,
                 "headerText" TEXT NOT NULL,
                 "footerText" TEXT NOT NULL,
+                "templateImages" JSONB,
                 fields JSONB NOT NULL,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
@@ -160,6 +163,11 @@ const PDFTemplateManager = () => {
     form.setValue('fields', newFields);
   };
   
+  // Lors de l'ajout de nouvelles images de template
+  const handleTemplateImagesChange = (images) => {
+    form.setValue('templateImages', images);
+  };
+  
   if (isLoading && !template) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -181,7 +189,7 @@ const PDFTemplateManager = () => {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSaveTemplate)} className="space-y-6">
               <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="mb-4 grid grid-cols-4 sm:grid-cols-4">
+                <TabsList className="mb-4 grid grid-cols-5 sm:grid-cols-5">
                   <TabsTrigger value="company" className="flex items-center gap-2">
                     <Building className="h-4 w-4" />
                     <span className="hidden sm:inline">Entreprise</span>
@@ -189,6 +197,10 @@ const PDFTemplateManager = () => {
                   <TabsTrigger value="design" className="flex items-center gap-2">
                     <Palette className="h-4 w-4" />
                     <span className="hidden sm:inline">Design</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="templates" className="flex items-center gap-2">
+                    <FileUp className="h-4 w-4" />
+                    <span className="hidden sm:inline">Modèles</span>
                   </TabsTrigger>
                   <TabsTrigger value="fields" className="flex items-center gap-2">
                     <Layout className="h-4 w-4" />
@@ -279,6 +291,13 @@ const PDFTemplateManager = () => {
                       )}
                     />
                   </div>
+                </TabsContent>
+                
+                <TabsContent value="templates">
+                  <PDFTemplateUploader 
+                    templateImages={form.watch('templateImages') || []} 
+                    onChange={handleTemplateImagesChange}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="fields">
