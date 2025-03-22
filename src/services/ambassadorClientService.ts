@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateClientData, Client } from "@/types/client";
@@ -73,9 +72,8 @@ export const getAmbassadorClients = async (ambassadorId?: string): Promise<Clien
       return [];
     }
     
-    // Make sure to filter out null clients and map to the Client type
     const processedClients = data
-      .filter(item => item.clients !== null) // Filter out any null client references
+      .filter(item => item.clients) // Filter out any null client references
       .map(item => ({
         ...item.clients,
         ambassador_client_id: item.id,
@@ -216,37 +214,5 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData, a
   } catch (error) {
     console.error("Exception in createClientAsAmbassadorDb:", error);
     return null;
-  }
-};
-
-// Vérifier si un client appartient à un ambassadeur
-export const isClientBelongToAmbassador = async (clientId: string, ambassadorId?: string): Promise<boolean> => {
-  try {
-    let ambassadorIdToUse = ambassadorId;
-    
-    if (!ambassadorIdToUse) {
-      ambassadorIdToUse = await getCurrentAmbassadorProfile();
-    }
-    
-    if (!ambassadorIdToUse || !clientId) {
-      return false;
-    }
-    
-    const { data, error } = await supabase
-      .from("ambassador_clients")
-      .select("id")
-      .eq("ambassador_id", ambassadorIdToUse)
-      .eq("client_id", clientId)
-      .maybeSingle();
-    
-    if (error) {
-      console.error("Error checking if client belongs to ambassador:", error);
-      return false;
-    }
-    
-    return !!data;
-  } catch (error) {
-    console.error("Exception in isClientBelongToAmbassador:", error);
-    return false;
   }
 };
