@@ -219,20 +219,20 @@ const PDFPreview = ({ template }) => {
                            Array.isArray(template.templateImages) && 
                            template.templateImages.length > 0;
 
-  const handleImageError = (e) => {
-    console.error("Erreur de chargement de l'image:", e.target.src);
-    e.target.src = "/placeholder.svg";
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.error("Erreur de chargement de l'image:", e.currentTarget.src);
+    e.currentTarget.src = "/placeholder.svg";
     
     setTimeout(() => {
-      if (e.target.src === "/placeholder.svg") {
-        const currentSrc = e.target.src;
+      if (e.currentTarget.src === "/placeholder.svg") {
+        const currentSrc = e.currentTarget.src;
         const timestamp = new Date().getTime();
         const newSrc = currentSrc.includes('?') 
           ? currentSrc.split('?')[0] + `?t=${timestamp}`
           : `${currentSrc}?t=${timestamp}`;
         
         console.log("Tentative de rechargement de l'image avec cache-busting:", newSrc);
-        e.target.src = newSrc;
+        e.currentTarget.src = newSrc;
       }
     }, 2000);
   };
@@ -520,4 +520,3 @@ const PDFPreview = ({ template }) => {
 };
 
 export default PDFPreview;
-
