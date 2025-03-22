@@ -37,7 +37,7 @@ const PDFVisualEditor = ({
 }: PDFVisualEditorProps) => {
   const [scale, setScale] = useState(0.5);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+  const [draggedField, setDraggedField] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -172,10 +172,7 @@ const PDFVisualEditor = ({
     }
     
     setIsDragging(true);
-    setDragStartPos({
-      x: e.clientX,
-      y: e.clientY
-    });
+    setDraggedField(fieldId);
     
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
@@ -183,33 +180,23 @@ const PDFVisualEditor = ({
 
   // Handle mouse move for dragging fields
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !selectedFieldId || !previewRef.current) return;
-    
-    const selectedField = allFields.find(f => f.id === selectedFieldId);
-    if (!selectedField || !selectedField.position) return;
+    if (!isDragging || !draggedField || !previewRef.current) return;
     
     const previewRect = previewRef.current.getBoundingClientRect();
     
-    // Calculate new position
-    const deltaX = (e.clientX - dragStartPos.x) / scale;
-    const deltaY = (e.clientY - dragStartPos.y) / scale;
+    // Calculate position relative to preview container and adjusted for scale
+    const x = (e.clientX - previewRect.left) / scale;
+    const y = (e.clientY - previewRect.top) / scale;
     
-    // Update drag start position for next move event
-    setDragStartPos({
-      x: e.clientX,
-      y: e.clientY
-    });
-    
-    // Update field position
-    const newX = Math.max(0, (selectedField.position.x + deltaX));
-    const newY = Math.max(0, (selectedField.position.y + deltaY));
-    
-    onFieldMove(selectedFieldId, newX, newY);
+    // Update field position - directly call the onFieldMove prop
+    onFieldMove(draggedField, x, y);
   };
 
   // Handle mouse up to end dragging
   const handleMouseUp = () => {
     setIsDragging(false);
+    setDraggedField(null);
+    
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
   };
