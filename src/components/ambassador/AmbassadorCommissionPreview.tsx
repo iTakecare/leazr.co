@@ -19,7 +19,7 @@ const AmbassadorCommissionPreview = ({
   commissionLevelId,
   equipmentList,
 }: AmbassadorCommissionPreviewProps) => {
-  const [estimatedCommission, setEstimatedCommission] = useState<number>(0);
+  const [commission, setCommission] = useState<number>(0);
   const [commissionRate, setCommissionRate] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [levelName, setLevelName] = useState<string>("");
@@ -31,7 +31,7 @@ const AmbassadorCommissionPreview = ({
   useEffect(() => {
     const calculateCommission = async () => {
       if (totalEquipmentAmount <= 0) {
-        setEstimatedCommission(0);
+        setCommission(0);
         return;
       }
 
@@ -45,7 +45,7 @@ const AmbassadorCommissionPreview = ({
         );
         
         setCommissionRate(rate);
-        setEstimatedCommission(amount);
+        setCommission(amount);
         if (name) setLevelName(name);
       } catch (error) {
         console.error("Erreur lors du calcul de la commission:", error);
@@ -60,7 +60,7 @@ const AmbassadorCommissionPreview = ({
   return (
     <Card className="border-primary/20">
       <CardHeader className="bg-primary/5">
-        <CardTitle className="text-lg">Votre commission estimée</CardTitle>
+        <CardTitle className="text-lg">Votre commission</CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
         {loading ? (
@@ -76,11 +76,7 @@ const AmbassadorCommissionPreview = ({
               </div>
             )}
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Montant total</div>
-                <div className="font-medium">{formatCurrency(totalEquipmentAmount)}</div>
-              </div>
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <div className="text-sm text-muted-foreground">Mensualité totale</div>
                 <div className="font-medium">{formatCurrency(totalMonthlyPayment)}</div>
@@ -89,7 +85,7 @@ const AmbassadorCommissionPreview = ({
             
             <div className="pt-4 border-t">
               <div className="text-lg font-semibold text-primary">
-                Commission estimée : {formatCurrency(estimatedCommission)}
+                Commission : {formatCurrency(commission)}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
                 Payable à la signature du contrat par le client

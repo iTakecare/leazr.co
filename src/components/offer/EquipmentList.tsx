@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Edit, Plus, MinusCircle, PlusCircle, DollarSign } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { calculateCommissionByLevel } from "@/utils/calculator";
-import CommissionDisplay from "@/components/ui/CommissionDisplay";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
