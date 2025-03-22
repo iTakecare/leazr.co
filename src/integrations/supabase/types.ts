@@ -1320,6 +1320,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_client_as_ambassador: {
+        Args: {
+          client_data: Json
+          ambassador_id: string
+        }
+        Returns: string
+      }
       delete_brand: {
         Args: {
           brand_name: string
