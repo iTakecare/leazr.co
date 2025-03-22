@@ -41,6 +41,8 @@ export const useAmbassadorClients = () => {
         return false;
       }
       
+      console.log("Creating client as ambassador with ID:", ambassadorId);
+      
       // 2. Créer le client
       const newClient = await createClient(clientData);
       

@@ -120,6 +120,11 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     if (error) {
       console.error("Supabase error details:", error);
       
+      if (error.code === '42501') {
+        console.error("Row-level security policy error. User may not have permission to create clients.");
+        toast.error("Vous n'avez pas les permissions nécessaires pour créer un client.");
+      }
+      
       // Log l'erreur pour diagnostic
       await supabase.from("error_logs").insert({
         user_id: user.id,
