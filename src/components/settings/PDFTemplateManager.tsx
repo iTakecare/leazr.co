@@ -13,6 +13,7 @@ const PDFTemplateManager = () => {
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState(null);
   const [activeTab, setActiveTab] = useState("design");
+  const [pendingChanges, setPendingChanges] = useState(false);
 
   // Charger le modèle existant s'il existe
   useEffect(() => {
@@ -115,6 +116,7 @@ const PDFTemplateManager = () => {
       }
       
       setTemplate(updatedTemplate);
+      setPendingChanges(false);
       toast.success("Modèle sauvegardé avec succès");
     } catch (error) {
       console.error("Error saving template:", error);
@@ -147,9 +149,10 @@ const PDFTemplateManager = () => {
     }
   };
   
-  // Mettre à jour les pages et champs du modèle
+  // Mettre à jour les pages et champs du modèle sans sauvegarder
   const handleTemplateUpdate = (updatedTemplate) => {
-    saveTemplate(updatedTemplate);
+    setTemplate(updatedTemplate);
+    setPendingChanges(true);
   };
   
   return (
@@ -181,6 +184,15 @@ const PDFTemplateManager = () => {
             </TabsContent>
             
             <TabsContent value="design" className="mt-6">
+              <div className="flex justify-end mb-4">
+                <Button 
+                  onClick={() => saveTemplate(template)} 
+                  disabled={saving || !pendingChanges}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {saving ? "Sauvegarde en cours..." : "Sauvegarder le modèle"}
+                </Button>
+              </div>
               <PDFTemplateWithFields 
                 template={template}
                 onSave={handleTemplateUpdate}
