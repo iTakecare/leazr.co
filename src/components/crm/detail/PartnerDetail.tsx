@@ -10,8 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
-import { Mail, Phone, Building2, User, BadgePercent } from "lucide-react";
+import { Mail, Phone, Building2, User, BadgePercent, FileText, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { CommissionLevel, getCommissionLevelWithRates } from "@/services/commissionService";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 
 interface PartnerDetailProps {
   isOpen: boolean;
@@ -28,14 +30,63 @@ const PartnerDetail = ({
 }: PartnerDetailProps) => {
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pdfTemplates, setPdfTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   useEffect(() => {
-    if (isOpen && partner?.commission_level_id) {
-      loadCommissionLevel(partner.commission_level_id);
+    if (isOpen) {
+      if (partner?.commission_level_id) {
+        loadCommissionLevel(partner.commission_level_id);
+      } else {
+        setCommissionLevel(null);
+      }
+      
+      loadPdfTemplates();
+      
+      if (partner?.pdf_template_id) {
+        setSelectedTemplateId(partner.pdf_template_id);
+      } else {
+        setSelectedTemplateId("");
+      }
     } else {
       setCommissionLevel(null);
+      setSelectedTemplateId("");
     }
   }, [isOpen, partner]);
+  
+  const loadPdfTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const supabase = getSupabaseClient();
+      
+      // Vérifier si la table existe
+      const { data: tableExists } = await supabase.rpc(
+        'check_table_exists', 
+        { table_name: 'pdf_templates' }
+      );
+      
+      if (!tableExists) {
+        setLoadingTemplates(false);
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('pdf_templates')
+        .select('id, name')
+        .order('name');
+        
+      if (error) {
+        console.error("Error loading PDF templates:", error);
+      } else {
+        setPdfTemplates(data || []);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
 
   const loadCommissionLevel = async (levelId: string) => {
     setLoading(true);
@@ -46,6 +97,37 @@ const PartnerDetail = ({
       console.error("Error loading commission level:", error);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleUpdatePdfTemplate = async (templateId: string) => {
+    try {
+      if (!partner?.id) return;
+      
+      const supabase = getSupabaseClient();
+      
+      const { error } = await supabase
+        .from('partners')
+        .update({ pdf_template_id: templateId })
+        .eq('id', partner.id);
+        
+      if (error) {
+        console.error("Error updating PDF template:", error);
+        toast.error("Erreur lors de la mise à jour du modèle PDF");
+        return;
+      }
+      
+      setSelectedTemplateId(templateId);
+      
+      // Mettre à jour le partenaire dans le composant parent
+      if (partner && typeof partner === 'object') {
+        partner.pdf_template_id = templateId;
+      }
+      
+      toast.success("Modèle PDF mis à jour");
+    } catch (error) {
+      console.error("Error updating PDF template:", error);
+      toast.error("Erreur lors de la mise à jour du modèle PDF");
     }
   };
 
@@ -122,6 +204,45 @@ const PartnerDetail = ({
               </div>
             </div>
           )}
+
+          {/* Sélecteur de modèle PDF */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Modèle PDF</h3>
+            <div className="p-3 rounded-lg border">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <div className="font-medium">Modèle pour les offres</div>
+              </div>
+              {loadingTemplates ? (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span className="text-sm">Chargement des modèles...</span>
+                </div>
+              ) : pdfTemplates.length > 0 ? (
+                <div className="mt-2">
+                  <select 
+                    className="w-full p-2 border rounded-md text-sm"
+                    value={selectedTemplateId}
+                    onChange={(e) => handleUpdatePdfTemplate(e.target.value)}
+                  >
+                    <option value="">Modèle par défaut</option>
+                    {pdfTemplates.map(template => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sélectionnez un modèle PDF personnalisé pour ce partenaire.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Aucun modèle PDF disponible. Créez-en un dans les paramètres.
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">Performance</h3>

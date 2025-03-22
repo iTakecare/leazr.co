@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Sheet,
@@ -49,10 +48,14 @@ const AmbassadorDetail = ({
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [currentLevelId, setCurrentLevelId] = useState<string>("");
+  const [pdfTemplates, setPdfTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       loadCommissionLevels();
+      loadPdfTemplates();
       if (ambassador?.commission_level_id) {
         setCurrentLevelId(ambassador.commission_level_id);
         loadCommissionLevel(ambassador.commission_level_id);
@@ -60,11 +63,82 @@ const AmbassadorDetail = ({
         setCommissionLevel(null);
         setCurrentLevelId("");
       }
+
+      if (ambassador?.pdf_template_id) {
+        setSelectedTemplateId(ambassador.pdf_template_id);
+      } else {
+        setSelectedTemplateId("");
+      }
     } else {
       setCommissionLevel(null);
       setCurrentLevelId("");
+      setSelectedTemplateId("");
     }
   }, [isOpen, ambassador]);
+
+  const loadPdfTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const supabase = getSupabaseClient();
+      
+      // Vérifier si la table existe
+      const { data: tableExists } = await supabase.rpc(
+        'check_table_exists', 
+        { table_name: 'pdf_templates' }
+      );
+      
+      if (!tableExists) {
+        setLoadingTemplates(false);
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('pdf_templates')
+        .select('id, name')
+        .order('name');
+        
+      if (error) {
+        console.error("Error loading PDF templates:", error);
+      } else {
+        setPdfTemplates(data || []);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const handleUpdatePdfTemplate = async (templateId: string) => {
+    try {
+      if (!ambassador?.id) return;
+      
+      const supabase = getSupabaseClient();
+      
+      const { error } = await supabase
+        .from('ambassadors')
+        .update({ pdf_template_id: templateId })
+        .eq('id', ambassador.id);
+        
+      if (error) {
+        console.error("Error updating PDF template:", error);
+        toast.error("Erreur lors de la mise à jour du modèle PDF");
+        return;
+      }
+      
+      setSelectedTemplateId(templateId);
+      
+      // Mettre à jour l'ambassadeur dans le composant parent
+      if (ambassador && typeof ambassador === 'object') {
+        ambassador.pdf_template_id = templateId;
+      }
+      
+      toast.success("Modèle PDF mis à jour");
+    } catch (error) {
+      console.error("Error updating PDF template:", error);
+      toast.error("Erreur lors de la mise à jour du modèle PDF");
+    }
+  };
 
   const loadCommissionLevels = async () => {
     try {
@@ -178,6 +252,40 @@ const AmbassadorDetail = ({
                 loading={loading}
                 onUpdateCommissionLevel={handleUpdateCommissionLevel}
               />
+
+              <div className="space-y-2 border rounded-lg p-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Modèle PDF</h3>
+                <div className="grid gap-2">
+                  {loadingTemplates ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm">Chargement des modèles...</span>
+                    </div>
+                  ) : pdfTemplates.length > 0 ? (
+                    <div className="space-y-2">
+                      <select 
+                        className="w-full p-2 border rounded-md"
+                        value={selectedTemplateId}
+                        onChange={(e) => handleUpdatePdfTemplate(e.target.value)}
+                      >
+                        <option value="">Modèle par défaut</option>
+                        {pdfTemplates.map(template => (
+                          <option key={template.id} value={template.id}>
+                            {template.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-muted-foreground">
+                        Sélectionnez un modèle PDF pour cet ambassadeur. Si aucun n'est sélectionné, le modèle par défaut sera utilisé.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Aucun modèle PDF disponible. Créez-en un dans les paramètres.
+                    </p>
+                  )}
+                </div>
+              </div>
 
               <StatsSummary 
                 clientsCount={ambassador.clients_count || 0}

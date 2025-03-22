@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -54,13 +55,68 @@ const ensurePDFTemplateTableExists = async () => {
 };
 
 // Récupérer le modèle PDF depuis la base de données
-const getPDFTemplate = async () => {
+const getPDFTemplate = async (offerId = null, offerType = null) => {
   const supabase = getSupabaseClient();
   
   try {
     // S'assurer que la table existe
     await ensurePDFTemplateTableExists();
     
+    // Si l'ID d'offre est fourni, essayer de récupérer le modèle associé à l'ambassadeur ou partenaire
+    if (offerId) {
+      // Récupérer les informations sur l'offre
+      const { data: offerData, error: offerError } = await supabase
+        .from('offers')
+        .select('*')
+        .eq('id', offerId)
+        .single();
+      
+      if (offerError || !offerData) {
+        console.error("Erreur lors de la récupération de l'offre:", offerError);
+      } else {
+        // En fonction du type d'offre, essayer de récupérer le modèle associé
+        let templateId = null;
+        
+        if (offerData.type === 'ambassador_offer' && offerData.ambassador_id) {
+          // Récupérer le modèle PDF de l'ambassadeur
+          const { data: ambassador, error: ambassadorError } = await supabase
+            .from('ambassadors')
+            .select('pdf_template_id')
+            .eq('id', offerData.ambassador_id)
+            .single();
+          
+          if (!ambassadorError && ambassador?.pdf_template_id) {
+            templateId = ambassador.pdf_template_id;
+          }
+        } else if (offerData.type === 'partner_offer' && offerData.partner_id) {
+          // Récupérer le modèle PDF du partenaire
+          const { data: partner, error: partnerError } = await supabase
+            .from('partners')
+            .select('pdf_template_id')
+            .eq('id', offerData.partner_id)
+            .single();
+          
+          if (!partnerError && partner?.pdf_template_id) {
+            templateId = partner.pdf_template_id;
+          }
+        }
+        
+        // Si un ID de modèle a été trouvé, essayer de le récupérer
+        if (templateId) {
+          const { data: template, error: templateError } = await supabase
+            .from('pdf_templates')
+            .select('*')
+            .eq('id', templateId)
+            .single();
+          
+          if (!templateError && template) {
+            return template;
+          }
+        }
+      }
+    }
+    
+    // Si aucun modèle spécifique n'a été trouvé ou si pas d'offre fournie, utiliser le modèle par défaut
     const { data, error } = await supabase
       .from('pdf_templates')
       .select('*')
@@ -103,7 +159,12 @@ const preloadImages = async (templateImages) => {
 
 export const generateOfferPdf = async (offer: any) => {
   // Si l'offre contient déjà un template, l'utiliser (pour les aperçus)
-  const template = offer.__template || await getPDFTemplate();
+  let template = offer.__template;
+  
+  if (!template) {
+    // Tenter de récupérer le modèle basé sur l'ID de l'offre et son type
+    template = await getPDFTemplate(offer.id, offer.type);
+  }
   
   // Supprimer le template de l'offre si présent (pour éviter de le stocker)
   if (offer.__template) {
