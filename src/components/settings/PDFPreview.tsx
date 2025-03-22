@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,7 +142,7 @@ const PDFPreview = ({ template }) => {
       // For currency fields
       if ((key.includes('amount') || key.includes('payment') || key.includes('price')) && typeof value === 'number') {
         try {
-          return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+          return formatCurrency(value);
         } catch (e) {
           console.error("Error formatting currency:", e);
           return typeof value === 'number' ? String(value) : '';
@@ -323,27 +324,25 @@ const PDFPreview = ({ template }) => {
                       />
                       
                       {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
-                      {pageLoaded && getCurrentPageFields().map((field) => (
-                        <div 
-                          key={field.id}
-                          className="absolute text-sm"
-                          style={{
-                            left: `${field.position?.x || 0}mm`,
-                            top: `${field.position?.y || 0}mm`,
-                            zIndex: 5,
-                            minWidth: "20px",
-                            minHeight: "16px",
-                            background: "transparent",
-                            padding: "0"
-                          }}
-                        >
-                          {field.id === 'equipment_table' ? 
-                            renderEquipmentTable(SAMPLE_OFFER.equipment_description) 
-                            : 
-                            <span>{resolveFieldValue(field.value)}</span>
-                          }
-                        </div>
-                      ))}
+                      {pageLoaded && getCurrentPageFields().map((field) => {
+                        return (
+                          <div 
+                            key={field.id}
+                            className="absolute"
+                            style={{
+                              left: `${field.position?.x || 0}mm`,
+                              top: `${field.position?.y || 0}mm`,
+                              zIndex: 5
+                            }}
+                          >
+                            {field.id === 'equipment_table' ? (
+                              renderEquipmentTable(SAMPLE_OFFER.equipment_description)
+                            ) : (
+                              resolveFieldValue(field.value)
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="w-full h-[842px] bg-white flex items-center justify-center border">
