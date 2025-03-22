@@ -81,16 +81,31 @@ export const generateOfferPdf = async (offer) => {
       // Simuler un délai pour imiter l'API
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // En développement, créer un blob PDF fictif pour le téléchargement
+      // En développement, créer un blob PDF valide pour le téléchargement
       const mockFilename = `offre_${offer.id}_${new Date().getTime()}.pdf`;
       console.log("Mock PDF generated:", mockFilename);
+      
+      // Créer un PDF valide en utilisant data URI pour PDF
+      const pdfContent = generateMockPdfDataUri(offer);
+      
+      // Convertir le data URI en Blob
+      const byteString = atob(pdfContent.split(',')[1]);
+      const mimeString = pdfContent.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      
+      const pdfBlob = new Blob([ab], { type: mimeString });
       
       // Retourner un objet avec le nom de fichier et un flag indiquant qu'il s'agit d'un mock
       return {
         filename: mockFilename,
         isMock: true,
         pdfUrl: null,
-        pdfBlob: new Blob(['Contenu PDF fictif pour test en développement'], { type: 'application/pdf' })
+        pdfBlob: pdfBlob
       };
     }
     
@@ -128,16 +143,125 @@ export const generateOfferPdf = async (offer) => {
     // En cas d'erreur en développement, retourner un fichier fictif plutôt que de bloquer l'utilisateur
     if (import.meta.env.DEV) {
       console.log("Returning mock filename due to error in development mode");
+      const mockFilename = `error_mock_${new Date().getTime()}.pdf`;
+      
+      // Créer un PDF valide même en cas d'erreur
+      const pdfContent = generateMockPdfDataUri({ 
+        id: "error", 
+        client_name: "Erreur PDF", 
+        amount: 0,
+        monthly_payment: 0,
+        __template: { name: "Template par défaut" }
+      });
+      
+      // Convertir le data URI en Blob
+      const byteString = atob(pdfContent.split(',')[1]);
+      const mimeString = pdfContent.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      
+      const pdfBlob = new Blob([ab], { type: mimeString });
+      
       return {
-        filename: `error_mock_${new Date().getTime()}.pdf`,
+        filename: mockFilename,
         isMock: true,
         pdfUrl: null,
-        pdfBlob: new Blob(['Erreur PDF - Document fictif'], { type: 'application/pdf' })
+        pdfBlob: pdfBlob
       };
     }
     
     throw error;
   }
+};
+
+// Fonction utilitaire pour générer un PDF simple au format Data URI
+const generateMockPdfDataUri = (offer) => {
+  // Créer un PDF simple avec des données de l'offre
+  const pdfContent = `
+    %PDF-1.4
+    1 0 obj
+    <<
+    /Type /Catalog
+    /Pages 2 0 R
+    >>
+    endobj
+    2 0 obj
+    <<
+    /Type /Pages
+    /Kids [3 0 R]
+    /Count 1
+    >>
+    endobj
+    3 0 obj
+    <<
+    /Type /Page
+    /Parent 2 0 R
+    /Resources 4 0 R
+    /MediaBox [0 0 595 842]
+    /Contents 5 0 R
+    >>
+    endobj
+    4 0 obj
+    <<
+    /Font <<
+    /F1 <<
+    /Type /Font
+    /Subtype /Type1
+    /BaseFont /Helvetica
+    >>
+    >>
+    >>
+    endobj
+    5 0 obj
+    << /Length 1000 >>
+    stream
+    BT
+    /F1 16 Tf
+    50 750 Td
+    (Aperçu PDF - Mode Développement) Tj
+    /F1 12 Tf
+    0 -30 Td
+    (Offre: ${offer.id || 'ID non disponible'}) Tj
+    0 -20 Td
+    (Client: ${offer.client_name || 'Nom client non disponible'}) Tj
+    0 -20 Td
+    (Montant: ${offer.amount ? offer.amount + ' €' : 'Montant non disponible'}) Tj
+    0 -20 Td
+    (Mensualité: ${offer.monthly_payment ? offer.monthly_payment + ' €' : 'Mensualité non disponible'}) Tj
+    0 -40 Td
+    (Modèle: ${offer.__template?.name || 'Modèle par défaut'}) Tj
+    0 -40 Td
+    (Ce PDF est un document de démonstration généré en mode développement.) Tj
+    0 -20 Td
+    (Date de génération: ${new Date().toLocaleString()}) Tj
+    ET
+    stream
+    endobj
+    xref
+    0 6
+    0000000000 65535 f
+    0000000010 00000 n
+    0000000059 00000 n
+    0000000118 00000 n
+    0000000217 00000 n
+    0000000300 00000 n
+    trailer
+    <<
+    /Size 6
+    /Root 1 0 R
+    >>
+    startxref
+    1354
+    %%EOF
+  `;
+  
+  // Convertir en base64 pour créer un data URI
+  const base64 = btoa(pdfContent);
+  return `data:application/pdf;base64,${base64}`;
 };
 
 // Fonction utilitaire pour télécharger un fichier
@@ -151,7 +275,7 @@ export const downloadFile = (data, filename, mimeType = 'application/pdf') => {
     blob = data;
   } else if (typeof data === 'string') {
     // Si c'est une URL, définir l'attribut href
-    if (data.startsWith('http')) {
+    if (data.startsWith('http') || data.startsWith('data:')) {
       downloadLink.href = data;
     } else {
       // Sinon, créer un blob à partir de la chaîne

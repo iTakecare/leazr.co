@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,19 +86,6 @@ const PDFPreview = ({ template }) => {
       } else if (pdfResult.pdfUrl) {
         // Si nous avons une URL, télécharger à partir de cette URL
         downloadFile(pdfResult.pdfUrl, pdfResult.filename);
-      } else {
-        // Sinon, créer un blob à partir du nom de fichier
-        const mockPdfContent = `PDF de démonstration pour l'offre ${SAMPLE_OFFER.id}
-        
-Client: ${SAMPLE_OFFER.clients.name}
-Société: ${SAMPLE_OFFER.clients.company}
-Montant: ${SAMPLE_OFFER.amount} €
-Mensualité: ${SAMPLE_OFFER.monthly_payment} €
-
-Ce PDF est un exemple généré automatiquement pour la prévisualisation du modèle.`;
-        
-        const mockBlob = new Blob([mockPdfContent], { type: 'application/pdf' });
-        downloadFile(mockBlob, pdfResult.filename);
       }
     } catch (error) {
       console.error("Erreur lors de la génération du PDF:", error);
@@ -338,7 +324,7 @@ Ce PDF est un exemple généré automatiquement pour la prévisualisation du mod
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.5))}
+              onClick={zoomOut}
               disabled={zoomLevel <= 0.5}
               className="h-8 px-2"
             >
@@ -348,7 +334,7 @@ Ce PDF est un exemple généré automatiquement pour la prévisualisation du mod
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 2))}
+              onClick={zoomIn}
               disabled={zoomLevel >= 2}
               className="h-8 px-2"
             >
