@@ -128,6 +128,22 @@ export const AmbassadorEditPage = () => {
     loadAmbassador();
   }, [loadAmbassador]);
 
+  const handleTemplateChange = async (value: string) => {
+    if (!id) return;
+    setSelectedTemplateId(value);
+    
+    try {
+      await updateAmbassador(id, {
+        ...ambassador!,
+        pdf_template_id: value
+      });
+      toast.success("Modèle PDF mis à jour avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du modèle PDF:", error);
+      toast.error("Erreur lors de la mise à jour du modèle PDF");
+    }
+  };
+
   // Just a mock component rendering to fix the build error
   return (
     <div>
@@ -147,7 +163,7 @@ export const AmbassadorEditPage = () => {
             </p>
             <Select 
               value={selectedTemplateId} 
-              onValueChange={(value) => setSelectedTemplateId(value)}
+              onValueChange={handleTemplateChange}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Sélectionner un modèle PDF" />
