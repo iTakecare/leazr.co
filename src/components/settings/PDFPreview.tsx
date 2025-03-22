@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { generateOfferPdf } from '@/utils/pdfGenerator';
-import { PDFTemplate } from '@/types/pdf';
+import { PDFTemplate, PDFField } from '@/types/pdf';
 
 interface PDFPreviewProps {
   template: PDFTemplate;
@@ -20,7 +20,7 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
   const [previewOffer, setPreviewOffer] = useState<any>(null);
 
   useEffect(() => {
-    // Create a sample offer for preview
+    // Create a sample offer for preview with realistic data
     const sampleOffer = {
       id: 'preview-123456789',
       client_name: 'Client Exemple',
@@ -32,6 +32,18 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
       duration: 36,
       created_at: new Date().toISOString(),
       status: 'draft',
+      clients: {
+        name: 'Jean Dupont',
+        company: 'Société Exemple',
+        email: 'jean.dupont@exemple.be',
+        phone: '+32 471 234 567',
+        address: 'Rue des Exemples 123, 1000 Bruxelles'
+      },
+      user: {
+        name: 'Pierre Martin',
+        email: 'pierre.martin@itakecare.be',
+        phone: '+32 477 890 123'
+      },
       equipment_description: JSON.stringify([
         {
           title: 'MacBook Pro 16"',
@@ -153,7 +165,7 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
               border: '1px dashed #aaa',
               borderRadius: '4px',
               maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: `${(field.style?.width || 'auto')}`
+              width: field.style?.width ? `${field.style.width}` : 'auto'
             };
             
             return (
@@ -172,7 +184,7 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
               fontStyle: field.style?.fontStyle || 'normal',
               textDecoration: field.style?.textDecoration || 'none',
               maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: `${(field.style?.width || 'auto')}`
+              width: field.style?.width ? `${field.style.width}` : 'auto'
             };
             
             return (

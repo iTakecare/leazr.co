@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,8 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { getSupabaseClient } from "@/integrations/supabase/client";
-import PDFCompanyInfo from "./PDFCompanyInfo";
-import PDFTemplateWithFields from "./PDFTemplateWithFields";
+import PDFCompanyInfo from './PDFCompanyInfo';
+import PDFTemplateWithFields from './PDFTemplateWithFields';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +46,6 @@ const PDFTemplateManager = () => {
   const [templateToDelete, setTemplateToDelete] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Charger les modèles existants
   useEffect(() => {
     loadTemplates();
   }, []);
@@ -58,20 +56,20 @@ const PDFTemplateManager = () => {
     try {
       const supabase = getSupabaseClient();
       
-      // Vérifier si la table existe
-      const { data: tableExists, error: tableError } = await supabase.rpc(
-        'check_table_exists', 
-        { table_name: 'pdf_templates' }
-      );
+      const { data: tableInfo, error: tableInfoError } = await supabase
+        .from('information_schema.tables')
+        .select('table_name')
+        .eq('table_schema', 'public')
+        .eq('table_name', 'pdf_templates')
+        .single();
       
-      if (tableError) {
-        console.error("Error checking table existence:", tableError);
+      if (tableInfoError && tableInfoError.code !== 'PGRST116') {
+        console.error("Error checking table existence:", tableInfoError);
         throw new Error("Erreur lors de la vérification de la table");
       }
       
-      if (!tableExists) {
+      if (!tableInfo) {
         console.log("Table doesn't exist, creating it");
-        // Créer la table si elle n'existe pas
         const { error: createError } = await supabase.rpc('execute_sql', {
           sql: `
             CREATE TABLE IF NOT EXISTS public.pdf_templates (
@@ -100,7 +98,6 @@ const PDFTemplateManager = () => {
         }
       }
       
-      // Récupérer tous les modèles
       const { data, error } = await supabase
         .from('pdf_templates')
         .select('*')
@@ -113,7 +110,6 @@ const PDFTemplateManager = () => {
       
       setTemplates(data || []);
       
-      // Si le modèle par défaut existe, le sélectionner
       const defaultTemplate = data?.find(t => t.id === 'default') || data?.[0];
       if (defaultTemplate) {
         setSelectedTemplate(defaultTemplate);
@@ -125,8 +121,7 @@ const PDFTemplateManager = () => {
       setLoading(false);
     }
   };
-  
-  // Sauvegarder le modèle
+
   const saveTemplate = async (updatedTemplate) => {
     setSaving(true);
     
@@ -145,7 +140,6 @@ const PDFTemplateManager = () => {
         throw new Error("Erreur lors de la sauvegarde du modèle");
       }
       
-      // Mettre à jour l'état local
       setSelectedTemplate(updatedTemplate);
       setTemplates(prev => {
         const index = prev.findIndex(t => t.id === updatedTemplate.id);
@@ -166,18 +160,15 @@ const PDFTemplateManager = () => {
       setSaving(false);
     }
   };
-  
-  // Créer un nouveau modèle
+
   const createNewTemplate = () => {
     if (!newTemplateName.trim()) {
       toast.error("Veuillez spécifier un nom pour le modèle");
       return;
     }
     
-    // Générer un ID unique basé sur le nom
     const templateId = `template_${Date.now()}`;
     
-    // Créer un nouveau modèle basé sur le modèle par défaut ou avec des valeurs par défaut
     const baseTemplate = templates.find(t => t.id === 'default') || {
       companyName: 'iTakeCare',
       companyAddress: 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique',
@@ -208,8 +199,7 @@ const PDFTemplateManager = () => {
         setIsEditing(true);
       });
   };
-  
-  // Supprimer un modèle
+
   const deleteTemplate = async () => {
     if (!templateToDelete) return;
     
@@ -226,10 +216,8 @@ const PDFTemplateManager = () => {
         throw new Error("Erreur lors de la suppression du modèle");
       }
       
-      // Mettre à jour l'état local
       setTemplates(prev => prev.filter(t => t.id !== templateToDelete.id));
       
-      // Si le modèle supprimé était sélectionné, sélectionner le premier modèle restant
       if (selectedTemplate?.id === templateToDelete.id) {
         const remainingTemplates = templates.filter(t => t.id !== templateToDelete.id);
         setSelectedTemplate(remainingTemplates[0] || null);
@@ -249,11 +237,9 @@ const PDFTemplateManager = () => {
       setTemplateToDelete(null);
     }
   };
-  
-  // Dupliquer un modèle
+
   const duplicateTemplate = async (template) => {
     try {
-      // Créer une copie du modèle avec un nouvel ID et nom
       const templateCopy = {
         ...template,
         id: `template_${Date.now()}`,
@@ -270,8 +256,7 @@ const PDFTemplateManager = () => {
       toast.error("Erreur lors de la duplication du modèle");
     }
   };
-  
-  // Mettre à jour les informations de l'entreprise
+
   const handleCompanyInfoUpdate = (companyInfo) => {
     if (selectedTemplate) {
       const updatedTemplate = {
@@ -282,19 +267,17 @@ const PDFTemplateManager = () => {
       saveTemplate(updatedTemplate);
     }
   };
-  
-  // Mettre à jour les pages et champs du modèle
+
   const handleTemplateUpdate = (updatedTemplate) => {
     saveTemplate(updatedTemplate);
   };
-  
-  // Sélectionner un modèle pour édition
+
   const selectTemplate = (template) => {
     setSelectedTemplate(template);
     setActiveTab('design');
     setIsEditing(true);
   };
-  
+
   return (
     <Card className="w-full mt-6">
       <CardHeader>
@@ -453,7 +436,6 @@ const PDFTemplateManager = () => {
         )}
       </CardContent>
 
-      {/* Dialog pour créer un nouveau modèle */}
       <Dialog open={newTemplateDialogOpen} onOpenChange={setNewTemplateDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -484,7 +466,6 @@ const PDFTemplateManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de confirmation de suppression */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
