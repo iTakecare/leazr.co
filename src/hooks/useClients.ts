@@ -23,7 +23,10 @@ export const useClients = () => {
       const clientsData = await getClients();
       
       if (Array.isArray(clientsData)) {
-        setClients(clientsData);
+        // Filtre pour exclure les clients qui appartiennent à un ambassadeur (ceux qui ont un lien dans ambassador_clients)
+        // Ces clients seront visibles uniquement dans l'interface de l'ambassadeur
+        const regularClients = clientsData.filter(client => !client.is_ambassador_client);
+        setClients(regularClients);
       } else {
         console.error("Clients data is not an array:", clientsData);
         setLoadingError("Format de données incorrect");

@@ -15,7 +15,7 @@ export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
     
     console.log("Current user:", userData.user.id);
     
-    // Utilisons single() au lieu de maybeSingle() pour éviter l'erreur 406
+    // Utilisons select() au lieu de maybeSingle() pour éviter l'erreur 406
     const { data: ambassadorData, error: ambassadorError } = await supabase
       .from('ambassadors')
       .select('id')
@@ -125,10 +125,47 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       throw insertError;
     }
     
+    // Mettre à jour le compteur de clients de l'ambassadeur
+    await updateAmbassadorClientCount(ambassadorId);
+    
     console.log("Successfully linked client to ambassador");
     return true;
   } catch (error) {
     console.error("Exception in linkClientToAmbassador:", error);
+    return false;
+  }
+};
+
+// Mettre à jour le compteur de clients d'un ambassadeur
+export const updateAmbassadorClientCount = async (ambassadorId: string): Promise<boolean> => {
+  try {
+    // Compter le nombre de clients liés à cet ambassadeur
+    const { count, error: countError } = await supabase
+      .from("ambassador_clients")
+      .select("*", { count: "exact", head: true })
+      .eq("ambassador_id", ambassadorId);
+    
+    if (countError) {
+      console.error("Error counting ambassador clients:", countError);
+      return false;
+    }
+    
+    console.log(`Ambassador ${ambassadorId} has ${count} clients`);
+    
+    // Mettre à jour le compteur dans la table ambassadors
+    const { error: updateError } = await supabase
+      .from("ambassadors")
+      .update({ clients_count: count || 0 })
+      .eq("id", ambassadorId);
+    
+    if (updateError) {
+      console.error("Error updating ambassador client count:", updateError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error updating ambassador client count:", error);
     return false;
   }
 };
@@ -148,6 +185,9 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData, a
       console.error("Error creating client through RPC:", error);
       throw error;
     }
+    
+    // Mettre à jour le compteur de clients de l'ambassadeur après la création réussie
+    await updateAmbassadorClientCount(ambassadorId);
     
     console.log("Client created successfully through RPC function:", data);
     return data;

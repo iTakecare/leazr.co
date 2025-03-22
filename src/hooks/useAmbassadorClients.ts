@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Client, CreateClientData } from '@/types/client';
-import { getAmbassadorClients, getCurrentAmbassadorProfile, linkClientToAmbassador, createClientAsAmbassadorDb } from '@/services/ambassadorClientService';
+import { getAmbassadorClients, getCurrentAmbassadorProfile, linkClientToAmbassador, createClientAsAmbassadorDb, updateAmbassadorClientCount } from '@/services/ambassadorClientService';
 import { toast } from 'sonner';
 
 export const useAmbassadorClients = () => {
@@ -50,9 +50,12 @@ export const useAmbassadorClients = () => {
         return false;
       }
       
+      // 3. Mettre à jour explicitement le compteur de clients de l'ambassadeur
+      await updateAmbassadorClientCount(ambassadorId);
+      
       toast.success("Client créé et associé à votre compte ambassadeur");
       
-      // 3. Recharger la liste des clients
+      // 4. Recharger la liste des clients
       await loadClients();
       
       return true;

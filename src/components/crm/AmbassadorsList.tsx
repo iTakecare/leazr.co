@@ -41,6 +41,24 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
     fetchAmbassadors();
   }, []);
 
+  // Rafraîchir les données des ambassadeurs
+  const refreshAmbassadors = async () => {
+    try {
+      setLoading(true);
+      const data = await getAmbassadors();
+      console.log("Refreshed ambassadors data:", data);
+      setAmbassadors(data);
+      setError(null);
+      toast.success("Données des ambassadeurs rafraîchies");
+    } catch (err) {
+      console.error("Error refreshing ambassadors:", err);
+      setError("Erreur lors du rafraîchissement des données");
+      toast.error("Impossible de rafraîchir les données");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter ambassadors based on search term and status filter
   const filteredAmbassadors = ambassadors.filter(ambassador => {
     const matchesSearch = 
@@ -67,6 +85,9 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
       <div className="flex flex-col items-center justify-center h-64">
         <AlertCircle className="h-12 w-12 text-destructive mb-4" />
         <p className="text-muted-foreground">{error}</p>
+        <Button variant="outline" onClick={refreshAmbassadors} className="mt-4">
+          Réessayer
+        </Button>
       </div>
     );
   }
@@ -146,6 +167,9 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to={`/ambassadors/${ambassador.id}/clients`}>Voir les clients</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={refreshAmbassadors}>
+                      Rafraîchir les données
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className={ambassador.status === 'active' ? "text-amber-600" : "text-green-600"}>
@@ -234,6 +258,9 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
                         <DropdownMenuItem asChild>
                           <Link to={`/ambassadors/${ambassador.id}/clients`}>Voir les clients</Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={refreshAmbassadors}>
+                          Rafraîchir les données
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className={ambassador.status === 'active' ? "text-amber-600" : "text-green-600"}>
                           {ambassador.status === 'active' ? 'Désactiver' : 'Activer'}
@@ -250,6 +277,9 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
                   <div className="flex flex-col items-center justify-center text-muted-foreground">
                     <AlertCircle className="h-12 w-12 mb-2 text-gray-300" />
                     <p>Aucun ambassadeur trouvé</p>
+                    <Button variant="outline" onClick={refreshAmbassadors} className="mt-4">
+                      Rafraîchir les données
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
