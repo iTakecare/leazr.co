@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const generateOfferPdf = async (offer) => {
   try {
@@ -70,8 +71,34 @@ export const generateOfferPdf = async (offer) => {
       offer.__template = template;
     }
     
+    // Vérifier si VITE_API_URL est défini
+    const apiUrl = import.meta.env.VITE_API_URL;
+    
+    if (!apiUrl) {
+      console.error("VITE_API_URL is not defined in environment variables");
+      throw new Error("Configuration d'API manquante. Veuillez configurer VITE_API_URL.");
+    }
+    
+    console.log("Using API URL:", apiUrl);
+    
+    // Simulation de génération PDF pour le développement
+    // Si nous sommes en environnement de développement sans API
+    if (import.meta.env.DEV && (!apiUrl || apiUrl === 'http://localhost:1234')) {
+      console.log("Using mock PDF generation in development");
+      
+      // Simuler un délai pour imiter l'API
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Retourner un nom de fichier fictif
+      const mockFilename = `offre_${offer.id}_${new Date().getTime()}.pdf`;
+      console.log("Mock PDF generated:", mockFilename);
+      
+      return mockFilename;
+    }
+    
     // Appel à l'API pour générer le PDF
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/offer-pdf`, {
+    console.log("Making API request to:", `${apiUrl}/api/offer-pdf`);
+    const response = await fetch(`${apiUrl}/api/offer-pdf`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

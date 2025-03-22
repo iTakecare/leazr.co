@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -338,7 +337,7 @@ const PDFPreview = ({ template }) => {
             disabled={loading}
           >
             <FileDown className="h-4 w-4 mr-2" />
-            Générer un PDF d'exemple
+            {loading ? "Génération en cours..." : "Générer un PDF d'exemple"}
           </Button>
         </div>
       </div>
