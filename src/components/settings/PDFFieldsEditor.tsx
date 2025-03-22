@@ -30,7 +30,12 @@ import {
   Copy,
   Link,
   Unlink,
-  X
+  X,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  Move
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -92,7 +97,7 @@ const PDFFieldsEditor = ({
   const [dragEnabled, setDragEnabled] = useState(true);
   const [pageLoaded, setPageLoaded] = useState(false);
   const [gridEnabled, setGridEnabled] = useState(false);
-  const [gridSize, setGridSize] = useState(5);
+  const [gridSize, setGridSize] = useState(1);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(0.5);
   const [showAddFieldDialog, setShowAddFieldDialog] = useState(false);
@@ -101,6 +106,9 @@ const PDFFieldsEditor = ({
   const [duplicateTargetPage, setDuplicateTargetPage] = useState(0);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [fieldToRemove, setFieldToRemove] = useState(null);
+  const [directPositionMode, setDirectPositionMode] = useState(false);
+  const [stepSize, setStepSize] = useState(0.5); // Taille des déplacements précis en mm
+  const [manualPosition, setManualPosition] = useState({ x: 0, y: 0 });
   const [newField, setNewField] = useState({
     id: "",
     label: "",
@@ -114,6 +122,7 @@ const PDFFieldsEditor = ({
   
   const canvasRef = useRef(null);
   const isDragging = useRef(false);
+  const initialClickOffset = useRef({ x: 0, y: 0 });
   
   useEffect(() => {
     setPositionedField(null);
@@ -164,8 +173,14 @@ const PDFFieldsEditor = ({
   };
   
   const updateFieldPosition = (fieldId, newPosition, page = activePage) => {
+    // Arrondissement à 0.1mm près pour plus de précision
+    const precisePosition = {
+      x: parseFloat(newPosition.x.toFixed(1)),
+      y: parseFloat(newPosition.y.toFixed(1))
+    };
+    
     const newFields = fields.map(field => 
-      field.id === fieldId ? { ...field, position: newPosition, page } : field
+      field.id === fieldId ? { ...field, position: precisePosition, page } : field
     );
     onChange(newFields);
   };
@@ -200,64 +215,98 @@ const PDFFieldsEditor = ({
     };
   };
   
+  const calculatePrecisePosition = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const rect = canvas.getBoundingClientRect();
+    
+    // Dimensions d'une page A4 en mm
+    const pageWidth = 210;
+    const pageHeight = 297;
+    
+    // Calculer le ratio pour convertir les pixels en mm
+    const scaleRatio = {
+      x: pageWidth / (rect.width * zoomLevel),
+      y: pageHeight / (rect.height * zoomLevel)
+    };
+    
+    // Position du curseur relative au canvas
+    const cursorX = e.clientX - rect.left;
+    const cursorY = e.clientY - rect.top;
+    
+    // Convertir en mm et appliquer l'offset
+    const mmX = cursorX * scaleRatio.x - initialClickOffset.current.x;
+    const mmY = cursorY * scaleRatio.y - initialClickOffset.current.y;
+    
+    // Limiter aux dimensions de la page
+    const x = Math.max(0, Math.min(pageWidth, mmX));
+    const y = Math.max(0, Math.min(pageHeight, mmY));
+    
+    return { x, y };
+  };
+  
   const handleCanvasMouseMove = (e) => {
-    if (positionedField && isDragging.current) {
+    if (positionedField && isDragging.current && dragEnabled) {
+      const position = calculatePrecisePosition(e);
+      
+      // Appliquer la grille si activée
+      const snappedPosition = gridEnabled 
+        ? snapToGrid(position) 
+        : { 
+          x: parseFloat(position.x.toFixed(1)), 
+          y: parseFloat(position.y.toFixed(1)) 
+        };
+      
+      setCanvasPosition(snappedPosition);
+      
+      // Pour un positionnement en temps réel, mettre à jour immédiatement
+      // Facultatif: Peut ajouter une latence
+      // updateFieldPosition(positionedField, snappedPosition, activePage);
+    }
+  };
+
+  const handleCanvasMouseDown = (e) => {
+    if (positionedField && dragEnabled) {
+      const field = fields.find(f => f.id === positionedField);
+      if (!field) return;
+      
       const canvas = canvasRef.current;
       if (!canvas) return;
       
       const rect = canvas.getBoundingClientRect();
       
-      const canvasWidth = rect.width;
-      const canvasHeight = rect.height;
-      
-      const pageWidth = 210;
-      const pageHeight = 297;
-      
-      const scaleRatio = {
-        x: pageWidth / (canvasWidth * zoomLevel),
-        y: pageHeight / (canvasHeight * zoomLevel)
+      // Position du champ en pixels dans le canvas
+      const fieldPositionPx = {
+        x: (field.position.x * rect.width * zoomLevel) / 210,
+        y: (field.position.y * rect.height * zoomLevel) / 297
       };
       
-      const cursorX = e.clientX - rect.left;
-      const cursorY = e.clientY - rect.top;
+      // Position du clic par rapport au coin supérieur gauche du champ
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
       
-      const x = Math.max(0, Math.min(pageWidth, cursorX * scaleRatio.x - dragOffset.x));
-      const y = Math.max(0, Math.min(pageHeight, cursorY * scaleRatio.y - dragOffset.y));
+      // Calculer le décalage entre le clic et la position du champ
+      initialClickOffset.current = {
+        x: (clickX * 210) / (rect.width * zoomLevel) - field.position.x,
+        y: (clickY * 297) / (rect.height * zoomLevel) - field.position.y
+      };
       
-      const position = gridEnabled ? snapToGrid({ x, y }) : { x, y };
-      
-      setCanvasPosition(position);
-    }
-  };
-
-  const handleCanvasMouseDown = (e) => {
-    if (positionedField) {
       isDragging.current = true;
-      
-      const field = fields.find(f => f.id === positionedField);
-      if (field) {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const rect = canvas.getBoundingClientRect();
-          
-          const fieldX = field.position.x * (rect.width * zoomLevel) / 210;
-          const fieldY = field.position.y * (rect.height * zoomLevel) / 297;
-          
-          setDragOffset({
-            x: 0,
-            y: 0
-          });
-        }
-      }
-      
       e.preventDefault();
     }
   };
   
   const handleCanvasMouseUp = () => {
     if (positionedField && isDragging.current) {
-      updateFieldPosition(positionedField, canvasPosition, activePage);
-      toast.success(`Position mise à jour`);
+      // Mettre à jour la position finale en arrondissant à 0.1mm près
+      const precisePosition = {
+        x: parseFloat(canvasPosition.x.toFixed(1)),
+        y: parseFloat(canvasPosition.y.toFixed(1))
+      };
+      
+      updateFieldPosition(positionedField, precisePosition, activePage);
+      toast.success(`Position mise à jour: (${precisePosition.x.toFixed(1)}, ${precisePosition.y.toFixed(1)})`);
       
       isDragging.current = false;
     }
@@ -275,11 +324,75 @@ const PDFFieldsEditor = ({
     
     setPositionedField(fieldId);
     setCanvasPosition(initialPosition);
+    setManualPosition(initialPosition);
     
-    setDragOffset({ x: 0, y: 0 });
+    // Réinitialiser l'offset pour un nouveau positionnement
+    initialClickOffset.current = { x: 0, y: 0 };
     
     if (field.page !== activePage) {
       updateFieldPage(fieldId, activePage);
+    }
+  };
+  
+  // Fonction pour appliquer un mouvement précis avec les flèches du clavier
+  const applyPreciseMovement = (direction) => {
+    if (!positionedField) return;
+    
+    let newPosition = { ...canvasPosition };
+    
+    switch (direction) {
+      case 'up':
+        newPosition.y = Math.max(0, newPosition.y - stepSize);
+        break;
+      case 'down':
+        newPosition.y = Math.min(297, newPosition.y + stepSize);
+        break;
+      case 'left':
+        newPosition.x = Math.max(0, newPosition.x - stepSize);
+        break;
+      case 'right':
+        newPosition.x = Math.min(210, newPosition.x + stepSize);
+        break;
+    }
+    
+    // Arrondir à 0.1mm près
+    newPosition = {
+      x: parseFloat(newPosition.x.toFixed(1)),
+      y: parseFloat(newPosition.y.toFixed(1))
+    };
+    
+    setCanvasPosition(newPosition);
+    updateFieldPosition(positionedField, newPosition, activePage);
+  };
+  
+  // Positionnement manuel direct en saisissant des coordonnées
+  const handleManualPositionChange = (axis, value) => {
+    const parsedValue = parseFloat(value);
+    
+    if (!isNaN(parsedValue)) {
+      const newPosition = { ...manualPosition };
+      
+      if (axis === 'x') {
+        newPosition.x = Math.min(210, Math.max(0, parsedValue));
+      } else {
+        newPosition.y = Math.min(297, Math.max(0, parsedValue));
+      }
+      
+      setManualPosition(newPosition);
+    }
+  };
+  
+  const applyManualPosition = () => {
+    if (positionedField) {
+      // Arrondissement à 0.1mm près
+      const precisePosition = {
+        x: parseFloat(manualPosition.x.toFixed(1)),
+        y: parseFloat(manualPosition.y.toFixed(1))
+      };
+      
+      setCanvasPosition(precisePosition);
+      updateFieldPosition(positionedField, precisePosition, activePage);
+      toast.success(`Position définie manuellement: (${precisePosition.x.toFixed(1)}, ${precisePosition.y.toFixed(1)})`);
     }
   };
   
@@ -392,84 +505,35 @@ const PDFFieldsEditor = ({
     }
   };
 
-  const totalPages = template?.templateImages?.length || 1;
-
-  const renderGrid = () => {
-    if (!gridEnabled) return null;
-    
-    const gridLines = [];
-    const pageWidth = 210;
-    const pageHeight = 297;
-    
-    for (let y = 0; y <= pageHeight; y += gridSize) {
-      gridLines.push(
-        <line 
-          key={`h-${y}`} 
-          x1="0" 
-          y1={`${y}mm`} 
-          x2={`${pageWidth}mm`} 
-          y2={`${y}mm`} 
-          stroke="#ccc" 
-          strokeWidth="0.2"
-          strokeDasharray="1,1"
-        />
-      );
-    }
-    
-    for (let x = 0; x <= pageWidth; x += gridSize) {
-      gridLines.push(
-        <line 
-          key={`v-${x}`} 
-          x1={`${x}mm`} 
-          y1="0" 
-          x2={`${x}mm`} 
-          y2={`${pageHeight}mm`} 
-          stroke="#ccc" 
-          strokeWidth="0.2"
-          strokeDasharray="1,1"
-        />
-      );
-    }
-    
-    return (
-      <svg 
-        className="absolute top-0 left-0 w-full h-full pointer-events-none" 
-        style={{ zIndex: 1 }}
-      >
-        {gridLines}
-      </svg>
-    );
-  };
-
   const handleKeyDown = (e) => {
     if (!positionedField) return;
     
-    const step = gridEnabled ? gridSize : 1;
-    let newPosition = { ...canvasPosition };
+    let handled = true;
     
     switch (e.key) {
       case 'ArrowUp':
         e.preventDefault();
-        newPosition.y = Math.max(0, newPosition.y - step);
+        applyPreciseMovement('up');
         break;
       case 'ArrowDown':
         e.preventDefault();
-        newPosition.y = Math.min(297, newPosition.y + step);
+        applyPreciseMovement('down');
         break;
       case 'ArrowLeft':
         e.preventDefault();
-        newPosition.x = Math.max(0, newPosition.x - step);
+        applyPreciseMovement('left');
         break;
       case 'ArrowRight':
         e.preventDefault();
-        newPosition.x = Math.min(210, newPosition.x + step);
+        applyPreciseMovement('right');
         break;
       default:
-        return;
+        handled = false;
     }
     
-    setCanvasPosition(newPosition);
-    updateFieldPosition(positionedField, newPosition, activePage);
+    if (handled) {
+      e.preventDefault();
+    }
   };
 
   const handleRemoveFieldLabel = (e, field) => {
@@ -482,6 +546,8 @@ const PDFFieldsEditor = ({
   const getCurrentPageFields = () => {
     return fields.filter(f => f.page === activePage || (activePage === 0 && f.page === undefined));
   };
+
+  const totalPages = template?.templateImages?.length || 1;
 
   return (
     <div className="grid md:grid-cols-3 gap-6">
@@ -796,9 +862,9 @@ const PDFFieldsEditor = ({
                   <Label className="text-xs whitespace-nowrap">Taille grille:</Label>
                   <Slider
                     value={[gridSize]}
-                    min={1}
-                    max={20}
-                    step={1}
+                    min={0.5}
+                    max={10}
+                    step={0.5}
                     onValueChange={(values) => setGridSize(values[0])}
                     disabled={!gridEnabled}
                     className="w-full"
@@ -816,216 +882,4 @@ const PDFFieldsEditor = ({
                     onValueChange={(values) => setZoomLevel(values[0] / 100)}
                     className="w-full"
                   />
-                  <span className="text-xs whitespace-nowrap">{Math.round(zoomLevel * 100)}%</span>
-                </div>
-                
-                <div className="flex gap-1">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => onPageChange(Math.max(0, activePage - 1))}
-                    disabled={activePage === 0}
-                  >
-                    Page précédente
-                  </Button>
-                  <span className="flex items-center px-2 text-sm">
-                    Page {activePage + 1} / {totalPages}
-                  </span>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => onPageChange(Math.min(totalPages - 1, activePage + 1))}
-                    disabled={activePage === totalPages - 1}
-                  >
-                    Page suivante
-                  </Button>
-                </div>
-              </div>
-              
-              <div
-                ref={canvasRef}
-                className="border rounded-md bg-white p-4 relative h-[450px] overflow-auto"
-                style={{ 
-                  minHeight: "450px", 
-                  cursor: positionedField && isDragging.current ? "grabbing" : positionedField ? "grab" : "default",
-                }}
-                onMouseMove={handleCanvasMouseMove}
-                onMouseDown={handleCanvasMouseDown}
-                onMouseUp={handleCanvasMouseUp}
-                onMouseLeave={handleCanvasMouseLeave}
-                onKeyDown={handleKeyDown}
-                tabIndex={0}
-              >
-                <div 
-                  className="bg-white border border-gray-200 shadow"
-                  style={{
-                    width: "210mm", 
-                    height: "297mm",
-                    transform: `scale(${zoomLevel})`,
-                    transformOrigin: "top left",
-                    position: "relative",
-                  }}
-                >
-                  {getCurrentPageBackground() ? (
-                    <div className="relative" style={{ minHeight: "297mm" }}>
-                      <img 
-                        src={getCurrentPageBackground()} 
-                        alt={`Template page ${activePage + 1}`}
-                        className="w-full h-auto"
-                        onError={handleImageError}
-                        onLoad={handleImageLoad}
-                        style={{ 
-                          display: "block",
-                          width: "100%"
-                        }}
-                      />
-                      
-                      {renderGrid()}
-                      
-                      <div 
-                        className="w-full py-2 px-4 border-b border-gray-200 bg-white bg-opacity-80 text-center"
-                        style={{ position: "absolute", top: "0", left: "0", right: "0", zIndex: 5 }}
-                      >
-                        <div className="text-sm font-bold">PAGE {activePage + 1} / {totalPages}</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="text-center p-4 bg-gray-50 rounded border">
-                        <p className="text-lg font-medium mb-2">Aucune image pour la page {activePage + 1}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Veuillez ajouter une image pour cette page dans l'onglet "Pages du modèle"
-                        </p>
-                      </div>
-                      
-                      {renderGrid()}
-                    </div>
-                  )}
-                  
-                  {fields
-                    .filter(f => f.isVisible && (f.page === activePage || (activePage === 0 && f.page === undefined)))
-                    .map((field) => (
-                      <div
-                        key={field.id}
-                        className={`absolute p-1 border ${positionedField === field.id ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white hover:bg-gray-50'}`}
-                        style={{
-                          left: `${field.position.x}mm`,
-                          top: `${field.position.y}mm`,
-                          zIndex: positionedField === field.id ? 10 : 2,
-                          cursor: 'move',
-                          minWidth: field.type === 'table' ? '60mm' : '20mm',
-                          maxWidth: field.type === 'table' ? '120mm' : '60mm',
-                          fontSize: field.type === 'table' ? '6px' : '8px',
-                          pointerEvents: 'all'
-                        }}
-                        onClick={() => startPositioning(field.id, field.position)}
-                      >
-                        <div className="flex justify-between items-center mb-1 bg-gray-100 px-1 rounded">
-                          <span className="text-[8px] font-medium truncate">{field.label}</span>
-                          <button 
-                            className="text-red-500 hover:text-red-700 p-1 -mr-1"
-                            onClick={(e) => handleRemoveFieldLabel(e, field)}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                        <div className="text-[7px] p-1 truncate" title={field.value}>
-                          {field.type === 'table' ? (
-                            <div className="border border-gray-200 p-0.5 bg-gray-50 text-center">
-                              [Tableau d'équipements]
-                            </div>
-                          ) : (
-                            field.value
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Dupliquer le champ sur une autre page</DialogTitle>
-            <DialogDescription>
-              Sélectionnez la page sur laquelle vous souhaitez ajouter ce champ.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Champ à dupliquer</Label>
-                <div className="p-2 border rounded">
-                  <p className="font-medium">{fieldToDuplicate?.label}</p>
-                  <p className="text-sm text-gray-500 truncate">{fieldToDuplicate?.value}</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Sélectionnez la page cible</Label>
-                <Select
-                  value={duplicateTargetPage.toString()}
-                  onValueChange={(value) => setDuplicateTargetPage(parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez une page" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <SelectItem 
-                        key={i} 
-                        value={i.toString()}
-                        disabled={i === fieldToDuplicate?.page}
-                      >
-                        Page {i + 1} {i === fieldToDuplicate?.page ? "(Page actuelle)" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDuplicateDialog(false)}>
-              Annuler
-            </Button>
-            <Button onClick={handleDuplicateField}>
-              Dupliquer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Retirer le champ de cette page</DialogTitle>
-            <DialogDescription>
-              Êtes-vous sûr de vouloir retirer ce champ de la page {fieldToRemove?.page !== undefined ? fieldToRemove.page + 1 : 1} ?
-              Le champ restera disponible dans les champs généraux.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="p-2 border rounded">
-              <p className="font-medium">{fieldToRemove?.label}</p>
-              <p className="text-sm text-gray-500 truncate">{fieldToRemove?.value}</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRemoveDialog(false)}>
-              Annuler
-            </Button>
-            <Button variant="destructive" onClick={handleRemoveFieldFromPage}>
-              Retirer de cette page
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default PDFFieldsEditor;
+                  <span className
