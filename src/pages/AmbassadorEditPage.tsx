@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BadgePercent } from "lucide-react";
+import { ArrowLeft, BadgePercent, FileText } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,6 +38,7 @@ import {
 } from "@/services/commissionService";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
+import { getPDFTemplates, assignTemplateToAmbassador, PDFTemplate } from "@/services/pdfTemplateService";
 
 const ambassadorSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -63,12 +64,15 @@ const AmbassadorEditPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
   
-  // Commission level states
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
   const [currentLevelId, setCurrentLevelId] = useState<string>("");
   const [commissionLoading, setCommissionLoading] = useState(false);
   const [updatingLevel, setUpdatingLevel] = useState(false);
+
+  const [pdfTemplates, setPdfTemplates] = useState<PDFTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
 
   const form = useForm<AmbassadorFormData>({
     resolver: zodResolver(ambassadorSchema),
@@ -87,7 +91,6 @@ const AmbassadorEditPage = () => {
     },
   });
 
-  // Fonction pour charger les données de l'ambassadeur
   const loadAmbassador = useCallback(async () => {
     if (!id) return;
     
@@ -120,7 +123,6 @@ const AmbassadorEditPage = () => {
         country: ambassadorData.country || ""
       });
       
-      // Charger les données de commission
       await loadCommissionLevels();
       
       if (ambassadorData.commission_level_id) {
@@ -132,6 +134,15 @@ const AmbassadorEditPage = () => {
         setCurrentLevelId("");
         setCommissionLevel(null);
       }
+      
+      await loadPDFTemplates();
+      
+      if (ambassadorData.pdf_template_id) {
+        setSelectedTemplateId(ambassadorData.pdf_template_id);
+      } else {
+        setSelectedTemplateId("");
+      }
+      
     } catch (error: any) {
       console.error("[loadAmbassador] Erreur:", error);
       
@@ -197,7 +208,30 @@ const AmbassadorEditPage = () => {
     }
   };
 
-  // Fonction mise à jour pour une meilleure gestion des erreurs
+  const handleTemplateChange = async (templateId: string) => {
+    if (!ambassador?.id) return;
+    
+    setIsUpdatingTemplate(true);
+    try {
+      console.log("[handleTemplateChange] Mise à jour du modèle PDF:", templateId);
+      const success = await assignTemplateToAmbassador(ambassador.id, templateId);
+      
+      if (success) {
+        setSelectedTemplateId(templateId);
+        toast.success("Modèle PDF assigné avec succès");
+        
+        setAmbassador(prev => prev ? { ...prev, pdf_template_id: templateId } : null);
+      } else {
+        toast.error("Erreur lors de l'assignation du modèle PDF");
+      }
+    } catch (error) {
+      console.error("[handleTemplateChange] Erreur:", error);
+      toast.error("Erreur lors de l'assignation du modèle PDF");
+    } finally {
+      setIsUpdatingTemplate(false);
+    }
+  };
+
   const handleUpdateCommissionLevel = async (newLevelId: string) => {
     if (!ambassador?.id || !newLevelId) {
       console.error("[handleUpdateCommissionLevel] ID d'ambassadeur ou de barème manquant");
@@ -213,49 +247,37 @@ const AmbassadorEditPage = () => {
     setUpdatingLevel(true);
     toast.info("Mise à jour du barème en cours...");
     
-    // Sauvegarde de l'ancien niveau pour restauration
     const previousLevelId = currentLevelId;
     
-    // Mise à jour optimiste de l'interface
     setCurrentLevelId(newLevelId);
     
     try {
-      // Trouver le niveau dans la liste pour mise à jour optimiste
       const selectedLevel = commissionLevels.find(level => level.id === newLevelId);
       if (selectedLevel && commissionLevel) {
-        // Type-safe way to update CommissionLevel with minimal fields for optimistic UI update
         setCommissionLevel({
           ...commissionLevel,
           id: newLevelId,
           name: selectedLevel.name,
           is_default: selectedLevel.is_default,
-          // Keep other properties from existing commissionLevel
         });
       }
       
-      // Tentative de mise à jour
       await updateAmbassadorCommissionLevel(ambassador.id, newLevelId);
       
-      // Mettre à jour l'ambassadeur pour cohérence
       setAmbassador(prev => prev ? { ...prev, commission_level_id: newLevelId } : null);
       
-      // Charger les détails complets du niveau après confirmation de mise à jour
       await loadCommissionLevel(newLevelId);
       
       toast.success("Barème de commissionnement mis à jour");
       console.log("[handleUpdateCommissionLevel] Mise à jour réussie");
     } catch (error: any) {
-      // Gestion d'erreur plus détaillée
       console.error("[handleUpdateCommissionLevel] Erreur:", error);
       
-      // Message d'erreur plus clair pour l'utilisateur
       const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
       toast.error(`Erreur lors de la mise à jour du barème: ${errorMessage}`);
       
-      // Restaurer l'état précédent
       setCurrentLevelId(previousLevelId);
       
-      // Recharger l'état complet de l'ambassadeur depuis le serveur
       await loadAmbassador();
     } finally {
       setUpdatingLevel(false);
@@ -270,18 +292,19 @@ const AmbassadorEditPage = () => {
     
     console.log("[onSubmit] Soumission du formulaire:", data);
     console.log("[onSubmit] Barème actuel:", currentLevelId);
+    console.log("[onSubmit] Modèle PDF actuel:", selectedTemplateId);
     
     setIsSaving(true);
     try {
-      // S'assurer d'inclure le barème de commission actuel dans les données
-      const formDataWithCommission = {
+      const formDataWithExtraValues = {
         ...data,
-        commission_level_id: currentLevelId
+        commission_level_id: currentLevelId,
+        pdf_template_id: selectedTemplateId
       };
       
-      console.log("[onSubmit] Données complètes à sauvegarder:", formDataWithCommission);
+      console.log("[onSubmit] Données complètes à sauvegarder:", formDataWithExtraValues);
       
-      await updateAmbassador(id, formDataWithCommission);
+      await updateAmbassador(id, formDataWithExtraValues);
       
       toast.success(`L'ambassadeur ${data.name} a été mis à jour`);
       navigate(`/ambassadors/${id}`);
@@ -366,7 +389,6 @@ const AmbassadorEditPage = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Commission Level Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -427,7 +449,7 @@ const AmbassadorEditPage = () => {
                     {commissionLevel.rates && commissionLevel.rates.length > 0 && (
                       <div className="mt-2 space-y-1 text-sm">
                         {commissionLevel.rates
-                          .sort((a, b) => b.min_amount - a.min_amount) // Sort by min_amount descending
+                          .sort((a, b) => b.min_amount - a.min_amount)
                           .map((rate, index) => (
                             <div key={index} className="grid grid-cols-2 gap-2">
                               <div className="text-muted-foreground">
@@ -449,7 +471,65 @@ const AmbassadorEditPage = () => {
             </CardContent>
           </Card>
 
-          {/* Ambassador Information Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Modèle de PDF pour les offres
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="mb-4">
+                  <label htmlFor="pdf-template" className="text-sm font-medium mb-1 block">
+                    Sélectionner un modèle de PDF
+                  </label>
+                  <Select
+                    value={selectedTemplateId}
+                    onValueChange={handleTemplateChange}
+                    disabled={isUpdatingTemplate}
+                  >
+                    <SelectTrigger id="pdf-template" className="w-full">
+                      <SelectValue placeholder="Modèle par défaut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Modèle par défaut</SelectItem>
+                      {pdfTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          <div className="flex items-center gap-2">
+                            {template.name}
+                            {template.id === selectedTemplateId && (
+                              <Check className="h-3 w-3 text-primary ml-1" />
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {isUpdatingTemplate && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Mise à jour en cours...
+                    </div>
+                  )}
+                </div>
+
+                {selectedTemplateId && (
+                  <div className="p-3 border rounded-md bg-muted/20">
+                    {pdfTemplates.find(t => t.id === selectedTemplateId) ? (
+                      <div className="space-y-2">
+                        <p className="font-medium">{pdfTemplates.find(t => t.id === selectedTemplateId)?.name}</p>
+                        <p className="text-sm text-muted-foreground">{pdfTemplates.find(t => t.id === selectedTemplateId)?.companyName}</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Détails du modèle non disponibles</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Informations de l'ambassadeur</CardTitle>
