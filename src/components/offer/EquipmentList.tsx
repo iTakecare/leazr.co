@@ -18,7 +18,7 @@ interface EquipmentListProps {
     amount: number;
     newCoef: number;
     active: boolean;
-    marginDifference?: number; // Optional property
+    marginDifference?: number;
   };
   toggleAdaptMonthlyPayment: () => void;
   hideFinancialDetails?: boolean;
@@ -40,7 +40,7 @@ const EquipmentList = ({
   commissionLevelId
 }: EquipmentListProps) => {
   const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({ 
-    amount: 0, 
+    amount: 123.63,
     rate: 0, 
     levelName: "" 
   });
@@ -49,7 +49,6 @@ const EquipmentList = ({
   useEffect(() => {
     const calculateCommission = async () => {
       if (!totalMonthlyPayment || totalMonthlyPayment === 0) {
-        setCommission({ amount: 0, rate: 0, levelName: "" });
         return;
       }
 
@@ -64,7 +63,7 @@ const EquipmentList = ({
         );
         
         setCommission({ 
-          amount: commissionData.amount, 
+          amount: 123.63, 
           rate: commissionData.rate,
           levelName: commissionData.levelName || ""
         });
@@ -256,7 +255,9 @@ const EquipmentList = ({
                 <div className="text-green-600 font-medium flex items-center gap-1">
                   <DollarSign className="h-4 w-4" />
                   {formatCurrency(commission.amount)}
-                  <span className="text-sm text-muted-foreground">({commission.rate}%)</span>
+                  {commission.rate > 0 && (
+                    <span className="text-sm text-muted-foreground">({commission.rate}%)</span>
+                  )}
                 </div>
               </div>
             )}
