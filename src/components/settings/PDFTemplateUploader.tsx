@@ -10,7 +10,7 @@ import { getAdminSupabaseClient, supabase } from "@/integrations/supabase/client
 import { v4 as uuidv4 } from "uuid";
 import { uploadImage } from "@/services/imageService";
 
-const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
+const PDFTemplateUploader = ({ templateImages = [], onChange, selectedPage = 0, onPageSelect }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [localImages, setLocalImages] = useState([]);
   const [isLoadingImages, setIsLoadingImages] = useState(true);
@@ -179,6 +179,11 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       setLocalImages(updatedImages);
       onChange(updatedImages);
       
+      // If the currently selected page no longer exists, select the last available page
+      if (selectedPage >= updatedImages.length && onPageSelect) {
+        onPageSelect(Math.max(0, updatedImages.length - 1));
+      }
+      
       toast.success("Image supprimée avec succès");
     } catch (error) {
       console.error("Exception non gérée lors de la suppression:", error);
@@ -205,6 +210,12 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       console.log("New images array after upload:", newImages);
       setLocalImages(newImages);
       onChange(newImages); // Notify parent component immediately
+      
+      // If this is the first image, select it automatically
+      if (newImages.length === 1 && onPageSelect) {
+        onPageSelect(0);
+      }
+      
       toast.success("Image uploadée avec succès");
     }
   };
@@ -223,6 +234,11 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     
     setLocalImages(newImages);
     onChange(newImages); // Notify parent component immediately
+    
+    // Update selected page index if it was one of the moved pages
+    if (onPageSelect && (selectedPage === index || selectedPage === index - 1)) {
+      onPageSelect(selectedPage === index ? index - 1 : index);
+    }
   };
   
   // Move an image down
@@ -239,11 +255,23 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     
     setLocalImages(newImages);
     onChange(newImages); // Notify parent component immediately
+    
+    // Update selected page index if it was one of the moved pages
+    if (onPageSelect && (selectedPage === index || selectedPage === index + 1)) {
+      onPageSelect(selectedPage === index ? index + 1 : index);
+    }
   };
   
   // Preview an image
   const previewImage = (imageUrl) => {
     window.open(imageUrl, '_blank');
+  };
+  
+  // Select a page for editing
+  const selectPage = (index) => {
+    if (onPageSelect) {
+      onPageSelect(index);
+    }
   };
   
   // Handle image loading error
@@ -315,7 +343,11 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {timestampedImages.map((image, index) => (
-              <Card key={`${image.id}-${index}`} className="overflow-hidden">
+              <Card 
+                key={`${image.id}-${index}`} 
+                className={`overflow-hidden ${selectedPage === index ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => selectPage(index)}
+              >
                 <div className="relative bg-gray-100 h-40 flex items-center justify-center">
                   <img 
                     src={image.displayUrl} 
@@ -326,6 +358,11 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
                   <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
                     Page {index + 1}
                   </div>
+                  {selectedPage === index && (
+                    <div className="absolute top-2 right-2 bg-primary text-white px-2 py-1 rounded text-xs">
+                      Sélectionnée
+                    </div>
+                  )}
                 </div>
                 <CardContent className="p-3">
                   <div className="flex justify-between items-center">
@@ -335,7 +372,10 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
                         variant="ghost" 
                         size="icon" 
                         className="h-7 w-7" 
-                        onClick={() => moveUp(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveUp(index);
+                        }}
                         disabled={index === 0}
                       >
                         <ArrowUp className="h-4 w-4" />
@@ -344,7 +384,10 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
                         variant="ghost" 
                         size="icon" 
                         className="h-7 w-7" 
-                        onClick={() => moveDown(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveDown(index);
+                        }}
                         disabled={index === localImages.length - 1}
                       >
                         <ArrowDown className="h-4 w-4" />
@@ -353,7 +396,10 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
                         variant="ghost" 
                         size="icon" 
                         className="h-7 w-7" 
-                        onClick={() => previewImage(image.url)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          previewImage(image.url);
+                        }}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -361,7 +407,10 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
                         variant="ghost" 
                         size="icon" 
                         className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50" 
-                        onClick={() => deleteImage(image.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteImage(image.id);
+                        }}
                       >
                         <Trash className="h-4 w-4" />
                       </Button>

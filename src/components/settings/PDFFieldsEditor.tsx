@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -15,12 +15,16 @@ const FIELD_CATEGORIES = [
   { id: "general", label: "Général", icon: Layout },
 ];
 
-const PDFFieldsEditor = ({ fields, onChange }) => {
+const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange }) => {
   const [activeCategory, setActiveCategory] = useState("client");
   const [positionedField, setPositionedField] = useState(null);
   const [canvasPosition, setCanvasPosition] = useState({ x: 0, y: 0 });
   const [dragEnabled, setDragEnabled] = useState(true);
-  const [activePage, setActivePage] = useState(0);
+  
+  useEffect(() => {
+    // Reset positioned field when page changes
+    setPositionedField(null);
+  }, [activePage]);
   
   // Grouper les champs par catégorie
   const fieldsByCategory = fields.reduce((acc, field) => {
@@ -47,13 +51,37 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
     onChange(newFields);
   };
   
+  // Mettre à jour la page d'un champ
+  const updateFieldPage = (fieldId, page) => {
+    const newFields = fields.map(field => 
+      field.id === fieldId ? { ...field, page } : field
+    );
+    onChange(newFields);
+  };
+  
   // Gérer le déplacement d'un champ sur le canvas
   const handleCanvasMouseMove = (e) => {
     if (positionedField) {
       const canvas = e.currentTarget;
       const rect = canvas.getBoundingClientRect();
-      const x = Math.max(0, Math.min(210, e.clientX - rect.left));
-      const y = Math.max(0, Math.min(297, e.clientY - rect.top));
+      
+      // Get the canvas dimensions
+      const canvasWidth = rect.width;
+      const canvasHeight = rect.height;
+      
+      // Calculate the ratio between the canvas and the actual page size (in mm)
+      const pageWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      
+      // Scale down by 0.5 to account for the transform scale in the UI
+      const scaleRatio = {
+        x: (pageWidth * 0.5) / canvasWidth,
+        y: (pageHeight * 0.5) / canvasHeight
+      };
+      
+      // Calculate position in mm relative to the page
+      const x = Math.max(0, Math.min(pageWidth, (e.clientX - rect.left) * scaleRatio.x));
+      const y = Math.max(0, Math.min(pageHeight, (e.clientY - rect.top) * scaleRatio.y));
       
       setCanvasPosition({ x, y });
     }
@@ -79,6 +107,18 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
     const category = FIELD_CATEGORIES.find(cat => cat.id === categoryId);
     const Icon = category ? category.icon : Layout;
     return <Icon className="h-4 w-4 mr-2" />;
+  };
+  
+  // Get the background image for the current page
+  const getPageBackground = () => {
+    if (fields && fields.length > 0) {
+      // Find any field that is on this page to get the background
+      const fieldOnThisPage = fields.find(f => f.page === activePage);
+      if (fieldOnThisPage && fieldOnThisPage.backgroundImage) {
+        return fieldOnThisPage.backgroundImage;
+      }
+    }
+    return null;
   };
   
   return (
@@ -138,11 +178,24 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
                             </div>
                             <div className="flex items-center justify-between">
                               <Label className="text-xs">Position:</Label>
-                              <span className="text-xs">(x: {field.position.x}, y: {field.position.y})</span>
+                              <span className="text-xs">(x: {field.position.x.toFixed(1)}, y: {field.position.y.toFixed(1)})</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <Label className="text-xs">Page:</Label>
-                              <span className="text-xs">{field.page || 0}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs">{field.page !== undefined ? field.page + 1 : 1}</span>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="h-6 px-2 text-xs"
+                                  onClick={() => {
+                                    updateFieldPage(field.id, activePage);
+                                  }}
+                                  disabled={field.page === activePage}
+                                >
+                                  Mettre sur page courante
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </AccordionContent>
@@ -179,7 +232,7 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setActivePage(Math.max(0, activePage - 1))}
+                      onClick={() => onPageChange(Math.max(0, activePage - 1))}
                       disabled={activePage === 0}
                     >
                       Page précédente
@@ -190,7 +243,7 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setActivePage(activePage + 1)}
+                      onClick={() => onPageChange(activePage + 1)}
                     >
                       Page suivante
                     </Button>
@@ -230,7 +283,7 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
                   
                   {/* Position des champs pour la page active */}
                   {fields
-                    .filter(f => f.isVisible && (f.page === activePage || f.page === undefined))
+                    .filter(f => f.isVisible && (f.page === activePage || (activePage === 0 && f.page === undefined)))
                     .map((field) => (
                       <div
                         key={field.id}
@@ -243,6 +296,7 @@ const PDFFieldsEditor = ({ fields, onChange }) => {
                           backgroundColor: positionedField === field.id ? "rgba(59, 130, 246, 0.1)" : "rgba(255, 255, 255, 0.8)",
                           fontSize: "10px",
                           whiteSpace: "nowrap",
+                          zIndex: 10,
                         }}
                         onMouseDown={(e) => {
                           if (dragEnabled) {

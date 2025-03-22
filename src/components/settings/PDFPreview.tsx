@@ -95,6 +95,38 @@ const PDFPreview = ({ template }) => {
     return null;
   };
 
+  // Fonction pour résoudre les valeurs des champs
+  const resolveFieldValue = (pattern) => {
+    return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
+      const keyParts = key.split('.');
+      let value = SAMPLE_OFFER;
+      
+      for (const part of keyParts) {
+        if (value === undefined || value === null) {
+          return '';
+        }
+        value = value[part];
+      }
+      
+      // Format appropriately
+      if (key === 'page_number') {
+        return currentPage + 1;
+      }
+      
+      // For date fields
+      if (key === 'created_at') {
+        return new Date(value).toLocaleDateString();
+      }
+      
+      // For currency fields
+      if (key.includes('amount') || key.includes('payment') || key.includes('price')) {
+        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+      }
+      
+      return value || 'Non renseigné';
+    });
+  };
+  
   // Obtenir les champs pour la page actuelle
   const getCurrentPageFields = () => {
     return template?.fields?.filter(f => 
@@ -188,7 +220,7 @@ const PDFPreview = ({ template }) => {
                           </tbody>
                         </table>
                       ) : (
-                        <span>{field.value}</span>
+                        <span>{resolveFieldValue(field.value)}</span>
                       )}
                     </div>
                   ))}
@@ -197,16 +229,16 @@ const PDFPreview = ({ template }) => {
                 /* Aperçu générique si pas de template uploadé */
                 <div>
                   {/* En-tête */}
-                  <div className="border-b p-6" style={{ backgroundColor: template.primaryColor, color: "white" }}>
+                  <div className="border-b p-6" style={{ backgroundColor: template?.primaryColor || '#2C3E50', color: "white" }}>
                     <div className="flex justify-between items-center">
-                      {template.logoURL && (
+                      {template?.logoURL && (
                         <img 
                           src={template.logoURL} 
                           alt="Logo" 
                           className="h-10 object-contain"
                         />
                       )}
-                      <h1 className="text-xl font-bold">{template.headerText.replace('{offer_id}', 'EXEMPLE')}</h1>
+                      <h1 className="text-xl font-bold">{template?.headerText?.replace('{offer_id}', 'EXEMPLE') || 'EXEMPLE'}</h1>
                     </div>
                   </div>
                   
@@ -296,12 +328,12 @@ const PDFPreview = ({ template }) => {
                   
                   {/* Pied de page */}
                   <div className="p-6 text-xs text-gray-600 bg-gray-50 border-t">
-                    <p>{template.footerText}</p>
+                    <p>{template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
                     <hr className="my-2 border-gray-300" />
                     <div className="flex justify-center items-center">
                       <p className="text-center">
-                        {template.companyName} - {template.companyAddress}<br />
-                        {template.companySiret} - {template.companyContact}
+                        {template?.companyName || 'Entreprise'} - {template?.companyAddress || 'Adresse'}<br />
+                        {template?.companySiret || 'SIRET'} - {template?.companyContact || 'Contact'}
                       </p>
                     </div>
                   </div>
