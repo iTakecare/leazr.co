@@ -1,4 +1,5 @@
-import React, { useRef, useState } from "react";
+
+import React, { useRef, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, FileDown, Printer, Maximize2, ArrowLeft, ArrowRight } from "lucide-react";
@@ -8,7 +9,13 @@ import { toast } from "sonner";
 const PDFPreview = ({ template }) => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [pageLoaded, setPageLoaded] = useState(false);
   const previewRef = useRef(null);
+
+  // Reset pageLoaded when currentPage changes
+  useEffect(() => {
+    setPageLoaded(false);
+  }, [currentPage]);
 
   // Exemple d'offre pour l'aperçu
   const SAMPLE_OFFER = {
@@ -91,18 +98,19 @@ const PDFPreview = ({ template }) => {
       // Recherche de l'image correspondant à la page actuelle
       const pageImage = template.templateImages.find(img => img.page === currentPage);
       
-      console.log("Searching for page image:", currentPage);
-      console.log("Available images:", template.templateImages.map(img => ({page: img.page, url: img.url})));
+      console.log("Page actuelle:", currentPage);
+      console.log("Images disponibles:", template.templateImages.map(img => ({page: img.page, url: img.url})));
       
       if (pageImage && pageImage.url) {
-        console.log("Found image for page", currentPage, ":", pageImage.url);
-        return pageImage.url;
+        console.log("Image trouvée pour la page", currentPage, ":", pageImage.url);
+        // Ajouter un timestamp pour éviter les problèmes de cache
+        return `${pageImage.url}?t=${new Date().getTime()}`;
       } else {
-        console.log("No image found for page", currentPage);
+        console.log("Aucune image trouvée pour la page", currentPage);
         return null;
       }
     }
-    console.log("No template images available");
+    console.log("Aucune image de template disponible");
     return null;
   };
 
@@ -164,16 +172,31 @@ const PDFPreview = ({ template }) => {
                            Array.isArray(template.templateImages) && 
                            template.templateImages.length > 0;
   
-  // Log détaillé du template pour le débogage
-  React.useEffect(() => {
-    console.log("=== Template Debug Info ===");
-    console.log("Template object:", template);
-    console.log("Template images:", template?.templateImages);
-    console.log("Current page:", currentPage);
-    console.log("Fields for current page:", getCurrentPageFields());
-    console.log("Background URL:", getCurrentPageBackground());
-    console.log("=========================");
-  }, [template, currentPage]);
+  // Gérer les erreurs de chargement d'image
+  const handleImageError = (e) => {
+    console.error("Erreur de chargement de l'image:", e.target.src);
+    e.target.src = "/placeholder.svg"; // Image de fallback
+    
+    // Tenter de recharger l'image après un délai
+    setTimeout(() => {
+      if (e.target.src === "/placeholder.svg") {
+        const currentSrc = e.target.src;
+        const timestamp = new Date().getTime();
+        const newSrc = currentSrc.includes('?') 
+          ? currentSrc.split('?')[0] + `?t=${timestamp}`
+          : `${currentSrc}?t=${timestamp}`;
+        
+        console.log("Tentative de rechargement de l'image avec cache-busting:", newSrc);
+        e.target.src = newSrc;
+      }
+    }, 2000);
+  };
+  
+  // Marquer l'image comme chargée
+  const handleImageLoad = () => {
+    console.log("Image chargée avec succès");
+    setPageLoaded(true);
+  };
   
   return (
     <div className="space-y-4">
@@ -196,9 +219,9 @@ const PDFPreview = ({ template }) => {
         <CardContent className="p-0 overflow-hidden">
           <div 
             ref={previewRef}
-            className="bg-gray-100 p-4 flex justify-center min-h-[500px] max-h-[600px] overflow-auto"
+            className="bg-gray-100 p-4 flex justify-center min-h-[800px] overflow-auto"
           >
-            <div className="bg-white shadow-lg w-full max-w-2xl overflow-hidden relative">
+            <div className="bg-white shadow-lg w-full max-w-[595px] relative">
               {/* Navigation des pages */}
               {totalPages > 1 && (
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -230,56 +253,62 @@ const PDFPreview = ({ template }) => {
               {hasTemplateImages ? (
                 <div className="relative">
                   {getCurrentPageBackground() ? (
-                    <img 
-                      src={getCurrentPageBackground()} 
-                      alt={`Template page ${currentPage + 1}`}
-                      className="w-full h-auto"
-                      onError={(e) => {
-                        console.error("Erreur de chargement de l'image:", getCurrentPageBackground());
-                        e.currentTarget.src = "/placeholder.svg"; // Image de fallback
-                      }}
-                    />
+                    <div className="relative" style={{ minHeight: "842px" }}>
+                      <img 
+                        src={getCurrentPageBackground()} 
+                        alt={`Template page ${currentPage + 1}`}
+                        className="w-full h-auto"
+                        onError={handleImageError}
+                        onLoad={handleImageLoad}
+                        style={{ 
+                          display: "block",
+                          width: "100%"
+                        }}
+                      />
+                      
+                      {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
+                      {pageLoaded && getCurrentPageFields().map((field) => (
+                        <div 
+                          key={field.id}
+                          className="absolute text-sm bg-white bg-opacity-75 border border-blue-200 px-1.5 py-0.5 rounded"
+                          style={{
+                            left: `${field.position?.x || 0}mm`,
+                            top: `${field.position?.y || 0}mm`,
+                            zIndex: 5,
+                            minWidth: "20px",
+                            minHeight: "16px"
+                          }}
+                        >
+                          {field.id === 'equipment_table' ? (
+                            <table className="border-collapse text-xs">
+                              <thead>
+                                <tr className="bg-gray-100">
+                                  <th className="border p-1">Désignation</th>
+                                  <th className="border p-1">Prix</th>
+                                  <th className="border p-1">Qté</th>
+                                  <th className="border p-1">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr><td className="border p-1">MacBook Pro</td><td className="border p-1">2 399 €</td><td className="border p-1">1</td><td className="border p-1">2 399 €</td></tr>
+                                <tr><td className="border p-1">Écran Dell</td><td className="border p-1">399 €</td><td className="border p-1">2</td><td className="border p-1">798 €</td></tr>
+                              </tbody>
+                            </table>
+                          ) : (
+                            <span>{resolveFieldValue(field.value)}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="w-full h-[842px] bg-white flex items-center justify-center border">
                       <p className="text-gray-400">Pas d'image pour la page {currentPage + 1}</p>
                     </div>
                   )}
-                  
-                  {/* Champs positionnés */}
-                  {getCurrentPageFields().map((field) => (
-                    <div 
-                      key={field.id}
-                      className="absolute text-sm bg-white bg-opacity-75 p-1 rounded border border-blue-200"
-                      style={{
-                        left: `${field.position.x}mm`,
-                        top: `${field.position.y}mm`,
-                        zIndex: 5
-                      }}
-                    >
-                      {field.id === 'equipment_table' ? (
-                        <table className="border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-gray-100">
-                              <th className="border p-1">Désignation</th>
-                              <th className="border p-1">Prix</th>
-                              <th className="border p-1">Qté</th>
-                              <th className="border p-1">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr><td className="border p-1">MacBook Pro</td><td className="border p-1">2 399 €</td><td className="border p-1">1</td><td className="border p-1">2 399 €</td></tr>
-                            <tr><td className="border p-1">Écran Dell</td><td className="border p-1">399 €</td><td className="border p-1">2</td><td className="border p-1">798 €</td></tr>
-                          </tbody>
-                        </table>
-                      ) : (
-                        <span>{resolveFieldValue(field.value)}</span>
-                      )}
-                    </div>
-                  ))}
                 </div>
               ) : (
                 /* Aperçu générique si pas de template uploadé */
-                <div>
+                <div className="min-h-[842px]">
                   {/* En-tête */}
                   <div className="border-b p-6" style={{ backgroundColor: template?.primaryColor || '#2C3E50', color: "white" }}>
                     <div className="flex justify-between items-center">
@@ -397,8 +426,15 @@ const PDFPreview = ({ template }) => {
       </Card>
       
       <div className="text-sm text-muted-foreground">
-        <p>Cet aperçu est une simulation simplifiée du document PDF final. Pour voir le résultat exact, cliquez sur "Générer un PDF d'exemple".</p>
-        {totalPages > 1 && <p>Utilisez les boutons de navigation pour parcourir les différentes pages du document.</p>}
+        <p>Pour positionner les champs sur vos pages:</p>
+        <ol className="list-decimal list-inside ml-4 space-y-1 mt-2">
+          <li>Ajoutez des pages en uploadant des images dans l'onglet "Pages du modèle"</li>
+          <li>Allez dans l'onglet "Champs et positionnement" pour définir les champs</li>
+          <li>Pour chaque champ, sélectionnez la page sur laquelle il doit apparaître</li>
+          <li>Ajustez les coordonnées X et Y pour positionner précisément le champ</li>
+          <li>Utilisez cet aperçu pour vérifier le positionnement de vos champs</li>
+        </ol>
+        {totalPages > 1 && <p className="mt-2">Utilisez les boutons de navigation pour parcourir les différentes pages du document.</p>}
       </div>
     </div>
   );
