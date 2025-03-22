@@ -27,39 +27,19 @@ const PDFTemplateUploader = ({ templateImages = [], onChange, selectedPage = 0, 
         if (templateImages && Array.isArray(templateImages) && templateImages.length > 0) {
           console.log("Using provided templateImages:", templateImages);
           
-          // Verify that images in templateImages actually exist in storage
-          const verifiedImages = await Promise.all(
-            templateImages.map(async (img) => {
-              try {
-                // Check if the image exists in storage
-                const { data, error } = await supabase.storage
-                  .from('pdf-templates')
-                  .download(img.id);
-                  
-                if (error) {
-                  console.error("Error verifying image existence:", error);
-                  return null;
-                }
-                
-                return {
-                  ...img,
-                  verified: true
-                };
-              } catch (error) {
-                console.error("Exception when verifying image:", error);
-                return null;
-              }
-            })
-          );
+          // Ensure all images have a page number set
+          const imagesWithPageNumbers = templateImages.map((img, idx) => ({
+            ...img,
+            page: img.page !== undefined ? img.page : idx
+          }));
           
-          const filteredImages = verifiedImages.filter(img => img !== null);
-          console.log("Verified images:", filteredImages);
+          console.log("Images with ensured page numbers:", imagesWithPageNumbers);
+          setLocalImages(imagesWithPageNumbers);
           
-          if (filteredImages.length !== templateImages.length) {
-            console.warn("Some images could not be verified. Expected:", templateImages.length, "Actual:", filteredImages.length);
+          // If page numbers have been added/fixed, notify parent
+          if (JSON.stringify(imagesWithPageNumbers) !== JSON.stringify(templateImages)) {
+            onChange(imagesWithPageNumbers);
           }
-          
-          setLocalImages(filteredImages);
         } else {
           // If no templateImages provided, try to list all images in the bucket
           console.log("No templateImages provided, listing from storage");

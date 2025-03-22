@@ -89,14 +89,28 @@ const PDFPreview = ({ template }) => {
   // Obtenir l'image de fond de la page actuelle
   const getCurrentPageBackground = () => {
     if (template?.templateImages && template.templateImages.length > 0) {
+      // Recherche de l'image correspondant à la page actuelle
       const pageImage = template.templateImages.find(img => img.page === currentPage);
-      return pageImage ? pageImage.url : null;
+      
+      console.log("Searching for page image:", currentPage);
+      console.log("Available images:", template.templateImages.map(img => ({page: img.page, url: img.url})));
+      
+      if (pageImage && pageImage.url) {
+        console.log("Found image for page", currentPage, ":", pageImage.url);
+        return pageImage.url;
+      } else {
+        console.log("No image found for page", currentPage);
+        return null;
+      }
     }
+    console.log("No template images available");
     return null;
   };
 
   // Fonction pour résoudre les valeurs des champs
   const resolveFieldValue = (pattern) => {
+    if (!pattern || typeof pattern !== 'string') return '';
+    
     return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
       const keyParts = key.split('.');
       let value = SAMPLE_OFFER;
@@ -115,15 +129,25 @@ const PDFPreview = ({ template }) => {
       
       // For date fields
       if (key === 'created_at' && typeof value === 'string') {
-        return new Date(value).toLocaleDateString();
+        try {
+          return new Date(value).toLocaleDateString();
+        } catch (e) {
+          console.error("Error formatting date:", e);
+          return value || '';
+        }
       }
       
       // For currency fields
       if ((key.includes('amount') || key.includes('payment') || key.includes('price')) && typeof value === 'number') {
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+        try {
+          return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+        } catch (e) {
+          console.error("Error formatting currency:", e);
+          return value?.toString() || '';
+        }
       }
       
-      return value || 'Non renseigné';
+      return value?.toString() || 'Non renseigné';
     });
   };
   
@@ -135,12 +159,20 @@ const PDFPreview = ({ template }) => {
   };
 
   // Vérifier si des images de template sont disponibles
-  const hasTemplateImages = template?.templateImages && Array.isArray(template.templateImages) && template.templateImages.length > 0;
+  const hasTemplateImages = template?.templateImages && 
+                           Array.isArray(template.templateImages) && 
+                           template.templateImages.length > 0;
   
-  // Debug
-  console.log("Template images:", template?.templateImages);
-  console.log("Current page:", currentPage);
-  console.log("Current background:", getCurrentPageBackground());
+  // Log détaillé du template pour le débogage
+  React.useEffect(() => {
+    console.log("=== Template Debug Info ===");
+    console.log("Template object:", template);
+    console.log("Template images:", template?.templateImages);
+    console.log("Current page:", currentPage);
+    console.log("Fields for current page:", getCurrentPageFields());
+    console.log("Background URL:", getCurrentPageBackground());
+    console.log("=========================");
+  }, [template, currentPage]);
   
   return (
     <div className="space-y-4">
@@ -216,10 +248,10 @@ const PDFPreview = ({ template }) => {
                   {getCurrentPageFields().map((field) => (
                     <div 
                       key={field.id}
-                      className="absolute text-sm bg-white bg-opacity-75 p-1 rounded"
+                      className="absolute text-sm bg-white bg-opacity-75 p-1 rounded border border-blue-200"
                       style={{
-                        left: `${field.position.x}px`,
-                        top: `${field.position.y}px`,
+                        left: `${field.position.x}mm`,
+                        top: `${field.position.y}mm`,
                         zIndex: 5
                       }}
                     >
