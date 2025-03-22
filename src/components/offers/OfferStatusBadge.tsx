@@ -46,7 +46,7 @@ export const OFFER_STATUSES = {
   },
   LEASER_REVIEW: {
     id: 'leaser_review',
-    label: 'Revue bailleur',
+    label: 'Valid. bailleur',
     color: 'bg-blue-100',
     textColor: 'text-blue-700',
     progressValue: 80,
@@ -82,7 +82,7 @@ export interface OfferStatusBadgeProps {
   status?: string;
   isConverted?: boolean;
   showProgress?: boolean;
-  className?: string; // Ajout de la prop className manquante
+  className?: string;
 }
 
 const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({ 
@@ -104,8 +104,11 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
     );
   }
 
-  // Récupérer les informations du statut
-  const statusInfo = Object.values(OFFER_STATUSES).find(s => s.id === status) || OFFER_STATUSES.DRAFT;
+  // Récupérer les informations du statut (support uppercase or lowercase status ids)
+  const statusUpper = status.toUpperCase();
+  const statusInfo = OFFER_STATUSES[statusUpper] || 
+                    Object.values(OFFER_STATUSES).find(s => s.id === status) || 
+                    OFFER_STATUSES.DRAFT;
   const Icon = statusInfo.icon;
 
   return (

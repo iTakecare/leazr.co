@@ -153,7 +153,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           Voir détails
                         </DropdownMenuItem>
                         
-                        {offer.workflow_status === "draft" && (
+                        {offer.workflow_status === "draft" && !isAmbassador() && (
                           <DropdownMenuItem
                             onClick={() => handleSendToClient(offer.id)}
                             disabled={isUpdatingStatus}
@@ -163,14 +163,14 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           </DropdownMenuItem>
                         )}
                         
-                        {onDownloadPdf && (
+                        {onDownloadPdf && !isAmbassador() && (
                           <DropdownMenuItem onClick={() => onDownloadPdf(offer.id)}>
                             <FileDown className="mr-2 h-4 w-4" />
                             Télécharger PDF
                           </DropdownMenuItem>
                         )}
                         
-                        {onResendOffer && offer.workflow_status === "sent" && (
+                        {onResendOffer && offer.workflow_status === "sent" && !isAmbassador() && (
                           <DropdownMenuItem onClick={() => onResendOffer(offer.id)}>
                             <Send className="mr-2 h-4 w-4" />
                             Renvoyer

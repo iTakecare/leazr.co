@@ -18,7 +18,12 @@ import {
   Info,
   CalendarIcon,
   Clock,
-  User
+  User,
+  Pencil,
+  SendHorizontal,
+  Sparkle,
+  Building,
+  Star
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -26,8 +31,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import OfferStatusBadge from "@/components/offers/OfferStatusBadge";
+import OfferStatusBadge, { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 import PriceDetailsDisplay from "@/components/offer/PriceDetailsDisplay";
+import { Progress } from "@/components/ui/progress";
 
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -112,31 +118,63 @@ const AmbassadorOfferDetail = () => {
     }
   };
   
-  // Fonction pour obtenir la description de l'état du workflow
-  const getWorkflowDescription = (status) => {
-    switch (status) {
-      case 'draft':
-        return "L'offre est en cours de rédaction";
-      case 'sent':
-        return "L'offre a été envoyée au client";
-      case 'viewed':
-        return "Le client a consulté l'offre";
-      case 'client_accepted':
-        return "Le client a accepté l'offre";
-      case 'client_rejected':
-        return "Le client a refusé l'offre";
-      case 'client_waiting':
-        return "En attente de réponse du client";
-      case 'admin_review':
-        return "En cours d'examen par l'administrateur";
-      case 'approved':
-        return "L'offre a été approuvée";
-      case 'rejected':
-        return "L'offre a été rejetée";
-      default:
-        return "Statut inconnu";
+  // Tableau des statuts dans l'ordre du workflow
+  const workflowStatuses = [
+    { 
+      id: OFFER_STATUSES.DRAFT.id, 
+      label: 'Brouillon', 
+      icon: Pencil, 
+      color: 'bg-green-100',
+      textColor: 'text-green-700',
+      ringColor: 'ring-green-100',
+      iconColor: 'text-green-800'
+    },
+    { 
+      id: OFFER_STATUSES.SENT.id, 
+      label: 'Envoyée', 
+      icon: SendHorizontal, 
+      color: 'bg-blue-100',
+      textColor: 'text-blue-700',
+      ringColor: 'ring-blue-100',
+      iconColor: 'text-blue-800'
+    },
+    { 
+      id: OFFER_STATUSES.VALID_ITC.id, 
+      label: 'Valid. ITC', 
+      icon: Sparkle, 
+      color: 'bg-purple-100',
+      textColor: 'text-purple-700',
+      ringColor: 'ring-purple-100',
+      iconColor: 'text-purple-800'
+    },
+    { 
+      id: OFFER_STATUSES.APPROVED.id, 
+      label: 'Approuvée', 
+      icon: Check, 
+      color: 'bg-emerald-100',
+      textColor: 'text-emerald-700',
+      ringColor: 'ring-emerald-100',
+      iconColor: 'text-emerald-800'
+    },
+    { 
+      id: OFFER_STATUSES.LEASER_REVIEW.id, 
+      label: 'Valid. bailleur', 
+      icon: Building, 
+      color: 'bg-indigo-100',
+      textColor: 'text-indigo-700',
+      ringColor: 'ring-indigo-100',
+      iconColor: 'text-indigo-800'
+    },
+    { 
+      id: OFFER_STATUSES.FINANCED.id, 
+      label: 'Financée', 
+      icon: Star, 
+      color: 'bg-green-100',
+      textColor: 'text-green-700',
+      ringColor: 'ring-green-100',
+      iconColor: 'text-green-800'
     }
-  };
+  ];
   
   if (loading) {
     return (
@@ -196,6 +234,16 @@ const AmbassadorOfferDetail = () => {
   } catch (e) {
     console.log("Erreur de parsing des données d'équipement:", e);
   }
+
+  // Fonction pour déterminer si une étape est active, complétée ou en attente
+  const getStepStatus = (stepId) => {
+    const currentStatusIndex = workflowStatuses.findIndex(status => status.id === offer.workflow_status);
+    const stepIndex = workflowStatuses.findIndex(status => status.id === stepId);
+    
+    if (stepIndex < currentStatusIndex) return 'completed';
+    if (stepIndex === currentStatusIndex) return 'active';
+    return 'pending';
+  };
 
   return (
     <PageTransition>
@@ -335,7 +383,7 @@ const AmbassadorOfferDetail = () => {
                               <Clock className="h-5 w-5 mr-3 text-blue-600" />
                               <div>
                                 <p className="font-medium">
-                                  {getWorkflowDescription(offer.workflow_status)}
+                                  {OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.label || "Statut inconnu"}
                                 </p>
                                 <p className="text-sm text-gray-500">
                                   Dernière mise à jour: {formatDate(offer.updated_at)}
@@ -347,79 +395,99 @@ const AmbassadorOfferDetail = () => {
                         
                         <div>
                           <h3 className="font-medium mb-3">Processus de validation</h3>
-                          <ol className="relative border-l border-gray-200 ml-3">
-                            <li className="mb-6 ml-6">
-                              <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ${
-                                ['draft', 'sent'].includes(offer.workflow_status) ? 'bg-blue-100 ring-blue-100 ring-4' : 'bg-green-100 ring-green-100 ring-4'
-                              }`}>
-                                {['draft', 'sent'].includes(offer.workflow_status) ? 
-                                  <Clock className="w-3 h-3 text-blue-800" /> : 
-                                  <Check className="w-3 h-3 text-green-800" />
-                                }
-                              </span>
-                              <h3 className="font-medium">Création de l'offre</h3>
-                              <p className="text-sm text-gray-500">
-                                {offer.workflow_status === 'draft' ? "En cours" : "Complété"}
-                              </p>
-                            </li>
-                            
-                            <li className="mb-6 ml-6">
-                              <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ${
-                                offer.workflow_status === 'draft' ? 'bg-gray-100 ring-gray-100 ring-4' : 
-                                offer.workflow_status === 'sent' ? 'bg-blue-100 ring-blue-100 ring-4' : 
-                                'bg-green-100 ring-green-100 ring-4'
-                              }`}>
-                                {offer.workflow_status === 'draft' ? 
-                                  <span className="w-3 h-3 text-gray-800">2</span> :
-                                  offer.workflow_status === 'sent' ? 
-                                  <Mail className="w-3 h-3 text-blue-800" /> : 
-                                  <Check className="w-3 h-3 text-green-800" />
-                                }
-                              </span>
-                              <h3 className="font-medium">Envoi au client</h3>
-                              <p className="text-sm text-gray-500">
-                                {offer.workflow_status === 'draft' ? "En attente" : 
-                                 offer.workflow_status === 'sent' ? "En cours" : "Complété"}
-                              </p>
-                            </li>
-                            
-                            <li className="mb-6 ml-6">
-                              <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ${
-                                ['draft', 'sent'].includes(offer.workflow_status) ? 'bg-gray-100 ring-gray-100 ring-4' : 
-                                ['viewed', 'client_waiting'].includes(offer.workflow_status) ? 'bg-blue-100 ring-blue-100 ring-4' : 
-                                'bg-green-100 ring-green-100 ring-4'
-                              }`}>
-                                {['draft', 'sent'].includes(offer.workflow_status) ? 
-                                  <span className="w-3 h-3 text-gray-800">3</span> :
-                                  ['viewed', 'client_waiting'].includes(offer.workflow_status) ? 
-                                  <Eye className="w-3 h-3 text-blue-800" /> : 
-                                  <Check className="w-3 h-3 text-green-800" />
-                                }
-                              </span>
-                              <h3 className="font-medium">Consultation par le client</h3>
-                              <p className="text-sm text-gray-500">
-                                {['draft', 'sent'].includes(offer.workflow_status) ? "En attente" : 
-                                 ['viewed', 'client_waiting'].includes(offer.workflow_status) ? "En cours" : "Complété"}
-                              </p>
-                            </li>
-                            
-                            <li className="ml-6">
-                              <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ${
-                                !['client_accepted', 'approved'].includes(offer.workflow_status) ? 'bg-gray-100 ring-gray-100 ring-4' : 
-                                'bg-green-100 ring-green-100 ring-4'
-                              }`}>
-                                {!['client_accepted', 'approved'].includes(offer.workflow_status) ? 
-                                  <span className="w-3 h-3 text-gray-800">4</span> :
-                                  <Check className="w-3 h-3 text-green-800" />
-                                }
-                              </span>
-                              <h3 className="font-medium">Acceptation</h3>
-                              <p className="text-sm text-gray-500">
-                                {!['client_accepted', 'approved'].includes(offer.workflow_status) ? 
-                                 "En attente" : "Complété"}
-                              </p>
-                            </li>
-                          </ol>
+                          
+                          {/* Workflow Steps Visualization - Desktop */}
+                          <div className="hidden md:flex justify-between mb-4">
+                            {workflowStatuses.map((status, index) => {
+                              const stepStatus = getStepStatus(status.id);
+                              return (
+                                <div key={status.id} className="flex flex-col items-center">
+                                  <div 
+                                    className={`flex items-center justify-center w-16 h-16 rounded-full mb-2 ${
+                                      stepStatus === 'completed' ? 'bg-green-100' : 
+                                      stepStatus === 'active' ? status.color : 
+                                      'bg-gray-100'
+                                    }`}
+                                  >
+                                    {stepStatus === 'completed' ? (
+                                      <Check className="h-6 w-6 text-green-700" />
+                                    ) : (
+                                      status.id === 'sent' ? (
+                                        <span className="text-xl font-medium">E</span>
+                                      ) : status.id === 'valid_itc' ? (
+                                        <span className="text-xl font-medium">V</span>
+                                      ) : status.id === 'approved' ? (
+                                        <span className="text-xl font-medium">A</span>
+                                      ) : status.id === 'leaser_review' ? (
+                                        <span className="text-xl font-medium">V</span>
+                                      ) : status.id === 'financed' ? (
+                                        <span className="text-xl font-medium">F</span>
+                                      ) : (
+                                        <status.icon className="h-6 w-6" />
+                                      )
+                                    )}
+                                  </div>
+                                  <span className={`text-sm font-medium ${
+                                    stepStatus === 'active' ? 'text-blue-700' :
+                                    stepStatus === 'completed' ? 'text-green-700' : 
+                                    'text-gray-500'
+                                  }`}>
+                                    {status.label}
+                                  </span>
+                                  {index < workflowStatuses.length - 1 && (
+                                    <div className="absolute hidden md:block" style={{
+                                      left: `calc(${(index + 0.5) * (100 / workflowStatuses.length)}%)`,
+                                      width: `calc(${100 / workflowStatuses.length}%)`,
+                                      top: '2.5rem',
+                                      height: '2px',
+                                      backgroundColor: stepStatus === 'completed' ? '#22c55e' : '#e5e7eb'
+                                    }}></div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          
+                          {/* Workflow Steps Visualization - Mobile */}
+                          <div className="md:hidden">
+                            <ol className="relative border-l border-gray-200 ml-3">
+                              {workflowStatuses.map((status, index) => {
+                                const stepStatus = getStepStatus(status.id);
+                                return (
+                                  <li key={status.id} className="mb-6 ml-6">
+                                    <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ${
+                                      stepStatus === 'completed' ? 'bg-green-100 ring-green-100 ring-4' : 
+                                      stepStatus === 'active' ? `${status.color} ${status.ringColor} ring-4` : 
+                                      'bg-gray-100 ring-gray-100 ring-4'
+                                    }`}>
+                                      {stepStatus === 'completed' ? 
+                                        <Check className="w-3 h-3 text-green-800" /> : 
+                                        stepStatus === 'active' ?
+                                        <status.icon className={`w-3 h-3 ${status.iconColor}`} /> :
+                                        <span className="w-3 h-3 text-gray-800">{index + 1}</span>
+                                      }
+                                    </span>
+                                    <h3 className="font-medium">{status.label}</h3>
+                                    <p className="text-sm text-gray-500">
+                                      {stepStatus === 'completed' ? "Complété" : 
+                                      stepStatus === 'active' ? "En cours" : "En attente"}
+                                    </p>
+                                  </li>
+                                );
+                              })}
+                            </ol>
+                          </div>
+                          
+                          {/* Status Progress Bar */}
+                          <div className="mt-4">
+                            <Progress 
+                              value={OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0} 
+                              className="h-2"
+                            />
+                            <p className="text-xs text-gray-500 mt-1 text-right">
+                              {OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0}% complété
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </TabsContent>
@@ -449,10 +517,7 @@ const AmbassadorOfferDetail = () => {
                   <div>
                     <h3 className="text-sm font-medium mb-2">Statut actuel</h3>
                     <div className="p-3 bg-slate-50 rounded-md flex items-center">
-                      <OfferStatusBadge status={offer.workflow_status} />
-                      <span className="ml-2 text-sm">
-                        {getWorkflowDescription(offer.workflow_status)}
-                      </span>
+                      <OfferStatusBadge status={offer.workflow_status} className="mr-2" />
                     </div>
                   </div>
                 </CardContent>
