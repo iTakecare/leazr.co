@@ -35,7 +35,11 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
-  Move
+  Move,
+  Bold,
+  Italic,
+  Underline,
+  Type
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -50,6 +54,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const FIELD_CATEGORIES = [
   { id: "client", label: "Client", icon: User },
@@ -66,6 +71,20 @@ const FIELD_TYPES = [
   { value: "currency", label: "Montant" },
   { value: "number", label: "Nombre" },
   { value: "table", label: "Tableau" }
+];
+
+const FONT_SIZES = [
+  { value: 6, label: "6pt" },
+  { value: 8, label: "8pt" },
+  { value: 9, label: "9pt" },
+  { value: 10, label: "10pt" },
+  { value: 11, label: "11pt" },
+  { value: 12, label: "12pt" },
+  { value: 14, label: "14pt" },
+  { value: 16, label: "16pt" },
+  { value: 18, label: "18pt" },
+  { value: 20, label: "20pt" },
+  { value: 24, label: "24pt" }
 ];
 
 const CATEGORY_ICONS = {
@@ -109,6 +128,8 @@ const PDFFieldsEditor = ({
   const [directPositionMode, setDirectPositionMode] = useState(false);
   const [stepSize, setStepSize] = useState(0.5);
   const [manualPosition, setManualPosition] = useState({ x: 0, y: 0 });
+  const [showTextStyleDialog, setShowTextStyleDialog] = useState(false);
+  const [fieldToStyle, setFieldToStyle] = useState(null);
   const [newField, setNewField] = useState({
     id: "",
     label: "",
@@ -117,7 +138,13 @@ const PDFFieldsEditor = ({
     isVisible: true,
     value: "",
     position: { x: 20, y: 20 },
-    page: 0
+    page: 0,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   });
   
   const canvasRef = useRef(null);
@@ -190,6 +217,30 @@ const PDFFieldsEditor = ({
     );
     onChange(newFields);
     toast.success(`Champ déplacé sur la page ${page + 1}`);
+  };
+
+  const updateFieldStyle = (fieldId, styleUpdates) => {
+    const newFields = fields.map(field => {
+      if (field.id === fieldId) {
+        // Ensure the field has a style property, create it if it doesn't exist
+        const currentStyle = field.style || {
+          fontSize: 10,
+          fontWeight: 'normal',
+          fontStyle: 'normal',
+          textDecoration: 'none'
+        };
+        
+        // Update with new style properties
+        return { 
+          ...field, 
+          style: { ...currentStyle, ...styleUpdates }
+        };
+      }
+      return field;
+    });
+    
+    onChange(newFields);
+    toast.success(`Style du champ modifié`);
   };
   
   const getCurrentPageBackground = () => {
@@ -479,6 +530,11 @@ const PDFFieldsEditor = ({
     }
   };
 
+  const handleOpenTextStyleDialog = (field) => {
+    setFieldToStyle(field);
+    setShowTextStyleDialog(true);
+  };
+
   const handleAddNewField = () => {
     const id = generateId(newField.category);
     
@@ -486,7 +542,13 @@ const PDFFieldsEditor = ({
       ...newField,
       id,
       page: activePage,
-      position: { x: 20, y: 20 }
+      position: { x: 20, y: 20 },
+      style: newField.style || {
+        fontSize: 10,
+        fontWeight: 'normal',
+        fontStyle: 'normal',
+        textDecoration: 'none'
+      }
     };
     
     if (onAddField) {
@@ -500,7 +562,13 @@ const PDFFieldsEditor = ({
         isVisible: true,
         value: "",
         position: { x: 20, y: 20 },
-        page: 0
+        page: 0,
+        style: {
+          fontSize: 10,
+          fontWeight: 'normal',
+          fontStyle: 'normal',
+          textDecoration: 'none'
+        }
       });
       
       setShowAddFieldDialog(false);
@@ -543,6 +611,26 @@ const PDFFieldsEditor = ({
     
     setFieldToRemove(field);
     setShowRemoveDialog(true);
+  };
+
+  const getFieldStyle = (field) => {
+    // Default style if none exists
+    const defaultStyle = {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    };
+    
+    return field.style || defaultStyle;
+  };
+
+  const getTextStylePreview = (style) => {
+    const fontWeight = style.fontWeight === 'bold' ? 'font-bold' : 'font-normal';
+    const fontStyle = style.fontStyle === 'italic' ? 'italic' : 'not-italic';
+    const textDecoration = style.textDecoration === 'underline' ? 'underline' : 'no-underline';
+    
+    return `${fontWeight} ${fontStyle} ${textDecoration}`;
   };
 
   const totalPages = template?.templateImages?.length || 1;
@@ -711,6 +799,16 @@ const PDFFieldsEditor = ({
                                     <Grip className="h-3.5 w-3.5" />
                                   </Button>
                                   
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleOpenTextStyleDialog(field)}
+                                    title="Mise en forme du texte"
+                                  >
+                                    <Type className="h-3.5 w-3.5" />
+                                  </Button>
+                                  
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button
@@ -756,6 +854,13 @@ const PDFFieldsEditor = ({
                               <div className="mt-1 text-xs text-gray-500 flex justify-between">
                                 <span>Type: {field.type}</span>
                                 <span>Position: ({field.position.x.toFixed(1)}, {field.position.y.toFixed(1)})</span>
+                              </div>
+                              
+                              <div className="mt-1 text-xs text-gray-500 flex items-center">
+                                <span className="mr-2">Style:</span>
+                                <span className={getTextStylePreview(getFieldStyle(field))}>
+                                  {getFieldStyle(field).fontSize}pt
+                                </span>
                               </div>
                             </div>
                           ))}
@@ -1081,14 +1186,20 @@ const PDFFieldsEditor = ({
                         ? canvasPosition 
                         : field.position;
                       
+                      // Get field style
+                      const style = getFieldStyle(field);
+                      const fontWeight = style.fontWeight === 'bold' ? 'font-bold' : 'font-normal';
+                      const fontStyle = style.fontStyle === 'italic' ? 'italic' : '';
+                      const textDecoration = style.textDecoration === 'underline' ? 'underline' : '';
+                      
                       return (
                         <div
                           key={field.id}
-                          className={`absolute text-black p-1 rounded-sm border group ${isBeingPositioned ? 'bg-blue-100 border-blue-400 shadow-sm' : 'border-transparent hover:border-blue-300 hover:bg-blue-50'}`}
+                          className={`absolute text-black p-1 rounded-sm border group ${isBeingPositioned ? 'bg-blue-100 border-blue-400 shadow-sm' : 'border-transparent hover:border-blue-300 hover:bg-blue-50'} ${fontWeight} ${fontStyle} ${textDecoration}`}
                           style={{
                             left: `${position.x * zoomLevel}mm`,
                             top: `${position.y * zoomLevel}mm`,
-                            fontSize: `${8 * zoomLevel}px`,
+                            fontSize: `${style.fontSize * zoomLevel}px`,
                             lineHeight: 1.2,
                             zIndex: isBeingPositioned ? 20 : 10,
                             cursor: dragEnabled ? 'move' : 'default',
@@ -1193,6 +1304,111 @@ const PDFFieldsEditor = ({
             >
               Retirer de la page
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showTextStyleDialog} onOpenChange={setShowTextStyleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mise en forme du texte</DialogTitle>
+            <DialogDescription>
+              Personnalisez l'apparence du texte pour le champ <strong>{fieldToStyle?.label}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Taille de police</Label>
+              <Select 
+                value={fieldToStyle?.style?.fontSize.toString() || "10"} 
+                onValueChange={(value) => {
+                  if (fieldToStyle) {
+                    updateFieldStyle(fieldToStyle.id, { fontSize: parseInt(value) });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Taille de police" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONT_SIZES.map(size => (
+                    <SelectItem key={size.value} value={size.value.toString()}>
+                      {size.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Style de texte</Label>
+              <div className="flex flex-wrap gap-2">
+                <ToggleGroup type="multiple" variant="outline" className="justify-start">
+                  <ToggleGroupItem 
+                    value="bold" 
+                    aria-label="Gras"
+                    className={`${fieldToStyle?.style?.fontWeight === 'bold' ? 'bg-gray-100' : ''}`}
+                    onClick={() => {
+                      if (fieldToStyle) {
+                        const newWeight = fieldToStyle.style?.fontWeight === 'bold' ? 'normal' : 'bold';
+                        updateFieldStyle(fieldToStyle.id, { fontWeight: newWeight });
+                      }
+                    }}
+                  >
+                    <Bold className="h-4 w-4" />
+                    <span className="ml-1">Gras</span>
+                  </ToggleGroupItem>
+                  
+                  <ToggleGroupItem 
+                    value="italic" 
+                    aria-label="Italique"
+                    className={`${fieldToStyle?.style?.fontStyle === 'italic' ? 'bg-gray-100' : ''}`}
+                    onClick={() => {
+                      if (fieldToStyle) {
+                        const newStyle = fieldToStyle.style?.fontStyle === 'italic' ? 'normal' : 'italic';
+                        updateFieldStyle(fieldToStyle.id, { fontStyle: newStyle });
+                      }
+                    }}
+                  >
+                    <Italic className="h-4 w-4" />
+                    <span className="ml-1">Italique</span>
+                  </ToggleGroupItem>
+                  
+                  <ToggleGroupItem 
+                    value="underline" 
+                    aria-label="Souligné"
+                    className={`${fieldToStyle?.style?.textDecoration === 'underline' ? 'bg-gray-100' : ''}`}
+                    onClick={() => {
+                      if (fieldToStyle) {
+                        const newDecoration = fieldToStyle.style?.textDecoration === 'underline' ? 'none' : 'underline';
+                        updateFieldStyle(fieldToStyle.id, { textDecoration: newDecoration });
+                      }
+                    }}
+                  >
+                    <Underline className="h-4 w-4" />
+                    <span className="ml-1">Souligné</span>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-gray-50 rounded-md">
+              <p className="text-sm font-medium mb-1">Aperçu :</p>
+              <div className={`
+                mt-2 p-2 border rounded bg-white
+                ${fieldToStyle?.style?.fontWeight === 'bold' ? 'font-bold' : 'font-normal'}
+                ${fieldToStyle?.style?.fontStyle === 'italic' ? 'italic' : ''}
+                ${fieldToStyle?.style?.textDecoration === 'underline' ? 'underline' : ''}
+              `}
+              style={{ fontSize: `${fieldToStyle?.style?.fontSize || 10}px` }}>
+                {fieldToStyle?.value || "Texte d'exemple"}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTextStyleDialog(false)}>Fermer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

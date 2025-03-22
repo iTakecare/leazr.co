@@ -19,7 +19,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{clients.name}',
     position: { x: 20, y: 40 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'client_company',
@@ -29,7 +35,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{clients.company}',
     position: { x: 20, y: 50 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'client_email',
@@ -39,7 +51,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{clients.email}',
     position: { x: 20, y: 60 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'client_address',
@@ -49,7 +67,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{clients.address}',
     position: { x: 20, y: 70 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'client_phone',
@@ -59,7 +83,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{clients.phone}',
     position: { x: 20, y: 80 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   
   // Offer fields
@@ -71,7 +101,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{id}',
     position: { x: 150, y: 40 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'offer_date',
@@ -81,7 +117,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{created_at}',
     position: { x: 150, y: 50 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'offer_amount',
@@ -91,7 +133,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{amount}',
     position: { x: 150, y: 80 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'monthly_payment',
@@ -101,7 +149,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{monthly_payment}',
     position: { x: 150, y: 90 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'coefficient',
@@ -111,7 +165,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{coefficient}',
     position: { x: 150, y: 100 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'offer_type',
@@ -121,7 +181,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{type}',
     position: { x: 150, y: 110 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'offer_remarks',
@@ -131,7 +197,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{remarks}',
     position: { x: 20, y: 200 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'workflow_status',
@@ -141,7 +213,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{workflow_status}',
     position: { x: 150, y: 120 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'commission',
@@ -151,7 +229,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{commission}',
     position: { x: 150, y: 130 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   
   // Equipment field (special table type)
@@ -163,7 +247,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{equipment_description}',
     position: { x: 20, y: 120 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 9,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'equipment_total',
@@ -173,7 +263,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{equipment_total}',
     position: { x: 150, y: 170 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   
   // User/Vendor fields
@@ -185,7 +281,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{user.name}',
     position: { x: 20, y: 230 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'user_email',
@@ -195,7 +297,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{user.email}',
     position: { x: 20, y: 240 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'user_phone',
@@ -205,7 +313,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{user.phone}',
     position: { x: 20, y: 250 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   
   // General fields
@@ -217,7 +331,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: 'Page {page_number}',
     position: { x: 180, y: 280 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 8,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'total_pages',
@@ -227,7 +347,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: 'sur {total_pages}',
     position: { x: 200, y: 280 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 8,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'current_date',
@@ -237,7 +363,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: '{current_date}',
     position: { x: 20, y: 280 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 8,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   },
   {
     id: 'validity_period',
@@ -247,7 +379,13 @@ const DEFAULT_FIELDS = [
     isVisible: false,
     value: 'Offre valable 30 jours',
     position: { x: 20, y: 260 },
-    page: null
+    page: null,
+    style: {
+      fontSize: 8,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    }
   }
 ];
 

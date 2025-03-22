@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -166,6 +167,37 @@ export const generateOfferPdf = async (offer: any) => {
     });
   };
   
+  // Appliquer le style de texte au champ
+  const applyTextStyle = (doc, field) => {
+    // Default style if none exists
+    const defaultStyle = {
+      fontSize: 10,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none'
+    };
+    
+    const style = field.style || defaultStyle;
+    
+    // Set font size
+    doc.setFontSize(style.fontSize || 10);
+    
+    // Set font style
+    let fontStyle = 'normal';
+    if (style.fontWeight === 'bold' && style.fontStyle === 'italic') {
+      fontStyle = 'bolditalic';
+    } else if (style.fontWeight === 'bold') {
+      fontStyle = 'bold';
+    } else if (style.fontStyle === 'italic') {
+      fontStyle = 'italic';
+    }
+    
+    doc.setFont('helvetica', fontStyle);
+    
+    // Note: Text decoration like underline needs to be handled separately when drawing text
+    return style.textDecoration === 'underline';
+  };
+  
   // Vérifier si nous avons des images de template
   const hasTemplateImages = template?.templateImages && template.templateImages.length > 0;
   
@@ -247,12 +279,15 @@ export const generateOfferPdf = async (offer: any) => {
                   ];
                 });
                 
+                // Use field style for the table if available
+                const tableStyle = field.style || { fontSize: 9 };
+                
                 autoTable(doc, {
                   head: tableHeaders,
                   body: tableData,
                   startY: y,
                   theme: 'grid',
-                  styles: { fontSize: 8, cellPadding: 2 },
+                  styles: { fontSize: tableStyle.fontSize || 9, cellPadding: 2 },
                   headStyles: { fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b], textColor: [255, 255, 255] },
                   columnStyles: {
                     0: { cellWidth: 'auto' },
@@ -265,16 +300,22 @@ export const generateOfferPdf = async (offer: any) => {
                 });
               }
             } else {
-              // Texte simple
-              doc.setFontSize(10);
+              // Texte simple avec style
+              const needsUnderline = applyTextStyle(doc, field);
               doc.setTextColor(0, 0, 0);
               
-              if (field.category === 'offer' && field.type === 'currency') {
-                doc.setFont('helvetica', 'bold');
-              }
-              
               const resolvedValue = resolveFieldValue(field.value);
+              
+              // Draw the text
               doc.text(resolvedValue, x, y);
+              
+              // Add underline if needed
+              if (needsUnderline) {
+                const textWidth = doc.getTextWidth(resolvedValue);
+                const textHeight = field.style?.fontSize || 10;
+                const underlineY = y + 1; // Slight offset below text
+                doc.line(x, underlineY, x + textWidth, underlineY);
+              }
               
               // Réinitialiser la police
               doc.setFont('helvetica', 'normal');
@@ -387,12 +428,15 @@ export const generateOfferPdf = async (offer: any) => {
                 ];
               });
               
+              // Use field style for the table if available
+              const tableStyle = field.style || { fontSize: 9 };
+              
               autoTable(doc, {
                 head: tableHeaders,
                 body: tableData,
                 startY: y + 5,
                 theme: 'grid',
-                styles: { fontSize: 9, cellPadding: 3 },
+                styles: { fontSize: tableStyle.fontSize || 9, cellPadding: 3 },
                 headStyles: { fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b], textColor: [255, 255, 255] },
                 columnStyles: {
                   0: { cellWidth: 'auto' },
@@ -404,16 +448,19 @@ export const generateOfferPdf = async (offer: any) => {
               });
             }
           } else {
-            // Pour les autres types de champs, ajouter du texte
-            doc.setFontSize(10);
+            // Pour les autres types de champs, ajouter du texte avec style
+            const needsUnderline = applyTextStyle(doc, field);
             doc.setTextColor(0, 0, 0);
-            
-            if (field.category === 'offer' && field.type === 'currency') {
-              doc.setFont('helvetica', 'bold');
-            }
             
             const resolvedValue = resolveFieldValue(field.value);
             doc.text(resolvedValue, x, y);
+            
+            // Add underline if needed
+            if (needsUnderline) {
+              const textWidth = doc.getTextWidth(resolvedValue);
+              const underlineY = y + 1; // Slight offset below text
+              doc.line(x, underlineY, x + textWidth, underlineY);
+            }
             
             // Réinitialiser la police
             doc.setFont('helvetica', 'normal');
