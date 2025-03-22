@@ -18,7 +18,6 @@ import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import ClientSelector from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
 import { getAmbassadorClients } from "@/services/ambassadorClientService";
-import AmbassadorCommissionPreview from "@/components/ambassador/AmbassadorCommissionPreview";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -289,17 +288,6 @@ const AmbassadorCreateOffer = () => {
                         hideFinancialDetails={hideFinancialDetails}
                       />
                     </div>
-                    
-                    {equipmentList.length > 0 && (
-                      <div className="mt-6">
-                        <AmbassadorCommissionPreview
-                          totalMonthlyPayment={totalMonthlyPayment}
-                          ambassadorId={ambassadorId || user?.ambassador_id}
-                          commissionLevelId={ambassador?.commission_level_id}
-                          equipmentList={equipmentList}
-                        />
-                      </div>
-                    )}
                   </div>
 
                   <div className="space-y-8">
