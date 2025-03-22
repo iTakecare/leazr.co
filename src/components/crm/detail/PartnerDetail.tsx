@@ -10,8 +10,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
-import { Mail, Phone, Building2, User, BadgePercent } from "lucide-react";
+import { Mail, Phone, Building2, User, BadgePercent, FileText } from "lucide-react";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { CommissionLevel, getCommissionLevelWithRates } from "@/services/commissionService";
+import { getPDFTemplates, assignTemplateToPartner } from "@/services/pdfTemplateService";
+import { toast } from "sonner";
 
 interface PartnerDetailProps {
   isOpen: boolean;
@@ -28,12 +38,25 @@ const PartnerDetail = ({
 }: PartnerDetailProps) => {
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
 
   useEffect(() => {
-    if (isOpen && partner?.commission_level_id) {
-      loadCommissionLevel(partner.commission_level_id);
-    } else {
-      setCommissionLevel(null);
+    if (isOpen) {
+      if (partner?.commission_level_id) {
+        loadCommissionLevel(partner.commission_level_id);
+      } else {
+        setCommissionLevel(null);
+      }
+      
+      loadPDFTemplates();
+      
+      if (partner?.pdf_template_id) {
+        setSelectedTemplateId(partner.pdf_template_id);
+      } else {
+        setSelectedTemplateId("");
+      }
     }
   }, [isOpen, partner]);
 
@@ -46,6 +69,37 @@ const PartnerDetail = ({
       console.error("Error loading commission level:", error);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const loadPDFTemplates = async () => {
+    try {
+      const templatesData = await getPDFTemplates();
+      setTemplates(templatesData);
+    } catch (error) {
+      console.error("Error loading PDF templates:", error);
+    }
+  };
+  
+  const handleTemplateChange = async (templateId: string) => {
+    if (!partner?.id) return;
+    
+    setIsUpdatingTemplate(true);
+    try {
+      const success = await assignTemplateToPartner(partner.id, templateId);
+      
+      if (success) {
+        setSelectedTemplateId(templateId);
+        partner.pdf_template_id = templateId;
+        toast.success("Modèle PDF assigné avec succès");
+      } else {
+        toast.error("Erreur lors de l'assignation du modèle PDF");
+      }
+    } catch (error) {
+      console.error("Error assigning template:", error);
+      toast.error("Erreur lors de l'assignation du modèle PDF");
+    } finally {
+      setIsUpdatingTemplate(false);
     }
   };
 
@@ -122,6 +176,35 @@ const PartnerDetail = ({
               </div>
             </div>
           )}
+          
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Modèle PDF</h3>
+            <div className="p-3 rounded-lg border">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <div className="font-medium">Modèle pour les offres</div>
+              </div>
+              <div className="mt-2">
+                <Select
+                  value={selectedTemplateId}
+                  onValueChange={handleTemplateChange}
+                  disabled={isUpdatingTemplate}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner un modèle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Modèle par défaut</SelectItem>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
 
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">Performance</h3>

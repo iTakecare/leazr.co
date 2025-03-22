@@ -1379,6 +1379,26 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_pdf_templates: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          companyAddress: string
+          companyContact: string
+          companyName: string
+          companySiret: string
+          created_at: string
+          fields: Json
+          footerText: string
+          headerText: string
+          id: string
+          logoURL: string | null
+          name: string
+          primaryColor: string
+          secondaryColor: string
+          templateImages: Json | null
+          updated_at: string
+        }[]
+      }
       get_user_id_by_email: {
         Args: {
           user_email: string

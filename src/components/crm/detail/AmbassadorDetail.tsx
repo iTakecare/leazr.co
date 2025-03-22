@@ -12,7 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Loader2 } from "lucide-react";
+import { MapPin, Loader2, FileText } from "lucide-react";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import ClientsView from "./ClientsView";
 import CommissionsView from "./CommissionsView";
 import { 
@@ -21,6 +28,7 @@ import {
   getCommissionLevels,
   updateAmbassadorCommissionLevel 
 } from "@/services/commissionService";
+import { getPDFTemplates, assignTemplateToAmbassador } from "@/services/pdfTemplateService";
 import { toast } from "sonner";
 import ContactInfoSection from "./sections/ContactInfoSection";
 import CompanyInfoSection from "./sections/CompanyInfoSection";
@@ -47,12 +55,17 @@ const AmbassadorDetail = ({
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [loading, setLoading] = useState(false);
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [currentLevelId, setCurrentLevelId] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       loadCommissionLevels();
+      loadPDFTemplates();
+      
       if (ambassador?.commission_level_id) {
         setCurrentLevelId(ambassador.commission_level_id);
         loadCommissionLevel(ambassador.commission_level_id);
@@ -60,9 +73,16 @@ const AmbassadorDetail = ({
         setCommissionLevel(null);
         setCurrentLevelId("");
       }
+      
+      if (ambassador?.pdf_template_id) {
+        setSelectedTemplateId(ambassador.pdf_template_id);
+      } else {
+        setSelectedTemplateId("");
+      }
     } else {
       setCommissionLevel(null);
       setCurrentLevelId("");
+      setSelectedTemplateId("");
     }
   }, [isOpen, ambassador]);
 
@@ -86,6 +106,15 @@ const AmbassadorDetail = ({
       setLoading(false);
     }
   };
+  
+  const loadPDFTemplates = async () => {
+    try {
+      const templatesData = await getPDFTemplates();
+      setTemplates(templatesData);
+    } catch (error) {
+      console.error("Error loading PDF templates:", error);
+    }
+  };
 
   const handleUpdateCommissionLevel = async (levelId: string) => {
     try {
@@ -105,6 +134,28 @@ const AmbassadorDetail = ({
     } catch (error) {
       console.error("Error updating commission level:", error);
       toast.error("Erreur lors de la mise à jour du barème");
+    }
+  };
+  
+  const handleTemplateChange = async (templateId: string) => {
+    if (!ambassador?.id) return;
+    
+    setIsUpdatingTemplate(true);
+    try {
+      const success = await assignTemplateToAmbassador(ambassador.id, templateId);
+      
+      if (success) {
+        setSelectedTemplateId(templateId);
+        ambassador.pdf_template_id = templateId;
+        toast.success("Modèle PDF assigné avec succès");
+      } else {
+        toast.error("Erreur lors de l'assignation du modèle PDF");
+      }
+    } catch (error) {
+      console.error("Error assigning template:", error);
+      toast.error("Erreur lors de l'assignation du modèle PDF");
+    } finally {
+      setIsUpdatingTemplate(false);
     }
   };
 
@@ -178,6 +229,35 @@ const AmbassadorDetail = ({
                 loading={loading}
                 onUpdateCommissionLevel={handleUpdateCommissionLevel}
               />
+              
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Modèle PDF</h3>
+                <div className="p-3 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <div className="font-medium">Modèle pour les offres</div>
+                  </div>
+                  <div className="mt-2">
+                    <Select
+                      value={selectedTemplateId}
+                      onValueChange={handleTemplateChange}
+                      disabled={isUpdatingTemplate}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionner un modèle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Modèle par défaut</SelectItem>
+                        {templates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
 
               <StatsSummary 
                 clientsCount={ambassador.clients_count || 0}
