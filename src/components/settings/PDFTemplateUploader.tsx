@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,12 @@ import {
 
 const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [localImages, setLocalImages] = useState(templateImages);
+  
+  // Synchronize local state with incoming props
+  useEffect(() => {
+    setLocalImages(templateImages);
+  }, [templateImages]);
   
   // Uploader une image en utilisant le service d'upload qui fonctionne
   const handleImageUpload = async (file) => {
@@ -32,7 +38,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
           id: result.url.split('/').pop(),
           name: file.name,
           url: result.url,
-          page: templateImages.length
+          page: localImages.length
         };
       } else {
         throw new Error("L'URL du fichier n'a pas été générée correctement");
@@ -75,13 +81,14 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       console.log("Fichier supprimé avec succès");
       
       // Mettre à jour la liste des images
-      const updatedImages = templateImages.filter(img => img.id !== imageId);
+      const updatedImages = localImages.filter(img => img.id !== imageId);
       
       // Réindexer les numéros de page
       updatedImages.forEach((img, idx) => {
         img.page = idx;
       });
       
+      setLocalImages(updatedImages);
       onChange(updatedImages);
       
       toast.success("Image supprimée avec succès");
@@ -106,7 +113,8 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     
     const uploadedImage = await handleImageUpload(file);
     if (uploadedImage) {
-      const newImages = [...templateImages, uploadedImage];
+      const newImages = [...localImages, uploadedImage];
+      setLocalImages(newImages);
       onChange(newImages);
       toast.success("Image uploadée avec succès");
     }
@@ -116,7 +124,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const moveUp = (index) => {
     if (index === 0) return;
     
-    const newImages = [...templateImages];
+    const newImages = [...localImages];
     [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
     
     // Mettre à jour les numéros de page
@@ -124,14 +132,15 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       img.page = idx;
     });
     
+    setLocalImages(newImages);
     onChange(newImages);
   };
   
   // Déplacer une image vers le bas
   const moveDown = (index) => {
-    if (index === templateImages.length - 1) return;
+    if (index === localImages.length - 1) return;
     
-    const newImages = [...templateImages];
+    const newImages = [...localImages];
     [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
     
     // Mettre à jour les numéros de page
@@ -139,6 +148,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       img.page = idx;
     });
     
+    setLocalImages(newImages);
     onChange(newImages);
   };
   
@@ -146,6 +156,14 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const previewImage = (imageUrl) => {
     window.open(imageUrl, '_blank');
   };
+  
+  // Force immediate saving to parent component when images change
+  useEffect(() => {
+    if (localImages.length > 0) {
+      console.log("Synchronizing template images with parent component:", localImages);
+      onChange(localImages);
+    }
+  }, [localImages]);
   
   return (
     <div className="space-y-6">
@@ -179,7 +197,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       <div className="space-y-4">
         <h3 className="text-sm font-medium">Pages du modèle</h3>
         
-        {templateImages.length === 0 ? (
+        {localImages.length === 0 ? (
           <div className="text-center p-8 border border-dashed rounded-md">
             <p className="text-sm text-muted-foreground">
               Aucune page n'a encore été uploadée. Utilisez le formulaire ci-dessus pour ajouter des pages à votre modèle.
@@ -187,8 +205,8 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {templateImages.map((image, index) => (
-              <Card key={image.id} className="overflow-hidden">
+            {localImages.map((image, index) => (
+              <Card key={image.id || index} className="overflow-hidden">
                 <div className="relative bg-gray-100 h-40 flex items-center justify-center">
                   <img 
                     src={image.url} 
@@ -217,7 +235,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
                         size="icon" 
                         className="h-7 w-7" 
                         onClick={() => moveDown(index)}
-                        disabled={index === templateImages.length - 1}
+                        disabled={index === localImages.length - 1}
                       >
                         <ArrowDown className="h-4 w-4" />
                       </Button>
