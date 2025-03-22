@@ -3,7 +3,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Search, Package } from "lucide-react";
+import { Search, Package, X } from "lucide-react";
 import { Equipment } from "@/types/equipment";
 import { formatPercentageWithComma } from "@/utils/formatters";
 
@@ -14,6 +14,7 @@ interface EquipmentFormFieldsProps {
   onOpenCatalog: () => void;
   calculatedMargin: { percentage: number; amount: number };
   hideFinancialDetails?: boolean;
+  onRemove?: () => void;
 }
 
 const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
@@ -22,10 +23,25 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
   errors,
   onOpenCatalog,
   calculatedMargin,
-  hideFinancialDetails = false
+  hideFinancialDetails = false,
+  onRemove
 }) => {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 relative">
+      {/* Add remove button if onRemove is provided */}
+      {onRemove && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onRemove}
+          className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-red-50 border border-red-200 hover:bg-red-100"
+          title="Supprimer cet équipement"
+        >
+          <X className="h-3.5 w-3.5 text-red-500" />
+        </Button>
+      )}
+      
       <div>
         <Label htmlFor="title" className="text-xs font-medium text-gray-600">Intitulé du matériel</Label>
         <div className="mt-1 flex gap-2">
