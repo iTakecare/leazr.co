@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,10 +15,10 @@ import { v4 as uuidv4 } from "uuid";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
-import CommissionDisplay from "@/components/ui/CommissionDisplay";
 import ClientSelector from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
 import { getAmbassadorClients } from "@/services/ambassadorClientService";
+import AmbassadorCommissionPreview from "@/components/ambassador/AmbassadorCommissionPreview";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -68,8 +67,10 @@ const AmbassadorCreateOffer = () => {
   useEffect(() => {
     if (ambassadorId) {
       fetchAmbassador(ambassadorId);
+    } else if (user?.ambassador_id) {
+      fetchAmbassador(user.ambassador_id);
     }
-  }, [ambassadorId]);
+  }, [ambassadorId, user]);
   
   const fetchAmbassador = async (id: string) => {
     try {
@@ -224,7 +225,6 @@ const AmbassadorCreateOffer = () => {
     });
   };
   
-  // Set hideFinancialDetails to true for ambassador view
   const hideFinancialDetails = true;
   
   useEffect(() => {
@@ -289,6 +289,17 @@ const AmbassadorCreateOffer = () => {
                         hideFinancialDetails={hideFinancialDetails}
                       />
                     </div>
+                    
+                    {equipmentList.length > 0 && (
+                      <div className="mt-6">
+                        <AmbassadorCommissionPreview
+                          totalMonthlyPayment={totalMonthlyPayment}
+                          ambassadorId={ambassadorId || user?.ambassador_id}
+                          commissionLevelId={ambassador?.commission_level_id}
+                          equipmentList={equipmentList}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-8">
@@ -307,7 +318,7 @@ const AmbassadorCreateOffer = () => {
                       }}
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                       hideFinancialDetails={hideFinancialDetails}
-                      ambassadorId={ambassadorId}
+                      ambassadorId={ambassadorId || user?.ambassador_id}
                       commissionLevelId={ambassador?.commission_level_id}
                     />
                     
