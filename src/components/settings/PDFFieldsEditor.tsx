@@ -31,7 +31,8 @@ import {
   AlertCircle,
   Copy,
   Link,
-  Unlink
+  Unlink,
+  X
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -296,16 +297,6 @@ const PDFFieldsEditor = ({
     setPageLoaded(true);
   };
 
-  const handleDeleteField = (fieldId) => {
-    if (fieldId === positionedField) {
-      setPositionedField(null);
-    }
-    
-    if (onDeleteField) {
-      onDeleteField(fieldId);
-    }
-  };
-
   const handleOpenRemoveDialog = (field) => {
     setFieldToRemove(field);
     setShowRemoveDialog(true);
@@ -319,6 +310,16 @@ const PDFFieldsEditor = ({
       if (fieldToRemove.id === positionedField) {
         setPositionedField(null);
       }
+    }
+  };
+
+  const handleDeleteField = (fieldId) => {
+    if (fieldId === positionedField) {
+      setPositionedField(null);
+    }
+    
+    if (onDeleteField) {
+      onDeleteField(fieldId);
     }
   };
 
@@ -457,20 +458,12 @@ const PDFFieldsEditor = ({
     updateFieldPosition(positionedField, newPosition, activePage);
   };
 
-  const handleRemoveFieldLabel = (e, fieldId) => {
+  const handleRemoveFieldLabel = (e, field) => {
     e.stopPropagation();
     
-    const field = fields.find(f => f.id === fieldId);
-    
-    if (!field) return;
-    
-    if (fieldId === positionedField) {
-      setPositionedField(null);
-    }
-    
-    if (confirm(`Voulez-vous vraiment supprimer le champ "${field.label}" ?`)) {
-      onDeleteField(fieldId);
-    }
+    // Set the field to remove and open the remove dialog
+    setFieldToRemove(field);
+    setShowRemoveDialog(true);
   };
 
   const getCurrentPageFields = () => {
@@ -903,162 +896,4 @@ const PDFFieldsEditor = ({
                     .map((field) => (
                       <div
                         key={field.id}
-                        className={`absolute p-1 border ${positionedField === field.id ? 'border-blue-500 bg-blue-100' : 'border-gray-300 hover:border-blue-300'}`}
-                        style={{
-                          left: `${field.position.x}mm`,
-                          top: `${field.position.y}mm`,
-                          cursor: dragEnabled ? "grab" : "default",
-                          padding: "4px 6px",
-                          backgroundColor: positionedField === field.id ? "rgba(59, 130, 246, 0.2)" : "rgba(255, 255, 255, 0.8)",
-                          fontSize: "10px",
-                          fontWeight: positionedField === field.id ? "bold" : "normal",
-                          whiteSpace: "nowrap",
-                          zIndex: positionedField === field.id ? 20 : 10,
-                          boxShadow: positionedField === field.id ? "0 2px 8px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.1)"
-                        }}
-                        onMouseDown={(e) => {
-                          if (dragEnabled) {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            
-                            if (field.id === positionedField) {
-                              isDragging.current = true;
-                              
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              const canvasRect = canvasRef.current.getBoundingClientRect();
-                              
-                              const pageWidth = 210;
-                              const pageHeight = 297;
-                              
-                              const scaleRatio = {
-                                x: (pageWidth / zoomLevel) / canvasRect.width,
-                                y: (pageHeight / zoomLevel) / canvasRect.height
-                              };
-                              
-                              const clickOffsetX = (e.clientX - rect.left) * scaleRatio.x;
-                              const clickOffsetY = (e.clientY - rect.top) * scaleRatio.y;
-                              
-                              setDragOffset({ x: clickOffsetX, y: clickOffsetY });
-                            } else {
-                              startPositioning(field.id, field.position);
-                            }
-                          }
-                        }}
-                      >
-                        <div className="flex items-center gap-1">
-                          {getCategoryIcon(field.category)}
-                          <span>{field.label}</span>
-                          <button
-                            className="ml-1 text-red-500 hover:text-red-700 opacity-50 hover:opacity-100 transition-opacity"
-                            onClick={(e) => handleRemoveFieldLabel(e, field.id)}
-                            title={`Supprimer ${field.label}`}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 6 6 18" />
-                              <path d="m6 6 12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  
-                  {positionedField && isDragging.current && (
-                    <div
-                      className="absolute border-2 border-blue-500 bg-blue-100 p-1 z-50"
-                      style={{
-                        left: `${canvasPosition.x}mm`,
-                        top: `${canvasPosition.y}mm`,
-                        padding: "4px 6px",
-                        fontSize: "10px",
-                        fontWeight: "bold",
-                        whiteSpace: "nowrap",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                        opacity: 0.8,
-                        pointerEvents: "none"
-                      }}
-                    >
-                      <div className="flex items-center gap-1">
-                        {getCategoryIcon(fields.find(f => f.id === positionedField)?.category || "general")}
-                        <span>{fields.find(f => f.id === positionedField)?.label}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="mt-4 text-sm text-muted-foreground space-y-1">
-                <p>
-                  <span className="font-semibold">Glisser-déposer:</span> Cliquez sur l'icône <Grip className="inline h-4 w-4" /> d'un champ pour le sélectionner, puis cliquez et glissez sur le document.
-                </p>
-                <p>
-                  <span className="font-semibold">Ajustement précis:</span> Utilisez les touches fléchées ↑↓←→ pour ajuster finement la position du champ sélectionné.
-                </p>
-                <p>
-                  <span className="font-semibold">Gestion des pages:</span> Utilisez le menu d'actions <AlertCircle className="inline h-4 w-4" /> pour dupliquer un champ sur une autre page ou le retirer d'une page spécifique.
-                </p>
-                <p>
-                  <span className="font-semibold">Suppression:</span> Pour supprimer définitivement un champ, utilisez l'option "Supprimer complètement" dans le menu d'actions.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Dupliquer le champ sur une autre page</DialogTitle>
-            <DialogDescription>
-              Sélectionnez la page sur laquelle vous souhaitez dupliquer le champ "{fieldToDuplicate?.label}".
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <Label htmlFor="duplicate-page">Page cible</Label>
-            <Select 
-              value={duplicateTargetPage.toString()} 
-              onValueChange={(value) => setDuplicateTargetPage(parseInt(value))}
-            >
-              <SelectTrigger id="duplicate-page">
-                <SelectValue placeholder="Sélectionner une page" />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <SelectItem key={i} value={i.toString()} disabled={i === fieldToDuplicate?.page}>
-                    Page {i + 1} {i === fieldToDuplicate?.page ? "(page actuelle)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDuplicateDialog(false)}>Annuler</Button>
-            <Button onClick={handleDuplicateField}>Dupliquer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Retirer le champ de cette page</DialogTitle>
-            <DialogDescription>
-              Êtes-vous sûr de vouloir retirer le champ "{fieldToRemove?.label}" de la page {fieldToRemove?.page + 1} ?
-              <br /><br />
-              <strong>Note:</strong> Cette action ne supprime pas complètement le champ. Pour supprimer définitivement le champ, utilisez l'option "Supprimer complètement".
-            </DialogDescription>
-          </DialogHeader>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRemoveDialog(false)}>Annuler</Button>
-            <Button variant="destructive" onClick={handleRemoveFieldFromPage}>Retirer de cette page</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default PDFFieldsEditor;
+                        className={`absolute p-1 border ${positionedField === field.id ? 'border-
