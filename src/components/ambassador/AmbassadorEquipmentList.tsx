@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, PlusCircle } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
 import { Input } from "@/components/ui/input";
 import { Equipment } from "@/types/equipment";
@@ -25,11 +25,12 @@ interface EquipmentListProps {
   };
   toggleAdaptMonthlyPayment: () => void;
   hideFinancialDetails?: boolean;
+  hideCommissionDisplay?: boolean;
   ambassadorId?: string;
   commissionLevelId?: string;
 }
 
-const EquipmentList = ({
+const AmbassadorEquipmentList = ({
   equipmentList,
   editingId,
   startEditing,
@@ -39,6 +40,7 @@ const EquipmentList = ({
   globalMarginAdjustment,
   toggleAdaptMonthlyPayment,
   hideFinancialDetails = false,
+  hideCommissionDisplay = false,
   ambassadorId,
   commissionLevelId,
 }: EquipmentListProps) => {
@@ -210,8 +212,8 @@ const EquipmentList = ({
               )}
             </div>
 
-            {/* Always show Commission Display in the regular EquipmentList */}
-            {ambassadorId && (
+            {/* Commission Display - only if not hidden */}
+            {(!hideCommissionDisplay && ambassadorId) && (
               <div className="mt-4 pt-4 border-t">
                 <CommissionDisplay
                   ambassadorId={ambassadorId}
@@ -226,4 +228,4 @@ const EquipmentList = ({
   );
 };
 
-export default EquipmentList;
+export default AmbassadorEquipmentList;
