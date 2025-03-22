@@ -14,20 +14,19 @@ import {
 
 const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
-  // Initialize with an empty array if templateImages is null or undefined
-  const [localImages, setLocalImages] = useState(templateImages || []);
+  const [localImages, setLocalImages] = useState([]);
   
-  // Debug templateImages prop on render
-  console.log("PDFTemplateUploader render - templateImages prop:", templateImages);
-  console.log("PDFTemplateUploader render - localImages state:", localImages);
+  console.log("PDFTemplateUploader render with templateImages:", templateImages);
   
-  // Synchronize local state with incoming props when they change
+  // Initialize local state once on mount and when templateImages changes significantly
   useEffect(() => {
-    console.log("useEffect triggered - templateImages:", templateImages);
-    if (templateImages) {
+    console.log("useEffect triggered with templateImages:", templateImages);
+    // Only update if templateImages exists and is different from current localImages
+    if (templateImages && Array.isArray(templateImages)) {
+      console.log("Setting localImages state to:", templateImages);
       setLocalImages(templateImages);
     }
-  }, [templateImages]); // Remove JSON.stringify to avoid unnecessary renders
+  }, [templateImages]);
   
   // Upload an image using the service
   const handleImageUpload = async (file) => {
@@ -171,14 +170,22 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const handleImageError = (e, imageUrl) => {
     console.error("Image failed to load:", imageUrl);
     e.target.src = "/placeholder.svg"; // Fallback image
-    // Try to reload the image
+    
+    // Try to reload the image with a cache-busting parameter
     setTimeout(() => {
       if (e.target.src === "/placeholder.svg") {
         const timestamp = new Date().getTime();
         e.target.src = `${imageUrl}?t=${timestamp}`;
+        console.log("Attempting to reload image with cache-busting:", `${imageUrl}?t=${timestamp}`);
       }
     }, 2000);
   };
+
+  // Force re-render of images by adding timestamp to URLs
+  const timestampedImages = localImages.map(img => ({
+    ...img,
+    displayUrl: `${img.url}?t=${new Date().getTime()}`
+  }));
   
   return (
     <div className="space-y-6">
@@ -210,9 +217,9 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       </div>
       
       <div className="space-y-4">
-        <h3 className="text-sm font-medium">Pages du modèle ({localImages && localImages.length || 0})</h3>
+        <h3 className="text-sm font-medium">Pages du modèle ({localImages.length})</h3>
         
-        {(!localImages || localImages.length === 0) ? (
+        {localImages.length === 0 ? (
           <div className="text-center p-8 border border-dashed rounded-md">
             <p className="text-sm text-muted-foreground">
               Aucune page n'a encore été uploadée. Utilisez le formulaire ci-dessus pour ajouter des pages à votre modèle.
@@ -220,12 +227,12 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {localImages.map((image, index) => (
-              <Card key={image.id || `image-${index}`} className="overflow-hidden">
+            {timestampedImages.map((image, index) => (
+              <Card key={`${image.id}-${index}`} className="overflow-hidden">
                 <div className="relative bg-gray-100 h-40 flex items-center justify-center">
                   <img 
-                    src={image.url} 
-                    alt={`Template page ${index + 1}`} 
+                    src={image.displayUrl} 
+                    alt={`Template page ${index + 1}`}
                     className="max-h-full max-w-full object-contain"
                     onError={(e) => handleImageError(e, image.url)}
                   />
@@ -284,3 +291,4 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
 };
 
 export default PDFTemplateUploader;
+
