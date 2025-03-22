@@ -80,8 +80,13 @@ const getPDFTemplate = async () => {
 };
 
 export const generateOfferPdf = async (offer: any) => {
-  // Récupérer le modèle personnalisé
-  const template = await getPDFTemplate();
+  // Si l'offre contient déjà un template, l'utiliser (pour les aperçus)
+  const template = offer.__template || await getPDFTemplate();
+  
+  // Supprimer le template de l'offre si présent (pour éviter de le stocker)
+  if (offer.__template) {
+    delete offer.__template;
+  }
   
   // Créer un nouveau document PDF
   const doc = new jsPDF();
@@ -122,7 +127,12 @@ export const generateOfferPdf = async (offer: any) => {
         img.onerror = () => resolve();
       });
       
-      doc.addImage(template.logoURL, 'PNG', 10, 10, 40, 20);
+      // Si l'image est une URL data
+      if (template.logoURL.startsWith('data:')) {
+        doc.addImage(template.logoURL, 'PNG', 10, 10, 40, 20);
+      } else {
+        doc.addImage(template.logoURL, 'PNG', 10, 10, 40, 20);
+      }
     } catch (error) {
       console.error("Erreur lors du chargement du logo:", error);
     }
@@ -137,109 +147,109 @@ export const generateOfferPdf = async (offer: any) => {
   
   // Ajouter les champs selon le modèle personnalisé
   if (template?.fields) {
-    // Fonction pour ajouter un champ s'il est visible
-    const addField = (fieldId: string, formatFn?: (value: any) => string) => {
-      const field = template.fields.find(f => f.id === fieldId);
-      if (field && field.isVisible) {
-        const value = field.value.replace(/\{([^}]+)\}/g, (match, key) => {
-          let fieldValue = key.split('.').reduce((o: any, i: string) => o?.[i], offer);
-          return formatFn ? formatFn(fieldValue) : (fieldValue || 'Non renseigné');
-        });
+    // Fonction pour résoudre les valeurs des champs
+    const resolveFieldValue = (pattern: string) => {
+      return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
+        const keyParts = key.split('.');
+        let value = offer;
         
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        doc.text(value, field.position.x, field.position.y);
-      }
+        for (const part of keyParts) {
+          if (value === undefined || value === null) {
+            return '';
+          }
+          value = value[part];
+        }
+        
+        // Formater selon le type
+        if (typeof value === 'number') {
+          // Détecter si c'est une valeur monétaire
+          if (key.includes('amount') || key.includes('payment') || key.includes('price')) {
+            return formatCurrency(value);
+          }
+          return value.toString();
+        } else if (value instanceof Date || (typeof value === 'string' && Date.parse(value))) {
+          return formatDate(value);
+        }
+        
+        return value || 'Non renseigné';
+      });
     };
     
-    // Ajouter la date
-    const dateField = template.fields.find(f => f.id === 'created_at');
-    if (dateField && dateField.isVisible) {
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Date: ${formatDate(offer.created_at)}`, dateField.position.x, dateField.position.y, { align: 'right' });
-    }
-    
-    // Ajouter la section d'information client
-    if (template.fields.some(f => ['client_name', 'client_email', 'client_company'].includes(f.id) && f.isVisible)) {
-      doc.setFontSize(12);
-      doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
-      doc.text('CLIENT', 14, 50);
-      
-      addField('client_name');
-      addField('client_email');
-      
-      // Ajouter l'information de la société si elle existe
-      if (offer.clients && offer.clients.company) {
-        addField('client_company');
-      }
-    }
-    
-    // Ajouter la section détails de l'offre
-    if (template.fields.some(f => ['amount', 'monthly_payment', 'coefficient'].includes(f.id) && f.isVisible)) {
-      doc.setFontSize(12);
-      doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
-      doc.text('DÉTAILS DE L\'OFFRE', 14, 90);
-      
-      addField('amount', (value) => `Montant total: ${formatCurrency(value || 0)}`);
-      addField('monthly_payment', (value) => `Paiement mensuel: ${formatCurrency(value || 0)}`);
-      addField('coefficient', (value) => `Coefficient: ${value || 0}`);
-    }
-    
-    // Ajouter le tableau des équipements
-    const equipmentTableField = template.fields.find(f => f.id === 'equipment_table');
-    if (equipmentTableField && equipmentTableField.isVisible) {
-      // Analyser les éléments d'équipement
-      let equipmentItems = [];
-      try {
-        if (offer.equipment_description) {
-          equipmentItems = typeof offer.equipment_description === 'string'
-            ? JSON.parse(offer.equipment_description)
-            : offer.equipment_description;
-        }
-      } catch (e) {
-        console.error("Erreur lors de l'analyse des données d'équipement:", e);
-      }
-      
-      if (equipmentItems && equipmentItems.length > 0) {
-        doc.setFontSize(12);
-        doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
-        doc.text('ÉQUIPEMENTS', 14, 130);
+    // Parcourir tous les champs visibles et les ajouter au PDF
+    template.fields
+      .filter(field => field.isVisible)
+      .forEach(field => {
+        // Positionner les coordonnées du champ
+        const x = field.position.x;
+        const y = field.position.y;
         
-        const tableHeaders = [['Désignation', 'Prix unitaire', 'Quantité', 'Marge', 'Total']];
-        
-        const tableData = equipmentItems.map((item: any) => {
-          const unitPrice = item.purchasePrice || 0;
-          const quantity = item.quantity || 1;
-          const margin = item.margin || 0;
-          const totalPrice = unitPrice * quantity * (1 + margin / 100);
+        if (field.id === 'equipment_table') {
+          // Cas spécial pour le tableau d'équipements
+          let equipmentItems = [];
+          try {
+            if (offer.equipment_description) {
+              equipmentItems = typeof offer.equipment_description === 'string'
+                ? JSON.parse(offer.equipment_description)
+                : offer.equipment_description;
+            }
+          } catch (e) {
+            console.error("Erreur lors de l'analyse des données d'équipement:", e);
+          }
           
-          return [
-            item.title,
-            formatCurrency(unitPrice),
-            quantity.toString(),
-            `${margin}%`,
-            formatCurrency(totalPrice)
-          ];
-        });
-        
-        autoTable(doc, {
-          head: tableHeaders,
-          body: tableData,
-          startY: 135,
-          theme: 'grid',
-          styles: { fontSize: 9, cellPadding: 3 },
-          headStyles: { fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b], textColor: [255, 255, 255] },
-          columnStyles: {
-            0: { cellWidth: 'auto' },
-            1: { cellWidth: 30, halign: 'right' },
-            2: { cellWidth: 20, halign: 'center' },
-            3: { cellWidth: 20, halign: 'center' },
-            4: { cellWidth: 30, halign: 'right' }
-          },
-        });
-      }
-    }
+          if (equipmentItems && equipmentItems.length > 0) {
+            doc.setFontSize(12);
+            doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
+            doc.text('ÉQUIPEMENTS', x, y);
+            
+            const tableHeaders = [['Désignation', 'Prix unitaire', 'Quantité', 'Marge', 'Total']];
+            
+            const tableData = equipmentItems.map((item: any) => {
+              const unitPrice = item.purchasePrice || 0;
+              const quantity = item.quantity || 1;
+              const margin = item.margin || 0;
+              const totalPrice = unitPrice * quantity * (1 + margin / 100);
+              
+              return [
+                item.title,
+                formatCurrency(unitPrice),
+                quantity.toString(),
+                `${margin}%`,
+                formatCurrency(totalPrice)
+              ];
+            });
+            
+            autoTable(doc, {
+              head: tableHeaders,
+              body: tableData,
+              startY: y + 5,
+              theme: 'grid',
+              styles: { fontSize: 9, cellPadding: 3 },
+              headStyles: { fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b], textColor: [255, 255, 255] },
+              columnStyles: {
+                0: { cellWidth: 'auto' },
+                1: { cellWidth: 30, halign: 'right' },
+                2: { cellWidth: 20, halign: 'center' },
+                3: { cellWidth: 20, halign: 'center' },
+                4: { cellWidth: 30, halign: 'right' }
+              },
+            });
+          }
+        } else {
+          // Pour les autres types de champs, ajouter du texte
+          doc.setFontSize(10);
+          doc.setTextColor(0, 0, 0);
+          
+          if (field.category === 'offer' && field.type === 'currency') {
+            doc.setFont('helvetica', 'bold');
+          }
+          
+          const resolvedValue = resolveFieldValue(field.value);
+          doc.text(resolvedValue, x, y);
+          
+          // Réinitialiser la police
+          doc.setFont('helvetica', 'normal');
+        }
+      });
   }
   
   // Ajouter le résumé en bas

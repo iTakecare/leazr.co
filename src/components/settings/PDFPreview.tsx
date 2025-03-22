@@ -1,0 +1,216 @@
+
+import React, { useRef, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Eye, FileDown, Printer, Maximize2 } from "lucide-react";
+import { generateOfferPdf } from "@/utils/pdfGenerator";
+import { toast } from "sonner";
+
+const PDFPreview = ({ template }) => {
+  const [loading, setLoading] = useState(false);
+  const previewRef = useRef(null);
+  
+  const SAMPLE_OFFER = {
+    id: "abcdef1234567890",
+    client_name: "Entreprise Exemple",
+    client_email: "contact@exemple.fr",
+    clients: {
+      company: "Entreprise Exemple SA",
+      name: "Jean Dupont",
+      email: "jean.dupont@exemple.fr"
+    },
+    equipment_description: JSON.stringify([
+      {
+        title: "MacBook Pro 16\" M2 Pro",
+        purchasePrice: 2399,
+        quantity: 1,
+        margin: 15
+      },
+      {
+        title: "Écran Dell 27\" UltraSharp",
+        purchasePrice: 399,
+        quantity: 2,
+        margin: 20
+      },
+      {
+        title: "Dock USB-C Thunderbolt",
+        purchasePrice: 199,
+        quantity: 1,
+        margin: 25
+      }
+    ]),
+    amount: 3596,
+    monthly_payment: 99.89,
+    coefficient: 1.08,
+    created_at: new Date().toISOString(),
+    workflow_status: "draft"
+  };
+  
+  const handleGeneratePreview = async () => {
+    try {
+      setLoading(true);
+      
+      // Générer le PDF en utilisant le template et l'offre d'exemple
+      const offerWithTemplate = {
+        ...SAMPLE_OFFER,
+        __template: template
+      };
+      
+      const pdfFilename = await generateOfferPdf(offerWithTemplate);
+      
+      toast.success(`PDF généré avec succès : ${pdfFilename}`);
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-medium">Aperçu du modèle de PDF</h3>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGeneratePreview}
+            disabled={loading}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            Générer un PDF d'exemple
+          </Button>
+        </div>
+      </div>
+      
+      <Card>
+        <CardContent className="p-0 overflow-hidden">
+          <div 
+            ref={previewRef}
+            className="bg-gray-100 p-4 flex justify-center min-h-[500px] max-h-[600px] overflow-auto"
+          >
+            {/* Aperçu du PDF simulé */}
+            <div className="bg-white shadow-lg w-full max-w-2xl overflow-hidden">
+              {/* En-tête */}
+              <div className="border-b p-6" style={{ backgroundColor: template.primaryColor, color: "white" }}>
+                <div className="flex justify-between items-center">
+                  {template.logoURL && (
+                    <img 
+                      src={template.logoURL} 
+                      alt="Logo" 
+                      className="h-10 object-contain"
+                    />
+                  )}
+                  <h1 className="text-xl font-bold">{template.headerText.replace('{offer_id}', 'EXEMPLE')}</h1>
+                </div>
+              </div>
+              
+              {/* Corps du document */}
+              <div className="p-6 space-y-6">
+                <div className="flex justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold mb-2">CLIENT</h2>
+                    <p>Entreprise Exemple SA</p>
+                    <p>Jean Dupont</p>
+                    <p>contact@exemple.fr</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Date: {new Date().toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-600">Référence: OFF-EXEMPLE</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">DÉTAILS DE L'OFFRE</h2>
+                  <div className="space-y-1">
+                    <p>Montant total: 3 596,00 €</p>
+                    <p>Paiement mensuel: 99,89 €</p>
+                    <p>Coefficient: 1.08</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">ÉQUIPEMENTS</h2>
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-left">Désignation</th>
+                        <th className="border p-2 text-right">Prix unitaire</th>
+                        <th className="border p-2 text-center">Qté</th>
+                        <th className="border p-2 text-center">Marge</th>
+                        <th className="border p-2 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="border p-2">MacBook Pro 16" M2 Pro</td>
+                        <td className="border p-2 text-right">2 399,00 €</td>
+                        <td className="border p-2 text-center">1</td>
+                        <td className="border p-2 text-center">15%</td>
+                        <td className="border p-2 text-right">2 758,85 €</td>
+                      </tr>
+                      <tr>
+                        <td className="border p-2">Écran Dell 27" UltraSharp</td>
+                        <td className="border p-2 text-right">399,00 €</td>
+                        <td className="border p-2 text-center">2</td>
+                        <td className="border p-2 text-center">20%</td>
+                        <td className="border p-2 text-right">957,60 €</td>
+                      </tr>
+                      <tr>
+                        <td className="border p-2">Dock USB-C Thunderbolt</td>
+                        <td className="border p-2 text-right">199,00 €</td>
+                        <td className="border p-2 text-center">1</td>
+                        <td className="border p-2 text-center">25%</td>
+                        <td className="border p-2 text-right">248,75 €</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div className="flex justify-end pt-4">
+                  <div className="w-1/3 space-y-2">
+                    <div className="flex justify-between border-b pb-1">
+                      <span className="font-medium">Total HT:</span>
+                      <span>3 596,00 €</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1">
+                      <span className="font-medium">TVA (20%):</span>
+                      <span>719,20 €</span>
+                    </div>
+                    <div className="flex justify-between font-bold pt-1">
+                      <span>Total TTC:</span>
+                      <span>4 315,20 €</span>
+                    </div>
+                    <div className="flex justify-between text-blue-600 font-semibold pt-2 border-t">
+                      <span>Mensualité:</span>
+                      <span>99,89 € / mois</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Pied de page */}
+              <div className="p-6 text-xs text-gray-600 bg-gray-50 border-t">
+                <p>{template.footerText}</p>
+                <hr className="my-2 border-gray-300" />
+                <div className="flex justify-center items-center">
+                  <p className="text-center">
+                    {template.companyName} - {template.companyAddress}<br />
+                    {template.companySiret} - {template.companyContact}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div className="text-sm text-muted-foreground">
+        <p>Cet aperçu est une simulation simplifiée du document PDF final. Pour voir le résultat exact, cliquez sur "Générer un PDF d'exemple".</p>
+      </div>
+    </div>
+  );
+};
+
+export default PDFPreview;
