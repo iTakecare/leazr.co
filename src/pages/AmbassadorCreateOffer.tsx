@@ -170,12 +170,28 @@ const AmbassadorCreateOffer = () => {
         .map((item) => `${item.title} (${item.quantity}x)`)
         .join(", ");
       
+      console.log("Saving offer with the following data:", {
+        client_id: client.id,
+        client_name: client.name,
+        client_email: client.email,
+        client_company: client.company, // Make sure this value is present
+        equipment_description: equipmentDescription,
+        equipment_text: equipmentText,
+        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
+        coefficient: globalMarginAdjustment.newCoef,
+        monthly_payment: totalMonthlyPayment,
+        commission: totalMonthlyPayment * 0.1,
+        workflow_status: "draft",
+        type: "ambassador_offer",
+        user_id: user?.id,
+        remarks: remarks
+      });
+      
       const { data, error } = await supabase.from("offers").insert([
         {
           client_id: client.id,
           client_name: client.name,
           client_email: client.email,
-          client_company: client.company,
           equipment_description: equipmentDescription,
           equipment_text: equipmentText,
           amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
@@ -185,7 +201,7 @@ const AmbassadorCreateOffer = () => {
           workflow_status: "draft",
           type: "ambassador_offer",
           user_id: user?.id,
-          remarks: remarks // Changed from additional_info to remarks
+          remarks: remarks
         }
       ]).select();
       

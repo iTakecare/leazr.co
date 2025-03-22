@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -72,35 +73,38 @@ export interface OfferData {
   commission: number;
   user_id: string;
   type?: string;
-  additional_info?: string;
   remarks?: string;
 }
 
 export const createOffer = async (offerData: OfferData): Promise<string | null> => {
   try {
+    console.log("Creating offer with data:", offerData);
+    
+    // Create a clean object without any fields that might not exist in the database
     const dataToSend = {
-      ...offerData,
-      type: offerData.type || 'admin_offer',
+      client_id: offerData.client_id,
+      client_name: offerData.client_name,
+      client_email: offerData.client_email,
+      equipment_description: offerData.equipment_description || offerData.equipment_text,
+      amount: offerData.amount,
+      coefficient: offerData.coefficient,
+      monthly_payment: offerData.monthly_payment,
+      commission: offerData.commission,
       user_id: offerData.user_id === 'user-123' ? 
         '00000000-0000-0000-0000-000000000000' : offerData.user_id,
-      remarks: offerData.remarks || offerData.additional_info,
-      equipment_description: offerData.equipment_description || offerData.equipment_text
+      type: offerData.type || 'admin_offer',
+      remarks: offerData.remarks
     };
-    
-    if ('additional_info' in dataToSend) {
-      delete dataToSend.additional_info;
-    }
-    
-    if ('equipment_text' in dataToSend) {
-      delete dataToSend.equipment_text;
-    }
     
     const { data, error } = await supabase
       .from('offers')
       .insert(dataToSend)
       .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating offer:", error);
+      throw error;
+    }
     
     return data?.[0]?.id || null;
   } catch (error) {
