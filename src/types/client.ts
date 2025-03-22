@@ -1,3 +1,4 @@
+
 export interface Collaborator {
   id: string;
   name: string;
@@ -46,4 +47,5 @@ export interface CreateClientData {
   postal_code?: string;
   country?: string;
   collaborators?: Collaborator[];
+  is_ambassador_client?: boolean;
 }

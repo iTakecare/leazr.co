@@ -15,7 +15,6 @@ export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
     
     console.log("Current user:", userData.user.id);
     
-    // Utilisons select() au lieu de maybeSingle() pour éviter l'erreur 406
     const { data: ambassadorData, error: ambassadorError } = await supabase
       .from('ambassadors')
       .select('id')
@@ -74,7 +73,8 @@ export const getAmbassadorClients = async (): Promise<any[]> => {
       .filter(item => item.clients) // Filter out any null client references
       .map(item => ({
         ...item.clients,
-        ambassador_client_id: item.id
+        ambassador_client_id: item.id,
+        is_ambassador_client: true
       }));
     
     console.log("Processed clients:", processedClients);
@@ -112,7 +112,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       return true;
     }
     
-    // Créer le lien en utilisant le client supabase standard (les politiques RLS sont maintenant configurées)
+    // Créer le lien en utilisant le client supabase standard
     const { error: insertError } = await supabase
       .from("ambassador_clients")
       .insert({
@@ -123,6 +123,17 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
     if (insertError) {
       console.error("Error linking client to ambassador:", insertError);
       throw insertError;
+    }
+    
+    // Mettre à jour le client pour indiquer qu'il appartient à un ambassadeur
+    const { error: updateClientError } = await supabase
+      .from("clients")
+      .update({ is_ambassador_client: true })
+      .eq("id", clientId);
+    
+    if (updateClientError) {
+      console.error("Error updating client:", updateClientError);
+      // Continue anyway, this is not critical
     }
     
     // Mettre à jour le compteur de clients de l'ambassadeur
@@ -175,9 +186,15 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData, a
   try {
     console.log("Using database function to create client as ambassador:", { ambassadorId, clientData });
     
+    // Ajouter is_ambassador_client: true aux données du client pour le marquer correctement
+    const enhancedClientData = {
+      ...clientData,
+      is_ambassador_client: true
+    };
+    
     const { data, error } = await supabase
       .rpc('create_client_as_ambassador', {
-        client_data: clientData,
+        client_data: enhancedClientData,
         ambassador_id: ambassadorId
       });
     

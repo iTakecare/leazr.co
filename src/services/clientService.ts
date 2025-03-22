@@ -24,6 +24,7 @@ const mapDbClientToClient = (record: any): Client => {
     user_id: record.user_id,
     has_user_account: record.has_user_account,
     user_account_created_at: record.user_account_created_at,
+    is_ambassador_client: record.is_ambassador_client || false,
     created_at: record.created_at ? new Date(record.created_at) : new Date(),
     updated_at: record.updated_at ? new Date(record.updated_at) : new Date()
   };
@@ -34,17 +35,41 @@ export const getClients = async (): Promise<Client[]> => {
   try {
     console.log("Fetching clients from Supabase");
     
-    const { data, error } = await supabase
+    // Première requête pour obtenir tous les clients
+    const { data: clientsData, error: clientsError } = await supabase
       .from('clients')
       .select('*')
       .order('name', { ascending: true });
     
-    if (error) {
-      console.error("Error fetching clients:", error);
-      throw error;
+    if (clientsError) {
+      console.error("Error fetching clients:", clientsError);
+      throw clientsError;
+    }
+
+    // Deuxième requête pour obtenir les IDs des clients des ambassadeurs
+    const { data: ambassadorClientsData, error: ambassadorClientsError } = await supabase
+      .from('ambassador_clients')
+      .select('client_id');
+    
+    if (ambassadorClientsError) {
+      console.error("Error fetching ambassador clients:", ambassadorClientsError);
+      throw ambassadorClientsError;
     }
     
-    return data ? data.map(mapDbClientToClient) : [];
+    // Créer un ensemble d'IDs de clients d'ambassadeur pour une recherche rapide
+    const ambassadorClientIds = new Set(
+      ambassadorClientsData.map(item => item.client_id)
+    );
+    
+    // Mapper les données et marquer les clients des ambassadeurs
+    const mappedClients = clientsData.map(client => {
+      return mapDbClientToClient({
+        ...client,
+        is_ambassador_client: ambassadorClientIds.has(client.id)
+      });
+    });
+    
+    return mappedClients;
   } catch (error) {
     console.error("Error fetching clients:", error);
     toast.error("Error fetching clients");
