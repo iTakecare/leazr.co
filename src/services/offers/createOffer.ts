@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 
-export const createOffer = async (offerData: OfferData): Promise<string | null> => {
+export const createOffer = async (offerData: OfferData) => {
   try {
     console.log("Creating offer with data:", offerData);
     
@@ -19,7 +19,8 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
       user_id: offerData.user_id === 'user-123' ? 
         '00000000-0000-0000-0000-000000000000' : offerData.user_id,
       type: offerData.type || 'admin_offer',
-      remarks: offerData.remarks
+      remarks: offerData.remarks,
+      workflow_status: offerData.workflow_status
     };
     
     const { data, error } = await supabase
@@ -29,12 +30,12 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
     
     if (error) {
       console.error("Error creating offer:", error);
-      throw error;
+      return { data: null, error };
     }
     
-    return data?.[0]?.id || null;
+    return { data, error: null };
   } catch (error) {
     console.error("Error creating offer:", error);
-    return null;
+    return { data: null, error };
   }
 };

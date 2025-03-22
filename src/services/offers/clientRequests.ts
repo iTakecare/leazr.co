@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 
-export const createClientRequest = async (requestData: OfferData): Promise<string | null> => {
+export const createClientRequest = async (requestData: OfferData) => {
   try {
     const validData = {
       ...requestData,
@@ -18,11 +18,13 @@ export const createClientRequest = async (requestData: OfferData): Promise<strin
       .insert(validData)
       .select();
     
-    if (error) throw error;
+    if (error) {
+      return { data: null, error };
+    }
     
-    return data?.[0]?.id || null;
+    return { data, error: null };
   } catch (error) {
     console.error("Error creating client request:", error);
-    return null;
+    return { data: null, error };
   }
 };

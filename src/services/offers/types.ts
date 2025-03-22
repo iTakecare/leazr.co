@@ -19,6 +19,7 @@ export interface OfferData {
   user_id: string;
   type?: string;
   remarks?: string;
+  workflow_status?: string;
 }
 
 export interface RequestInfoData {
