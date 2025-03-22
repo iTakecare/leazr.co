@@ -188,7 +188,7 @@ const PDFVisualEditor = ({
     const x = (e.clientX - previewRect.left) / scale;
     const y = (e.clientY - previewRect.top) / scale;
     
-    // Update field position - directly call the onFieldMove prop
+    // Make sure to call onFieldMove with the dragged field
     onFieldMove(draggedField, x, y);
   };
 

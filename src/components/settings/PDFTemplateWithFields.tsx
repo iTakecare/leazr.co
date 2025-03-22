@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
 import PDFVisualEditor from './PDFVisualEditor';
+import PDFPreview from './PDFPreview';
 import { toast } from "sonner";
 import { PDFField } from '@/types/pdf';
 
@@ -508,10 +509,11 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   return (
     <div className="space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="template">Pages du modèle</TabsTrigger>
           <TabsTrigger value="fields">Liste des champs</TabsTrigger>
           <TabsTrigger value="visual">Positionnement visuel</TabsTrigger>
+          <TabsTrigger value="preview">Aperçu</TabsTrigger>
         </TabsList>
         
         <TabsContent value="template" className="mt-6">
@@ -552,6 +554,18 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
             allFields={currentTemplate.fields}
             onSave={handleSaveTemplate}
           />
+        </TabsContent>
+
+        <TabsContent value="preview" className="mt-6">
+          <Card>
+            <CardContent className="p-6">
+              <PDFPreview 
+                template={currentTemplate}
+                onDownload={() => {}} 
+                editMode={false}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
