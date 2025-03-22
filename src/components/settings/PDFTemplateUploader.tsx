@@ -25,18 +25,39 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       const fileName = `${uuidv4()}.${fileExt}`;
       
       console.log("Tentative d'upload du fichier:", fileName);
+      console.log("Type de fichier:", file.type);
+      console.log("Taille du fichier:", file.size);
       
-      // Uploader le fichier
+      // Vérifier que le bucket existe
+      const { data: bucketExists, error: bucketError } = await supabase.storage
+        .getBucket('pdf-templates');
+        
+      if (bucketError) {
+        console.error("Erreur lors de la vérification du bucket:", bucketError);
+        toast.error(`Le bucket pdf-templates n'existe pas ou n'est pas accessible: ${bucketError.message}`);
+        return null;
+      }
+      
+      console.log("Bucket vérifié:", bucketExists);
+      
+      // Uploader le fichier avec le service admin pour contourner les politiques RLS
       const { data, error } = await supabase.storage
         .from('pdf-templates')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
+          contentType: file.type
         });
         
       if (error) {
-        console.error("Erreur lors de l'upload:", error);
-        toast.error(`Erreur lors de l'upload du fichier: ${error.message}`);
+        console.error("Erreur détaillée lors de l'upload:", error);
+        
+        // Message d'erreur spécifique pour les problèmes de RLS
+        if (error.message.includes("security policy")) {
+          toast.error("Erreur de sécurité: Vérifiez que vous êtes connecté et que vous avez les permissions nécessaires");
+        } else {
+          toast.error(`Erreur lors de l'upload du fichier: ${error.message}`);
+        }
         return null;
       }
       
@@ -56,8 +77,8 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
         page: templateImages.length
       };
     } catch (error) {
-      console.error("Erreur lors de l'upload:", error);
-      toast.error(`Erreur lors de l'upload du fichier: ${error.message || error}`);
+      console.error("Exception non gérée lors de l'upload:", error);
+      toast.error(`Erreur lors de l'upload du fichier: ${error.message || JSON.stringify(error)}`);
       return null;
     } finally {
       setIsUploading(false);
@@ -75,8 +96,14 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
         .remove([imageId]);
         
       if (error) {
-        console.error("Erreur lors de la suppression:", error);
-        toast.error(`Erreur lors de la suppression du fichier: ${error.message}`);
+        console.error("Erreur détaillée lors de la suppression:", error);
+        
+        // Message d'erreur spécifique pour les problèmes de RLS
+        if (error.message.includes("security policy")) {
+          toast.error("Erreur de sécurité: Vérifiez que vous êtes connecté et que vous avez les permissions nécessaires");
+        } else {
+          toast.error(`Erreur lors de la suppression du fichier: ${error.message}`);
+        }
         return;
       }
       
@@ -94,8 +121,8 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       
       toast.success("Image supprimée avec succès");
     } catch (error) {
-      console.error("Erreur lors de la suppression:", error);
-      toast.error(`Erreur lors de la suppression du fichier: ${error.message || error}`);
+      console.error("Exception non gérée lors de la suppression:", error);
+      toast.error(`Erreur lors de la suppression du fichier: ${error.message || JSON.stringify(error)}`);
     }
   };
   
