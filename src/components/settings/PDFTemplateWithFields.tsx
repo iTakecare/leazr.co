@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
 import PDFPreview from './PDFPreview';
+import { toast } from "sonner";
 
 // Default fields for the PDF template if none exist yet
 const DEFAULT_FIELDS = [
@@ -151,6 +152,8 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
         templateImages: newImages
       });
     }
+    
+    toast.success("Images du modèle enregistrées");
   };
   
   // Update fields when they change
