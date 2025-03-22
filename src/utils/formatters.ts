@@ -24,8 +24,31 @@ export const formatPercentage = (value: number | string): string => {
   }).format(numValue / 100);
 };
 
+// Formatage de pourcentage avec virgule
+export const formatPercentageWithComma = (value: number | string): string => {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(numValue)) return '0 %';
+  
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'percent',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(numValue / 100);
+};
+
 // Formatage de date
 export const formatDate = (date: string | Date): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(dateObj);
+};
+
+// Formatage de date à la française
+export const formatDateToFrench = (date: string | Date): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
   return new Intl.DateTimeFormat('fr-FR', {
@@ -56,4 +79,45 @@ export const formatDateTime = (date: string | Date): string => {
     hour: '2-digit',
     minute: '2-digit'
   }).format(dateObj);
+};
+
+// Formatage de temps relatif (il y a X minutes/heures/jours)
+export const formatDistanceToNow = (date: Date): string => {
+  const now = new Date();
+  const diffInMilliseconds = now.getTime() - date.getTime();
+  
+  // Convertir la différence en secondes
+  const diffInSeconds = Math.floor(diffInMilliseconds / 1000);
+  
+  if (diffInSeconds < 60) {
+    return 'moins d\'une minute';
+  }
+  
+  // Minutes
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''}`;
+  }
+  
+  // Heures
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `${diffInHours} heure${diffInHours > 1 ? 's' : ''}`;
+  }
+  
+  // Jours
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `${diffInDays} jour${diffInDays > 1 ? 's' : ''}`;
+  }
+  
+  // Mois
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `${diffInMonths} mois`;
+  }
+  
+  // Années
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `${diffInYears} an${diffInYears > 1 ? 's' : ''}`;
 };
