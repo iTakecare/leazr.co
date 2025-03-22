@@ -166,7 +166,7 @@ const AmbassadorCreateOffer = () => {
         }))
       );
       
-      console.log("Saving offer with the following data:", {
+      const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
@@ -177,28 +177,18 @@ const AmbassadorCreateOffer = () => {
         commission: totalMonthlyPayment * 0.1,
         workflow_status: "draft",
         type: "ambassador_offer",
-        user_id: user?.id,
+        user_id: user?.id || "",
         remarks: remarks
-      });
+      };
       
-      const { data, error } = await createOffer({
-        client_id: client.id,
-        client_name: client.name,
-        client_email: client.email,
-        equipment_description: equipmentDescription,
-        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
-        coefficient: globalMarginAdjustment.newCoef,
-        monthly_payment: totalMonthlyPayment,
-        commission: totalMonthlyPayment * 0.1,
-        workflow_status: "draft",
-        type: "ambassador_offer",
-        user_id: user?.id,
-        remarks: remarks
-      });
+      console.log("Saving offer with the following data:", offerData);
+      
+      const { data, error } = await createOffer(offerData);
       
       if (error) {
         console.error("Erreur lors de la sauvegarde:", error);
-        throw error;
+        toast.error(`Impossible de sauvegarder l'offre: ${error.message || 'Erreur inconnue'}`);
+        return;
       }
       
       toast.success("Offre créée avec succès!");
