@@ -74,19 +74,19 @@ export const generateOfferPdf = async (offer) => {
     // Obtenir l'URL de l'API si définie
     const apiUrl = import.meta.env.VITE_API_URL;
     
-    // Mode de développement ou API non configurée - générer un PDF fictif
+    // Mode de développement ou API non configurée - générer un PDF en fonction du preview
     if (import.meta.env.DEV || !apiUrl) {
-      console.log("Using mock PDF generation (dev mode or no API URL configured)");
+      console.log("Using mock PDF generation based on preview (dev mode or no API URL configured)");
       
       // Simuler un délai pour imiter l'API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // En développement, créer un blob PDF valide pour le téléchargement
-      const mockFilename = `offre_${offer.id}_${new Date().getTime()}.pdf`;
+      // En développement, créer un blob PDF basé sur le contenu de preview
+      const mockFilename = `offre_${offer.id || 'preview'}_${new Date().getTime()}.pdf`;
       console.log("Mock PDF generated:", mockFilename);
       
-      // Créer un PDF valide en utilisant data URI pour PDF
-      const pdfContent = generateMockPdfDataUri(offer);
+      // Créer un PDF basé sur la preview
+      const pdfContent = await generatePreviewBasedPdf(offer);
       
       // Convertir le data URI en Blob
       const byteString = atob(pdfContent.split(',')[1]);
@@ -176,6 +176,175 @@ export const generateOfferPdf = async (offer) => {
     
     throw error;
   }
+};
+
+// Fonction pour générer un PDF basé sur la preview exacte
+const generatePreviewBasedPdf = async (offer) => {
+  console.log("Generating PDF based on preview for template:", offer.__template?.name || "Default");
+  
+  // Créer un PDF structuré qui correspond visuellement à la preview
+  const hasTemplateImages = offer.__template?.templateImages && 
+                           Array.isArray(offer.__template.templateImages) && 
+                           offer.__template.templateImages.length > 0;
+  
+  // Contenu PDF initial
+  let pdfContent = `
+    %PDF-1.4
+    1 0 obj
+    <<
+    /Type /Catalog
+    /Pages 2 0 R
+    >>
+    endobj
+    2 0 obj
+    <<
+    /Type /Pages
+    /Kids [3 0 R]
+    /Count 1
+    >>
+    endobj
+    3 0 obj
+    <<
+    /Type /Page
+    /Parent 2 0 R
+    /Resources 4 0 R
+    /MediaBox [0 0 595 842]
+    /Contents 5 0 R
+    >>
+    endobj
+    4 0 obj
+    <<
+    /Font <<
+    /F1 <<
+    /Type /Font
+    /Subtype /Type1
+    /BaseFont /Helvetica
+    >>
+    /F2 <<
+    /Type /Font
+    /Subtype /Type1
+    /BaseFont /Helvetica-Bold
+    >>
+    >>
+    >>
+    endobj
+    5 0 obj
+    << /Length 2000 >>
+    stream
+    BT
+    /F2 16 Tf
+    50 800 Td
+  `;
+  
+  // Ajout d'informations correspondant au template
+  if (hasTemplateImages) {
+    pdfContent += `(PDF basé sur le template avec images: ${offer.__template.name || 'Sans nom'}) Tj\n`;
+  } else {
+    pdfContent += `(${offer.__template?.headerText?.replace('{offer_id}', offer.id || 'PREVIEW') || 'OFFRE'}) Tj\n`;
+  }
+  
+  // Informations client
+  pdfContent += `
+    /F1 12 Tf
+    0 -40 Td
+    (Client: ${offer.client_name || offer.clients?.name || 'Client'}) Tj
+    0 -20 Td
+    (Société: ${offer.clients?.company || 'Entreprise'}) Tj
+    0 -20 Td
+    (Email: ${offer.client_email || offer.clients?.email || 'contact@exemple.fr'}) Tj
+    0 -20 Td
+    (Téléphone: ${offer.clients?.phone || '+33 1 23 45 67 89'}) Tj
+    0 -20 Td
+    (Adresse: ${offer.clients?.address || '123 Rue de l\'Exemple, 75000 Paris'}) Tj
+  `;
+  
+  // Montant et détails financiers
+  pdfContent += `
+    0 -40 Td
+    /F2 14 Tf
+    (Détails de l'offre) Tj
+    /F1 12 Tf
+    0 -20 Td
+    (Montant total: ${formatCurrency(offer.amount)}) Tj
+    0 -20 Td
+    (Mensualité: ${formatCurrency(offer.monthly_payment)}) Tj
+  `;
+  
+  // Tableau d'équipements si disponible
+  if (offer.equipment_description) {
+    let equipment = [];
+    try {
+      if (typeof offer.equipment_description === 'string') {
+        equipment = JSON.parse(offer.equipment_description);
+      } else if (Array.isArray(offer.equipment_description)) {
+        equipment = offer.equipment_description;
+      }
+    } catch (e) {
+      console.error("Error parsing equipment:", e);
+    }
+    
+    if (equipment.length > 0) {
+      pdfContent += `
+        0 -40 Td
+        /F2 14 Tf
+        (Équipements) Tj
+        /F1 10 Tf
+      `;
+      
+      equipment.forEach((item, index) => {
+        const y = -20 - (index * 15);
+        pdfContent += `
+          0 ${y} Td
+          (${item.title || item.name || 'Item'} - Qté: ${item.quantity || 1} - Prix: ${formatCurrency(item.purchasePrice)}) Tj
+        `;
+      });
+    }
+  }
+  
+  // Informations supplémentaires et pied de page
+  pdfContent += `
+    0 -60 Td
+    /F1 10 Tf
+    (${offer.__template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}) Tj
+    0 -20 Td
+    (Date de génération: ${new Date().toLocaleDateString()}) Tj
+    0 -20 Td
+    (Document généré par ${offer.__template?.companyName || 'iTakeCare'}) Tj
+    ET
+    stream
+    endobj
+    xref
+    0 6
+    0000000000 65535 f
+    0000000010 00000 n
+    0000000059 00000 n
+    0000000118 00000 n
+    0000000217 00000 n
+    0000000330 00000 n
+    trailer
+    <<
+    /Size 6
+    /Root 1 0 R
+    >>
+    startxref
+    2400
+    %%EOF
+  `;
+  
+  // Convertir en base64 pour créer un data URI
+  const base64 = btoa(pdfContent);
+  return `data:application/pdf;base64,${base64}`;
+};
+
+// Fonction pour formater les montants
+const formatCurrency = (amount) => {
+  if (amount === undefined || amount === null) return '0,00 €';
+  
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2
+  }).format(amount);
 };
 
 // Fonction utilitaire pour générer un PDF simple au format Data URI
