@@ -78,21 +78,23 @@ export const OFFER_STATUSES = {
   }
 };
 
-interface OfferStatusBadgeProps {
+export interface OfferStatusBadgeProps {
   status?: string;
   isConverted?: boolean;
   showProgress?: boolean;
+  className?: string; // Ajout de la prop className manquante
 }
 
 const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({ 
   status = 'draft', 
   isConverted = false,
-  showProgress = false
+  showProgress = false,
+  className
 }) => {
   // Si l'offre est convertie en contrat, on affiche un badge spécial
   if (isConverted) {
     return (
-      <div className="flex flex-col gap-1 w-full">
+      <div className={cn("flex flex-col gap-1 w-full", className)}>
         <Badge className="bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900">
           <Check className="h-3 w-3 mr-1" />
           Contrat actif
@@ -107,7 +109,7 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
   const Icon = statusInfo.icon;
 
   return (
-    <div className="flex flex-col gap-1 w-full">
+    <div className={cn("flex flex-col gap-1 w-full", className)}>
       <Badge className={cn(
         statusInfo.color,
         statusInfo.textColor,
