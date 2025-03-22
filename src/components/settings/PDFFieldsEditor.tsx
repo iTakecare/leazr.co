@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -215,25 +214,41 @@ const PDFFieldsEditor = ({
       const pageHeight = 297;
       
       const scaleRatio = {
-        x: (pageWidth / zoomLevel) / canvasWidth,
-        y: (pageHeight / zoomLevel) / canvasHeight
+        x: pageWidth / (canvasWidth * zoomLevel),
+        y: pageHeight / (canvasHeight * zoomLevel)
       };
       
-      const rawX = (e.clientX - rect.left) * scaleRatio.x - dragOffset.x;
-      const rawY = (e.clientY - rect.top) * scaleRatio.y - dragOffset.y;
+      const cursorX = e.clientX - rect.left;
+      const cursorY = e.clientY - rect.top;
       
-      const x = Math.max(0, Math.min(pageWidth, rawX));
-      const y = Math.max(0, Math.min(pageHeight, rawY));
+      const x = Math.max(0, Math.min(pageWidth, cursorX * scaleRatio.x - dragOffset.x));
+      const y = Math.max(0, Math.min(pageHeight, cursorY * scaleRatio.y - dragOffset.y));
       
-      const snappedPosition = snapToGrid({ x, y });
+      const position = gridEnabled ? snapToGrid({ x, y }) : { x, y };
       
-      setCanvasPosition(snappedPosition);
+      setCanvasPosition(position);
     }
   };
 
   const handleCanvasMouseDown = (e) => {
     if (positionedField) {
       isDragging.current = true;
+      
+      const field = fields.find(f => f.id === positionedField);
+      if (field) {
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          
+          const fieldX = field.position.x * (rect.width * zoomLevel) / 210;
+          const fieldY = field.position.y * (rect.height * zoomLevel) / 297;
+          
+          setDragOffset({
+            x: 0,
+            y: 0
+          });
+        }
+      }
       
       e.preventDefault();
     }
@@ -460,7 +475,6 @@ const PDFFieldsEditor = ({
   const handleRemoveFieldLabel = (e, field) => {
     e.stopPropagation();
     
-    // Set the field to remove and open the remove dialog
     setFieldToRemove(field);
     setShowRemoveDialog(true);
   };
@@ -898,13 +912,16 @@ const PDFFieldsEditor = ({
                           left: `${field.position.x}mm`,
                           top: `${field.position.y}mm`,
                           zIndex: positionedField === field.id ? 10 : 2,
-                          cursor: 'pointer',
-                          minWidth: '40mm',
+                          cursor: 'move',
+                          minWidth: field.type === 'table' ? '60mm' : '20mm',
+                          maxWidth: field.type === 'table' ? '120mm' : '60mm',
+                          fontSize: field.type === 'table' ? '6px' : '8px',
+                          pointerEvents: 'all'
                         }}
                         onClick={() => startPositioning(field.id, field.position)}
                       >
                         <div className="flex justify-between items-center mb-1 bg-gray-100 px-1 rounded">
-                          <span className="text-xs font-medium truncate">{field.label}</span>
+                          <span className="text-[8px] font-medium truncate">{field.label}</span>
                           <button 
                             className="text-red-500 hover:text-red-700 p-1 -mr-1"
                             onClick={(e) => handleRemoveFieldLabel(e, field)}
@@ -912,7 +929,15 @@ const PDFFieldsEditor = ({
                             <X className="h-3 w-3" />
                           </button>
                         </div>
-                        <div className="text-xs p-1">{field.value}</div>
+                        <div className="text-[7px] p-1 truncate" title={field.value}>
+                          {field.type === 'table' ? (
+                            <div className="border border-gray-200 p-0.5 bg-gray-50 text-center">
+                              [Tableau d'équipements]
+                            </div>
+                          ) : (
+                            field.value
+                          )}
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -922,7 +947,6 @@ const PDFFieldsEditor = ({
         </Card>
       </div>
       
-      {/* Dialog for duplicating fields */}
       <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
         <DialogContent>
           <DialogHeader>
@@ -975,7 +999,6 @@ const PDFFieldsEditor = ({
         </DialogContent>
       </Dialog>
       
-      {/* Dialog for confirming removal from page */}
       <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
         <DialogContent>
           <DialogHeader>
