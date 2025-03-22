@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -388,8 +389,8 @@ const PDFPreview = ({ template }) => {
                         alt={`Template page ${currentPage + 1}`}
                         className="w-full h-full object-contain"
                         onError={(e) => {
-                          console.error("Erreur de chargement de l'image:", e.target.src);
-                          e.target.src = "/placeholder.svg";
+                          console.error("Erreur de chargement de l'image:", (e.target as HTMLImageElement).src);
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
                         }}
                         onLoad={() => setPageLoaded(true)}
                         style={{ display: "block" }}
