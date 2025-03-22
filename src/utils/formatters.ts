@@ -1,4 +1,3 @@
-
 /**
  * Format a number as a currency string (EUR by default)
  */
@@ -123,7 +122,6 @@ export const formatPercentage = (value: number): string => {
     return '0%';
   }
   
-  // La conversion multiplie par 100 ici, nous devons donc diviser par 100 pour les coefficients qui sont déjà en pourcentage
   const valueToFormat = value < 1 ? value : value / 100;
   
   return new Intl.NumberFormat('fr-FR', {
