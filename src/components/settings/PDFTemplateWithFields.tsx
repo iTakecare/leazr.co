@@ -465,15 +465,37 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     toast.success("Champ supprimé");
   };
   
-  // Handle field position update via drag and drop
+  // Handle field position update via drag and drop or direct input
   const handleFieldMove = (fieldId: string, x: number, y: number) => {
+    const updatedFields = currentTemplate.fields.map(field => {
+      if (field.id === fieldId) {
+        // Ensure values are valid numbers
+        const newX = isNaN(x) ? 0 : Math.max(0, x);
+        const newY = isNaN(y) ? 0 : Math.max(0, y);
+        
+        return {
+          ...field,
+          position: { x: newX, y: newY },
+          isVisible: true,  // Make sure it's visible when positioned
+          page: selectedPage  // Assign to current page
+        };
+      }
+      return field;
+    });
+    
+    handleFieldsChange(updatedFields);
+  };
+  
+  // Handle field style update
+  const handleFieldStyleUpdate = (fieldId: string, newStyle: any) => {
     const updatedFields = currentTemplate.fields.map(field => {
       if (field.id === fieldId) {
         return {
           ...field,
-          position: { x, y },
-          isVisible: true,  // Make sure it's visible when positioned
-          page: selectedPage  // Assign to current page
+          style: {
+            ...field.style,
+            ...newStyle
+          }
         };
       }
       return field;

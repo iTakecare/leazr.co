@@ -1,8 +1,8 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Download, Move, Eye, EyeOff, Search, ArrowDown, ArrowUp, Save } from 'lucide-react';
+import { Plus, Download, Move, Eye, EyeOff, Search, ArrowDown, ArrowUp, Save, Bold, Italic, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { PDFTemplate, PDFField } from '@/types/pdf';
 import { generateOfferPdf } from '@/utils/pdfGenerator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +11,13 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from "sonner";
+import { Slider } from "@/components/ui/slider";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PDFVisualEditorProps {
   template: PDFTemplate;
@@ -42,6 +49,8 @@ const PDFVisualEditor = ({
   const [selectedCategory, setSelectedCategory] = useState('all');
   const containerRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const [startDragPos, setStartDragPos] = useState({ x: 0, y: 0 });
+  const [selectedFieldStyle, setSelectedFieldStyle] = useState<any>(null);
 
   // Get template image for current page
   const getPageImage = () => {
@@ -104,6 +113,23 @@ const PDFVisualEditor = ({
     return field?.isVisible && field?.page === selectedPage;
   };
 
+  // Load the selected field's style when it changes
+  useEffect(() => {
+    if (selectedFieldId) {
+      const field = allFields.find(f => f.id === selectedFieldId);
+      if (field) {
+        setSelectedFieldStyle(field.style || {
+          fontSize: 10,
+          fontWeight: 'normal',
+          fontStyle: 'normal',
+          textDecoration: 'none'
+        });
+      }
+    } else {
+      setSelectedFieldStyle(null);
+    }
+  }, [selectedFieldId, allFields]);
+
   // Create a sample offer for preview
   const previewOffer = {
     id: 'PREVIEW-1234',
@@ -162,6 +188,11 @@ const PDFVisualEditor = ({
     onSelectField(fieldId);
   };
 
+  // Updated function for direct position editing
+  const handleDirectPositionChange = (fieldId: string, position: { x: number, y: number }) => {
+    onFieldMove(fieldId, position.x, position.y);
+  };
+
   // Handle mouse down on field for dragging
   const handleFieldMouseDown = (e: React.MouseEvent, fieldId: string) => {
     e.preventDefault();
@@ -169,6 +200,15 @@ const PDFVisualEditor = ({
     
     if (fieldId !== selectedFieldId) {
       onSelectField(fieldId);
+    }
+    
+    // Calculate initial mouse position relative to the preview
+    if (previewRef.current) {
+      const previewRect = previewRef.current.getBoundingClientRect();
+      setStartDragPos({
+        x: e.clientX - previewRect.left,
+        y: e.clientY - previewRect.top
+      });
     }
     
     setIsDragging(true);
@@ -210,6 +250,38 @@ const PDFVisualEditor = ({
   const handleAddField = (fieldId: string) => {
     onAddFieldToPage(fieldId);
     onSelectField(fieldId);
+  };
+
+  // Handle font style change
+  const handleStyleChange = (fieldId: string, styleProperty: string, value: any) => {
+    if (!fieldId) return;
+    
+    const updatedFields = allFields.map(field => {
+      if (field.id === fieldId) {
+        const currentStyle = field.style || {
+          fontSize: 10,
+          fontWeight: 'normal',
+          fontStyle: 'normal',
+          textDecoration: 'none'
+        };
+        
+        return {
+          ...field,
+          style: {
+            ...currentStyle,
+            [styleProperty]: value
+          }
+        };
+      }
+      return field;
+    });
+    
+    // This will update the field and re-render
+    const field = updatedFields.find(f => f.id === fieldId);
+    if (field && field.position) {
+      // Trigger a re-render by updating the position slightly
+      onFieldMove(fieldId, field.position.x, field.position.y);
+    }
   };
 
   // Function to resolve field values from the sample offer
@@ -305,7 +377,7 @@ const PDFVisualEditor = ({
       
       <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4 flex items-center text-blue-600">
         <Move className="h-4 w-4 mr-2 flex-shrink-0" />
-        <p>Faites glisser les champs pour les positionner sur le modèle. Cliquez sur un champ pour le sélectionner.</p>
+        <p>Faites glisser les champs pour les positionner sur le modèle. Utilisez le panneau sous le modèle pour personnaliser le style.</p>
       </div>
       
       <div className="flex space-x-4 h-[600px]">
@@ -328,7 +400,7 @@ const PDFVisualEditor = ({
                 <TabsTrigger value="all" className="flex-1">Tous</TabsTrigger>
                 <TabsTrigger value="client" className="flex-1">Client</TabsTrigger>
                 <TabsTrigger value="offer" className="flex-1">Offre</TabsTrigger>
-                <TabsTrigger value="equipment" className="flex-1">Équipement</TabsTrigger>
+                <TabsTrigger value="equipment" className="flex-1">Équip.</TabsTrigger>
                 <TabsTrigger value="user" className="flex-1">Vendeur</TabsTrigger>
                 <TabsTrigger value="general" className="flex-1">Général</TabsTrigger>
               </TabsList>
@@ -461,7 +533,7 @@ const PDFVisualEditor = ({
         </div>
       </div>
       
-      {/* Properties panel for selected field */}
+      {/* Enhanced Properties panel for selected field */}
       {selectedFieldId && (
         <div className="border p-4 rounded-md bg-gray-50 mt-4">
           <h3 className="font-medium mb-3">Propriétés du champ</h3>
@@ -470,76 +542,177 @@ const PDFVisualEditor = ({
             const field = allFields.find(f => f.id === selectedFieldId);
             if (!field) return null;
             
+            const style = field.style || {
+              fontSize: 10,
+              fontWeight: 'normal',
+              fontStyle: 'normal',
+              textDecoration: 'none'
+            };
+            
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Position X</label>
-                  <Input 
-                    type="number" 
-                    value={field.position?.x || 0}
-                    onChange={(e) => onFieldMove(field.id, Number(e.target.value), field.position?.y || 0)}
-                  />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Position X</label>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDirectPositionChange(field.id, { 
+                          x: Math.max(0, (field.position?.x || 0) - 5), 
+                          y: field.position?.y || 0 
+                        })}
+                      >
+                        -
+                      </Button>
+                      <Input 
+                        type="number" 
+                        value={field.position?.x || 0}
+                        onChange={(e) => handleDirectPositionChange(
+                          field.id, 
+                          { x: Number(e.target.value), y: field.position?.y || 0 }
+                        )}
+                        className="text-center"
+                      />
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDirectPositionChange(field.id, { 
+                          x: (field.position?.x || 0) + 5, 
+                          y: field.position?.y || 0 
+                        })}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Position Y</label>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDirectPositionChange(field.id, { 
+                          x: field.position?.x || 0, 
+                          y: Math.max(0, (field.position?.y || 0) - 5) 
+                        })}
+                      >
+                        -
+                      </Button>
+                      <Input 
+                        type="number" 
+                        value={field.position?.y || 0}
+                        onChange={(e) => handleDirectPositionChange(
+                          field.id, 
+                          { x: field.position?.x || 0, y: Number(e.target.value) }
+                        )}
+                        className="text-center"
+                      />
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDirectPositionChange(field.id, { 
+                          x: field.position?.x || 0, 
+                          y: (field.position?.y || 0) + 5 
+                        })}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Taille de police</label>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleStyleChange(
+                          field.id, 
+                          'fontSize', 
+                          Math.max(6, (style.fontSize || 10) - 1)
+                        )}
+                      >
+                        -
+                      </Button>
+                      <Input 
+                        type="number" 
+                        value={style.fontSize || 10}
+                        onChange={(e) => handleStyleChange(
+                          field.id, 
+                          'fontSize', 
+                          Math.max(6, Number(e.target.value))
+                        )}
+                        className="text-center"
+                      />
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleStyleChange(
+                          field.id, 
+                          'fontSize', 
+                          (style.fontSize || 10) + 1
+                        )}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Style de texte</label>
+                    <div className="flex space-x-1">
+                      <Button 
+                        size="sm"
+                        variant={style.fontWeight === 'bold' ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => handleStyleChange(
+                          field.id, 
+                          'fontWeight', 
+                          style.fontWeight === 'bold' ? 'normal' : 'bold'
+                        )}
+                      >
+                        <Bold className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant={style.fontStyle === 'italic' ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => handleStyleChange(
+                          field.id, 
+                          'fontStyle', 
+                          style.fontStyle === 'italic' ? 'normal' : 'italic'
+                        )}
+                      >
+                        <Italic className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant={style.textDecoration === 'underline' ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => handleStyleChange(
+                          field.id, 
+                          'textDecoration', 
+                          style.textDecoration === 'underline' ? 'none' : 'underline'
+                        )}
+                      >
+                        <u>U</u>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Position Y</label>
-                  <Input 
-                    type="number" 
-                    value={field.position?.y || 0}
-                    onChange={(e) => onFieldMove(field.id, field.position?.x || 0, Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Taille de police</label>
-                  <Input 
-                    type="number" 
-                    value={field.style?.fontSize || 10}
-                    onChange={(e) => {
-                      const newFields = allFields.map(f => {
-                        if (f.id === field.id) {
-                          return {
-                            ...f,
-                            style: {
-                              ...f.style,
-                              fontSize: Number(e.target.value)
-                            }
-                          };
-                        }
-                        return f;
-                      });
-                      // Cette ligne force la mise à jour du champ
-                      onFieldMove(field.id, field.position?.x || 0, field.position?.y || 0);
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Style</label>
-                  <Select 
-                    value={field.style?.fontWeight || 'normal'}
-                    onValueChange={(value) => {
-                      const newFields = allFields.map(f => {
-                        if (f.id === field.id) {
-                          return {
-                            ...f,
-                            style: {
-                              ...f.style,
-                              fontWeight: value
-                            }
-                          };
-                        }
-                        return f;
-                      });
-                      // Cette ligne force la mise à jour du champ
-                      onFieldMove(field.id, field.position?.x || 0, field.position?.y || 0);
+                
+                <div className="flex justify-end">
+                  <Button
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      handleStyleChange(field.id, 'fontSize', 10);
+                      handleStyleChange(field.id, 'fontWeight', 'normal');
+                      handleStyleChange(field.id, 'fontStyle', 'normal');
+                      handleStyleChange(field.id, 'textDecoration', 'none');
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="bold">Gras</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    Réinitialiser le style
+                  </Button>
                 </div>
               </div>
             );

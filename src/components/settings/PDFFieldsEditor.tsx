@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Eye, EyeOff, List } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, List, Bold, Italic, Search } from 'lucide-react';
 import { PDFField } from '@/types/pdf';
+import { Badge } from '@/components/ui/badge';
 
 interface PDFFieldsEditorProps {
   fields: PDFField[];
@@ -31,6 +32,7 @@ const PDFFieldsEditor = ({
 }: PDFFieldsEditorProps) => {
   const [currentTab, setCurrentTab] = useState('client');
   const [showAddFieldForm, setShowAddFieldForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [newField, setNewField] = useState<Partial<PDFField>>({
     id: '',
     label: '',
@@ -48,9 +50,20 @@ const PDFFieldsEditor = ({
     }
   });
   
-  // Filters fields by category
-  const getFieldsByCategory = (category: string) => {
-    return fields.filter(field => field.category === category);
+  // Filters fields by category and search term
+  const getFilteredFields = (category: string) => {
+    let filtered = fields.filter(field => field.category === category);
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(field => 
+        field.label.toLowerCase().includes(term) || 
+        field.id.toLowerCase().includes(term) ||
+        field.value.toLowerCase().includes(term)
+      );
+    }
+    
+    return filtered;
   };
   
   // Handle field visibility toggle
@@ -69,6 +82,30 @@ const PDFFieldsEditor = ({
     const updatedFields = fields.map(field => {
       if (field.id === fieldId) {
         return { ...field, value };
+      }
+      return field;
+    });
+    onChange(updatedFields);
+  };
+
+  // Handle field style change
+  const handleStyleChange = (fieldId: string, styleProperty: string, value: any) => {
+    const updatedFields = fields.map(field => {
+      if (field.id === fieldId) {
+        const currentStyle = field.style || {
+          fontSize: 10,
+          fontWeight: 'normal',
+          fontStyle: 'normal',
+          textDecoration: 'none'
+        };
+        
+        return {
+          ...field,
+          style: {
+            ...currentStyle,
+            [styleProperty]: value
+          }
+        };
       }
       return field;
     });
@@ -122,14 +159,28 @@ const PDFFieldsEditor = ({
     setShowAddFieldForm(false);
   };
   
+  // Get category label in French
+  const getCategoryLabel = (category: string) => {
+    switch(category) {
+      case 'client': return 'Client';
+      case 'offer': return 'Offre';
+      case 'equipment': return 'Équipement';
+      case 'user': return 'Vendeur';
+      case 'general': return 'Général';
+      default: return category;
+    }
+  };
+  
   // Render field list for the current category
   const renderFieldList = () => {
-    const categoryFields = getFieldsByCategory(currentTab);
+    const categoryFields = getFilteredFields(currentTab);
     
     if (categoryFields.length === 0) {
       return (
         <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-md">
-          Aucun champ {currentTab} disponible
+          {searchTerm 
+            ? `Aucun champ ne correspond à "${searchTerm}"` 
+            : `Aucun champ ${getCategoryLabel(currentTab).toLowerCase()} disponible`}
         </div>
       );
     }
@@ -143,9 +194,13 @@ const PDFFieldsEditor = ({
             onClick={() => onSelectField(field.id)}
           >
             <div className="flex justify-between items-center mb-2">
-              <div className="font-medium">
+              <div className="font-medium flex items-center">
                 {field.label}
-                {field.page !== null && <span className="ml-2 text-xs text-gray-500">Page {field.page + 1}</span>}
+                {field.page !== null && 
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    Page {field.page + 1}
+                  </Badge>
+                }
                 {!field.isVisible && <span className="ml-2 text-gray-400 text-xs">(masqué)</span>}
               </div>
               <div className="flex space-x-1">
@@ -185,6 +240,104 @@ const PDFFieldsEditor = ({
                 Utilisez {'{nom_variable}'} pour les variables dynamiques
               </p>
             </div>
+            
+            {selectedFieldId === field.id && (
+              <div className="mt-3 border-t pt-3">
+                <Label className="text-xs mb-2 block">Style de texte</Label>
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex-1 min-w-[120px]">
+                    <Label className="text-xs">Taille</Label>
+                    <div className="flex items-center">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="h-7 w-7 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const fontSize = Math.max(6, ((field.style?.fontSize || 10) - 1));
+                          handleStyleChange(field.id, 'fontSize', fontSize);
+                        }}
+                      >
+                        -
+                      </Button>
+                      <Input 
+                        type="number" 
+                        value={field.style?.fontSize || 10}
+                        className="h-7 mx-1 text-center"
+                        min={6}
+                        max={36}
+                        onChange={(e) => {
+                          const fontSize = Math.max(6, Math.min(36, Number(e.target.value)));
+                          handleStyleChange(field.id, 'fontSize', fontSize);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="h-7 w-7 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStyleChange(field.id, 'fontSize', (field.style?.fontSize || 10) + 1);
+                        }}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 flex justify-end items-end space-x-1">
+                    <Button
+                      size="sm"
+                      variant={(field.style?.fontWeight === 'bold') ? "default" : "outline"}
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStyleChange(
+                          field.id, 
+                          'fontWeight', 
+                          field.style?.fontWeight === 'bold' ? 'normal' : 'bold'
+                        );
+                      }}
+                    >
+                      <Bold className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant={(field.style?.fontStyle === 'italic') ? "default" : "outline"}
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStyleChange(
+                          field.id, 
+                          'fontStyle', 
+                          field.style?.fontStyle === 'italic' ? 'normal' : 'italic'
+                        );
+                      }}
+                    >
+                      <Italic className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant={(field.style?.textDecoration === 'underline') ? "default" : "outline"}
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStyleChange(
+                          field.id, 
+                          'textDecoration', 
+                          field.style?.textDecoration === 'underline' ? 'none' : 'underline'
+                        );
+                      }}
+                    >
+                      <u>U</u>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -285,11 +438,22 @@ const PDFFieldsEditor = ({
           </div>
         )}
         
+        <div className="mb-4 relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Rechercher un champ..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        
         <Tabs value={currentTab} onValueChange={setCurrentTab}>
           <TabsList className="mb-4 grid grid-cols-5 w-full">
             <TabsTrigger value="client">Client</TabsTrigger>
             <TabsTrigger value="offer">Offre</TabsTrigger>
-            <TabsTrigger value="equipment">Équipement</TabsTrigger>
+            <TabsTrigger value="equipment">Équip.</TabsTrigger>
             <TabsTrigger value="user">Vendeur</TabsTrigger>
             <TabsTrigger value="general">Général</TabsTrigger>
           </TabsList>
