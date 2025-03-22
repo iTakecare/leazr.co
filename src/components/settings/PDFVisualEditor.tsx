@@ -80,6 +80,12 @@ const PDFVisualEditor = ({
     const newDecoration = selectedField.style.textDecoration === 'underline' ? 'none' : 'underline';
     onFieldStyleUpdate(selectedFieldId, { textDecoration: newDecoration });
   };
+  
+  // Handle field movement
+  const handleFieldMove = (fieldId: string, x: number, y: number) => {
+    console.log(`Moving field ${fieldId} to (${x}, ${y})`);
+    onFieldMove(fieldId, x, y);
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -94,7 +100,7 @@ const PDFVisualEditor = ({
               editMode={true}
               selectedFieldId={selectedFieldId}
               onFieldSelect={onSelectField}
-              onFieldMove={onFieldMove}
+              onFieldMove={handleFieldMove}
               onFieldStyleUpdate={onFieldStyleUpdate}
               availableFields={getAvailableFields()}
               activeTab={`page${selectedPage + 1}`} 

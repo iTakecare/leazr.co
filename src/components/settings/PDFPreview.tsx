@@ -1,557 +1,235 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Move, Plus, MoveHorizontal } from 'lucide-react';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { generateOfferPdf } from '@/utils/pdfGenerator';
+import React, { useState, useRef, useEffect } from 'react';
 import { PDFTemplate, PDFField } from '@/types/pdf';
-import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface PDFPreviewProps {
   template: PDFTemplate;
-  onSave?: () => void;
-  onDownload?: () => void;
-  loading?: boolean;
   editMode?: boolean;
-  onFieldMove?: (fieldId: string, x: number, y: number) => void;
-  onFieldSelect?: (fieldId: string) => void;
   selectedFieldId?: string | null;
+  onFieldSelect?: (fieldId: string | null) => void;
+  onFieldMove?: (fieldId: string, x: number, y: number) => void;
+  onFieldStyleUpdate?: (fieldId: string, newStyle: any) => void;
   availableFields?: PDFField[];
-  onFieldStyleUpdate?: (fieldId: string, style: any) => void;
   activeTab?: string;
-  onTabChange?: (tab: string) => void;
+  onTabChange?: (value: string) => void;
   showAvailableFields?: boolean;
 }
 
-const PDFPreview = ({ 
-  template, 
-  onSave, 
-  onDownload, 
-  loading = false, 
+const PDFPreview = ({
+  template,
   editMode = false,
-  onFieldMove,
-  onFieldSelect,
-  selectedFieldId,
+  selectedFieldId = null,
+  onFieldSelect = () => {},
+  onFieldMove = () => {},
+  onFieldStyleUpdate = () => {},
   availableFields = [],
-  onFieldStyleUpdate,
-  activeTab,
-  onTabChange,
+  activeTab = 'page1',
+  onTabChange = () => {},
   showAvailableFields = false
 }: PDFPreviewProps) => {
-  const [internalActiveTab, setInternalActiveTab] = useState(activeTab || 'page1');
-  const [scale, setScale] = useState(0.5);
-  const [previewOffer, setPreviewOffer] = useState<any>(null);
-  const [draggedField, setDraggedField] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [showAvailableFieldsPanel, setShowAvailableFieldsPanel] = useState(showAvailableFields);
-  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
-  const [dragFieldPos, setDragFieldPos] = useState({ x: 0, y: 0 });
-  const previewRef = useRef<HTMLDivElement>(null);
+  const [dragFieldId, setDragFieldId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // Sync active tab state with parent component if provided
-  useEffect(() => {
-    if (activeTab) {
-      setInternalActiveTab(activeTab);
-    }
-  }, [activeTab]);
-
-  // Handle tab change internally and notify parent if callback provided
-  const handleTabChange = (newTab: string) => {
-    setInternalActiveTab(newTab);
-    if (onTabChange) {
-      onTabChange(newTab);
-    }
-  };
+  // Manage active page
+  const currentPage = parseInt(activeTab.replace('page', '')) - 1;
   
-  useEffect(() => {
-    // Create a sample offer for preview with realistic data
-    const sampleOffer = {
-      id: 'preview-123456789',
-      client_name: 'Client Exemple',
-      client_company: 'Entreprise Exemple',
-      client_email: 'client@exemple.com',
-      client_phone: '+32 471 123 456',
-      amount: 15000,
-      monthly_payment: 450,
-      duration: 36,
-      created_at: new Date().toISOString(),
-      status: 'draft',
-      clients: {
-        name: 'Jean Dupont',
-        company: 'Société Exemple',
-        email: 'jean.dupont@exemple.be',
-        phone: '+32 471 234 567',
-        address: 'Rue des Exemples 123, 1000 Bruxelles'
-      },
-      user: {
-        name: 'Pierre Martin',
-        email: 'pierre.martin@itakecare.be',
-        phone: '+32 477 890 123'
-      },
-      equipment_description: JSON.stringify([
-        {
-          title: 'MacBook Pro 16"',
-          description: 'Apple M2 Pro, 32GB RAM, 1TB SSD',
-          purchasePrice: 3200,
-          quantity: 2,
-          margin: 10
-        },
-        {
-          title: 'Écran Dell UltraSharp 32"',
-          description: '4K, USB-C, DisplayPort',
-          purchasePrice: 800,
-          quantity: 2,
-          margin: 15
-        },
-        {
-          title: 'Chaise de bureau ergonomique',
-          description: 'Modèle premium avec support lombaire',
-          purchasePrice: 450,
-          quantity: 2,
-          margin: 20
-        }
-      ]),
-      __template: template // Pass the template directly for preview
-    };
+  // Get fields for the current page
+  const fieldsForCurrentPage = template.fields?.filter(
+    field => field.isVisible && field.page === currentPage
+  ) || [];
+
+  const startDrag = (e: React.MouseEvent, fieldId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    setPreviewOffer(sampleOffer);
-  }, [template]);
-
-  const handleDownloadPDF = async () => {
-    if (!previewOffer) return;
+    if (!containerRef.current) return;
     
-    try {
-      await generateOfferPdf(previewOffer);
-      toast.success("PDF téléchargé avec succès");
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Erreur lors du téléchargement du PDF");
-    }
-  };
-
-  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    console.error("Error loading image:", event.currentTarget.src);
-    // Use a fallback image or handle the error
-    event.currentTarget.src = 'https://placehold.co/600x400?text=Image+Not+Found';
-  };
-
-  // Function to resolve field values from the sample offer
-  const resolveFieldValue = (pattern: string) => {
-    if (!previewOffer) return pattern;
+    const field = template.fields?.find(f => f.id === fieldId);
+    if (!field) return;
     
-    return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
-      const keyParts = key.split('.');
-      let value = previewOffer;
-      
-      for (const part of keyParts) {
-        if (value === undefined || value === null) {
-          return '';
-        }
-        value = value[part];
-      }
-      
-      // Format according to type
-      if (typeof value === 'number') {
-        // Detect if it's a monetary value
-        if (key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) {
-          return formatCurrency(value);
-        }
-        return value.toString();
-      } else if (value instanceof Date || (typeof value === 'string' && Date.parse(value))) {
-        return formatDate(value);
-      }
-      
-      return value || 'Non renseigné';
-    });
-  };
-
-  // Get the template images for the current page
-  const getPageImages = (pageNum: number) => {
-    if (!template.templateImages) return [];
-    return template.templateImages.filter(img => img.page === pageNum);
-  };
-
-  // Get the fields for the current page
-  const getPageFields = (pageNum: number) => {
-    if (!template.fields) return [];
-    return template.fields.filter(field => field.isVisible && (field.page === pageNum || field.page === null));
-  };
-
-  // Helper function to handle width scaling properly for both string and number types
-  const getScaledWidth = (width: string | number | undefined, scale: number): string => {
-    if (width === undefined) return 'auto';
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const offsetX = e.clientX - containerRect.left - (field.position?.x || 0);
+    const offsetY = e.clientY - containerRect.top - (field.position?.y || 0);
     
-    if (typeof width === 'number') {
-      return `${width * scale}px`;
-    } else if (typeof width === 'string') {
-      // Try to convert to number if it's a numeric string without units
-      const numericWidth = parseFloat(width);
-      if (!isNaN(numericWidth) && width.trim().endsWith('px')) {
-        return `${numericWidth * scale}px`;
-      } else if (!isNaN(numericWidth) && !width.includes('px')) {
-        return `${numericWidth * scale}px`;
-      }
-      // Return as is if it's a relative unit like %, em, rem, etc.
-      return width;
-    }
-    
-    return 'auto';
-  };
-
-  // Handle clicking on a field to select it
-  const handleFieldClick = (event: React.MouseEvent, fieldId: string) => {
-    if (!editMode || !onFieldSelect) return;
-    
-    event.stopPropagation();
-    onFieldSelect(fieldId);
-  };
-
-  // Handle start dragging a field - CRITICALLY IMPROVED
-  const handleDragStart = (event: React.MouseEvent, fieldId: string) => {
-    if (!editMode || !onFieldMove) return;
-    
-    event.preventDefault();
-    event.stopPropagation();
+    setIsDragging(true);
+    setDragFieldId(fieldId);
+    setDragOffset({ x: offsetX, y: offsetY });
     
     console.log("Starting drag for field:", fieldId);
     
-    // Find the field being dragged
-    const field = template.fields.find(f => f.id === fieldId);
-    if (!field || !field.position) {
-      console.error("Field or field position not found:", fieldId);
-      return;
-    }
+    // Select the field when starting to drag
+    onFieldSelect(fieldId);
     
-    // Record initial positions
-    setDraggedField(fieldId);
-    setIsDragging(true);
-    setDragStartPos({
-      x: event.clientX,
-      y: event.clientY
-    });
-    setDragFieldPos({
-      x: field.position.x,
-      y: field.position.y
-    });
-    
-    // Select the field
-    if (onFieldSelect) {
-      onFieldSelect(fieldId);
-    }
-    
-    // Add event listeners for drag and drop
+    // Add event listeners to document for dragging
     document.addEventListener('mousemove', handleDragMove);
     document.addEventListener('mouseup', handleDragEnd);
   };
   
-  // Handle dragging a field - CRITICALLY IMPROVED
-  const handleDragMove = (event: MouseEvent) => {
-    if (!isDragging || !draggedField || !previewRef.current || !onFieldMove) {
-      return;
-    }
+  const handleDragMove = (e: MouseEvent) => {
+    if (!isDragging || !dragFieldId || !containerRef.current) return;
     
-    console.log("Dragging field:", draggedField, "Mouse position:", event.clientX, event.clientY);
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const x = Math.max(0, e.clientX - containerRect.left - dragOffset.x);
+    const y = Math.max(0, e.clientY - containerRect.top - dragOffset.y);
     
-    // Calculate movement delta
-    const deltaX = (event.clientX - dragStartPos.x) / scale;
-    const deltaY = (event.clientY - dragStartPos.y) / scale;
+    console.log("Moving field to:", { x, y });
     
-    // Calculate new position
-    const newX = Math.max(0, dragFieldPos.x + deltaX);
-    const newY = Math.max(0, dragFieldPos.y + deltaY);
-    
-    // Update field position immediately for visual feedback
-    const fieldElement = document.getElementById(`pdf-field-${draggedField}`);
-    if (fieldElement) {
-      fieldElement.style.left = `${newX * scale}px`;
-      fieldElement.style.top = `${newY * scale}px`;
-    }
-    
-    // For real-time updates (optional, can be commented out for performance)
-    onFieldMove(draggedField, newX, newY);
+    // Update field position in real-time
+    onFieldMove(dragFieldId, x, y);
   };
   
-  // Handle end dragging a field - CRITICALLY IMPROVED
-  const handleDragEnd = (event: MouseEvent) => {
-    if (!isDragging || !draggedField || !onFieldMove) {
-      setDraggedField(null);
-      setIsDragging(false);
-      document.removeEventListener('mousemove', handleDragMove);
-      document.removeEventListener('mouseup', handleDragEnd);
-      return;
-    }
-    
-    console.log("End drag for field:", draggedField);
-    
-    // Calculate final position
-    const deltaX = (event.clientX - dragStartPos.x) / scale;
-    const deltaY = (event.clientY - dragStartPos.y) / scale;
-    
-    const newX = Math.max(0, dragFieldPos.x + deltaX);
-    const newY = Math.max(0, dragFieldPos.y + deltaY);
-    
-    // Update field position in the data model
-    onFieldMove(draggedField, newX, newY);
-    
-    // Reset drag state
-    setDraggedField(null);
+  const handleDragEnd = () => {
     setIsDragging(false);
+    setDragFieldId(null);
     
     // Remove event listeners
     document.removeEventListener('mousemove', handleDragMove);
     document.removeEventListener('mouseup', handleDragEnd);
   };
+  
+  // Clean up event listeners when component unmounts
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+    };
+  }, [isDragging, dragFieldId, dragOffset]);
 
-  // Handle adding a field from the available fields 
-  const handleAddFieldToCurrent = (field: PDFField) => {
-    if (!previewRef.current || !onFieldMove) return;
+  // Handle adding a field to the current page
+  const handleAddField = (fieldId: string) => {
+    const field = availableFields?.find(f => f.id === fieldId);
+    if (!field) return;
     
-    const previewRect = previewRef.current.getBoundingClientRect();
+    // Center the field on the page by default
+    const x = containerRef.current ? (containerRef.current.offsetWidth / 2) - 50 : 100;
+    const y = containerRef.current ? (containerRef.current.offsetHeight / 2) - 10 : 100;
     
-    // Calculate position for center of the container
-    const x = 50;
-    const y = 50;
+    // Update the field position and make it visible on this page
+    const updatedField = {
+      ...field,
+      isVisible: true,
+      page: currentPage,
+      position: { x, y }
+    };
     
-    // Update field position
-    onFieldMove(field.id, x, y);
-    
+    // Call parent handler to update the field
     if (onFieldSelect) {
-      onFieldSelect(field.id);
+      onFieldSelect(fieldId);
+    }
+    
+    // Call parent handler to update position
+    if (onFieldMove) {
+      onFieldMove(fieldId, x, y);
     }
   };
 
-  // Get current page number from active tab
-  const getCurrentPageNumber = () => {
-    return parseInt(internalActiveTab.replace('page', '')) - 1;
+  // Handle the background click (deselect field)
+  const handleContainerClick = (e: React.MouseEvent) => {
+    // Only deselect if clicking directly on the container, not on a field
+    if (e.target === e.currentTarget) {
+      onFieldSelect(null);
+    }
   };
-
-  // Get available fields for the current page that aren't already visible
-  const getAvailableFieldsForCurrentPage = () => {
-    const currentPage = getCurrentPageNumber();
-    if (!availableFields) return [];
-    
-    const visibleFieldIds = getPageFields(currentPage).map(f => f.id);
-    
-    return availableFields.filter(field => !visibleFieldIds.includes(field.id));
-  };
-
-  // Render a page with its background image and fields
-  const renderPage = (pageNum: number) => {
-    const pageImages = getPageImages(pageNum);
-    const pageFields = getPageFields(pageNum);
-    const currentPageAvailableFields = getAvailableFieldsForCurrentPage();
-    
-    return (
-      <div 
-        ref={previewRef} 
-        className="relative bg-white shadow-md" 
-        style={{ width: `${210 * scale}mm`, height: `${297 * scale}mm` }}
-        onClick={() => onFieldSelect && onFieldSelect(null)}
-      >
-        {/* Background image */}
-        {pageImages.map((img, index) => (
-          <img 
-            key={index}
-            src={img.url}
-            alt={`Template background page ${pageNum}`}
-            className="absolute top-0 left-0 w-full h-full object-contain"
-            onError={handleImageError}
-          />
-        ))}
-        
-        {/* Fields */}
-        {pageFields.map((field, index) => {
-          if (field.id === 'equipment_table') {
-            // For equipment table, just show a placeholder
-            const fieldStyle = {
-              position: 'absolute' as const,
-              left: `${(field.position?.x || 0) * scale}px`,
-              top: `${(field.position?.y || 0) * scale}px`,
-              fontSize: `${(field.style?.fontSize || 10) * scale}px`,
-              fontWeight: field.style?.fontWeight || 'normal',
-              fontStyle: field.style?.fontStyle || 'normal',
-              padding: '4px',
-              backgroundColor: 'rgba(200, 200, 200, 0.2)',
-              border: selectedFieldId === field.id ? '2px solid #2563eb' : '1px dashed #aaa',
-              borderRadius: '4px',
-              maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: getScaledWidth(field.style?.width, scale),
-              cursor: editMode ? 'move' : 'default',
-              zIndex: selectedFieldId === field.id ? 10 : 1
-            };
-            
-            return (
-              <div 
-                id={`pdf-field-${field.id}`}
-                key={index} 
-                style={fieldStyle}
-                className={editMode ? 'hover:outline hover:outline-blue-500' : ''}
-                onClick={(e) => handleFieldClick(e, field.id)}
-                onMouseDown={(e) => handleDragStart(e, field.id)}
-              >
-                {editMode && <Move size={12} className="inline mr-1" />}
-                [Tableau d'équipements]
-              </div>
-            );
-          } else {
-            // For text fields - IMPROVED STYLING FOR BETTER VISIBILITY DURING DRAG
-            const fieldStyle = {
-              position: 'absolute' as const,
-              left: `${(field.position?.x || 0) * scale}px`,
-              top: `${(field.position?.y || 0) * scale}px`,
-              fontSize: `${(field.style?.fontSize || 10) * scale}px`,
-              fontWeight: field.style?.fontWeight || 'normal',
-              fontStyle: field.style?.fontStyle || 'normal',
-              textDecoration: field.style?.textDecoration || 'none',
-              maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: getScaledWidth(field.style?.width, scale),
-              cursor: editMode ? 'move' : 'default',
-              userSelect: 'none' as const,
-              padding: editMode ? '6px' : '0',
-              border: selectedFieldId === field.id ? '2px solid #2563eb' : editMode ? '1px dashed rgba(37, 99, 235, 0.3)' : 'none',
-              borderRadius: '4px',
-              backgroundColor: selectedFieldId === field.id ? 'rgba(219, 234, 254, 0.3)' : 'transparent',
-              zIndex: selectedFieldId === field.id ? 10 : 1,
-              pointerEvents: 'auto' as const, // Ensure events are captured
-              boxShadow: draggedField === field.id ? '0 0 8px rgba(37, 99, 235, 0.5)' : 'none',
-              transition: draggedField === field.id ? 'none' : 'border 0.2s, background-color 0.2s, box-shadow 0.2s'
-            };
-            
-            return (
-              <div 
-                id={`pdf-field-${field.id}`}
-                key={index} 
-                style={fieldStyle}
-                className={editMode ? 'hover:outline hover:outline-blue-500 hover:bg-blue-50' : ''}
-                onClick={(e) => handleFieldClick(e, field.id)}
-                onMouseDown={(e) => handleDragStart(e, field.id)}
-              >
-                {editMode && <MoveHorizontal size={12} className="inline mr-1 text-blue-500" />}
-                {resolveFieldValue(field.value)}
-              </div>
-            );
-          }
-        })}
-
-        {/* Available Fields Panel */}
-        {editMode && showAvailableFieldsPanel && (
-          <div className="absolute top-2 right-2 w-64 bg-white shadow-lg rounded-md p-3 border border-gray-200 z-20">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm font-medium">Champs disponibles</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowAvailableFieldsPanel(false)}
-              >
-                ×
-              </Button>
-            </div>
-            <div className="max-h-60 overflow-y-auto">
-              {currentPageAvailableFields.length > 0 ? (
-                currentPageAvailableFields.map((field) => (
-                  <div 
-                    key={field.id}
-                    className="flex items-center justify-between p-2 text-sm hover:bg-gray-100 rounded-md cursor-pointer mb-1"
-                    onClick={() => handleAddFieldToCurrent(field)}
-                  >
-                    <span>{field.label}</span>
-                    <Plus size={14} />
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-500 p-2">Aucun champ disponible</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Get available pages
-  const getAvailablePages = () => {
-    if (!template.templateImages || template.templateImages.length === 0) return [0];
-    const pageNumbers = template.templateImages.map(img => img.page);
-    return [...new Set(pageNumbers)].sort((a, b) => a - b);
-  };
-
-  const availablePages = getAvailablePages();
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-muted-foreground">Zoom:</span>
-          <select 
-            value={scale} 
-            onChange={(e) => setScale(parseFloat(e.target.value))}
-            className="text-sm border rounded p-1"
-          >
-            <option value="0.3">30%</option>
-            <option value="0.5">50%</option>
-            <option value="0.7">70%</option>
-            <option value="1">100%</option>
-          </select>
-        </div>
-        
-        <div className="flex space-x-2">
-          {editMode && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowAvailableFieldsPanel(!showAvailableFieldsPanel)}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Ajouter un champ
-            </Button>
-          )}
-          
-          {onSave && (
-            <Button 
-              onClick={onSave} 
-              variant="outline" 
-              disabled={loading}
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enregistrer
-            </Button>
-          )}
-          
-          <Button 
-            onClick={handleDownloadPDF} 
-            disabled={loading || !previewOffer}
-          >
-            Télécharger PDF
-          </Button>
-        </div>
-      </div>
-      
-      {editMode && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-blue-600 flex items-center font-medium">
-            <Move className="h-4 w-4 mr-2" />
-            Cliquez sur un champ et faites-le glisser pour le repositionner
-          </p>
-        </div>
-      )}
-      
-      <Tabs value={internalActiveTab} onValueChange={handleTabChange} className="flex-1">
+    <div className="w-full">
+      <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="mb-4">
-          {availablePages.map((page, index) => (
-            <TabsTrigger key={page} value={`page${index + 1}`}>
-              Page {page + 1}
+          {template.pages.map((_, index) => (
+            <TabsTrigger key={`page${index + 1}`} value={`page${index + 1}`}>
+              Page {index + 1}
             </TabsTrigger>
           ))}
         </TabsList>
-        
-        {availablePages.map((page, index) => (
-          <TabsContent 
-            key={page}
-            value={`page${index + 1}`} 
-            className="flex-1 overflow-auto p-4 bg-gray-100 flex justify-center"
-          >
-            {renderPage(page)}
+
+        {template.pages.map((page, pageIndex) => (
+          <TabsContent key={`page${pageIndex + 1}`} value={`page${pageIndex + 1}`}>
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* PDF Preview Area */}
+              <div 
+                className="w-full flex-1 relative border rounded-md overflow-hidden bg-white"
+                style={{ 
+                  height: "842px", 
+                  width: "595px", 
+                  margin: "0 auto",
+                  position: "relative" 
+                }}
+                onClick={handleContainerClick}
+                ref={containerRef}
+              >
+                {/* Background image */}
+                {page.imageUrl && (
+                  <div className="absolute inset-0">
+                    <img
+                      src={page.imageUrl}
+                      alt={`Page ${pageIndex + 1}`}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Render fields for this page */}
+                {fieldsForCurrentPage.map((field) => (
+                  <div
+                    key={field.id}
+                    className={`absolute p-1 transition-all cursor-move ${
+                      selectedFieldId === field.id 
+                        ? 'outline outline-2 outline-blue-500 bg-blue-50' 
+                        : 'hover:outline hover:outline-1 hover:outline-blue-300'
+                    }`}
+                    style={{
+                      left: `${field.position?.x || 0}px`,
+                      top: `${field.position?.y || 0}px`,
+                      fontSize: `${field.style?.fontSize || 12}px`,
+                      fontWeight: field.style?.fontWeight || 'normal',
+                      fontStyle: field.style?.fontStyle || 'normal',
+                      textDecoration: field.style?.textDecoration || 'none',
+                      minWidth: '30px',
+                      minHeight: '20px',
+                      zIndex: selectedFieldId === field.id ? 10 : 1
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFieldSelect(field.id);
+                    }}
+                    onMouseDown={(e) => {
+                      if (editMode) {
+                        startDrag(e, field.id);
+                      }
+                    }}
+                  >
+                    {field.value || field.label}
+                  </div>
+                ))}
+              </div>
+
+              {/* Available Fields */}
+              {editMode && showAvailableFields && availableFields && availableFields.length > 0 && (
+                <Card className="md:w-64 p-2 h-fit">
+                  <h3 className="text-sm font-medium mb-2">Champs disponibles</h3>
+                  <div className="space-y-1 max-h-96 overflow-y-auto">
+                    {availableFields.map((field) => (
+                      <Button
+                        key={field.id}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-between text-left font-normal"
+                        onClick={() => handleAddField(field.id)}
+                      >
+                        <span className="truncate">{field.label}</span>
+                        <Plus className="h-4 w-4 ml-2 shrink-0" />
+                      </Button>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
           </TabsContent>
         ))}
       </Tabs>
