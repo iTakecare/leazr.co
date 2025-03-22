@@ -193,18 +193,9 @@ const EquipmentList = ({
             </div>
           </div>
           
-          {ambassadorId && (
-            <div className="mt-4 pt-4 border-t border-dashed">
-              <CommissionDisplay 
-                ambassadorId={ambassadorId} 
-                commissionLevelId={commissionLevelId} 
-              />
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Adding Récapitulatif global section with switch */}
       <Card className="border border-gray-200 shadow-sm mt-4">
         <CardHeader className="pb-2 border-b">
           <CardTitle>Récapitulatif global</CardTitle>
@@ -244,7 +235,6 @@ const EquipmentList = ({
               </>
             )}
             
-            {/* Always show the switch, regardless of hideFinancialDetails */}
             <div className="pt-2 flex items-center justify-between border-t mt-3">
               <label htmlFor="adapt-monthly" className="cursor-pointer">
                 Adapter la mensualité au nouveau coefficient
