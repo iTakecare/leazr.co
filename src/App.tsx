@@ -68,7 +68,6 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               
-              {/* Routes Admin */}
               <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="clients" element={<Clients />} />
@@ -88,7 +87,6 @@ function App() {
                 <Route path="settings" element={<Settings />} />
                 <Route path="create-offer" element={<CreateOffer />} />
                 
-                {/* Routes ambassadeurs */}
                 <Route path="ambassadors" element={<AmbassadorsList />} />
                 <Route path="ambassadors/create" element={<AmbassadorCreatePage />} />
                 <Route path="ambassadors/:id" element={<AmbassadorDetail />} />
@@ -96,7 +94,6 @@ function App() {
                 <Route path="ambassadors/:id/dashboard" element={<AmbassadorDashboard />} />
                 <Route path="ambassadors/:id/create-offer/:clientId" element={<AmbassadorCreateOffer />} />
                 
-                {/* Routes partenaires */}
                 <Route path="partners" element={<PartnersList />} />
                 <Route path="partners/create" element={<PartnerCreatePage />} />
                 <Route path="partners/:id" element={<PartnerDetail />} />
@@ -105,14 +102,11 @@ function App() {
                 <Route path="partners/:id/create-offer/:clientId" element={<PartnerCreateOffer />} />
                 <Route path="partners/:id/offers/:offerId" element={<PartnerOfferDetail />} />
                 
-                {/* Route pour création de comptes de test */}
                 <Route path="create-test-users" element={<CreateTestUsers />} />
               </Route>
               
-              {/* Routes clients */}
               <Route path="/client/*" element={<ClientRoutes />} />
               
-              {/* Routes ambassador */}
               <Route path="/ambassador" element={<AmbassadorLayout />}>
                 <Route index element={<AmbassadorDashboardPage />} />
                 <Route path="dashboard" element={<AmbassadorDashboardPage />} />
@@ -128,17 +122,14 @@ function App() {
                 <Route path="catalog" element={<AmbassadorCatalog />} />
               </Route>
               
-              {/* Routes partner login */}
               <Route path="/partner/dashboard" element={<PartnerDashboard />} />
               <Route path="/partner/offers" element={<Offers />} />
               <Route path="/partner/clients" element={<Clients />} />
               <Route path="/partner" element={<PartnerDashboard />} />
               
-              {/* Route spéciale pour le calculateur directement accessible */}
               <Route path="/create-offer" element={<CreateOffer />} />
               <Route path="/calculator" element={<CreateOffer />} />
               
-              {/* 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AnimatePresence>

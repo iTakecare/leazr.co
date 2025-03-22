@@ -1,233 +1,177 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, RefreshCw, User, Loader2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/card";
+import { Building2, Mail, Phone, PlusCircle, Pencil } from "lucide-react";
+import { Client } from "@/types/client";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { ClientsEmptyState } from "@/components/clients/ClientsEmptyState";
-import { Skeleton } from "@/components/ui/skeleton";
-import AmbassadorErrorHandler from "@/components/ambassador/AmbassadorErrorHandler";
-import { getAmbassadorClients } from "@/services/ambassadorClientService";
 
 const AmbassadorClientsPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isMobile = useIsMobile();
-  const [clients, setClients] = useState([]);
-  const [filteredClients, setFilteredClients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { clients, isLoading, error, loadClients } = useAmbassadorClients();
   const [searchTerm, setSearchTerm] = useState("");
-  const [error, setError] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const fetchClients = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Utiliser directement le service pour récupérer les clients
-      const data = await getAmbassadorClients();
-      
-      setClients(data);
-      setFilteredClients(data);
-    } catch (err) {
-      console.error("Error loading clients:", err);
-      setError("Unable to load clients");
-      toast.error("Error loading clients");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  
+  useEffect(() => {
+    document.title = "Mes Clients | Ambassadeur iTakecare";
   }, []);
   
-  useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+  const filteredClients = clients.filter((client) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      client.name?.toLowerCase().includes(searchLower) ||
+      client.company?.toLowerCase().includes(searchLower) ||
+      client.email?.toLowerCase().includes(searchLower)
+    );
+  });
   
-  useEffect(() => {
-    if (!clients.length) return;
-    
-    if (searchTerm) {
-      const filtered = clients.filter(client => 
-        (client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-      setFilteredClients(filtered);
-    } else {
-      setFilteredClients(clients);
-    }
-  }, [searchTerm, clients]);
-  
-  const handleCreateOffer = (clientId) => {
-    navigate(`/ambassador/create-offer/${clientId}`);
-  };
-  
-  const handleAddClient = () => {
+  const handleCreateClient = () => {
     navigate("/ambassador/clients/create");
   };
   
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchClients();
-    toast.success("Client list refreshed");
+  const handleEditClient = (clientId: string) => {
+    navigate(`/ambassador/clients/edit/${clientId}`);
   };
   
-  const renderClientCards = () => {
-    if (filteredClients.length === 0) {
-      return (
-        <div className="text-center p-10">
-          <User className="h-10 w-10 mx-auto text-gray-300 mb-2" />
-          <p className="text-muted-foreground">No clients found</p>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="grid grid-cols-1 gap-4">
-        {filteredClients.map((client) => (
-          <Card key={client.id} className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-medium">{client.name}</h3>
-                <p className="text-sm text-muted-foreground">{client.email}</p>
-                {client.company && (
-                  <p className="text-sm">{client.company}</p>
-                )}
-              </div>
-              <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
-                <Plus className="h-4 w-4 mr-1" /> Offer
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-    );
+  const handleSelectClient = (clientId: string) => {
+    navigate(`/ambassador/create-offer/${clientId}`);
   };
   
-  const renderClientTable = () => {
-    return (
-      <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={4}>
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : filteredClients.length > 0 ? (
-              filteredClients.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.email || "-"}</TableCell>
-                  <TableCell>{client.company || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
-                      <Plus className="h-4 w-4 mr-1" /> Create offer
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4}>
-                  <ClientsEmptyState />
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    );
-  };
-
-  if (loading && !refreshing) {
-    return (
-      <PageTransition>
-        <Container>
-          <div className="h-screen flex items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-        </Container>
-      </PageTransition>
-    );
-  }
-
   return (
     <PageTransition>
       <Container>
-        <div className="p-4 md:p-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">My Clients</h1>
-              <p className="text-muted-foreground">
-                Manage clients you've brought in
-              </p>
+        <div className="py-8">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">Mes Clients</h1>
+            <Button onClick={handleCreateClient} className="flex items-center">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Nouveau client
+            </Button>
+          </div>
+          
+          <div className="mb-6">
+            <Input
+              placeholder="Rechercher un client..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          
+          {isLoading ? (
+            <div className="text-center py-10">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="mt-2 text-gray-500">Chargement des clients...</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+          ) : error ? (
+            <div className="text-center py-10">
+              <p className="text-red-500">{error}</p>
               <Button 
                 variant="outline" 
-                onClick={handleRefresh}
-                disabled={refreshing}
+                onClick={() => loadClients()} 
+                className="mt-4"
               >
-                {refreshing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Refresh
-              </Button>
-              <Button onClick={handleAddClient}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add a client
+                Réessayer
               </Button>
             </div>
-          </div>
-          
-          <div className="flex justify-between items-center mb-6">
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search for a client..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          ) : filteredClients.length === 0 ? (
+            <div className="text-center py-16 border rounded-lg bg-gray-50">
+              {searchTerm ? (
+                <p className="text-gray-500">Aucun client trouvé pour cette recherche</p>
+              ) : (
+                <>
+                  <p className="text-gray-500">Vous n'avez pas encore de clients</p>
+                  <Button 
+                    onClick={handleCreateClient} 
+                    variant="outline" 
+                    className="mt-4"
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Ajouter un client
+                  </Button>
+                </>
+              )}
             </div>
-          </div>
-          
-          {error ? (
-            <AmbassadorErrorHandler 
-              message={error} 
-              onRetry={handleRefresh} 
-              showDiagnosticInfo={true}
-            />
           ) : (
-            isMobile ? renderClientCards() : renderClientTable()
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredClients.map((client) => (
+                <ClientCard 
+                  key={client.id} 
+                  client={client} 
+                  onSelect={handleSelectClient}
+                  onEdit={handleEditClient}
+                />
+              ))}
+            </div>
           )}
         </div>
       </Container>
     </PageTransition>
+  );
+};
+
+interface ClientCardProps {
+  client: Client;
+  onSelect: (clientId: string) => void;
+  onEdit: (clientId: string) => void;
+}
+
+const ClientCard = ({ client, onSelect, onEdit }: ClientCardProps) => {
+  return (
+    <Card className="overflow-hidden transition-colors hover:border-primary cursor-pointer">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <h3 className="font-medium text-lg truncate">{client.name}</h3>
+          <div className="flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-gray-500 hover:text-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(client.id);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        <div className="mt-4 space-y-2 text-sm text-gray-500">
+          {client.company && (
+            <div className="flex items-center">
+              <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">{client.company}</span>
+            </div>
+          )}
+          
+          {client.email && (
+            <div className="flex items-center">
+              <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">{client.email}</span>
+            </div>
+          )}
+          
+          {client.phone && (
+            <div className="flex items-center">
+              <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span>{client.phone}</span>
+            </div>
+          )}
+        </div>
+        
+        <Button 
+          variant="outline" 
+          className="mt-4 w-full"
+          onClick={() => onSelect(client.id)}
+        >
+          Créer une offre
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { 
@@ -6,7 +7,11 @@ import {
   updateClient, 
   verifyVatNumber
 } from "@/services/clientService";
-import { linkClientToAmbassador } from "@/services/ambassadorClientService";
+import { 
+  linkClientToAmbassador, 
+  getCurrentAmbassadorProfile, 
+  isClientBelongToAmbassador 
+} from "@/services/ambassadorClientService";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -66,6 +71,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [verifyingVat, setVerifyingVat] = useState(false);
   const [vatValid, setVatValid] = useState<boolean | null>(null);
+  const [canEditClient, setCanEditClient] = useState(true);
   const clientId = params.id;
 
   const form = useForm<FormValues>({
@@ -89,34 +95,59 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
     if (clientId) {
       setIsEditMode(true);
       setIsLoading(true);
-      getClientById(clientId).then(client => {
-        if (client) {
-          form.reset({
-            name: client.name,
-            email: client.email || "",
-            company: client.company || "",
-            phone: client.phone || "",
-            address: client.address || "",
-            notes: client.notes || "",
-            vat_number: client.vat_number || "",
-            city: client.city || "",
-            postal_code: client.postal_code || "",
-            country: client.country || "",
-            status: client.status || "active"
-          });
-        } else {
-          toast.error("Client introuvable");
-          navigateBack();
+      
+      // Check if client belongs to the ambassador (when in ambassador mode)
+      const checkClientOwnership = async () => {
+        if (isAmbassador || checkIsAmbassador()) {
+          const belongsToAmbassador = await isClientBelongToAmbassador(clientId);
+          setCanEditClient(belongsToAmbassador);
+          
+          if (!belongsToAmbassador) {
+            toast.error("Ce client n'appartient pas à votre compte ambassadeur");
+            navigateBack();
+            return false;
+          }
         }
-        setIsLoading(false);
-      }).catch(error => {
-        console.error("Erreur lors du chargement du client:", error);
-        toast.error("Erreur lors du chargement du client");
-        setIsLoading(false);
-        navigateBack();
-      });
+        return true;
+      };
+      
+      // Load client data if it belongs to the ambassador
+      const loadClientData = async () => {
+        const canProceed = await checkClientOwnership();
+        if (!canProceed) return;
+        
+        try {
+          const client = await getClientById(clientId);
+          if (client) {
+            form.reset({
+              name: client.name,
+              email: client.email || "",
+              company: client.company || "",
+              phone: client.phone || "",
+              address: client.address || "",
+              notes: client.notes || "",
+              vat_number: client.vat_number || "",
+              city: client.city || "",
+              postal_code: client.postal_code || "",
+              country: client.country || "",
+              status: client.status || "active"
+            });
+          } else {
+            toast.error("Client introuvable");
+            navigateBack();
+          }
+        } catch (error) {
+          console.error("Erreur lors du chargement du client:", error);
+          toast.error("Erreur lors du chargement du client");
+          navigateBack();
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      loadClientData();
     }
-  }, [clientId, form]);
+  }, [clientId, isAmbassador, checkIsAmbassador, form]);
 
   const navigateBack = () => {
     if (isAmbassador || checkIsAmbassador()) {
@@ -239,6 +270,12 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
       let result;
       
       if (isEditMode && clientId) {
+        // Extra check for ambassadors editing clients
+        if ((isAmbassador || checkIsAmbassador()) && !canEditClient) {
+          toast.error("Vous n'avez pas la permission de modifier ce client");
+          return;
+        }
+        
         result = await updateClient(clientId, clientData);
         if (result) {
           toast.success("Client mis à jour avec succès");
@@ -318,6 +355,12 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
               {isEditMode ? "Modifier le client" : "Créer un nouveau client"}
             </h1>
           </div>
+
+          {!canEditClient && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md p-4 mb-6">
+              <p>Ce client n'appartient pas à votre compte ambassadeur. Vous ne pouvez pas le modifier.</p>
+            </div>
+          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -560,7 +603,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !canEditClient}
                 >
                   {isSubmitting ? (
                     <>

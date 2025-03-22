@@ -218,3 +218,35 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData, a
     return null;
   }
 };
+
+// Vérifier si un client appartient à un ambassadeur
+export const isClientBelongToAmbassador = async (clientId: string, ambassadorId?: string): Promise<boolean> => {
+  try {
+    let ambassadorIdToUse = ambassadorId;
+    
+    if (!ambassadorIdToUse) {
+      ambassadorIdToUse = await getCurrentAmbassadorProfile();
+    }
+    
+    if (!ambassadorIdToUse || !clientId) {
+      return false;
+    }
+    
+    const { data, error } = await supabase
+      .from("ambassador_clients")
+      .select("id")
+      .eq("ambassador_id", ambassadorIdToUse)
+      .eq("client_id", clientId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("Error checking if client belongs to ambassador:", error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error("Exception in isClientBelongToAmbassador:", error);
+    return false;
+  }
+};
