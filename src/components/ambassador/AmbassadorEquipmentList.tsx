@@ -40,7 +40,7 @@ const AmbassadorEquipmentList = ({
   globalMarginAdjustment,
   toggleAdaptMonthlyPayment,
   hideFinancialDetails = false,
-  hideCommissionDisplay = true, // Changé à true par défaut pour toujours cacher les commissions
+  hideCommissionDisplay = false,
   ambassadorId,
   commissionLevelId,
 }: EquipmentListProps) => {
@@ -212,7 +212,7 @@ const AmbassadorEquipmentList = ({
               )}
             </div>
 
-            {/* Commission Display - désactivé par défaut pour les ambassadeurs */}
+            {/* Commission Display - only if not hidden */}
             {(!hideCommissionDisplay && ambassadorId) && (
               <div className="mt-4 pt-4 border-t">
                 <CommissionDisplay
