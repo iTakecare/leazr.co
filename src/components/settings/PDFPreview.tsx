@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,15 +10,13 @@ const PDFPreview = ({ template }) => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageLoaded, setPageLoaded] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1); // Ajout d'un niveau de zoom
+  const [zoomLevel, setZoomLevel] = useState(1);
   const previewRef = useRef(null);
 
-  // Reset pageLoaded when currentPage changes
   useEffect(() => {
     setPageLoaded(false);
   }, [currentPage]);
   
-  // Exemple d'offre pour l'aperçu
   const SAMPLE_OFFER = {
     id: "abcdef1234567890",
     client_name: "Entreprise Exemple",
@@ -66,12 +63,11 @@ const PDFPreview = ({ template }) => {
       phone: "+32 471 511 121"
     }
   };
-  
+
   const handleGeneratePreview = async () => {
     try {
       setLoading(true);
       
-      // Générer le PDF en utilisant le template et l'offre d'exemple
       const offerWithTemplate = {
         ...SAMPLE_OFFER,
         __template: template
@@ -88,31 +84,25 @@ const PDFPreview = ({ template }) => {
     }
   };
 
-  // Détermine le nombre total de pages
   const totalPages = template?.templateImages?.length || 1;
   
-  // Aller à la page suivante
   const nextPage = () => {
     if (currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
     }
   };
   
-  // Aller à la page précédente
   const prevPage = () => {
     if (currentPage > 0) {
       setCurrentPage(currentPage - 1);
     }
   };
 
-  // Obtenir l'image de fond de la page actuelle
   const getCurrentPageBackground = () => {
     if (template?.templateImages && template.templateImages.length > 0) {
-      // Recherche de l'image correspondant à la page actuelle
       const pageImage = template.templateImages.find(img => img.page === currentPage);
       
       if (pageImage && pageImage.url) {
-        // Ajouter un timestamp pour éviter les problèmes de cache
         return `${pageImage.url}?t=${new Date().getTime()}`;
       } else {
         return null;
@@ -121,7 +111,6 @@ const PDFPreview = ({ template }) => {
     return null;
   };
 
-  // Fonction pour résoudre les valeurs des champs
   const resolveFieldValue = (pattern) => {
     if (!pattern || typeof pattern !== 'string') return '';
     
@@ -136,12 +125,10 @@ const PDFPreview = ({ template }) => {
         value = value[part];
       }
       
-      // Format appropriately
       if (key === 'page_number') {
         return String(currentPage + 1);
       }
       
-      // For date fields
       if (key === 'created_at' && typeof value === 'string') {
         try {
           return new Date(value).toLocaleDateString();
@@ -151,7 +138,6 @@ const PDFPreview = ({ template }) => {
         }
       }
       
-      // For currency fields
       if ((key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) && typeof value === 'number') {
         try {
           return formatCurrency(value);
@@ -161,29 +147,24 @@ const PDFPreview = ({ template }) => {
         }
       }
       
-      // Make sure we always return a string
       if (value === undefined || value === null) return '';
       return typeof value === 'object' ? JSON.stringify(value) : String(value);
     });
   };
-  
-  // Parse equipment data from JSON string to array of objects
+
   const parseEquipmentData = (jsonString) => {
     try {
       if (!jsonString) return [];
       
-      // If it's already an array, return it
       if (Array.isArray(jsonString)) return jsonString;
       
-      // Try to parse the JSON string
       return JSON.parse(jsonString);
     } catch (error) {
       console.error("Error parsing equipment data:", error);
       return [];
     }
   };
-  
-  // Calculate the total price for an equipment item
+
   const calculateItemTotal = (item) => {
     const price = parseFloat(item.purchasePrice || 0);
     const quantity = parseInt(item.quantity || 1);
@@ -191,8 +172,7 @@ const PDFPreview = ({ template }) => {
     
     return price * quantity * (1 + margin);
   };
-  
-  // Render the equipment table
+
   const renderEquipmentTable = (jsonData) => {
     const equipment = parseEquipmentData(jsonData);
     
@@ -228,25 +208,21 @@ const PDFPreview = ({ template }) => {
       </table>
     );
   };
-  
-  // Obtenir les champs pour la page actuelle
+
   const getCurrentPageFields = () => {
     return template?.fields?.filter(f => 
       f.isVisible && (f.page === currentPage || (currentPage === 0 && f.page === undefined))
     ) || [];
   };
 
-  // Vérifier si des images de template sont disponibles
   const hasTemplateImages = template?.templateImages && 
                            Array.isArray(template.templateImages) && 
                            template.templateImages.length > 0;
-  
-  // Gérer les erreurs de chargement d'image
+
   const handleImageError = (e) => {
     console.error("Erreur de chargement de l'image:", e.target.src);
-    e.target.src = "/placeholder.svg"; // Image de fallback
+    e.target.src = "/placeholder.svg";
     
-    // Tenter de recharger l'image après un délai
     setTimeout(() => {
       if (e.target.src === "/placeholder.svg") {
         const currentSrc = e.target.src;
@@ -260,31 +236,47 @@ const PDFPreview = ({ template }) => {
       }
     }, 2000);
   };
-  
-  // Marquer l'image comme chargée
+
   const handleImageLoad = () => {
     console.log("Image chargée avec succès");
     setPageLoaded(true);
   };
 
-  // Convertir les millimètres en pixels pour le positionnement correct
   const mmToPx = (mm) => {
-    // Facteur de conversion (1 mm = environ 3.78 pixels pour un affichage A4 standard à 96 DPI)
-    // Le facteur peut être ajusté en fonction de la taille de rendu souhaitée
     const conversionFactor = 3.78;
     return mm * conversionFactor * zoomLevel;
   };
-  
-  // Zoom in
+
   const zoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.1, 2));
   };
 
-  // Zoom out
   const zoomOut = () => {
     setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
   };
-  
+
+  const getFieldStyle = (field) => {
+    const style = {
+      position: "absolute",
+      left: `${mmToPx(field.position?.x || 0)}px`,
+      top: `${mmToPx(field.position?.y || 0)}px`,
+      zIndex: 5,
+      fontSize: `${((field.style?.fontSize || 10) * zoomLevel)}px`,
+      fontWeight: field.style?.fontWeight || 'normal',
+      fontStyle: field.style?.fontStyle || 'normal',
+      textDecoration: field.style?.textDecoration || 'none',
+      transform: "translate(0, 0)",
+      whiteSpace: "pre-wrap",
+      maxWidth: "80mm"
+    } as CSSProperties;
+    
+    if (field.id === 'equipment_table') {
+      style.maxWidth = "150mm";
+    }
+    
+    return style;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -294,7 +286,7 @@ const PDFPreview = ({ template }) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={zoomOut}
+              onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.5))}
               disabled={zoomLevel <= 0.5}
               className="h-8 px-2"
             >
@@ -304,7 +296,7 @@ const PDFPreview = ({ template }) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={zoomIn}
+              onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 2))}
               disabled={zoomLevel >= 2}
               className="h-8 px-2"
             >
@@ -334,13 +326,12 @@ const PDFPreview = ({ template }) => {
               height: `${297 * zoomLevel}mm`,
               maxWidth: "100%"
             }}>
-              {/* Navigation des pages */}
               {totalPages > 1 && (
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={prevPage}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
                     disabled={currentPage === 0}
                     className="h-8 w-8 bg-white bg-opacity-75"
                   >
@@ -352,7 +343,7 @@ const PDFPreview = ({ template }) => {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={nextPage}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
                     disabled={currentPage === totalPages - 1}
                     className="h-8 w-8 bg-white bg-opacity-75"
                   >
@@ -361,7 +352,6 @@ const PDFPreview = ({ template }) => {
                 </div>
               )}
               
-              {/* Fond de page si un template a été uploadé */}
               {hasTemplateImages ? (
                 <div className="relative" style={{ height: "100%" }}>
                   {getCurrentPageBackground() ? (
@@ -370,59 +360,27 @@ const PDFPreview = ({ template }) => {
                         src={getCurrentPageBackground()} 
                         alt={`Template page ${currentPage + 1}`}
                         className="w-full h-full object-contain"
-                        onError={handleImageError}
-                        onLoad={handleImageLoad}
+                        onError={(e) => {
+                          console.error("Erreur de chargement de l'image:", e.target.src);
+                          e.target.src = "/placeholder.svg";
+                        }}
+                        onLoad={() => setPageLoaded(true)}
                         style={{ display: "block" }}
                       />
                       
-                      {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
-                      {pageLoaded && getCurrentPageFields().map((field) => {
-                        // Position en millimètres
-                        const xMm = field.position?.x || 0;
-                        const yMm = field.position?.y ||
-                         0;
-                        
-                        // Convertir en pixels pour l'affichage
-                        const xPx = mmToPx(xMm);
-                        const yPx = mmToPx(yMm);
-                        
-                        // Définir le style de position
-                        const fieldStyle = {
-                          position: "absolute",
-                          left: `${xPx}px`,
-                          top: `${yPx}px`,
-                          zIndex: 5,
-                          fontSize: `${9 * zoomLevel}px`,
-                          transform: "translate(0, 0)",
-                          whiteSpace: "pre-wrap",
-                          maxWidth: "80mm"
-                        } as CSSProperties;
-                        
-                        // Style spécifique pour le tableau d'équipements
-                        if (field.id === 'equipment_table') {
-                          fieldStyle.fontSize = `${9 * zoomLevel}px`;
-                          fieldStyle.maxWidth = "150mm";
-                        }
-                        
-                        // Ajouter du style en fonction du type de champ
-                        if (field.type === 'currency' || field.category === 'offer') {
-                          fieldStyle.fontWeight = 'bold';
-                        }
-                        
-                        return (
-                          <div 
-                            key={field.id}
-                            style={fieldStyle}
-                            className="pdf-field" // Classe pour faciliter le débogage CSS
-                          >
-                            {field.id === 'equipment_table' ? (
-                              renderEquipmentTable(SAMPLE_OFFER.equipment_description)
-                            ) : (
-                              <span>{resolveFieldValue(field.value)}</span>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {pageLoaded && getCurrentPageFields().map((field) => (
+                        <div 
+                          key={field.id}
+                          style={getFieldStyle(field)}
+                          className="pdf-field"
+                        >
+                          {field.id === 'equipment_table' ? (
+                            renderEquipmentTable(SAMPLE_OFFER.equipment_description)
+                          ) : (
+                            <span>{resolveFieldValue(field.value)}</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="w-full h-full bg-white flex items-center justify-center border">
@@ -431,9 +389,7 @@ const PDFPreview = ({ template }) => {
                   )}
                 </div>
               ) : (
-                /* Aperçu générique si pas de template uploadé */
                 <div className="min-h-[842px]">
-                  {/* En-tête */}
                   <div className="border-b p-6" style={{ backgroundColor: template?.primaryColor || '#2C3E50', color: "white" }}>
                     <div className="flex justify-between items-center">
                       {template?.logoURL && (
@@ -447,7 +403,6 @@ const PDFPreview = ({ template }) => {
                     </div>
                   </div>
                   
-                  {/* Corps du document */}
                   <div className="p-6 space-y-6">
                     <div className="flex justify-between">
                       <div>
@@ -531,7 +486,6 @@ const PDFPreview = ({ template }) => {
                     </div>
                   </div>
                   
-                  {/* Pied de page */}
                   <div className="p-6 text-xs text-gray-600 bg-gray-50 border-t">
                     <p>{template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
                     <hr className="my-2 border-gray-300" />
@@ -566,3 +520,4 @@ const PDFPreview = ({ template }) => {
 };
 
 export default PDFPreview;
+
