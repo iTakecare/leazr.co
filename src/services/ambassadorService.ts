@@ -134,9 +134,12 @@ export const updateAmbassador = async (
     
     // Si un ID de modèle PDF est fourni, mettre à jour séparément
     if (pdf_template_id !== undefined) {
+      // Si 'default', défini à null dans la base de données
+      const templateIdValue = pdf_template_id === 'default' ? null : pdf_template_id;
+      
       const { error: pdfError } = await supabase
         .from("ambassadors")
-        .update({ pdf_template_id })
+        .update({ pdf_template_id: templateIdValue })
         .eq("id", id);
         
       if (pdfError) {
