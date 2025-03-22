@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -444,19 +445,30 @@ export const getOfferById = async (offerId: string) => {
 
 export const updateOffer = async (offerId: string, offerData: any) => {
   try {
-    const dataToSend = { ...offerData };
+    // Create a clean data object with only valid columns
+    const dataToSend = { 
+      client_id: offerData.client_id,
+      client_name: offerData.client_name,
+      client_email: offerData.client_email,
+      equipment_description: offerData.equipment_description,
+      amount: offerData.amount,
+      coefficient: offerData.coefficient,
+      monthly_payment: offerData.monthly_payment,
+      commission: offerData.commission,
+      workflow_status: offerData.workflow_status,
+      status: offerData.status,
+      remarks: offerData.remarks,
+      type: offerData.type,
+      user_id: offerData.user_id,
+      converted_to_contract: offerData.converted_to_contract
+    };
     
-    if (dataToSend.remarks !== undefined) {
-      dataToSend.additional_info = dataToSend.remarks;
-      delete dataToSend.remarks;
-    }
+    // Remove undefined fields
+    Object.keys(dataToSend).forEach(key => 
+      dataToSend[key] === undefined && delete dataToSend[key]
+    );
     
-    if (dataToSend.equipment_text) {
-      if (!dataToSend.equipment_description) {
-        dataToSend.equipment_description = dataToSend.equipment_text;
-      }
-      delete dataToSend.equipment_text;
-    }
+    console.log("Updating offer with cleaned data:", dataToSend);
     
     const { data, error } = await supabase
       .from('offers')

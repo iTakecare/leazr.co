@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -169,11 +170,7 @@ const AmbassadorCreateOffer = () => {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
-        client_company: client.company, // Make sure this value is present
         equipment_description: equipmentDescription,
-        equipment_text: equipmentList
-          .map((item) => `${item.title} (${item.quantity}x)`)
-          .join(", "),
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
@@ -190,9 +187,6 @@ const AmbassadorCreateOffer = () => {
           client_name: client.name,
           client_email: client.email,
           equipment_description: equipmentDescription,
-          equipment_text: equipmentList
-            .map((item) => `${item.title} (${item.quantity}x)`)
-            .join(", "),
           amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
           coefficient: globalMarginAdjustment.newCoef,
           monthly_payment: totalMonthlyPayment,
