@@ -20,13 +20,9 @@ export const createOffer = async (offerData: OfferData) => {
         '00000000-0000-0000-0000-000000000000' : offerData.user_id,
       type: offerData.type || 'admin_offer',
       workflow_status: offerData.workflow_status,
-      status: offerData.workflow_status === 'draft' ? 'pending' : 'pending'
+      status: offerData.workflow_status === 'draft' ? 'pending' : 'pending',
+      remarks: offerData.remarks // Maintenant nous pouvons inclure directement le champ remarks
     };
-    
-    // Only add remarks if it's provided and not undefined
-    if (offerData.remarks !== undefined) {
-      dataToSend['remarks'] = offerData.remarks;
-    }
     
     console.log("Sending data to database:", dataToSend);
     

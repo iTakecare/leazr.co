@@ -692,6 +692,7 @@ export type Database = {
           id: string
           monthly_payment: number
           previous_status: string | null
+          remarks: string | null
           status: string
           type: string | null
           updated_at: string | null
@@ -711,6 +712,7 @@ export type Database = {
           id?: string
           monthly_payment?: number
           previous_status?: string | null
+          remarks?: string | null
           status?: string
           type?: string | null
           updated_at?: string | null
@@ -730,6 +732,7 @@ export type Database = {
           id?: string
           monthly_payment?: number
           previous_status?: string | null
+          remarks?: string | null
           status?: string
           type?: string | null
           updated_at?: string | null

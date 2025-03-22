@@ -18,7 +18,7 @@ export interface OfferData {
   commission: number;
   user_id: string;
   type?: string;
-  remarks?: string;
+  remarks?: string; // Assurons-nous que cette propriété existe bien et soit optionnelle
   workflow_status?: string;
 }
 

@@ -18,13 +18,9 @@ export const createClientRequest = async (requestData: OfferData) => {
       status: 'pending',
       workflow_status: 'client_waiting',
       user_id: requestData.user_id === 'user-123' ? 
-        '00000000-0000-0000-0000-000000000000' : requestData.user_id
+        '00000000-0000-0000-0000-000000000000' : requestData.user_id,
+      remarks: requestData.remarks // Ajout direct du champ remarks
     };
-    
-    // Only add remarks if it's provided and not undefined
-    if (requestData.remarks !== undefined) {
-      validData['remarks'] = requestData.remarks;
-    }
     
     console.log("Creating client request with data:", validData);
     
