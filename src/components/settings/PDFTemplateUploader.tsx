@@ -14,13 +14,20 @@ import {
 
 const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
-  const [localImages, setLocalImages] = useState(templateImages);
+  // Initialize with an empty array if templateImages is null or undefined
+  const [localImages, setLocalImages] = useState(templateImages || []);
+  
+  // Debug templateImages prop on render
+  console.log("PDFTemplateUploader render - templateImages prop:", templateImages);
+  console.log("PDFTemplateUploader render - localImages state:", localImages);
   
   // Synchronize local state with incoming props when they change
   useEffect(() => {
-    console.log("Template images from props:", templateImages);
-    setLocalImages(templateImages || []);
-  }, [JSON.stringify(templateImages)]); // Use JSON.stringify to properly detect changes in the array
+    console.log("useEffect triggered - templateImages:", templateImages);
+    if (templateImages) {
+      setLocalImages(templateImages);
+    }
+  }, [templateImages]); // Remove JSON.stringify to avoid unnecessary renders
   
   // Upload an image using the service
   const handleImageUpload = async (file) => {
@@ -160,6 +167,19 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     window.open(imageUrl, '_blank');
   };
   
+  // Handle image loading error
+  const handleImageError = (e, imageUrl) => {
+    console.error("Image failed to load:", imageUrl);
+    e.target.src = "/placeholder.svg"; // Fallback image
+    // Try to reload the image
+    setTimeout(() => {
+      if (e.target.src === "/placeholder.svg") {
+        const timestamp = new Date().getTime();
+        e.target.src = `${imageUrl}?t=${timestamp}`;
+      }
+    }, 2000);
+  };
+  
   return (
     <div className="space-y-6">
       <div className="border rounded-md p-4">
@@ -190,7 +210,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       </div>
       
       <div className="space-y-4">
-        <h3 className="text-sm font-medium">Pages du modèle ({localImages?.length || 0})</h3>
+        <h3 className="text-sm font-medium">Pages du modèle ({localImages && localImages.length || 0})</h3>
         
         {(!localImages || localImages.length === 0) ? (
           <div className="text-center p-8 border border-dashed rounded-md">
@@ -207,10 +227,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
                     src={image.url} 
                     alt={`Template page ${index + 1}`} 
                     className="max-h-full max-w-full object-contain"
-                    onError={(e) => {
-                      console.error("Image failed to load:", image.url);
-                      e.target.src = "/placeholder.svg";
-                    }}
+                    onError={(e) => handleImageError(e, image.url)}
                   />
                   <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
                     Page {index + 1}
