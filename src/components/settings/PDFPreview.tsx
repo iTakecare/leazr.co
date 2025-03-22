@@ -124,7 +124,7 @@ const PDFPreview = ({ template }) => {
       
       // Format appropriately
       if (key === 'page_number') {
-        return currentPage + 1;
+        return (currentPage + 1).toString();
       }
       
       // For date fields
@@ -133,7 +133,7 @@ const PDFPreview = ({ template }) => {
           return new Date(value).toLocaleDateString();
         } catch (e) {
           console.error("Error formatting date:", e);
-          return value || '';
+          return value?.toString() || '';
         }
       }
       
@@ -143,11 +143,13 @@ const PDFPreview = ({ template }) => {
           return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
         } catch (e) {
           console.error("Error formatting currency:", e);
-          return value?.toString() || '';
+          return typeof value === 'number' ? value.toString() : '';
         }
       }
       
-      return value?.toString() || 'Non renseigné';
+      // Make sure we always return a string
+      if (value === undefined || value === null) return '';
+      return typeof value === 'object' ? JSON.stringify(value) : String(value);
     });
   };
   
