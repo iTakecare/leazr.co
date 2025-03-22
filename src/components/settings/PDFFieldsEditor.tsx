@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,8 +27,6 @@ import {
   Phone,
   Building,
   DollarSign,
-  TagIcon,
-  ClipboardList,
   AlertCircle,
   Copy,
   Link,
@@ -683,8 +682,7 @@ const PDFFieldsEditor = ({
                                 </div>
                               </AccordionContent>
                             </AccordionItem>
-                          ))
-                        }
+                          ))}
                       </Accordion>
                     )}
                   </div>
@@ -694,14 +692,14 @@ const PDFFieldsEditor = ({
                       Tous les champs disponibles
                     </h4>
                     
-                    {fieldsByCategory[category.id]?.length === 0 ? (
+                    {!fieldsByCategory[category.id] || fieldsByCategory[category.id].length === 0 ? (
                       <div className="text-sm text-muted-foreground text-center p-4 bg-gray-50 rounded-md">
                         Aucun champ dans cette catégorie
                       </div>
                     ) : (
                       <Accordion type="multiple" className="space-y-2">
                         {fieldsByCategory[category.id]
-                          ?.filter(field => field.page !== activePage && !(activePage === 0 && field.page === undefined))
+                          .filter(field => field.page !== activePage && !(activePage === 0 && field.page === undefined))
                           .map((field) => (
                             <AccordionItem 
                               key={field.id} 
@@ -737,8 +735,7 @@ const PDFFieldsEditor = ({
                                 </div>
                               </AccordionContent>
                             </AccordionItem>
-                          ))
-                        }
+                          ))}
                       </Accordion>
                     )}
                   </div>
@@ -896,4 +893,116 @@ const PDFFieldsEditor = ({
                     .map((field) => (
                       <div
                         key={field.id}
-                        className={`absolute p-1 border ${positionedField === field.id ? 'border-
+                        className={`absolute p-1 border ${positionedField === field.id ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white hover:bg-gray-50'}`}
+                        style={{
+                          left: `${field.position.x}mm`,
+                          top: `${field.position.y}mm`,
+                          zIndex: positionedField === field.id ? 10 : 2,
+                          cursor: 'pointer',
+                          minWidth: '40mm',
+                        }}
+                        onClick={() => startPositioning(field.id, field.position)}
+                      >
+                        <div className="flex justify-between items-center mb-1 bg-gray-100 px-1 rounded">
+                          <span className="text-xs font-medium truncate">{field.label}</span>
+                          <button 
+                            className="text-red-500 hover:text-red-700 p-1 -mr-1"
+                            onClick={(e) => handleRemoveFieldLabel(e, field)}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <div className="text-xs p-1">{field.value}</div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Dialog for duplicating fields */}
+      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dupliquer le champ sur une autre page</DialogTitle>
+            <DialogDescription>
+              Sélectionnez la page sur laquelle vous souhaitez ajouter ce champ.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Champ à dupliquer</Label>
+                <div className="p-2 border rounded">
+                  <p className="font-medium">{fieldToDuplicate?.label}</p>
+                  <p className="text-sm text-gray-500 truncate">{fieldToDuplicate?.value}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Sélectionnez la page cible</Label>
+                <Select
+                  value={duplicateTargetPage.toString()}
+                  onValueChange={(value) => setDuplicateTargetPage(parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez une page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <SelectItem 
+                        key={i} 
+                        value={i.toString()}
+                        disabled={i === fieldToDuplicate?.page}
+                      >
+                        Page {i + 1} {i === fieldToDuplicate?.page ? "(Page actuelle)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDuplicateDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleDuplicateField}>
+              Dupliquer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog for confirming removal from page */}
+      <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Retirer le champ de cette page</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir retirer ce champ de la page {fieldToRemove?.page !== undefined ? fieldToRemove.page + 1 : 1} ?
+              Le champ restera disponible dans les champs généraux.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="p-2 border rounded">
+              <p className="font-medium">{fieldToRemove?.label}</p>
+              <p className="text-sm text-gray-500 truncate">{fieldToRemove?.value}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRemoveDialog(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleRemoveFieldFromPage}>
+              Retirer de cette page
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default PDFFieldsEditor;
