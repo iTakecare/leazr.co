@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Move } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { generateOfferPdf } from '@/utils/pdfGenerator';
 import { PDFTemplate, PDFField } from '@/types/pdf';
@@ -12,13 +12,25 @@ interface PDFPreviewProps {
   onSave?: () => void;
   onDownload?: () => void;
   loading?: boolean;
+  editMode?: boolean;
+  onFieldMove?: (fieldId: string, x: number, y: number) => void;
 }
 
-const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPreviewProps) => {
+const PDFPreview = ({ 
+  template, 
+  onSave, 
+  onDownload, 
+  loading = false, 
+  editMode = false,
+  onFieldMove
+}: PDFPreviewProps) => {
   const [activeTab, setActiveTab] = useState('page1');
   const [scale, setScale] = useState(0.5);
   const [previewOffer, setPreviewOffer] = useState<any>(null);
-
+  const [draggedField, setDraggedField] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     // Create a sample offer for preview with realistic data
     const sampleOffer = {
@@ -152,13 +164,59 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
     return 'auto';
   };
 
+  // Handle start dragging a field
+  const handleDragStart = (event: React.MouseEvent, fieldId: string) => {
+    if (!editMode || !onFieldMove) return;
+    
+    event.preventDefault();
+    setDraggedField(fieldId);
+    setIsDragging(true);
+    
+    // Add event listeners for drag and drop
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+  };
+  
+  // Handle dragging a field
+  const handleDragMove = (event: MouseEvent) => {
+    if (!isDragging || !draggedField || !previewRef.current || !onFieldMove) return;
+    
+    const previewRect = previewRef.current.getBoundingClientRect();
+    
+    // Calculate position relative to preview container
+    const x = (event.clientX - previewRect.left) / scale;
+    const y = (event.clientY - previewRect.top) / scale;
+    
+    // Update field position
+    onFieldMove(draggedField, x, y);
+  };
+  
+  // Handle end dragging a field
+  const handleDragEnd = () => {
+    setDraggedField(null);
+    setIsDragging(false);
+    
+    // Remove event listeners
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('mouseup', handleDragEnd);
+  };
+
+  // Get current page number from active tab
+  const getCurrentPageNumber = () => {
+    return parseInt(activeTab.replace('page', '')) - 1;
+  };
+
   // Render a page with its background image and fields
   const renderPage = (pageNum: number) => {
     const pageImages = getPageImages(pageNum);
     const pageFields = getPageFields(pageNum);
     
     return (
-      <div className="relative bg-white shadow-md" style={{ width: `${210 * scale}mm`, height: `${297 * scale}mm` }}>
+      <div 
+        ref={previewRef} 
+        className="relative bg-white shadow-md" 
+        style={{ width: `${210 * scale}mm`, height: `${297 * scale}mm` }}
+      >
         {/* Background image */}
         {pageImages.map((img, index) => (
           <img 
@@ -186,11 +244,18 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
               border: '1px dashed #aaa',
               borderRadius: '4px',
               maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: getScaledWidth(field.style?.width, scale)
+              width: getScaledWidth(field.style?.width, scale),
+              cursor: editMode ? 'move' : 'default'
             };
             
             return (
-              <div key={index} style={fieldStyle}>
+              <div 
+                key={index} 
+                style={fieldStyle}
+                className={editMode ? 'hover:outline hover:outline-blue-500' : ''}
+                onMouseDown={(e) => handleDragStart(e, field.id)}
+              >
+                {editMode && <Move size={12} className="inline mr-1" />}
                 [Tableau d'équipements]
               </div>
             );
@@ -205,11 +270,20 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
               fontStyle: field.style?.fontStyle || 'normal',
               textDecoration: field.style?.textDecoration || 'none',
               maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: getScaledWidth(field.style?.width, scale)
+              width: getScaledWidth(field.style?.width, scale),
+              cursor: editMode ? 'move' : 'default',
+              userSelect: 'none' as const,
+              padding: editMode ? '2px' : '0'
             };
             
             return (
-              <div key={index} style={fieldStyle}>
+              <div 
+                key={index} 
+                style={fieldStyle}
+                className={editMode ? 'hover:outline hover:outline-blue-500 hover:bg-blue-50' : ''}
+                onMouseDown={(e) => handleDragStart(e, field.id)}
+              >
+                {editMode && <Move size={12} className="inline mr-1 text-blue-500" />}
                 {resolveFieldValue(field.value)}
               </div>
             );

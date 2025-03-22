@@ -6,7 +6,7 @@ import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
 import PDFPreview from './PDFPreview';
 import { toast } from "sonner";
-import { OfferData, EquipmentItem } from '@/services/offers/types';
+import { PDFField } from '@/types/pdf';
 
 // Default fields for the PDF template if none exist yet
 const DEFAULT_FIELDS = [
@@ -499,6 +499,21 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     const newFields = currentTemplate.fields.filter(field => !(field.id === fieldId && field.page === page));
     handleFieldsChange(newFields);
     toast.success(`Champ supprimé de la page ${page + 1}`);
+  };
+  
+  // Handle field position update via drag and drop
+  const handleFieldMove = (fieldId: string, x: number, y: number) => {
+    const updatedFields = currentTemplate.fields.map(field => {
+      if (field.id === fieldId) {
+        return {
+          ...field,
+          position: { x, y }
+        };
+      }
+      return field;
+    });
+    
+    handleFieldsChange(updatedFields);
   };
   
   return (

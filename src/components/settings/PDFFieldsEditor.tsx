@@ -6,8 +6,9 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Copy, ChevronDown, ChevronUp, Settings } from 'lucide-react';
+import { Plus, Trash2, Copy, ChevronDown, ChevronUp, Settings, Move } from 'lucide-react';
 import { PDFField, PDFTemplate } from '@/types/pdf';
+import PDFPreview from './PDFPreview';
 
 interface PDFFieldsEditorProps {
   fields: PDFField[];
@@ -34,6 +35,7 @@ const PDFFieldsEditor = ({
 }: PDFFieldsEditorProps) => {
   const [currentTab, setCurrentTab] = useState('client');
   const [showAddFieldForm, setShowAddFieldForm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [newField, setNewField] = useState<Partial<PDFField>>({
     id: '',
     label: '',
@@ -111,6 +113,20 @@ const PDFFieldsEditor = ({
             ...field.position, 
             [axis]: value 
           } 
+        };
+      }
+      return field;
+    });
+    onChange(updatedFields);
+  };
+  
+  // Handle field position change from drag and drop
+  const handleFieldMove = (fieldId: string, x: number, y: number) => {
+    const updatedFields = fields.map(field => {
+      if (field.id === fieldId) {
+        return { 
+          ...field, 
+          position: { x, y }
         };
       }
       return field;
@@ -201,6 +217,18 @@ const PDFFieldsEditor = ({
     onChange([...fields, ...newFields]);
   };
   
+  // Toggle fields to be visible
+  const makeFieldsVisible = (fieldsToToggle: PDFField[]) => {
+    const updatedFields = fields.map(field => {
+      const shouldBeVisible = fieldsToToggle.some(f => f.id === field.id);
+      if (shouldBeVisible) {
+        return { ...field, isVisible: true };
+      }
+      return field;
+    });
+    onChange(updatedFields);
+  };
+  
   // Render field list for the current page and category
   const renderCurrentPageFields = () => {
     const fieldsOnPage = getCurrentPageFieldsByCategory(currentTab);
@@ -218,7 +246,10 @@ const PDFFieldsEditor = ({
         {fieldsOnPage.map(field => (
           <div key={field.id} className="flex flex-col p-3 border rounded-md bg-white">
             <div className="flex justify-between items-center mb-2">
-              <div className="font-medium">{field.label}</div>
+              <div className="font-medium">
+                {field.label}
+                {!field.isVisible && <span className="ml-2 text-gray-400 text-xs">(masqué)</span>}
+              </div>
               <div className="flex space-x-1">
                 <Button 
                   variant="ghost" 
@@ -377,6 +408,14 @@ const PDFFieldsEditor = ({
               <Plus className="h-4 w-4 mr-1" />
               Ajouter un champ
             </Button>
+            <Button
+              variant={showPreview ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              <Move className="h-4 w-4 mr-1" />
+              {showPreview ? "Masquer l'éditeur visuel" : "Positionner visuellement"}
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -457,43 +496,74 @@ const PDFFieldsEditor = ({
           </div>
         )}
         
-        <Tabs value={currentTab} onValueChange={setCurrentTab}>
-          <TabsList className="mb-4 grid grid-cols-5 w-full">
-            <TabsTrigger value="client">Client</TabsTrigger>
-            <TabsTrigger value="offer">Offre</TabsTrigger>
-            <TabsTrigger value="equipment">Équipement</TabsTrigger>
-            <TabsTrigger value="user">Vendeur</TabsTrigger>
-            <TabsTrigger value="general">Général</TabsTrigger>
-          </TabsList>
-          
-          {['client', 'offer', 'equipment', 'user', 'general'].map(category => (
-            <TabsContent key={category} value={category} className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-3">
-                  Champs sur la page {activePage + 1}
-                </h3>
-                {renderCurrentPageFields()}
-              </div>
-              
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-sm font-medium text-gray-500">
-                    Autres champs disponibles
-                  </h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddAllToPage}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Ajouter tous à la page
-                  </Button>
+        {showPreview ? (
+          <div className="mb-4">
+            <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
+              <p className="text-blue-600 flex items-center">
+                <Move className="h-4 w-4 mr-2" />
+                Faites glisser les champs pour les positionner sur le modèle.
+              </p>
+            </div>
+            <div className="h-[600px]">
+              <PDFPreview 
+                template={template} 
+                editMode={true}
+                onFieldMove={handleFieldMove}
+              />
+            </div>
+          </div>
+        ) : (
+          <Tabs value={currentTab} onValueChange={setCurrentTab}>
+            <TabsList className="mb-4 grid grid-cols-5 w-full">
+              <TabsTrigger value="client">Client</TabsTrigger>
+              <TabsTrigger value="offer">Offre</TabsTrigger>
+              <TabsTrigger value="equipment">Équipement</TabsTrigger>
+              <TabsTrigger value="user">Vendeur</TabsTrigger>
+              <TabsTrigger value="general">Général</TabsTrigger>
+            </TabsList>
+            
+            {['client', 'offer', 'equipment', 'user', 'general'].map(category => (
+              <TabsContent key={category} value={category} className="space-y-4">
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-sm font-medium text-gray-500">
+                      Champs sur la page {activePage + 1}
+                    </h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Make all fields in this category visible
+                        const fieldsToToggle = getCurrentPageFieldsByCategory(category);
+                        makeFieldsVisible(fieldsToToggle);
+                      }}
+                    >
+                      Tout afficher
+                    </Button>
+                  </div>
+                  {renderCurrentPageFields()}
                 </div>
-                {renderAvailableFields()}
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+                
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-sm font-medium text-gray-500">
+                      Autres champs disponibles
+                    </h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddAllToPage}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ajouter tous à la page
+                    </Button>
+                  </div>
+                  {renderAvailableFields()}
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
       </CardContent>
     </Card>
   );
