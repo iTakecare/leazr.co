@@ -319,6 +319,50 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     toast.success("Champ supprimé");
   };
   
+  // Duplicate a field for a different page
+  const handleDuplicateField = (fieldId, targetPage) => {
+    const fieldToDuplicate = currentTemplate.fields.find(field => field.id === fieldId);
+    
+    if (!fieldToDuplicate) return;
+    
+    // Create a new ID for the duplicated field
+    const newId = `${fieldToDuplicate.id}_page${targetPage}`;
+    
+    // Check if this field already exists on the target page to avoid duplicates
+    const fieldExistsOnPage = currentTemplate.fields.some(
+      field => field.id === newId || (field.id === fieldId && field.page === targetPage)
+    );
+    
+    if (fieldExistsOnPage) {
+      toast.error(`Ce champ existe déjà sur la page ${targetPage + 1}`);
+      return;
+    }
+    
+    // Create the duplicated field for the target page
+    const duplicatedField = {
+      ...fieldToDuplicate,
+      id: newId,
+      page: targetPage
+    };
+    
+    const newFields = [...currentTemplate.fields, duplicatedField];
+    handleFieldsChange(newFields);
+    toast.success(`Champ "${fieldToDuplicate.label}" ajouté à la page ${targetPage + 1}`);
+  };
+  
+  // Remove a field from a specific page only
+  const handleRemoveFieldFromPage = (fieldId, page) => {
+    // Find the field
+    const fieldToRemove = currentTemplate.fields.find(field => field.id === fieldId && field.page === page);
+    
+    if (!fieldToRemove) return;
+    
+    // Remove the field from the array
+    const newFields = currentTemplate.fields.filter(field => !(field.id === fieldId && field.page === page));
+    handleFieldsChange(newFields);
+    toast.success(`Champ supprimé de la page ${page + 1}`);
+  };
+  
   return (
     <div className="space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -350,6 +394,8 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
             template={currentTemplate}
             onDeleteField={handleDeleteField}
             onAddField={handleAddField}
+            onDuplicateField={handleDuplicateField}
+            onRemoveFieldFromPage={handleRemoveFieldFromPage}
           />
         </TabsContent>
         

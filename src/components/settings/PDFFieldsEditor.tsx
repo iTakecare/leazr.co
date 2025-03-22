@@ -29,13 +29,24 @@ import {
   DollarSign,
   TagIcon,
   ClipboardList,
-  AlertCircle
+  AlertCircle,
+  Copy,
+  Link,
+  Unlink
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const FIELD_CATEGORIES = [
   { id: "client", label: "Client", icon: User },
@@ -75,7 +86,9 @@ const PDFFieldsEditor = ({
   onPageChange, 
   template,
   onDeleteField,
-  onAddField
+  onAddField,
+  onDuplicateField,
+  onRemoveFieldFromPage
 }) => {
   const [activeCategory, setActiveCategory] = useState("client");
   const [positionedField, setPositionedField] = useState(null);
@@ -87,6 +100,11 @@ const PDFFieldsEditor = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(0.5);
   const [showAddFieldDialog, setShowAddFieldDialog] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [fieldToDuplicate, setFieldToDuplicate] = useState(null);
+  const [duplicateTargetPage, setDuplicateTargetPage] = useState(0);
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [fieldToRemove, setFieldToRemove] = useState(null);
   const [newField, setNewField] = useState({
     id: "",
     label: "",
@@ -321,6 +339,57 @@ const PDFFieldsEditor = ({
     }
   };
 
+  // Handle opening the remove field dialog
+  const handleOpenRemoveDialog = (field) => {
+    setFieldToRemove(field);
+    setShowRemoveDialog(true);
+  };
+
+  // Handle removing a field from current page
+  const handleRemoveFieldFromPage = () => {
+    if (fieldToRemove && onRemoveFieldFromPage) {
+      onRemoveFieldFromPage(fieldToRemove.id, fieldToRemove.page);
+      setShowRemoveDialog(false);
+      
+      // If the field is currently positioned, clear the positioning
+      if (fieldToRemove.id === positionedField) {
+        setPositionedField(null);
+      }
+    }
+  };
+
+  // Handle opening the duplicate field dialog
+  const handleOpenDuplicateDialog = (field) => {
+    // Find pages that don't already have this field
+    const existingPages = fields
+      .filter(f => f.id === field.id || f.id.startsWith(`${field.id}_page`))
+      .map(f => f.page);
+    
+    // Set the first available page as default target
+    const availablePages = Array.from({ length: template?.templateImages?.length || 1 }, (_, i) => i)
+      .filter(page => !existingPages.includes(page) && page !== field.page);
+    
+    setFieldToDuplicate(field);
+    
+    if (availablePages.length > 0) {
+      setDuplicateTargetPage(availablePages[0]);
+    } else {
+      // If no available pages, just use the next page
+      const nextPage = (field.page + 1) % (template?.templateImages?.length || 1);
+      setDuplicateTargetPage(nextPage);
+    }
+    
+    setShowDuplicateDialog(true);
+  };
+
+  // Handle duplicating a field to another page
+  const handleDuplicateField = () => {
+    if (fieldToDuplicate && onDuplicateField) {
+      onDuplicateField(fieldToDuplicate.id, duplicateTargetPage);
+      setShowDuplicateDialog(false);
+    }
+  };
+
   // Handle new field creation
   const handleAddNewField = () => {
     // Generate a unique ID based on the category
@@ -439,6 +508,11 @@ const PDFFieldsEditor = ({
     setCanvasPosition(newPosition);
     updateFieldPosition(positionedField, newPosition, activePage);
   };
+
+  // Filtrer les champs pour afficher uniquement ceux de la page courante
+  const getCurrentPageFields = () => {
+    return fields.filter(f => f.page === activePage || (activePage === 0 && f.page === undefined));
+  };
   
   return (
     <div className="grid md:grid-cols-3 gap-6">
@@ -546,91 +620,176 @@ const PDFFieldsEditor = ({
                     Champs {category.label}
                   </h3>
                   
-                  {fieldsByCategory[category.id]?.length === 0 && (
-                    <div className="text-sm text-muted-foreground text-center p-4 bg-gray-50 rounded-md">
-                      Aucun champ dans cette catégorie
-                    </div>
-                  )}
+                  {/* Section pour les champs sur la page actuelle */}
+                  <div className="mb-6">
+                    <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                      Champs sur la page {activePage + 1}
+                    </h4>
+                    
+                    {getCurrentPageFields().filter(field => field.category === category.id).length === 0 ? (
+                      <div className="text-sm text-muted-foreground text-center p-4 bg-gray-50 rounded-md">
+                        Aucun champ {category.label} sur la page {activePage + 1}
+                      </div>
+                    ) : (
+                      <Accordion type="multiple" className="space-y-2">
+                        {getCurrentPageFields()
+                          .filter(field => field.category === category.id)
+                          .map((field) => (
+                            <AccordionItem 
+                              key={field.id} 
+                              value={field.id} 
+                              className={`border rounded-md ${field.id === positionedField ? 'bg-blue-50 border-blue-500' : ''}`}
+                            >
+                              <AccordionTrigger className="px-3 py-2 text-sm">
+                                <div className="flex items-center justify-between w-full">
+                                  <span className="font-medium">{field.label}</span>
+                                  <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                        >
+                                          <AlertCircle className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        
+                                        <DropdownMenuItem 
+                                          onClick={() => handleOpenDuplicateDialog(field)}
+                                          className="cursor-pointer"
+                                        >
+                                          <Copy className="mr-2 h-4 w-4" />
+                                          <span>Dupliquer sur une autre page</span>
+                                        </DropdownMenuItem>
+                                        
+                                        <DropdownMenuItem 
+                                          onClick={() => handleOpenRemoveDialog(field)}
+                                          className="cursor-pointer text-red-500 hover:text-red-700"
+                                        >
+                                          <Unlink className="mr-2 h-4 w-4" />
+                                          <span>Retirer de cette page</span>
+                                        </DropdownMenuItem>
+                                        
+                                        <DropdownMenuItem
+                                          onClick={() => handleDeleteField(field.id)}
+                                          className="cursor-pointer text-red-600 hover:text-red-700"
+                                        >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          <span>Supprimer complètement</span>
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    
+                                    <Switch
+                                      checked={field.isVisible}
+                                      onCheckedChange={() => toggleFieldVisibility(field.id)}
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className={`h-7 w-7 ${field.id === positionedField ? 'bg-blue-100' : ''}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        
+                                        // Si le champ est déjà sélectionné, le désélectionner
+                                        if (field.id === positionedField) {
+                                          setPositionedField(null);
+                                        } else {
+                                          startPositioning(field.id, field.position);
+                                        }
+                                      }}
+                                      disabled={!field.isVisible}
+                                    >
+                                      <Grip className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="px-3 py-2">
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Type:</Label>
+                                    <span className="text-xs">{field.type}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Position:</Label>
+                                    <span className="text-xs">(x: {field.position.x.toFixed(1)}, y: {field.position.y.toFixed(1)})</span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Page:</Label>
+                                    <span className="text-xs">{field.page !== undefined ? field.page + 1 : 1}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Valeur:</Label>
+                                    <span className="text-xs truncate max-w-[150px]" title={field.value}>{field.value}</span>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))
+                        }
+                      </Accordion>
+                    )}
+                  </div>
                   
-                  <Accordion type="multiple" className="space-y-2">
-                    {fieldsByCategory[category.id]?.map((field, index) => (
-                      <AccordionItem key={field.id} value={field.id} className={`border rounded-md ${field.id === positionedField ? 'bg-blue-50 border-blue-500' : ''}`}>
-                        <AccordionTrigger className="px-3 py-2 text-sm">
-                          <div className="flex items-center justify-between w-full">
-                            <span className="font-medium">{field.label}</span>
-                            <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
-                              <Switch
-                                checked={field.isVisible}
-                                onCheckedChange={() => toggleFieldVisibility(field.id)}
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={`h-7 w-7 ${field.id === positionedField ? 'bg-blue-100' : ''}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  
-                                  // Si le champ est déjà sélectionné, le désélectionner
-                                  if (field.id === positionedField) {
-                                    setPositionedField(null);
-                                  } else {
-                                    startPositioning(field.id, field.position);
-                                  }
-                                }}
-                                disabled={!field.isVisible}
-                              >
-                                <Grip className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteField(field.id);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="px-3 py-2">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-xs">Type:</Label>
-                              <span className="text-xs">{field.type}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <Label className="text-xs">Position:</Label>
-                              <span className="text-xs">(x: {field.position.x.toFixed(1)}, y: {field.position.y.toFixed(1)})</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <Label className="text-xs">Page:</Label>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs">{field.page !== undefined ? field.page + 1 : 1}</span>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="h-6 px-2 text-xs"
-                                  onClick={() => {
-                                    updateFieldPage(field.id, activePage);
-                                  }}
-                                  disabled={field.page === activePage}
-                                >
-                                  Mettre sur page courante
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <Label className="text-xs">Valeur:</Label>
-                              <span className="text-xs truncate max-w-[150px]" title={field.value}>{field.value}</span>
-                            </div>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
+                  {/* Section pour tous les autres champs disponibles */}
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                      Tous les champs disponibles
+                    </h4>
+                    
+                    {fieldsByCategory[category.id]?.length === 0 ? (
+                      <div className="text-sm text-muted-foreground text-center p-4 bg-gray-50 rounded-md">
+                        Aucun champ dans cette catégorie
+                      </div>
+                    ) : (
+                      <Accordion type="multiple" className="space-y-2">
+                        {fieldsByCategory[category.id]
+                          ?.filter(field => field.page !== activePage && !(activePage === 0 && field.page === undefined))
+                          .map((field) => (
+                            <AccordionItem 
+                              key={field.id} 
+                              value={`all_${field.id}`} 
+                              className="border rounded-md bg-gray-50"
+                            >
+                              <AccordionTrigger className="px-3 py-2 text-sm">
+                                <div className="flex items-center justify-between w-full">
+                                  <span className="font-medium text-muted-foreground">{field.label}</span>
+                                  <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => handleOpenDuplicateDialog(field)}
+                                    >
+                                      <Copy className="h-3 w-3 mr-1" />
+                                      Ajouter à cette page
+                                    </Button>
+                                  </div>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="px-3 py-2">
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Page:</Label>
+                                    <span className="text-xs">{field.page !== undefined ? field.page + 1 : 1}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Valeur:</Label>
+                                    <span className="text-xs truncate max-w-[150px]" title={field.value}>{field.value}</span>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))
+                        }
+                      </Accordion>
+                    )}
+                  </div>
                 </TabsContent>
               ))}
             </Tabs>
@@ -880,25 +1039,71 @@ const PDFFieldsEditor = ({
                   <span className="font-semibold">Ajustement précis:</span> Utilisez les touches fléchées ↑↓←→ pour ajuster finement la position du champ sélectionné.
                 </p>
                 <p>
-                  <span className="font-semibold">Grille magnétique:</span> Activez la grille pour aligner automatiquement les champs.
+                  <span className="font-semibold">Gestion des pages:</span> Utilisez le menu d'actions <AlertCircle className="inline h-4 w-4" /> pour dupliquer un champ sur une autre page ou le retirer d'une page spécifique.
                 </p>
                 <p>
-                  <span className="font-semibold">Zoom:</span> Ajustez le niveau de zoom pour un positionnement plus précis.
-                </p>
-                <p>
-                  <span className="font-semibold">Supprimer:</span> Utilisez l'icône <Trash2 className="inline h-4 w-4" /> pour supprimer un champ.
-                </p>
-                <p>
-                  <span className="font-semibold">Ajouter:</span> Utilisez le bouton "Ajouter un champ" pour créer de nouveaux champs personnalisés.
-                </p>
-                <p>
-                  <span className="font-semibold">Annulation:</span> Appuyez sur la touche Échap pour annuler le positionnement en cours.
+                  <span className="font-semibold">Suppression:</span> Pour supprimer définitivement un champ, utilisez l'option "Supprimer complètement" dans le menu d'actions.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+      
+      {/* Dialog de duplication sur une autre page */}
+      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dupliquer le champ sur une autre page</DialogTitle>
+            <DialogDescription>
+              Sélectionnez la page sur laquelle vous souhaitez dupliquer le champ "{fieldToDuplicate?.label}".
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Label htmlFor="duplicate-page">Page cible</Label>
+            <Select 
+              value={duplicateTargetPage.toString()} 
+              onValueChange={(value) => setDuplicateTargetPage(parseInt(value))}
+            >
+              <SelectTrigger id="duplicate-page">
+                <SelectValue placeholder="Sélectionner une page" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <SelectItem key={i} value={i.toString()} disabled={i === fieldToDuplicate?.page}>
+                    Page {i + 1} {i === fieldToDuplicate?.page ? "(page actuelle)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDuplicateDialog(false)}>Annuler</Button>
+            <Button onClick={handleDuplicateField}>Dupliquer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog de suppression d'une page */}
+      <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Retirer le champ de cette page</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir retirer le champ "{fieldToRemove?.label}" de la page {fieldToRemove?.page + 1} ?
+              <br /><br />
+              <strong>Note:</strong> Cette action ne supprime pas complètement le champ. Pour supprimer définitivement le champ, utilisez l'option "Supprimer complètement".
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRemoveDialog(false)}>Annuler</Button>
+            <Button variant="destructive" onClick={handleRemoveFieldFromPage}>Retirer de cette page</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
