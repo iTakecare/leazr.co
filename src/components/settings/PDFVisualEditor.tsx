@@ -128,8 +128,14 @@ const PDFVisualEditor = ({
                 <Separator />
                 
                 <div>
-                  <Label>Position</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
+                  <Label className="mb-2 block">Position</Label>
+                  <div className="p-2 bg-blue-50 rounded-md mb-2">
+                    <p className="text-xs flex items-center text-blue-600">
+                      <Move className="h-3 w-3 mr-1 inline" /> 
+                      Cliquez et faites glisser le champ directement sur le modèle pour le repositionner
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-xs mb-1 block">X</Label>
                       <div className="flex items-center">
@@ -203,9 +209,6 @@ const PDFVisualEditor = ({
                       </div>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    <Move className="h-3 w-3 inline mr-1" /> Vous pouvez aussi faire glisser directement le champ sur le modèle
-                  </p>
                 </div>
                 
                 <Separator />

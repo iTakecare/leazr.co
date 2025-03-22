@@ -207,16 +207,21 @@ const PDFPreview = ({
     onFieldSelect(fieldId);
   };
 
-  // Handle start dragging a field
+  // Handle start dragging a field - CRITICALLY IMPROVED
   const handleDragStart = (event: React.MouseEvent, fieldId: string) => {
     if (!editMode || !onFieldMove) return;
     
     event.preventDefault();
     event.stopPropagation();
     
+    console.log("Starting drag for field:", fieldId);
+    
     // Find the field being dragged
     const field = template.fields.find(f => f.id === fieldId);
-    if (!field || !field.position) return;
+    if (!field || !field.position) {
+      console.error("Field or field position not found:", fieldId);
+      return;
+    }
     
     // Record initial positions
     setDraggedField(fieldId);
@@ -240,9 +245,13 @@ const PDFPreview = ({
     document.addEventListener('mouseup', handleDragEnd);
   };
   
-  // Handle dragging a field
+  // Handle dragging a field - CRITICALLY IMPROVED
   const handleDragMove = (event: MouseEvent) => {
-    if (!isDragging || !draggedField || !previewRef.current || !onFieldMove) return;
+    if (!isDragging || !draggedField || !previewRef.current || !onFieldMove) {
+      return;
+    }
+    
+    console.log("Dragging field:", draggedField, "Mouse position:", event.clientX, event.clientY);
     
     // Calculate movement delta
     const deltaX = (event.clientX - dragStartPos.x) / scale;
@@ -259,11 +268,11 @@ const PDFPreview = ({
       fieldElement.style.top = `${newY * scale}px`;
     }
     
-    // For real-time updates (optional, can cause performance issues if too frequent)
-    // onFieldMove(draggedField, newX, newY);
+    // For real-time updates (optional, can be commented out for performance)
+    onFieldMove(draggedField, newX, newY);
   };
   
-  // Handle end dragging a field
+  // Handle end dragging a field - CRITICALLY IMPROVED
   const handleDragEnd = (event: MouseEvent) => {
     if (!isDragging || !draggedField || !onFieldMove) {
       setDraggedField(null);
@@ -272,6 +281,8 @@ const PDFPreview = ({
       document.removeEventListener('mouseup', handleDragEnd);
       return;
     }
+    
+    console.log("End drag for field:", draggedField);
     
     // Calculate final position
     const deltaX = (event.clientX - dragStartPos.x) / scale;
@@ -384,7 +395,7 @@ const PDFPreview = ({
               </div>
             );
           } else {
-            // For text fields
+            // For text fields - IMPROVED STYLING FOR BETTER VISIBILITY DURING DRAG
             const fieldStyle = {
               position: 'absolute' as const,
               left: `${(field.position?.x || 0) * scale}px`,
@@ -398,10 +409,13 @@ const PDFPreview = ({
               cursor: editMode ? 'move' : 'default',
               userSelect: 'none' as const,
               padding: editMode ? '6px' : '0',
-              border: selectedFieldId === field.id ? '2px solid #2563eb' : editMode ? '1px dashed transparent' : 'none',
+              border: selectedFieldId === field.id ? '2px solid #2563eb' : editMode ? '1px dashed rgba(37, 99, 235, 0.3)' : 'none',
               borderRadius: '4px',
               backgroundColor: selectedFieldId === field.id ? 'rgba(219, 234, 254, 0.3)' : 'transparent',
-              zIndex: selectedFieldId === field.id ? 10 : 1
+              zIndex: selectedFieldId === field.id ? 10 : 1,
+              pointerEvents: 'auto' as const, // Ensure events are captured
+              boxShadow: draggedField === field.id ? '0 0 8px rgba(37, 99, 235, 0.5)' : 'none',
+              transition: draggedField === field.id ? 'none' : 'border 0.2s, background-color 0.2s, box-shadow 0.2s'
             };
             
             return (
@@ -514,10 +528,10 @@ const PDFPreview = ({
       </div>
       
       {editMode && (
-        <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-blue-600 flex items-center">
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-blue-600 flex items-center font-medium">
             <Move className="h-4 w-4 mr-2" />
-            Faites glisser les champs pour les positionner sur le modèle. Cliquez sur un champ pour le sélectionner.
+            Cliquez sur un champ et faites-le glisser pour le repositionner
           </p>
         </div>
       )}
