@@ -15,15 +15,17 @@ const FIELD_CATEGORIES = [
   { id: "general", label: "Général", icon: Layout },
 ];
 
-const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange }) => {
+const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange, template }) => {
   const [activeCategory, setActiveCategory] = useState("client");
   const [positionedField, setPositionedField] = useState(null);
   const [canvasPosition, setCanvasPosition] = useState({ x: 0, y: 0 });
   const [dragEnabled, setDragEnabled] = useState(true);
+  const [pageLoaded, setPageLoaded] = useState(false);
   
   useEffect(() => {
     // Reset positioned field when page changes
     setPositionedField(null);
+    setPageLoaded(false);
   }, [activePage]);
   
   // Grouper les champs par catégorie
@@ -57,6 +59,25 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange }) => 
       field.id === fieldId ? { ...field, page } : field
     );
     onChange(newFields);
+  };
+  
+  // Obtenir l'image de fond de la page actuelle
+  const getCurrentPageBackground = () => {
+    if (template?.templateImages && template.templateImages.length > 0) {
+      // Recherche de l'image correspondant à la page actuelle
+      const pageImage = template.templateImages.find(img => img.page === activePage);
+      
+      if (pageImage && pageImage.url) {
+        console.log("Image trouvée pour la page", activePage, ":", pageImage.url);
+        // Ajouter un timestamp pour éviter les problèmes de cache
+        return `${pageImage.url}?t=${new Date().getTime()}`;
+      } else {
+        console.log("Aucune image trouvée pour la page", activePage);
+        return null;
+      }
+    }
+    console.log("Aucune image de template disponible");
+    return null;
   };
   
   // Gérer le déplacement d'un champ sur le canvas
@@ -109,17 +130,34 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange }) => 
     return <Icon className="h-4 w-4 mr-2" />;
   };
   
-  // Get the background image for the current page
-  const getPageBackground = () => {
-    if (fields && fields.length > 0) {
-      // Find any field that is on this page to get the background
-      const fieldOnThisPage = fields.find(f => f.page === activePage);
-      if (fieldOnThisPage && fieldOnThisPage.backgroundImage) {
-        return fieldOnThisPage.backgroundImage;
+  // Gérer les erreurs de chargement d'image
+  const handleImageError = (e) => {
+    console.error("Erreur de chargement de l'image:", e.target.src);
+    e.target.src = "/placeholder.svg"; // Image de fallback
+    
+    // Tenter de recharger l'image après un délai
+    setTimeout(() => {
+      if (e.target.src === "/placeholder.svg") {
+        const currentSrc = e.target.src;
+        const timestamp = new Date().getTime();
+        const newSrc = currentSrc.includes('?') 
+          ? currentSrc.split('?')[0] + `?t=${timestamp}`
+          : `${currentSrc}?t=${timestamp}`;
+        
+        console.log("Tentative de rechargement de l'image avec cache-busting:", newSrc);
+        e.target.src = newSrc;
       }
-    }
-    return null;
+    }, 2000);
   };
+  
+  // Marquer l'image comme chargée
+  const handleImageLoad = () => {
+    console.log("Image chargée avec succès");
+    setPageLoaded(true);
+  };
+
+  // Déterminer le nombre total de pages
+  const totalPages = template?.templateImages?.length || 1;
   
   return (
     <div className="grid md:grid-cols-3 gap-6">
@@ -238,12 +276,13 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange }) => 
                       Page précédente
                     </Button>
                     <span className="flex items-center px-2 text-sm">
-                      Page {activePage + 1}
+                      Page {activePage + 1} / {totalPages}
                     </span>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={() => onPageChange(activePage + 1)}
+                      disabled={activePage === totalPages - 1}
                     >
                       Page suivante
                     </Button>
@@ -273,13 +312,39 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange }) => 
                     position: "relative",
                   }}
                 >
-                  {/* En-tête simulé */}
-                  <div 
-                    className="w-full py-4 px-6 border-b border-gray-200 bg-gray-50"
-                    style={{ position: "absolute", top: "0", left: "0", right: "0" }}
-                  >
-                    <div className="text-lg font-bold text-center">APERÇU DU DOCUMENT PDF - PAGE {activePage + 1}</div>
-                  </div>
+                  {/* Fond de page si un template a été uploadé */}
+                  {getCurrentPageBackground() ? (
+                    <div className="relative" style={{ minHeight: "297mm" }}>
+                      <img 
+                        src={getCurrentPageBackground()} 
+                        alt={`Template page ${activePage + 1}`}
+                        className="w-full h-auto"
+                        onError={handleImageError}
+                        onLoad={handleImageLoad}
+                        style={{ 
+                          display: "block",
+                          width: "100%"
+                        }}
+                      />
+                      
+                      {/* En-tête simulé - au-dessus de l'image */}
+                      <div 
+                        className="w-full py-2 px-4 border-b border-gray-200 bg-white bg-opacity-80 text-center"
+                        style={{ position: "absolute", top: "0", left: "0", right: "0", zIndex: 5 }}
+                      >
+                        <div className="text-sm font-bold">PAGE {activePage + 1} / {totalPages}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="text-center p-4 bg-gray-50 rounded border">
+                        <p className="text-lg font-medium mb-2">Aucune image pour la page {activePage + 1}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Veuillez ajouter une image pour cette page dans l'onglet "Pages du modèle"
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Position des champs pour la page active */}
                   {fields
@@ -293,10 +358,11 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange }) => 
                           top: `${field.position.y}mm`,
                           cursor: dragEnabled ? "move" : "default",
                           padding: "2px 4px",
-                          backgroundColor: positionedField === field.id ? "rgba(59, 130, 246, 0.1)" : "rgba(255, 255, 255, 0.8)",
+                          backgroundColor: positionedField === field.id ? "rgba(59, 130, 246, 0.2)" : "rgba(255, 255, 255, 0.8)",
                           fontSize: "10px",
                           whiteSpace: "nowrap",
                           zIndex: 10,
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
                         }}
                         onMouseDown={(e) => {
                           if (dragEnabled) {
@@ -322,6 +388,7 @@ const PDFFieldsEditor = ({ fields, onChange, activePage = 0, onPageChange }) => 
                         padding: "2px 4px",
                         fontSize: "10px",
                         whiteSpace: "nowrap",
+                        boxShadow: "0 1px 5px rgba(0,0,0,0.2)"
                       }}
                     >
                       <div className="flex items-center gap-1">

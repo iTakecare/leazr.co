@@ -197,6 +197,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
             onChange={handleFieldsChange}
             activePage={selectedPage}
             onPageChange={setSelectedPage}
+            template={currentTemplate}
           />
         </TabsContent>
         
