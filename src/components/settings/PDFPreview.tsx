@@ -131,6 +131,27 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
     return template.fields.filter(field => field.isVisible && (field.page === pageNum || field.page === null));
   };
 
+  // Helper function to handle width scaling properly for both string and number types
+  const getScaledWidth = (width: string | number | undefined, scale: number): string => {
+    if (width === undefined) return 'auto';
+    
+    if (typeof width === 'number') {
+      return `${width * scale}px`;
+    } else if (typeof width === 'string') {
+      // Try to convert to number if it's a numeric string without units
+      const numericWidth = parseFloat(width);
+      if (!isNaN(numericWidth) && width.trim().endsWith('px')) {
+        return `${numericWidth * scale}px`;
+      } else if (!isNaN(numericWidth) && !width.includes('px')) {
+        return `${numericWidth * scale}px`;
+      }
+      // Return as is if it's a relative unit like %, em, rem, etc.
+      return width;
+    }
+    
+    return 'auto';
+  };
+
   // Render a page with its background image and fields
   const renderPage = (pageNum: number) => {
     const pageImages = getPageImages(pageNum);
@@ -165,7 +186,7 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
               border: '1px dashed #aaa',
               borderRadius: '4px',
               maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: field.style?.width ? `${field.style.width * scale}px` : 'auto'
+              width: getScaledWidth(field.style?.width, scale)
             };
             
             return (
@@ -184,7 +205,7 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
               fontStyle: field.style?.fontStyle || 'normal',
               textDecoration: field.style?.textDecoration || 'none',
               maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: field.style?.width ? `${field.style.width * scale}px` : 'auto'
+              width: getScaledWidth(field.style?.width, scale)
             };
             
             return (
