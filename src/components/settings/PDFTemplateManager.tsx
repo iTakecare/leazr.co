@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,7 +38,6 @@ const PDFTemplateManager = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState("");
 
-  // Charger les modèles existants
   useEffect(() => {
     const loadTemplates = async () => {
       setLoading(true);
@@ -47,20 +45,19 @@ const PDFTemplateManager = () => {
       try {
         const supabase = getSupabaseClient();
         
-        // Vérifier si la table existe
-        const { data: tableExists, error: tableError } = await supabase.rpc(
-          'check_table_exists', 
-          { table_name: 'pdf_templates' }
-        );
+        const { data: tableExists, error: tableError } = await supabase.from('pdf_templates')
+          .select('id', { count: 'exact', head: true })
+          .limit(1);
         
-        if (tableError) {
-          console.error("Error checking table existence:", tableError);
+        const tableNotFound = tableError && tableError.message.includes('relation "pdf_templates" does not exist');
+        
+        if (tableError && !tableNotFound) {
+          console.error("Error checking if table exists:", tableError);
           throw new Error("Erreur lors de la vérification de la table");
         }
         
-        if (!tableExists) {
+        if (tableNotFound || !tableExists) {
           console.log("Table doesn't exist, creating it");
-          // Créer la table si elle n'existe pas
           const { error: createError } = await supabase.rpc('execute_sql', {
             sql: `
               CREATE TABLE IF NOT EXISTS public.pdf_templates (
@@ -89,7 +86,6 @@ const PDFTemplateManager = () => {
           }
         }
         
-        // Récupérer tous les modèles
         const templates = await getPDFTemplates();
         setTemplates(templates);
         
@@ -107,14 +103,12 @@ const PDFTemplateManager = () => {
     loadTemplates();
   }, []);
   
-  // Sauvegarder le modèle
   const saveTemplate = async (updatedTemplate) => {
     setSaving(true);
     
     try {
       const supabase = getSupabaseClient();
       
-      // Utiliser un ID existant ou en générer un nouveau
       const id = selectedTemplate?.id || `template_${Date.now()}`;
       
       const { error } = await supabase
@@ -130,11 +124,9 @@ const PDFTemplateManager = () => {
         throw new Error("Erreur lors de la sauvegarde du modèle");
       }
       
-      // Mettre à jour la liste des modèles
       const templates = await getPDFTemplates();
       setTemplates(templates);
       
-      // Mettre à jour le modèle sélectionné
       const updatedSelectedTemplate = templates.find(t => t.id === id) || null;
       setSelectedTemplate(updatedSelectedTemplate);
       
@@ -148,7 +140,6 @@ const PDFTemplateManager = () => {
     }
   };
   
-  // Mettre à jour les informations de l'entreprise
   const handleCompanyInfoUpdate = (companyInfo) => {
     if (selectedTemplate) {
       const updatedTemplate = {
@@ -158,7 +149,6 @@ const PDFTemplateManager = () => {
       
       saveTemplate(updatedTemplate);
     } else {
-      // Créer un nouveau modèle avec les informations de l'entreprise
       const newTemplate = {
         id: `template_${Date.now()}`,
         name: 'Nouveau modèle',
@@ -171,13 +161,11 @@ const PDFTemplateManager = () => {
     }
   };
   
-  // Mettre à jour les pages et champs du modèle sans sauvegarder
   const handleTemplateUpdate = (updatedTemplate) => {
     setSelectedTemplate(updatedTemplate);
     setPendingChanges(true);
   };
 
-  // Créer un nouveau modèle
   const handleCreateTemplate = async () => {
     if (!newTemplateName.trim()) {
       toast.error("Veuillez entrer un nom pour le modèle");
@@ -208,11 +196,9 @@ const PDFTemplateManager = () => {
 
       if (error) throw error;
 
-      // Mettre à jour la liste des modèles
       const templates = await getPDFTemplates();
       setTemplates(templates);
       
-      // Sélectionner le nouveau modèle
       const newTemplate = templates.find(t => t.id === templateId) || null;
       setSelectedTemplate(newTemplate);
       
@@ -227,7 +213,6 @@ const PDFTemplateManager = () => {
     }
   };
 
-  // Supprimer un modèle
   const handleDeleteTemplate = async (id: string) => {
     if (!id) return;
 
@@ -244,11 +229,9 @@ const PDFTemplateManager = () => {
 
       if (error) throw error;
 
-      // Mettre à jour la liste des modèles
       const templates = await getPDFTemplates();
       setTemplates(templates);
       
-      // Si le modèle supprimé était sélectionné, sélectionner le premier modèle disponible
       if (selectedTemplate?.id === id) {
         setSelectedTemplate(templates.length > 0 ? templates[0] : null);
       }
@@ -360,7 +343,6 @@ const PDFTemplateManager = () => {
         )}
       </CardContent>
 
-      {/* Dialog de création de modèle */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>

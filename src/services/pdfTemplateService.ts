@@ -23,8 +23,11 @@ export type PDFTemplate = {
 // Get all templates
 export const getPDFTemplates = async (): Promise<PDFTemplate[]> => {
   try {
+    // Use direct query instead of RPC to avoid table_name ambiguity
     const { data, error } = await supabase
-      .rpc('get_pdf_templates');
+      .from('pdf_templates')
+      .select('*')
+      .order('name');
 
     if (error) throw error;
     return data || [];
