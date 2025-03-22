@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/types/equipment";
 import { toast } from "sonner";
@@ -66,7 +65,6 @@ export interface OfferData {
   client_email: string;
   client_id?: string;
   equipment_description?: string;
-  equipment_text?: string;
   amount: number;
   coefficient: number;
   monthly_payment: number;
@@ -80,12 +78,12 @@ export const createOffer = async (offerData: OfferData): Promise<string | null> 
   try {
     console.log("Creating offer with data:", offerData);
     
-    // Create a clean object without any fields that might not exist in the database
+    // Create a clean object with only the columns that exist in the database
     const dataToSend = {
       client_id: offerData.client_id,
       client_name: offerData.client_name,
       client_email: offerData.client_email,
-      equipment_description: offerData.equipment_description || offerData.equipment_text,
+      equipment_description: offerData.equipment_description,
       amount: offerData.amount,
       coefficient: offerData.coefficient,
       monthly_payment: offerData.monthly_payment,
@@ -477,7 +475,6 @@ export const updateOffer = async (offerId: string, offerData: any) => {
   }
 };
 
-// Ajouter une fonction pour envoyer une demande d'informations
 export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> => {
   try {
     console.log("Sending information request for offer:", data.offerId);
@@ -523,7 +520,6 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
   }
 };
 
-// Traiter la réponse après réception des informations
 export const processInfoResponse = async (
   offerId: string,
   approve: boolean
