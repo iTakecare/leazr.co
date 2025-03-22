@@ -1,4 +1,3 @@
-
 export interface Collaborator {
   id: string;
   name: string;
@@ -27,9 +26,10 @@ export interface Client {
   user_id?: string;
   has_user_account?: boolean;
   user_account_created_at?: string | Date;
-  // Add properties used in AmbassadorDetail.tsx
+  is_ambassador_client?: boolean;
   createdAt?: string;
   totalValue?: number;
+  ambassador_client_id?: string;
 }
 
 export interface CreateClientData {
