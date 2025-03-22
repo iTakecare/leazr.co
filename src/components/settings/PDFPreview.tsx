@@ -1,131 +1,88 @@
-
 import React, { useState, useEffect } from 'react';
-import { Button } from "../ui/button";
-import { Card, CardContent } from "../ui/card";
-import { generateOfferPdf } from '@/utils/pdfGenerator';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Download } from 'lucide-react';
-import { toast } from 'sonner';
+import { generateOfferPdf } from '@/utils/pdfGenerator';
+import { PDFTemplate } from '@/types/pdf';
 
-// Données factices pour la prévisualisation
-const SAMPLE_OFFER = {
-  id: '12345678-1234-1234-1234-123456789012',
-  created_at: '2023-05-15T14:30:00Z',
-  amount: 10000,
-  monthly_payment: 280,
-  coefficient: 1.5,
-  type: 'Leasing',
-  workflow_status: 'En attente',
-  commission: 500,
-  remarks: 'Livraison à prévoir en 3 semaines',
-  client_name: 'Entreprise Example',
-  clients: {
-    name: 'Entreprise Example',
-    company: 'Entreprise Example SARL',
-    email: 'contact@example.com',
-    address: '123 Rue de l\'Exemple, 75000 Paris, France',
-    phone: '+33 1 23 45 67 89'
-  },
-  user: {
-    name: 'Jean Dupont',
-    email: 'jean.dupont@itakecare.com',
-    phone: '+33 6 12 34 56 78'
-  },
-  equipment_description: '[{"title":"MacBook Pro 16 pouces","purchasePrice":2000,"quantity":2,"margin":10},{"title":"Écran 27 pouces 4K","purchasePrice":500,"quantity":3,"margin":15},{"title":"Dock USB-C","purchasePrice":150,"quantity":5,"margin":20}]',
-  equipment_total: 6500
-};
+interface PDFPreviewProps {
+  template: PDFTemplate;
+  onSave?: () => void;
+  onDownload?: () => void;
+  loading?: boolean;
+}
 
-// Fonction pour parser les données d'équipement
-const parseEquipmentData = (jsonString) => {
-  if (!jsonString) return [];
-  
-  try {
-    if (typeof jsonString === 'string') {
-      return JSON.parse(jsonString);
-    } else if (Array.isArray(jsonString)) {
-      return jsonString;
-    }
-  } catch (error) {
-    console.error("Erreur de parsing JSON:", error);
-    return [];
-  }
-  
-  return [];
-};
+const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPreviewProps) => {
+  const [activeTab, setActiveTab] = useState('page1');
+  const [scale, setScale] = useState(0.5);
+  const [previewOffer, setPreviewOffer] = useState<any>(null);
 
-const PDFPreview = ({ template }) => {
-  const [activeTab, setActiveTab] = useState("page1");
-  const [previewData, setPreviewData] = useState(SAMPLE_OFFER);
-  const [pages, setPages] = useState([]);
-  
   useEffect(() => {
-    // Créer le nombre de pages basé sur les images du template
-    if (template?.templateImages && template.templateImages.length > 0) {
-      const pageCount = Math.max(...template.templateImages.map(img => img.page)) + 1;
-      setPages(Array.from({ length: pageCount }, (_, i) => i));
-    } else {
-      setPages([0]); // Au moins une page par défaut
-    }
+    // Create a sample offer for preview
+    const sampleOffer = {
+      id: 'preview-123456789',
+      client_name: 'Client Exemple',
+      client_company: 'Entreprise Exemple',
+      client_email: 'client@exemple.com',
+      client_phone: '+32 471 123 456',
+      amount: 15000,
+      monthly_payment: 450,
+      duration: 36,
+      created_at: new Date().toISOString(),
+      status: 'draft',
+      equipment_description: JSON.stringify([
+        {
+          title: 'MacBook Pro 16"',
+          description: 'Apple M2 Pro, 32GB RAM, 1TB SSD',
+          purchasePrice: 3200,
+          quantity: 2,
+          margin: 10
+        },
+        {
+          title: 'Écran Dell UltraSharp 32"',
+          description: '4K, USB-C, DisplayPort',
+          purchasePrice: 800,
+          quantity: 2,
+          margin: 15
+        },
+        {
+          title: 'Chaise de bureau ergonomique',
+          description: 'Modèle premium avec support lombaire',
+          purchasePrice: 450,
+          quantity: 2,
+          margin: 20
+        }
+      ]),
+      __template: template // Pass the template directly for preview
+    };
+    
+    setPreviewOffer(sampleOffer);
   }, [template]);
-  
-  // Générer un PDF avec les données de prévisualisation
-  const handleGeneratePDF = async () => {
-    if (!template) {
-      toast.error("Aucun modèle de PDF configuré");
-      return;
-    }
+
+  const handleDownloadPDF = async () => {
+    if (!previewOffer) return;
     
     try {
-      // Ajouter le template aux données pour la prévisualisation
-      const previewDataWithTemplate = {
-        ...previewData,
-        __template: template
-      };
-      
-      await generateOfferPdf(previewDataWithTemplate);
-      toast.success("PDF généré avec succès");
+      await generateOfferPdf(previewOffer);
     } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      toast.error("Erreur lors de la génération du PDF");
+      console.error("Error generating PDF:", error);
     }
   };
-  
-  // Si pas de template, afficher un message
-  if (!template) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">Aucun modèle de PDF configuré</h3>
-        <p className="text-muted-foreground mb-4">
-          Configurez d'abord les informations de votre entreprise et les champs du modèle.
-        </p>
-      </div>
-    );
-  }
-  
-  // Trouver les champs pour une page spécifique
-  const getFieldsForPage = (pageIndex) => {
-    if (!template.fields) return [];
-    
-    return template.fields.filter(field => 
-      field.isVisible && (field.page === pageIndex || field.page === null)
-    );
+
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    console.error("Error loading image:", event.currentTarget.src);
+    // Use a fallback image or handle the error
+    event.currentTarget.src = 'https://placehold.co/600x400?text=Image+Not+Found';
   };
-  
-  // Convertir les coordonnées mm en pixels pour l'aperçu
-  const mmToPx = (mm) => {
-    // 1 mm = environ 3.78 pixels à une résolution de 96 DPI
-    return mm * 3.78;
-  };
-  
-  // Résoudre la valeur d'un champ
-  const resolveFieldValue = (pattern) => {
-    if (!pattern) return '';
+
+  // Function to resolve field values from the sample offer
+  const resolveFieldValue = (pattern: string) => {
+    if (!previewOffer) return pattern;
     
     return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
       const keyParts = key.split('.');
-      let value = previewData;
+      let value = previewOffer;
       
       for (const part of keyParts) {
         if (value === undefined || value === null) {
@@ -134,9 +91,9 @@ const PDFPreview = ({ template }) => {
         value = value[part];
       }
       
-      // Formater selon le type
+      // Format according to type
       if (typeof value === 'number') {
-        // Détecter si c'est une valeur monétaire
+        // Detect if it's a monetary value
         if (key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) {
           return formatCurrency(value);
         }
@@ -148,212 +105,141 @@ const PDFPreview = ({ template }) => {
       return value || 'Non renseigné';
     });
   };
-  
-  // Obtenir le style pour un champ
-  const getFieldStyle = (field) => {
-    const style = {
-      position: 'absolute',
-      left: `${mmToPx(field.position.x)}px`,
-      top: `${mmToPx(field.position.y)}px`,
-      fontSize: `${field.style?.fontSize || 10}px`,
-      fontWeight: field.style?.fontWeight || 'normal',
-      fontStyle: field.style?.fontStyle || 'normal',
-      textDecoration: field.style?.textDecoration || 'none',
-    };
-    
-    if (field.id === 'equipment_table') {
-      style.maxWidth = "150mm";
-      style.width = "150mm";
-    }
-    
-    return style;
+
+  // Get the template images for the current page
+  const getPageImages = (pageNum: number) => {
+    if (!template.templateImages) return [];
+    return template.templateImages.filter(img => img.page === pageNum);
   };
-  
-  const renderEquipmentTable = (jsonData) => {
-    let equipment = [];
-    
-    try {
-      if (typeof jsonData === 'string') {
-        try {
-          equipment = JSON.parse(jsonData);
-        } catch (e) {
-          console.error("Failed to parse JSON string:", e);
-          
-          if (jsonData.includes('[{') && jsonData.includes('}]')) {
-            try {
-              const cleanedString = jsonData
-                .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":')
-                .replace(/'/g, '"');
-              
-              equipment = JSON.parse(cleanedString);
-            } catch (evalError) {
-              console.error("Failed to evaluate equipment string:", evalError);
-            }
-          }
-        }
-      } else if (Array.isArray(jsonData)) {
-        equipment = jsonData;
-      }
-    } catch (error) {
-      console.error("Error processing equipment data:", error);
-    }
-    
-    if (!equipment || equipment.length === 0) {
-      return <p className="text-sm italic">Aucun équipement disponible</p>;
-    }
+
+  // Get the fields for the current page
+  const getPageFields = (pageNum: number) => {
+    if (!template.fields) return [];
+    return template.fields.filter(field => field.isVisible && (field.page === pageNum || field.page === null));
+  };
+
+  // Render a page with its background image and fields
+  const renderPage = (pageNum: number) => {
+    const pageImages = getPageImages(pageNum);
+    const pageFields = getPageFields(pageNum);
     
     return (
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="px-2 py-1 text-left">Désignation</th>
-            <th className="px-2 py-1 text-right">Prix unitaire</th>
-            <th className="px-2 py-1 text-center">Quantité</th>
-            <th className="px-2 py-1 text-center">Marge</th>
-            <th className="px-2 py-1 text-right">Total</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {equipment.map((item, index) => {
-            const unitPrice = item.purchasePrice || 0;
-            const quantity = item.quantity || 1;
-            const margin = item.margin || 0;
-            const totalPrice = unitPrice * quantity * (1 + margin / 100);
+      <div className="relative bg-white shadow-md" style={{ width: `${210 * scale}mm`, height: `${297 * scale}mm` }}>
+        {/* Background image */}
+        {pageImages.map((img, index) => (
+          <img 
+            key={index}
+            src={img.url}
+            alt={`Template background page ${pageNum}`}
+            className="absolute top-0 left-0 w-full h-full object-contain"
+            onError={handleImageError}
+          />
+        ))}
+        
+        {/* Fields */}
+        {pageFields.map((field, index) => {
+          if (field.id === 'equipment_table') {
+            // For equipment table, just show a placeholder
+            const fieldStyle = {
+              position: 'absolute' as const,
+              left: `${(field.position?.x || 0) * scale}px`,
+              top: `${(field.position?.y || 0) * scale}px`,
+              fontSize: `${(field.style?.fontSize || 10) * scale}px`,
+              fontWeight: field.style?.fontWeight || 'normal',
+              fontStyle: field.style?.fontStyle || 'normal',
+              padding: '4px',
+              backgroundColor: 'rgba(200, 200, 200, 0.2)',
+              border: '1px dashed #aaa',
+              borderRadius: '4px',
+              maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
+              width: `${(field.style?.width || 'auto')}`
+            };
             
             return (
-              <tr key={index}>
-                <td className="px-2 py-1">{item.title}</td>
-                <td className="px-2 py-1 text-right">{formatCurrency(unitPrice)}</td>
-                <td className="px-2 py-1 text-center">{quantity}</td>
-                <td className="px-2 py-1 text-center">{margin}%</td>
-                <td className="px-2 py-1 text-right">{formatCurrency(totalPrice)}</td>
-              </tr>
+              <div key={index} style={fieldStyle}>
+                [Tableau d'équipements]
+              </div>
             );
-          })}
-        </tbody>
-      </table>
+          } else {
+            // For text fields
+            const fieldStyle = {
+              position: 'absolute' as const,
+              left: `${(field.position?.x || 0) * scale}px`,
+              top: `${(field.position?.y || 0) * scale}px`,
+              fontSize: `${(field.style?.fontSize || 10) * scale}px`,
+              fontWeight: field.style?.fontWeight || 'normal',
+              fontStyle: field.style?.fontStyle || 'normal',
+              textDecoration: field.style?.textDecoration || 'none',
+              maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
+              width: `${(field.style?.width || 'auto')}`
+            };
+            
+            return (
+              <div key={index} style={fieldStyle}>
+                {resolveFieldValue(field.value)}
+              </div>
+            );
+          }
+        })}
+      </div>
     );
   };
 
-  // Fonction pour gérer les erreurs de chargement d'image
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.error(`Error loading image: ${(e.target as HTMLImageElement).src}`);
-    (e.target as HTMLImageElement).src = '/placeholder.svg';
-  };
-  
-  // Rendu du modèle PDF avec ses pages
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Aperçu du modèle</h3>
-        <Button onClick={handleGeneratePDF} className="gap-2">
-          <Download className="h-4 w-4" />
-          <span>Télécharger le PDF</span>
-        </Button>
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-muted-foreground">Zoom:</span>
+          <select 
+            value={scale} 
+            onChange={(e) => setScale(parseFloat(e.target.value))}
+            className="text-sm border rounded p-1"
+          >
+            <option value="0.3">30%</option>
+            <option value="0.5">50%</option>
+            <option value="0.7">70%</option>
+            <option value="1">100%</option>
+          </select>
+        </div>
+        
+        <div className="flex space-x-2">
+          {onSave && (
+            <Button 
+              onClick={onSave} 
+              variant="outline" 
+              disabled={loading}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Enregistrer
+            </Button>
+          )}
+          
+          <Button 
+            onClick={handleDownloadPDF} 
+            disabled={loading || !previewOffer}
+          >
+            Télécharger PDF
+          </Button>
+        </div>
       </div>
       
-      {pages.length > 1 && (
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            {pages.map((page) => (
-              <TabsTrigger key={page} value={`page${page + 1}`}>
-                Page {page + 1}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          
-          {pages.map((page) => (
-            <TabsContent key={page} value={`page${page + 1}`}>
-              <RenderPDFPage 
-                template={template} 
-                pageIndex={page} 
-                getFieldsForPage={getFieldsForPage}
-                resolveFieldValue={resolveFieldValue}
-                getFieldStyle={getFieldStyle}
-                renderEquipmentTable={renderEquipmentTable}
-                handleImageError={handleImageError}
-              />
-            </TabsContent>
-          ))}
-        </Tabs>
-      )}
-      
-      {pages.length === 1 && (
-        <RenderPDFPage 
-          template={template} 
-          pageIndex={0} 
-          getFieldsForPage={getFieldsForPage}
-          resolveFieldValue={resolveFieldValue}
-          getFieldStyle={getFieldStyle}
-          renderEquipmentTable={renderEquipmentTable}
-          handleImageError={handleImageError}
-        />
-      )}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+        <TabsList className="mb-4">
+          <TabsTrigger value="page1">Page 1</TabsTrigger>
+          {template.templateImages && template.templateImages.some(img => img.page > 0) && (
+            <TabsTrigger value="page2">Page 2</TabsTrigger>
+          )}
+        </TabsList>
+        
+        <TabsContent value="page1" className="flex-1 overflow-auto p-4 bg-gray-100 flex justify-center">
+          {renderPage(0)}
+        </TabsContent>
+        
+        <TabsContent value="page2" className="flex-1 overflow-auto p-4 bg-gray-100 flex justify-center">
+          {renderPage(1)}
+        </TabsContent>
+      </Tabs>
     </div>
-  );
-};
-
-// Sous-composant pour rendre une page du PDF
-const RenderPDFPage = ({ 
-  template, 
-  pageIndex, 
-  getFieldsForPage, 
-  resolveFieldValue, 
-  getFieldStyle, 
-  renderEquipmentTable,
-  handleImageError
-}) => {
-  // Trouver l'image de fond pour cette page
-  const backgroundImage = template.templateImages?.find(img => img.page === pageIndex);
-  
-  // Obtenir les champs pour cette page
-  const fieldsForPage = getFieldsForPage(pageIndex);
-  
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="relative">
-          {/* Fond de page A4 */}
-          <div 
-            className="relative bg-white shadow-md mx-auto"
-            style={{
-              width: '210mm',
-              height: '297mm',
-              maxWidth: '100%',
-              maxHeight: '80vh',
-              transform: 'scale(0.75)',
-              transformOrigin: 'top center',
-              margin: '0 auto',
-              overflow: 'hidden'
-            }}
-          >
-            {/* Image de fond si disponible */}
-            {backgroundImage && (
-              <img 
-                src={backgroundImage.url} 
-                alt={`Page ${pageIndex + 1}`}
-                className="absolute top-0 left-0 w-full h-full object-contain"
-                onError={handleImageError}
-              />
-            )}
-            
-            {/* Afficher les champs */}
-            {fieldsForPage.map((field) => (
-              <div 
-                key={`${field.id}-page${pageIndex}`} 
-                style={getFieldStyle(field)}
-              >
-                {field.id === 'equipment_table' ? (
-                  renderEquipmentTable(field.value)
-                ) : (
-                  <span>{resolveFieldValue(field.value)}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Sheet,
@@ -21,6 +22,7 @@ import {
   updateAmbassadorCommissionLevel 
 } from "@/services/commissionService";
 import { toast } from "sonner";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 import ContactInfoSection from "./sections/ContactInfoSection";
 import CompanyInfoSection from "./sections/CompanyInfoSection";
 import CommissionLevelSelector from "./sections/CommissionLevelSelector";
