@@ -17,7 +17,8 @@ export interface PDFField {
     fontStyle: string;
     textDecoration?: string;
     maxWidth?: number;
-    width?: string | number;
+    width?: number;
+    height?: number;
   };
 }
 

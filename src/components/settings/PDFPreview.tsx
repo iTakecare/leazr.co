@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import DraggableField from './DraggableField';
 
 interface PDFPreviewProps {
   template: PDFTemplate;
@@ -20,7 +21,7 @@ interface PDFPreviewProps {
   onDownload?: () => void;
 }
 
-const PDFPreview = ({
+const PDFPreview: React.FC<PDFPreviewProps> = ({
   template,
   editMode = false,
   selectedFieldId = null,
@@ -31,12 +32,10 @@ const PDFPreview = ({
   activeTab = 'page1',
   onTabChange = () => {},
   showAvailableFields = false,
-  onDownload
-}: PDFPreviewProps) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragFieldId, setDragFieldId] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  onDownload = () => {}
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
   
   // Manage active page
   const currentPage = parseInt(activeTab.replace('page', '')) - 1;
@@ -45,63 +44,6 @@ const PDFPreview = ({
   const fieldsForCurrentPage = template.fields?.filter(
     field => field.isVisible && field.page === currentPage
   ) || [];
-
-  const startDrag = (e: React.MouseEvent, fieldId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!containerRef.current) return;
-    
-    const field = template.fields?.find(f => f.id === fieldId);
-    if (!field) return;
-    
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const offsetX = e.clientX - containerRect.left - (field.position?.x || 0);
-    const offsetY = e.clientY - containerRect.top - (field.position?.y || 0);
-    
-    setIsDragging(true);
-    setDragFieldId(fieldId);
-    setDragOffset({ x: offsetX, y: offsetY });
-    
-    console.log("Starting drag for field:", fieldId);
-    
-    // Select the field when starting to drag
-    onFieldSelect(fieldId);
-    
-    // Add event listeners to document for dragging
-    document.addEventListener('mousemove', handleDragMove);
-    document.addEventListener('mouseup', handleDragEnd);
-  };
-  
-  const handleDragMove = (e: MouseEvent) => {
-    if (!isDragging || !dragFieldId || !containerRef.current) return;
-    
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const x = Math.max(0, e.clientX - containerRect.left - dragOffset.x);
-    const y = Math.max(0, e.clientY - containerRect.top - dragOffset.y);
-    
-    console.log("Moving field to:", { x, y });
-    
-    // Update field position in real-time
-    onFieldMove(dragFieldId, x, y);
-  };
-  
-  const handleDragEnd = () => {
-    setIsDragging(false);
-    setDragFieldId(null);
-    
-    // Remove event listeners
-    document.removeEventListener('mousemove', handleDragMove);
-    document.removeEventListener('mouseup', handleDragEnd);
-  };
-  
-  // Clean up event listeners when component unmounts
-  useEffect(() => {
-    return () => {
-      document.removeEventListener('mousemove', handleDragMove);
-      document.removeEventListener('mouseup', handleDragEnd);
-    };
-  }, [isDragging, dragFieldId, dragOffset]);
 
   // Handle adding a field to the current page
   const handleAddField = (fieldId: string) => {
@@ -112,31 +54,24 @@ const PDFPreview = ({
     const x = containerRef.current ? (containerRef.current.offsetWidth / 2) - 50 : 100;
     const y = containerRef.current ? (containerRef.current.offsetHeight / 2) - 10 : 100;
     
-    // Update the field position and make it visible on this page
-    const updatedField = {
-      ...field,
-      isVisible: true,
-      page: currentPage,
-      position: { x, y }
-    };
-    
-    // Call parent handler to update the field
-    if (onFieldSelect) {
-      onFieldSelect(fieldId);
-    }
-    
-    // Call parent handler to update position
-    if (onFieldMove) {
-      onFieldMove(fieldId, x, y);
-    }
+    // Call parent handler to update position and make field visible on this page
+    onFieldMove(fieldId, x, y);
+    onFieldSelect(fieldId);
+  };
+
+  // Handle field position change
+  const handleFieldPositionChange = (fieldId: string, x: number, y: number) => {
+    onFieldMove(fieldId, x, y);
+  };
+
+  // Handle field size change
+  const handleFieldSizeChange = (fieldId: string, width: number, height: number) => {
+    onFieldStyleUpdate(fieldId, { width, height });
   };
 
   // Handle the background click (deselect field)
-  const handleContainerClick = (e: React.MouseEvent) => {
-    // Only deselect if clicking directly on the container, not on a field
-    if (e.target === e.currentTarget) {
-      onFieldSelect(null);
-    }
+  const handleContainerClick = () => {
+    onFieldSelect(null);
   };
 
   // Make sure pages exists and has at least one item
@@ -160,7 +95,7 @@ const PDFPreview = ({
             <div className="flex flex-col md:flex-row gap-4">
               {/* PDF Preview Area */}
               <div 
-                className="w-full flex-1 relative border rounded-md overflow-hidden bg-white"
+                className="relative border rounded-md overflow-hidden bg-white"
                 style={{ 
                   height: "842px", 
                   width: "595px", 
@@ -183,36 +118,17 @@ const PDFPreview = ({
 
                 {/* Render fields for this page */}
                 {fieldsForCurrentPage.map((field) => (
-                  <div
+                  <DraggableField
                     key={field.id}
-                    className={`absolute p-1 transition-all cursor-move ${
-                      selectedFieldId === field.id 
-                        ? 'outline outline-2 outline-blue-500 bg-blue-50' 
-                        : 'hover:outline hover:outline-1 hover:outline-blue-300'
-                    }`}
-                    style={{
-                      left: `${field.position?.x || 0}px`,
-                      top: `${field.position?.y || 0}px`,
-                      fontSize: `${field.style?.fontSize || 12}px`,
-                      fontWeight: field.style?.fontWeight || 'normal',
-                      fontStyle: field.style?.fontStyle || 'normal',
-                      textDecoration: field.style?.textDecoration || 'none',
-                      minWidth: '30px',
-                      minHeight: '20px',
-                      zIndex: selectedFieldId === field.id ? 10 : 1
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFieldSelect(field.id);
-                    }}
-                    onMouseDown={(e) => {
-                      if (editMode) {
-                        startDrag(e, field.id);
-                      }
-                    }}
-                  >
-                    {field.value || field.label}
-                  </div>
+                    field={field}
+                    selected={selectedFieldId === field.id}
+                    pageScale={scale}
+                    editMode={editMode}
+                    containerRef={containerRef}
+                    onSelect={onFieldSelect}
+                    onPositionChange={handleFieldPositionChange}
+                    onSizeChange={handleFieldSizeChange}
+                  />
                 ))}
               </div>
 

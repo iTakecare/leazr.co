@@ -8,7 +8,6 @@ import PDFPreview from './PDFPreview';
 import { toast } from "sonner";
 import { PDFField, PDFPage } from '@/types/pdf';
 
-// Default fields for the PDF template if none exist yet
 const DEFAULT_FIELDS = [
   // Client fields
   {
@@ -519,11 +518,19 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   const handleAddFieldToPage = (fieldId: string) => {
     const updatedFields = currentTemplate.fields.map(field => {
       if (field.id === fieldId) {
+        const width = field.style?.width || 100;
+        const height = field.style?.height || 30;
+        
         return {
           ...field,
           isVisible: true,
           page: selectedPage,
-          position: field.position || { x: 50, y: 50 }
+          position: field.position || { x: 50, y: 50 },
+          style: {
+            ...field.style,
+            width,
+            height
+          }
         };
       }
       return field;
