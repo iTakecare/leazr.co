@@ -48,6 +48,7 @@ export interface Ambassador {
   has_user_account?: boolean;
   user_account_created_at?: string;
   user_id?: string;
+  pdf_template_id?: string;
 }
 
 // Récupérer tous les ambassadeurs

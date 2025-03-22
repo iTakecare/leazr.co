@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAmbassadorById, updateAmbassador, updateAmbassadorCommissionLevel, Ambassador } from "@/services/ambassadorService";
@@ -90,6 +91,18 @@ const AmbassadorEditPage = () => {
       country: ""
     },
   });
+
+  // Function to load PDF templates
+  const loadPDFTemplates = async () => {
+    try {
+      const templates = await getPDFTemplates();
+      console.log("[loadPDFTemplates] Templates chargés:", templates);
+      setPdfTemplates(templates);
+    } catch (error) {
+      console.error("[loadPDFTemplates] Erreur:", error);
+      toast.error("Erreur lors du chargement des modèles PDF");
+    }
+  };
 
   const loadAmbassador = useCallback(async () => {
     if (!id) return;
