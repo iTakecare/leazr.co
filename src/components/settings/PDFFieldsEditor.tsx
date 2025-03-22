@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -65,7 +64,6 @@ const FIELD_TYPES = [
   { value: "table", label: "Tableau" }
 ];
 
-// Categories icons mapping
 const CATEGORY_ICONS = {
   client: User,
   offer: FileText,
@@ -74,7 +72,6 @@ const CATEGORY_ICONS = {
   general: Layout
 };
 
-// Generate a unique ID
 const generateId = (prefix) => {
   return `${prefix}_${Math.random().toString(36).substr(2, 9)}`;
 };
@@ -96,7 +93,7 @@ const PDFFieldsEditor = ({
   const [dragEnabled, setDragEnabled] = useState(true);
   const [pageLoaded, setPageLoaded] = useState(false);
   const [gridEnabled, setGridEnabled] = useState(false);
-  const [gridSize, setGridSize] = useState(5); // Grid size in mm
+  const [gridSize, setGridSize] = useState(5);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(0.5);
   const [showAddFieldDialog, setShowAddFieldDialog] = useState(false);
@@ -120,15 +117,12 @@ const PDFFieldsEditor = ({
   const isDragging = useRef(false);
   
   useEffect(() => {
-    // Reset positioned field when page changes
     setPositionedField(null);
     setPageLoaded(false);
   }, [activePage]);
   
-  // Fonction pour gérer le redimensionnement de la fenêtre
   useEffect(() => {
     const handleResize = () => {
-      // Réinitialiser le champ positionné si on est en train de faire glisser
       if (positionedField) {
         setPositionedField(null);
       }
@@ -140,7 +134,6 @@ const PDFFieldsEditor = ({
     };
   }, [positionedField]);
   
-  // Gérer la touche Escape pour annuler le positionnement
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && positionedField) {
@@ -155,7 +148,6 @@ const PDFFieldsEditor = ({
     };
   }, [positionedField]);
   
-  // Grouper les champs par catégorie
   const fieldsByCategory = fields.reduce((acc, field) => {
     if (!acc[field.category]) {
       acc[field.category] = [];
@@ -164,7 +156,6 @@ const PDFFieldsEditor = ({
     return acc;
   }, {});
   
-  // Mettre à jour la visibilité d'un champ
   const toggleFieldVisibility = (fieldId) => {
     const newFields = fields.map(field => 
       field.id === fieldId ? { ...field, isVisible: !field.isVisible } : field
@@ -173,7 +164,6 @@ const PDFFieldsEditor = ({
     toast.success(`Visibilité du champ modifiée`);
   };
   
-  // Mettre à jour la position d'un champ
   const updateFieldPosition = (fieldId, newPosition, page = activePage) => {
     const newFields = fields.map(field => 
       field.id === fieldId ? { ...field, position: newPosition, page } : field
@@ -181,7 +171,6 @@ const PDFFieldsEditor = ({
     onChange(newFields);
   };
   
-  // Mettre à jour la page d'un champ
   const updateFieldPage = (fieldId, page) => {
     const newFields = fields.map(field => 
       field.id === fieldId ? { ...field, page } : field
@@ -190,14 +179,11 @@ const PDFFieldsEditor = ({
     toast.success(`Champ déplacé sur la page ${page + 1}`);
   };
   
-  // Obtenir l'image de fond de la page actuelle
   const getCurrentPageBackground = () => {
     if (template?.templateImages && template.templateImages.length > 0) {
-      // Recherche de l'image correspondant à la page actuelle
       const pageImage = template.templateImages.find(img => img.page === activePage);
       
       if (pageImage && pageImage.url) {
-        // Ajouter un timestamp pour éviter les problèmes de cache
         return `${pageImage.url}?t=${new Date().getTime()}`;
       } else {
         return null;
@@ -206,7 +192,6 @@ const PDFFieldsEditor = ({
     return null;
   };
 
-  // Calculer la position sur la grille
   const snapToGrid = (position) => {
     if (!gridEnabled) return position;
     
@@ -216,7 +201,6 @@ const PDFFieldsEditor = ({
     };
   };
   
-  // Gérer le déplacement d'un champ sur le canvas
   const handleCanvasMouseMove = (e) => {
     if (positionedField && isDragging.current) {
       const canvas = canvasRef.current;
@@ -224,29 +208,23 @@ const PDFFieldsEditor = ({
       
       const rect = canvas.getBoundingClientRect();
       
-      // Get the canvas dimensions
       const canvasWidth = rect.width;
       const canvasHeight = rect.height;
       
-      // Calculate the ratio between the canvas and the actual page size (in mm)
-      const pageWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
+      const pageWidth = 210;
+      const pageHeight = 297;
       
-      // Scale down to account for the transform scale in the UI
       const scaleRatio = {
         x: (pageWidth / zoomLevel) / canvasWidth,
         y: (pageHeight / zoomLevel) / canvasHeight
       };
       
-      // Calculate position in mm relative to the page, accounting for the drag offset
       const rawX = (e.clientX - rect.left) * scaleRatio.x - dragOffset.x;
       const rawY = (e.clientY - rect.top) * scaleRatio.y - dragOffset.y;
       
-      // Constrain to page boundaries
       const x = Math.max(0, Math.min(pageWidth, rawX));
       const y = Math.max(0, Math.min(pageHeight, rawY));
       
-      // Snap to grid if enabled
       const snappedPosition = snapToGrid({ x, y });
       
       setCanvasPosition(snappedPosition);
@@ -257,7 +235,6 @@ const PDFFieldsEditor = ({
     if (positionedField) {
       isDragging.current = true;
       
-      // Prevent default browser behavior
       e.preventDefault();
     }
   };
@@ -267,7 +244,6 @@ const PDFFieldsEditor = ({
       updateFieldPosition(positionedField, canvasPosition, activePage);
       toast.success(`Position mise à jour`);
       
-      // Keep the field selected for further adjustments but stop the drag operation
       isDragging.current = false;
     }
   };
@@ -278,7 +254,6 @@ const PDFFieldsEditor = ({
     }
   };
   
-  // Gérer le début du positionnement d'un champ
   const startPositioning = (fieldId, initialPosition) => {
     const field = fields.find(f => f.id === fieldId);
     if (!field) return;
@@ -286,10 +261,8 @@ const PDFFieldsEditor = ({
     setPositionedField(fieldId);
     setCanvasPosition(initialPosition);
     
-    // Calculate drag offset to prevent the field from jumping
     setDragOffset({ x: 0, y: 0 });
     
-    // Si le champ est sur une autre page, le déplacer sur la page actuelle
     if (field.page !== activePage) {
       updateFieldPage(fieldId, activePage);
     }
@@ -300,12 +273,10 @@ const PDFFieldsEditor = ({
     return <Icon className="h-4 w-4 mr-2" />;
   };
   
-  // Gérer les erreurs de chargement d'image
   const handleImageError = (e) => {
     console.error("Erreur de chargement de l'image:", e.target.src);
-    e.target.src = "/placeholder.svg"; // Image de fallback
+    e.target.src = "/placeholder.svg";
     
-    // Tenter de recharger l'image après un délai
     setTimeout(() => {
       if (e.target.src === "/placeholder.svg") {
         const currentSrc = e.target.src;
@@ -320,52 +291,42 @@ const PDFFieldsEditor = ({
     }, 2000);
   };
   
-  // Marquer l'image comme chargée
   const handleImageLoad = () => {
     console.log("Image chargée avec succès");
     setPageLoaded(true);
   };
 
-  // Delete a field
   const handleDeleteField = (fieldId) => {
-    // If the field is currently positioned, clear the positioning
     if (fieldId === positionedField) {
       setPositionedField(null);
     }
     
-    // Call the delete function passed from the parent
     if (onDeleteField) {
       onDeleteField(fieldId);
     }
   };
 
-  // Handle opening the remove field dialog
   const handleOpenRemoveDialog = (field) => {
     setFieldToRemove(field);
     setShowRemoveDialog(true);
   };
 
-  // Handle removing a field from current page
   const handleRemoveFieldFromPage = () => {
     if (fieldToRemove && onRemoveFieldFromPage) {
       onRemoveFieldFromPage(fieldToRemove.id, fieldToRemove.page);
       setShowRemoveDialog(false);
       
-      // If the field is currently positioned, clear the positioning
       if (fieldToRemove.id === positionedField) {
         setPositionedField(null);
       }
     }
   };
 
-  // Handle opening the duplicate field dialog
   const handleOpenDuplicateDialog = (field) => {
-    // Find pages that don't already have this field
     const existingPages = fields
       .filter(f => f.id === field.id || f.id.startsWith(`${field.id}_page`))
       .map(f => f.page);
     
-    // Set the first available page as default target
     const availablePages = Array.from({ length: template?.templateImages?.length || 1 }, (_, i) => i)
       .filter(page => !existingPages.includes(page) && page !== field.page);
     
@@ -374,7 +335,6 @@ const PDFFieldsEditor = ({
     if (availablePages.length > 0) {
       setDuplicateTargetPage(availablePages[0]);
     } else {
-      // If no available pages, just use the next page
       const nextPage = (field.page + 1) % (template?.templateImages?.length || 1);
       setDuplicateTargetPage(nextPage);
     }
@@ -382,7 +342,6 @@ const PDFFieldsEditor = ({
     setShowDuplicateDialog(true);
   };
 
-  // Handle duplicating a field to another page
   const handleDuplicateField = () => {
     if (fieldToDuplicate && onDuplicateField) {
       onDuplicateField(fieldToDuplicate.id, duplicateTargetPage);
@@ -390,24 +349,19 @@ const PDFFieldsEditor = ({
     }
   };
 
-  // Handle new field creation
   const handleAddNewField = () => {
-    // Generate a unique ID based on the category
     const id = generateId(newField.category);
     
-    // Create the new field
     const fieldToAdd = {
       ...newField,
       id,
       page: activePage,
-      position: { x: 20, y: 20 } // Default position
+      position: { x: 20, y: 20 }
     };
     
-    // Add the field
     if (onAddField) {
       onAddField(fieldToAdd);
       
-      // Reset the form
       setNewField({
         id: "",
         label: "",
@@ -419,23 +373,19 @@ const PDFFieldsEditor = ({
         page: 0
       });
       
-      // Close the dialog
       setShowAddFieldDialog(false);
     }
   };
 
-  // Déterminer le nombre total de pages
   const totalPages = template?.templateImages?.length || 1;
 
-  // Fonction pour dessiner la grille
   const renderGrid = () => {
     if (!gridEnabled) return null;
     
     const gridLines = [];
-    const pageWidth = 210; // A4 width in mm
-    const pageHeight = 297; // A4 height in mm
+    const pageWidth = 210;
+    const pageHeight = 297;
     
-    // Lignes horizontales
     for (let y = 0; y <= pageHeight; y += gridSize) {
       gridLines.push(
         <line 
@@ -451,7 +401,6 @@ const PDFFieldsEditor = ({
       );
     }
     
-    // Lignes verticales
     for (let x = 0; x <= pageWidth; x += gridSize) {
       gridLines.push(
         <line 
@@ -476,8 +425,7 @@ const PDFFieldsEditor = ({
       </svg>
     );
   };
-  
-  // Gérer les touches fléchées pour ajuster la position avec précision
+
   const handleKeyDown = (e) => {
     if (!positionedField) return;
     
@@ -509,14 +457,28 @@ const PDFFieldsEditor = ({
     updateFieldPosition(positionedField, newPosition, activePage);
   };
 
-  // Filtrer les champs pour afficher uniquement ceux de la page courante
+  const handleRemoveFieldLabel = (e, fieldId) => {
+    e.stopPropagation();
+    
+    const field = fields.find(f => f.id === fieldId);
+    
+    if (!field) return;
+    
+    if (fieldId === positionedField) {
+      setPositionedField(null);
+    }
+    
+    if (confirm(`Voulez-vous vraiment supprimer le champ "${field.label}" ?`)) {
+      onDeleteField(fieldId);
+    }
+  };
+
   const getCurrentPageFields = () => {
     return fields.filter(f => f.page === activePage || (activePage === 0 && f.page === undefined));
   };
-  
+
   return (
     <div className="grid md:grid-cols-3 gap-6">
-      {/* Panneau de gauche : Liste des champs disponibles */}
       <div className="md:col-span-1">
         <Card>
           <CardContent className="p-4">
@@ -620,7 +582,6 @@ const PDFFieldsEditor = ({
                     Champs {category.label}
                   </h3>
                   
-                  {/* Section pour les champs sur la page actuelle */}
                   <div className="mb-6">
                     <h4 className="text-xs font-medium text-muted-foreground mb-2">
                       Champs sur la page {activePage + 1}
@@ -695,7 +656,6 @@ const PDFFieldsEditor = ({
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         
-                                        // Si le champ est déjà sélectionné, le désélectionner
                                         if (field.id === positionedField) {
                                           setPositionedField(null);
                                         } else {
@@ -736,7 +696,6 @@ const PDFFieldsEditor = ({
                     )}
                   </div>
                   
-                  {/* Section pour tous les autres champs disponibles */}
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground mb-2">
                       Tous les champs disponibles
@@ -797,7 +756,6 @@ const PDFFieldsEditor = ({
         </Card>
       </div>
       
-      {/* Panneau de droite : Aperçu du positionnement */}
       <div className="md:col-span-2">
         <Card>
           <CardContent className="p-4">
@@ -880,7 +838,6 @@ const PDFFieldsEditor = ({
                 </div>
               </div>
               
-              {/* Canvas pour positionner les champs */}
               <div
                 ref={canvasRef}
                 className="border rounded-md bg-white p-4 relative h-[450px] overflow-auto"
@@ -893,9 +850,8 @@ const PDFFieldsEditor = ({
                 onMouseUp={handleCanvasMouseUp}
                 onMouseLeave={handleCanvasMouseLeave}
                 onKeyDown={handleKeyDown}
-                tabIndex={0} // Nécessaire pour recevoir les événements de clavier
+                tabIndex={0}
               >
-                {/* Document A4 simulé (échelle réduite) */}
                 <div 
                   className="bg-white border border-gray-200 shadow"
                   style={{
@@ -906,7 +862,6 @@ const PDFFieldsEditor = ({
                     position: "relative",
                   }}
                 >
-                  {/* Fond de page si un template a été uploadé */}
                   {getCurrentPageBackground() ? (
                     <div className="relative" style={{ minHeight: "297mm" }}>
                       <img 
@@ -921,10 +876,8 @@ const PDFFieldsEditor = ({
                         }}
                       />
                       
-                      {/* Grille si activée */}
                       {renderGrid()}
                       
-                      {/* En-tête simulé - au-dessus de l'image */}
                       <div 
                         className="w-full py-2 px-4 border-b border-gray-200 bg-white bg-opacity-80 text-center"
                         style={{ position: "absolute", top: "0", left: "0", right: "0", zIndex: 5 }}
@@ -941,12 +894,10 @@ const PDFFieldsEditor = ({
                         </p>
                       </div>
                       
-                      {/* Grille si activée */}
                       {renderGrid()}
                     </div>
                   )}
                   
-                  {/* Position des champs pour la page active */}
                   {fields
                     .filter(f => f.isVisible && (f.page === activePage || (activePage === 0 && f.page === undefined)))
                     .map((field) => (
@@ -970,30 +921,25 @@ const PDFFieldsEditor = ({
                             e.stopPropagation();
                             e.preventDefault();
                             
-                            // Si le champ est déjà sélectionné, commencer le glisser-déposer
                             if (field.id === positionedField) {
                               isDragging.current = true;
                               
-                              // Calculer l'offset pour que le champ ne saute pas
                               const rect = e.currentTarget.getBoundingClientRect();
                               const canvasRect = canvasRef.current.getBoundingClientRect();
                               
-                              // Convertir les positions de pixel en mm
-                              const pageWidth = 210; // A4 width in mm
-                              const pageHeight = 297; // A4 height in mm
+                              const pageWidth = 210;
+                              const pageHeight = 297;
                               
                               const scaleRatio = {
                                 x: (pageWidth / zoomLevel) / canvasRect.width,
                                 y: (pageHeight / zoomLevel) / canvasRect.height
                               };
                               
-                              // Calculer l'offset en mm
                               const clickOffsetX = (e.clientX - rect.left) * scaleRatio.x;
                               const clickOffsetY = (e.clientY - rect.top) * scaleRatio.y;
                               
                               setDragOffset({ x: clickOffsetX, y: clickOffsetY });
                             } else {
-                              // Sinon, sélectionner ce champ
                               startPositioning(field.id, field.position);
                             }
                           }
@@ -1002,11 +948,20 @@ const PDFFieldsEditor = ({
                         <div className="flex items-center gap-1">
                           {getCategoryIcon(field.category)}
                           <span>{field.label}</span>
+                          <button
+                            className="ml-1 text-red-500 hover:text-red-700 opacity-50 hover:opacity-100 transition-opacity"
+                            onClick={(e) => handleRemoveFieldLabel(e, field.id)}
+                            title={`Supprimer ${field.label}`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 6 6 18" />
+                              <path d="m6 6 12 12" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
                     ))}
                   
-                  {/* Champ en cours de positionnement si différent de la position actuelle */}
                   {positionedField && isDragging.current && (
                     <div
                       className="absolute border-2 border-blue-500 bg-blue-100 p-1 z-50"
@@ -1050,7 +1005,6 @@ const PDFFieldsEditor = ({
         </Card>
       </div>
       
-      {/* Dialog de duplication sur une autre page */}
       <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
         <DialogContent>
           <DialogHeader>
@@ -1086,7 +1040,6 @@ const PDFFieldsEditor = ({
         </DialogContent>
       </Dialog>
       
-      {/* Dialog de suppression d'une page */}
       <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
         <DialogContent>
           <DialogHeader>
