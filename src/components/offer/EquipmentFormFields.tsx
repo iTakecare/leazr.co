@@ -28,7 +28,7 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
 }) => {
   return (
     <div className="space-y-3 relative">
-      {/* Add remove button if onRemove is provided */}
+      {/* Bouton pour supprimer l'équipement si onRemove est fourni */}
       {onRemove && (
         <Button
           type="button"
@@ -116,7 +116,7 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
         </div>
       )}
 
-      {/* Hidden inputs for preserving values when fields are hidden */}
+      {/* Champs cachés pour préserver les valeurs quand les champs sont masqués */}
       {hideFinancialDetails && (
         <input
           type="hidden"

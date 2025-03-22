@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ const PDFPreview = ({ template }) => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageLoaded, setPageLoaded] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1); // Ajout d'un niveau de zoom
   const previewRef = useRef(null);
 
   // Reset pageLoaded when currentPage changes
@@ -25,7 +27,9 @@ const PDFPreview = ({ template }) => {
     clients: {
       company: "Entreprise Exemple SA",
       name: "Jean Dupont",
-      email: "jean.dupont@exemple.fr"
+      email: "jean.dupont@exemple.fr",
+      address: "123 Rue de l'Exemple, 75000 Paris",
+      phone: "+33 1 23 45 67 89"
     },
     equipment_description: JSON.stringify([
       {
@@ -51,7 +55,16 @@ const PDFPreview = ({ template }) => {
     monthly_payment: 99.89,
     coefficient: 1.08,
     created_at: new Date().toISOString(),
-    workflow_status: "draft"
+    workflow_status: "draft",
+    commission: 250,
+    equipment_total: 3350,
+    type: "Leasing Matériel IT",
+    remarks: "Offre spéciale pour renouvellement parc informatique",
+    user: {
+      name: "Gianni Sergi",
+      email: "gianni@itakecare.be",
+      phone: "+32 471 511 121"
+    }
   };
   
   const handleGeneratePreview = async () => {
@@ -139,7 +152,7 @@ const PDFPreview = ({ template }) => {
       }
       
       // For currency fields
-      if ((key.includes('amount') || key.includes('payment') || key.includes('price')) && typeof value === 'number') {
+      if ((key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) && typeof value === 'number') {
         try {
           return formatCurrency(value);
         } catch (e) {
@@ -253,12 +266,51 @@ const PDFPreview = ({ template }) => {
     console.log("Image chargée avec succès");
     setPageLoaded(true);
   };
+
+  // Convertir les millimètres en pixels pour le positionnement correct
+  const mmToPx = (mm) => {
+    // Facteur de conversion (1 mm = environ 3.78 pixels pour un affichage A4 standard à 96 DPI)
+    // Le facteur peut être ajusté en fonction de la taille de rendu souhaitée
+    const conversionFactor = 3.78;
+    return mm * conversionFactor * zoomLevel;
+  };
+  
+  // Zoom in
+  const zoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.1, 2));
+  };
+
+  // Zoom out
+  const zoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
+  };
   
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-medium">Aperçu du modèle de PDF</h3>
         <div className="flex gap-2">
+          <div className="flex items-center border rounded-md mr-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={zoomOut}
+              disabled={zoomLevel <= 0.5}
+              className="h-8 px-2"
+            >
+              -
+            </Button>
+            <span className="text-xs px-2">{Math.round(zoomLevel * 100)}%</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={zoomIn}
+              disabled={zoomLevel >= 2}
+              className="h-8 px-2"
+            >
+              +
+            </Button>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -277,7 +329,11 @@ const PDFPreview = ({ template }) => {
             ref={previewRef}
             className="bg-gray-100 p-4 flex justify-center min-h-[800px] overflow-auto"
           >
-            <div className="bg-white shadow-lg w-full max-w-[595px] relative">
+            <div className="bg-white shadow-lg relative" style={{ 
+              width: `${210 * zoomLevel}mm`, 
+              height: `${297 * zoomLevel}mm`,
+              maxWidth: "100%"
+            }}>
               {/* Navigation des pages */}
               {totalPages > 1 && (
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -307,44 +363,57 @@ const PDFPreview = ({ template }) => {
               
               {/* Fond de page si un template a été uploadé */}
               {hasTemplateImages ? (
-                <div className="relative">
+                <div className="relative" style={{ height: "100%" }}>
                   {getCurrentPageBackground() ? (
-                    <div className="relative" style={{ minHeight: "842px" }}>
+                    <div className="relative" style={{ height: "100%" }}>
                       <img 
                         src={getCurrentPageBackground()} 
                         alt={`Template page ${currentPage + 1}`}
-                        className="w-full h-auto"
+                        className="w-full h-full object-contain"
                         onError={handleImageError}
                         onLoad={handleImageLoad}
-                        style={{ 
-                          display: "block",
-                          width: "100%"
-                        }}
+                        style={{ display: "block" }}
                       />
                       
                       {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
                       {pageLoaded && getCurrentPageFields().map((field) => {
-                        // Définir le style de base pour tous les champs
-                        const baseStyle: CSSProperties = {
+                        // Position en millimètres
+                        const xMm = field.position?.x || 0;
+                        const yMm = field.position?.y ||
+                         0;
+                        
+                        // Convertir en pixels pour l'affichage
+                        const xPx = mmToPx(xMm);
+                        const yPx = mmToPx(yMm);
+                        
+                        // Définir le style de position
+                        const fieldStyle = {
                           position: "absolute",
-                          left: `${field.position?.x || 0}mm`,
-                          top: `${field.position?.y || 0}mm`,
+                          left: `${xPx}px`,
+                          top: `${yPx}px`,
                           zIndex: 5,
-                        };
+                          fontSize: `${9 * zoomLevel}px`,
+                          transform: "translate(0, 0)",
+                          whiteSpace: "pre-wrap",
+                          maxWidth: "80mm"
+                        } as CSSProperties;
                         
                         // Style spécifique pour le tableau d'équipements
-                        let fieldStyle: CSSProperties = { ...baseStyle };
-                        
-                        // Ajouter des styles spécifiques selon le type de champ
                         if (field.id === 'equipment_table') {
-                          fieldStyle.fontSize = "9px";
+                          fieldStyle.fontSize = `${9 * zoomLevel}px`;
+                          fieldStyle.maxWidth = "150mm";
+                        }
+                        
+                        // Ajouter du style en fonction du type de champ
+                        if (field.type === 'currency' || field.category === 'offer') {
+                          fieldStyle.fontWeight = 'bold';
                         }
                         
                         return (
                           <div 
                             key={field.id}
-                            className="absolute"
                             style={fieldStyle}
+                            className="pdf-field" // Classe pour faciliter le débogage CSS
                           >
                             {field.id === 'equipment_table' ? (
                               renderEquipmentTable(SAMPLE_OFFER.equipment_description)
@@ -356,7 +425,7 @@ const PDFPreview = ({ template }) => {
                       })}
                     </div>
                   ) : (
-                    <div className="w-full h-[842px] bg-white flex items-center justify-center border">
+                    <div className="w-full h-full bg-white flex items-center justify-center border">
                       <p className="text-gray-400">Pas d'image pour la page {currentPage + 1}</p>
                     </div>
                   )}
@@ -486,9 +555,10 @@ const PDFPreview = ({ template }) => {
           <li>Ajoutez des pages en uploadant des images dans l'onglet "Pages du modèle"</li>
           <li>Allez dans l'onglet "Champs et positionnement" pour définir les champs</li>
           <li>Pour chaque champ, sélectionnez la page sur laquelle il doit apparaître</li>
-          <li>Ajustez les coordonnées X et Y pour positionner précisément le champ</li>
+          <li>Ajustez les coordonnées X et Y pour positionner précisément le champ (en millimètres)</li>
           <li>Utilisez cet aperçu pour vérifier le positionnement de vos champs</li>
         </ol>
+        <p className="mt-2 font-medium text-blue-600">Note: Les coordonnées X/Y représentent la position en millimètres depuis le coin supérieur gauche de la page.</p>
         {totalPages > 1 && <p className="mt-2">Utilisez les boutons de navigation pour parcourir les différentes pages du document.</p>}
       </div>
     </div>
@@ -496,4 +566,3 @@ const PDFPreview = ({ template }) => {
 };
 
 export default PDFPreview;
-

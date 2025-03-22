@@ -155,7 +155,7 @@ export const generateOfferPdf = async (offer: any) => {
       // Formater selon le type
       if (typeof value === 'number') {
         // Détecter si c'est une valeur monétaire
-        if (key.includes('amount') || key.includes('payment') || key.includes('price')) {
+        if (key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) {
           return formatCurrency(value);
         }
         return value.toString();
@@ -210,8 +210,12 @@ export const generateOfferPdf = async (offer: any) => {
         template.fields
           .filter(field => field.isVisible && (field.page === index || (index === 0 && field.page === undefined)))
           .forEach(field => {
-            const x = field.position.x;
-            const y = field.position.y;
+            // Conversion des millimètres en points (unité utilisée par jsPDF)
+            // 1 mm = 2.83464567 points
+            const mmToPoints = (mm) => mm * 2.83464567;
+            
+            const x = mmToPoints(field.position.x || 0);
+            const y = mmToPoints(field.position.y || 0);
             
             if (field.id === 'equipment_table') {
               // Tableau d'équipements - uniquement si nous sommes sur la page appropriée

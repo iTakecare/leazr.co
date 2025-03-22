@@ -53,6 +53,12 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// Couleurs spécifiques pour l'éditeur de PDF
+				pdf: {
+					field: '#e6fffa',
+					selected: '#4fd1c5',
+					grid: '#e2e8f0'
+				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
