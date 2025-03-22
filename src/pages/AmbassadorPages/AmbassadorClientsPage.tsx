@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, RefreshCw, User, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
@@ -13,6 +13,8 @@ import PageTransition from "@/components/layout/PageTransition";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ClientsEmptyState } from "@/components/clients/ClientsEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
+import AmbassadorErrorHandler from "@/components/ambassador/AmbassadorErrorHandler";
+import { getAmbassadorClients } from "@/services/ambassadorClientService";
 
 const AmbassadorClientsPage = () => {
   const navigate = useNavigate();
@@ -26,57 +28,15 @@ const AmbassadorClientsPage = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchClients = useCallback(async () => {
-    if (!user?.ambassador_id) {
-      console.error("No ambassador_id found for current user");
-      setLoading(false);
-      return;
-    }
-    
     try {
       setLoading(true);
       setError(null);
       
-      console.log("Fetching clients for ambassador ID:", user.ambassador_id);
+      // Utiliser directement le service pour récupérer les clients
+      const data = await getAmbassadorClients();
       
-      const { data, error: queryError } = await supabase
-        .from("ambassador_clients")
-        .select(`
-          id,
-          client_id,
-          clients:client_id (*)
-        `)
-        .eq("ambassador_id", user.ambassador_id);
-      
-      if (queryError) {
-        console.error("Error fetching ambassador clients:", queryError);
-        throw queryError;
-      }
-      
-      console.log("Fetched ambassador-client data:", data);
-      
-      if (!data || data.length === 0) {
-        console.log("No clients found for this ambassador");
-        setClients([]);
-        setFilteredClients([]);
-        setLoading(false);
-        return;
-      }
-      
-      const processedClients = data.map(item => {
-        if (!item.clients) {
-          console.error(`Missing client data for association ${item.id}, client_id: ${item.client_id}`);
-          return null;
-        }
-        return {
-          ...item.clients,
-          ambassador_client_id: item.id
-        };
-      }).filter(client => client !== null);
-      
-      console.log("Processed clients:", processedClients);
-      
-      setClients(processedClients);
-      setFilteredClients(processedClients);
+      setClients(data);
+      setFilteredClients(data);
     } catch (err) {
       console.error("Error loading clients:", err);
       setError("Unable to load clients");
@@ -85,7 +45,7 @@ const AmbassadorClientsPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.ambassador_id]);
+  }, []);
   
   useEffect(() => {
     fetchClients();
@@ -189,7 +149,11 @@ const AmbassadorClientsPage = () => {
                 </TableRow>
               ))
             ) : (
-              <ClientsEmptyState />
+              <TableRow>
+                <TableCell colSpan={4}>
+                  <ClientsEmptyState />
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
@@ -253,12 +217,11 @@ const AmbassadorClientsPage = () => {
           </div>
           
           {error ? (
-            <div className="text-center p-10">
-              <p className="text-red-500 mb-4">{error}</p>
-              <Button variant="outline" onClick={handleRefresh}>
-                Try again
-              </Button>
-            </div>
+            <AmbassadorErrorHandler 
+              message={error} 
+              onRetry={handleRefresh} 
+              showDiagnosticInfo={true}
+            />
           ) : (
             isMobile ? renderClientCards() : renderClientTable()
           )}

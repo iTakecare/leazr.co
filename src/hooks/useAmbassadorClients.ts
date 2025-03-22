@@ -20,6 +20,7 @@ export const useAmbassadorClients = () => {
     } catch (err) {
       console.error("Error loading ambassador clients:", err);
       setError("Impossible de charger vos clients");
+      toast.error("Impossible de charger vos clients");
     } finally {
       setIsLoading(false);
     }
@@ -34,6 +35,7 @@ export const useAmbassadorClients = () => {
       const ambassadorId = await getCurrentAmbassadorProfile();
       if (!ambassadorId) {
         toast.error("Impossible de récupérer votre profil ambassadeur");
+        setError("Impossible de récupérer votre profil ambassadeur");
         return false;
       }
       
@@ -44,6 +46,7 @@ export const useAmbassadorClients = () => {
       
       if (!newClientId) {
         toast.error("Échec de la création du client");
+        setError("Échec de la création du client");
         return false;
       }
       
@@ -56,6 +59,7 @@ export const useAmbassadorClients = () => {
     } catch (err) {
       console.error("Error creating client as ambassador:", err);
       toast.error("Erreur lors de la création du client");
+      setError("Erreur lors de la création du client");
       return false;
     } finally {
       setIsLoading(false);

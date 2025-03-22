@@ -15,24 +15,24 @@ export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
     
     console.log("Current user:", userData.user.id);
     
+    // Utilisons single() au lieu de maybeSingle() pour éviter l'erreur 406
     const { data: ambassadorData, error: ambassadorError } = await supabase
       .from('ambassadors')
       .select('id')
-      .eq('user_id', userData.user.id)
-      .maybeSingle();
+      .eq('user_id', userData.user.id);
     
     if (ambassadorError) {
       console.error("Error fetching ambassador data:", ambassadorError);
       return null;
     }
     
-    if (!ambassadorData?.id) {
+    if (!ambassadorData || ambassadorData.length === 0) {
       console.error("No ambassador profile found for user", userData.user.id);
       return null;
     }
     
-    console.log("Ambassador found:", ambassadorData.id);
-    return ambassadorData.id;
+    console.log("Ambassador found:", ambassadorData[0].id);
+    return ambassadorData[0].id;
   } catch (error) {
     console.error("Error getting ambassador profile:", error);
     return null;
