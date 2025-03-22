@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,19 +97,13 @@ const PDFPreview = ({ template }) => {
       // Recherche de l'image correspondant à la page actuelle
       const pageImage = template.templateImages.find(img => img.page === currentPage);
       
-      console.log("Page actuelle:", currentPage);
-      console.log("Images disponibles:", template.templateImages.map(img => ({page: img.page, url: img.url})));
-      
       if (pageImage && pageImage.url) {
-        console.log("Image trouvée pour la page", currentPage, ":", pageImage.url);
         // Ajouter un timestamp pour éviter les problèmes de cache
         return `${pageImage.url}?t=${new Date().getTime()}`;
       } else {
-        console.log("Aucune image trouvée pour la page", currentPage);
         return null;
       }
     }
-    console.log("Aucune image de template disponible");
     return null;
   };
 
@@ -270,13 +263,15 @@ const PDFPreview = ({ template }) => {
                       {pageLoaded && getCurrentPageFields().map((field) => (
                         <div 
                           key={field.id}
-                          className="absolute text-sm bg-white bg-opacity-75 border border-blue-200 px-1.5 py-0.5 rounded"
+                          className="absolute text-sm"
                           style={{
                             left: `${field.position?.x || 0}mm`,
                             top: `${field.position?.y || 0}mm`,
                             zIndex: 5,
                             minWidth: "20px",
-                            minHeight: "16px"
+                            minHeight: "16px",
+                            background: "transparent",
+                            padding: "0"
                           }}
                         >
                           {field.id === 'equipment_table' ? (
