@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
-import PDFPreview from './PDFPreview';
+import PDFVisualEditor from './PDFVisualEditor';
 import { toast } from "sonner";
 import { PDFField } from '@/types/pdf';
 
@@ -408,7 +407,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   
   const [selectedPage, setSelectedPage] = useState(0);
   const [activeTab, setActiveTab] = useState("template");
-  const [selectedFieldId, setSelectedFieldId] = useState<string>('');
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   
   // Update template images when they change
   const handleImagesChange = (newImages) => {
@@ -457,58 +456,9 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     const newFields = currentTemplate.fields.filter(field => field.id !== fieldId);
     handleFieldsChange(newFields);
     if (selectedFieldId === fieldId) {
-      setSelectedFieldId('');
+      setSelectedFieldId(null);
     }
     toast.success("Champ supprimé");
-  };
-  
-  // Duplicate a field for a different page
-  const handleDuplicateField = (fieldId, targetPage) => {
-    const fieldToDuplicate = currentTemplate.fields.find(field => field.id === fieldId);
-    
-    if (!fieldToDuplicate) return;
-    
-    // Create a new ID for the duplicated field
-    const newId = `${fieldToDuplicate.id}_page${targetPage}`;
-    
-    // Check if this field already exists on the target page to avoid duplicates
-    const fieldExistsOnPage = currentTemplate.fields.some(
-      field => field.id === newId || (field.id === fieldId && field.page === targetPage)
-    );
-    
-    if (fieldExistsOnPage) {
-      toast.error(`Ce champ existe déjà sur la page ${targetPage + 1}`);
-      return;
-    }
-    
-    // Create the duplicated field for the target page
-    const duplicatedField = {
-      ...fieldToDuplicate,
-      id: newId,
-      page: targetPage,
-      isVisible: true
-    };
-    
-    const newFields = [...currentTemplate.fields, duplicatedField];
-    handleFieldsChange(newFields);
-    setSelectedFieldId(newId);
-    toast.success(`Champ "${fieldToDuplicate.label}" ajouté à la page ${targetPage + 1}`);
-  };
-  
-  // Remove a field from a specific page only
-  const handleRemoveFieldFromPage = (fieldId, page) => {
-    // Find the field
-    const fieldToRemove = currentTemplate.fields.find(field => field.id === fieldId && field.page === page);
-    
-    if (!fieldToRemove) return;
-    
-    // Remove the field from the array
-    const newFields = currentTemplate.fields.filter(field => !(field.id === fieldId && field.page === page));
-    handleFieldsChange(newFields);
-    if (selectedFieldId === fieldId) {
-      setSelectedFieldId('');
-    }
-    toast.success(`Champ supprimé de la page ${page + 1}`);
   };
   
   // Handle field position update via drag and drop
@@ -529,8 +479,27 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   };
   
   // Handle field selection
-  const handleFieldSelect = (fieldId: string) => {
+  const handleFieldSelect = (fieldId: string | null) => {
     setSelectedFieldId(fieldId);
+  };
+
+  // Set a field to be visible on the current page
+  const handleAddFieldToPage = (fieldId: string) => {
+    const updatedFields = currentTemplate.fields.map(field => {
+      if (field.id === fieldId) {
+        return {
+          ...field,
+          isVisible: true,
+          page: selectedPage,
+          position: field.position || { x: 50, y: 50 } // Default position if none exists
+        };
+      }
+      return field;
+    });
+    
+    handleFieldsChange(updatedFields);
+    setSelectedFieldId(fieldId);
+    toast.success("Champ ajouté à la page courante");
   };
   
   return (
@@ -538,8 +507,8 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="template">Pages du modèle</TabsTrigger>
-          <TabsTrigger value="fields">Champs et positionnement</TabsTrigger>
-          <TabsTrigger value="preview">Aperçu</TabsTrigger>
+          <TabsTrigger value="fields">Liste des champs</TabsTrigger>
+          <TabsTrigger value="visual">Positionnement visuel</TabsTrigger>
         </TabsList>
         
         <TabsContent value="template" className="mt-6">
@@ -561,19 +530,23 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
             onChange={handleFieldsChange}
             activePage={selectedPage}
             onPageChange={setSelectedPage}
-            template={currentTemplate}
             onDeleteField={handleDeleteField}
             onAddField={handleAddField}
-            onDuplicateField={handleDuplicateField}
-            onRemoveFieldFromPage={handleRemoveFieldFromPage}
+            selectedFieldId={selectedFieldId}
+            onSelectField={handleFieldSelect}
           />
         </TabsContent>
         
-        <TabsContent value="preview" className="mt-6">
-          <PDFPreview 
-            template={currentTemplate} 
-            onFieldSelect={handleFieldSelect}
+        <TabsContent value="visual" className="mt-6">
+          <PDFVisualEditor
+            template={currentTemplate}
+            selectedPage={selectedPage}
+            onPageChange={setSelectedPage}
             selectedFieldId={selectedFieldId}
+            onSelectField={handleFieldSelect}
+            onFieldMove={handleFieldMove}
+            onAddFieldToPage={handleAddFieldToPage}
+            allFields={currentTemplate.fields}
           />
         </TabsContent>
       </Tabs>

@@ -1,25 +1,22 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Copy, ChevronDown, ChevronUp, Settings, Move, Eye, EyeOff } from 'lucide-react';
-import { PDFField, PDFTemplate } from '@/types/pdf';
-import PDFPreview from './PDFPreview';
+import { Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { PDFField } from '@/types/pdf';
 
 interface PDFFieldsEditorProps {
   fields: PDFField[];
   onChange: (fields: PDFField[]) => void;
   activePage: number;
   onPageChange: (page: number) => void;
-  template: PDFTemplate;
   onDeleteField: (fieldId: string) => void;
   onAddField: (field: PDFField) => void;
-  onDuplicateField: (fieldId: string, targetPage: number) => void;
-  onRemoveFieldFromPage: (fieldId: string, page: number) => void;
+  selectedFieldId: string | null;
+  onSelectField: (fieldId: string | null) => void;
 }
 
 const PDFFieldsEditor = ({
@@ -27,16 +24,13 @@ const PDFFieldsEditor = ({
   onChange,
   activePage,
   onPageChange,
-  template,
   onDeleteField,
   onAddField,
-  onDuplicateField,
-  onRemoveFieldFromPage
+  selectedFieldId,
+  onSelectField
 }: PDFFieldsEditorProps) => {
   const [currentTab, setCurrentTab] = useState('client');
   const [showAddFieldForm, setShowAddFieldForm] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [selectedFieldId, setSelectedFieldId] = useState<string>('');
   const [newField, setNewField] = useState<Partial<PDFField>>({
     id: '',
     label: '',
@@ -54,51 +48,9 @@ const PDFFieldsEditor = ({
     }
   });
   
-  // Get all available pages from template images
-  const getAvailablePages = () => {
-    if (!template.templateImages || template.templateImages.length === 0) return [0];
-    const pageNumbers = template.templateImages.map(img => img.page);
-    return [...new Set(pageNumbers)].sort((a, b) => a - b);
-  };
-  
-  const pages = getAvailablePages();
-  
-  // Filters fields by category and page
-  const getFieldsByCategory = (category: string, page: number | null = null) => {
-    return fields.filter(field => 
-      field.category === category && 
-      (page === null || field.page === page || field.page === null)
-    );
-  };
-  
-  // Gets fields visible on the current page
-  const getFieldsOnPage = (page: number) => {
-    return fields.filter(field => field.page === page || field.page === null);
-  };
-  
-  // Gets fields for the current page by category
-  const getCurrentPageFieldsByCategory = (category: string) => {
-    return fields.filter(field => 
-      field.category === category && 
-      (field.page === activePage || field.page === null)
-    );
-  };
-  
-  // Get fields not assigned to the current page
-  const getAvailableFieldsForCurrentPage = (category: string) => {
-    return fields.filter(field => 
-      field.category === category && 
-      field.page !== activePage && 
-      !fields.some(f => f.id === field.id && f.page === activePage)
-    );
-  };
-  
-  // Get all available fields that could be added to the current page
-  const getAllAvailableFields = () => {
-    return fields.filter(field => 
-      !field.isVisible || 
-      (field.page !== activePage && !fields.some(f => f.id === field.id && f.page === activePage))
-    );
+  // Filters fields by category
+  const getFieldsByCategory = (category: string) => {
+    return fields.filter(field => field.category === category);
   };
   
   // Handle field visibility toggle
@@ -112,64 +64,11 @@ const PDFFieldsEditor = ({
     onChange(updatedFields);
   };
   
-  // Handle field position change
-  const handlePositionChange = (fieldId: string, axis: 'x' | 'y', value: number) => {
+  // Handle field value change
+  const handleValueChange = (fieldId: string, value: string) => {
     const updatedFields = fields.map(field => {
       if (field.id === fieldId) {
-        return { 
-          ...field, 
-          position: { 
-            ...field.position, 
-            [axis]: value 
-          } 
-        };
-      }
-      return field;
-    });
-    onChange(updatedFields);
-  };
-  
-  // Handle field position change from drag and drop
-  const handleFieldMove = (fieldId: string, x: number, y: number) => {
-    console.log(`Moving field ${fieldId} to position (${x}, ${y})`);
-    const updatedFields = fields.map(field => {
-      if (field.id === fieldId) {
-        return { 
-          ...field, 
-          position: { x, y },
-          isVisible: true, // Make sure the field is visible when positioned
-          page: activePage // Assign to current page
-        };
-      }
-      return field;
-    });
-    onChange(updatedFields);
-  };
-  
-  // Handle field selection
-  const handleFieldSelect = (fieldId: string) => {
-    setSelectedFieldId(fieldId);
-    
-    // If a field is selected, switch to its category tab
-    if (fieldId) {
-      const selectedField = fields.find(field => field.id === fieldId);
-      if (selectedField) {
-        setCurrentTab(selectedField.category);
-      }
-    }
-  };
-  
-  // Handle field style change
-  const handleStyleChange = (fieldId: string, property: string, value: any) => {
-    const updatedFields = fields.map(field => {
-      if (field.id === fieldId) {
-        return { 
-          ...field, 
-          style: { 
-            ...field.style, 
-            [property]: value 
-          } 
-        };
+        return { ...field, value };
       }
       return field;
     });
@@ -188,9 +87,9 @@ const PDFFieldsEditor = ({
       label: newField.label || 'Nouveau champ',
       type: newField.type || 'text',
       category: newField.category || 'client',
-      isVisible: true,
+      isVisible: false,
       value: newField.value || '',
-      page: activePage,
+      page: null,
       position: newField.position || { x: 20, y: 20 },
       style: newField.style || {
         fontSize: 10,
@@ -201,7 +100,7 @@ const PDFFieldsEditor = ({
     };
     
     onAddField(fieldToAdd);
-    setSelectedFieldId(fieldId); // Select the newly added field
+    onSelectField(fieldId);
     
     setNewField({
       id: '',
@@ -222,65 +121,30 @@ const PDFFieldsEditor = ({
     setShowAddFieldForm(false);
   };
   
-  // Add all fields of current category to the page
-  const handleAddAllToPage = () => {
-    const availableFields = getAvailableFieldsForCurrentPage(currentTab);
+  // Render field list for the current category
+  const renderFieldList = () => {
+    const categoryFields = getFieldsByCategory(currentTab);
     
-    if (availableFields.length === 0) return;
-    
-    const newFields = [];
-    
-    for (const field of availableFields) {
-      // Create a copy of the field for the current page
-      const newField = {
-        ...field,
-        id: `${field.id}_page${activePage}`,
-        page: activePage,
-        isVisible: true
-      };
-      
-      newFields.push(newField);
-    }
-    
-    onChange([...fields, ...newFields]);
-  };
-  
-  // Toggle fields to be visible
-  const makeFieldsVisible = (fieldsToToggle: PDFField[]) => {
-    const updatedFields = fields.map(field => {
-      const shouldBeVisible = fieldsToToggle.some(f => f.id === field.id);
-      if (shouldBeVisible) {
-        return { ...field, isVisible: true };
-      }
-      return field;
-    });
-    onChange(updatedFields);
-  };
-  
-  // Render field list for the current page and category
-  const renderCurrentPageFields = () => {
-    const fieldsOnPage = getCurrentPageFieldsByCategory(currentTab);
-    
-    if (fieldsOnPage.length === 0) {
+    if (categoryFields.length === 0) {
       return (
         <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-md">
-          Aucun champ {currentTab} sur la page {activePage + 1}
+          Aucun champ {currentTab} disponible
         </div>
       );
     }
     
     return (
       <div className="space-y-3">
-        {fieldsOnPage.map(field => (
+        {categoryFields.map(field => (
           <div 
             key={field.id} 
             className={`flex flex-col p-3 border rounded-md ${selectedFieldId === field.id ? 'bg-blue-50 border-blue-300' : 'bg-white'}`}
-            onClick={() => handleFieldSelect(field.id)}
+            onClick={() => onSelectField(field.id)}
           >
             <div className="flex justify-between items-center mb-2">
-              <div className="font-medium flex items-center">
-                <Move className="h-4 w-4 mr-2 text-blue-500" />
+              <div className="font-medium">
                 {field.label}
+                {field.page !== null && <span className="ml-2 text-xs text-gray-500">Page {field.page + 1}</span>}
                 {!field.isVisible && <span className="ml-2 text-gray-400 text-xs">(masqué)</span>}
               </div>
               <div className="flex space-x-1">
@@ -300,7 +164,7 @@ const PDFFieldsEditor = ({
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onRemoveFieldFromPage(field.id, activePage);
+                    onDeleteField(field.id);
                   }}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -308,76 +172,11 @@ const PDFFieldsEditor = ({
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <Label className="text-xs">Position X</Label>
-                <div className="flex items-center">
-                  <Input 
-                    type="number"
-                    value={field.position?.x || 0}
-                    onChange={(e) => handlePositionChange(field.id, 'x', Number(e.target.value))}
-                    className="w-full"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <span className="ml-1 text-xs">px</span>
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Position Y</Label>
-                <div className="flex items-center">
-                  <Input 
-                    type="number"
-                    value={field.position?.y || 0}
-                    onChange={(e) => handlePositionChange(field.id, 'y', Number(e.target.value))}
-                    className="w-full"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <span className="ml-1 text-xs">px</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <Label className="text-xs">Taille de police</Label>
-                <div className="flex items-center">
-                  <Input 
-                    type="number"
-                    value={field.style?.fontSize || 10}
-                    onChange={(e) => handleStyleChange(field.id, 'fontSize', Number(e.target.value))}
-                    className="w-full"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <span className="ml-1 text-xs">px</span>
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Style</Label>
-                <select 
-                  value={field.style?.fontWeight || 'normal'}
-                  onChange={(e) => handleStyleChange(field.id, 'fontWeight', e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <option value="normal">Normal</option>
-                  <option value="bold">Gras</option>
-                </select>
-              </div>
-            </div>
-            
             <div className="mt-2">
               <Label className="text-xs">Valeur</Label>
               <Input 
                 value={field.value}
-                onChange={(e) => {
-                  const updatedFields = fields.map(f => {
-                    if (f.id === field.id) {
-                      return { ...f, value: e.target.value };
-                    }
-                    return f;
-                  });
-                  onChange(updatedFields);
-                }}
+                onChange={(e) => handleValueChange(field.id, e.target.value)}
                 className="w-full"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -391,84 +190,19 @@ const PDFFieldsEditor = ({
     );
   };
   
-  // Render other available fields
-  const renderAvailableFields = () => {
-    const availableFields = getAvailableFieldsForCurrentPage(currentTab);
-    
-    if (availableFields.length === 0) {
-      return (
-        <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-md">
-          Aucun autre champ disponible
-        </div>
-      );
-    }
-    
-    return (
-      <div className="space-y-2">
-        {availableFields.map(field => (
-          <div key={field.id} className="flex justify-between items-center p-2 border rounded-md bg-white">
-            <div>
-              <span className="font-medium">{field.label}</span>
-              <span className="text-xs text-gray-500 ml-2">
-                {field.page !== null ? `Page ${field.page + 1}` : 'Global'}
-              </span>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => {
-                // Duplicate and make visible
-                onDuplicateField(field.id, activePage);
-                // Select the new field
-                setTimeout(() => {
-                  const newFieldId = `${field.id}_page${activePage}`;
-                  handleFieldSelect(newFieldId);
-                }, 100);
-              }}
-            >
-              <Copy className="h-4 w-4 mr-1" />
-              Ajouter à la page
-            </Button>
-          </div>
-        ))}
-      </div>
-    );
-  };
-  
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
-          <CardTitle>Configuration des champs</CardTitle>
-          <div className="flex space-x-2">
-            <select
-              value={activePage}
-              onChange={(e) => onPageChange(Number(e.target.value))}
-              className="px-2 py-1 border rounded-md text-sm"
-            >
-              {pages.map((page) => (
-                <option key={page} value={page}>
-                  Page {page + 1}
-                </option>
-              ))}
-            </select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddFieldForm(!showAddFieldForm)}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Ajouter un champ
-            </Button>
-            <Button
-              variant={showPreview ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowPreview(!showPreview)}
-            >
-              <Move className="h-4 w-4 mr-1" />
-              {showPreview ? "Masquer l'éditeur visuel" : "Positionner visuellement"}
-            </Button>
-          </div>
+          <CardTitle>Liste des champs</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAddFieldForm(!showAddFieldForm)}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Ajouter un champ
+          </Button>
         </div>
       </CardHeader>
       
@@ -548,77 +282,21 @@ const PDFFieldsEditor = ({
           </div>
         )}
         
-        {showPreview ? (
-          <div className="mb-4">
-            <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
-              <p className="text-blue-600 flex items-center">
-                <Move className="h-4 w-4 mr-2" />
-                Faites glisser les champs pour les positionner sur le modèle. Cliquez sur un champ pour le sélectionner.
-              </p>
-            </div>
-            <div className="h-[600px]">
-              <PDFPreview 
-                template={template} 
-                editMode={true}
-                onFieldMove={handleFieldMove}
-                onFieldSelect={handleFieldSelect}
-                selectedFieldId={selectedFieldId}
-                availableFields={fields}
-              />
-            </div>
-          </div>
-        ) : (
-          <Tabs value={currentTab} onValueChange={setCurrentTab}>
-            <TabsList className="mb-4 grid grid-cols-5 w-full">
-              <TabsTrigger value="client">Client</TabsTrigger>
-              <TabsTrigger value="offer">Offre</TabsTrigger>
-              <TabsTrigger value="equipment">Équipement</TabsTrigger>
-              <TabsTrigger value="user">Vendeur</TabsTrigger>
-              <TabsTrigger value="general">Général</TabsTrigger>
-            </TabsList>
-            
-            {['client', 'offer', 'equipment', 'user', 'general'].map(category => (
-              <TabsContent key={category} value={category} className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Champs sur la page {activePage + 1}
-                    </h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // Make all fields in this category visible
-                        const fieldsToToggle = getCurrentPageFieldsByCategory(category);
-                        makeFieldsVisible(fieldsToToggle);
-                      }}
-                    >
-                      Tout afficher
-                    </Button>
-                  </div>
-                  {renderCurrentPageFields()}
-                </div>
-                
-                <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Autres champs disponibles
-                    </h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddAllToPage}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Ajouter tous à la page
-                    </Button>
-                  </div>
-                  {renderAvailableFields()}
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        )}
+        <Tabs value={currentTab} onValueChange={setCurrentTab}>
+          <TabsList className="mb-4 grid grid-cols-5 w-full">
+            <TabsTrigger value="client">Client</TabsTrigger>
+            <TabsTrigger value="offer">Offre</TabsTrigger>
+            <TabsTrigger value="equipment">Équipement</TabsTrigger>
+            <TabsTrigger value="user">Vendeur</TabsTrigger>
+            <TabsTrigger value="general">Général</TabsTrigger>
+          </TabsList>
+          
+          {['client', 'offer', 'equipment', 'user', 'general'].map(category => (
+            <TabsContent key={category} value={category} className="space-y-4">
+              {renderFieldList()}
+            </TabsContent>
+          ))}
+        </Tabs>
       </CardContent>
     </Card>
   );
