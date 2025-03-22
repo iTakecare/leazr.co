@@ -165,7 +165,7 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
               border: '1px dashed #aaa',
               borderRadius: '4px',
               maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: field.style?.width ? `${field.style.width}` : 'auto'
+              width: field.style?.width ? `${field.style.width * scale}px` : 'auto'
             };
             
             return (
@@ -184,7 +184,7 @@ const PDFPreview = ({ template, onSave, onDownload, loading = false }: PDFPrevie
               fontStyle: field.style?.fontStyle || 'normal',
               textDecoration: field.style?.textDecoration || 'none',
               maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
-              width: field.style?.width ? `${field.style.width}` : 'auto'
+              width: field.style?.width ? `${field.style.width * scale}px` : 'auto'
             };
             
             return (

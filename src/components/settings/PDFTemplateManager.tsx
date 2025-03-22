@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,19 +57,42 @@ const PDFTemplateManager = () => {
     try {
       const supabase = getSupabaseClient();
       
-      const { data: tableInfo, error: tableInfoError } = await supabase
-        .from('information_schema.tables')
-        .select('table_name')
-        .eq('table_schema', 'public')
-        .eq('table_name', 'pdf_templates')
-        .single();
+      // First, check if the pdf_templates table exists
+      const { data: tableExists, error: tableCheckError } = await supabase.rpc('table_exists', {
+        table_name: 'pdf_templates'
+      });
       
-      if (tableInfoError && tableInfoError.code !== 'PGRST116') {
-        console.error("Error checking table existence:", tableInfoError);
-        throw new Error("Erreur lors de la vérification de la table");
-      }
-      
-      if (!tableInfo) {
+      if (tableCheckError) {
+        console.error("Error checking table existence:", tableCheckError);
+        
+        // Table likely doesn't exist, so create it
+        const { error: createError } = await supabase.rpc('execute_sql', {
+          sql: `
+            CREATE TABLE IF NOT EXISTS public.pdf_templates (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              "companyName" TEXT NOT NULL,
+              "companyAddress" TEXT NOT NULL,
+              "companyContact" TEXT NOT NULL,
+              "companySiret" TEXT NOT NULL,
+              "logoURL" TEXT,
+              "primaryColor" TEXT NOT NULL,
+              "secondaryColor" TEXT NOT NULL,
+              "headerText" TEXT NOT NULL,
+              "footerText" TEXT NOT NULL,
+              "templateImages" JSONB,
+              fields JSONB NOT NULL,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+            );
+          `
+        });
+        
+        if (createError) {
+          console.error("Error creating table:", createError);
+          throw new Error("Erreur lors de la création de la table");
+        }
+      } else if (!tableExists) {
         console.log("Table doesn't exist, creating it");
         const { error: createError } = await supabase.rpc('execute_sql', {
           sql: `
@@ -98,6 +122,7 @@ const PDFTemplateManager = () => {
         }
       }
       
+      // Now fetch templates from the table
       const { data, error } = await supabase
         .from('pdf_templates')
         .select('*')
