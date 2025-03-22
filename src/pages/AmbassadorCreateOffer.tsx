@@ -17,6 +17,9 @@ import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import CommissionDisplay from "@/components/ui/CommissionDisplay";
+import ClientSelector from "@/components/ui/ClientSelector";
+import { Client } from "@/types/client";
+import { getAmbassadorClients } from "@/services/ambassadorClientService";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -24,10 +27,11 @@ const AmbassadorCreateOffer = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const [client, setClient] = useState(null);
+  const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ambassador, setAmbassador] = useState(null);
+  const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -107,7 +111,18 @@ const AmbassadorCreateOffer = () => {
   };
   
   const handleOpenClientSelector = () => {
-    toast.info("La sélection de client n'est pas disponible dans cette version");
+    setClientSelectorOpen(true);
+  };
+  
+  const handleSelectClient = (selectedClient: { id: string; name: string; email: string; company: string }) => {
+    setClient({
+      id: selectedClient.id,
+      name: selectedClient.name,
+      email: selectedClient.email || "",
+      company: selectedClient.company || "",
+      created_at: new Date(),
+      updated_at: new Date()
+    });
   };
   
   const handleOpenCatalog = () => {
@@ -222,6 +237,12 @@ const AmbassadorCreateOffer = () => {
   return (
     <PageTransition>
       <Container>
+        <ClientSelector 
+          isOpen={clientSelectorOpen} 
+          onClose={() => setClientSelectorOpen(false)} 
+          onSelectClient={handleSelectClient}
+        />
+        
         <div className="py-12 px-4">
           <div className="max-w-[90rem] mx-auto">
             <div className="flex justify-between items-center mb-8">

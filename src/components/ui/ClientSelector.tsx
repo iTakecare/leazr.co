@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Sheet, 
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, User, Building2, Mail, Plus, Loader2, RefreshCw } from "lucide-react";
 import { getClients, createClient } from "@/services/clientService";
-import { linkClientToAmbassador } from "@/services/ambassadorClientService";
+import { linkClientToAmbassador, getAmbassadorClients } from "@/services/ambassadorClientService";
 import { Client, CreateClientData } from "@/types/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,37 +68,9 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
         let clientsData: Client[] = [];
         
         if (isAmbassador() && user?.ambassador_id) {
-          console.log("Loading ambassador clients for:", user.ambassador_id);
-          
-          const { data, error: queryError } = await supabase
-            .from("ambassador_clients")
-            .select(`
-              id,
-              client_id,
-              clients:client_id(*)
-            `)
-            .eq("ambassador_id", user.ambassador_id);
-          
-          if (queryError) {
-            console.error("Error fetching ambassador clients from selector:", queryError);
-            throw queryError;
-          }
-          
-          console.log("Raw ambassador-client data from selector:", data);
-          
-          if (data && data.length > 0) {
-            clientsData = data
-              .filter(item => item.clients)
-              .map(item => ({
-                ...item.clients,
-                ambassador_client_id: item.id
-              }));
-            
-            console.log("Processed clients data from selector:", clientsData);
-          } else {
-            console.log("No clients found for this ambassador in selector");
-            clientsData = [];
-          }
+          console.log("Loading ambassador clients from getAmbassadorClients for:", user.ambassador_id);
+          clientsData = await getAmbassadorClients(user.ambassador_id);
+          console.log("Ambassador clients loaded:", clientsData);
         } else {
           clientsData = await getClients();
         }
@@ -105,7 +78,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
         setClients(clientsData);
       } catch (error) {
         console.error("Error fetching clients:", error);
-        toast.error("Error loading clients");
+        toast.error("Erreur lors du chargement des clients");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -120,7 +93,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchClients();
-    toast.success("Client list refreshed");
+    toast.success("Liste des clients actualisée");
   };
   
   const filteredClients = clients.filter(client => 
@@ -150,7 +123,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
       
       const newClient = await createClient(clientData);
       if (newClient) {
-        toast.success("Client created successfully");
+        toast.success("Client créé avec succès");
         
         if (isAmbassador() && user?.ambassador_id) {
           try {
@@ -162,17 +135,17 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
             const linked = await linkClientToAmbassador(newClient.id, user.ambassador_id);
             
             if (linked) {
-              console.log("Client successfully associated with ambassador from selector");
+              console.log("Client associé avec succès à l'ambassadeur");
               setTimeout(() => {
                 fetchClients();
               }, 500);
             } else {
-              console.error("Failed to associate client with ambassador from selector");
-              toast.error("Error associating client with ambassador");
+              console.error("Échec de l'association du client avec l'ambassadeur");
+              toast.error("Erreur lors de l'association du client à l'ambassadeur");
             }
           } catch (associationError) {
-            console.error("Exception associating client:", associationError);
-            toast.error("Error associating client with ambassador");
+            console.error("Exception lors de l'association du client:", associationError);
+            toast.error("Erreur lors de l'association du client à l'ambassadeur");
           }
         } else {
           setClients(prevClients => [...prevClients, newClient]);
@@ -184,8 +157,8 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
         handleSelectClient(newClient);
       }
     } catch (error) {
-      console.error("Error creating client:", error);
-      toast.error("Error creating client");
+      console.error("Erreur lors de la création du client:", error);
+      toast.error("Erreur lors de la création du client");
     } finally {
       setSubmitting(false);
     }
@@ -195,9 +168,9 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
     <Sheet open={isOpen} onOpenChange={() => onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Client Selection</SheetTitle>
+          <SheetTitle>Sélection du client</SheetTitle>
           <SheetDescription>
-            Choose a client for your offer
+            Choisissez un client pour votre offre
           </SheetDescription>
         </SheetHeader>
 
@@ -206,7 +179,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search for a client..."
+                placeholder="Rechercher un client..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -226,7 +199,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
           
           {showForm && (
             <div className="border rounded-lg p-4">
-              <h3 className="font-medium mb-3">New client</h3>
+              <h3 className="font-medium mb-3">Nouveau client</h3>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
@@ -234,9 +207,9 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name*</FormLabel>
+                        <FormLabel>Nom*</FormLabel>
                         <FormControl>
-                          <Input placeholder="Client name" {...field} />
+                          <Input placeholder="Nom du client" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -250,7 +223,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input placeholder="Client email" {...field} />
+                          <Input placeholder="Email du client" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -262,9 +235,9 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
                     name="company"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company</FormLabel>
+                        <FormLabel>Entreprise</FormLabel>
                         <FormControl>
-                          <Input placeholder="Company name" {...field} />
+                          <Input placeholder="Nom de l'entreprise" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -277,16 +250,16 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
                       variant="outline" 
                       onClick={() => setShowForm(false)}
                     >
-                      Cancel
+                      Annuler
                     </Button>
                     <Button type="submit" disabled={submitting}>
                       {submitting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating...
+                          Création...
                         </>
                       ) : (
-                        "Create"
+                        "Créer"
                       )}
                     </Button>
                   </div>
@@ -315,18 +288,18 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
                     <div className="space-y-1 pl-8">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Building2 className="h-4 w-4" />
-                        <span>{client.company || "No company"}</span>
+                        <span>{client.company || "Aucune entreprise"}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Mail className="h-4 w-4" />
-                        <span>{client.email || "No email"}</span>
+                        <span>{client.email || "Aucun email"}</span>
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="py-8 text-center">
-                  <p className="text-muted-foreground">No clients found</p>
+                  <p className="text-muted-foreground">Aucun client trouvé</p>
                   {!showForm && (
                     <Button 
                       variant="outline" 
@@ -334,7 +307,7 @@ const ClientSelector = ({ isOpen, onClose, onSelectClient }: ClientSelectorProps
                       onClick={() => setShowForm(true)}
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      Create a client
+                      Créer un client
                     </Button>
                   )}
                 </div>

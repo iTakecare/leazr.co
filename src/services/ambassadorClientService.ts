@@ -1,7 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreateClientData } from "@/types/client";
+import { CreateClientData, Client } from "@/types/client";
 
 // Obtenir le profil ambassadeur de l'utilisateur actuel
 export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
@@ -39,16 +38,20 @@ export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
 };
 
 // Obtenir les clients d'un ambassadeur
-export const getAmbassadorClients = async (): Promise<any[]> => {
+export const getAmbassadorClients = async (ambassadorId?: string): Promise<Client[]> => {
   try {
-    const ambassadorId = await getCurrentAmbassadorProfile();
+    let ambassadorIdToUse = ambassadorId;
     
-    if (!ambassadorId) {
+    if (!ambassadorIdToUse) {
+      ambassadorIdToUse = await getCurrentAmbassadorProfile();
+    }
+    
+    if (!ambassadorIdToUse) {
       console.error("Failed to get ambassador ID");
       return [];
     }
     
-    console.log("Loading clients for ambassador:", ambassadorId);
+    console.log("Loading clients for ambassador:", ambassadorIdToUse);
     
     const { data, error } = await supabase
       .from("ambassador_clients")
@@ -57,7 +60,7 @@ export const getAmbassadorClients = async (): Promise<any[]> => {
         client_id,
         clients:client_id(*)
       `)
-      .eq("ambassador_id", ambassadorId);
+      .eq("ambassador_id", ambassadorIdToUse);
     
     if (error) {
       console.error("Error loading ambassador clients:", error);
