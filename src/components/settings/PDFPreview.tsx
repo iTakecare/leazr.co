@@ -1,5 +1,4 @@
-
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, FileDown, Printer, Maximize2, ArrowLeft, ArrowRight } from "lucide-react";
@@ -325,8 +324,8 @@ const PDFPreview = ({ template }) => {
                       
                       {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
                       {pageLoaded && getCurrentPageFields().map((field) => {
-                        // Déterminer le style pour le champ spécifique
-                        const fieldStyle = {
+                        // Définir le style de base pour tous les champs
+                        const baseStyle: CSSProperties = {
                           position: "absolute",
                           left: `${field.position?.x || 0}mm`,
                           top: `${field.position?.y || 0}mm`,
@@ -334,11 +333,11 @@ const PDFPreview = ({ template }) => {
                         };
                         
                         // Style spécifique pour le tableau d'équipements
+                        let fieldStyle: CSSProperties = { ...baseStyle };
+                        
+                        // Ajouter des styles spécifiques selon le type de champ
                         if (field.id === 'equipment_table') {
                           fieldStyle.fontSize = "9px";
-                          // Pas de transform pour le tableau pour éviter des problèmes de mise en page
-                        } else {
-                          // Pas de transform pour les autres champs pour que leur placement corresponde exactement à l'éditeur
                         }
                         
                         return (
@@ -497,3 +496,4 @@ const PDFPreview = ({ template }) => {
 };
 
 export default PDFPreview;
+
