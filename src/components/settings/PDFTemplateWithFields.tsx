@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -433,13 +434,15 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       ...currentTemplate,
       fields: newFields
     });
-    
-    // Auto-save the template
+  };
+
+  // Save the template with updated fields
+  const handleSaveTemplate = () => {
     if (onSave) {
       onSave({
-        ...currentTemplate,
-        fields: newFields
+        ...currentTemplate
       });
+      toast.success("Modèle enregistré avec succès");
     }
   };
 
@@ -547,6 +550,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
             onFieldMove={handleFieldMove}
             onAddFieldToPage={handleAddFieldToPage}
             allFields={currentTemplate.fields}
+            onSave={handleSaveTemplate}
           />
         </TabsContent>
       </Tabs>

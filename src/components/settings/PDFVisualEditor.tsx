@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Download, Move, Eye, EyeOff, Search, ArrowDown, ArrowUp } from 'lucide-react';
+import { Plus, Download, Move, Eye, EyeOff, Search, ArrowDown, ArrowUp, Save } from 'lucide-react';
 import { PDFTemplate, PDFField } from '@/types/pdf';
 import { generateOfferPdf } from '@/utils/pdfGenerator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from "sonner";
 
 interface PDFVisualEditorProps {
   template: PDFTemplate;
@@ -20,6 +21,7 @@ interface PDFVisualEditorProps {
   onFieldMove: (fieldId: string, x: number, y: number) => void;
   onAddFieldToPage: (fieldId: string) => void;
   allFields: PDFField[];
+  onSave?: () => void;
 }
 
 const PDFVisualEditor = ({
@@ -30,7 +32,8 @@ const PDFVisualEditor = ({
   onSelectField,
   onFieldMove,
   onAddFieldToPage,
-  allFields
+  allFields,
+  onSave
 }: PDFVisualEditorProps) => {
   const [scale, setScale] = useState(0.5);
   const [isDragging, setIsDragging] = useState(false);
@@ -142,6 +145,14 @@ const PDFVisualEditor = ({
       await generateOfferPdf(offerWithTemplate);
     } catch (error) {
       console.error("Error generating PDF:", error);
+    }
+  };
+
+  // Handle save positions
+  const handleSavePositions = () => {
+    if (onSave) {
+      onSave();
+      toast.success("Positions des champs enregistrées");
     }
   };
 
@@ -293,10 +304,16 @@ const PDFVisualEditor = ({
           </Select>
         </div>
         
-        <Button onClick={handleDownloadPDF}>
-          <Download className="h-4 w-4 mr-1" />
-          Télécharger PDF
-        </Button>
+        <div className="flex space-x-2">
+          <Button onClick={handleSavePositions} variant="outline">
+            <Save className="h-4 w-4 mr-1" />
+            Enregistrer
+          </Button>
+          <Button onClick={handleDownloadPDF}>
+            <Download className="h-4 w-4 mr-1" />
+            Télécharger PDF
+          </Button>
+        </div>
       </div>
       
       <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4 flex items-center text-blue-600">
