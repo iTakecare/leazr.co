@@ -5,8 +5,7 @@ import { toast } from "sonner";
 import { sendWelcomeEmail } from "./emailService";
 import { createUserAccount, resetPassword } from "./accountService";
 
-// Remove mock clients to prevent confusion with real data
-
+// Fonction de mapping pour convertir un enregistrement de la base de données en objet Client
 const mapDbClientToClient = (record: any): Client => {
   return {
     id: record.id,
@@ -30,6 +29,7 @@ const mapDbClientToClient = (record: any): Client => {
   };
 };
 
+// Récupérer tous les clients
 export const getClients = async (): Promise<Client[]> => {
   try {
     console.log("Fetching clients from Supabase");
@@ -52,6 +52,7 @@ export const getClients = async (): Promise<Client[]> => {
   }
 };
 
+// Récupérer un client par son ID
 export const getClientById = async (id: string): Promise<Client | null> => {
   try {
     console.log(`getClientById called with id: ${id}`);
@@ -88,28 +89,28 @@ export const getClientById = async (id: string): Promise<Client | null> => {
   }
 };
 
+// Créer un nouveau client
 export const createClient = async (clientData: CreateClientData): Promise<Client | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      toast.error("You must be logged in to create a client");
+      toast.error("Vous devez être connecté pour créer un client");
       return null;
     }
     
     console.log("Creating client with data:", clientData);
     
-    // Important: Don't use logged in user's ID for the client's user_id
-    // Instead, leave it null until a specific user account is created for this client
+    // Le user_id est laissé à null jusqu'à la création d'un compte utilisateur spécifique pour ce client
     const clientToCreate = {
       ...clientData,
       has_user_account: false,
-      user_id: null // Explicitly set to null to avoid auto-assignments
+      user_id: null
     };
     
     console.log("Client to create:", clientToCreate);
     
-    // Insert the client record
+    // Insertion du client dans la base de données
     const { data, error } = await supabase
       .from('clients')
       .insert(clientToCreate)
@@ -118,6 +119,15 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
     
     if (error) {
       console.error("Supabase error details:", error);
+      
+      // Log l'erreur pour diagnostic
+      await supabase.from("error_logs").insert({
+        user_id: user.id,
+        error_context: "createClient",
+        error_message: JSON.stringify(error),
+        request_data: clientToCreate
+      });
+      
       throw error;
     }
     
@@ -136,6 +146,7 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
   }
 };
 
+// Mettre à jour un client existant
 export const updateClient = async (id: string, clientData: Partial<CreateClientData>): Promise<Client | null> => {
   try {
     const { data, error } = await supabase
@@ -155,8 +166,10 @@ export const updateClient = async (id: string, clientData: Partial<CreateClientD
   }
 };
 
+// Supprimer un client
 export const deleteClient = async (id: string): Promise<boolean> => {
   try {
+    // Vérifier si le client a des offres associées
     const { data: offers, error: offersError } = await supabase
       .from('offers')
       .select('id')
@@ -187,8 +200,9 @@ export const deleteClient = async (id: string): Promise<boolean> => {
   }
 };
 
+// Vérifier un numéro de TVA
 export const verifyVatNumber = async (vatNumber: string): Promise<{ valid: boolean, companyName?: string, address?: string }> => {
-  // An actual VAT verification API would be better here
+  // Un vrai service de vérification de TVA serait préférable ici
   try {
     console.log("Verifying VAT number:", vatNumber);
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -199,8 +213,7 @@ export const verifyVatNumber = async (vatNumber: string): Promise<{ valid: boole
     const isValidFormat = vatRegex.test(cleanVatNumber);
     
     if (isValidFormat) {
-      // This is simplified validation logic just for demo purposes
-      // In production, you would call an actual VAT validation service
+      // Logique de validation simplifiée pour la démonstration
       if (cleanVatNumber.startsWith("BE") || 
           cleanVatNumber.startsWith("FR") || 
           cleanVatNumber.startsWith("LU") || 
@@ -226,6 +239,7 @@ export const verifyVatNumber = async (vatNumber: string): Promise<{ valid: boole
   }
 };
 
+// Ajouter un collaborateur à un client
 export const addCollaborator = async (clientId: string, collaborator: Omit<Collaborator, 'id'>): Promise<Collaborator | null> => {
   try {
     const client = await getClientById(clientId);
@@ -257,6 +271,7 @@ export const addCollaborator = async (clientId: string, collaborator: Omit<Colla
   }
 };
 
+// Supprimer un collaborateur d'un client
 export const removeCollaborator = async (clientId: string, collaboratorId: string): Promise<boolean> => {
   try {
     const client = await getClientById(clientId);
@@ -278,58 +293,6 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
   } catch (error) {
     console.error("Error removing collaborator:", error);
     toast.error("Erreur lors de la suppression du collaborateur");
-    return false;
-  }
-};
-
-export const linkClientToAmbassador = async (clientId: string, ambassadorId: string): Promise<boolean> => {
-  try {
-    console.log("🔗 Linking client to ambassador:", { clientId, ambassadorId });
-    
-    if (!clientId || !ambassadorId) {
-      console.error("🚫 Missing required parameters for linkClientToAmbassador", { clientId, ambassadorId });
-      toast.error("Missing client or ambassador ID");
-      return false;
-    }
-    
-    // First check if the link already exists to avoid duplicate entries
-    const { data: existingLinks, error: checkError } = await supabase
-      .from("ambassador_clients")
-      .select("*")
-      .eq("ambassador_id", ambassadorId)
-      .eq("client_id", clientId);
-      
-    if (checkError) {
-      console.error("🚫 Error checking existing ambassador-client links:", checkError);
-      toast.error("Error checking existing client links");
-      return false;
-    }
-    
-    // If link already exists, return success
-    if (existingLinks && existingLinks.length > 0) {
-      console.log("✅ Client is already linked to this ambassador");
-      return true;
-    }
-    
-    // Create the link (now using regular supabase client since RLS policies are set up)
-    const { error: insertError } = await supabase
-      .from("ambassador_clients")
-      .insert({
-        ambassador_id: ambassadorId,
-        client_id: clientId
-      });
-    
-    if (insertError) {
-      console.error("🚫 Error linking client to ambassador:", insertError);
-      toast.error("Error linking client to ambassador");
-      return false;
-    }
-    
-    console.log("✅ Client successfully linked to ambassador");
-    return true;
-  } catch (error) {
-    console.error("🚫 Exception when linking client to ambassador:", error);
-    toast.error("Error linking client to ambassador");
     return false;
   }
 };
