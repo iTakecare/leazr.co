@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
-import AmbassadorEquipmentList from "@/components/ambassador/AmbassadorEquipmentList";
+import EquipmentList from "@/components/offer/EquipmentList";
 import { Equipment, Leaser, GlobalMarginAdjustment } from "@/types/equipment";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
@@ -15,6 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
+import CommissionDisplay from "@/components/ui/CommissionDisplay";
 import ClientSelector from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
 import { getAmbassadorClients } from "@/services/ambassadorClientService";
@@ -224,6 +226,7 @@ const AmbassadorCreateOffer = () => {
     });
   };
   
+  // Set hideFinancialDetails to true for ambassador view
   const hideFinancialDetails = true;
   
   useEffect(() => {
@@ -291,7 +294,7 @@ const AmbassadorCreateOffer = () => {
                   </div>
 
                   <div className="space-y-8">
-                    <AmbassadorEquipmentList
+                    <EquipmentList
                       equipmentList={equipmentList}
                       editingId={editingId}
                       startEditing={startEditing}
@@ -306,7 +309,6 @@ const AmbassadorCreateOffer = () => {
                       }}
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                       hideFinancialDetails={hideFinancialDetails}
-                      hideCommissionDisplay={true}
                       ambassadorId={ambassadorId || user?.ambassador_id}
                       commissionLevelId={ambassador?.commission_level_id}
                     />
