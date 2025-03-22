@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit, Plus, MinusCircle, PlusCircle, DollarSign } from "lucide-react";
+import { Trash2, Edit, Plus, MinusCircle, PlusCircle } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { calculateCommissionByLevel } from "@/utils/calculator";
 import { toast } from "sonner";
@@ -254,12 +253,8 @@ const EquipmentList = ({
             {commission?.amount > 0 && (
               <div className="flex justify-between items-center pt-2">
                 <div className="font-medium">Votre commission :</div>
-                <div className="text-green-600 font-medium flex items-center gap-1">
-                  <DollarSign className="h-4 w-4" />
+                <div className="text-green-600 font-medium">
                   {formatCurrency(commission.amount)}
-                  {commission.rate > 0 && (
-                    <span className="text-sm text-muted-foreground">({commission.rate}%)</span>
-                  )}
                 </div>
               </div>
             )}
