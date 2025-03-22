@@ -9,84 +9,34 @@ import { toast } from "sonner";
 import { getAdminSupabaseClient, supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { 
-  detectMimeTypeFromSignature, 
-  getMimeTypeFromExtension 
+  uploadImage
 } from "@/services/imageService";
 
 const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
   
-  // Uploader une image
-  const uploadImage = async (file) => {
+  // Uploader une image en utilisant le service d'upload qui fonctionne
+  const handleImageUpload = async (file) => {
     if (!file) return null;
     
     try {
       setIsUploading(true);
       
-      // Générer un nom de fichier unique
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExt}`;
+      console.log("Début du processus d'upload pour:", file.name);
       
-      console.log("Tentative d'upload du fichier:", fileName);
-      console.log("Type de fichier original:", file.type);
-      console.log("Taille du fichier:", file.size);
+      // Utiliser la fonction uploadImage qui gère correctement le type MIME
+      const result = await uploadImage(file, uuidv4(), 'pdf-templates');
       
-      // Détecter le bon type MIME basé sur la signature du fichier ou l'extension
-      const detectedMimeType = await detectMimeTypeFromSignature(file);
-      const contentType = detectedMimeType || getMimeTypeFromExtension(fileExt, 'image/png');
-      
-      console.log("Type MIME détecté:", contentType);
-      
-      // Créer un nouveau blob avec le bon type MIME
-      const arrayBuffer = await file.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: contentType });
-      
-      // Essayer d'abord avec le client standard
-      let { data, error } = await supabase.storage
-        .from('pdf-templates')
-        .upload(fileName, blob, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: contentType // Utiliser le type MIME détecté
-        });
-        
-      if (error) {
-        console.log("Erreur avec le client standard. Tentative avec le client admin...");
-        
-        // Si ça échoue, essayer avec le client admin
-        const adminSupabase = getAdminSupabaseClient();
-        const result = await adminSupabase.storage
-          .from('pdf-templates')
-          .upload(fileName, blob, {
-            cacheControl: '3600',
-            upsert: true,
-            contentType: contentType // Utiliser le type MIME détecté
-          });
-          
-        if (result.error) {
-          console.error("Erreur détaillée lors de l'upload avec le client admin:", result.error);
-          toast.error(`Erreur lors de l'upload du fichier: ${result.error.message}`);
-          return null;
-        }
-        
-        data = result.data;
+      if (result && result.url) {
+        return {
+          id: result.url.split('/').pop(),
+          name: file.name,
+          url: result.url,
+          page: templateImages.length
+        };
+      } else {
+        throw new Error("L'URL du fichier n'a pas été générée correctement");
       }
-      
-      console.log("Fichier uploadé avec succès:", data);
-      
-      // Récupérer l'URL publique
-      const { data: { publicUrl } } = supabase.storage
-        .from('pdf-templates')
-        .getPublicUrl(fileName);
-        
-      console.log("URL publique générée:", publicUrl);
-      
-      return {
-        id: fileName,
-        name: file.name,
-        url: publicUrl,
-        page: templateImages.length
-      };
     } catch (error) {
       console.error("Exception non gérée lors de l'upload:", error);
       toast.error(`Erreur lors de l'upload du fichier: ${error.message || JSON.stringify(error)}`);
@@ -154,7 +104,7 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     
     console.log("Début du processus d'upload pour:", file.name);
     
-    const uploadedImage = await uploadImage(file);
+    const uploadedImage = await handleImageUpload(file);
     if (uploadedImage) {
       const newImages = [...templateImages, uploadedImage];
       onChange(newImages);
