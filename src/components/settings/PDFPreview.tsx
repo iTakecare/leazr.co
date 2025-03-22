@@ -114,12 +114,12 @@ const PDFPreview = ({ template }) => {
       }
       
       // For date fields
-      if (key === 'created_at') {
+      if (key === 'created_at' && typeof value === 'string') {
         return new Date(value).toLocaleDateString();
       }
       
       // For currency fields
-      if (key.includes('amount') || key.includes('payment') || key.includes('price')) {
+      if ((key.includes('amount') || key.includes('payment') || key.includes('price')) && typeof value === 'number') {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
       }
       

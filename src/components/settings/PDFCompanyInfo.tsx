@@ -1,13 +1,54 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
 
-const PDFCompanyInfo = ({ form }) => {
+const PDFCompanyInfo = ({ template, onSave, loading }) => {
+  const form = useForm({
+    defaultValues: {
+      name: template?.name || "Modèle par défaut",
+      companyName: template?.companyName || "iTakeCare",
+      companyAddress: template?.companyAddress || "",
+      companyContact: template?.companyContact || "",
+      companySiret: template?.companySiret || "",
+      logoURL: template?.logoURL || "",
+      primaryColor: template?.primaryColor || "#2C3E50",
+      secondaryColor: template?.secondaryColor || "#3498DB",
+      headerText: template?.headerText || "OFFRE N° {offer_id}",
+      footerText: template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."
+    }
+  });
+
+  // Update form values when template changes
+  useEffect(() => {
+    if (template) {
+      form.reset({
+        name: template.name || "Modèle par défaut",
+        companyName: template.companyName || "iTakeCare",
+        companyAddress: template.companyAddress || "",
+        companyContact: template.companyContact || "",
+        companySiret: template.companySiret || "",
+        logoURL: template.logoURL || "",
+        primaryColor: template.primaryColor || "#2C3E50",
+        secondaryColor: template.secondaryColor || "#3498DB",
+        headerText: template.headerText || "OFFRE N° {offer_id}",
+        footerText: template.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."
+      });
+    }
+  }, [template]);
+
+  // Submit handler
+  const handleSubmit = form.handleSubmit((data) => {
+    if (onSave) {
+      onSave(data);
+    }
+  });
+
   const handleLogoUpload = async (e) => {
     // Cette fonction serait implémentée pour gérer l'upload d'image
     // Pour le moment, nous utiliserons simplement l'URL de l'image
@@ -22,7 +63,7 @@ const PDFCompanyInfo = ({ form }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <FormField
           control={form.control}
@@ -138,7 +179,13 @@ const PDFCompanyInfo = ({ form }) => {
           />
         </div>
       </Card>
-    </div>
+      
+      <div className="flex justify-end">
+        <Button type="submit" disabled={loading}>
+          {loading ? 'Sauvegarde en cours...' : 'Sauvegarder les informations'}
+        </Button>
+      </div>
+    </form>
   );
 };
 
