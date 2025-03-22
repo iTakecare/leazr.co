@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { getOffers } from "@/services/offerService";
+import { getOffers } from "@/services/offers";
 import { toast } from "sonner";
 import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 

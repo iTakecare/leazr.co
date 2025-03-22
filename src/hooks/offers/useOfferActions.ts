@@ -1,7 +1,12 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { deleteOffer, updateOfferStatus, sendInfoRequest, processInfoResponse } from "@/services/offerService";
+import { 
+  deleteOffer, 
+  updateOfferStatus, 
+  sendInfoRequest, 
+  processInfoResponse 
+} from "@/services/offers";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { Offer } from "./useFetchOffers";
 

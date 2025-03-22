@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import ClientSelector from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
 import { getAmbassadorClients } from "@/services/ambassadorClientService";
+import { createOffer } from "@/services/offers";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -181,22 +181,20 @@ const AmbassadorCreateOffer = () => {
         remarks: remarks
       });
       
-      const { data, error } = await supabase.from("offers").insert([
-        {
-          client_id: client.id,
-          client_name: client.name,
-          client_email: client.email,
-          equipment_description: equipmentDescription,
-          amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
-          coefficient: globalMarginAdjustment.newCoef,
-          monthly_payment: totalMonthlyPayment,
-          commission: totalMonthlyPayment * 0.1,
-          workflow_status: "draft",
-          type: "ambassador_offer",
-          user_id: user?.id,
-          remarks: remarks
-        }
-      ]).select();
+      const { data, error } = await createOffer({
+        client_id: client.id,
+        client_name: client.name,
+        client_email: client.email,
+        equipment_description: equipmentDescription,
+        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
+        coefficient: globalMarginAdjustment.newCoef,
+        monthly_payment: totalMonthlyPayment,
+        commission: totalMonthlyPayment * 0.1,
+        workflow_status: "draft",
+        type: "ambassador_offer",
+        user_id: user?.id,
+        remarks: remarks
+      });
       
       if (error) {
         console.error("Erreur lors de la sauvegarde:", error);
