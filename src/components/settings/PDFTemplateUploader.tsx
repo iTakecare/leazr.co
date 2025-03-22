@@ -6,12 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FileUp, Trash, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
-import { getAdminSupabaseClient } from "@/integrations/supabase/client";
+import { getAdminSupabaseClient, supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 
 const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
-  const adminSupabase = getAdminSupabaseClient();
   
   // Uploader une image
   const uploadImage = async (file) => {
@@ -28,8 +27,8 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
       console.log("Type de fichier:", file.type);
       console.log("Taille du fichier:", file.size);
       
-      // Uploader le fichier avec le service admin pour contourner les politiques RLS
-      const { data, error } = await adminSupabase.storage
+      // Essayer d'abord avec le client standard
+      let { data, error } = await supabase.storage
         .from('pdf-templates')
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -38,15 +37,31 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
         });
         
       if (error) {
-        console.error("Erreur détaillée lors de l'upload:", error);
-        toast.error(`Erreur lors de l'upload du fichier: ${error.message}`);
-        return null;
+        console.log("Erreur avec le client standard. Tentative avec le client admin...");
+        
+        // Si ça échoue, essayer avec le client admin
+        const adminSupabase = getAdminSupabaseClient();
+        const result = await adminSupabase.storage
+          .from('pdf-templates')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: file.type
+          });
+          
+        if (result.error) {
+          console.error("Erreur détaillée lors de l'upload avec le client admin:", result.error);
+          toast.error(`Erreur lors de l'upload du fichier: ${result.error.message}`);
+          return null;
+        }
+        
+        data = result.data;
       }
       
       console.log("Fichier uploadé avec succès:", data);
       
       // Récupérer l'URL publique
-      const { data: { publicUrl } } = adminSupabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('pdf-templates')
         .getPublicUrl(fileName);
         
@@ -72,15 +87,25 @@ const PDFTemplateUploader = ({ templateImages = [], onChange }) => {
     try {
       console.log("Tentative de suppression du fichier:", imageId);
       
-      // Supprimer le fichier du storage avec le client admin
-      const { error } = await adminSupabase.storage
+      // Essayer d'abord avec le client standard
+      let { error } = await supabase.storage
         .from('pdf-templates')
         .remove([imageId]);
         
       if (error) {
-        console.error("Erreur détaillée lors de la suppression:", error);
-        toast.error(`Erreur lors de la suppression du fichier: ${error.message}`);
-        return;
+        console.log("Erreur avec le client standard. Tentative avec le client admin...");
+        
+        // Si ça échoue, essayer avec le client admin
+        const adminSupabase = getAdminSupabaseClient();
+        const result = await adminSupabase.storage
+          .from('pdf-templates')
+          .remove([imageId]);
+          
+        if (result.error) {
+          console.error("Erreur détaillée lors de la suppression avec le client admin:", result.error);
+          toast.error(`Erreur lors de la suppression du fichier: ${result.error.message}`);
+          return;
+        }
       }
       
       console.log("Fichier supprimé avec succès");
