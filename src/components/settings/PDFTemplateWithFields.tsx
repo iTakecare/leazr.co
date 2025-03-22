@@ -408,6 +408,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   
   const [selectedPage, setSelectedPage] = useState(0);
   const [activeTab, setActiveTab] = useState("template");
+  const [selectedFieldId, setSelectedFieldId] = useState<string>('');
   
   // Update template images when they change
   const handleImagesChange = (newImages) => {
@@ -447,6 +448,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   const handleAddField = (field) => {
     const newFields = [...currentTemplate.fields, field];
     handleFieldsChange(newFields);
+    setSelectedFieldId(field.id);
     toast.success(`Champ "${field.label}" ajouté`);
   };
 
@@ -454,6 +456,9 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   const handleDeleteField = (fieldId) => {
     const newFields = currentTemplate.fields.filter(field => field.id !== fieldId);
     handleFieldsChange(newFields);
+    if (selectedFieldId === fieldId) {
+      setSelectedFieldId('');
+    }
     toast.success("Champ supprimé");
   };
   
@@ -480,11 +485,13 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     const duplicatedField = {
       ...fieldToDuplicate,
       id: newId,
-      page: targetPage
+      page: targetPage,
+      isVisible: true
     };
     
     const newFields = [...currentTemplate.fields, duplicatedField];
     handleFieldsChange(newFields);
+    setSelectedFieldId(newId);
     toast.success(`Champ "${fieldToDuplicate.label}" ajouté à la page ${targetPage + 1}`);
   };
   
@@ -498,6 +505,9 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     // Remove the field from the array
     const newFields = currentTemplate.fields.filter(field => !(field.id === fieldId && field.page === page));
     handleFieldsChange(newFields);
+    if (selectedFieldId === fieldId) {
+      setSelectedFieldId('');
+    }
     toast.success(`Champ supprimé de la page ${page + 1}`);
   };
   
@@ -507,13 +517,20 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       if (field.id === fieldId) {
         return {
           ...field,
-          position: { x, y }
+          position: { x, y },
+          isVisible: true,  // Make sure it's visible when positioned
+          page: selectedPage  // Assign to current page
         };
       }
       return field;
     });
     
     handleFieldsChange(updatedFields);
+  };
+  
+  // Handle field selection
+  const handleFieldSelect = (fieldId: string) => {
+    setSelectedFieldId(fieldId);
   };
   
   return (
@@ -553,7 +570,11 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
         </TabsContent>
         
         <TabsContent value="preview" className="mt-6">
-          <PDFPreview template={currentTemplate} />
+          <PDFPreview 
+            template={currentTemplate} 
+            onFieldSelect={handleFieldSelect}
+            selectedFieldId={selectedFieldId}
+          />
         </TabsContent>
       </Tabs>
     </div>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Move } from 'lucide-react';
+import { Loader2, Move, Plus } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { generateOfferPdf } from '@/utils/pdfGenerator';
 import { PDFTemplate, PDFField } from '@/types/pdf';
@@ -14,6 +14,9 @@ interface PDFPreviewProps {
   loading?: boolean;
   editMode?: boolean;
   onFieldMove?: (fieldId: string, x: number, y: number) => void;
+  onFieldSelect?: (fieldId: string) => void;
+  selectedFieldId?: string;
+  availableFields?: PDFField[];
 }
 
 const PDFPreview = ({ 
@@ -22,13 +25,17 @@ const PDFPreview = ({
   onDownload, 
   loading = false, 
   editMode = false,
-  onFieldMove
+  onFieldMove,
+  onFieldSelect,
+  selectedFieldId,
+  availableFields = []
 }: PDFPreviewProps) => {
   const [activeTab, setActiveTab] = useState('page1');
   const [scale, setScale] = useState(0.5);
   const [previewOffer, setPreviewOffer] = useState<any>(null);
   const [draggedField, setDraggedField] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showAvailableFields, setShowAvailableFields] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -164,13 +171,26 @@ const PDFPreview = ({
     return 'auto';
   };
 
+  // Handle clicking on a field to select it
+  const handleFieldClick = (event: React.MouseEvent, fieldId: string) => {
+    if (!editMode || !onFieldSelect) return;
+    
+    event.stopPropagation();
+    onFieldSelect(fieldId);
+  };
+
   // Handle start dragging a field
   const handleDragStart = (event: React.MouseEvent, fieldId: string) => {
     if (!editMode || !onFieldMove) return;
     
     event.preventDefault();
+    event.stopPropagation();
     setDraggedField(fieldId);
     setIsDragging(true);
+    
+    if (onFieldSelect) {
+      onFieldSelect(fieldId);
+    }
     
     // Add event listeners for drag and drop
     document.addEventListener('mousemove', handleDragMove);
@@ -201,21 +221,51 @@ const PDFPreview = ({
     document.removeEventListener('mouseup', handleDragEnd);
   };
 
+  // Handle adding a field from the available fields 
+  const handleAddFieldToCurrent = (field: PDFField) => {
+    if (!previewRef.current || !onFieldMove) return;
+    
+    const previewRect = previewRef.current.getBoundingClientRect();
+    
+    // Calculate position for center of the container
+    const x = 50;
+    const y = 50;
+    
+    // Update field position
+    onFieldMove(field.id, x, y);
+    
+    if (onFieldSelect) {
+      onFieldSelect(field.id);
+    }
+  };
+
   // Get current page number from active tab
   const getCurrentPageNumber = () => {
     return parseInt(activeTab.replace('page', '')) - 1;
+  };
+
+  // Get available fields for the current page that aren't already visible
+  const getAvailableFieldsForCurrentPage = () => {
+    const currentPage = getCurrentPageNumber();
+    if (!availableFields) return [];
+    
+    const visibleFieldIds = getPageFields(currentPage).map(f => f.id);
+    
+    return availableFields.filter(field => !visibleFieldIds.includes(field.id));
   };
 
   // Render a page with its background image and fields
   const renderPage = (pageNum: number) => {
     const pageImages = getPageImages(pageNum);
     const pageFields = getPageFields(pageNum);
+    const currentPageAvailableFields = getAvailableFieldsForCurrentPage();
     
     return (
       <div 
         ref={previewRef} 
         className="relative bg-white shadow-md" 
         style={{ width: `${210 * scale}mm`, height: `${297 * scale}mm` }}
+        onClick={() => onFieldSelect && onFieldSelect('')}
       >
         {/* Background image */}
         {pageImages.map((img, index) => (
@@ -241,11 +291,12 @@ const PDFPreview = ({
               fontStyle: field.style?.fontStyle || 'normal',
               padding: '4px',
               backgroundColor: 'rgba(200, 200, 200, 0.2)',
-              border: '1px dashed #aaa',
+              border: selectedFieldId === field.id ? '2px solid #2563eb' : '1px dashed #aaa',
               borderRadius: '4px',
               maxWidth: `${(field.style?.maxWidth || 200) * scale}px`,
               width: getScaledWidth(field.style?.width, scale),
-              cursor: editMode ? 'move' : 'default'
+              cursor: editMode ? 'move' : 'default',
+              zIndex: selectedFieldId === field.id ? 10 : 1
             };
             
             return (
@@ -253,6 +304,7 @@ const PDFPreview = ({
                 key={index} 
                 style={fieldStyle}
                 className={editMode ? 'hover:outline hover:outline-blue-500' : ''}
+                onClick={(e) => handleFieldClick(e, field.id)}
                 onMouseDown={(e) => handleDragStart(e, field.id)}
               >
                 {editMode && <Move size={12} className="inline mr-1" />}
@@ -273,7 +325,11 @@ const PDFPreview = ({
               width: getScaledWidth(field.style?.width, scale),
               cursor: editMode ? 'move' : 'default',
               userSelect: 'none' as const,
-              padding: editMode ? '2px' : '0'
+              padding: editMode ? '2px' : '0',
+              border: selectedFieldId === field.id ? '2px solid #2563eb' : editMode ? '1px dashed transparent' : 'none',
+              borderRadius: '4px',
+              backgroundColor: selectedFieldId === field.id ? 'rgba(219, 234, 254, 0.3)' : 'transparent',
+              zIndex: selectedFieldId === field.id ? 10 : 1
             };
             
             return (
@@ -281,6 +337,7 @@ const PDFPreview = ({
                 key={index} 
                 style={fieldStyle}
                 className={editMode ? 'hover:outline hover:outline-blue-500 hover:bg-blue-50' : ''}
+                onClick={(e) => handleFieldClick(e, field.id)}
                 onMouseDown={(e) => handleDragStart(e, field.id)}
               >
                 {editMode && <Move size={12} className="inline mr-1 text-blue-500" />}
@@ -289,6 +346,38 @@ const PDFPreview = ({
             );
           }
         })}
+
+        {/* Available Fields Panel */}
+        {editMode && showAvailableFields && (
+          <div className="absolute top-2 right-2 w-64 bg-white shadow-lg rounded-md p-3 border border-gray-200 z-20">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-medium">Champs disponibles</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowAvailableFields(false)}
+              >
+                ×
+              </Button>
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              {currentPageAvailableFields.length > 0 ? (
+                currentPageAvailableFields.map((field) => (
+                  <div 
+                    key={field.id}
+                    className="flex items-center justify-between p-2 text-sm hover:bg-gray-100 rounded-md cursor-pointer mb-1"
+                    onClick={() => handleAddFieldToCurrent(field)}
+                  >
+                    <span>{field.label}</span>
+                    <Plus size={14} />
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 p-2">Aucun champ disponible</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -320,6 +409,17 @@ const PDFPreview = ({
         </div>
         
         <div className="flex space-x-2">
+          {editMode && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowAvailableFields(!showAvailableFields)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Ajouter un champ
+            </Button>
+          )}
+          
           {onSave && (
             <Button 
               onClick={onSave} 
@@ -339,6 +439,15 @@ const PDFPreview = ({
           </Button>
         </div>
       </div>
+      
+      {editMode && (
+        <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-blue-600 flex items-center">
+            <Move className="h-4 w-4 mr-2" />
+            Faites glisser les champs pour les positionner sur le modèle. Cliquez sur un champ pour le sélectionner.
+          </p>
+        </div>
+      )}
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
         <TabsList className="mb-4">
