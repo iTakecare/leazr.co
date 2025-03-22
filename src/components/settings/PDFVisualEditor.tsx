@@ -2,13 +2,14 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Download, Move, X } from 'lucide-react';
+import { Plus, Download, Move, Eye, EyeOff, Search, ArrowDown, ArrowUp } from 'lucide-react';
 import { PDFTemplate, PDFField } from '@/types/pdf';
 import { generateOfferPdf } from '@/utils/pdfGenerator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PDFVisualEditorProps {
   template: PDFTemplate;
@@ -34,7 +35,8 @@ const PDFVisualEditor = ({
   const [scale, setScale] = useState(0.5);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
-  const [showAddFieldDialog, setShowAddFieldDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const containerRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +58,47 @@ const PDFVisualEditor = ({
   const getAvailableFields = () => {
     const visibleFieldIds = getVisibleFields().map(f => f.id);
     return allFields.filter(f => !visibleFieldIds.includes(f.id));
+  };
+
+  // Filter fields by search term and category
+  const getFilteredFields = () => {
+    let filtered = allFields;
+    
+    // Filter by search term if provided
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      filtered = filtered.filter(field => 
+        field.label.toLowerCase().includes(lowerSearch) || 
+        field.id.toLowerCase().includes(lowerSearch)
+      );
+    }
+    
+    // Filter by category if not "all"
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(field => field.category === selectedCategory);
+    }
+    
+    return filtered;
+  };
+
+  // Group fields by category
+  const getFieldsByCategory = () => {
+    const filteredFields = getFilteredFields();
+    const categories = ['client', 'offer', 'equipment', 'user', 'general'];
+    
+    return categories.map(category => {
+      const fields = filteredFields.filter(field => field.category === category);
+      return {
+        category,
+        fields
+      };
+    }).filter(group => group.fields.length > 0);
+  };
+
+  // Check if a field is already positioned on the current page
+  const isFieldOnCurrentPage = (fieldId: string) => {
+    const field = allFields.find(f => f.id === fieldId);
+    return field?.isVisible && field?.page === selectedPage;
   };
 
   // Create a sample offer for preview
@@ -136,7 +179,7 @@ const PDFVisualEditor = ({
     
     const previewRect = previewRef.current.getBoundingClientRect();
     
-    // Calculate delta from drag start position
+    // Calculate new position
     const deltaX = (e.clientX - dragStartPos.x) / scale;
     const deltaY = (e.clientY - dragStartPos.y) / scale;
     
@@ -163,6 +206,12 @@ const PDFVisualEditor = ({
   // Handle click on the preview container
   const handleContainerClick = () => {
     onSelectField(null);
+  };
+  
+  // Add a field to the current page
+  const handleAddField = (fieldId: string) => {
+    onAddFieldToPage(fieldId);
+    onSelectField(fieldId);
   };
 
   // Function to resolve field values from the sample offer
@@ -191,106 +240,153 @@ const PDFVisualEditor = ({
     return [...new Set(pageNumbers)].sort((a, b) => a - b);
   };
 
+  // Get category label in French
+  const getCategoryLabel = (category: string) => {
+    switch(category) {
+      case 'client': return 'Client';
+      case 'offer': return 'Offre';
+      case 'equipment': return 'Équipement';
+      case 'user': return 'Vendeur';
+      case 'general': return 'Général';
+      default: return category;
+    }
+  };
+
   const availablePages = getAvailablePages();
   const pageImage = getPageImage();
   const visibleFields = getVisibleFields();
-  const availableFields = getAvailableFields();
+  const fieldsByCategory = getFieldsByCategory();
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex flex-col space-y-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <Select 
-                value={selectedPage.toString()} 
-                onValueChange={(value) => onPageChange(parseInt(value))}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Page 1" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availablePages.map((page) => (
-                    <SelectItem key={page} value={page.toString()}>
-                      Page {page + 1}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select 
-                value={scale.toString()} 
-                onValueChange={(value) => setScale(parseFloat(value))}
-              >
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue placeholder="Zoom" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0.3">30%</SelectItem>
-                  <SelectItem value="0.5">50%</SelectItem>
-                  <SelectItem value="0.7">70%</SelectItem>
-                  <SelectItem value="1">100%</SelectItem>
-                </SelectContent>
-              </Select>
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-4">
+          <Select 
+            value={selectedPage.toString()} 
+            onValueChange={(value) => onPageChange(parseInt(value))}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Page 1" />
+            </SelectTrigger>
+            <SelectContent>
+              {availablePages.map((page) => (
+                <SelectItem key={page} value={page.toString()}>
+                  Page {page + 1}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select 
+            value={scale.toString()} 
+            onValueChange={(value) => setScale(parseFloat(value))}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue placeholder="Zoom" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0.3">30%</SelectItem>
+              <SelectItem value="0.5">50%</SelectItem>
+              <SelectItem value="0.7">70%</SelectItem>
+              <SelectItem value="1">100%</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <Button onClick={handleDownloadPDF}>
+          <Download className="h-4 w-4 mr-1" />
+          Télécharger PDF
+        </Button>
+      </div>
+      
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4 flex items-center text-blue-600">
+        <Move className="h-4 w-4 mr-2 flex-shrink-0" />
+        <p>Faites glisser les champs pour les positionner sur le modèle. Cliquez sur un champ pour le sélectionner.</p>
+      </div>
+      
+      <div className="flex space-x-4 h-[600px]">
+        {/* Left column: Available fields */}
+        <div className="w-1/3 border rounded-md overflow-hidden flex flex-col">
+          <div className="p-3 border-b bg-gray-50">
+            <div className="relative mb-3">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Rechercher un champ..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
             </div>
             
-            <div className="flex gap-2">
-              <Dialog open={showAddFieldDialog} onOpenChange={setShowAddFieldDialog}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    disabled={availableFields.length === 0}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Ajouter un champ
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Ajouter un champ à la page {selectedPage + 1}</DialogTitle>
-                  </DialogHeader>
-                  <div className="max-h-[400px] overflow-y-auto mt-4">
-                    <div className="grid gap-2">
-                      {availableFields.length > 0 ? (
-                        availableFields.map((field) => (
-                          <div 
-                            key={field.id}
-                            className="flex justify-between items-center p-3 border rounded-md hover:bg-gray-50 cursor-pointer"
-                            onClick={() => {
-                              onAddFieldToPage(field.id);
-                              setShowAddFieldDialog(false);
-                            }}
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-medium">{field.label}</span>
-                              <span className="text-xs text-gray-500">{field.value}</span>
-                            </div>
-                            <Badge variant="outline">{field.category}</Badge>
+            <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
+              <TabsList className="w-full">
+                <TabsTrigger value="all" className="flex-1">Tous</TabsTrigger>
+                <TabsTrigger value="client" className="flex-1">Client</TabsTrigger>
+                <TabsTrigger value="offer" className="flex-1">Offre</TabsTrigger>
+                <TabsTrigger value="equipment" className="flex-1">Équipement</TabsTrigger>
+                <TabsTrigger value="user" className="flex-1">Vendeur</TabsTrigger>
+                <TabsTrigger value="general" className="flex-1">Général</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-3">
+            {fieldsByCategory.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Aucun champ disponible pour ces critères
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {fieldsByCategory.map(group => (
+                  <div key={group.category}>
+                    <h3 className="font-medium text-sm text-gray-500 mb-2 uppercase">
+                      {getCategoryLabel(group.category)}
+                    </h3>
+                    <div className="space-y-2">
+                      {group.fields.map(field => (
+                        <div 
+                          key={field.id}
+                          className={`p-2.5 border rounded-md flex justify-between items-center cursor-pointer transition-colors
+                            ${isFieldOnCurrentPage(field.id) ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'}
+                            ${selectedFieldId === field.id ? 'bg-blue-100 border-blue-300' : ''}`}
+                          onClick={() => onSelectField(field.id)}
+                        >
+                          <div className="flex-1 mr-2 overflow-hidden">
+                            <div className="font-medium text-sm truncate">{field.label}</div>
+                            <div className="text-xs text-gray-500 truncate">{field.value}</div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-center text-gray-500 py-4">Aucun champ disponible</p>
-                      )}
+                          
+                          {isFieldOnCurrentPage(field.id) ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700">Positionné</Badge>
+                          ) : (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 px-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddField(field.id);
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </DialogContent>
-              </Dialog>
-              
-              <Button onClick={handleDownloadPDF}>
-                <Download className="h-4 w-4 mr-1" />
-                Télécharger PDF
-              </Button>
-            </div>
+                ))}
+              </div>
+            )}
           </div>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center text-blue-600">
-            <Move className="h-4 w-4 mr-2" />
-            Faites glisser les champs pour les positionner sur le modèle. Cliquez sur un champ pour le sélectionner.
-          </div>
-          
+        </div>
+        
+        {/* Right column: PDF preview */}
+        <div className="w-2/3 border rounded-md">
           <div 
             ref={containerRef}
-            className="bg-gray-100 p-4 rounded-md flex justify-center min-h-[600px] overflow-auto"
+            className="h-full bg-gray-100 p-4 rounded-md flex justify-center overflow-auto"
             onClick={handleContainerClick}
           >
             <div 
@@ -358,103 +454,95 @@ const PDFVisualEditor = ({
               })}
             </div>
           </div>
-          
-          {selectedFieldId && (
-            <div className="border p-4 rounded-md bg-gray-50">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-medium">Propriétés du champ</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => onSelectField(null)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {(() => {
-                const field = allFields.find(f => f.id === selectedFieldId);
-                if (!field) return null;
-                
-                return (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-sm font-medium">Position X</label>
-                      <Input 
-                        type="number" 
-                        value={field.position?.x || 0}
-                        onChange={(e) => onFieldMove(field.id, Number(e.target.value), field.position?.y || 0)}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Position Y</label>
-                      <Input 
-                        type="number" 
-                        value={field.position?.y || 0}
-                        onChange={(e) => onFieldMove(field.id, field.position?.x || 0, Number(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Taille de police</label>
-                      <Input 
-                        type="number" 
-                        value={field.style?.fontSize || 10}
-                        onChange={(e) => {
-                          const newFields = allFields.map(f => {
-                            if (f.id === field.id) {
-                              return {
-                                ...f,
-                                style: {
-                                  ...f.style,
-                                  fontSize: Number(e.target.value)
-                                }
-                              };
-                            }
-                            return f;
-                          });
-                          // This assumes the parent component will update all fields
-                          onFieldMove(field.id, field.position?.x || 0, field.position?.y || 0);
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Style</label>
-                      <Select 
-                        value={field.style?.fontWeight || 'normal'}
-                        onValueChange={(value) => {
-                          const newFields = allFields.map(f => {
-                            if (f.id === field.id) {
-                              return {
-                                ...f,
-                                style: {
-                                  ...f.style,
-                                  fontWeight: value
-                                }
-                              };
-                            }
-                            return f;
-                          });
-                          // This assumes the parent component will update all fields
-                          onFieldMove(field.id, field.position?.x || 0, field.position?.y || 0);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="normal">Normal</SelectItem>
-                          <SelectItem value="bold">Gras</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      
+      {/* Properties panel for selected field */}
+      {selectedFieldId && (
+        <div className="border p-4 rounded-md bg-gray-50 mt-4">
+          <h3 className="font-medium mb-3">Propriétés du champ</h3>
+          
+          {(() => {
+            const field = allFields.find(f => f.id === selectedFieldId);
+            if (!field) return null;
+            
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Position X</label>
+                  <Input 
+                    type="number" 
+                    value={field.position?.x || 0}
+                    onChange={(e) => onFieldMove(field.id, Number(e.target.value), field.position?.y || 0)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Position Y</label>
+                  <Input 
+                    type="number" 
+                    value={field.position?.y || 0}
+                    onChange={(e) => onFieldMove(field.id, field.position?.x || 0, Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Taille de police</label>
+                  <Input 
+                    type="number" 
+                    value={field.style?.fontSize || 10}
+                    onChange={(e) => {
+                      const newFields = allFields.map(f => {
+                        if (f.id === field.id) {
+                          return {
+                            ...f,
+                            style: {
+                              ...f.style,
+                              fontSize: Number(e.target.value)
+                            }
+                          };
+                        }
+                        return f;
+                      });
+                      // Cette ligne force la mise à jour du champ
+                      onFieldMove(field.id, field.position?.x || 0, field.position?.y || 0);
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Style</label>
+                  <Select 
+                    value={field.style?.fontWeight || 'normal'}
+                    onValueChange={(value) => {
+                      const newFields = allFields.map(f => {
+                        if (f.id === field.id) {
+                          return {
+                            ...f,
+                            style: {
+                              ...f.style,
+                              fontWeight: value
+                            }
+                          };
+                        }
+                        return f;
+                      });
+                      // Cette ligne force la mise à jour du champ
+                      onFieldMove(field.id, field.position?.x || 0, field.position?.y || 0);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="bold">Gras</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+    </div>
   );
 };
 

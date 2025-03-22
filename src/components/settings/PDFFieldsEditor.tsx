@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, List } from 'lucide-react';
 import { PDFField } from '@/types/pdf';
 
 interface PDFFieldsEditorProps {
@@ -102,6 +102,7 @@ const PDFFieldsEditor = ({
     onAddField(fieldToAdd);
     onSelectField(fieldId);
     
+    // Reset form
     setNewField({
       id: '',
       label: '',
@@ -195,14 +196,16 @@ const PDFFieldsEditor = ({
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle>Liste des champs</CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAddFieldForm(!showAddFieldForm)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Ajouter un champ
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddFieldForm(!showAddFieldForm)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Ajouter un champ
+            </Button>
+          </div>
         </div>
       </CardHeader>
       
