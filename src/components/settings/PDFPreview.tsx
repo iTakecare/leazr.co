@@ -13,24 +13,13 @@ import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-// Register fonts for the PDF document
-Font.register({
-  family: 'Open Sans',
-  fonts: [
-    { src: '/fonts/OpenSans-Regular.ttf' },
-    { src: '/fonts/OpenSans-Bold.ttf', fontWeight: 'bold' },
-    { src: '/fonts/OpenSans-Italic.ttf', fontStyle: 'italic' },
-    { src: '/fonts/OpenSans-BoldItalic.ttf', fontStyle: 'italic', fontWeight: 'bold' }
-  ]
-});
-
 // Define styles for the PDF document
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#fff',
     padding: 20,
-    fontFamily: 'Open Sans',
+    fontFamily: 'Helvetica',
     fontSize: 10,
   },
   section: {
@@ -45,7 +34,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     textAlign: 'justify',
-    fontFamily: 'Open Sans'
+    fontFamily: 'Helvetica'
   },
   image: {
     marginVertical: 15,
@@ -55,14 +44,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
     textAlign: 'center',
-    fontFamily: 'Open Sans',
+    fontFamily: 'Helvetica',
     fontWeight: 'bold'
   },
   footer: {
     fontSize: 10,
     textAlign: 'center',
     marginTop: 20,
-    fontFamily: 'Open Sans',
+    fontFamily: 'Helvetica',
     color: 'grey'
   },
   table: {
@@ -154,16 +143,18 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: ExtendedOfferD
       const document = (
         <Document>
           {template.templateImages && template.templateImages.length > 0 ? (
-            template.templateImages.map((image, index) => (
+            template.templateImages.map((image: any, index: number) => (
               <Page size="A4" style={styles.page} key={index}>
-                <Image
-                  src={image.src}
-                  style={styles.image}
-                />
+                {image.src && (
+                  <Image
+                    src={image.src}
+                    style={styles.image}
+                  />
+                )}
                 {template.fields && template.fields.length > 0 ? (
                   template.fields
-                    .filter(field => field.page === index)
-                    .map(field => (
+                    .filter((field: any) => field.page === index)
+                    .map((field: any) => (
                       <Text
                         key={field.id}
                         style={{
@@ -174,7 +165,7 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: ExtendedOfferD
                           fontWeight: field.style.fontWeight,
                           fontStyle: field.style.fontStyle,
                           textDecoration: field.style.textDecoration,
-                          fontFamily: 'Open Sans'
+                          fontFamily: 'Helvetica'
                         }}
                       >
                         {field.label}
@@ -223,43 +214,36 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: ExtendedOfferD
       return;
     }
     
-    const pdfjsLib = (window as any)['pdfjsLib'];
+    // Use a more direct approach with HTML Canvas
+    const canvasEl = document.createElement('canvas');
+    canvasEl.width = 800;
+    canvasEl.height = 1131; // A4 proportions
+    const ctx = canvasEl.getContext('2d');
     
-    if (!pdfjsLib) {
-      toast.error("pdfjsLib n'est pas disponible. Assurez-vous qu'il est correctement importé.");
+    if (!ctx) {
+      toast.error("Impossible de créer le contexte de canvas");
       return;
     }
     
-    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    // Draw a white background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
     
-    loadingTask.promise.then((pdf: any) => {
-      pdf.getPage(1).then((page: any) => {
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) {
-          toast.error("Impossible de créer le contexte de canvas");
-          return;
-        }
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport
-        };
-        
-        page.render(renderContext).promise.then(() => {
-          const imgData = canvas.toDataURL('image/jpeg', 0.8);
-          const link = document.createElement('a');
-          link.href = imgData;
-          link.download = 'pdf-page.jpg';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        });
-      });
-    });
+    // Draw error message if needed
+    if (error) {
+      ctx.fillStyle = 'red';
+      ctx.font = '16px Arial';
+      ctx.fillText(error, 20, 50);
+    }
+    
+    // Convert to image and download
+    const imgData = canvasEl.toDataURL('image/jpeg', 0.8);
+    const link = document.createElement('a');
+    link.href = imgData;
+    link.download = 'pdf-page.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
   
   const handleExportToPng = () => {
@@ -268,43 +252,36 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: ExtendedOfferD
       return;
     }
     
-    const pdfjsLib = (window as any)['pdfjsLib'];
+    // Use a more direct approach with HTML Canvas
+    const canvasEl = document.createElement('canvas');
+    canvasEl.width = 800;
+    canvasEl.height = 1131; // A4 proportions
+    const ctx = canvasEl.getContext('2d');
     
-    if (!pdfjsLib) {
-      toast.error("pdfjsLib n'est pas disponible. Assurez-vous qu'il est correctement importé.");
+    if (!ctx) {
+      toast.error("Impossible de créer le contexte de canvas");
       return;
     }
     
-    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    // Draw a white background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
     
-    loadingTask.promise.then((pdf: any) => {
-      pdf.getPage(1).then((page: any) => {
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) {
-          toast.error("Impossible de créer le contexte de canvas");
-          return;
-        }
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport
-        };
-        
-        page.render(renderContext).promise.then(() => {
-          const imgData = canvas.toDataURL('image/png');
-          const link = document.createElement('a');
-          link.href = imgData;
-          link.download = 'pdf-page.png';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        });
-      });
-    });
+    // Draw error message if needed
+    if (error) {
+      ctx.fillStyle = 'red';
+      ctx.font = '16px Arial';
+      ctx.fillText(error, 20, 50);
+    }
+    
+    // Convert to image and download
+    const imgData = canvasEl.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = imgData;
+    link.download = 'pdf-page.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
   
   const handleExportToPdf = () => {
@@ -359,19 +336,15 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: ExtendedOfferD
       return;
     }
     
-    // Create raw data for Excel export
-    const headers = ["Description", "Quantity", "Price"];
-    const data = offer.equipment.map(item => [
-      item.description || item.title, 
-      item.quantity, 
-      item.price || item.purchasePrice
-    ]);
-    
-    // Create CSV data (as a fallback for Excel)
+    // Create CSV data for Excel
     const csvContent = [
-      headers.join(","),
-      ...data.map(row => row.join(","))
-    ].join("\n");
+      ["Description", "Quantity", "Price"].join(','),
+      ...offer.equipment.map(item => [
+        item.description || item.title, 
+        item.quantity.toString(), 
+        (item.price || item.purchasePrice).toString()
+      ].join(','))
+    ].join('\n');
     
     // Create a CSV blob and trigger download
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -388,8 +361,8 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: ExtendedOfferD
     <Card>
       <CardContent className="p-6">
         {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4 mr-2" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
@@ -445,7 +418,10 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: ExtendedOfferD
           ) : (
             <div className="text-center py-8">
               {error ? (
-                <p className="text-red-500">{error}</p>
+                <div className="text-red-500 p-4 border border-red-300 rounded bg-red-50 max-w-md mx-auto">
+                  <AlertCircle className="w-6 h-6 mx-auto mb-2 text-red-500" />
+                  <p className="font-medium text-red-700">{error}</p>
+                </div>
               ) : (
                 <>
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
