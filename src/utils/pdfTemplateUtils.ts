@@ -1,42 +1,30 @@
 
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 /**
- * Vérifie si une table existe dans la base de données
- */
-export const checkTableExists = async (tableName: string): Promise<boolean> => {
-  try {
-    const supabase = getSupabaseClient();
-    
-    // Utiliser une requête SQL directe pour éviter les ambiguïtés de colonnes
-    const { data, error } = await supabase.from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', tableName)
-      .maybeSingle();
-    
-    if (error) {
-      console.error("Erreur lors de la vérification de table:", error);
-      return false;
-    }
-    
-    return !!data;
-  } catch (error) {
-    console.error("Exception lors de la vérification de table:", error);
-    return false;
-  }
-};
-
-/**
- * Crée la table pdf_templates si elle n'existe pas
+ * Vérifie si la table pdf_templates existe et la crée si nécessaire
  */
 export const ensurePDFTemplateTableExists = async (): Promise<boolean> => {
   try {
+    console.log("Vérification de l'existence de la table pdf_templates...");
     const supabase = getSupabaseClient();
     
-    const tableExists = await checkTableExists('pdf_templates');
+    // Vérifier si la table existe
+    const { data: tablesData, error: tablesError } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', 'pdf_templates')
+      .maybeSingle();
     
-    if (!tableExists) {
+    if (tablesError) {
+      console.error("Erreur lors de la vérification de la table:", tablesError);
+      throw new Error("Erreur lors de la vérification de la table");
+    }
+    
+    // Si la table n'existe pas, la créer
+    if (!tablesData) {
       console.log("Table pdf_templates n'existe pas, création en cours...");
       
       const { error } = await supabase.rpc('execute_sql', {
@@ -63,18 +51,18 @@ export const ensurePDFTemplateTableExists = async (): Promise<boolean> => {
       
       if (error) {
         console.error("Erreur lors de la création de la table:", error);
-        return false;
+        throw new Error("Erreur lors de la création de la table");
       }
       
       console.log("Table pdf_templates créée avec succès");
-      return true;
+    } else {
+      console.log("Table pdf_templates existe déjà");
     }
     
-    console.log("Table pdf_templates existe déjà");
     return true;
   } catch (error) {
-    console.error("Exception lors de la création de table:", error);
-    return false;
+    console.error("Exception lors de la vérification/création de la table:", error);
+    throw error;
   }
 };
 
@@ -83,9 +71,10 @@ export const ensurePDFTemplateTableExists = async (): Promise<boolean> => {
  */
 export const loadPDFTemplate = async (id: string = 'default') => {
   try {
+    console.log("Début du chargement du modèle PDF:", id);
     const supabase = getSupabaseClient();
     
-    // Vérifier que la table existe
+    // Assurez-vous que la table existe
     await ensurePDFTemplateTableExists();
     
     // Récupérer le modèle
@@ -97,9 +86,10 @@ export const loadPDFTemplate = async (id: string = 'default') => {
     
     if (error) {
       console.error("Erreur lors du chargement du modèle:", error);
-      throw new Error("Erreur lors du chargement du modèle");
+      throw new Error(`Erreur lors du chargement du modèle: ${error.message}`);
     }
     
+    console.log("Réponse de la requête de chargement:", data ? "Modèle trouvé" : "Aucun modèle trouvé");
     return data;
   } catch (error) {
     console.error("Exception lors du chargement du modèle:", error);
@@ -112,9 +102,10 @@ export const loadPDFTemplate = async (id: string = 'default') => {
  */
 export const savePDFTemplate = async (template: any) => {
   try {
+    console.log("Début de la sauvegarde du modèle PDF:", template.id);
     const supabase = getSupabaseClient();
     
-    // Vérifier que la table existe
+    // Assurez-vous que la table existe
     await ensurePDFTemplateTableExists();
     
     // Préparer le modèle à sauvegarder
@@ -126,16 +117,50 @@ export const savePDFTemplate = async (template: any) => {
     // Sauvegarder le modèle
     const { error } = await supabase
       .from('pdf_templates')
-      .upsert(templateToSave);
+      .upsert(templateToSave, { 
+        onConflict: 'id',
+        ignoreDuplicates: false 
+      });
     
     if (error) {
       console.error("Erreur lors de la sauvegarde du modèle:", error);
-      throw new Error("Erreur lors de la sauvegarde du modèle");
+      throw new Error(`Erreur lors de la sauvegarde du modèle: ${error.message}`);
     }
     
+    console.log("Modèle sauvegardé avec succès:", template.id);
     return true;
   } catch (error) {
-    console.error("Erreur lors de la sauvegarde du modèle:", error);
+    console.error("Exception lors de la sauvegarde du modèle:", error);
+    throw error;
+  }
+};
+
+/**
+ * Récupère tous les modèles PDF
+ */
+export const getAllPDFTemplates = async () => {
+  try {
+    console.log("Récupération de tous les modèles PDF");
+    const supabase = getSupabaseClient();
+    
+    // Assurez-vous que la table existe
+    await ensurePDFTemplateTableExists();
+    
+    // Récupérer tous les modèles
+    const { data, error } = await supabase
+      .from('pdf_templates')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error("Erreur lors de la récupération des modèles:", error);
+      throw new Error(`Erreur lors de la récupération des modèles: ${error.message}`);
+    }
+    
+    console.log(`${data?.length || 0} modèles récupérés`);
+    return data || [];
+  } catch (error) {
+    console.error("Exception lors de la récupération des modèles:", error);
     throw error;
   }
 };
