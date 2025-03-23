@@ -58,6 +58,7 @@
     "pg": "^8.14.1",
     "react": "^18.3.1",
     "react-beautiful-dnd": "^13.1.1",
+    "react-color-palette": "^6.0.0",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",

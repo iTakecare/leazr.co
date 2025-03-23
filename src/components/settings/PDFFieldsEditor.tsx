@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -144,13 +145,13 @@ const PDFFieldsEditor = ({
   const handleDuplicateFieldToPage = (fieldId) => {
     if (readOnly) return;
     
-    onDuplicateField(fieldId, activePage);
+    onDuplicateField(fieldId, activePageInternal);
   };
   
   const handleRemoveFieldFromCurrentPage = (fieldId) => {
     if (readOnly) return;
     
-    onRemoveFieldFromPage(fieldId, activePage);
+    onRemoveFieldFromPage(fieldId, activePageInternal);
   };
 
   const handleAddFieldToCurrentPage = (field) => {
@@ -159,7 +160,7 @@ const PDFFieldsEditor = ({
     onAddField({
       ...field,
       position: { x: 20, y: 20 },
-      page: activePage
+      page: activePageInternal
     });
   };
 
@@ -172,7 +173,7 @@ const PDFFieldsEditor = ({
   const handleAddCustomField = () => {
     if (readOnly) return;
     
-    onAddFieldToCurrentPage(customField);
+    handleAddFieldToCurrentPage(customField);
     resetCustomField();
   };
   
@@ -345,7 +346,7 @@ const PDFFieldsEditor = ({
                             <Button 
                               size="sm" 
                               variant="ghost"
-                              onClick={() => handleAddField({
+                              onClick={() => handleAddFieldToCurrentPage({
                                 ...field,
                                 position: { x: 20, y: 20 },
                                 page: activePageInternal

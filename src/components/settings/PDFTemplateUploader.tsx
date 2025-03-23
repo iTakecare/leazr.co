@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -114,7 +115,10 @@ const PDFTemplateUploader = ({
       
       // Réinitialiser le formulaire
       setFile(null);
-      document.getElementById('file-upload').value = '';
+      const fileInput = document.getElementById('file-upload');
+      if (fileInput) {
+        fileInput.value = '';
+      }
       
       // Sélectionner la nouvelle page
       setSelectedPage(newPageNumber - 1);
@@ -331,7 +335,10 @@ const PDFTemplateUploader = ({
                 ))}
                 {!readOnly && (
                   <button
-                    onClick={() => document.getElementById('file-upload')?.click()}
+                    onClick={() => {
+                      const fileInput = document.getElementById('file-upload');
+                      if (fileInput) fileInput.click();
+                    }}
                     className="aspect-[3/4] border-2 border-dashed border-gray-200 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
                   >
                     <Plus className="h-6 w-6 text-gray-400" />
@@ -346,7 +353,10 @@ const PDFTemplateUploader = ({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => document.getElementById('file-upload')?.click()}
+                    onClick={() => {
+                      const fileInput = document.getElementById('file-upload');
+                      if (fileInput) fileInput.click();
+                    }}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Ajouter une page
