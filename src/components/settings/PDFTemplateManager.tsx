@@ -26,14 +26,19 @@ interface PDFTemplate {
   [key: string]: any;
 }
 
+// Type for the ref to access PDFCompanyInfo methods
+interface PDFCompanyInfoRef {
+  getAllFormValues: () => PDFTemplate;
+}
+
 const PDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   
-  // Référence au composant PDFCompanyInfo pour accéder à ses méthodes
-  const companyInfoRef = useRef<any>(null);
+  // Reference to PDFCompanyInfo component to access its methods
+  const companyInfoRef = useRef<PDFCompanyInfoRef>(null);
 
   useEffect(() => {
     console.log("PDFTemplateManager mounted, loading template");
@@ -47,7 +52,7 @@ const PDFTemplateManager = () => {
     try {
       const supabase = getSupabaseClient();
       
-      // Vérifier si la table pdf_templates existe
+      // Check if pdf_templates table exists
       const { data: tableExists, error: tableError } = await supabase.rpc(
         'check_table_exists', 
         { table_name: 'pdf_templates' }
@@ -58,7 +63,7 @@ const PDFTemplateManager = () => {
         throw new Error("Erreur lors de la vérification de la table");
       }
       
-      // Si la table n'existe pas, la créer
+      // Create the table if it doesn't exist
       if (!tableExists) {
         console.log("Table doesn't exist, creating it");
         const { error: createError } = await supabase.rpc('execute_sql', {
@@ -89,7 +94,7 @@ const PDFTemplateManager = () => {
         }
       }
       
-      // Récupérer le modèle depuis la base de données
+      // Get template from database
       const { data, error } = await supabase
         .from('pdf_templates')
         .select('*')
@@ -184,25 +189,13 @@ const PDFTemplateManager = () => {
     }
     
     try {
-      if (activeTab === "company") {
-        // Récupérer les données du formulaire des informations de l'entreprise
-        console.log("Getting form values from react-hook-form");
-        
-        // Utilisation de react-hook-form pour récupérer les valeurs
-        // Sans référence directe aux éléments du DOM
-        const formValues = {};
-        
-        // Récupérer tous les inputs pour les valeurs
-        document.querySelectorAll('input[name]').forEach((field) => {
-          const inputField = field as HTMLInputElement;
-          if (inputField.name && inputField.name !== '') {
-            formValues[inputField.name] = inputField.value;
-          }
-        });
-        
+      if (activeTab === "company" && companyInfoRef.current) {
+        // Get form values using the ref
+        console.log("Getting form values through ref");
+        const formValues = companyInfoRef.current.getAllFormValues();
         console.log("Collected form data:", formValues);
         
-        // Mise à jour du template avec les valeurs du formulaire
+        // Update template with form values
         const updatedTemplate = {
           ...template,
           ...formValues
@@ -211,8 +204,7 @@ const PDFTemplateManager = () => {
         console.log("Manual save triggered with template:", updatedTemplate);
         saveTemplate(updatedTemplate);
       } else if (activeTab === "design") {
-        // Pour l'onglet design, on utilisera le handler dédié du composant
-        // qui est déjà connecté au bouton de sauvegarde
+        // For design tab, use the dedicated handler
         toast.info("Utilisez le bouton de sauvegarde dans l'onglet Conception du modèle");
       }
     } catch (error) {
