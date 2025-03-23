@@ -2,13 +2,13 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, FileDown, Printer, Maximize2, ArrowLeft, ArrowRight } from "lucide-react";
+import { Eye, FileDown, Printer, Maximize2, ArrowLeft, ArrowRight, Save } from "lucide-react";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 
 // Composant pour afficher un champ sur le PDF
-const PDFField = ({ field, zoomLevel, resolveValue }) => {
+const PDFField = ({ field, zoomLevel, resolveValue, onDragStart, onDragEnd, onDrag, isDraggable }) => {
   // Convertir les millimètres en pixels (standard: 1mm = 3.7795275591px à 96 DPI)
   const mmToPx = (mm) => mm * 3.7795275591 * zoomLevel;
   
@@ -35,13 +35,40 @@ const PDFField = ({ field, zoomLevel, resolveValue }) => {
     whiteSpace: "pre-wrap" as const,
     maxWidth: field.id === 'equipment_table' 
       ? `${mmToPx(150)}px` 
-      : `${mmToPx(80)}px`
+      : `${mmToPx(80)}px`,
+    cursor: isDraggable ? 'move' : 'default'
+  };
+  
+  // Handlers pour le drag and drop
+  const handleDragStart = (e) => {
+    if (!isDraggable) return;
+    const rect = e.target.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    onDragStart(field.id, offsetX, offsetY);
+  };
+
+  const handleDrag = (e) => {
+    if (!isDraggable || !e.clientX) return; // Ignorer les événements sans coordonnées
+    onDrag(e.clientX, e.clientY);
+  };
+
+  const handleDragEnd = () => {
+    if (!isDraggable) return;
+    onDragEnd();
   };
   
   // Si c'est un tableau d'équipement, afficher le tableau
   if (field.id === 'equipment_table') {
     return (
-      <div style={style} className="pdf-field">
+      <div 
+        style={style} 
+        className="pdf-field"
+        draggable={isDraggable}
+        onDragStart={handleDragStart}
+        onDrag={handleDrag}
+        onDragEnd={handleDragEnd}
+      >
         {resolveValue(field.id, 'equipment_table')}
       </div>
     );
@@ -49,7 +76,14 @@ const PDFField = ({ field, zoomLevel, resolveValue }) => {
   
   // Pour tous les autres champs
   return (
-    <div style={style} className="pdf-field">
+    <div 
+      style={style} 
+      className="pdf-field"
+      draggable={isDraggable}
+      onDragStart={handleDragStart}
+      onDrag={handleDrag}
+      onDragEnd={handleDragEnd}
+    >
       <span>{resolveValue(field.value)}</span>
     </div>
   );
@@ -66,7 +100,11 @@ const PDFPage = ({
   resolveFieldValue,
   renderEquipmentTable,
   handleImageError,
-  handleImageLoad
+  handleImageLoad,
+  onDragStart,
+  onDragEnd,
+  onDrag,
+  isDraggable
 }) => {
   // Si un arrière-plan est disponible
   if (getCurrentPageBackground()) {
@@ -91,7 +129,11 @@ const PDFPage = ({
               type === 'equipment_table' 
                 ? renderEquipmentTable() 
                 : resolveFieldValue(value)
-            } 
+            }
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onDrag={onDrag}
+            isDraggable={isDraggable}
           />
         ))}
       </div>
@@ -107,12 +149,24 @@ const PDFPage = ({
 };
 
 // Composant principal d'aperçu PDF
-const NewPDFPreview = ({ template }) => {
+const NewPDFPreview = ({ template, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageLoaded, setPageLoaded] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const previewRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedFieldId, setDraggedFieldId] = useState(null);
+  const [dragOffsetX, setDragOffsetX] = useState(0);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isDraggable, setIsDraggable] = useState(false);
+  const [modifiedTemplate, setModifiedTemplate] = useState(template);
+
+  // Mettre à jour le template local quand le template parent change
+  useEffect(() => {
+    setModifiedTemplate(template);
+  }, [template]);
 
   // Reset pageLoaded when currentPage changes
   useEffect(() => {
@@ -175,7 +229,7 @@ const NewPDFPreview = ({ template }) => {
       // Générer le PDF en utilisant le template et l'offre d'exemple
       const offerWithTemplate = {
         ...SAMPLE_OFFER,
-        __template: template
+        __template: modifiedTemplate
       };
       
       const pdfFilename = await generateOfferPdf(offerWithTemplate);
@@ -190,7 +244,7 @@ const NewPDFPreview = ({ template }) => {
   };
 
   // Détermine le nombre total de pages
-  const totalPages = template?.templateImages?.length || 1;
+  const totalPages = modifiedTemplate?.templateImages?.length || 1;
   
   // Aller à la page suivante
   const nextPage = () => {
@@ -208,9 +262,9 @@ const NewPDFPreview = ({ template }) => {
 
   // Obtenir l'image de fond de la page actuelle
   const getCurrentPageBackground = () => {
-    if (template?.templateImages && template.templateImages.length > 0) {
+    if (modifiedTemplate?.templateImages && modifiedTemplate.templateImages.length > 0) {
       // Recherche de l'image correspondant à la page actuelle
-      const pageImage = template.templateImages.find(img => img.page === currentPage);
+      const pageImage = modifiedTemplate.templateImages.find(img => img.page === currentPage);
       
       if (pageImage) {
         // Si l'image a une URL, l'utiliser
@@ -337,15 +391,15 @@ const NewPDFPreview = ({ template }) => {
   
   // Obtenir les champs pour la page actuelle
   const getCurrentPageFields = () => {
-    return template?.fields?.filter(f => 
+    return modifiedTemplate?.fields?.filter(f => 
       f.isVisible && (f.page === currentPage || (currentPage === 0 && f.page === undefined))
     ) || [];
   };
 
   // Vérifier si des images de template sont disponibles
-  const hasTemplateImages = template?.templateImages && 
-                           Array.isArray(template.templateImages) && 
-                           template.templateImages.length > 0;
+  const hasTemplateImages = modifiedTemplate?.templateImages && 
+                           Array.isArray(modifiedTemplate.templateImages) && 
+                           modifiedTemplate.templateImages.length > 0;
   
   // Gérer les erreurs de chargement d'image
   const handleImageError = (e) => {
@@ -382,6 +436,67 @@ const NewPDFPreview = ({ template }) => {
   const zoomOut = () => {
     setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
   };
+
+  // Gestion du début de drag d'un champ
+  const handleDragStart = (fieldId, offsetX, offsetY) => {
+    setIsDragging(true);
+    setDraggedFieldId(fieldId);
+    setDragOffsetX(offsetX);
+    setDragOffsetY(offsetY);
+  };
+
+  // Gestion du drag d'un champ
+  const handleDrag = (clientX, clientY) => {
+    if (!isDragging || !draggedFieldId) return;
+
+    const container = previewRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const x = (clientX - rect.left - dragOffsetX) / (3.7795275591 * zoomLevel);
+    const y = (clientY - rect.top - dragOffsetY) / (3.7795275591 * zoomLevel);
+
+    // Mise à jour du champ dans un nouveau template
+    const updatedFields = modifiedTemplate.fields.map(field => {
+      if (field.id === draggedFieldId && field.page === currentPage) {
+        return {
+          ...field,
+          position: {
+            x: Math.max(0, x),
+            y: Math.max(0, y)
+          }
+        };
+      }
+      return field;
+    });
+
+    setModifiedTemplate({
+      ...modifiedTemplate,
+      fields: updatedFields
+    });
+    
+    setHasUnsavedChanges(true);
+  };
+
+  // Gestion de la fin de drag d'un champ
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDraggedFieldId(null);
+  };
+
+  // Sauvegarder les modifications
+  const handleSaveChanges = () => {
+    if (onSave && hasUnsavedChanges) {
+      onSave(modifiedTemplate);
+      setHasUnsavedChanges(false);
+      toast.success("Modifications sauvegardées");
+    }
+  };
+
+  // Toggle le mode de positionnement des champs
+  const toggleDragMode = () => {
+    setIsDraggable(!isDraggable);
+  };
   
   return (
     <div className="space-y-4">
@@ -409,6 +524,25 @@ const NewPDFPreview = ({ template }) => {
               +
             </Button>
           </div>
+          <Button
+            variant={isDraggable ? "default" : "outline"}
+            size="sm"
+            onClick={toggleDragMode}
+            className="h-8"
+          >
+            {isDraggable ? "Terminer le positionnement" : "Positionner les champs"}
+          </Button>
+          {hasUnsavedChanges && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSaveChanges}
+              className="h-8"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Sauvegarder
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -463,7 +597,7 @@ const NewPDFPreview = ({ template }) => {
               {hasTemplateImages ? (
                 <PDFPage 
                   currentPage={currentPage}
-                  template={template}
+                  template={modifiedTemplate}
                   pageLoaded={pageLoaded}
                   zoomLevel={zoomLevel}
                   getCurrentPageBackground={getCurrentPageBackground}
@@ -472,21 +606,25 @@ const NewPDFPreview = ({ template }) => {
                   renderEquipmentTable={renderEquipmentTable}
                   handleImageError={handleImageError}
                   handleImageLoad={handleImageLoad}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDrag={handleDrag}
+                  isDraggable={isDraggable}
                 />
               ) : (
                 /* Aperçu générique si pas de template uploadé */
                 <div className="min-h-[842px]">
                   {/* En-tête */}
-                  <div className="border-b p-6" style={{ backgroundColor: template?.primaryColor || '#2C3E50', color: "white" }}>
+                  <div className="border-b p-6" style={{ backgroundColor: modifiedTemplate?.primaryColor || '#2C3E50', color: "white" }}>
                     <div className="flex justify-between items-center">
-                      {template?.logoURL && (
+                      {modifiedTemplate?.logoURL && (
                         <img 
-                          src={template.logoURL} 
+                          src={modifiedTemplate.logoURL} 
                           alt="Logo" 
                           className="h-10 object-contain"
                         />
                       )}
-                      <h1 className="text-xl font-bold">{template?.headerText?.replace('{offer_id}', 'EXEMPLE') || 'EXEMPLE'}</h1>
+                      <h1 className="text-xl font-bold">{modifiedTemplate?.headerText?.replace('{offer_id}', 'EXEMPLE') || 'EXEMPLE'}</h1>
                     </div>
                   </div>
                   
@@ -543,12 +681,12 @@ const NewPDFPreview = ({ template }) => {
                   
                   {/* Pied de page */}
                   <div className="p-6 text-xs text-gray-600 bg-gray-50 border-t">
-                    <p>{template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
+                    <p>{modifiedTemplate?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
                     <hr className="my-2 border-gray-300" />
                     <div className="flex justify-center items-center">
                       <p className="text-center">
-                        {template?.companyName || 'Entreprise'} - {template?.companyAddress || 'Adresse'}<br />
-                        {template?.companySiret || 'SIRET'} - {template?.companyContact || 'Contact'}
+                        {modifiedTemplate?.companyName || 'Entreprise'} - {modifiedTemplate?.companyAddress || 'Adresse'}<br />
+                        {modifiedTemplate?.companySiret || 'SIRET'} - {modifiedTemplate?.companyContact || 'Contact'}
                       </p>
                     </div>
                   </div>
@@ -564,9 +702,10 @@ const NewPDFPreview = ({ template }) => {
         <ol className="list-decimal list-inside ml-4 space-y-1 mt-2">
           <li>Ajoutez des pages en uploadant des images dans l'onglet "Pages du modèle"</li>
           <li>Allez dans l'onglet "Champs et positionnement" pour définir les champs</li>
-          <li>Pour chaque champ, sélectionnez la page sur laquelle il doit apparaître</li>
-          <li>Ajustez les coordonnées X et Y pour positionner précisément le champ (en millimètres)</li>
-          <li>Utilisez cet aperçu pour vérifier le positionnement de vos champs</li>
+          <li>Cliquez sur "Positionner les champs" pour activer le mode de positionnement</li>
+          <li>Déplacez les champs en les faisant glisser à l'emplacement souhaité</li>
+          <li>Cliquez sur "Sauvegarder" pour enregistrer les positions</li>
+          <li>Cliquez sur "Terminer le positionnement" pour désactiver le mode d'édition</li>
         </ol>
         <p className="mt-2 font-medium text-blue-600">Note: Les coordonnées X/Y représentent la position en millimètres depuis le coin supérieur gauche de la page.</p>
         {totalPages > 1 && <p className="mt-2">Utilisez les boutons de navigation pour parcourir les différentes pages du document.</p>}
