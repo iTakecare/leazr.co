@@ -1,6 +1,5 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
-import { ensureStorageBucket, downloadAndUploadImage } from "./storageService";
+import { ensureStorageBucket, uploadFile, downloadAndUploadImage } from "./storageService";
 
 /**
  * Prepare a SEO-friendly filename from the original file name
