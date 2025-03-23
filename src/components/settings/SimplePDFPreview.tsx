@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
-    // Charger des données d'exemple pour l'aperçu
+    // Charger des données d'exemple détaillées pour l'aperçu
     setSampleData({
       client_name: "Dupont",
       client_first_name: "Jean",
@@ -51,17 +50,29 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
       client_city: "Paris",
       client_country: "France",
       offer_id: "OFR-2023-001",
-      offer_created_at: "2023-04-15",
-      offer_total_price_excl: "1200.00€",
-      offer_total_price_incl: "1440.00€",
-      offer_monthly_payment: "40.00€",
-      equipment_title: "Ordinateur portable Dell XPS 13",
-      equipment_description: "Processeur i7, 16 Go RAM, 512 Go SSD",
-      equipment_price: "1200.00€",
-      equipment_quantity: "1",
-      leaser_name: "FinanceIT",
-      lease_duration: "36 mois",
-      lease_interest_rate: "3.5%"
+      created_at: new Date().toISOString(),
+      amount: 15000,
+      monthly_payment: 450.50,
+      equipment_description: JSON.stringify([
+        {
+          title: "Ordinateur portable Dell XPS 13",
+          purchasePrice: 1500,
+          quantity: 2,
+          margin: 15
+        },
+        {
+          title: "Écran Dell 27 pouces",
+          purchasePrice: 350,
+          quantity: 2,
+          margin: 20
+        },
+        {
+          title: "Docking Station USB-C",
+          purchasePrice: 180,
+          quantity: 2,
+          margin: 25
+        }
+      ])
     });
     
     // Charger une offre réelle pour les tests avec données réelles
@@ -97,6 +108,19 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     console.log("Mise à jour du template local depuis le template parent");
     console.log("Fields:", template?.fields?.length || 0);
     console.log("Images:", template?.templateImages?.length || 0);
+    
+    if (template?.fields) {
+      console.log("Champs pour la page 1:", template.fields.filter(f => f.page === 0 || !f.page).length);
+      
+      const fieldsPage1 = template.fields.filter(f => f.page === 0 || !f.page);
+      fieldsPage1.forEach((f, i) => {
+        console.log(` - ${f.id}: "${f.label}" à (${f.position?.x || '?'}, ${f.position?.y || '?'})`);
+      });
+    }
+    
+    if (template?.templateImages) {
+      console.log("Image trouvée pour la page 1:", template.templateImages.some(img => img.page === 0 || !img.page));
+    }
     
     setLocalTemplate({
       ...template,

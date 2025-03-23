@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Save, FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +19,7 @@ interface PreviewControlsProps {
   isSaving?: boolean;
   useRealData: boolean;
   setUseRealData: (useReal: boolean) => void;
+  realData: any;
 }
 
 const PreviewControls: React.FC<PreviewControlsProps> = ({
@@ -34,7 +34,8 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
   setLoading,
   isSaving = false,
   useRealData,
-  setUseRealData
+  setUseRealData,
+  realData
 }) => {
   const handleGeneratePreview = async () => {
     try {
@@ -61,6 +62,10 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
         
         console.log("Champs avec positions valides:", fieldsWithPositions.length);
         
+        for (const field of fieldsWithPositions) {
+          console.log(`Champ ${field.id}: "${field.value}" à (${field.position.x}, ${field.position.y})`);
+        }
+        
         if (fieldsWithPositions.length === 0 && localTemplate.fields.length > 0) {
           toast.info("Aucun champ n'a de position définie. Utilisez le mode de positionnement pour placer les champs.");
         }
@@ -72,40 +77,41 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       console.log("- Nombre d'images:", localTemplate.templateImages?.length || 0);
       console.log("- Nombre de champs:", localTemplate.fields?.length || 0);
       
-      // Vérifier si les champs ont des positions valides
-      if (Array.isArray(localTemplate.fields) && localTemplate.fields.length > 0) {
-        localTemplate.fields.forEach((field, idx) => {
-          if (!field.position || typeof field.position.x !== 'number' || typeof field.position.y !== 'number') {
-            console.warn(`Champ ${idx} (${field.id || 'sans id'}) n'a pas de position valide:`, field.position);
-          } else {
-            console.log(`Champ ${idx} (${field.id || 'sans id'}) position:`, field.position);
-          }
-        });
-      }
-      
       // Afficher les données utilisées pour le test
-      console.log("Données utilisées pour la génération:", sampleData);
+      const dataToUse = useRealData && realData ? realData : sampleData;
+      console.log("Données utilisées pour la génération:", dataToUse);
       
       // Créer une copie profonde du template pour éviter les problèmes de référence
       const templateCopy = JSON.parse(JSON.stringify(localTemplate));
       
+      // S'assurer que toutes les propriétés du modèle sont définies
+      for (const key of ['companyName', 'companyAddress', 'companyContact', 'companySiret', 'headerText', 'footerText']) {
+        if (!templateCopy[key]) {
+          templateCopy[key] = "Valeur non définie";
+        }
+      }
+      
+      // S'assurer que les tableaux nécessaires existent
+      templateCopy.templateImages = Array.isArray(templateCopy.templateImages) ? templateCopy.templateImages : [];
+      templateCopy.fields = Array.isArray(templateCopy.fields) ? templateCopy.fields : [];
+      
       // Create a complete data object with all required fields
       const dataWithValidId = {
-        ...sampleData,
-        id: sampleData.id || `preview-${Date.now()}`,
-        client_name: sampleData.client_name || "Client Exemple",
-        client_first_name: sampleData.client_first_name || "Prénom",
-        client_email: sampleData.client_email || "client@exemple.com",
-        client_phone: sampleData.client_phone || "0123456789",
-        client_company: sampleData.client_company || "Entreprise Exemple",
-        client_address: sampleData.client_address || "123 Rue Exemple",
-        client_postal_code: sampleData.client_postal_code || "75000",
-        client_city: sampleData.client_city || "Paris",
-        amount: sampleData.amount || 10000,
-        monthly_payment: sampleData.monthly_payment || 300,
-        created_at: sampleData.created_at || new Date().toISOString(),
+        ...dataToUse,
+        id: dataToUse.id || `preview-${Date.now()}`,
+        client_name: dataToUse.client_name || "Client Exemple",
+        client_first_name: dataToUse.client_first_name || "Prénom",
+        client_email: dataToUse.client_email || "client@exemple.com",
+        client_phone: dataToUse.client_phone || "0123456789",
+        client_company: dataToUse.client_company || "Entreprise Exemple",
+        client_address: dataToUse.client_address || "123 Rue Exemple",
+        client_postal_code: dataToUse.client_postal_code || "75000",
+        client_city: dataToUse.client_city || "Paris",
+        amount: dataToUse.amount || 10000,
+        monthly_payment: dataToUse.monthly_payment || 300,
+        created_at: dataToUse.created_at || new Date().toISOString(),
         // Add equipment data if missing
-        equipment_description: sampleData.equipment_description || JSON.stringify([
+        equipment_description: dataToUse.equipment_description || JSON.stringify([
           {
             title: "Équipement exemple",
             purchasePrice: 2000,
@@ -127,15 +133,9 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       });
       
       // Log détaillé des champs pour débogage
-      if (dataWithValidId.__template.fields.length > 0) {
-        console.log("Premier champ:", {
-          id: dataWithValidId.__template.fields[0].id,
-          label: dataWithValidId.__template.fields[0].label,
-          value: dataWithValidId.__template.fields[0].value,
-          hasPosition: !!dataWithValidId.__template.fields[0].position,
-          x: dataWithValidId.__template.fields[0].position?.x,
-          y: dataWithValidId.__template.fields[0].position?.y
-        });
+      for (let i = 0; i < dataWithValidId.__template.fields.length; i++) {
+        const field = dataWithValidId.__template.fields[i];
+        console.log(`Champ ${i+1}: "${field.id}" - Valeur: "${field.value}" - Position: (${field.position?.x || '?'}, ${field.position?.y || '?'})`);
       }
       
       if (dataWithValidId.__template.templateImages.length > 0) {

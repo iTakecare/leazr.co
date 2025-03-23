@@ -5,14 +5,15 @@ import {
   deleteOffer, 
   updateOfferStatus, 
   sendInfoRequest, 
-  processInfoResponse 
-} from "@/services/offers";
-import { generateOfferPdf } from "@/utils/pdfGenerator";
+  processInfoResponse,
+  generateAndDownloadOfferPdf 
+} from "@/services/offerService";
 import { Offer } from "./useFetchOffers";
 
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isRequestingInfo, setIsRequestingInfo] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const handleDeleteOffer = async (id: string) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette offre ? Cette action est irréversible.")) {
@@ -74,16 +75,19 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     }
   };
   
-  const handleDownloadPdf = (id: string) => {
+  const handleDownloadPdf = async (id: string) => {
     try {
+      setIsGeneratingPdf(true);
+      
       const offer = offers.find(o => o.id === id);
       if (!offer) throw new Error("Offre non trouvée");
       
-      const filename = generateOfferPdf(offer);
-      toast.success(`Le PDF a été généré sous le nom ${filename}`);
+      await generateAndDownloadOfferPdf(id);
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
   
@@ -154,6 +158,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   return {
     isUpdatingStatus,
     isRequestingInfo,
+    isGeneratingPdf,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     handleResendOffer,
