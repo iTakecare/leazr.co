@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Loader2 } from "lucide-react";
-import { loadPDFTemplate, savePDFTemplate } from "@/utils/pdfTemplateUtils";
+import { loadPDFTemplate, savePDFTemplate, DEFAULT_TEMPLATE } from "@/utils/pdfTemplateUtils";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ensureBucket } from "@/services/fileStorage";
 
 // Interface pour le modèle PDF
 export interface PDFTemplate {
@@ -31,23 +32,6 @@ export interface PDFTemplate {
   [key: string]: any;
 }
 
-// Modèle par défaut
-const DEFAULT_TEMPLATE: PDFTemplate = {
-  id: 'default',
-  name: 'Modèle par défaut',
-  companyName: 'iTakeCare',
-  companyAddress: 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique',
-  companyContact: 'Tel: +32 471 511 121 - Email: hello@itakecare.be',
-  companySiret: 'TVA: BE 0795.642.894',
-  logoURL: '',
-  primaryColor: '#2C3E50',
-  secondaryColor: '#3498DB',
-  headerText: 'OFFRE N° {offer_id}',
-  footerText: 'Cette offre est valable 30 jours à compter de sa date d\'émission.',
-  templateImages: [],
-  fields: []
-};
-
 const PDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -55,9 +39,27 @@ const PDFTemplateManager = () => {
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
   
-  // Chargement du modèle au montage du composant
+  // Initialisation au montage
   useEffect(() => {
-    loadTemplate();
+    const initialize = async () => {
+      try {
+        // S'assurer que le bucket de stockage existe
+        const bucketReady = await ensureBucket('pdf-templates');
+        if (!bucketReady) {
+          console.error("Problème lors de la création/vérification du bucket pdf-templates");
+          toast.error("Erreur lors de l'initialisation du stockage");
+        }
+        
+        // Charger le modèle
+        loadTemplate();
+      } catch (err) {
+        console.error("Erreur lors de l'initialisation:", err);
+        setError("Erreur lors de l'initialisation");
+        setLoading(false);
+      }
+    };
+    
+    initialize();
   }, []);
 
   // Fonction pour charger le modèle
@@ -108,7 +110,7 @@ const PDFTemplateManager = () => {
     }
   };
   
-  // Gestion de la mise à jour des informations de l'entreprise
+  // Gestion des informations de l'entreprise
   const handleCompanyInfoUpdate = (companyInfo: Partial<PDFTemplate>) => {
     if (template) {
       const updatedTemplate = {
@@ -120,9 +122,14 @@ const PDFTemplateManager = () => {
     }
   };
   
-  // Gestion de la mise à jour du modèle complet
+  // Gestion du modèle complet
   const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
     handleSaveTemplate(updatedTemplate);
+  };
+  
+  // Fonction pour réessayer en cas d'erreur
+  const handleRetry = () => {
+    loadTemplate();
   };
 
   return (
@@ -153,7 +160,17 @@ const PDFTemplateManager = () => {
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="flex flex-col gap-2">
+              <p>{error}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="self-start" 
+                onClick={handleRetry}
+              >
+                Réessayer
+              </Button>
+            </AlertDescription>
           </Alert>
         )}
         
