@@ -111,11 +111,16 @@ const PDFPreview = ({ template }) => {
       // Recherche de l'image correspondant à la page actuelle
       const pageImage = template.templateImages.find(img => img.page === currentPage);
       
-      if (pageImage && pageImage.url) {
-        // Ajouter un timestamp pour éviter les problèmes de cache
-        return `${pageImage.url}?t=${new Date().getTime()}`;
-      } else {
-        return null;
+      if (pageImage) {
+        // Si l'image a une URL, l'utiliser
+        if (pageImage.url) {
+          // Ajouter un timestamp pour éviter les problèmes de cache
+          return `${pageImage.url}?t=${new Date().getTime()}`;
+        }
+        // Sinon, utiliser les données base64 si disponibles
+        else if (pageImage.data) {
+          return pageImage.data;
+        }
       }
     }
     return null;
@@ -379,20 +384,28 @@ const PDFPreview = ({ template }) => {
                       {pageLoaded && getCurrentPageFields().map((field) => {
                         // Position en millimètres
                         const xMm = field.position?.x || 0;
-                        const yMm = field.position?.y ||
-                         0;
+                        const yMm = field.position?.y || 0;
                         
                         // Convertir en pixels pour l'affichage
                         const xPx = mmToPx(xMm);
                         const yPx = mmToPx(yMm);
                         
-                        // Définir le style de position
+                        // Définir la taille de police en fonction du style ou de la valeur par défaut
+                        const fontSize = field.style?.fontSize 
+                          ? field.style.fontSize * zoomLevel
+                          : 9 * zoomLevel;
+                        
+                        // Définir le style de position avec les autres propriétés de style
                         const fieldStyle = {
                           position: "absolute",
                           left: `${xPx}px`,
                           top: `${yPx}px`,
                           zIndex: 5,
-                          fontSize: `${9 * zoomLevel}px`,
+                          fontSize: `${fontSize}px`,
+                          fontWeight: field.style?.fontWeight || 'normal',
+                          fontStyle: field.style?.fontStyle || 'normal',
+                          textDecoration: field.style?.textDecoration || 'none',
+                          color: field.style?.color || 'black',
                           transform: "translate(0, 0)",
                           whiteSpace: "pre-wrap",
                           maxWidth: "80mm"
@@ -402,11 +415,6 @@ const PDFPreview = ({ template }) => {
                         if (field.id === 'equipment_table') {
                           fieldStyle.fontSize = `${9 * zoomLevel}px`;
                           fieldStyle.maxWidth = "150mm";
-                        }
-                        
-                        // Ajouter du style en fonction du type de champ
-                        if (field.type === 'currency' || field.category === 'offer') {
-                          fieldStyle.fontWeight = 'bold';
                         }
                         
                         return (
