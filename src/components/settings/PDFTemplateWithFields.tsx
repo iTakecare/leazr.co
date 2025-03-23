@@ -454,14 +454,12 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     
     handleFieldsChange(newFields);
     toast.success(`Champ "${field.label}" ajouté`);
-    setHasChanges(true);
   };
 
   const handleDeleteField = (fieldId) => {
     const newFields = currentTemplate.fields.filter(field => field.id !== fieldId);
     handleFieldsChange(newFields);
     toast.success("Champ supprimé");
-    setHasChanges(true);
   };
 
   const handleDuplicateField = (fieldId, targetPage) => {
@@ -490,7 +488,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     const newFields = [...currentTemplate.fields, duplicatedField];
     handleFieldsChange(newFields);
     toast.success(`Champ "${fieldToDuplicate.label}" ajouté à la page ${targetPage + 1}`);
-    setHasChanges(true);
   };
 
   const handleRemoveFieldFromPage = (fieldId, page) => {
@@ -501,59 +498,12 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     const newFields = currentTemplate.fields.filter(field => !(field.id === fieldId && field.page === page));
     handleFieldsChange(newFields);
     toast.success(`Champ supprimé de la page ${page + 1}`);
-    setHasChanges(true);
-  };
-
-  const handleSaveTemplate = async () => {
-    setSaving(true);
-    try {
-      const supabase = getSupabaseClient();
-      
-      const { error } = await supabase
-        .from('pdf_templates')
-        .upsert({
-          id: 'default',
-          ...currentTemplate,
-          updated_at: new Date().toISOString()
-        });
-        
-      if (error) {
-        console.error("Erreur lors de la sauvegarde du modèle:", error);
-        throw new Error("Erreur lors de la sauvegarde du modèle");
-      }
-      
-      setHasChanges(false);
-      toast.success("Modèle sauvegardé avec succès");
-    } catch (error) {
-      console.error("Erreur lors de la sauvegarde du modèle:", error);
-      toast.error("Erreur lors de la sauvegarde du modèle");
-    } finally {
-      setSaving(false);
-    }
   };
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">Conception du modèle PDF</h3>
-        <Button 
-          onClick={handleSaveTemplate} 
-          disabled={saving || !hasChanges}
-          className="ml-auto bg-blue-600 hover:bg-blue-700 text-white"
-          variant="default"
-        >
-          {saving ? (
-            <>
-              <div className="animate-spin mr-2 h-4 w-4 border-b-2 border-white rounded-full"></div>
-              Sauvegarde en cours...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Sauvegarder le modèle
-            </>
-          )}
-        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

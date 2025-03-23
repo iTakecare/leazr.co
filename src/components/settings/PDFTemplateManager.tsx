@@ -127,7 +127,7 @@ const PDFTemplateManager = () => {
     setUnsavedChanges(true);
   };
   
-  // Sauvegarde globale (maintenant utilisée uniquement depuis le bouton principal de PDFTemplateManager)
+  // Sauvegarde globale
   const saveTemplate = async () => {
     if (!pendingChanges) {
       toast.info("Aucune modification à sauvegarder");
@@ -171,7 +171,8 @@ const PDFTemplateManager = () => {
         <Button 
           onClick={saveTemplate} 
           disabled={saving || !unsavedChanges}
-          className="ml-auto"
+          className="ml-auto bg-blue-600 hover:bg-blue-700 text-white"
+          variant="default"
         >
           {saving ? (
             <>
@@ -219,11 +220,30 @@ const PDFTemplateManager = () => {
         )}
         
         {unsavedChanges && (
-          <div className="mt-4 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md flex items-center justify-between">
             <p className="text-sm text-yellow-800 flex items-center">
               <AlertCircle className="h-4 w-4 mr-2" />
-              Vous avez des modifications non sauvegardées. Cliquez sur "Sauvegarder" pour les enregistrer.
+              Vous avez des modifications non sauvegardées.
             </p>
+            <Button 
+              onClick={saveTemplate} 
+              disabled={saving}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              variant="default"
+              size="sm"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin mr-2 h-3 w-3 border-b-2 border-white rounded-full"></div>
+                  Sauvegarde...
+                </>
+              ) : (
+                <>
+                  <Save className="h-3 w-3 mr-2" />
+                  Sauvegarder
+                </>
+              )}
+            </Button>
           </div>
         )}
       </CardContent>
