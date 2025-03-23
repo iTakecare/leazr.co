@@ -11,6 +11,7 @@ import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { PDFModel } from "@/utils/pdfModelUtils";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 
 const PDFModelManager = () => {
   const [loading, setLoading] = useState(true);
@@ -24,26 +25,49 @@ const PDFModelManager = () => {
     loadModelData();
   }, []);
 
-  // Fonction pour charger le modèle
+  // Fonction pour charger le modèle directement depuis Supabase
   const loadModelData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      console.log("Chargement du modèle PDF...");
-      const data = await loadPDFModel();
+      console.log("Tentative de chargement du modèle PDF...");
+      
+      // Utiliser directement le client Supabase pour une requête plus simple
+      const supabase = getSupabaseClient();
+      const { data, error: queryError } = await supabase
+        .from('pdf_models')
+        .select('*')
+        .eq('id', 'default')
+        .maybeSingle();
+      
+      if (queryError) {
+        console.error("Erreur lors de la requête Supabase:", queryError);
+        throw new Error(`Erreur de base de données: ${queryError.message}`);
+      }
       
       if (data) {
         console.log("Modèle chargé avec succès:", data);
-        setModel(data);
+        setModel(data as PDFModel);
         toast.success("Modèle chargé avec succès");
       } else {
         console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
+        // Insérer le modèle par défaut dans la base de données
+        const { error: insertError } = await supabase
+          .from('pdf_models')
+          .insert(DEFAULT_MODEL);
+          
+        if (insertError) {
+          console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
+          throw new Error(`Impossible de créer le modèle par défaut: ${insertError.message}`);
+        }
+        
         setModel(DEFAULT_MODEL);
+        toast.success("Modèle par défaut créé");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur lors du chargement du modèle:", err);
-      setError("Erreur lors du chargement du modèle");
+      setError(err.message || "Erreur lors du chargement du modèle");
       toast.error("Erreur lors du chargement du modèle");
       // En cas d'erreur, définir quand même un modèle par défaut
       setModel(DEFAULT_MODEL);
@@ -52,20 +76,39 @@ const PDFModelManager = () => {
     }
   };
   
-  // Fonction pour sauvegarder le modèle
+  // Fonction pour sauvegarder le modèle directement dans Supabase
   const handleSaveModel = async (updatedModel: PDFModel) => {
     setSaving(true);
     setError(null);
     
     try {
       console.log("Sauvegarde du modèle:", updatedModel);
-      await savePDFModel(updatedModel);
+      const supabase = getSupabaseClient();
+      
+      // Mettre à jour le modèle avec la date actuelle
+      const modelToSave = {
+        ...updatedModel,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Sauvegarder directement dans Supabase
+      const { error: saveError } = await supabase
+        .from('pdf_models')
+        .upsert(modelToSave, { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        });
+      
+      if (saveError) {
+        console.error("Erreur lors de la sauvegarde du modèle:", saveError);
+        throw new Error(`Erreur de sauvegarde: ${saveError.message}`);
+      }
       
       setModel(updatedModel);
       toast.success("Modèle sauvegardé avec succès");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur lors de la sauvegarde du modèle:", err);
-      setError("Erreur lors de la sauvegarde du modèle");
+      setError(err.message || "Erreur lors de la sauvegarde du modèle");
       toast.error("Erreur lors de la sauvegarde du modèle");
     } finally {
       setSaving(false);
@@ -87,6 +130,11 @@ const PDFModelManager = () => {
   // Gestion de la mise à jour du modèle complet
   const handleModelUpdate = (updatedModel: PDFModel) => {
     handleSaveModel(updatedModel);
+  };
+
+  // Fonction pour réessayer le chargement en cas d'erreur
+  const handleRetry = () => {
+    loadModelData();
   };
 
   return (
@@ -117,7 +165,17 @@ const PDFModelManager = () => {
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="flex flex-col gap-2">
+              <p>{error}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="self-start" 
+                onClick={handleRetry}
+              >
+                Réessayer
+              </Button>
+            </AlertDescription>
           </Alert>
         )}
         

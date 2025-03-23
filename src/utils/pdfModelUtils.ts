@@ -1,6 +1,5 @@
 
 import { getSupabaseClient } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 export interface PDFModel {
   id: string;
@@ -46,17 +45,21 @@ export const ensurePDFModelTableExists = async (): Promise<boolean> => {
   try {
     console.log("Vérification de l'existence de la table pdf_models...");
     
-    // Vérifier si la table existe avec une requête simple
-    const { data, error } = await supabase
-      .from('pdf_models')
-      .select('id')
-      .limit(1);
+    // Vérifier si la table existe avec une requête rpc
+    const { data: tableExists, error: checkError } = await supabase.rpc('check_table_exists', {
+      table_name: 'pdf_models'
+    });
     
-    // Si la requête échoue avec une erreur de type "relation does not exist", la table n'existe pas
-    if (error && error.message.includes('relation "pdf_models" does not exist')) {
+    if (checkError) {
+      console.error("Erreur lors de la vérification de la table:", checkError);
+      throw new Error(`Erreur lors de la vérification de la table: ${checkError.message}`);
+    }
+    
+    // Si la table n'existe pas, la créer
+    if (!tableExists) {
       console.log("Table pdf_models n'existe pas, création en cours...");
       
-      // Créer la table
+      // Créer la table avec la fonction RPC execute_sql
       const { error: createError } = await supabase.rpc('execute_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS public.pdf_models (
@@ -71,8 +74,8 @@ export const ensurePDFModelTableExists = async (): Promise<boolean> => {
             "secondaryColor" TEXT NOT NULL,
             "headerText" TEXT NOT NULL,
             "footerText" TEXT NOT NULL,
-            "templateImages" JSONB,
-            fields JSONB NOT NULL,
+            "templateImages" JSONB DEFAULT '[]'::jsonb,
+            fields JSONB DEFAULT '[]'::jsonb,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
           );
@@ -81,21 +84,16 @@ export const ensurePDFModelTableExists = async (): Promise<boolean> => {
       
       if (createError) {
         console.error("Erreur lors de la création de la table:", createError);
-        throw new Error("Erreur lors de la création de la table");
+        throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
       }
       
       console.log("Table pdf_models créée avec succès");
       return true;
-    } else if (error) {
-      // Une autre erreur s'est produite
-      console.error("Erreur lors de la vérification de la table:", error);
-      throw error;
+    } else {
+      console.log("Table pdf_models existe déjà");
+      return true;
     }
-    
-    // Si aucune erreur, la table existe déjà
-    console.log("Table pdf_models existe déjà");
-    return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Exception lors de la vérification/création de la table:", error);
     throw error;
   }
@@ -126,7 +124,7 @@ export const loadPDFModel = async (id: string = 'default') => {
     
     console.log("Réponse de la requête de chargement:", data ? "Modèle trouvé" : "Aucun modèle trouvé");
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Exception lors du chargement du modèle:", error);
     throw error;
   }
@@ -164,7 +162,7 @@ export const savePDFModel = async (model: PDFModel) => {
     
     console.log("Modèle sauvegardé avec succès:", model.id);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Exception lors de la sauvegarde du modèle:", error);
     throw error;
   }
@@ -194,7 +192,7 @@ export const getAllPDFModels = async () => {
     
     console.log(`${data?.length || 0} modèles récupérés`);
     return data || [];
-  } catch (error) {
+  } catch (error: any) {
     console.error("Exception lors de la récupération des modèles:", error);
     throw error;
   }
