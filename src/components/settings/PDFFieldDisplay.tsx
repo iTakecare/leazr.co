@@ -150,11 +150,8 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   // Convertir mm en px avec le zoom appliqué (1 mm = 3.7795275591 px)
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
   
-  // Position en X - conversion directe de mm à px
+  // Positions en X et Y - conversion directe de mm à px sans corrections
   const xPx = mmToPx(field.position?.x || 0);
-  
-  // Position en Y - conversion directe de mm à px
-  // Pas de correction ou d'ajustement de la position Y - on utilise la valeur exacte
   const yPx = mmToPx(field.position?.y || 0);
   
   // Style du champ
@@ -189,7 +186,6 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
     
-    console.log(`Starting drag for field ${field.id} with offset ${offsetX}, ${offsetY}`);
     onStartDrag(field.id, offsetX, offsetY);
     
     // Ajouter les événements de suivi du mouvement de la souris au document
@@ -204,7 +200,6 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   
   const handleMouseUp = () => {
     if (!isDraggable) return;
-    console.log(`Ending drag for field ${field.id}`);
     onEndDrag();
     
     // Nettoyer les événements
