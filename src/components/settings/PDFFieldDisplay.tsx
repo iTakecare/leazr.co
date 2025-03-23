@@ -151,12 +151,10 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   // Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px)
   const MM_TO_PX = 3.7795275591;
   
-  // Convertir mm en px pour l'affichage (avec zoom)
-  const mmToPx = (mm: number) => mm * MM_TO_PX * zoomLevel;
-  
-  // Conversion directe des coordonnées pour l'affichage
-  const xPx = mmToPx(field.position?.x || 0);
-  const yPx = mmToPx(field.position?.y || 0);
+  // Pour calculer correctement la position des champs sur la page A4:
+  // Position en mm * facteur de conversion * zoom
+  const xPx = field.position.x * MM_TO_PX * zoomLevel;
+  const yPx = field.position.y * MM_TO_PX * zoomLevel;
   
   // Style du champ
   const style = {
@@ -171,8 +169,8 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     color: field.style?.color || 'black',
     whiteSpace: "pre-wrap" as const,
     maxWidth: field.id === 'equipment_table' 
-      ? `${mmToPx(150)}px` 
-      : `${mmToPx(80)}px`,
+      ? `${150 * MM_TO_PX * zoomLevel}px` 
+      : `${80 * MM_TO_PX * zoomLevel}px`,
     cursor: isDraggable ? 'move' : 'default',
     border: isDraggable ? '1px dashed blue' : 'none',
     padding: '2px',

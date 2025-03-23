@@ -198,10 +198,8 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
 
     const rect = pdfDocumentRef.current.getBoundingClientRect();
     
-    const pxToMm = (px: number) => px / (MM_TO_PX * zoomLevel);
-    
-    const x = pxToMm(clientX - rect.left - dragOffsetX);
-    const y = pxToMm(clientY - rect.top - dragOffsetY);
+    const x = (clientX - rect.left - dragOffsetX) / (MM_TO_PX * zoomLevel);
+    const y = (clientY - rect.top - dragOffsetY) / (MM_TO_PX * zoomLevel);
 
     const boundedX = Math.max(0, Math.min(x, 210));
     const boundedY = Math.max(0, Math.min(y, 297));
