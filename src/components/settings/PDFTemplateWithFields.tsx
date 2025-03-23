@@ -47,23 +47,22 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   const [localTemplate, setLocalTemplate] = useState<PDFTemplate | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
-  // Effet pour initialiser le state local avec les données du template
   useEffect(() => {
-    // Assurez-vous que template.fields et template.templateImages sont toujours des tableaux
+    console.log("Template reçu dans PDFTemplateWithFields:", template);
+    console.log("Template.fields:", template.fields);
+    console.log("Template.templateImages:", template.templateImages);
+    
+    // S'assurer que les tableaux sont toujours initialisés
     const sanitizedTemplate = {
       ...template,
       fields: Array.isArray(template.fields) ? template.fields : [],
       templateImages: Array.isArray(template.templateImages) ? template.templateImages : []
     };
     
-    console.log("Template reçu (sanitized):", sanitizedTemplate);
-    console.log("Images du template:", sanitizedTemplate.templateImages);
-    console.log("Champs du template:", sanitizedTemplate.fields);
-    
+    console.log("Template sanitisé:", sanitizedTemplate);
     setLocalTemplate(sanitizedTemplate);
   }, [template]);
   
-  // Si le template n'est pas encore chargé, afficher un indicateur de chargement
   if (!localTemplate) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -73,20 +72,18 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     );
   }
   
-  // Convertir les images du template en format local si nécessaire
-  const convertTemplateimagesToLocalFormat = (images: any[]): TemplateImage[] => {
-    if (!images || !Array.isArray(images)) {
-      console.log("Aucune image trouvée ou format invalide");
+  // Convertir les images du template en format local
+  const getLocalImages = (): TemplateImage[] => {
+    if (!localTemplate.templateImages || !Array.isArray(localTemplate.templateImages)) {
+      console.log("Aucune image dans le template ou format invalide");
       return [];
     }
     
-    console.log("Conversion des images:", images);
-    
-    return images.map((img, idx) => {
+    return localTemplate.templateImages.map((img: any, idx: number) => {
       // Si l'image est déjà au bon format, la retourner telle quelle
       if (img.data) return img;
       
-      // Sinon, créer une nouvelle structure avec l'URL comme données (temporaire)
+      // Sinon, créer une nouvelle structure avec des valeurs par défaut
       return {
         id: img.id || `image-${idx}`,
         name: img.name || `Page ${idx + 1}`,
@@ -94,18 +91,6 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
         page: img.page !== undefined ? img.page : idx
       };
     });
-  };
-  
-  // Obtenir les images au format local
-  const getLocalImages = (): TemplateImage[] => {
-    if (!localTemplate.templateImages || !Array.isArray(localTemplate.templateImages)) {
-      console.log("Aucune image dans le template ou format invalide");
-      return [];
-    }
-    
-    const images = convertTemplateimagesToLocalFormat(localTemplate.templateImages);
-    console.log("Images locales obtenues:", images.length);
-    return images;
   };
   
   // Gestionnaire pour les images
@@ -332,7 +317,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   // Rendu du composant d'upload et de gestion des images
   const renderImageUploader = () => {
     const images = getLocalImages();
-    console.log("Nombre d'images à afficher:", images.length);
+    console.log("Images locales obtenues:", images.length);
     
     return (
       <div className="space-y-6">

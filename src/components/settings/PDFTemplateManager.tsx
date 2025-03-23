@@ -41,17 +41,23 @@ const PDFTemplateManager = () => {
   
   // Initialisation au montage
   useEffect(() => {
+    console.log("Initialisation du gestionnaire de modèles PDF");
     const initialize = async () => {
       try {
         // S'assurer que le bucket de stockage existe
-        const bucketReady = await ensureBucket('pdf-templates');
-        if (!bucketReady) {
-          console.error("Problème lors de la création/vérification du bucket pdf-templates");
-          toast.error("Erreur lors de l'initialisation du stockage");
+        try {
+          const bucketReady = await ensureBucket('pdf-templates');
+          if (!bucketReady) {
+            console.error("Problème lors de la création/vérification du bucket pdf-templates");
+            toast.warning("Attention: Stockage en mode local uniquement");
+          }
+        } catch (storageError) {
+          console.error("Erreur avec le stockage:", storageError);
+          toast.warning("Attention: Stockage en mode local uniquement");
         }
         
         // Charger le modèle
-        loadTemplate();
+        await loadTemplate();
       } catch (err) {
         console.error("Erreur lors de l'initialisation:", err);
         setError("Erreur lors de l'initialisation");
@@ -71,18 +77,32 @@ const PDFTemplateManager = () => {
       console.log("Chargement du modèle PDF...");
       const data = await loadPDFTemplate();
       
-      if (data) {
-        console.log("Modèle chargé avec succès:", data);
-        setTemplate(data);
-        toast.success("Modèle chargé avec succès");
-      } else {
+      if (!data) {
         console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
         setTemplate(DEFAULT_TEMPLATE);
+        toast.info("Modèle par défaut chargé");
+      } else {
+        console.log("Modèle chargé avec succès:", data);
+        
+        // S'assurer que les tableaux sont initialisés
+        const sanitizedTemplate: PDFTemplate = {
+          ...data,
+          templateImages: Array.isArray(data.templateImages) ? data.templateImages : [],
+          fields: Array.isArray(data.fields) ? data.fields : []
+        };
+        
+        console.log("Modèle sanitisé:", sanitizedTemplate);
+        console.log("Nombre d'images:", sanitizedTemplate.templateImages.length);
+        console.log("Nombre de champs:", sanitizedTemplate.fields.length);
+        
+        setTemplate(sanitizedTemplate);
+        toast.success("Modèle chargé avec succès");
       }
     } catch (err) {
       console.error("Erreur lors du chargement du modèle:", err);
       setError("Erreur lors du chargement du modèle");
       toast.error("Erreur lors du chargement du modèle");
+      
       // En cas d'erreur, définir quand même un modèle par défaut
       setTemplate(DEFAULT_TEMPLATE);
     } finally {
@@ -97,9 +117,21 @@ const PDFTemplateManager = () => {
     
     try {
       console.log("Sauvegarde du modèle:", updatedTemplate);
-      await savePDFTemplate(updatedTemplate);
       
-      setTemplate(updatedTemplate);
+      // S'assurer que les tableaux sont initialisés
+      const sanitizedTemplate: PDFTemplate = {
+        ...updatedTemplate,
+        templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
+        fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : []
+      };
+      
+      console.log("Modèle à sauvegarder (sanitisé):", sanitizedTemplate);
+      console.log("Nombre d'images à sauvegarder:", sanitizedTemplate.templateImages.length);
+      console.log("Nombre de champs à sauvegarder:", sanitizedTemplate.fields.length);
+      
+      await savePDFTemplate(sanitizedTemplate);
+      
+      setTemplate(sanitizedTemplate);
       toast.success("Modèle sauvegardé avec succès");
     } catch (err) {
       console.error("Erreur lors de la sauvegarde du modèle:", err);

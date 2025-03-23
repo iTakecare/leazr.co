@@ -123,40 +123,21 @@ export const loadPDFTemplate = async (id: string = 'default') => {
     const tableExists = await ensurePDFTemplateTableExists();
     if (!tableExists) {
       console.error("La table pdf_templates n'a pas pu être créée/vérifiée");
+      toast.error("Erreur lors de la préparation de la base de données");
       return DEFAULT_TEMPLATE;
     }
     
-    // Essayer avec le client admin d'abord
-    const adminClient = getAdminSupabaseClient();
-    let data;
-    let error;
-    
-    try {
-      const result = await adminClient
-        .from('pdf_templates')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      
-      data = result.data;
-      error = result.error;
-    } catch (adminError) {
-      console.error("Erreur avec client admin:", adminError);
-      
-      // Essayer avec le client standard
-      const supabase = getSupabaseClient();
-      const result = await supabase
-        .from('pdf_templates')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      
-      data = result.data;
-      error = result.error;
-    }
+    // Récupérer les données du template
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('pdf_templates')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
     
     if (error) {
       console.error("Erreur lors du chargement du modèle:", error);
+      toast.error("Erreur lors du chargement du modèle");
       return DEFAULT_TEMPLATE;
     }
     
@@ -166,20 +147,21 @@ export const loadPDFTemplate = async (id: string = 'default') => {
       return DEFAULT_TEMPLATE;
     }
     
-    // S'assurer que les champs importants sont initialisés
-    const template = {
+    // S'assurer que les champs sont des tableaux valides
+    const sanitizedTemplate = {
       ...data,
       templateImages: Array.isArray(data.templateImages) ? data.templateImages : [],
       fields: Array.isArray(data.fields) ? data.fields : []
     };
     
-    console.log("Modèle chargé:", template);
-    console.log("Nombre d'images:", template.templateImages.length);
-    console.log("Nombre de champs:", template.fields.length);
+    console.log("Modèle chargé avec succès:", sanitizedTemplate);
+    console.log("Nombre d'images:", sanitizedTemplate.templateImages.length);
+    console.log("Nombre de champs:", sanitizedTemplate.fields.length);
     
-    return template;
+    return sanitizedTemplate;
   } catch (error) {
     console.error("Exception lors du chargement du modèle:", error);
+    toast.error("Erreur lors du chargement du modèle");
     return DEFAULT_TEMPLATE;
   }
 };
@@ -191,52 +173,33 @@ export const savePDFTemplate = async (template: any) => {
   try {
     console.log("Début de la sauvegarde du modèle PDF:", template.id);
     
-    // S'assurer que la table existe
-    const tableExists = await ensurePDFTemplateTableExists();
-    if (!tableExists) {
-      console.error("La table pdf_templates n'a pas pu être créée/vérifiée");
-      throw new Error("Impossible de créer/vérifier la table pdf_templates");
-    }
-    
-    // Préparer le modèle à sauvegarder en s'assurant que les tableaux sont initialisés
-    const templateToSave = {
+    // Vérifier que les tableaux sont correctement initialisés
+    const sanitizedTemplate = {
       ...template,
       templateImages: Array.isArray(template.templateImages) ? template.templateImages : [],
       fields: Array.isArray(template.fields) ? template.fields : [],
       updated_at: new Date().toISOString()
     };
     
-    console.log("Modèle à sauvegarder:", templateToSave);
-    console.log("Nombre d'images à sauvegarder:", templateToSave.templateImages.length);
-    console.log("Nombre de champs à sauvegarder:", templateToSave.fields.length);
+    console.log("Modèle à sauvegarder (sanitisé):", sanitizedTemplate);
+    console.log("Nombre d'images à sauvegarder:", sanitizedTemplate.templateImages.length);
+    console.log("Nombre de champs à sauvegarder:", sanitizedTemplate.fields.length);
     
-    // Essayer avec le client admin d'abord
-    const adminClient = getAdminSupabaseClient();
-    let error;
-    
-    try {
-      const result = await adminClient
-        .from('pdf_templates')
-        .upsert(templateToSave, { 
-          onConflict: 'id',
-          ignoreDuplicates: false 
-        });
-      
-      error = result.error;
-    } catch (adminError) {
-      console.error("Erreur avec client admin:", adminError);
-      
-      // Essayer avec le client standard
-      const supabase = getSupabaseClient();
-      const result = await supabase
-        .from('pdf_templates')
-        .upsert(templateToSave, { 
-          onConflict: 'id',
-          ignoreDuplicates: false 
-        });
-      
-      error = result.error;
+    // S'assurer que la table existe
+    const tableExists = await ensurePDFTemplateTableExists();
+    if (!tableExists) {
+      console.error("La table pdf_templates n'a pas pu être créée/vérifiée");
+      throw new Error("Erreur lors de la préparation de la base de données");
     }
+    
+    // Sauvegarder le template
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('pdf_templates')
+      .upsert(sanitizedTemplate, { 
+        onConflict: 'id',
+        ignoreDuplicates: false 
+      });
     
     if (error) {
       console.error("Erreur lors de la sauvegarde du modèle:", error);
@@ -265,32 +228,12 @@ export const getAllPDFTemplates = async () => {
       return [];
     }
     
-    // Essayer avec le client admin d'abord
-    const adminClient = getAdminSupabaseClient();
-    let data;
-    let error;
-    
-    try {
-      const result = await adminClient
-        .from('pdf_templates')
-        .select('*')
-        .order('name');
-      
-      data = result.data;
-      error = result.error;
-    } catch (adminError) {
-      console.error("Erreur avec client admin:", adminError);
-      
-      // Essayer avec le client standard
-      const supabase = getSupabaseClient();
-      const result = await supabase
-        .from('pdf_templates')
-        .select('*')
-        .order('name');
-      
-      data = result.data;
-      error = result.error;
-    }
+    // Récupérer tous les modèles
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('pdf_templates')
+      .select('*')
+      .order('name');
     
     if (error) {
       console.error("Erreur lors de la récupération des modèles:", error);
