@@ -1,5 +1,5 @@
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import PageNavigation from "./PageNavigation";
 import PageImage from "./PageImage";
 import PDFFieldDisplay from "../PDFFieldDisplay";
@@ -35,6 +35,14 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
   const hasTemplateImages = localTemplate?.templateImages && 
                            Array.isArray(localTemplate.templateImages) && 
                            localTemplate.templateImages.length > 0;
+
+  useEffect(() => {
+    // Log pour déboguer
+    if (localTemplate?.fields?.length > 0) {
+      console.log("Champs disponibles:", localTemplate.fields.map((f: any) => 
+        `${f.id}: (${f.position.x.toFixed(2)}, ${f.position.y.toFixed(2)})`).join(", "));
+    }
+  }, [localTemplate?.fields]);
 
   const getCurrentPageFields = () => {
     console.log("Template fields:", localTemplate?.fields);

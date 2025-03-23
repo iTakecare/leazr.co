@@ -15,6 +15,10 @@ interface SimplePDFPreviewProps {
 // Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px à 96 DPI)
 const MM_TO_PX = 3.7795275591;
 
+// Dimensions d'une page A4 en mm
+const PAGE_WIDTH_MM = 210;
+const PAGE_HEIGHT_MM = 297;
+
 const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -56,8 +60,8 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     const mmY = pixelY / (MM_TO_PX * zoomLevel);
 
     // Limiter aux dimensions d'une page A4 (210mm x 297mm)
-    const boundedX = Math.max(0, Math.min(mmX, 210));
-    const boundedY = Math.max(0, Math.min(mmY, 297));
+    const boundedX = Math.max(0, Math.min(mmX, PAGE_WIDTH_MM));
+    const boundedY = Math.max(0, Math.min(mmY, PAGE_HEIGHT_MM));
 
     console.log(`Field position: x=${boundedX.toFixed(2)}mm, y=${boundedY.toFixed(2)}mm`);
 

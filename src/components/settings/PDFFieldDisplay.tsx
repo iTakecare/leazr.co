@@ -30,6 +30,10 @@ type PDFFieldDisplayProps = {
 // Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px à 96 DPI)
 const MM_TO_PX = 3.7795275591;
 
+// Dimensions d'une page A4 en mm
+const PAGE_WIDTH_MM = 210;
+const PAGE_HEIGHT_MM = 297;
+
 // Fonction pour résoudre les valeurs des champs avec les données d'exemple
 const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number): string => {
   if (!pattern || typeof pattern !== 'string') return '';
@@ -151,9 +155,15 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   onDrag,
   onEndDrag
 }) => {
+  // Vérifier si les coordonnées sont dans les limites d'une page A4
+  const normalizedPosition = {
+    x: Math.min(Math.max(0, field.position.x), PAGE_WIDTH_MM),
+    y: Math.min(Math.max(0, field.position.y), PAGE_HEIGHT_MM)
+  };
+  
   // Calcul précis des positions en pixels à partir des positions en mm
-  const xPx = field.position.x * MM_TO_PX * zoomLevel;
-  const yPx = field.position.y * MM_TO_PX * zoomLevel;
+  const xPx = normalizedPosition.x * MM_TO_PX * zoomLevel;
+  const yPx = normalizedPosition.y * MM_TO_PX * zoomLevel;
   
   // Style du champ avec les positions calculées précisément
   const style = {
