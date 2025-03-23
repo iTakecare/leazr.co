@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -82,38 +83,38 @@ const getPDFTemplate = async () => {
 // Précharger les images des modèles
 const preloadImages = async (templateImages) => {
   if (!templateImages || templateImages.length === 0) {
-    console.log("No template images to preload");
+    console.log("Aucune image de modèle à précharger");
     return [];
   }
   
-  console.log(`Attempting to preload ${templateImages.length} images`);
+  console.log(`Tentative de préchargement de ${templateImages.length} images`);
   
   const loadImage = (url) => {
     return new Promise((resolve, reject) => {
       if (!url || typeof url !== 'string' || url.length < 10) {
-        console.error("Invalid image URL:", url);
-        reject(new Error("Invalid image URL"));
+        console.error("URL d'image invalide:", url);
+        reject(new Error("URL d'image invalide"));
         return;
       }
       
       const img = new Image();
       img.crossOrigin = "Anonymous";
       
-      // Set timeout to prevent hanging
+      // Définir un délai pour éviter les blocages
       const timeout = setTimeout(() => {
-        console.error(`Image load timeout: ${url.substring(0, 50)}...`);
-        reject(new Error("Image load timeout"));
+        console.error(`Délai de chargement d'image dépassé: ${url.substring(0, 50)}...`);
+        reject(new Error("Délai de chargement d'image dépassé"));
       }, 10000);
       
       img.onload = () => {
         clearTimeout(timeout);
-        console.log(`Image loaded successfully: ${url.substring(0, 50)}...`);
+        console.log(`Image chargée avec succès: ${url.substring(0, 50)}...`);
         resolve(img);
       };
       
       img.onerror = (err) => {
         clearTimeout(timeout);
-        console.error(`Failed to load image: ${url.substring(0, 50)}...`, err);
+        console.error(`Échec du chargement de l'image: ${url.substring(0, 50)}...`, err);
         reject(err);
       };
       
@@ -122,54 +123,54 @@ const preloadImages = async (templateImages) => {
   };
   
   try {
-    // Filter out entries with invalid image data first
+    // Filtrer d'abord les entrées avec des données d'image invalides
     const validTemplateImages = templateImages.filter(img => 
       img && (img.data || img.url) && typeof (img.data || img.url) === 'string'
     );
     
     if (validTemplateImages.length === 0) {
-      console.error("No valid template images found after filtering");
+      console.error("Aucune image de modèle valide trouvée après filtrage");
       return [];
     }
     
-    console.log(`Loading ${validTemplateImages.length} valid images`);
+    console.log(`Chargement de ${validTemplateImages.length} images valides`);
     
     const imagePromises = validTemplateImages.map(img => {
       const imageUrl = img.data || img.url;
       return loadImage(imageUrl)
         .then(image => ({ ...img, image }))
         .catch(err => {
-          console.error(`Error loading image for page ${img.page}:`, err);
-          return { ...img, image: null, loadError: err.message || "Unknown error" };
+          console.error(`Erreur de chargement d'image pour la page ${img.page}:`, err);
+          return { ...img, image: null, loadError: err.message || "Erreur inconnue" };
         });
     });
     
     const results = await Promise.all(imagePromises);
     
-    // Count successfully loaded images
+    // Compter les images chargées avec succès
     const successCount = results.filter(r => r.image).length;
-    console.log(`Successfully loaded ${successCount} out of ${templateImages.length} images`);
+    console.log(`${successCount} images sur ${templateImages.length} chargées avec succès`);
     
     return results;
   } catch (error) {
-    console.error("Error during image preloading:", error);
+    console.error("Erreur pendant le préchargement des images:", error);
     return [];
   }
 };
 
 export const generateOfferPdf = async (offer: any) => {
-  console.log("PDF Generation Debug: Starting PDF generation");
-  console.log("PDF Generation Debug: Offer Object:", JSON.stringify(offer, null, 2));
+  console.log("Débogage génération PDF: Démarrage de la génération PDF");
+  console.log("Débogage génération PDF: Objet offre:", JSON.stringify(offer, null, 2));
   
   // Si l'offre contient déjà un template, l'utiliser (pour les aperçus)
   const template = offer.__template || await getPDFTemplate();
   
   if (!template) {
-    console.error("CRITICAL DEBUG: No template available for PDF generation");
-    throw new Error("No template available for PDF generation");
+    console.error("DÉBOGAGE CRITIQUE: Aucun modèle disponible pour la génération PDF");
+    throw new Error("Aucun modèle disponible pour la génération PDF");
   }
   
-  console.log("PDF Generation Debug: Template fields:", 
+  console.log("Débogage génération PDF: Champs du modèle:", 
     template.fields && template.fields.map(f => ({
       id: f.id, 
       value: f.value, 
@@ -178,8 +179,8 @@ export const generateOfferPdf = async (offer: any) => {
     }))
   );
 
-  // Debug: Verify offer data for field resolution
-  console.log("PDF Generation Debug: Available offer keys:", Object.keys(offer));
+  // Débogage: Vérifier les données d'offre pour la résolution des champs
+  console.log("Débogage génération PDF: Clés d'offre disponibles:", Object.keys(offer));
 
   // Supprimer le template de l'offre si présent (pour éviter de le stocker)
   if (offer.__template) {
@@ -216,31 +217,31 @@ export const generateOfferPdf = async (offer: any) => {
   
   // Fonction pour résoudre les valeurs des champs
   const resolveFieldValue = (pattern: string) => {
-    console.log(`Resolving field value for pattern: ${pattern}`);
+    console.log(`Résolution de la valeur du champ pour le motif: ${pattern}`);
   
     if (!pattern || typeof pattern !== 'string') {
-      console.warn(`Invalid pattern: ${pattern}`);
+      console.warn(`Motif invalide: ${pattern}`);
       return '';
     }
     
     try {
       return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
-        console.log(`Attempting to resolve key: ${key}`);
+        console.log(`Tentative de résolution de la clé: ${key}`);
         
         const keyParts = key.split('.');
         let value = offer;
         
         for (const part of keyParts) {
-          console.log(`Checking part: ${part}`);
+          console.log(`Vérification de la partie: ${part}`);
           if (value === undefined || value === null) {
-            console.warn(`Value undefined for key part: ${part}`);
+            console.warn(`Valeur indéfinie pour la partie de clé: ${part}`);
             return '[Non disponible]';
           }
           value = value[part];
         }
         
-        // Enhanced logging for value resolution
-        console.log(`Resolved value for ${key}:`, value);
+        // Journalisation améliorée pour la résolution des valeurs
+        console.log(`Valeur résolue pour ${key}:`, value);
         
         // Formater selon le type
         if (typeof value === 'number') {
@@ -256,14 +257,14 @@ export const generateOfferPdf = async (offer: any) => {
         return value || '[Non disponible]';
       });
     } catch (error) {
-      console.error(`Error resolving field value for pattern ${pattern}:`, error);
-      return pattern; // Return original pattern on error
+      console.error(`Erreur lors de la résolution de la valeur du champ pour le motif ${pattern}:`, error);
+      return pattern; // Retourner le motif original en cas d'erreur
     }
   };
   
   // Appliquer le style de texte au champ
   const applyTextStyle = (doc, field) => {
-    // Default style if none exists
+    // Style par défaut si aucun n'existe
     const defaultStyle = {
       fontSize: 10,
       fontWeight: 'normal',
@@ -273,10 +274,10 @@ export const generateOfferPdf = async (offer: any) => {
     
     const style = field.style || defaultStyle;
     
-    // Set font size
+    // Définir la taille de police
     doc.setFontSize(style.fontSize || 10);
     
-    // Set font style
+    // Définir le style de police
     let fontStyle = 'normal';
     if (style.fontWeight === 'bold' && style.fontStyle === 'italic') {
       fontStyle = 'bolditalic';
@@ -288,7 +289,7 @@ export const generateOfferPdf = async (offer: any) => {
     
     doc.setFont('helvetica', fontStyle);
     
-    // Note: Text decoration like underline needs to be handled separately when drawing text
+    // Remarque: La décoration de texte comme le soulignement doit être gérée séparément lors du dessin du texte
     return style.textDecoration === 'underline';
   };
 
