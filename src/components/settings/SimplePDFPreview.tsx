@@ -41,17 +41,27 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const handleDrag = (clientX: number, clientY: number) => {
     if (!isDragging || !draggedFieldId) return;
 
-    const pdfDocumentRect = document.querySelector(".bg-white.shadow-lg.relative")?.getBoundingClientRect();
-    if (!pdfDocumentRect) return;
+    // Obtenir les dimensions précises du conteneur PDF
+    const pdfContainer = document.querySelector(".bg-white.shadow-lg.relative");
+    if (!pdfContainer) return;
+
+    const pdfRect = pdfContainer.getBoundingClientRect();
     
-    const x = (clientX - pdfDocumentRect.left - dragOffsetX) / (MM_TO_PX * zoomLevel);
-    const y = (clientY - pdfDocumentRect.top - dragOffsetY) / (MM_TO_PX * zoomLevel);
+    // Calculer la position exacte en pixels
+    const pixelX = clientX - pdfRect.left - dragOffsetX;
+    const pixelY = clientY - pdfRect.top - dragOffsetY;
+    
+    // Convertir les pixels en millimètres en tenant compte du zoom
+    const mmX = pixelX / (MM_TO_PX * zoomLevel);
+    const mmY = pixelY / (MM_TO_PX * zoomLevel);
 
-    const boundedX = Math.max(0, Math.min(x, 210));
-    const boundedY = Math.max(0, Math.min(y, 297));
+    // Limiter aux dimensions d'une page A4 (210mm x 297mm)
+    const boundedX = Math.max(0, Math.min(mmX, 210));
+    const boundedY = Math.max(0, Math.min(mmY, 297));
 
-    console.log(`Moving field ${draggedFieldId} to x=${boundedX}mm, y=${boundedY}mm`);
+    console.log(`Field position: x=${boundedX.toFixed(2)}mm, y=${boundedY.toFixed(2)}mm`);
 
+    // Mettre à jour le template local avec les nouvelles coordonnées
     const updatedFields = localTemplate.fields.map((field: any) => {
       if (field.id === draggedFieldId && (field.page === currentPage || (currentPage === 0 && field.page === undefined))) {
         return {
@@ -88,6 +98,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
 
   const handleStartDrag = (fieldId: string, offsetX: number, offsetY: number) => {
     if (!isDraggable) return;
+    console.log(`Starting drag for field ${fieldId}, offsets: ${offsetX}px, ${offsetY}px`);
     setIsDragging(true);
     setDraggedFieldId(fieldId);
     setDragOffsetX(offsetX);
