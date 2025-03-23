@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -773,8 +774,8 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
     // Get fields for the selected page
     const pageFields = fields.filter(field => field.page === selectedPage);
     
-    // FIX: Get the selected field as TemplateField or undefined, not as string
-    const selectedField = selectedFieldId ? fields.find(f => f.id === selectedFieldId) : undefined;
+    // Get the selected field as TemplateField or undefined, not as string
+    const selectedFieldObj = selectedFieldId ? fields.find(f => f.id === selectedFieldId) : undefined;
     
     return (
       <div className="space-y-6">
@@ -937,4 +938,228 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
                     </div>
                   </div>
                   
-                  <div className="space
+                  <div className="space-y-2">
+                    <Label htmlFor="text-color">Couleur</Label>
+                    <Select
+                      value={textStyle.color}
+                      onValueChange={value => updateFieldStyle({ color: value })}
+                    >
+                      <SelectTrigger id="text-color">
+                        <SelectValue placeholder="Couleur">
+                          <div className="flex items-center">
+                            <div 
+                              className="w-4 h-4 rounded-sm mr-2 border border-gray-200" 
+                              style={{ backgroundColor: textStyle.color }}
+                            />
+                            <span>{textStyle.color}</span>
+                          </div>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TEXT_COLORS.map(color => (
+                          <SelectItem key={color} value={color}>
+                            <div className="flex items-center">
+                              <div 
+                                className="w-4 h-4 rounded-sm mr-2 border border-gray-200" 
+                                style={{ backgroundColor: color }}
+                              />
+                              <span>{color}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Position</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="position-x" className="text-xs">X</Label>
+                        <Input
+                          id="position-x"
+                          type="number"
+                          value={selectedFieldObj?.position.x}
+                          onChange={(e) => handlePositionChange('x', parseInt(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="position-y" className="text-xs">Y</Label>
+                        <Input
+                          id="position-y"
+                          type="number"
+                          value={selectedFieldObj?.position.y}
+                          onChange={(e) => handlePositionChange('y', parseInt(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    variant="destructive" 
+                    className="w-full"
+                    onClick={() => selectedFieldId && deleteField(selectedFieldId)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Supprimer le champ
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </div>
+          
+          {/* Editor area */}
+          <div className="col-span-1 lg:col-span-2 order-1 lg:order-2">
+            <div
+              ref={editorAreaRef}
+              className="border rounded-lg overflow-auto bg-gray-100 relative"
+              style={{ 
+                height: "60vh", 
+                padding: "20px",
+                cursor: isDragging ? "grabbing" : "default"
+              }}
+              onClick={handleEditorClick}
+              onMouseMove={handleMouseMove}
+              onMouseUp={stopDragging}
+              onMouseLeave={stopDragging}
+            >
+              <div 
+                style={{ 
+                  transform: `scale(${zoomLevel / 100})`,
+                  transformOrigin: "top left",
+                  position: "relative",
+                  width: "fit-content",
+                  height: "fit-content"
+                }}
+              >
+                {images[selectedPage] && (
+                  <div className="relative">
+                    <img
+                      src={images[selectedPage].data}
+                      alt={`Template page ${selectedPage + 1}`}
+                      className="max-w-full"
+                      style={{ 
+                        maxWidth: "100%", 
+                        height: "auto" 
+                      }}
+                    />
+                    
+                    {/* Field overlay */}
+                    {pageFields.map((field) => (
+                      <div
+                        key={field.id}
+                        className={`absolute cursor-move border-2 ${
+                          selectedFieldId === field.id ? 'border-primary' : 'border-transparent'
+                        } hover:border-primary rounded-md transition-colors p-1`}
+                        style={{
+                          left: `${field.position.x}px`,
+                          top: `${field.position.y}px`,
+                          fontFamily: field.style?.fontFamily || 'Arial',
+                          fontSize: `${field.style?.fontSize || 12}px`,
+                          fontWeight: field.style?.fontWeight || 'normal',
+                          fontStyle: field.style?.fontStyle || 'normal',
+                          textDecoration: field.style?.textDecoration || 'none',
+                          color: field.style?.color || '#000000',
+                          backgroundColor: selectedFieldId === field.id ? 'rgba(255, 255, 255, 0.3)' : 'transparent'
+                        }}
+                        onClick={(e) => handleFieldClick(e, field.id)}
+                        onMouseDown={(e) => startDragging(e, field.id)}
+                      >
+                        {field.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Field list */}
+            <div className="mt-4">
+              <h4 className="text-sm font-medium mb-2">Champs de la page ({pageFields.length})</h4>
+              <div className="border rounded-md divide-y">
+                {pageFields.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500">
+                    Aucun champ sur cette page. Utilisez le panneau de gauche pour ajouter des champs.
+                  </div>
+                ) : (
+                  pageFields.map((field) => (
+                    <div 
+                      key={field.id}
+                      className={`p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50 ${
+                        selectedFieldId === field.id ? 'bg-gray-50' : ''
+                      }`}
+                      onClick={() => setSelectedFieldId(field.id)}
+                    >
+                      <div>
+                        <div className="font-medium">{field.label}</div>
+                        <div className="text-xs text-gray-500">
+                          {field.value} - Position: {Math.round(field.position.x)}, {Math.round(field.position.y)}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-gray-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedFieldId(field.id);
+                          }}
+                        >
+                          <Move className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-red-500 hover:text-red-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteField(field.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  return (
+    <Tabs 
+      defaultValue="images" 
+      value={activeTab}
+      onValueChange={setActiveTab}
+      className="space-y-4"
+    >
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="images">Pages du modèle</TabsTrigger>
+        <TabsTrigger 
+          value="fields" 
+          disabled={
+            !Array.isArray(localTemplate.templateImages) || 
+            localTemplate.templateImages.length === 0
+          }
+        >
+          Éditeur de champs
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="images">
+        {renderImagesTab()}
+      </TabsContent>
+      
+      <TabsContent value="fields">
+        {renderFieldsTab()}
+      </TabsContent>
+    </Tabs>
+  );
+};
+
+export default NewPDFTemplateEditor;
