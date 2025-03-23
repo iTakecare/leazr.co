@@ -13,102 +13,102 @@ const PDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState(null);
-  const [activeTab, setActiveTab] = useState("design");
+  const [activeTab, setActiveTab] = useState("company");
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [pendingChanges, setPendingChanges] = useState(null);
   const [error, setError] = useState(null);
 
   // Charger le modèle existant s'il existe
   useEffect(() => {
-    const loadTemplate = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const supabase = getSupabaseClient();
-        
-        // Vérifier si la table existe
-        const { data: tableExists, error: tableError } = await supabase.rpc(
-          'check_table_exists', 
-          { table_name: 'pdf_templates' }
-        );
-        
-        if (tableError) {
-          console.error("Error checking table existence:", tableError);
-          throw new Error("Erreur lors de la vérification de la table");
-        }
-        
-        if (!tableExists) {
-          console.log("Table doesn't exist, creating it");
-          // Créer la table si elle n'existe pas
-          const { error: createError } = await supabase.rpc('execute_sql', {
-            sql: `
-              CREATE TABLE IF NOT EXISTS public.pdf_templates (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                "companyName" TEXT NOT NULL,
-                "companyAddress" TEXT NOT NULL,
-                "companyContact" TEXT NOT NULL,
-                "companySiret" TEXT NOT NULL,
-                "logoURL" TEXT,
-                "primaryColor" TEXT NOT NULL,
-                "secondaryColor" TEXT NOT NULL,
-                "headerText" TEXT NOT NULL,
-                "footerText" TEXT NOT NULL,
-                "templateImages" JSONB,
-                fields JSONB NOT NULL,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-              );
-            `
-          });
-          
-          if (createError) {
-            console.error("Error creating table:", createError);
-            setError("Erreur lors de la création de la table");
-            throw new Error("Erreur lors de la création de la table");
-          }
-        }
-        
-        // Récupérer le modèle par défaut
-        const { data, error } = await supabase
-          .from('pdf_templates')
-          .select('*')
-          .eq('id', 'default')
-          .maybeSingle();
-          
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-          console.error("Error fetching template:", error);
-          setError("Erreur lors de la récupération du modèle");
-          throw new Error("Erreur lors de la récupération du modèle");
-        }
-        
-        if (data) {
-          console.log("Template loaded successfully:", data);
-          setTemplate(data);
-        } else {
-          console.log("No template found, will create a default one");
-          setTemplate(null);
-        }
-      } catch (error) {
-        console.error("Error loading template:", error);
-        setError(`Erreur: ${error.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     loadTemplate();
   }, []);
   
-  // Mise à jour du template dans PDFTemplateManager - Ne fait que stocker les changements en mémoire
+  const loadTemplate = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const supabase = getSupabaseClient();
+      
+      // Vérifier si la table existe
+      const { data: tableExists, error: tableError } = await supabase.rpc(
+        'check_table_exists', 
+        { table_name: 'pdf_templates' }
+      );
+      
+      if (tableError) {
+        console.error("Error checking table existence:", tableError);
+        setError(`Erreur lors de la vérification de la table: ${tableError.message}`);
+        return;
+      }
+      
+      if (!tableExists) {
+        console.log("Table doesn't exist, creating it");
+        // Créer la table si elle n'existe pas
+        const { error: createError } = await supabase.rpc('execute_sql', {
+          sql: `
+            CREATE TABLE IF NOT EXISTS public.pdf_templates (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              "companyName" TEXT NOT NULL,
+              "companyAddress" TEXT NOT NULL,
+              "companyContact" TEXT NOT NULL,
+              "companySiret" TEXT NOT NULL,
+              "logoURL" TEXT,
+              "primaryColor" TEXT NOT NULL,
+              "secondaryColor" TEXT NOT NULL,
+              "headerText" TEXT NOT NULL,
+              "footerText" TEXT NOT NULL,
+              "templateImages" JSONB,
+              fields JSONB NOT NULL,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+            );
+          `
+        });
+        
+        if (createError) {
+          console.error("Error creating table:", createError);
+          setError(`Erreur lors de la création de la table: ${createError.message}`);
+          return;
+        }
+      }
+      
+      // Récupérer le modèle par défaut
+      const { data, error } = await supabase
+        .from('pdf_templates')
+        .select('*')
+        .eq('id', 'default')
+        .maybeSingle();
+        
+      if (error) {
+        console.error("Error fetching template:", error);
+        setError(`Erreur lors de la récupération du modèle: ${error.message}`);
+        return;
+      }
+      
+      if (data) {
+        console.log("Template loaded successfully:", data);
+        setTemplate(data);
+      } else {
+        console.log("No template found, will create a default one when saved");
+        setTemplate(null);
+      }
+    } catch (error) {
+      console.error("Error loading template:", error);
+      setError(`Erreur: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Stockage temporaire des changements sans sauvegarde automatique
   const handleTemplateUpdate = (updatedTemplate) => {
-    // Stockage temporaire des changements sans toast ou sauvegarde automatique
     setPendingChanges(updatedTemplate);
     setUnsavedChanges(true);
   };
   
-  // Gestion des informations de l'entreprise - Ne fait que stocker les changements en mémoire
+  // Stockage temporaire des changements des informations de l'entreprise
   const handleCompanyInfoUpdate = (companyInfo) => {
     let updatedTemplate;
     
@@ -131,10 +131,9 @@ const PDFTemplateManager = () => {
     setUnsavedChanges(true);
   };
   
-  // Sauvegarde globale - UNIQUEMENT appelée lorsque l'utilisateur clique sur le bouton
+  // Sauvegarde - uniquement lorsque l'utilisateur clique sur le bouton
   const saveTemplate = async () => {
     if (!pendingChanges) {
-      toast.info("Aucune modification à sauvegarder");
       return;
     }
     
@@ -153,8 +152,8 @@ const PDFTemplateManager = () => {
         
       if (error) {
         console.error("Error saving template:", error);
-        toast.error("Erreur lors de la sauvegarde du modèle");
-        throw new Error("Erreur lors de la sauvegarde du modèle");
+        toast.error(`Erreur lors de la sauvegarde: ${error.message}`);
+        return;
       }
       
       setTemplate(pendingChanges);
@@ -204,13 +203,23 @@ const PDFTemplateManager = () => {
           <div className="text-center py-8 text-red-500">
             <AlertCircle className="h-8 w-8 mx-auto mb-4" />
             <p className="text-sm font-medium">{error}</p>
-            <Button 
-              onClick={() => window.location.reload()} 
-              variant="outline" 
-              className="mt-4"
-            >
-              Réessayer
-            </Button>
+            <div className="flex justify-center mt-4 space-x-2">
+              <Button 
+                onClick={() => loadTemplate()} 
+                variant="outline" 
+              >
+                Réessayer
+              </Button>
+              <Button 
+                onClick={() => {
+                  setError(null);
+                  setTemplate(null);
+                }} 
+                variant="default"
+              >
+                Créer un nouveau modèle
+              </Button>
+            </div>
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

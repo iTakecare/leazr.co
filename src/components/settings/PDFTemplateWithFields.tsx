@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import PDFTemplateUploader from './PDFTemplateUploader';
@@ -405,6 +406,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   const [selectedPage, setSelectedPage] = useState(0);
   const [activeTab, setActiveTab] = useState("template");
 
+  // Handle images change without triggering save
   const handleImagesChange = (newImages) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -414,10 +416,12 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     setCurrentTemplate(updatedTemplate);
     
     if (onSave) {
+      // Just track changes, don't save automatically
       onSave(updatedTemplate);
     }
   };
 
+  // Handle fields change without triggering save
   const handleFieldsChange = (newFields) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -430,6 +434,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     setCurrentTemplate(updatedTemplate);
     
     if (onSave) {
+      // Just track changes, don't save automatically
       onSave(updatedTemplate);
     }
   };
