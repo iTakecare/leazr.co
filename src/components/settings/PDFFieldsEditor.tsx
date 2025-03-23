@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -188,14 +187,7 @@ const PDFFieldsEditor = ({
     if (!acc[field.category]) {
       acc[field.category] = [];
     }
-    
-    // Ensure field has isVisible property, defaulting to true if not present
-    const fieldWithVisibility = {
-      ...field,
-      isVisible: field.isVisible !== undefined ? field.isVisible : true
-    };
-    
-    acc[field.category].push(fieldWithVisibility);
+    acc[field.category].push(field);
     return acc;
   }, {});
   
@@ -365,12 +357,7 @@ const PDFFieldsEditor = ({
   };
   
   const getCurrentPageFields = () => {
-    // Ensure each field has isVisible property, defaulting to true if not present
-    return fields.filter(f => f.page === activePage || (activePage === 0 && (f.page === undefined || f.page === null)))
-      .map(field => ({
-        ...field,
-        isVisible: field.isVisible !== undefined ? field.isVisible : true
-      }));
+    return fields.filter(f => f.page === activePage || (activePage === 0 && (f.page === undefined || f.page === null)));
   };
   
   const startPositioning = (fieldId, initialPosition) => {
@@ -790,7 +777,7 @@ const PDFFieldsEditor = ({
                                   </Button>
                                   
                                   <Switch
-                                    checked={field.isVisible !== undefined ? field.isVisible : true}
+                                    checked={field.isVisible}
                                     onCheckedChange={() => toggleFieldVisibility(field.id)}
                                     className="scale-75"
                                   />
@@ -806,7 +793,7 @@ const PDFFieldsEditor = ({
                                         startPositioning(field.id, field.position);
                                       }
                                     }}
-                                    disabled={field.isVisible === false}
+                                    disabled={!field.isVisible}
                                     title="Positionner"
                                   >
                                     <Grip className="h-3.5 w-3.5" />
@@ -904,212 +891,54 @@ const PDFFieldsEditor = ({
                           }
                         }}
                       >
-                        Tout ajouter
+                        <Plus className="h-3 w-3 mr-1" />
+                        Ajouter tous à la page
                       </Button>
                     </h4>
                     
-                    {/* List of other available fields not on current page */}
-                    <div className="space-y-1">
-                      {Object.values(fieldsByCategory[category.id] || [])
-                        .filter(field => field.page !== activePage && !(activePage === 0 && field.page === undefined))
-                        .filter(field => !getCurrentPageFields().some(f => f.id === field.id))
-                        .map(field => (
-                          <div 
-                            key={field.id} 
-                            className="border border-dashed rounded-md p-2 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => onDuplicateField(field.id, activePage)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2 flex-grow overflow-hidden">
+                    {!fieldsByCategory[category.id] || 
+                     !fieldsByCategory[category.id].filter(field => 
+                        field.page !== activePage && 
+                        !(activePage === 0 && field.page === undefined)
+                      ).length ? (
+                      <div className="text-sm text-muted-foreground text-center p-4 bg-gray-50 rounded-md">
+                        Aucun autre champ disponible
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {fieldsByCategory[category.id]
+                          .filter(field => field.page !== activePage && !(activePage === 0 && field.page === undefined))
+                          .map((field) => (
+                            <div 
+                              key={`all_${field.id}`} 
+                              className="border rounded-md p-2 bg-gray-50 flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2 overflow-hidden">
                                 {getCategoryIcon(field.category)}
-                                <span className="text-sm truncate" title={field.label}>
+                                <span className="text-sm text-gray-600 truncate" title={field.label}>
                                   {field.label}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  (page {field.page + 1})
                                 </span>
                               </div>
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDuplicateField(field.id, activePage);
-                                }}
-                                title="Ajouter à cette page"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => handleOpenDuplicateDialog(field)}
                               >
-                                <Plus className="h-3.5 w-3.5" />
+                                <Plus className="h-3 w-3 mr-1" />
+                                Ajouter
                               </Button>
                             </div>
-                            {field.page !== undefined && field.page !== null && (
-                              <div className="mt-1 text-xs text-gray-500">
-                                Page: {field.page + 1}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        
-                      {Object.values(fieldsByCategory[category.id] || [])
-                        .filter(field => field.page !== activePage && !(activePage === 0 && field.page === undefined))
-                        .filter(field => !getCurrentPageFields().some(f => f.id === field.id))
-                        .length === 0 && (
-                        <div className="text-sm text-muted-foreground text-center p-4 bg-gray-50 rounded-md">
-                          Tous les champs de cette catégorie sont déjà ajoutés
-                        </div>
-                      )}
-                    </div>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               ))}
             </Tabs>
-            
-            {showTextStyleDialog && fieldToStyle && (
-              <Dialog open={showTextStyleDialog} onOpenChange={setShowTextStyleDialog}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Style du texte</DialogTitle>
-                    <DialogDescription>
-                      Modifier l&apos;apparence du champ &quot;{fieldToStyle.label}&quot;
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Taille de police</Label>
-                      <Select 
-                        value={getFieldStyle(fieldToStyle).fontSize.toString()} 
-                        onValueChange={(value) => {
-                          updateFieldStyle(fieldToStyle.id, { fontSize: parseInt(value) });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Taille" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FONT_SIZES.map(size => (
-                            <SelectItem key={size.value} value={size.value.toString()}>
-                              {size.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Style de texte</Label>
-                      <div className="flex space-x-2">
-                        <ToggleGroup type="multiple">
-                          <ToggleGroupItem 
-                            value="bold"
-                            aria-label="Gras"
-                            className={getFieldStyle(fieldToStyle).fontWeight === 'bold' ? 'bg-blue-100' : ''}
-                            onClick={() => {
-                              const currentWeight = getFieldStyle(fieldToStyle).fontWeight;
-                              updateFieldStyle(fieldToStyle.id, { 
-                                fontWeight: currentWeight === 'bold' ? 'normal' : 'bold' 
-                              });
-                            }}
-                          >
-                            <Bold className="h-4 w-4" />
-                          </ToggleGroupItem>
-                          
-                          <ToggleGroupItem 
-                            value="italic"
-                            aria-label="Italique"
-                            className={getFieldStyle(fieldToStyle).fontStyle === 'italic' ? 'bg-blue-100' : ''}
-                            onClick={() => {
-                              const currentStyle = getFieldStyle(fieldToStyle).fontStyle;
-                              updateFieldStyle(fieldToStyle.id, { 
-                                fontStyle: currentStyle === 'italic' ? 'normal' : 'italic'
-                              });
-                            }}
-                          >
-                            <Italic className="h-4 w-4" />
-                          </ToggleGroupItem>
-                          
-                          <ToggleGroupItem 
-                            value="underline"
-                            aria-label="Souligné"
-                            className={getFieldStyle(fieldToStyle).textDecoration === 'underline' ? 'bg-blue-100' : ''}
-                            onClick={() => {
-                              const currentDecoration = getFieldStyle(fieldToStyle).textDecoration;
-                              updateFieldStyle(fieldToStyle.id, { 
-                                textDecoration: currentDecoration === 'underline' ? 'none' : 'underline'
-                              });
-                            }}
-                          >
-                            <Underline className="h-4 w-4" />
-                          </ToggleGroupItem>
-                        </ToggleGroup>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4 border-t">
-                      <h4 className="font-medium text-sm mb-2">Aperçu</h4>
-                      <div 
-                        className={`p-4 border rounded-md ${getTextStylePreview(getFieldStyle(fieldToStyle))}`}
-                        style={{ fontSize: `${getFieldStyle(fieldToStyle).fontSize}pt` }}
-                      >
-                        {fieldToStyle.label}
-                      </div>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
-            
-            <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Dupliquer le champ</DialogTitle>
-                  <DialogDescription>
-                    Ajouter une copie du champ &quot;{fieldToDuplicate?.label}&quot; sur une autre page
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Sélectionner une page</Label>
-                    <Select 
-                      value={duplicateTargetPage.toString()} 
-                      onValueChange={(value) => setDuplicateTargetPage(parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Page" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: totalPages }, (_, i) => i)
-                          .filter(page => page !== fieldToDuplicate?.page)
-                          .map(page => (
-                            <SelectItem key={page} value={page.toString()}>
-                              Page {page + 1}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowDuplicateDialog(false)}>Annuler</Button>
-                  <Button onClick={handleDuplicateField}>Dupliquer</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            
-            <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Supprimer le champ</DialogTitle>
-                  <DialogDescription>
-                    Êtes-vous sûr de vouloir supprimer ce champ de la page {fieldToRemove?.page !== undefined ? fieldToRemove.page + 1 : 1} ?
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowRemoveDialog(false)}>Annuler</Button>
-                  <Button variant="destructive" onClick={handleRemoveFieldFromPage}>Supprimer</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </CardContent>
         </Card>
       </div>
@@ -1117,313 +946,472 @@ const PDFFieldsEditor = ({
       <div className="md:col-span-2">
         <Card>
           <CardContent className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center space-x-2">
-                <h3 className="text-sm font-medium">Position des champs</h3>
-                <span className="text-xs text-muted-foreground">Page {activePage + 1} / {totalPages}</span>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-7"
-                  onClick={() => setActivePage(Math.max(0, activePage - 1))}
-                  disabled={activePage === 0}
-                >
-                  <ChevronUp className="h-4 w-4 mr-1" />
-                  Page précédente
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-7"
-                  onClick={() => setActivePage(Math.min(totalPages - 1, activePage + 1))}
-                  disabled={activePage === totalPages - 1}
-                >
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                  Page suivante
-                </Button>
+            <div className="flex flex-col h-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-medium">Positionnement des champs</h3>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={dragEnabled}
+                      onCheckedChange={setDragEnabled}
+                      id="drag-mode"
+                    />
+                    <Label htmlFor="drag-mode" className="text-xs">
+                      Glisser-déposer
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 mr-2">
+                    <Switch
+                      checked={gridEnabled}
+                      onCheckedChange={setGridEnabled}
+                      id="grid-mode"
+                    />
+                    <Label htmlFor="grid-mode" className="text-xs">
+                      Grille
+                    </Label>
+                  </div>
+                </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <div className="flex items-center space-x-1">
-                  <Switch
-                    id="show-grid"
-                    checked={gridEnabled}
-                    onCheckedChange={setGridEnabled}
-                    className="scale-75"
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-4 w-1/3">
+                  <Label className="text-xs whitespace-nowrap">Taille grille:</Label>
+                  <Slider
+                    value={[gridSize]}
+                    min={0.5}
+                    max={10}
+                    step={0.5}
+                    onValueChange={(values) => setGridSize(values[0])}
+                    disabled={!gridEnabled}
+                    className="w-full"
                   />
-                  <Label htmlFor="show-grid" className="text-xs">Grille</Label>
+                  <span className="text-xs whitespace-nowrap">{gridSize}mm</span>
                 </div>
                 
-                {gridEnabled && (
-                  <div className="flex items-center space-x-1">
-                    <span className="text-xs text-muted-foreground">Taille:</span>
-                    <Select
-                      value={gridSize.toString()}
-                      onValueChange={(value) => setGridSize(parseFloat(value))}
-                    >
-                      <SelectTrigger className="h-7 w-20">
-                        <SelectValue placeholder="Taille" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[0.5, 1, 2, 5, 10].map(size => (
-                          <SelectItem key={size} value={size.toString()}>
-                            {size} mm
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div className="flex items-center space-x-4 w-1/3">
+                  <Label className="text-xs whitespace-nowrap">Zoom:</Label>
+                  <Slider
+                    value={[zoomLevel * 100]}
+                    min={30}
+                    max={100}
+                    step={5}
+                    onValueChange={(values) => setZoomLevel(values[0] / 100)}
+                    className="w-full"
+                  />
+                  <span className="text-xs whitespace-nowrap">{Math.round(zoomLevel * 100)}%</span>
+                </div>
               </div>
-            </div>
-            
-            <div 
-              className={`relative border rounded-md overflow-hidden ${!positionedField ? 'cursor-default' : 'cursor-move'}`}
-              style={{
-                width: '100%',
-                height: '400px',
-                position: 'relative'
-              }}
-              ref={canvasRef}
-              onMouseMove={handleCanvasMouseMove}
-              onMouseDown={handleCanvasMouseDown}
-              onMouseUp={handleCanvasMouseUp}
-              onMouseLeave={handleCanvasMouseLeave}
-              onKeyDown={handleKeyDown}
-              tabIndex={0}
-            >
-              {/* Background page image */}
-              {getCurrentPageBackground() ? (
-                <img
-                  src={getCurrentPageBackground()}
-                  alt={`Template page ${activePage + 1}`}
-                  className="absolute top-0 left-0 w-full h-full object-contain"
-                  onError={handleImageError}
-                  onLoad={handleImageLoad}
-                />
-              ) : (
-                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-50">
-                  <p className="text-gray-400">Aucune image de modèle pour la page {activePage + 1}</p>
-                </div>
-              )}
               
-              {/* Grid overlay if enabled */}
-              {gridEnabled && (
-                <div 
-                  className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                  style={{
-                    backgroundImage: `
-                      linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px)
-                    `,
-                    backgroundSize: `${gridSize * 3}px ${gridSize * 3}px`
-                  }}
-                />
-              )}
-              
-              {/* Visible fields on this page */}
-              {getCurrentPageFields()
-                .filter(field => field.isVisible)
-                .map(field => {
-                  const htmlContent = field.value;
-                  
-                  const style = getFieldStyle(field);
-                  const fontWeight = style.fontWeight;
-                  const fontStyle = style.fontStyle;
-                  const textDecoration = style.textDecoration;
-                  
-                  return (
-                    <div 
-                      key={field.id}
-                      className={`absolute p-1 ${field.id === positionedField ? 'outline outline-2 outline-blue-500' : ''}`}
-                      style={{
-                        left: `${(field.position.x / 210) * 100}%`,
-                        top: `${(field.position.y / 297) * 100}%`,
-                        fontSize: `${style.fontSize / 10}rem`,
-                        fontWeight,
-                        fontStyle,
-                        textDecoration,
-                        transform: 'translate(0, 0)',
-                        maxWidth: '80%',
-                        zIndex: field.id === positionedField ? 10 : 1,
-                        backgroundColor: field.id === positionedField ? 'rgba(200, 230, 255, 0.3)' : 'transparent',
-                        cursor: positionedField === field.id ? 'move' : 'pointer',
-                        userSelect: 'none'
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (field.id === positionedField) {
-                          setPositionedField(null);
-                        } else {
-                          startPositioning(field.id, field.position);
-                        }
-                      }}
-                    >
-                      {field.label}
-                    </div>
-                  );
-                })}
-                
-              {/* Visual position control when positioning a field */}
-              {positionedField && directPositionMode && (
-                <div className="absolute bottom-4 right-4 bg-white border rounded-md p-2 space-y-2 z-20">
-                  <div className="text-xs font-medium">Position précise</div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Label className="w-6">X:</Label>
-                    <Input 
-                      type="number" 
-                      className="h-7 w-16" 
-                      value={manualPosition.x.toFixed(1)} 
-                      onChange={(e) => handleManualPositionChange('x', e.target.value)}
-                      min={0}
-                      max={210}
-                      step={0.1}
-                    />
-                    <span className="text-xs">mm</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Label className="w-6">Y:</Label>
-                    <Input 
-                      type="number" 
-                      className="h-7 w-16" 
-                      value={manualPosition.y.toFixed(1)} 
-                      onChange={(e) => handleManualPositionChange('y', e.target.value)}
-                      min={0}
-                      max={297}
-                      step={0.1}
-                    />
-                    <span className="text-xs">mm</span>
-                  </div>
-                  
-                  <Button 
-                    size="sm" 
-                    className="w-full text-xs mt-1" 
-                    onClick={applyManualPosition}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <Label className="text-xs whitespace-nowrap">Pas de déplacement:</Label>
+                  <Select 
+                    value={stepSize.toString()} 
+                    onValueChange={(value) => setStepSize(parseFloat(value))}
                   >
-                    Appliquer
-                  </Button>
+                    <SelectTrigger className="w-20">
+                      <SelectValue placeholder="Pas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0.1">0.1mm</SelectItem>
+                      <SelectItem value="0.5">0.5mm</SelectItem>
+                      <SelectItem value="1">1mm</SelectItem>
+                      <SelectItem value="2">2mm</SelectItem>
+                      <SelectItem value="5">5mm</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-              
-              {/* Position controls when a field is being positioned */}
-              {positionedField && (
-                <div className="absolute bottom-4 left-4 bg-white border rounded-md p-2 space-y-2 z-20">
-                  <div className="text-xs font-medium mb-1">
-                    {getCurrentPageFields().find(f => f.id === positionedField)?.label}
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-1">
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="h-7 w-7" 
-                      onClick={() => applyPreciseMovement('left')}
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <div className="flex flex-col gap-1">
+                
+                {positionedField && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs font-medium">Positionnement du champ</Label>
+                    
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs whitespace-nowrap">X:</Label>
+                      <Input
+                        className="w-16 h-7 text-xs"
+                        type="number"
+                        min="0"
+                        max="210"
+                        step="0.1"
+                        value={manualPosition.x}
+                        onChange={(e) => handleManualPositionChange('x', e.target.value)}
+                      />
+                      <Label className="text-xs whitespace-nowrap">Y:</Label>
+                      <Input
+                        className="w-16 h-7 text-xs"
+                        type="number"
+                        min="0"
+                        max="297"
+                        step="0.1"
+                        value={manualPosition.y}
+                        onChange={(e) => handleManualPositionChange('y', e.target.value)}
+                      />
                       <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-7 w-7" 
-                        onClick={() => applyPreciseMovement('up')}
+                        size="sm" 
+                        className="h-7 text-xs px-2" 
+                        onClick={applyManualPosition}
                       >
+                        Appliquer
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center border rounded-md p-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyPreciseMovement('up')}>
                         <ArrowUp className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-7 w-7" 
-                        onClick={() => applyPreciseMovement('down')}
-                      >
+                      <div className="flex flex-col">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyPreciseMovement('left')}>
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyPreciseMovement('right')}>
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyPreciseMovement('down')}>
                         <ArrowDown className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="h-7 w-7" 
-                      onClick={() => applyPreciseMovement('right')}
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs">Pas:</span>
-                    <Select
-                      value={stepSize.toString()}
-                      onValueChange={(value) => setStepSize(parseFloat(value))}
-                    >
-                      <SelectTrigger className="h-7 w-16">
-                        <SelectValue placeholder="Pas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[0.1, 0.5, 1, 2, 5].map(size => (
-                          <SelectItem key={size} value={size.toString()}>
-                            {size} mm
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="pt-1 flex justify-between gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-xs"
-                      onClick={() => setDirectPositionMode(!directPositionMode)}
-                    >
-                      {directPositionMode ? 'Masquer' : 'Coordonnées'}
-                    </Button>
-                    
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="text-xs"
-                      onClick={() => setPositionedField(null)}
-                    >
-                      Terminer
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex justify-between mt-4">
-              <div className="text-xs text-muted-foreground">
-                {positionedField ? (
-                  <span>
-                    Position actuelle: ({canvasPosition.x.toFixed(1)}, {canvasPosition.y.toFixed(1)}) mm
-                  </span>
-                ) : (
-                  <span>
-                    Cliquez sur un champ pour le positionner
-                  </span>
                 )}
               </div>
               
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-muted-foreground">Zoom:</span>
-                <Slider
-                  value={[zoomLevel]}
-                  min={0.2}
-                  max={1}
-                  step={0.1}
-                  className="w-32"
-                  onValueChange={([value]) => setZoomLevel(value)}
-                />
-                <span className="text-xs">{Math.round(zoomLevel * 100)}%</span>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onPageChange(activePage > 0 ? activePage - 1 : 0)} 
+                    disabled={activePage === 0}
+                    className="text-xs"
+                  >
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Page précédente
+                  </Button>
+                  <div className="text-sm">
+                    Page {activePage + 1} / {totalPages}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onPageChange(activePage < totalPages - 1 ? activePage + 1 : activePage)} 
+                    disabled={activePage >= totalPages - 1}
+                    className="text-xs"
+                  >
+                    Page suivante
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div 
+                className="relative border rounded-lg overflow-hidden bg-white"
+                style={{ height: 'calc(100vh - 380px)', minHeight: '400px' }}
+              >
+                {positionedField && (
+                  <div 
+                    className="absolute top-2 left-2 z-10 bg-white border rounded-md p-2 shadow-md text-xs"
+                  >
+                    <div className="font-medium mb-1">Positionnement</div>
+                    <div>X: {canvasPosition.x.toFixed(1)}mm</div>
+                    <div>Y: {canvasPosition.y.toFixed(1)}mm</div>
+                    <div className="flex items-center mt-1 text-gray-500 text-xs">
+                      <Move className="h-3 w-3 mr-1" />
+                      <span>
+                        {dragEnabled 
+                          ? "Glisser-déposer activé" 
+                          : "Utiliser les flèches ou positions manuelles"
+                        }
+                      </span>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full mt-2 h-6 text-xs" 
+                      onClick={() => setPositionedField(null)}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Terminer le positionnement
+                    </Button>
+                  </div>
+                )}
+                
+                <div 
+                  ref={canvasRef}
+                  className="relative w-full h-full overflow-auto"
+                  onMouseMove={handleCanvasMouseMove}
+                  onMouseDown={handleCanvasMouseDown}
+                  onMouseUp={handleCanvasMouseUp}
+                  onMouseLeave={handleCanvasMouseLeave}
+                  onKeyDown={handleKeyDown}
+                  tabIndex={0}
+                  style={{ 
+                    cursor: positionedField && dragEnabled ? 'move' : 'default',
+                  }}
+                >
+                  <div className="relative" style={{ 
+                    width: `${210 * zoomLevel}mm`, 
+                    height: `${297 * zoomLevel}mm`,
+                    margin: '0 auto'
+                  }}>
+                    {gridEnabled && zoomLevel > 0.4 && (
+                      <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ 
+                        backgroundSize: `${gridSize * zoomLevel}mm ${gridSize * zoomLevel}mm`,
+                        backgroundImage: 'linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)',
+                      }} />
+                    )}
+                    
+                    {getCurrentPageBackground() ? (
+                      <img 
+                        src={getCurrentPageBackground()}
+                        className="w-full h-full object-contain border border-gray-200 bg-white"
+                        onError={handleImageError}
+                        onLoad={handleImageLoad}
+                        alt={`Template page ${activePage + 1}`}
+                      />
+                    ) : (
+                      <div className="w-full h-full border border-gray-200 bg-white flex items-center justify-center">
+                        <p className="text-muted-foreground">Aucune image de template pour cette page</p>
+                      </div>
+                    )}
+                    
+                    {fields.map(field => {
+                      if ((field.page !== activePage && !(activePage === 0 && field.page === undefined)) || !field.isVisible) {
+                        return null;
+                      }
+                      
+                      const isBeingPositioned = field.id === positionedField;
+                      const position = isBeingPositioned 
+                        ? canvasPosition 
+                        : field.position;
+                      
+                      // Get field style
+                      const style = getFieldStyle(field);
+                      const fontWeight = style.fontWeight === 'bold' ? 'font-bold' : 'font-normal';
+                      const fontStyle = style.fontStyle === 'italic' ? 'italic' : '';
+                      const textDecoration = style.textDecoration === 'underline' ? 'underline' : '';
+                      
+                      return (
+                        <div
+                          key={field.id}
+                          className={`absolute text-black p-1 rounded-sm border group ${isBeingPositioned ? 'bg-blue-100 border-blue-400 shadow-sm' : 'border-transparent hover:border-blue-300 hover:bg-blue-50'} ${fontWeight} ${fontStyle} ${textDecoration}`}
+                          style={{
+                            left: `${position.x * zoomLevel}mm`,
+                            top: `${position.y * zoomLevel}mm`,
+                            fontSize: `${style.fontSize * zoomLevel}px`,
+                            lineHeight: 1.2,
+                            zIndex: isBeingPositioned ? 20 : 10,
+                            cursor: dragEnabled ? 'move' : 'default',
+                            maxWidth: field.type === 'table' ? '100mm' : '60mm',
+                            fontFamily: 'Arial, sans-serif',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            
+                            if (!dragEnabled) {
+                              if (field.id === positionedField) {
+                                setPositionedField(null);
+                              } else {
+                                startPositioning(field.id, field.position);
+                              }
+                            }
+                          }}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-5 w-5 bg-red-100 border border-red-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => quickRemoveField(field.id, field.page, e)}
+                            title="Supprimer de cette page"
+                          >
+                            <X className="h-2.5 w-2.5 text-red-600" />
+                          </Button>
+                          
+                          <div className="whitespace-nowrap">
+                            {field.type === 'table' ? (
+                              <div className="border border-dashed border-gray-400 p-1 bg-white" style={{ fontSize: `${10 * zoomLevel}px` }}>
+                                <span className="text-gray-500">[Tableau] {field.label}</span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-800" title={field.value}>{field.value}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+      
+      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dupliquer sur une autre page</DialogTitle>
+            <DialogDescription>
+              Choisissez la page sur laquelle vous souhaitez dupliquer le champ <strong>{fieldToDuplicate?.label}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="target-page">Page cible</Label>
+            <Select 
+              value={duplicateTargetPage.toString()} 
+              onValueChange={(value) => setDuplicateTargetPage(parseInt(value))}
+            >
+              <SelectTrigger id="target-page">
+                <SelectValue placeholder="Sélectionner une page" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <SelectItem 
+                    key={i} 
+                    value={i.toString()}
+                    disabled={i === fieldToDuplicate?.page}
+                  >
+                    Page {i + 1} {i === fieldToDuplicate?.page ? "(page actuelle)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDuplicateDialog(false)}>Annuler</Button>
+            <Button onClick={handleDuplicateField}>Dupliquer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Retirer de la page</DialogTitle>
+            <DialogDescription>
+              Voulez-vous retirer le champ <strong>{fieldToRemove?.label}</strong> de la page {fieldToRemove?.page !== undefined ? fieldToRemove.page + 1 : 1} ?
+              <br />
+              <span className="text-destructive">Cette action ne supprime pas complètement le champ, il reste disponible pour d'autres pages.</span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRemoveDialog(false)}>Annuler</Button>
+            <Button 
+              variant="default" 
+              className="bg-red-600 hover:bg-red-700 text-white" 
+              onClick={handleRemoveFieldFromPage}
+            >
+              Retirer de la page
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showTextStyleDialog} onOpenChange={setShowTextStyleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mise en forme du texte</DialogTitle>
+            <DialogDescription>
+              Personnalisez l'apparence du texte pour le champ <strong>{fieldToStyle?.label}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Taille de police</Label>
+              <Select 
+                value={fieldToStyle?.style?.fontSize.toString() || "10"} 
+                onValueChange={(value) => {
+                  if (fieldToStyle) {
+                    updateFieldStyle(fieldToStyle.id, { fontSize: parseInt(value) });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Taille de police" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONT_SIZES.map(size => (
+                    <SelectItem key={size.value} value={size.value.toString()}>
+                      {size.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Style de texte</Label>
+              <div className="flex flex-wrap gap-2">
+                <ToggleGroup type="multiple" variant="outline" className="justify-start">
+                  <ToggleGroupItem 
+                    value="bold" 
+                    aria-label="Gras"
+                    className={`${fieldToStyle?.style?.fontWeight === 'bold' ? 'bg-gray-100' : ''}`}
+                    onClick={() => {
+                      if (fieldToStyle) {
+                        const newWeight = fieldToStyle.style?.fontWeight === 'bold' ? 'normal' : 'bold';
+                        updateFieldStyle(fieldToStyle.id, { fontWeight: newWeight });
+                      }
+                    }}
+                  >
+                    <Bold className="h-4 w-4" />
+                    <span className="ml-1">Gras</span>
+                  </ToggleGroupItem>
+                  
+                  <ToggleGroupItem 
+                    value="italic" 
+                    aria-label="Italique"
+                    className={`${fieldToStyle?.style?.fontStyle === 'italic' ? 'bg-gray-100' : ''}`}
+                    onClick={() => {
+                      if (fieldToStyle) {
+                        const newStyle = fieldToStyle.style?.fontStyle === 'italic' ? 'normal' : 'italic';
+                        updateFieldStyle(fieldToStyle.id, { fontStyle: newStyle });
+                      }
+                    }}
+                  >
+                    <Italic className="h-4 w-4" />
+                    <span className="ml-1">Italique</span>
+                  </ToggleGroupItem>
+                  
+                  <ToggleGroupItem 
+                    value="underline" 
+                    aria-label="Souligné"
+                    className={`${fieldToStyle?.style?.textDecoration === 'underline' ? 'bg-gray-100' : ''}`}
+                    onClick={() => {
+                      if (fieldToStyle) {
+                        const newDecoration = fieldToStyle.style?.textDecoration === 'underline' ? 'none' : 'underline';
+                        updateFieldStyle(fieldToStyle.id, { textDecoration: newDecoration });
+                      }
+                    }}
+                  >
+                    <Underline className="h-4 w-4" />
+                    <span className="ml-1">Souligné</span>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-gray-50 rounded-md">
+              <p className="text-sm font-medium mb-1">Aperçu :</p>
+              <div className={`
+                mt-2 p-2 border rounded bg-white
+                ${fieldToStyle?.style?.fontWeight === 'bold' ? 'font-bold' : 'font-normal'}
+                ${fieldToStyle?.style?.fontStyle === 'italic' ? 'italic' : ''}
+                ${fieldToStyle?.style?.textDecoration === 'underline' ? 'underline' : ''}
+              `}
+              style={{ fontSize: `${fieldToStyle?.style?.fontSize || 10}px` }}>
+                {fieldToStyle?.value || "Texte d'exemple"}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTextStyleDialog(false)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

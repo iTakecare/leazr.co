@@ -16,7 +16,7 @@ const DEFAULT_FIELDS = [
     label: 'Nom du client',
     type: 'text',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.name}',
     position: { x: 20, y: 40 },
     page: null,
@@ -32,7 +32,7 @@ const DEFAULT_FIELDS = [
     label: 'Société',
     type: 'text',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.company}',
     position: { x: 20, y: 50 },
     page: null,
@@ -48,7 +48,7 @@ const DEFAULT_FIELDS = [
     label: 'Email',
     type: 'email',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.email}',
     position: { x: 20, y: 60 },
     page: null,
@@ -64,7 +64,7 @@ const DEFAULT_FIELDS = [
     label: 'Adresse',
     type: 'text',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.address}',
     position: { x: 20, y: 70 },
     page: null,
@@ -80,7 +80,7 @@ const DEFAULT_FIELDS = [
     label: 'Téléphone',
     type: 'text',
     category: 'client',
-    isVisible: true,
+    isVisible: false,
     value: '{clients.phone}',
     position: { x: 20, y: 80 },
     page: null,
@@ -98,7 +98,7 @@ const DEFAULT_FIELDS = [
     label: 'Numéro d\'offre',
     type: 'text',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{id}',
     position: { x: 150, y: 40 },
     page: null,
@@ -114,7 +114,7 @@ const DEFAULT_FIELDS = [
     label: 'Date de l\'offre',
     type: 'date',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{created_at}',
     position: { x: 150, y: 50 },
     page: null,
@@ -130,7 +130,7 @@ const DEFAULT_FIELDS = [
     label: 'Montant total',
     type: 'currency',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{amount}',
     position: { x: 150, y: 80 },
     page: null,
@@ -146,7 +146,7 @@ const DEFAULT_FIELDS = [
     label: 'Mensualité',
     type: 'currency',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{monthly_payment}',
     position: { x: 150, y: 90 },
     page: null,
@@ -162,7 +162,7 @@ const DEFAULT_FIELDS = [
     label: 'Coefficient',
     type: 'number',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{coefficient}',
     position: { x: 150, y: 100 },
     page: null,
@@ -178,7 +178,7 @@ const DEFAULT_FIELDS = [
     label: 'Type d\'offre',
     type: 'text',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{type}',
     position: { x: 150, y: 110 },
     page: null,
@@ -194,7 +194,7 @@ const DEFAULT_FIELDS = [
     label: 'Remarques',
     type: 'text',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{remarks}',
     position: { x: 20, y: 200 },
     page: null,
@@ -210,7 +210,7 @@ const DEFAULT_FIELDS = [
     label: 'Statut',
     type: 'text',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{workflow_status}',
     position: { x: 150, y: 120 },
     page: null,
@@ -226,7 +226,7 @@ const DEFAULT_FIELDS = [
     label: 'Commission',
     type: 'currency',
     category: 'offer',
-    isVisible: true,
+    isVisible: false,
     value: '{commission}',
     position: { x: 150, y: 130 },
     page: null,
@@ -244,7 +244,7 @@ const DEFAULT_FIELDS = [
     label: 'Tableau des équipements',
     type: 'table',
     category: 'equipment',
-    isVisible: true,
+    isVisible: false,
     value: '{equipment_description}',
     position: { x: 20, y: 120 },
     page: null,
@@ -260,7 +260,7 @@ const DEFAULT_FIELDS = [
     label: 'Total équipement',
     type: 'currency',
     category: 'equipment',
-    isVisible: true,
+    isVisible: false,
     value: '{equipment_total}',
     position: { x: 150, y: 170 },
     page: null,
@@ -278,7 +278,7 @@ const DEFAULT_FIELDS = [
     label: 'Nom du vendeur',
     type: 'text',
     category: 'user',
-    isVisible: true,
+    isVisible: false,
     value: '{user.name}',
     position: { x: 20, y: 230 },
     page: null,
@@ -294,7 +294,7 @@ const DEFAULT_FIELDS = [
     label: 'Email du vendeur',
     type: 'email',
     category: 'user',
-    isVisible: true,
+    isVisible: false,
     value: '{user.email}',
     position: { x: 20, y: 240 },
     page: null,
@@ -310,7 +310,7 @@ const DEFAULT_FIELDS = [
     label: 'Téléphone du vendeur',
     type: 'text',
     category: 'user',
-    isVisible: true,
+    isVisible: false,
     value: '{user.phone}',
     position: { x: 20, y: 250 },
     page: null,
@@ -328,7 +328,7 @@ const DEFAULT_FIELDS = [
     label: 'Numéro de page',
     type: 'text',
     category: 'general',
-    isVisible: true,
+    isVisible: false,
     value: 'Page {page_number}',
     position: { x: 180, y: 280 },
     page: null,
@@ -344,7 +344,7 @@ const DEFAULT_FIELDS = [
     label: 'Nombre total de pages',
     type: 'text',
     category: 'general',
-    isVisible: true,
+    isVisible: false,
     value: 'sur {total_pages}',
     position: { x: 200, y: 280 },
     page: null,
@@ -360,7 +360,7 @@ const DEFAULT_FIELDS = [
     label: 'Date actuelle',
     type: 'date',
     category: 'general',
-    isVisible: true,
+    isVisible: false,
     value: '{current_date}',
     position: { x: 20, y: 280 },
     page: null,
@@ -376,7 +376,7 @@ const DEFAULT_FIELDS = [
     label: 'Période de validité',
     type: 'text',
     category: 'general',
-    isVisible: true,
+    isVisible: false,
     value: 'Offre valable 30 jours',
     position: { x: 20, y: 260 },
     page: null,
@@ -403,10 +403,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     headerText: 'OFFRE N° {offer_id}',
     footerText: 'Cette offre est valable 30 jours à compter de sa date d\'émission.',
     templateImages: [],
-    fields: DEFAULT_FIELDS.map(field => ({
-      ...field,
-      isVisible: true // Ensure isVisible is set to true for all fields
-    }))
+    fields: DEFAULT_FIELDS
   });
   
   const [selectedPage, setSelectedPage] = useState(0);
@@ -414,51 +411,41 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   
   // Update template images when they change
   const handleImagesChange = (newImages) => {
-    const updatedTemplate = {
+    setCurrentTemplate({
       ...currentTemplate,
       templateImages: newImages
-    };
+    });
     
-    setCurrentTemplate(updatedTemplate);
-    
-    // Notify parent component of changes
+    // Auto-save the template
     if (onSave) {
-      onSave(updatedTemplate);
+      onSave({
+        ...currentTemplate,
+        templateImages: newImages
+      });
     }
     
-    toast.success("Images du modèle modifiées");
+    toast.success("Images du modèle enregistrées");
   };
   
   // Update fields when they change
   const handleFieldsChange = (newFields) => {
-    // Ensure each field has isVisible property
-    const fieldsWithVisibility = newFields.map(field => ({
-      ...field,
-      isVisible: field.isVisible !== undefined ? field.isVisible : true
-    }));
-    
-    const updatedTemplate = {
+    setCurrentTemplate({
       ...currentTemplate,
-      fields: fieldsWithVisibility
-    };
+      fields: newFields
+    });
     
-    setCurrentTemplate(updatedTemplate);
-    
-    // Notify parent component of changes without auto-saving
+    // Auto-save the template
     if (onSave) {
-      onSave(updatedTemplate);
+      onSave({
+        ...currentTemplate,
+        fields: newFields
+      });
     }
   };
 
   // Add a new field to the template
   const handleAddField = (field) => {
-    // Make sure the new field has isVisible set to true
-    const fieldWithVisibility = {
-      ...field,
-      isVisible: true
-    };
-    
-    const newFields = [...currentTemplate.fields, fieldWithVisibility];
+    const newFields = [...currentTemplate.fields, field];
     handleFieldsChange(newFields);
     toast.success(`Champ "${field.label}" ajouté`);
   };
@@ -489,12 +476,11 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       return;
     }
     
-    // Create the duplicated field for the target page, ensuring isVisible is true
+    // Create the duplicated field for the target page
     const duplicatedField = {
       ...fieldToDuplicate,
       id: newId,
-      page: targetPage,
-      isVisible: true
+      page: targetPage
     };
     
     const newFields = [...currentTemplate.fields, duplicatedField];

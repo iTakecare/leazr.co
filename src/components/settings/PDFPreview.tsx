@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, FileDown, Printer, Maximize2, ArrowLeft, ArrowRight } from "lucide-react";
-import { generateOfferPdf, downloadFile } from "@/utils/pdfGenerator";
+import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 
@@ -73,20 +73,9 @@ const PDFPreview = ({ template }) => {
         __template: template
       };
       
-      const pdfResult = await generateOfferPdf(offerWithTemplate);
+      const pdfFilename = await generateOfferPdf(offerWithTemplate);
       
-      toast.success(`PDF généré avec succès : ${pdfResult.filename}`);
-      
-      // Télécharger le PDF généré
-      if (pdfResult.isMock) {
-        // Si c'est un PDF fictif, télécharger le blob
-        if (pdfResult.pdfBlob) {
-          downloadFile(pdfResult.pdfBlob, pdfResult.filename);
-        }
-      } else if (pdfResult.pdfUrl) {
-        // Si nous avons une URL, télécharger à partir de cette URL
-        downloadFile(pdfResult.pdfUrl, pdfResult.filename);
-      }
+      toast.success(`PDF généré avec succès : ${pdfFilename}`);
     } catch (error) {
       console.error("Erreur lors de la génération du PDF:", error);
       toast.error("Erreur lors de la génération du PDF");
@@ -324,7 +313,7 @@ const PDFPreview = ({ template }) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={zoomOut}
+              onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.5))}
               disabled={zoomLevel <= 0.5}
               className="h-8 px-2"
             >
@@ -334,7 +323,7 @@ const PDFPreview = ({ template }) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={zoomIn}
+              onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 2))}
               disabled={zoomLevel >= 2}
               className="h-8 px-2"
             >
@@ -348,7 +337,7 @@ const PDFPreview = ({ template }) => {
             disabled={loading}
           >
             <FileDown className="h-4 w-4 mr-2" />
-            {loading ? "Génération en cours..." : "Générer un PDF d'exemple"}
+            Générer un PDF d'exemple
           </Button>
         </div>
       </div>
@@ -399,8 +388,8 @@ const PDFPreview = ({ template }) => {
                         alt={`Template page ${currentPage + 1}`}
                         className="w-full h-full object-contain"
                         onError={(e) => {
-                          console.error("Erreur de chargement de l'image:", (e.target as HTMLImageElement).src);
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          console.error("Erreur de chargement de l'image:", e.target.src);
+                          e.target.src = "/placeholder.svg";
                         }}
                         onLoad={() => setPageLoaded(true)}
                         style={{ display: "block" }}

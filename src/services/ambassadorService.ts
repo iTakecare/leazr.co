@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -17,8 +16,7 @@ export const ambassadorSchema = z.object({
   city: z.string().optional(),
   postal_code: z.string().optional(),
   country: z.string().optional(),
-  commission_level_id: z.string().uuid().optional(),
-  pdf_template_id: z.string().optional()
+  commission_level_id: z.string().uuid().optional()
 });
 
 // Type des données du formulaire d'ambassadeur
@@ -48,7 +46,6 @@ export interface Ambassador {
   has_user_account?: boolean;
   user_account_created_at?: string;
   user_id?: string;
-  pdf_template_id?: string;
 }
 
 // Récupérer tous les ambassadeurs
@@ -113,8 +110,8 @@ export const updateAmbassador = async (
     console.log(`[updateAmbassador] Début de la mise à jour pour l'ambassadeur ${id}`);
     console.log(`[updateAmbassador] Données à mettre à jour:`, ambassadorData);
     
-    // Extraire commission_level_id et pdf_template_id des données générales
-    const { commission_level_id, pdf_template_id, ...updateData } = ambassadorData;
+    // Extraire commission_level_id des données générales
+    const { commission_level_id, ...updateData } = ambassadorData;
     
     // Mise à jour des données générales de l'ambassadeur
     const { error: updateError } = await supabase
@@ -130,22 +127,6 @@ export const updateAmbassador = async (
     // Si un ID de barème est fourni, mettre à jour séparément
     if (commission_level_id) {
       await updateAmbassadorCommissionLevel(id, commission_level_id);
-    }
-    
-    // Si un ID de modèle PDF est fourni, mettre à jour séparément
-    if (pdf_template_id !== undefined) {
-      // Si 'default', défini à null dans la base de données
-      const templateIdValue = pdf_template_id === 'default' ? null : pdf_template_id;
-      
-      const { error: pdfError } = await supabase
-        .from("ambassadors")
-        .update({ pdf_template_id: templateIdValue })
-        .eq("id", id);
-        
-      if (pdfError) {
-        console.error(`[updateAmbassador] Erreur lors de la mise à jour du modèle PDF:`, pdfError);
-        throw pdfError;
-      }
     }
     
     console.log(`[updateAmbassador] Mise à jour terminée avec succès pour l'ambassadeur ${id}`);
