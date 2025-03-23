@@ -26,6 +26,8 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [localTemplate, setLocalTemplate] = useState(template);
 
+  const MM_TO_PX = 3.7795275591;
+
   useEffect(() => {
     setLocalTemplate(template);
     setHasUnsavedChanges(false);
@@ -196,7 +198,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
 
     const rect = pdfDocumentRef.current.getBoundingClientRect();
     
-    const pxToMm = (px: number) => px / (3.7795275591 * zoomLevel);
+    const pxToMm = (px: number) => px / (MM_TO_PX * zoomLevel);
     
     const x = pxToMm(clientX - rect.left - dragOffsetX);
     const y = pxToMm(clientY - rect.top - dragOffsetY);

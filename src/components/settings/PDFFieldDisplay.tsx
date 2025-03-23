@@ -1,3 +1,4 @@
+
 import React from "react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -32,7 +33,7 @@ const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number
   
   // Si le pattern ne contient pas de placeholders, on retourne une valeur démo explicite
   if (!pattern.includes('{')) {
-    return `Valeur démo: ${pattern}`;
+    return pattern;
   }
   
   return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
@@ -46,14 +47,14 @@ const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number
     
     for (const part of keyParts) {
       if (value === undefined || value === null) {
-        return `[Démo: ${key}]`;
+        return `[${key}]`;
       }
       value = value[part];
     }
     
-    // Si la valeur est undefined, retourner une valeur démo explicite
+    // Si la valeur est undefined, retourner une valeur explicite
     if (value === undefined || value === null) {
-      return `[Démo: ${key}]`;
+      return `[${key}]`;
     }
     
     // Formatage pour les dates
@@ -61,7 +62,7 @@ const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number
       try {
         return new Date(value).toLocaleDateString();
       } catch (e) {
-        return value ? String(value) : `[Démo: date]`;
+        return value ? String(value) : `[date]`;
       }
     }
     
@@ -71,7 +72,7 @@ const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number
       try {
         return formatCurrency(value);
       } catch (e) {
-        return typeof value === 'number' ? String(value) : `[Démo: montant]`;
+        return typeof value === 'number' ? String(value) : `[montant]`;
       }
     }
     
@@ -147,10 +148,13 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   onDrag,
   onEndDrag
 }) => {
-  // Convertir mm en px avec le zoom appliqué (1 mm = 3.7795275591 px)
-  const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
+  // Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px)
+  const MM_TO_PX = 3.7795275591;
   
-  // Positions en X et Y - conversion directe de mm à px sans corrections
+  // Convertir mm en px pour l'affichage (avec zoom)
+  const mmToPx = (mm: number) => mm * MM_TO_PX * zoomLevel;
+  
+  // Conversion directe des coordonnées pour l'affichage
   const xPx = mmToPx(field.position?.x || 0);
   const yPx = mmToPx(field.position?.y || 0);
   
