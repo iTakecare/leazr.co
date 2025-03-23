@@ -67,3 +67,138 @@ export const deleteImage = async (path: string, bucket: string = 'images'): Prom
     return false;
   }
 };
+
+/**
+ * Ensure that a storage bucket exists
+ * @param bucket Name of the bucket to check/create
+ * @returns Boolean indicating if the bucket exists or was created
+ */
+export const ensureStorageBucket = async (bucket: string): Promise<boolean> => {
+  try {
+    // First check if the bucket exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Error listing buckets:', listError);
+      return false;
+    }
+    
+    // Check if our bucket is in the list
+    const bucketExists = buckets.some(b => b.name === bucket);
+    
+    if (bucketExists) {
+      console.log(`Bucket ${bucket} already exists`);
+      return true;
+    }
+    
+    // Create the bucket if it doesn't exist
+    const { data, error } = await supabase.storage.createBucket(bucket, {
+      public: true
+    });
+    
+    if (error) {
+      console.error(`Error creating bucket ${bucket}:`, error);
+      return false;
+    }
+    
+    console.log(`Created bucket ${bucket} successfully`);
+    return true;
+  } catch (error) {
+    console.error(`Error ensuring bucket ${bucket} exists:`, error);
+    return false;
+  }
+};
+
+/**
+ * Download an image from a URL and upload it to Supabase storage
+ * @param url The URL of the image to download
+ * @param path The path to save the image to in the bucket
+ * @param bucket The bucket to upload to
+ * @returns The URL of the uploaded image or null if there was an error
+ */
+export const downloadAndUploadImage = async (
+  url: string,
+  path: string,
+  bucket: string = 'images'
+): Promise<string | null> => {
+  try {
+    // First ensure the bucket exists
+    const bucketExists = await ensureStorageBucket(bucket);
+    if (!bucketExists) {
+      console.error(`Failed to ensure bucket ${bucket} exists`);
+      return null;
+    }
+    
+    // If the URL is a blob URL from the browser, we need to handle it differently
+    if (url.startsWith('blob:')) {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        
+        // Generate a file name for this blob
+        const extension = blob.type.split('/')[1] || 'jpg';
+        const fileName = `${path}.${extension}`;
+        
+        // Upload to Supabase
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, blob, {
+            cacheControl: '3600',
+            upsert: true
+          });
+        
+        if (error) {
+          console.error('Error uploading blob:', error);
+          return null;
+        }
+        
+        // Get the public URL
+        const { data: urlData } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(fileName);
+          
+        return urlData.publicUrl;
+      } catch (error) {
+        console.error('Error processing blob URL:', error);
+        return null;
+      }
+    }
+    
+    // For regular URLs, fetch the image
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Failed to download image: ${response.status} ${response.statusText}`);
+      return null;
+    }
+    
+    const blob = await response.blob();
+    
+    // Determine file extension based on content type
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const extension = contentType.split('/')[1] || 'jpg';
+    const fileName = `${path}.${extension}`;
+    
+    // Upload to Supabase
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, blob, {
+        cacheControl: '3600',
+        upsert: true
+      });
+    
+    if (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+    
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(fileName);
+      
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error('Error in downloadAndUploadImage:', error);
+    return null;
+  }
+};
