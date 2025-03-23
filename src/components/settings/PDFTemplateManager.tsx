@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
-import { Save } from "lucide-react";
+import { Save, AlertCircle } from "lucide-react";
 
 const PDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
