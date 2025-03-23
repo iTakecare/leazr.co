@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +16,7 @@ const DEFAULT_FIELDS = [
     label: 'Nom du client',
     type: 'text',
     category: 'client',
-    isVisible: false,
+    isVisible: true,
     value: '{clients.name}',
     position: { x: 20, y: 40 },
     page: null,
@@ -402,7 +403,10 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     headerText: 'OFFRE N° {offer_id}',
     footerText: 'Cette offre est valable 30 jours à compter de sa date d\'émission.',
     templateImages: [],
-    fields: DEFAULT_FIELDS
+    fields: DEFAULT_FIELDS.map(field => ({
+      ...field,
+      isVisible: true // Ensure isVisible is set to true
+    }))
   });
   
   const [selectedPage, setSelectedPage] = useState(0);
@@ -427,9 +431,15 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   
   // Update fields when they change
   const handleFieldsChange = (newFields) => {
+    // Ensure each field has isVisible property
+    const fieldsWithVisibility = newFields.map(field => ({
+      ...field,
+      isVisible: field.isVisible !== undefined ? field.isVisible : true
+    }));
+    
     const updatedTemplate = {
       ...currentTemplate,
-      fields: newFields
+      fields: fieldsWithVisibility
     };
     
     setCurrentTemplate(updatedTemplate);
@@ -442,7 +452,13 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
 
   // Add a new field to the template
   const handleAddField = (field) => {
-    const newFields = [...currentTemplate.fields, field];
+    // Make sure the new field has isVisible set to true
+    const fieldWithVisibility = {
+      ...field,
+      isVisible: true
+    };
+    
+    const newFields = [...currentTemplate.fields, fieldWithVisibility];
     handleFieldsChange(newFields);
     toast.success(`Champ "${field.label}" ajouté`);
   };
@@ -473,11 +489,12 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       return;
     }
     
-    // Create the duplicated field for the target page
+    // Create the duplicated field for the target page, ensuring isVisible is true
     const duplicatedField = {
       ...fieldToDuplicate,
       id: newId,
-      page: targetPage
+      page: targetPage,
+      isVisible: true
     };
     
     const newFields = [...currentTemplate.fields, duplicatedField];
