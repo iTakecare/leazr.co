@@ -37,25 +37,25 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
                            localTemplate.templateImages.length > 0;
 
   useEffect(() => {
-    // Log pour déboguer
+    // Log pour déboguer avec positions en mm
     if (localTemplate?.fields?.length > 0) {
-      console.log("Champs disponibles:", localTemplate.fields.map((f: any) => 
-        `${f.id}: (${f.position.x.toFixed(2)}, ${f.position.y.toFixed(2)})`).join(", "));
+      console.log("Champs disponibles avec coordonnées en mm:", localTemplate.fields.map((f: any) => 
+        `${f.id}: (${f.position.x.toFixed(1)}mm, ${f.position.y.toFixed(1)}mm)`).join(", "));
     }
   }, [localTemplate?.fields]);
 
   const getCurrentPageFields = () => {
-    console.log("Template fields:", localTemplate?.fields);
-    console.log("Current page:", currentPage);
+    console.log("Champs du template:", localTemplate?.fields);
+    console.log("Page courante:", currentPage);
     
     const fields = localTemplate?.fields?.filter((f: any) => {
       const isForCurrentPage = f.page === currentPage || (currentPage === 0 && f.page === undefined);
       const isVisible = f.isVisible !== false;
-      console.log(`Field ${f.id}: page=${f.page}, isVisible=${f.isVisible}, willShow=${isForCurrentPage && isVisible}`);
+      console.log(`Champ ${f.id}: page=${f.page}, isVisible=${f.isVisible}, willShow=${isForCurrentPage && isVisible}, position=(${f.position.x.toFixed(1)}mm, ${f.position.y.toFixed(1)}mm)`);
       return isForCurrentPage && isVisible;
     }) || [];
     
-    console.log("Fields for current page:", fields);
+    console.log("Champs pour la page courante:", fields);
     return fields;
   };
 

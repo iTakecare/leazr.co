@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,6 +62,9 @@ const AVAILABLE_FIELDS = {
 const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 56, 64, 72];
 const FONT_FAMILIES = ["Arial", "Helvetica", "Times New Roman", "Courier New", "Georgia", "Verdana"];
 const TEXT_COLORS = ["#000000", "#FF0000", "#0000FF", "#008000", "#FFA500", "#800080", "#A52A2A", "#808080"];
+
+// Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px à 96 DPI)
+const MM_TO_PX = 3.7795275591;
 
 const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) => {
   
@@ -474,8 +476,8 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
     updatedFields[fieldIndex] = {
       ...updatedFields[fieldIndex],
       position: {
-        x: updatedFields[fieldIndex].position.x + deltaX,
-        y: updatedFields[fieldIndex].position.y + deltaY
+        x: updatedFields[fieldIndex].position.x + deltaX / MM_TO_PX,
+        y: updatedFields[fieldIndex].position.y + deltaY / MM_TO_PX
       }
     };
     
@@ -590,7 +592,7 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
     // Create a copy of the fields array
     const updatedFields = [...fields];
     
-    // Update the position
+    // Update the position (value is already in mm)
     updatedFields[fieldIndex] = {
       ...updatedFields[fieldIndex],
       position: {
@@ -972,24 +974,26 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Position</Label>
+                    <Label>Position (mm)</Label>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <Label htmlFor="position-x" className="text-xs">X</Label>
+                        <Label htmlFor="position-x" className="text-xs">X (mm)</Label>
                         <Input
                           id="position-x"
                           type="number"
-                          value={selectedFieldObj?.position.x}
-                          onChange={(e) => handlePositionChange('x', parseInt(e.target.value))}
+                          step="0.1"
+                          value={selectedFieldObj?.position.x.toFixed(1)}
+                          onChange={(e) => handlePositionChange('x', parseFloat(e.target.value))}
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="position-y" className="text-xs">Y</Label>
+                        <Label htmlFor="position-y" className="text-xs">Y (mm)</Label>
                         <Input
                           id="position-y"
                           type="number"
-                          value={selectedFieldObj?.position.y}
-                          onChange={(e) => handlePositionChange('y', parseInt(e.target.value))}
+                          step="0.1"
+                          value={selectedFieldObj?.position.y.toFixed(1)}
+                          onChange={(e) => handlePositionChange('y', parseFloat(e.target.value))}
                         />
                       </div>
                     </div>
@@ -1052,8 +1056,8 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
                           selectedFieldId === field.id ? 'border-primary' : 'border-transparent'
                         } hover:border-primary rounded-md transition-colors p-1`}
                         style={{
-                          left: `${field.position.x}px`,
-                          top: `${field.position.y}px`,
+                          left: `${field.position.x * MM_TO_PX}px`,
+                          top: `${field.position.y * MM_TO_PX}px`,
                           fontFamily: field.style?.fontFamily || 'Arial',
                           fontSize: `${field.style?.fontSize || 12}px`,
                           fontWeight: field.style?.fontWeight || 'normal',
@@ -1093,7 +1097,7 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
                       <div>
                         <div className="font-medium">{field.label}</div>
                         <div className="text-xs text-gray-500">
-                          {field.value} - Position: {Math.round(field.position.x)}, {Math.round(field.position.y)}
+                          {field.value} - Position: {field.position.x.toFixed(1)}mm, {field.position.y.toFixed(1)}mm
                         </div>
                       </div>
                       <div className="flex gap-1">

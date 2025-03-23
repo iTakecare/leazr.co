@@ -63,7 +63,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     const boundedX = Math.max(0, Math.min(mmX, PAGE_WIDTH_MM));
     const boundedY = Math.max(0, Math.min(mmY, PAGE_HEIGHT_MM));
 
-    console.log(`Field position: x=${boundedX.toFixed(2)}mm, y=${boundedY.toFixed(2)}mm`);
+    console.log(`Position du champ en mm: x=${boundedX.toFixed(1)}mm, y=${boundedY.toFixed(1)}mm`);
 
     // Mettre à jour le template local avec les nouvelles coordonnées
     const updatedFields = localTemplate.fields.map((field: any) => {
@@ -102,7 +102,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
 
   const handleStartDrag = (fieldId: string, offsetX: number, offsetY: number) => {
     if (!isDraggable) return;
-    console.log(`Starting drag for field ${fieldId}, offsets: ${offsetX}px, ${offsetY}px`);
+    console.log(`Début du déplacement pour le champ ${fieldId}, décalage: ${offsetX}px, ${offsetY}px`);
     setIsDragging(true);
     setDraggedFieldId(fieldId);
     setDragOffsetX(offsetX);
