@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save, FileDown, Loader2 } from "lucide-react";
@@ -50,7 +49,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       
       // Vérifier que les champs sont correctement définis
       if (!Array.isArray(localTemplate.fields) || localTemplate.fields.length === 0) {
-        toast.warn("Le modèle n'a pas de champs définis. Le PDF généré sera basique.");
+        toast.info("Le modèle n'a pas de champs définis. Le PDF généré sera basique.");
       } else {
         console.log("Champs disponibles pour le PDF:", localTemplate.fields.length);
         
@@ -62,7 +61,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
         console.log("Champs avec positions valides:", fieldsWithPositions.length);
         
         if (fieldsWithPositions.length === 0 && localTemplate.fields.length > 0) {
-          toast.warn("Aucun champ n'a de position définie. Utilisez le mode de positionnement pour placer les champs.");
+          toast.info("Aucun champ n'a de position définie. Utilisez le mode de positionnement pour placer les champs.");
         }
       }
       
@@ -153,7 +152,6 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
     }
   };
 
-  // Helper functions for zoom control
   const decreaseZoom = () => {
     const newZoom = Math.max(zoomLevel - 0.1, 0.5);
     setZoomLevel(newZoom);
@@ -176,11 +174,9 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
     }
   };
 
-  // Lorsque l'utilisateur termine le positionnement, on lui propose de sauvegarder
   const handleDraggableChange = (newDraggable: boolean) => {
     setIsDraggable(newDraggable);
     
-    // Si on désactive le mode de positionnement et qu'il y a des changements non sauvegardés
     if (!newDraggable && hasUnsavedChanges) {
       toast.info("N'oubliez pas de sauvegarder vos modifications", {
         action: {
