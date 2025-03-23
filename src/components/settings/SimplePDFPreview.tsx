@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const SAMPLE_DATA = {
     id: "OF-2023-456",
     client_name: "Société Démo",
+    client_first_name: "Jean",
     client_email: "contact@demo-company.com",
     clients: {
       company: "Société Démo SA",
@@ -45,6 +47,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
       address: "123 Avenue de l'Exemple, 1050 Bruxelles",
       phone: "+32 470 123 456"
     },
+    client_company: "Société Démo",
     equipment_description: JSON.stringify([
       {
         title: "MacBook Pro 14\" M3 Pro",
@@ -201,6 +204,8 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
 
     const rect = previewRef.current.getBoundingClientRect();
     
+    // Convertir les pixels en millimètres avec le zoom
+    // 1mm = 3.7795275591px à 96dpi
     const x = (clientX - rect.left - dragOffsetX) / (3.7795275591 * zoomLevel);
     const y = (clientY - rect.top - dragOffsetY) / (3.7795275591 * zoomLevel);
 

@@ -151,7 +151,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   // Debug pour voir les champs et leurs positions
   console.log(`Rendering field ${field.id} for page ${field.page}`, field);
   
-  // Convertir mm en px avec le zoom appliqué
+  // Convertir mm en px avec le zoom appliqué (1 mm = 3.7795275591 px)
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
   
   // Position et style du champ
