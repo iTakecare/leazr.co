@@ -2,11 +2,12 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { UserRound, Building, Settings2, Mail, BadgePercent } from "lucide-react";
+import { UserRound, Building, Settings2, Mail, BadgePercent, FileText } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 import LeaserManager from "@/components/settings/LeaserManager";
 import SmtpSettings from "@/components/settings/SmtpSettings";
 import CommissionManager from "@/components/settings/CommissionManager";
+import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Container from "@/components/layout/Container";
 
@@ -36,6 +37,10 @@ const Settings = () => {
                 <BadgePercent className="h-4 w-4" />
                 <span>Commissions</span>
               </TabsTrigger>
+              <TabsTrigger value="pdf-templates" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span>Modèles PDF</span>
+              </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <UserRound className="h-4 w-4" />
                 <span>Utilisateurs</span>
@@ -56,6 +61,10 @@ const Settings = () => {
 
             <TabsContent value="commissions" className="space-y-4">
               <CommissionManager />
+            </TabsContent>
+
+            <TabsContent value="pdf-templates" className="space-y-4">
+              <PDFTemplateManager />
             </TabsContent>
 
             <TabsContent value="users" className="space-y-4">
