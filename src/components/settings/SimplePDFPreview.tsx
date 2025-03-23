@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,72 +25,85 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [localTemplate, setLocalTemplate] = useState(template);
 
-  // Mettre à jour le template local lorsque le template parent change
   useEffect(() => {
     setLocalTemplate(template);
-    // Réinitialiser l'indicateur de changements non sauvegardés
     setHasUnsavedChanges(false);
   }, [template]);
 
-  // Réinitialiser pageLoaded lorsque la page actuelle change
   useEffect(() => {
     setPageLoaded(false);
   }, [currentPage]);
   
-  // Données d'exemple pour l'aperçu
   const SAMPLE_DATA = {
-    id: "OF-2023-123",
-    client_name: "Entreprise Exemple",
-    client_email: "contact@exemple.fr",
+    id: "OF-2023-456",
+    client_name: "Société Démo",
+    client_email: "contact@demo-company.com",
     clients: {
-      company: "Entreprise Exemple SA",
-      name: "Jean Dupont",
-      email: "jean.dupont@exemple.fr",
-      address: "123 Rue de l'Exemple, 75000 Paris",
-      phone: "+33 1 23 45 67 89"
+      company: "Société Démo SA",
+      name: "Jean Exemple",
+      email: "jean@demo-company.com",
+      address: "123 Avenue de l'Exemple, 1050 Bruxelles",
+      phone: "+32 470 123 456"
     },
     equipment_description: JSON.stringify([
       {
-        title: "MacBook Pro 16\" M2 Pro",
-        purchasePrice: 2399,
-        quantity: 1,
-        margin: 15
-      },
-      {
-        title: "Écran Dell 27\" UltraSharp",
-        purchasePrice: 399,
+        title: "MacBook Pro 14\" M3 Pro",
+        purchasePrice: 2199,
         quantity: 2,
-        margin: 20
+        margin: 18
       },
       {
-        title: "Dock USB-C Thunderbolt",
-        purchasePrice: 199,
-        quantity: 1,
+        title: "Écran Dell UltraSharp 32\" 4K",
+        purchasePrice: 899,
+        quantity: 2,
+        margin: 22
+      },
+      {
+        title: "Station d'accueil Thunderbolt 4",
+        purchasePrice: 249,
+        quantity: 2,
         margin: 25
+      },
+      {
+        title: "Souris et clavier sans fil",
+        purchasePrice: 129,
+        quantity: 2,
+        margin: 30
       }
     ]),
-    amount: 3596,
-    monthly_payment: 99.89,
-    coefficient: 1.08,
+    amount: 7854,
+    monthly_payment: 218.17,
+    coefficient: 1.07,
     created_at: new Date().toISOString(),
-    workflow_status: "draft",
-    commission: 250,
-    equipment_total: 3350,
-    type: "Leasing Matériel IT",
-    remarks: "Offre spéciale pour renouvellement parc informatique",
+    workflow_status: "approved",
+    commission: 392.70,
+    equipment_total: 7854,
+    type: "Leasing Matériel Informatique",
+    remarks: "Offre pour renouvellement complet du parc informatique avec extension de garantie 3 ans",
     user: {
       name: "Gianni Sergi",
       email: "gianni@itakecare.be",
-      phone: "+32 471 511 121"
+      phone: "+32 471 511 121",
+      company: "iTakeCare"
+    },
+    contract: {
+      number: "CT-2023-456",
+      start_date: new Date().toISOString(),
+      duration: 36,
+      payment_frequency: "Mensuel"
+    },
+    leaser: {
+      name: "FinanceIT Solutions",
+      contact: "Sophie Lejeune",
+      email: "contact@financeit.be",
+      phone: "+32 2 123 45 67"
     }
   };
-  
-  // Générer un PDF d'exemple
+
   const handleGeneratePreview = async () => {
     try {
       setLoading(true);
       
-      // Générer le PDF en utilisant le template et l'offre d'exemple
       const offerWithTemplate = {
         ...SAMPLE_DATA,
         __template: localTemplate
@@ -108,10 +120,8 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     }
   };
 
-  // Nombre total de pages
   const totalPages = localTemplate?.templateImages?.length || 1;
   
-  // Navigation entre les pages
   const nextPage = () => {
     if (currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
@@ -124,7 +134,6 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     }
   };
 
-  // Obtenir l'image de fond de la page actuelle
   const getPageBackground = () => {
     if (localTemplate?.templateImages?.length > 0) {
       const pageImage = localTemplate.templateImages.find(
@@ -142,16 +151,13 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     return null;
   };
 
-  // Obtenir les champs pour la page actuelle
   const getCurrentPageFields = () => {
-    // Debug: Afficher les informations sur les champs pour voir pourquoi ils ne s'affichent pas
     console.log("Template fields:", localTemplate?.fields);
     console.log("Current page:", currentPage);
     
-    // Filtrer les champs pour la page actuelle ou sans page spécifiée (pour la page 0)
     const fields = localTemplate?.fields?.filter((f: any) => {
       const isForCurrentPage = f.page === currentPage || (currentPage === 0 && f.page === undefined);
-      const isVisible = f.isVisible !== false; // Si isVisible n'est pas défini, on considère le champ comme visible
+      const isVisible = f.isVisible !== false;
       console.log(`Field ${f.id}: page=${f.page}, isVisible=${f.isVisible}, willShow=${isForCurrentPage && isVisible}`);
       return isForCurrentPage && isVisible;
     }) || [];
@@ -160,24 +166,20 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     return fields;
   };
 
-  // Vérifier si des images de template sont disponibles
   const hasTemplateImages = localTemplate?.templateImages && 
                            Array.isArray(localTemplate.templateImages) && 
                            localTemplate.templateImages.length > 0;
   
-  // Gérer les erreurs de chargement d'image
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     console.error("Erreur de chargement de l'image:", e.currentTarget.src);
     e.currentTarget.src = "/placeholder.svg";
   };
   
-  // Marquer l'image comme chargée
   const handleImageLoad = () => {
     console.log("Image chargée avec succès");
     setPageLoaded(true);
   };
   
-  // Contrôles de zoom
   const zoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.1, 2));
   };
@@ -186,7 +188,6 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
   };
 
-  // Gestion du drag and drop des champs - SANS sauvegarde automatique
   const handleDragStart = (fieldId: string, offsetX: number, offsetY: number) => {
     if (!isDraggable) return;
     setIsDragging(true);
@@ -200,11 +201,9 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
 
     const rect = previewRef.current.getBoundingClientRect();
     
-    // Convertir les coordonnées de la souris en millimètres (en tenant compte du zoom)
     const x = (clientX - rect.left - dragOffsetX) / (3.7795275591 * zoomLevel);
     const y = (clientY - rect.top - dragOffsetY) / (3.7795275591 * zoomLevel);
 
-    // Mettre à jour le champ dans le template local SANS sauvegarder
     const updatedFields = localTemplate.fields.map((field: any) => {
       if (field.id === draggedFieldId && (field.page === currentPage || (currentPage === 0 && field.page === undefined))) {
         return {
@@ -218,13 +217,11 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
       return field;
     });
 
-    // Mettre à jour le template local sans sauvegarder
     setLocalTemplate({
       ...localTemplate,
       fields: updatedFields
     });
     
-    // Indiquer qu'il y a des changements non sauvegardés
     setHasUnsavedChanges(true);
   };
 
@@ -233,16 +230,13 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     setDraggedFieldId(null);
   };
 
-  // Activer/désactiver le mode de positionnement
   const toggleDragMode = () => {
     setIsDraggable(!isDraggable);
     if (isDraggable && hasUnsavedChanges) {
-      // Rappeler à l'utilisateur de sauvegarder les changements
       toast.info("N'oubliez pas de sauvegarder vos modifications");
     }
   };
 
-  // Sauvegarder les modifications - EXPLICITEMENT
   const handleSaveChanges = () => {
     if (onSave && hasUnsavedChanges) {
       onSave(localTemplate);
@@ -319,7 +313,6 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
               height: `${297 * zoomLevel}mm`,
               maxWidth: "100%"
             }}>
-              {/* Navigation entre les pages */}
               {totalPages > 1 && (
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
                   <Button
@@ -346,7 +339,6 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
                 </div>
               )}
               
-              {/* Contenu du PDF */}
               {hasTemplateImages ? (
                 <div className="relative" style={{ height: "100%" }}>
                   {getPageBackground() ? (
@@ -364,7 +356,6 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
                     </div>
                   )}
                   
-                  {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
                   {pageLoaded && getCurrentPageFields().map((field: any) => (
                     <PDFFieldDisplay 
                       key={field.id}
@@ -380,7 +371,6 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
                   ))}
                 </div>
               ) : (
-                /* Aperçu générique si pas de template uploadé */
                 <div className="p-6 min-h-[842px]">
                   <div className="text-center py-8">
                     <p className="text-gray-500">

@@ -31,6 +31,11 @@ type PDFFieldDisplayProps = {
 const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number): string => {
   if (!pattern || typeof pattern !== 'string') return '';
   
+  // Si le pattern ne contient pas de placeholders, on retourne une valeur démo explicite
+  if (!pattern.includes('{')) {
+    return `Valeur démo: ${pattern}`;
+  }
+  
   return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
     // Cas spécial pour le numéro de page
     if (key === 'page_number') {
@@ -42,9 +47,14 @@ const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number
     
     for (const part of keyParts) {
       if (value === undefined || value === null) {
-        return '';
+        return `[Démo: ${key}]`;
       }
       value = value[part];
+    }
+    
+    // Si la valeur est undefined, retourner une valeur démo explicite
+    if (value === undefined || value === null) {
+      return `[Démo: ${key}]`;
     }
     
     // Formatage pour les dates
@@ -52,7 +62,7 @@ const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number
       try {
         return new Date(value).toLocaleDateString();
       } catch (e) {
-        return value ? String(value) : '';
+        return value ? String(value) : `[Démo: date]`;
       }
     }
     
@@ -62,12 +72,11 @@ const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number
       try {
         return formatCurrency(value);
       } catch (e) {
-        return typeof value === 'number' ? String(value) : '';
+        return typeof value === 'number' ? String(value) : `[Démo: montant]`;
       }
     }
     
     // Valeur par défaut
-    if (value === undefined || value === null) return '';
     return typeof value === 'object' ? JSON.stringify(value) : String(value);
   });
 };
