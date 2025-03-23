@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ const PDFTemplateManager = () => {
   const [template, setTemplate] = useState(null);
   const [activeTab, setActiveTab] = useState("design");
 
-  // Charger le modèle existant s'il existe
   useEffect(() => {
     const loadTemplate = async () => {
       setLoading(true);
@@ -23,7 +21,6 @@ const PDFTemplateManager = () => {
       try {
         const supabase = getSupabaseClient();
         
-        // Vérifier si la table existe
         const { data: tableExists, error: tableError } = await supabase.rpc(
           'check_table_exists', 
           { table_name: 'pdf_templates' }
@@ -36,7 +33,6 @@ const PDFTemplateManager = () => {
         
         if (!tableExists) {
           console.log("Table doesn't exist, creating it");
-          // Créer la table si elle n'existe pas
           const { error: createError } = await supabase.rpc('execute_sql', {
             sql: `
               CREATE TABLE IF NOT EXISTS public.pdf_templates (
@@ -65,14 +61,13 @@ const PDFTemplateManager = () => {
           }
         }
         
-        // Récupérer le modèle par défaut
         const { data, error } = await supabase
           .from('pdf_templates')
           .select('*')
           .eq('id', 'default')
           .single();
           
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        if (error && error.code !== 'PGRST116') {
           console.error("Error fetching template:", error);
           throw new Error("Erreur lors de la récupération du modèle");
         }
@@ -95,7 +90,6 @@ const PDFTemplateManager = () => {
     loadTemplate();
   }, []);
   
-  // Sauvegarder le modèle
   const saveTemplate = async (updatedTemplate) => {
     setSaving(true);
     
@@ -125,7 +119,6 @@ const PDFTemplateManager = () => {
     }
   };
   
-  // Mettre à jour les informations de l'entreprise
   const handleCompanyInfoUpdate = (companyInfo) => {
     if (template) {
       const updatedTemplate = {
@@ -135,7 +128,6 @@ const PDFTemplateManager = () => {
       
       saveTemplate(updatedTemplate);
     } else {
-      // Créer un nouveau modèle avec les informations de l'entreprise
       const newTemplate = {
         id: 'default',
         name: 'Modèle par défaut',
@@ -148,12 +140,10 @@ const PDFTemplateManager = () => {
     }
   };
   
-  // Mettre à jour les pages et champs du modèle
   const handleTemplateUpdate = (updatedTemplate) => {
     saveTemplate(updatedTemplate);
   };
 
-  // Sauvegarder manuellement le modèle actuel
   const handleManualSave = () => {
     if (template) {
       saveTemplate(template);
@@ -171,7 +161,6 @@ const PDFTemplateManager = () => {
           size="sm" 
           onClick={handleManualSave}
           disabled={saving || loading || !template}
-          className="ml-auto"
         >
           <Save className="mr-2 h-4 w-4" />
           {saving ? "Sauvegarde..." : "Sauvegarder"}
