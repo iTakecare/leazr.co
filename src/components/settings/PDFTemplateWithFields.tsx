@@ -40,6 +40,70 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     onSave(updatedTemplate);
   };
   
+  // Fonction pour supprimer un champ
+  const handleDeleteField = (fieldId: string) => {
+    const updatedFields = localTemplate.fields.filter(field => field.id !== fieldId);
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+  };
+  
+  // Fonction pour ajouter un champ
+  const handleAddField = (field: any) => {
+    const updatedFields = [...(localTemplate.fields || []), field];
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+  };
+  
+  // Fonction pour dupliquer un champ sur une autre page
+  const handleDuplicateField = (fieldId: string, targetPage: number) => {
+    const fieldToDuplicate = localTemplate.fields.find(field => field.id === fieldId);
+    
+    if (fieldToDuplicate) {
+      const duplicatedField = {
+        ...fieldToDuplicate,
+        id: `${fieldId}_page${targetPage}`,
+        page: targetPage
+      };
+      
+      const updatedFields = [...localTemplate.fields, duplicatedField];
+      
+      const updatedTemplate = {
+        ...localTemplate,
+        fields: updatedFields
+      };
+      
+      setLocalTemplate(updatedTemplate);
+      onSave(updatedTemplate);
+    }
+  };
+  
+  // Fonction pour retirer un champ d'une page
+  const handleRemoveFieldFromPage = (fieldId: string, page: number) => {
+    const updatedFields = localTemplate.fields.filter(field => 
+      !(field.id === fieldId && field.page === page)
+    );
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+  };
+  
   return (
     <Tabs defaultValue="images" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
@@ -60,8 +124,13 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
         <PDFFieldsEditor 
           fields={localTemplate.fields || []} 
           onChange={handleFieldsChange}
-          currentPage={selectedPage}
-          templateImages={localTemplate.templateImages || []}
+          activePage={selectedPage}
+          onPageChange={setSelectedPage}
+          template={localTemplate}
+          onDeleteField={handleDeleteField}
+          onAddField={handleAddField}
+          onDuplicateField={handleDuplicateField}
+          onRemoveFieldFromPage={handleRemoveFieldFromPage}
         />
       </TabsContent>
     </Tabs>
