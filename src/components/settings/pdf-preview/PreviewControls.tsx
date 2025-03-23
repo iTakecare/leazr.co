@@ -41,27 +41,75 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       setLoading(true);
       toast.info("Génération du PDF en cours...");
       
-      // Ensure sampleData has a valid ID
+      // Ensure we have a valid template to work with
+      if (!localTemplate) {
+        toast.error("Aucun modèle disponible pour générer le PDF");
+        setLoading(false);
+        return;
+      }
+      
+      // Vérifier que les champs sont correctement définis
+      if (!Array.isArray(localTemplate.fields) || localTemplate.fields.length === 0) {
+        toast.error("Le modèle n'a pas de champs définis. Ajoutez des champs avant de générer un PDF.");
+        setLoading(false);
+        return;
+      }
+      
+      // Log key data for debugging
+      console.log("Génération PDF avec:");
+      console.log("- Template:", localTemplate.name);
+      console.log("- Nombre d'images:", localTemplate.templateImages?.length || 0);
+      console.log("- Nombre de champs:", localTemplate.fields?.length || 0);
+      
+      // Create a complete data object with all required fields
       const dataWithValidId = {
         ...sampleData,
-        id: sampleData.id || `preview-${Date.now()}`, // Add a fallback ID if none exists
-        // Make sure all required properties have values
+        id: sampleData.id || `preview-${Date.now()}`,
         client_name: sampleData.client_name || "Client Exemple",
-        __template: localTemplate
+        client_email: sampleData.client_email || "client@exemple.com",
+        client_phone: sampleData.client_phone || "0123456789",
+        amount: sampleData.amount || 10000,
+        monthly_payment: sampleData.monthly_payment || 300,
+        created_at: sampleData.created_at || new Date().toISOString(),
+        // Add equipment data if missing
+        equipment_description: sampleData.equipment_description || JSON.stringify([
+          {
+            title: "Équipement exemple",
+            purchasePrice: 2000,
+            quantity: 2,
+            margin: 10
+          }
+        ]),
+        // Include complete template data
+        __template: {
+          ...localTemplate,
+          // Ensure arrays are present
+          templateImages: Array.isArray(localTemplate.templateImages) ? localTemplate.templateImages : [],
+          fields: Array.isArray(localTemplate.fields) ? localTemplate.fields : []
+        }
       };
       
-      // Log the template data being sent to the PDF generator
-      console.log("Template being sent to PDF generator:", {
-        templateImagesCount: localTemplate.templateImages?.length || 0,
-        fieldsCount: localTemplate.fields?.length || 0
+      console.log("Données envoyées au générateur:", {
+        id: dataWithValidId.id,
+        client_name: dataWithValidId.client_name,
+        templateImagesCount: dataWithValidId.__template.templateImages.length,
+        fieldsCount: dataWithValidId.__template.fields.length
       });
       
+      if (dataWithValidId.__template.templateImages.length > 0) {
+        console.log("Première image:", {
+          page: dataWithValidId.__template.templateImages[0].page,
+          hasData: !!dataWithValidId.__template.templateImages[0].data?.substring(0, 20)
+        });
+      }
+      
+      // Generate the PDF with complete data
       const pdfFilename = await generateOfferPdf(dataWithValidId);
       
       toast.success(`PDF généré avec succès : ${pdfFilename}`);
     } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      toast.error("Erreur lors de la génération du PDF");
+      console.error("Erreur détaillée lors de la génération du PDF:", error);
+      toast.error(`Erreur lors de la génération du PDF: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setLoading(false);
     }
@@ -175,7 +223,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
           size="sm"
           onClick={handleGeneratePreview}
           className="h-8"
-          disabled={isSaving || (localTemplate?.fields?.length === 0)}
+          disabled={isSaving}
         >
           <FileDown className="h-4 w-4 mr-2" />
           Générer un PDF d'exemple
