@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -159,43 +158,29 @@ const preloadImages = async (templateImages) => {
 };
 
 export const generateOfferPdf = async (offer: any) => {
-  console.log("Starting PDF generation with offer:", {
-    id: offer.id,
-    client_name: offer.client_name,
-    hasTemplate: !!offer.__template
-  });
+  console.log("PDF Generation Debug: Starting PDF generation");
+  console.log("PDF Generation Debug: Offer Object:", JSON.stringify(offer, null, 2));
   
   // Si l'offre contient déjà un template, l'utiliser (pour les aperçus)
   const template = offer.__template || await getPDFTemplate();
   
   if (!template) {
-    console.error("No template available for PDF generation");
+    console.error("CRITICAL DEBUG: No template available for PDF generation");
     throw new Error("No template available for PDF generation");
   }
   
-  console.log("Using template:", {
-    name: template.name,
-    templateImagesCount: template.templateImages?.length || 0,
-    fieldsCount: template.fields?.length || 0
-  });
-  
-  // Logs détaillés pour le débogage des champs
-  if (template.fields && Array.isArray(template.fields) && template.fields.length > 0) {
-    console.log("Champs disponibles:");
-    template.fields.forEach((field, idx) => {
-      console.log(`Champ ${idx}:`, {
-        id: field.id,
-        value: field.value,
-        page: field.page,
-        hasPosition: !!field.position,
-        x: field.position?.x,
-        y: field.position?.y
-      });
-    });
-  } else {
-    console.warn("Aucun champ disponible dans le modèle");
-  }
-  
+  console.log("PDF Generation Debug: Template fields:", 
+    template.fields && template.fields.map(f => ({
+      id: f.id, 
+      value: f.value, 
+      position: f.position, 
+      page: f.page
+    }))
+  );
+
+  // Debug: Verify offer data for field resolution
+  console.log("PDF Generation Debug: Available offer keys:", Object.keys(offer));
+
   // Supprimer le template de l'offre si présent (pour éviter de le stocker)
   if (offer.__template) {
     delete offer.__template;
@@ -231,22 +216,31 @@ export const generateOfferPdf = async (offer: any) => {
   
   // Fonction pour résoudre les valeurs des champs
   const resolveFieldValue = (pattern: string) => {
+    console.log(`Resolving field value for pattern: ${pattern}`);
+  
     if (!pattern || typeof pattern !== 'string') {
-      console.warn("Invalid pattern for field value:", pattern);
+      console.warn(`Invalid pattern: ${pattern}`);
       return '';
     }
     
     try {
       return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
+        console.log(`Attempting to resolve key: ${key}`);
+        
         const keyParts = key.split('.');
         let value = offer;
         
         for (const part of keyParts) {
+          console.log(`Checking part: ${part}`);
           if (value === undefined || value === null) {
-            return '';
+            console.warn(`Value undefined for key part: ${part}`);
+            return '[Non disponible]';
           }
           value = value[part];
         }
+        
+        // Enhanced logging for value resolution
+        console.log(`Resolved value for ${key}:`, value);
         
         // Formater selon le type
         if (typeof value === 'number') {
@@ -259,10 +253,10 @@ export const generateOfferPdf = async (offer: any) => {
           return formatDate(value);
         }
         
-        return value || 'Non renseigné';
+        return value || '[Non disponible]';
       });
     } catch (error) {
-      console.error("Error resolving field value for pattern:", pattern, error);
+      console.error(`Error resolving field value for pattern ${pattern}:`, error);
       return pattern; // Return original pattern on error
     }
   };
