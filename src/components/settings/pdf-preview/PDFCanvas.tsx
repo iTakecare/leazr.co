@@ -37,25 +37,57 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
                            localTemplate.templateImages.length > 0;
 
   useEffect(() => {
-    // Log pour déboguer avec positions en mm
+    // Log pour déboguer les champs avec positions en mm
     if (localTemplate?.fields?.length > 0) {
-      console.log("Champs disponibles avec coordonnées en mm:", localTemplate.fields.map((f: any) => 
-        `${f.id}: (${f.position.x.toFixed(1)}mm, ${f.position.y.toFixed(1)}mm)`).join(", "));
+      console.log("Champs disponibles avec coordonnées en mm:");
+      localTemplate.fields.forEach((f: any) => {
+        if (f.position) {
+          console.log(`${f.id}: (${f.position.x.toFixed(1)}mm, ${f.position.y.toFixed(1)}mm)`);
+        } else {
+          console.log(`${f.id}: position non définie`);
+        }
+      });
     }
   }, [localTemplate?.fields]);
 
+  // Gestion du déplacement des champs
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      onDrag(e.clientX, e.clientY);
+    };
+
+    const handleMouseUp = () => {
+      onEndDrag();
+    };
+
+    // Ajouter les écouteurs d'événement
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    // Nettoyer les écouteurs lors du démontage
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [onDrag, onEndDrag]);
+
   const getCurrentPageFields = () => {
-    console.log("Champs du template:", localTemplate?.fields);
     console.log("Page courante:", currentPage);
     
     const fields = localTemplate?.fields?.filter((f: any) => {
       const isForCurrentPage = f.page === currentPage || (currentPage === 0 && f.page === undefined);
       const isVisible = f.isVisible !== false;
-      console.log(`Champ ${f.id}: page=${f.page}, isVisible=${f.isVisible}, willShow=${isForCurrentPage && isVisible}, position=(${f.position.x.toFixed(1)}mm, ${f.position.y.toFixed(1)}mm)`);
-      return isForCurrentPage && isVisible;
+      const hasPosition = f.position !== undefined;
+      
+      if (isForCurrentPage && isVisible) {
+        console.log(`Champ ${f.id} pour la page ${currentPage}:`, 
+          hasPosition ? `Position (${f.position.x.toFixed(1)}mm, ${f.position.y.toFixed(1)}mm)` : "Position non définie");
+      }
+      
+      return isForCurrentPage && isVisible && hasPosition;
     }) || [];
     
-    console.log("Champs pour la page courante:", fields);
+    console.log(`${fields.length} champs trouvés pour la page ${currentPage}`);
     return fields;
   };
 
@@ -71,6 +103,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
   return (
     <div 
       className="bg-gray-100 p-4 flex justify-center min-h-[800px] overflow-auto"
+      onMouseLeave={onEndDrag}
     >
       <div 
         ref={pdfDocumentRef}

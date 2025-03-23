@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Save, FileDown } from "lucide-react";
+import { Save, FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 
@@ -15,6 +15,7 @@ interface PreviewControlsProps {
   sampleData: any;
   localTemplate: any;
   setLoading: (loading: boolean) => void;
+  isSaving?: boolean;
 }
 
 const PreviewControls: React.FC<PreviewControlsProps> = ({
@@ -26,7 +27,8 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
   onSave,
   sampleData,
   localTemplate,
-  setLoading
+  setLoading,
+  isSaving = false
 }) => {
   const handleGeneratePreview = async () => {
     try {
@@ -60,10 +62,10 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
   };
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex flex-wrap justify-between items-center gap-2">
       <h3 className="text-sm font-medium">Aperçu du modèle de PDF</h3>
-      <div className="flex gap-2">
-        <div className="flex items-center border rounded-md mr-2">
+      <div className="flex flex-wrap gap-2">
+        <div className="flex items-center border rounded-md">
           <Button
             variant="ghost"
             size="sm"
@@ -102,10 +104,20 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
             variant="default"
             size="sm"
             onClick={onSave}
+            disabled={isSaving}
             className="h-8"
           >
-            <Save className="h-4 w-4 mr-2" />
-            Sauvegarder les positions
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Sauvegarde...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Sauvegarder les positions
+              </>
+            )}
           </Button>
         )}
         <Button

@@ -31,6 +31,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [localTemplate, setLocalTemplate] = useState(template);
+  const [isSaving, setIsSaving] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,46 +46,51 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const handleDrag = (clientX: number, clientY: number) => {
     if (!isDragging || !draggedFieldId) return;
 
-    // Obtenir les dimensions précises du conteneur PDF
-    const pdfContainer = document.querySelector(".bg-white.shadow-lg.relative");
-    if (!pdfContainer) return;
+    try {
+      // Obtenir les dimensions précises du conteneur PDF
+      const pdfContainer = document.querySelector(".bg-white.shadow-lg.relative");
+      if (!pdfContainer) return;
 
-    const pdfRect = pdfContainer.getBoundingClientRect();
-    
-    // Calculer la position exacte en pixels
-    const pixelX = clientX - pdfRect.left - dragOffsetX;
-    const pixelY = clientY - pdfRect.top - dragOffsetY;
-    
-    // Convertir les pixels en millimètres en tenant compte du zoom
-    const mmX = pixelX / (MM_TO_PX * zoomLevel);
-    const mmY = pixelY / (MM_TO_PX * zoomLevel);
+      const pdfRect = pdfContainer.getBoundingClientRect();
+      
+      // Calculer la position exacte en pixels
+      const pixelX = clientX - pdfRect.left - dragOffsetX;
+      const pixelY = clientY - pdfRect.top - dragOffsetY;
+      
+      // Convertir les pixels en millimètres en tenant compte du zoom
+      const mmX = pixelX / (MM_TO_PX * zoomLevel);
+      const mmY = pixelY / (MM_TO_PX * zoomLevel);
 
-    // Limiter aux dimensions d'une page A4 (210mm x 297mm)
-    const boundedX = Math.max(0, Math.min(mmX, PAGE_WIDTH_MM));
-    const boundedY = Math.max(0, Math.min(mmY, PAGE_HEIGHT_MM));
+      // Limiter aux dimensions d'une page A4 (210mm x 297mm)
+      const boundedX = Math.max(0, Math.min(mmX, PAGE_WIDTH_MM));
+      const boundedY = Math.max(0, Math.min(mmY, PAGE_HEIGHT_MM));
 
-    console.log(`Position du champ en mm: x=${boundedX.toFixed(1)}mm, y=${boundedY.toFixed(1)}mm`);
+      console.log(`Position du champ en mm: x=${boundedX.toFixed(1)}mm, y=${boundedY.toFixed(1)}mm`);
 
-    // Mettre à jour le template local avec les nouvelles coordonnées
-    const updatedFields = localTemplate.fields.map((field: any) => {
-      if (field.id === draggedFieldId && (field.page === currentPage || (currentPage === 0 && field.page === undefined))) {
-        return {
-          ...field,
-          position: {
-            x: boundedX,
-            y: boundedY
-          }
-        };
-      }
-      return field;
-    });
+      // Mettre à jour le template local avec les nouvelles coordonnées
+      const updatedFields = localTemplate.fields.map((field: any) => {
+        if (field.id === draggedFieldId && (field.page === currentPage || (currentPage === 0 && field.page === undefined))) {
+          return {
+            ...field,
+            position: {
+              x: boundedX,
+              y: boundedY
+            }
+          };
+        }
+        return field;
+      });
 
-    setLocalTemplate({
-      ...localTemplate,
-      fields: updatedFields
-    });
-    
-    setHasUnsavedChanges(true);
+      setLocalTemplate({
+        ...localTemplate,
+        fields: updatedFields
+      });
+      
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Erreur lors du déplacement du champ:", error);
+      toast.error("Erreur lors du déplacement du champ");
+    }
   };
 
   const handleDragEnd = () => {
@@ -92,11 +98,38 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     setDraggedFieldId(null);
   };
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if (onSave && hasUnsavedChanges) {
-      onSave(localTemplate);
-      setHasUnsavedChanges(false);
-      toast.success("Positions des champs sauvegardées avec succès");
+      try {
+        setIsSaving(true);
+        // Créer une copie profonde pour éviter les problèmes de référence
+        const templateToSave = JSON.parse(JSON.stringify(localTemplate));
+        
+        // S'assurer que tous les champs ont des coordonnées valides
+        templateToSave.fields = templateToSave.fields.map((field: any) => {
+          // Vérifier si la position existe
+          if (!field.position) {
+            field.position = { x: 10, y: 10 };
+          }
+          
+          // S'assurer que les valeurs sont des nombres
+          field.position.x = Number(field.position.x);
+          field.position.y = Number(field.position.y);
+          
+          return field;
+        });
+        
+        console.log("Sauvegarde du template avec champs:", templateToSave.fields.length);
+        
+        await onSave(templateToSave);
+        setHasUnsavedChanges(false);
+        toast.success("Positions des champs sauvegardées avec succès");
+      } catch (error) {
+        console.error("Erreur lors de la sauvegarde:", error);
+        toast.error("Erreur lors de la sauvegarde des positions");
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -121,6 +154,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
         sampleData={SAMPLE_DATA}
         localTemplate={localTemplate}
         setLoading={setLoading}
+        isSaving={isSaving}
       />
       
       <Card>
