@@ -16,11 +16,13 @@ const PDFTemplateManager = () => {
   const [activeTab, setActiveTab] = useState("design");
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [pendingChanges, setPendingChanges] = useState(null);
+  const [error, setError] = useState(null);
 
   // Charger le modèle existant s'il existe
   useEffect(() => {
     const loadTemplate = async () => {
       setLoading(true);
+      setError(null);
       
       try {
         const supabase = getSupabaseClient();
@@ -63,6 +65,7 @@ const PDFTemplateManager = () => {
           
           if (createError) {
             console.error("Error creating table:", createError);
+            setError("Erreur lors de la création de la table");
             throw new Error("Erreur lors de la création de la table");
           }
         }
@@ -72,10 +75,11 @@ const PDFTemplateManager = () => {
           .from('pdf_templates')
           .select('*')
           .eq('id', 'default')
-          .single();
+          .maybeSingle();
           
         if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
           console.error("Error fetching template:", error);
+          setError("Erreur lors de la récupération du modèle");
           throw new Error("Erreur lors de la récupération du modèle");
         }
         
@@ -88,7 +92,7 @@ const PDFTemplateManager = () => {
         }
       } catch (error) {
         console.error("Error loading template:", error);
-        toast.error("Erreur lors du chargement du modèle");
+        setError(`Erreur: ${error.message}`);
       } finally {
         setLoading(false);
       }
@@ -149,6 +153,7 @@ const PDFTemplateManager = () => {
         
       if (error) {
         console.error("Error saving template:", error);
+        toast.error("Erreur lors de la sauvegarde du modèle");
         throw new Error("Erreur lors de la sauvegarde du modèle");
       }
       
@@ -158,7 +163,7 @@ const PDFTemplateManager = () => {
       toast.success("Modèle sauvegardé avec succès");
     } catch (error) {
       console.error("Error saving template:", error);
-      toast.error("Erreur lors de la sauvegarde du modèle");
+      toast.error(`Erreur: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -194,6 +199,18 @@ const PDFTemplateManager = () => {
             <p className="text-sm text-muted-foreground">
               Chargement du modèle...
             </p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 text-red-500">
+            <AlertCircle className="h-8 w-8 mx-auto mb-4" />
+            <p className="text-sm font-medium">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline" 
+              className="mt-4"
+            >
+              Réessayer
+            </Button>
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
