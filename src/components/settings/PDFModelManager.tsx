@@ -12,6 +12,7 @@ import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { PDFModel } from "@/utils/pdfModelUtils";
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { ensureStorageBucket } from "@/services/storageService";
 
 const PDFModelManager = () => {
   const [loading, setLoading] = useState(true);
@@ -31,12 +32,15 @@ const PDFModelManager = () => {
     setError(null);
     
     try {
-      console.log("Tentative de création/vérification de la table pdf_models...");
+      console.log("Tentative de création/vérification de la table et du stockage...");
       
-      // Première étape critique: s'assurer que la table existe avant toute opération
+      // Première étape: vérifier si le bucket de stockage existe
+      await ensureStorageBucket('pdf-templates');
+      
+      // Deuxième étape: s'assurer que la table existe avant toute opération
       await ensurePDFModelTableExists();
       
-      console.log("Table vérifiée, tentative de chargement du modèle PDF...");
+      console.log("Table et stockage vérifiés, tentative de chargement du modèle PDF...");
       
       // Charger le modèle
       const modelData = await loadPDFModel('default');

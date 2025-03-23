@@ -8,6 +8,7 @@ import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
+import { ensureStorageBucket } from "@/services/storageService";
 
 interface TemplateImage {
   id: string;
@@ -32,6 +33,7 @@ const PDFModelUploader = ({
   const [isUploading, setIsUploading] = useState(false);
   const [localImages, setLocalImages] = useState<TemplateImage[]>([]);
   const [isLoadingImages, setIsLoadingImages] = useState(true);
+  const BUCKET_NAME = 'pdf-templates';
   
   // Au montage, initialiser les images
   useEffect(() => {

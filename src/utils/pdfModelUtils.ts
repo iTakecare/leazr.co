@@ -1,5 +1,6 @@
 
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { ensureStorageBucket } from "@/services/storageService";
 
 export interface PDFModel {
   id: string;
@@ -37,15 +38,31 @@ export const DEFAULT_MODEL: PDFModel = {
 };
 
 /**
- * Vérifie et crée la table pdf_models si nécessaire
+ * Vérifie et crée la table pdf_models et le bucket de stockage si nécessaire
  */
 export const ensurePDFModelTableExists = async (): Promise<boolean> => {
   const supabase = getSupabaseClient();
   
   try {
-    console.log("Vérification et création de la table pdf_models si nécessaire...");
+    console.log("Vérification et création de la table pdf_models et du stockage si nécessaire...");
     
-    // Vérifier si la table existe déjà
+    // 1. Créer le bucket de stockage pour les templates PDF
+    try {
+      console.log("Création/vérification du bucket de stockage pdf-templates...");
+      const bucketCreated = await ensureStorageBucket('pdf-templates');
+      
+      if (!bucketCreated) {
+        console.error("Erreur lors de la création/vérification du bucket pdf-templates");
+        // On continue quand même pour la table
+      } else {
+        console.log("Bucket pdf-templates vérifié avec succès");
+      }
+    } catch (bucketError) {
+      console.error("Erreur lors de la création/vérification du bucket:", bucketError);
+      // On continue pour la table
+    }
+    
+    // 2. Vérifier si la table existe déjà via la fonction RPC
     const { data: tableExists, error: checkError } = await supabase.rpc(
       'check_table_exists',
       { table_name: 'pdf_models' }
@@ -81,6 +98,8 @@ export const ensurePDFModelTableExists = async (): Promise<boolean> => {
         console.error("Erreur lors de la création directe de la table:", createError);
         throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
       }
+      
+      console.log("Table pdf_models créée avec succès via SQL direct");
     } else if (!tableExists) {
       console.log("La table pdf_models n'existe pas, création...");
       

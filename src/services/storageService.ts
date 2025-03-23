@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { getMimeTypeFromExtension } from "@/services/imageService";
 
@@ -14,95 +13,131 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
     // Use regular supabase client first (not admin) to avoid any potential token issues
     let supabase = getSupabaseClient();
     
-    // Check if bucket exists
-    let { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    
-    if (listError) {
-      console.log(`Error with regular client, trying admin client: ${listError.message}`);
-      // Try with admin client as fallback
-      supabase = getAdminSupabaseClient();
-      const result = await supabase.storage.listBuckets();
-      buckets = result.data;
-      listError = result.error;
+    // Try a direct bucket test first to see if we can access it
+    try {
+      console.log(`Attempting to access bucket ${bucketName} directly...`);
+      const { error: listError } = await supabase.storage.from(bucketName).list();
       
-      if (listError) {
-        console.error(`Error checking if bucket ${bucketName} exists with admin client:`, listError);
-        
-        // Last resort: try a direct bucket access test
-        try {
-          console.log(`Attempting direct bucket access test for ${bucketName}`);
-          const testUpload = await supabase.storage.from(bucketName).upload(
-            'test-bucket-exists.txt', 
-            new Blob(['test'], { type: 'text/plain' }), 
-            { upsert: true, contentType: 'text/plain' }
-          );
-          
-          if (!testUpload.error) {
-            console.log(`Bucket ${bucketName} exists and is accessible via direct test`);
-            // Clean up test file
-            await supabase.storage.from(bucketName).remove(['test-bucket-exists.txt']);
-            return true;
-          } else {
-            console.log(`Direct test failed: ${testUpload.error.message}`);
-            return false;
-          }
-        } catch (directError) {
-          console.error(`Direct bucket test failed:`, directError);
-          return false;
-        }
+      if (!listError) {
+        console.log(`Bucket ${bucketName} exists and is accessible directly`);
+        return true;
+      } else {
+        console.log(`Direct bucket access test failed: ${listError.message}`);
       }
+    } catch (directError) {
+      console.log(`Direct bucket test failed with error:`, directError);
     }
     
-    const bucketExists = buckets?.some(b => b.name === bucketName);
-    
-    if (!bucketExists) {
-      console.log(`Bucket ${bucketName} does not exist, creating it...`);
+    // Check if bucket exists through SQL RPC
+    try {
+      console.log(`Checking if bucket ${bucketName} exists using RPC...`);
+      const { data: bucketExists, error: rpcError } = await supabase.rpc('check_bucket_exists', {
+        bucket_name: bucketName
+      });
       
-      // Try a direct bucket test first
-      try {
-        const testUpload = await supabase.storage.from(bucketName).upload(
-          'test-bucket-exists.txt', 
-          new Blob(['test'], { type: 'text/plain' }), 
-          { upsert: true, contentType: 'text/plain' }
-        );
-        
-        if (!testUpload.error) {
-          console.log(`Bucket ${bucketName} already exists and is accessible`);
-          // Clean up test file
-          await supabase.storage.from(bucketName).remove(['test-bucket-exists.txt']);
-          return true;
-        } else {
-          console.log(`Need to create bucket, direct access failed: ${testUpload.error.message}`);
-        }
-      } catch (directError) {
-        console.log(`Direct bucket test failed with error:`, directError);
+      if (rpcError) {
+        console.log(`RPC check failed: ${rpcError.message}`);
+      } else if (bucketExists) {
+        console.log(`Bucket ${bucketName} exists according to RPC check`);
+        return true;
+      } else {
+        console.log(`Bucket ${bucketName} does not exist according to RPC check`);
       }
+    } catch (rpcError) {
+      console.log(`RPC check failed with error:`, rpcError);
+    }
+    
+    // List buckets as a last resort
+    try {
+      console.log(`Listing all buckets...`);
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
       
-      // Create the bucket
-      try {
-        const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      if (listError) {
+        console.log(`Error listing buckets: ${listError.message}`);
+        
+        // Try with admin client as fallback
+        supabase = getAdminSupabaseClient();
+        const result = await supabase.storage.listBuckets();
+        
+        if (result.error) {
+          console.error(`Error listing buckets with admin client: ${result.error.message}`);
+        } else {
+          const bucketExists = result.data?.some(b => b.name === bucketName);
+          if (bucketExists) {
+            console.log(`Bucket ${bucketName} exists in admin client bucket list`);
+            return true;
+          }
+        }
+      } else {
+        const bucketExists = buckets?.some(b => b.name === bucketName);
+        if (bucketExists) {
+          console.log(`Bucket ${bucketName} exists in bucket list`);
+          return true;
+        }
+      }
+    } catch (listError) {
+      console.log(`Bucket listing failed with error:`, listError);
+    }
+    
+    // If we get here, the bucket likely doesn't exist, so try to create it
+    console.log(`Creating bucket ${bucketName}...`);
+    
+    // First try with standard client
+    try {
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true,
+        fileSizeLimit: 10485760, // 10MB limit
+      });
+      
+      if (createError) {
+        console.error(`Error creating bucket ${bucketName} with standard client: ${createError.message}`);
+        
+        // Try with admin client
+        supabase = getAdminSupabaseClient();
+        const { error: adminCreateError } = await supabase.storage.createBucket(bucketName, {
           public: true,
           fileSizeLimit: 10485760, // 10MB limit
         });
         
-        if (createError) {
-          console.error(`Error creating bucket ${bucketName}:`, createError);
-          return false;
+        if (adminCreateError) {
+          console.error(`Error creating bucket ${bucketName} with admin client: ${adminCreateError.message}`);
+          
+          // Last resort - try creating through SQL
+          try {
+            console.log(`Attempting to create bucket ${bucketName} through SQL...`);
+            const { error: sqlError } = await supabase.rpc('create_storage_bucket', {
+              bucket_name: bucketName
+            });
+            
+            if (sqlError) {
+              console.error(`Error creating bucket through SQL: ${sqlError.message}`);
+              return false;
+            } else {
+              console.log(`Successfully created bucket ${bucketName} through SQL`);
+              // Create public access policy
+              await createPublicPolicy(bucketName);
+              return true;
+            }
+          } catch (sqlError) {
+            console.error(`SQL bucket creation failed: ${sqlError}`);
+            return false;
+          }
+        } else {
+          console.log(`Successfully created bucket ${bucketName} with admin client`);
+          // Create public access policy
+          await createPublicPolicy(bucketName);
+          return true;
         }
-        
+      } else {
+        console.log(`Successfully created bucket ${bucketName} with standard client`);
         // Create public access policy
         await createPublicPolicy(bucketName);
-        
-        console.log(`Successfully created bucket: ${bucketName}`);
         return true;
-      } catch (e) {
-        console.error(`Could not create bucket ${bucketName}:`, e);
-        return false;
       }
+    } catch (createError) {
+      console.error(`Error creating bucket ${bucketName}: ${createError}`);
+      return false;
     }
-    
-    console.log(`Bucket ${bucketName} already exists, no need to create it`);
-    return true;
   } catch (error) {
     console.error(`Unexpected error ensuring bucket ${bucketName}:`, error);
     return false;
@@ -127,13 +162,56 @@ async function createPublicPolicy(bucketName: string): Promise<void> {
     });
     
     if (error) {
-      console.warn(`Could not create public access policy for ${bucketName}:`, error);
+      console.warn(`Could not create public access policy for ${bucketName} via RPC: ${error.message}`);
       
-      // Fallback: Try to directly make the bucket objects public through storage API
-      const { error: policyError } = await supabase.storage.from(bucketName).getPublicUrl('test');
-      if (policyError) {
-        console.warn(`Could not verify public access for ${bucketName}:`, policyError);
+      // Try to create the policy using direct SQL execution
+      try {
+        const { error: sqlError } = await supabase.rpc('execute_sql', {
+          sql: `
+            INSERT INTO storage.policies (name, definition, bucket_id, operations)
+            VALUES (
+              '${bucketName}_public_select',
+              'TRUE',
+              '${bucketName}',
+              '{SELECT}'
+            ) ON CONFLICT (name, bucket_id) DO NOTHING;
+            
+            INSERT INTO storage.policies (name, definition, bucket_id, operations)
+            VALUES (
+              '${bucketName}_public_insert',
+              'TRUE',
+              '${bucketName}',
+              '{INSERT}'
+            ) ON CONFLICT (name, bucket_id) DO NOTHING;
+            
+            INSERT INTO storage.policies (name, definition, bucket_id, operations)
+            VALUES (
+              '${bucketName}_public_update',
+              'TRUE',
+              '${bucketName}',
+              '{UPDATE}'
+            ) ON CONFLICT (name, bucket_id) DO NOTHING;
+            
+            INSERT INTO storage.policies (name, definition, bucket_id, operations)
+            VALUES (
+              '${bucketName}_public_delete',
+              'TRUE',
+              '${bucketName}',
+              '{DELETE}'
+            ) ON CONFLICT (name, bucket_id) DO NOTHING;
+          `
+        });
+        
+        if (sqlError) {
+          console.warn(`Could not create policies through direct SQL: ${sqlError.message}`);
+        } else {
+          console.log(`Successfully created policies for ${bucketName} through SQL`);
+        }
+      } catch (sqlError) {
+        console.warn(`Error executing SQL for policy creation: ${sqlError}`);
       }
+    } else {
+      console.log(`Successfully created policy for ${bucketName}`);
     }
   } catch (error) {
     console.warn(`Error creating policy for ${bucketName}:`, error);
