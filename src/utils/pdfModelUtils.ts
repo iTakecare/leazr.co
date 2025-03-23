@@ -45,60 +45,115 @@ export const ensurePDFModelTableExists = async (): Promise<boolean> => {
   try {
     console.log("Vérification et création de la table pdf_models si nécessaire...");
     
-    // Exécuter directement une requête SQL pour créer la table si elle n'existe pas
-    const { error } = await supabase.rpc('execute_sql', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS public.pdf_models (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          "companyName" TEXT NOT NULL,
-          "companyAddress" TEXT NOT NULL,
-          "companyContact" TEXT NOT NULL,
-          "companySiret" TEXT NOT NULL,
-          "logoURL" TEXT DEFAULT '',
-          "primaryColor" TEXT NOT NULL,
-          "secondaryColor" TEXT NOT NULL,
-          "headerText" TEXT NOT NULL,
-          "footerText" TEXT NOT NULL,
-          "templateImages" JSONB DEFAULT '[]'::jsonb,
-          fields JSONB DEFAULT '[]'::jsonb,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-        );
-      `
-    });
-    
-    if (error) {
-      console.error("Erreur lors de la création de la table:", error);
-      throw new Error(`Erreur lors de la création de la table: ${error.message}`);
-    }
-    
-    console.log("Table pdf_models vérifiée ou créée avec succès");
-    
-    // Vérifier s'il y a au moins un enregistrement, sinon insérer le modèle par défaut
-    const { data: existingModels, error: checkError } = await supabase
-      .from('pdf_models')
-      .select('id')
-      .limit(1);
+    // Vérifier si la table existe déjà
+    const { data: tableExists, error: checkError } = await supabase.rpc(
+      'check_table_exists',
+      { table_name: 'pdf_models' }
+    );
     
     if (checkError) {
-      console.error("Erreur lors de la vérification des modèles existants:", checkError);
-      throw new Error(`Erreur lors de la vérification des modèles existants: ${checkError.message}`);
+      console.error("Erreur lors de la vérification de l'existence de la table:", checkError);
+      
+      // Fallback: création directe de la table via SQL
+      const { error: createError } = await supabase.rpc('execute_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.pdf_models (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            "companyName" TEXT NOT NULL,
+            "companyAddress" TEXT NOT NULL,
+            "companyContact" TEXT NOT NULL,
+            "companySiret" TEXT NOT NULL,
+            "logoURL" TEXT DEFAULT '',
+            "primaryColor" TEXT NOT NULL,
+            "secondaryColor" TEXT NOT NULL,
+            "headerText" TEXT NOT NULL,
+            "footerText" TEXT NOT NULL,
+            "templateImages" JSONB DEFAULT '[]'::jsonb,
+            fields JSONB DEFAULT '[]'::jsonb,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+          );
+        `
+      });
+      
+      if (createError) {
+        console.error("Erreur lors de la création directe de la table:", createError);
+        throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
+      }
+    } else if (!tableExists) {
+      console.log("La table pdf_models n'existe pas, création...");
+      
+      const { error: createError } = await supabase.rpc('execute_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.pdf_models (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            "companyName" TEXT NOT NULL,
+            "companyAddress" TEXT NOT NULL,
+            "companyContact" TEXT NOT NULL,
+            "companySiret" TEXT NOT NULL,
+            "logoURL" TEXT DEFAULT '',
+            "primaryColor" TEXT NOT NULL,
+            "secondaryColor" TEXT NOT NULL,
+            "headerText" TEXT NOT NULL,
+            "footerText" TEXT NOT NULL,
+            "templateImages" JSONB DEFAULT '[]'::jsonb,
+            fields JSONB DEFAULT '[]'::jsonb,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+          );
+        `
+      });
+      
+      if (createError) {
+        console.error("Erreur lors de la création de la table:", createError);
+        throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
+      }
+      
+      console.log("Table pdf_models créée avec succès");
+    } else {
+      console.log("La table pdf_models existe déjà");
     }
     
-    if (!existingModels || existingModels.length === 0) {
-      console.log("Aucun modèle trouvé, insertion du modèle par défaut...");
+    // Vérifier s'il y a au moins un enregistrement, sinon insérer le modèle par défaut
+    try {
+      const { count, error: countError } = await supabase
+        .from('pdf_models')
+        .select('*', { count: 'exact', head: true });
+      
+      if (countError) {
+        console.error("Erreur lors du comptage des modèles:", countError);
+        throw new Error(`Erreur lors du comptage des modèles: ${countError.message}`);
+      }
+      
+      if (count === 0) {
+        console.log("Aucun modèle trouvé, insertion du modèle par défaut...");
+        
+        const { error: insertError } = await supabase
+          .from('pdf_models')
+          .insert(DEFAULT_MODEL);
+        
+        if (insertError) {
+          console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
+          throw new Error(`Erreur lors de l'insertion du modèle par défaut: ${insertError.message}`);
+        }
+        
+        console.log("Modèle par défaut inséré avec succès");
+      }
+    } catch (countError) {
+      // Si on ne peut pas compter, on essaie d'insérer directement (en mode upsert)
+      console.log("Erreur de comptage, tentative d'insertion du modèle par défaut...");
       
       const { error: insertError } = await supabase
         .from('pdf_models')
-        .insert(DEFAULT_MODEL);
+        .upsert(DEFAULT_MODEL, { onConflict: 'id' });
       
       if (insertError) {
-        console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
-        throw new Error(`Erreur lors de l'insertion du modèle par défaut: ${insertError.message}`);
+        console.error("Erreur lors de l'insertion/mise à jour du modèle par défaut:", insertError);
+      } else {
+        console.log("Modèle par défaut inséré/mis à jour avec succès");
       }
-      
-      console.log("Modèle par défaut inséré avec succès");
     }
     
     return true;

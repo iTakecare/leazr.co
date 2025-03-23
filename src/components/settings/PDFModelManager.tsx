@@ -33,7 +33,7 @@ const PDFModelManager = () => {
     try {
       console.log("Tentative de création/vérification de la table pdf_models...");
       
-      // Assurez-vous d'abord que la table existe
+      // Première étape critique: s'assurer que la table existe avant toute opération
       await ensurePDFModelTableExists();
       
       console.log("Table vérifiée, tentative de chargement du modèle PDF...");

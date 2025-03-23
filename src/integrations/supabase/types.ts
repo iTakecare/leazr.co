@@ -924,6 +924,60 @@ export type Database = {
           },
         ]
       }
+      pdf_models: {
+        Row: {
+          companyAddress: string
+          companyContact: string
+          companyName: string
+          companySiret: string
+          created_at: string
+          fields: Json | null
+          footerText: string
+          headerText: string
+          id: string
+          logoURL: string | null
+          name: string
+          primaryColor: string
+          secondaryColor: string
+          templateImages: Json | null
+          updated_at: string
+        }
+        Insert: {
+          companyAddress: string
+          companyContact: string
+          companyName: string
+          companySiret: string
+          created_at?: string
+          fields?: Json | null
+          footerText: string
+          headerText: string
+          id: string
+          logoURL?: string | null
+          name: string
+          primaryColor: string
+          secondaryColor: string
+          templateImages?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          companyAddress?: string
+          companyContact?: string
+          companyName?: string
+          companySiret?: string
+          created_at?: string
+          fields?: Json | null
+          footerText?: string
+          headerText?: string
+          id?: string
+          logoURL?: string | null
+          name?: string
+          primaryColor?: string
+          secondaryColor?: string
+          templateImages?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pdf_templates: {
         Row: {
           companyAddress: string
