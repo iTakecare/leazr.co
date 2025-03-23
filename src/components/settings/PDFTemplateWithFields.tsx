@@ -1,14 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
 import PDFPreview from './PDFPreview';
-import { toast } from "sonner";
-import { OfferData, EquipmentItem } from '@/services/offers/types';
-import { Save } from 'lucide-react';
-import { getSupabaseClient } from '@/integrations/supabase/client';
 
 const DEFAULT_FIELDS = [
   // Client fields
@@ -409,8 +404,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   
   const [selectedPage, setSelectedPage] = useState(0);
   const [activeTab, setActiveTab] = useState("template");
-  const [saving, setSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
 
   const handleImagesChange = (newImages) => {
     const updatedTemplate = {
@@ -419,7 +412,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     };
     
     setCurrentTemplate(updatedTemplate);
-    setHasChanges(true);
     
     if (onSave) {
       onSave(updatedTemplate);
@@ -436,7 +428,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     };
     
     setCurrentTemplate(updatedTemplate);
-    setHasChanges(true);
     
     if (onSave) {
       onSave(updatedTemplate);
@@ -453,13 +444,11 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     ];
     
     handleFieldsChange(newFields);
-    toast.success(`Champ "${field.label}" ajouté`);
   };
 
   const handleDeleteField = (fieldId) => {
     const newFields = currentTemplate.fields.filter(field => field.id !== fieldId);
     handleFieldsChange(newFields);
-    toast.success("Champ supprimé");
   };
 
   const handleDuplicateField = (fieldId, targetPage) => {
@@ -474,7 +463,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     );
     
     if (fieldExistsOnPage) {
-      toast.error(`Ce champ existe déjà sur la page ${targetPage + 1}`);
       return;
     }
     
@@ -487,7 +475,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     
     const newFields = [...currentTemplate.fields, duplicatedField];
     handleFieldsChange(newFields);
-    toast.success(`Champ "${fieldToDuplicate.label}" ajouté à la page ${targetPage + 1}`);
   };
 
   const handleRemoveFieldFromPage = (fieldId, page) => {
@@ -497,7 +484,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     
     const newFields = currentTemplate.fields.filter(field => !(field.id === fieldId && field.page === page));
     handleFieldsChange(newFields);
-    toast.success(`Champ supprimé de la page ${page + 1}`);
   };
 
   return (

@@ -97,14 +97,14 @@ const PDFTemplateManager = () => {
     loadTemplate();
   }, []);
   
-  // Mise à jour du template dans PDFTemplateManager
+  // Mise à jour du template dans PDFTemplateManager - Ne fait que stocker les changements en mémoire
   const handleTemplateUpdate = (updatedTemplate) => {
-    // Stockage temporaire des changements
+    // Stockage temporaire des changements sans toast ou sauvegarde automatique
     setPendingChanges(updatedTemplate);
     setUnsavedChanges(true);
   };
   
-  // Gestion des informations de l'entreprise
+  // Gestion des informations de l'entreprise - Ne fait que stocker les changements en mémoire
   const handleCompanyInfoUpdate = (companyInfo) => {
     let updatedTemplate;
     
@@ -127,7 +127,7 @@ const PDFTemplateManager = () => {
     setUnsavedChanges(true);
   };
   
-  // Sauvegarde globale
+  // Sauvegarde globale - UNIQUEMENT appelée lorsque l'utilisateur clique sur le bouton
   const saveTemplate = async () => {
     if (!pendingChanges) {
       toast.info("Aucune modification à sauvegarder");
