@@ -50,6 +50,12 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
         __template: localTemplate
       };
       
+      // Log the template data being sent to the PDF generator
+      console.log("Template being sent to PDF generator:", {
+        templateImagesCount: localTemplate.templateImages?.length || 0,
+        fieldsCount: localTemplate.fields?.length || 0
+      });
+      
       const pdfFilename = await generateOfferPdf(dataWithValidId);
       
       toast.success(`PDF généré avec succès : ${pdfFilename}`);
