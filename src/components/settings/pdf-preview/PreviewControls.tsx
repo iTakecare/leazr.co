@@ -41,12 +41,16 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       setLoading(true);
       toast.info("Génération du PDF en cours...");
       
-      const offerWithTemplate = {
+      // Ensure sampleData has a valid ID
+      const dataWithValidId = {
         ...sampleData,
+        id: sampleData.id || `preview-${Date.now()}`, // Add a fallback ID if none exists
+        // Make sure all required properties have values
+        client_name: sampleData.client_name || "Client Exemple",
         __template: localTemplate
       };
       
-      const pdfFilename = await generateOfferPdf(offerWithTemplate);
+      const pdfFilename = await generateOfferPdf(dataWithValidId);
       
       toast.success(`PDF généré avec succès : ${pdfFilename}`);
     } catch (error) {
