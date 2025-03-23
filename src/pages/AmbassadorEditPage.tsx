@@ -125,7 +125,7 @@ export const AmbassadorEditPage = () => {
 
   // Load ambassador data when component mounts or ID changes
   useEffect(() => {
-    loadAmbassador();
+    loadAmbassador(); // Fixing the error here - calling without arguments
   }, [loadAmbassador]);
 
   const handleTemplateChange = async (value: string) => {
