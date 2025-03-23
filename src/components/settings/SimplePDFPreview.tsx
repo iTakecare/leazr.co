@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const [isSaving, setIsSaving] = useState(false);
   const [sampleData, setSampleData] = useState({});
   const [useRealData, setUseRealData] = useState(false);
-  const [realData, setRealData] = useState(null);
+  const [realData, setRealData] = useState<any>(null);
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -296,6 +297,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
           isSaving={isSaving}
           useRealData={useRealData}
           setUseRealData={setUseRealData}
+          realData={realData}
         />
         
         {loading ? (
