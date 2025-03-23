@@ -22,11 +22,11 @@ export const deleteOffer = async (offerId: string): Promise<boolean> => {
 export const updateOfferStatus = async (
   offerId: string, 
   newStatus: string, 
-  previousStatus: string,
+  previousStatus: string | null,
   reason?: string
 ): Promise<boolean> => {
   try {
-    console.log(`Updating offer ${offerId} from ${previousStatus} to ${newStatus} with reason: ${reason || 'Aucune'}`);
+    console.log(`Updating offer ${offerId} from ${previousStatus || 'draft'} to ${newStatus} with reason: ${reason || 'Aucune'}`);
 
     // Vérifier que les statuts sont valides
     if (!newStatus) {
@@ -43,12 +43,15 @@ export const updateOfferStatus = async (
     console.log("Authenticated user:", user.id);
 
     // First, log the status change
+    // Ensure the previous status is never null for database constraints
+    const safePreviousStatus = previousStatus || 'draft';
+    
     const { data: logData, error: logError } = await supabase
       .from('offer_workflow_logs')
       .insert({
         offer_id: offerId,
         user_id: user.id,
-        previous_status: previousStatus,
+        previous_status: safePreviousStatus,
         new_status: newStatus,
         reason: reason || null
       })
