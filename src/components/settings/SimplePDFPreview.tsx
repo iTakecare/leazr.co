@@ -1,280 +1,285 @@
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { toast } from "sonner";
-import { SAMPLE_DATA } from "./pdf-preview/SampleData";
-import PreviewControls from "./pdf-preview/PreviewControls";
-import PDFCanvas from "./pdf-preview/PDFCanvas";
-import InstructionsPanel from "./pdf-preview/InstructionsPanel";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { PDFTemplate } from "@/utils/templateManager";
+import PDFCanvas from "./pdf-preview/PDFCanvas";
+import PreviewControls from "./pdf-preview/PreviewControls";
+import { Loader2, Save } from "lucide-react";
 
 interface SimplePDFPreviewProps {
-  template: any;
-  onSave: (updatedTemplate: any) => Promise<void>;
+  template: PDFTemplate;
+  onSave: (template: PDFTemplate) => Promise<void>;
 }
 
-// Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px à 96 DPI)
-const MM_TO_PX = 3.7795275591;
-
-// Dimensions d'une page A4 en mm
-const PAGE_WIDTH_MM = 210;
-const PAGE_HEIGHT_MM = 297;
-
-// Fonction utilitaire pour vérifier si un champ a des coordonnées valides
-const hasValidPosition = (field: any): boolean => {
-  return field.position && 
-         typeof field.position.x === 'number' && !isNaN(field.position.x) &&
-         typeof field.position.y === 'number' && !isNaN(field.position.y) &&
-         field.position.x >= 0 && field.position.x <= PAGE_WIDTH_MM &&
-         field.position.y >= 0 && field.position.y <= PAGE_HEIGHT_MM;
-};
-
 const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave }) => {
-  const [loading, setLoading] = useState(false);
+  const [localTemplate, setLocalTemplate] = useState<PDFTemplate>({
+    ...template,
+    templateImages: Array.isArray(template.templateImages) ? [...template.templateImages] : [],
+    fields: Array.isArray(template.fields) ? [...template.fields] : []
+  });
+  
+  const [zoomLevel, setZoomLevel] = useState(1.0);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageLoaded, setPageLoaded] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [isDraggable, setIsDraggable] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isFieldDragging, setIsFieldDragging] = useState(false);
   const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
-  const [dragOffsetX, setDragOffsetX] = useState(0);
-  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [localTemplate, setLocalTemplate] = useState(template);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveAttempts, setSaveAttempts] = useState(0);
+  const [sampleData, setSampleData] = useState({});
   const [useRealData, setUseRealData] = useState(false);
-  const [realData, setRealData] = useState<any>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
-
-  // Réinitialiser les données locales lorsque le template parent change
+  const [realData, setRealData] = useState(null);
+  
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
-    // Vérifier que le template est valide
-    if (template && typeof template === 'object') {
-      const safeTemplate = {
-        ...template,
-        templateImages: Array.isArray(template.templateImages) ? template.templateImages : [],
-        fields: Array.isArray(template.fields) ? template.fields : []
-      };
+    // Charger des données d'exemple pour l'aperçu
+    setSampleData({
+      client_name: "Dupont",
+      client_first_name: "Jean",
+      client_email: "jean.dupont@exemple.fr",
+      client_phone: "+33 6 12 34 56 78",
+      client_company: "Entreprise Exemple",
+      client_vat_number: "FR12345678901",
+      client_address: "15 Rue de l'Exemple",
+      client_postal_code: "75000",
+      client_city: "Paris",
+      client_country: "France",
+      offer_id: "OFR-2023-001",
+      offer_created_at: "2023-04-15",
+      offer_total_price_excl: "1200.00€",
+      offer_total_price_incl: "1440.00€",
+      offer_monthly_payment: "40.00€",
+      equipment_title: "Ordinateur portable Dell XPS 13",
+      equipment_description: "Processeur i7, 16 Go RAM, 512 Go SSD",
+      equipment_price: "1200.00€",
+      equipment_quantity: "1",
+      leaser_name: "FinanceIT",
+      lease_duration: "36 mois",
+      lease_interest_rate: "3.5%"
+    });
+    
+    // Charger une offre réelle pour les tests avec données réelles
+    fetchRealData();
+  }, []);
+  
+  // Charger une offre réelle depuis la base de données
+  const fetchRealData = async () => {
+    try {
+      const supabase = getSupabaseClient();
       
-      setLocalTemplate(safeTemplate);
-      setHasUnsavedChanges(false);
+      // Récupérer l'offre la plus récente
+      const { data, error } = await supabase
+        .from('offers')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      if (data) {
+        console.log("Données réelles chargées:", data);
+        setRealData(data);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des données réelles:", error);
     }
-  }, [template]);
-
-  // Charger les vraies données pour démonstration
+  };
+  
+  // Mise à jour du template local quand le template parent change
   useEffect(() => {
-    const loadRealData = async () => {
-      if (useRealData && !realData) {
-        try {
-          setLoading(true);
-          // Récupérer une offre récente de la base de données
-          const supabase = getSupabaseClient();
-          const { data, error } = await supabase
-            .from('offers')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (error) {
-            console.error("Erreur lors de la récupération des données réelles:", error);
-            toast.error("Impossible de charger des données réelles");
-            setUseRealData(false);
-          } else if (data) {
-            console.log("Données réelles chargées:", data);
-            setRealData(data);
-            toast.success("Données réelles chargées avec succès");
-          } else {
-            toast.warning("Aucune donnée réelle trouvée");
-            setUseRealData(false);
-          }
-        } catch (err) {
-          console.error("Erreur lors du chargement des données réelles:", err);
-          toast.error("Erreur lors du chargement des données réelles");
-          setUseRealData(false);
-        } finally {
-          setLoading(false);
-        }
+    console.log("Mise à jour du template local depuis le template parent");
+    console.log("Fields:", template?.fields?.length || 0);
+    console.log("Images:", template?.templateImages?.length || 0);
+    
+    setLocalTemplate({
+      ...template,
+      templateImages: Array.isArray(template.templateImages) ? [...template.templateImages] : [],
+      fields: Array.isArray(template.fields) ? [...template.fields] : []
+    });
+    
+    // Réinitialiser les états
+    setHasUnsavedChanges(false);
+  }, [template]);
+  
+  // Fonction utilisée pour démarrer le drag & drop d'un champ
+  const handleStartDrag = (fieldId: string, offsetX: number, offsetY: number) => {
+    if (!isDraggable) return;
+    
+    setDraggedFieldId(fieldId);
+    setDragOffset({ x: offsetX, y: offsetY });
+    setIsFieldDragging(true);
+  };
+  
+  // Fonction appelée lors du déplacement d'un champ
+  const handleDrag = (clientX: number, clientY: number) => {
+    if (!isFieldDragging || !draggedFieldId) return;
+    
+    // Trouver le champ en cours de déplacement
+    const fields = [...localTemplate.fields];
+    const fieldIndex = fields.findIndex(f => f.id === draggedFieldId);
+    
+    if (fieldIndex === -1) return;
+    
+    // Calculer les coordonnées mm à partir des coordonnées de l'écran
+    // La conversion tient compte du zoom et du fait que l'unité est en mm
+    const containerRect = document.querySelector(".bg-white.shadow-lg")?.getBoundingClientRect();
+    if (!containerRect) return;
+    
+    // Coordonnées du pointeur par rapport au conteneur
+    const relativeX = clientX - containerRect.left - dragOffset.x;
+    const relativeY = clientY - containerRect.top - dragOffset.y;
+    
+    // Conversion en mm (210mm = largeur A4, 297mm = hauteur A4)
+    const widthInMm = 210;
+    const heightInMm = 297;
+    
+    // Calcul des coordonnées en mm en tenant compte du zoom
+    const xInMm = (relativeX / (containerRect.width / widthInMm)) / zoomLevel;
+    const yInMm = (relativeY / (containerRect.height / heightInMm)) / zoomLevel;
+    
+    // Limiter les coordonnées à l'intérieur de la page
+    const newX = Math.max(0, Math.min(xInMm, widthInMm));
+    const newY = Math.max(0, Math.min(yInMm, heightInMm));
+    
+    // Mise à jour de la position du champ
+    fields[fieldIndex] = {
+      ...fields[fieldIndex],
+      position: {
+        x: Math.round(newX * 10) / 10, // Arrondir à 1 décimale
+        y: Math.round(newY * 10) / 10  // Arrondir à 1 décimale
       }
     };
-
-    loadRealData();
-  }, [useRealData, realData]);
-
-  // Réinitialiser l'état de chargement de la page lors du changement de page
-  useEffect(() => {
-    setPageLoaded(false);
-  }, [currentPage]);
-
-  // Fonction pour normaliser les champs avant la sauvegarde
-  const normalizeFields = useCallback((fields: any[]) => {
-    if (!Array.isArray(fields)) return [];
     
-    return fields.map(field => {
-      // S'assurer que chaque champ a une position valide
-      if (!hasValidPosition(field)) {
-        return {
-          ...field,
-          position: { x: 10, y: 10 } // Position par défaut
-        };
-      }
-      
-      // Arrondir les valeurs à 1 décimale
-      return {
-        ...field,
-        position: {
-          x: Math.round(field.position.x * 10) / 10,
-          y: Math.round(field.position.y * 10) / 10
-        }
-      };
+    // Mettre à jour le template local et marquer comme ayant des changements non sauvegardés
+    setLocalTemplate({
+      ...localTemplate,
+      fields
     });
-  }, []);
-
-  const handleDrag = useCallback((clientX: number, clientY: number) => {
-    if (!isDragging || !draggedFieldId) return;
-
-    try {
-      // Obtenir les dimensions précises du conteneur PDF
-      const pdfContainer = document.querySelector(".bg-white.shadow-lg.relative");
-      if (!pdfContainer) return;
-
-      const pdfRect = pdfContainer.getBoundingClientRect();
-      
-      // Calculer la position exacte en pixels
-      const pixelX = clientX - pdfRect.left - dragOffsetX;
-      const pixelY = clientY - pdfRect.top - dragOffsetY;
-      
-      // Convertir les pixels en millimètres en tenant compte du zoom
-      const mmX = pixelX / (MM_TO_PX * zoomLevel);
-      const mmY = pixelY / (MM_TO_PX * zoomLevel);
-
-      // Limiter aux dimensions d'une page A4
-      const boundedX = Math.max(0, Math.min(mmX, PAGE_WIDTH_MM));
-      const boundedY = Math.max(0, Math.min(mmY, PAGE_HEIGHT_MM));
-      
-      // Arrondir à 1 décimale pour plus de précision sans surcharge
-      const roundedX = Math.round(boundedX * 10) / 10;
-      const roundedY = Math.round(boundedY * 10) / 10;
-
-      // Mettre à jour le template local avec les nouvelles coordonnées
-      setLocalTemplate(prevTemplate => {
-        const updatedFields = prevTemplate.fields.map((field: any) => {
-          if (field.id === draggedFieldId && (field.page === currentPage || (currentPage === 0 && field.page === undefined))) {
-            return {
-              ...field,
-              position: {
-                x: roundedX,
-                y: roundedY
-              }
-            };
-          }
-          return field;
-        });
-
-        return {
-          ...prevTemplate,
-          fields: updatedFields
-        };
-      });
-      
-      setHasUnsavedChanges(true);
-    } catch (error) {
-      console.error("Erreur lors du déplacement du champ:", error);
-    }
-  }, [isDragging, draggedFieldId, currentPage, zoomLevel, dragOffsetX, dragOffsetY]);
-
-  const handleDragEnd = useCallback(() => {
-    setIsDragging(false);
+    
+    setHasUnsavedChanges(true);
+  };
+  
+  // Fonction appelée à la fin du déplacement d'un champ
+  const handleEndDrag = () => {
+    if (!isFieldDragging) return;
+    
+    setIsFieldDragging(false);
     setDraggedFieldId(null);
-  }, []);
-
-  const handleSaveChanges = async () => {
-    if (!hasUnsavedChanges || isSaving) return;
+  };
+  
+  // Fonction pour sauvegarder les changements
+  const handleSave = async () => {
+    // Annuler tout timeout de sauvegarde en cours
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
     
     try {
       setIsSaving(true);
       
-      // Incrémenter le compteur de tentatives
-      setSaveAttempts(prev => prev + 1);
+      // Valider les données avant sauvegarde
+      const fieldsToSave = localTemplate.fields.map(field => {
+        // S'assurer que tous les champs ont des positions valides
+        if (!field.position || typeof field.position.x !== 'number' || typeof field.position.y !== 'number') {
+          return {
+            ...field,
+            position: { x: 10, y: 10 } // Valeurs par défaut
+          };
+        }
+        
+        // Arrondir les coordonnées à 1 décimale
+        return {
+          ...field,
+          position: {
+            x: Math.round(field.position.x * 10) / 10,
+            y: Math.round(field.position.y * 10) / 10
+          }
+        };
+      });
       
-      // Créer une copie profonde pour éviter les problèmes de référence
-      // Utilisation de JSON.parse/stringify pour une copie profonde sûre
-      const clonedTemplate = JSON.parse(JSON.stringify(localTemplate));
+      // Créer une copie profonde du template avec les champs mis à jour
+      const templateToSave = {
+        ...localTemplate,
+        fields: fieldsToSave
+      };
       
-      // Normalisation des champs pour s'assurer que tous ont des coordonnées valides
-      clonedTemplate.fields = normalizeFields(clonedTemplate.fields);
+      // Sauvegarder via la fonction fournie par le parent
+      await onSave(templateToSave);
       
-      // Log avant sauvegarde
-      console.log("Tentative de sauvegarde du template:", 
-        `ID: ${clonedTemplate.id}`, 
-        `Nombre de champs: ${clonedTemplate.fields.length}`, 
-        `Tentative #${saveAttempts + 1}`);
-      
-      // Vérifier si le template est valide
-      if (!clonedTemplate.id || !Array.isArray(clonedTemplate.fields)) {
-        throw new Error("Données de template invalides");
-      }
-
-      // Appliquer la limite de taille pour éviter les timeouts
-      if (JSON.stringify(clonedTemplate).length > 1000000) { // 1MB limite
-        toast.error("Le template est trop volumineux. Essayez de réduire le nombre d'images ou leur taille.");
-        throw new Error("Template trop volumineux");
-      }
-      
-      // Appeler la fonction de sauvegarde fournie par le parent
-      await onSave(clonedTemplate);
-      
+      // Mettre à jour l'état local
       setHasUnsavedChanges(false);
-      toast.success("Positions des champs sauvegardées avec succès");
-    } catch (error: any) {
+      toast.success("Modifications sauvegardées avec succès");
+    } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
-      
-      // Message d'erreur détaillé
-      const errorMessage = error.message || "Erreur inconnue";
-      const errorDetails = error.details || "";
-      
-      toast.error(`Erreur: ${errorMessage}${errorDetails ? ` (${errorDetails})` : ''}`);
-      
-      // Si c'est un timeout, suggérer une solution
-      if (errorMessage.includes("timeout") || saveAttempts > 3) {
-        toast.error("Problème de délai d'attente. Essayez de sauvegarder par étapes en réduisant les modifications.");
-      }
+      toast.error("Erreur lors de la sauvegarde");
     } finally {
       setIsSaving(false);
     }
   };
-
-  const handleStartDrag = useCallback((fieldId: string, offsetX: number, offsetY: number) => {
-    if (!isDraggable) return;
-    setIsDragging(true);
-    setDraggedFieldId(fieldId);
-    setDragOffsetX(offsetX);
-    setDragOffsetY(offsetY);
-  }, [isDraggable]);
   
-  // Déterminer quelles données utiliser
-  const currentData = useRealData && realData ? realData : SAMPLE_DATA;
+  // Détermine quelles données utiliser en fonction du paramètre useRealData
+  const getCurrentData = () => {
+    if (useRealData && realData) {
+      return realData;
+    }
+    return sampleData;
+  };
   
   return (
-    <div className="space-y-4" ref={previewRef}>
-      <PreviewControls 
-        zoomLevel={zoomLevel}
-        setZoomLevel={setZoomLevel}
-        isDraggable={isDraggable}
-        setIsDraggable={setIsDraggable}
-        hasUnsavedChanges={hasUnsavedChanges}
-        onSave={handleSaveChanges}
-        sampleData={currentData}
-        localTemplate={localTemplate}
-        setLoading={setLoading}
-        isSaving={isSaving}
-        useRealData={useRealData}
-        setUseRealData={setUseRealData}
-      />
-      
-      <Card>
-        <CardContent className="p-0 overflow-hidden">
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-lg">Aperçu du modèle</CardTitle>
+        {hasUnsavedChanges && (
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sauvegarde...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Sauvegarder
+              </>
+            )}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        <PreviewControls 
+          zoomLevel={zoomLevel}
+          setZoomLevel={setZoomLevel}
+          isDraggable={isDraggable}
+          setIsDraggable={setIsDraggable}
+          hasUnsavedChanges={hasUnsavedChanges}
+          onSave={handleSave}
+          sampleData={getCurrentData()}
+          localTemplate={localTemplate}
+          setLoading={setLoading}
+          isSaving={isSaving}
+          useRealData={useRealData}
+          setUseRealData={setUseRealData}
+        />
+        
+        {loading ? (
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Chargement...</span>
+          </div>
+        ) : (
           <PDFCanvas 
             localTemplate={localTemplate}
             zoomLevel={zoomLevel}
@@ -283,17 +288,15 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
             pageLoaded={pageLoaded}
             setPageLoaded={setPageLoaded}
             isDraggable={isDraggable}
-            sampleData={currentData}
+            sampleData={getCurrentData()}
             onStartDrag={handleStartDrag}
             onDrag={handleDrag}
-            onEndDrag={handleDragEnd}
+            onEndDrag={handleEndDrag}
             useRealData={useRealData}
           />
-        </CardContent>
-      </Card>
-      
-      <InstructionsPanel />
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

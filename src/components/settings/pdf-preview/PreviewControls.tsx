@@ -80,8 +80,23 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
     }
   };
 
+  // Lorsque l'utilisateur termine le positionnement, on lui propose de sauvegarder
+  const handleDraggableChange = (newDraggable: boolean) => {
+    setIsDraggable(newDraggable);
+    
+    // Si on désactive le mode de positionnement et qu'il y a des changements non sauvegardés
+    if (!newDraggable && hasUnsavedChanges) {
+      toast.info("N'oubliez pas de sauvegarder vos modifications", {
+        action: {
+          label: "Sauvegarder",
+          onClick: handleSaveClick
+        }
+      });
+    }
+  };
+
   return (
-    <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2">
+    <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2 mb-4">
       <h3 className="text-sm font-medium">Aperçu du modèle de PDF</h3>
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-2 mr-4">
@@ -119,12 +134,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
         <Button
           variant={isDraggable ? "default" : "outline"}
           size="sm"
-          onClick={() => {
-            setIsDraggable(!isDraggable);
-            if (isDraggable && hasUnsavedChanges) {
-              toast.info("N'oubliez pas de sauvegarder vos modifications");
-            }
-          }}
+          onClick={() => handleDraggableChange(!isDraggable)}
           className="h-8"
         >
           {isDraggable ? "Terminer le positionnement" : "Positionner les champs"}

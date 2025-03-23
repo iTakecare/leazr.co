@@ -156,8 +156,6 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
               sampleData={sampleData}
               isDraggable={isDraggable}
               onStartDrag={onStartDrag}
-              onDrag={onDrag}
-              onEndDrag={onEndDrag}
               useRealData={useRealData}
             />
           ))}

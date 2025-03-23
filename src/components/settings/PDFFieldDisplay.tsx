@@ -83,23 +83,23 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
 
   // Style et position du champ
   const fieldStyle = useMemo(() => {
-    const style = {
+    const style: React.CSSProperties = {
       left: `${field.position?.x || 0}mm`,
       top: `${field.position?.y || 0}mm`,
       transform: `scale(${zoomLevel})`,
       transformOrigin: 'top left',
       fontSize: `${(field.style?.fontSize || 10) + (useRealData ? 0 : 1)}px`,
       fontFamily: 'Arial, sans-serif',
-      position: 'absolute' as 'absolute',
+      position: 'absolute',
       cursor: isDraggable ? 'move' : 'default',
-      userSelect: 'none' as 'none',
+      userSelect: 'none',
       backgroundColor: useRealData ? 'rgba(120, 170, 255, 0.1)' : 'rgba(255, 180, 120, 0.1)',
       border: useRealData ? '1px dashed rgba(0, 100, 255, 0.4)' : '1px dashed rgba(255, 130, 0, 0.4)',
       borderRadius: '2px',
       padding: '1px 3px',
       maxWidth: '200px',
       overflow: 'hidden',
-      whiteSpace: 'nowrap' as 'nowrap',
+      whiteSpace: 'nowrap',
       textOverflow: 'ellipsis',
       zIndex: 10
     };
