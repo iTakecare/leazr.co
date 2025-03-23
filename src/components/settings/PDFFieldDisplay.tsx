@@ -151,7 +151,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   
   // Style du champ
   const style = {
-    position: "absolute" as const, // Type assertion pour éviter l'erreur TS
+    position: "absolute" as const,
     left: `${xPx}px`,
     top: `${yPx}px`,
     zIndex: 5,
@@ -160,7 +160,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     fontStyle: field.style?.fontStyle || 'normal',
     textDecoration: field.style?.textDecoration || 'none',
     color: field.style?.color || 'black',
-    whiteSpace: "pre-wrap" as const, // Type assertion pour éviter l'erreur TS
+    whiteSpace: "pre-wrap" as const,
     maxWidth: field.id === 'equipment_table' 
       ? `${mmToPx(150)}px` 
       : `${mmToPx(80)}px`,

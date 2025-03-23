@@ -29,6 +29,8 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   // Mettre à jour le template local lorsque le template parent change
   useEffect(() => {
     setLocalTemplate(template);
+    // Réinitialiser l'indicateur de changements non sauvegardés
+    setHasUnsavedChanges(false);
   }, [template]);
 
   // Réinitialiser pageLoaded lorsque la page actuelle change
