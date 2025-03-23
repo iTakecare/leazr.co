@@ -11,6 +11,7 @@ import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ensureBucket } from "@/services/fileStorage";
+import PDFPreview from "./PDFPreview";
 
 // Interface pour le modèle PDF
 export interface PDFTemplate {
@@ -79,7 +80,12 @@ const PDFTemplateManager = () => {
       
       if (!data) {
         console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
-        setTemplate(DEFAULT_TEMPLATE);
+        console.log("Modèle par défaut:", DEFAULT_TEMPLATE);
+        setTemplate({
+          ...DEFAULT_TEMPLATE,
+          templateImages: [],
+          fields: []
+        });
         toast.info("Modèle par défaut chargé");
       } else {
         console.log("Modèle chargé avec succès:", data);
@@ -92,8 +98,17 @@ const PDFTemplateManager = () => {
         };
         
         console.log("Modèle sanitisé:", sanitizedTemplate);
-        console.log("Nombre d'images:", sanitizedTemplate.templateImages.length);
-        console.log("Nombre de champs:", sanitizedTemplate.fields.length);
+        console.log("Nombre d'images:", sanitizedTemplate.templateImages ? sanitizedTemplate.templateImages.length : 0);
+        console.log("Nombre de champs:", sanitizedTemplate.fields ? sanitizedTemplate.fields.length : 0);
+        
+        // Log détaillé pour le débogage
+        if (sanitizedTemplate.templateImages && sanitizedTemplate.templateImages.length > 0) {
+          console.log("Premier élément templateImages:", sanitizedTemplate.templateImages[0]);
+        }
+        
+        if (sanitizedTemplate.fields && sanitizedTemplate.fields.length > 0) {
+          console.log("Premier élément fields:", sanitizedTemplate.fields[0]);
+        }
         
         setTemplate(sanitizedTemplate);
         toast.success("Modèle chargé avec succès");
@@ -104,7 +119,11 @@ const PDFTemplateManager = () => {
       toast.error("Erreur lors du chargement du modèle");
       
       // En cas d'erreur, définir quand même un modèle par défaut
-      setTemplate(DEFAULT_TEMPLATE);
+      setTemplate({
+        ...DEFAULT_TEMPLATE,
+        templateImages: [],
+        fields: []
+      });
     } finally {
       setLoading(false);
     }
@@ -156,13 +175,34 @@ const PDFTemplateManager = () => {
   
   // Gestion du modèle complet
   const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
-    handleSaveTemplate(updatedTemplate);
+    // Debug de la mise à jour 
+    console.log("handleTemplateUpdate appelé avec:", updatedTemplate);
+    console.log("Nombre d'images dans updatedTemplate:", updatedTemplate.templateImages?.length || 0);
+    console.log("Nombre de champs dans updatedTemplate:", updatedTemplate.fields?.length || 0);
+    
+    // S'assurer que les tableaux sont initialisés
+    const sanitizedTemplate: PDFTemplate = {
+      ...updatedTemplate,
+      templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
+      fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : []
+    };
+    
+    handleSaveTemplate(sanitizedTemplate);
   };
   
   // Fonction pour réessayer en cas d'erreur
   const handleRetry = () => {
     loadTemplate();
   };
+
+  // Ajouter un log pour vérifier que le composant se rend correctement
+  console.log("Rendu de PDFTemplateManager", {
+    loading,
+    saving,
+    templateExists: !!template,
+    templateImagesCount: template?.templateImages?.length || 0,
+    fieldsCount: template?.fields?.length || 0
+  });
 
   return (
     <Card className="w-full mt-6">
@@ -215,9 +255,10 @@ const PDFTemplateManager = () => {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="company">Informations de l'entreprise</TabsTrigger>
               <TabsTrigger value="design">Conception du modèle</TabsTrigger>
+              <TabsTrigger value="preview">Aperçu</TabsTrigger>
             </TabsList>
             
             <TabsContent value="company" className="mt-6">
@@ -235,6 +276,14 @@ const PDFTemplateManager = () => {
                 <PDFTemplateWithFields 
                   template={template}
                   onSave={handleTemplateUpdate}
+                />
+              )}
+            </TabsContent>
+            
+            <TabsContent value="preview" className="mt-6">
+              {template && (
+                <PDFPreview 
+                  template={template}
                 />
               )}
             </TabsContent>

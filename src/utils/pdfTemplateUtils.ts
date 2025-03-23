@@ -113,7 +113,7 @@ export const DEFAULT_TEMPLATE = {
 };
 
 /**
- * Charge un modèle PDF depuis la base de données
+ * Charge un modèle PDF depuis la base de données ou retourne le modèle par défaut
  */
 export const loadPDFTemplate = async (id: string = 'default') => {
   try {
@@ -124,7 +124,7 @@ export const loadPDFTemplate = async (id: string = 'default') => {
     if (!tableExists) {
       console.error("La table pdf_templates n'a pas pu être créée/vérifiée");
       toast.error("Erreur lors de la préparation de la base de données");
-      return DEFAULT_TEMPLATE;
+      return { ...DEFAULT_TEMPLATE, templateImages: [], fields: [] };
     }
     
     // Récupérer les données du template
@@ -138,13 +138,13 @@ export const loadPDFTemplate = async (id: string = 'default') => {
     if (error) {
       console.error("Erreur lors du chargement du modèle:", error);
       toast.error("Erreur lors du chargement du modèle");
-      return DEFAULT_TEMPLATE;
+      return { ...DEFAULT_TEMPLATE, templateImages: [], fields: [] };
     }
     
     if (!data) {
       console.log("Aucun modèle trouvé, insertion du modèle par défaut");
-      await savePDFTemplate(DEFAULT_TEMPLATE);
-      return DEFAULT_TEMPLATE;
+      await savePDFTemplate({ ...DEFAULT_TEMPLATE, templateImages: [], fields: [] });
+      return { ...DEFAULT_TEMPLATE, templateImages: [], fields: [] };
     }
     
     // S'assurer que les champs sont des tableaux valides
@@ -154,22 +154,33 @@ export const loadPDFTemplate = async (id: string = 'default') => {
       fields: Array.isArray(data.fields) ? data.fields : []
     };
     
+    // Log détaillé des données chargées
     console.log("Modèle chargé avec succès:", sanitizedTemplate);
+    console.log("Type de templateImages:", typeof sanitizedTemplate.templateImages);
+    console.log("Type de fields:", typeof sanitizedTemplate.fields);
     console.log("Nombre d'images:", sanitizedTemplate.templateImages.length);
     console.log("Nombre de champs:", sanitizedTemplate.fields.length);
+    
+    if (sanitizedTemplate.templateImages.length > 0) {
+      console.log("Premier élément de templateImages:", JSON.stringify(sanitizedTemplate.templateImages[0]));
+    }
+    
+    if (sanitizedTemplate.fields.length > 0) {
+      console.log("Premier élément de fields:", JSON.stringify(sanitizedTemplate.fields[0]));
+    }
     
     return sanitizedTemplate;
   } catch (error) {
     console.error("Exception lors du chargement du modèle:", error);
     toast.error("Erreur lors du chargement du modèle");
-    return DEFAULT_TEMPLATE;
+    return { ...DEFAULT_TEMPLATE, templateImages: [], fields: [] };
   }
 };
 
 /**
  * Sauvegarde un modèle PDF dans la base de données
  */
-export const savePDFTemplate = async (template: any) => {
+export const savePDFTemplate = async (template) => {
   try {
     console.log("Début de la sauvegarde du modèle PDF:", template.id);
     
@@ -182,8 +193,18 @@ export const savePDFTemplate = async (template: any) => {
     };
     
     console.log("Modèle à sauvegarder (sanitisé):", sanitizedTemplate);
+    console.log("Type de templateImages:", typeof sanitizedTemplate.templateImages);
+    console.log("Type de fields:", typeof sanitizedTemplate.fields);
     console.log("Nombre d'images à sauvegarder:", sanitizedTemplate.templateImages.length);
     console.log("Nombre de champs à sauvegarder:", sanitizedTemplate.fields.length);
+    
+    if (sanitizedTemplate.templateImages.length > 0) {
+      console.log("Premier élément de templateImages à sauvegarder:", JSON.stringify(sanitizedTemplate.templateImages[0]));
+    }
+    
+    if (sanitizedTemplate.fields.length > 0) {
+      console.log("Premier élément de fields à sauvegarder:", JSON.stringify(sanitizedTemplate.fields[0]));
+    }
     
     // S'assurer que la table existe
     const tableExists = await ensurePDFTemplateTableExists();

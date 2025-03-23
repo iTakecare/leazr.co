@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PDFTemplate } from "./PDFTemplateManager";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
+import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import PDFFieldsEditor from "./PDFFieldsEditor";
@@ -44,58 +44,68 @@ interface PDFField {
 
 const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps) => {
   const [selectedPage, setSelectedPage] = useState(0);
-  const [localTemplate, setLocalTemplate] = useState<PDFTemplate | null>(null);
+  const [activeTab, setActiveTab] = useState("images");
+  const [localTemplate, setLocalTemplate] = useState<PDFTemplate>({
+    ...template,
+    templateImages: Array.isArray(template.templateImages) ? template.templateImages : [],
+    fields: Array.isArray(template.fields) ? template.fields : []
+  });
   const [isUploading, setIsUploading] = useState(false);
   
+  // Debug lors du premier rendu
   useEffect(() => {
-    console.log("Template reçu dans PDFTemplateWithFields:", template);
-    console.log("Template.fields:", template.fields);
+    console.log("PDFTemplateWithFields - Premier rendu");
+    console.log("Template reçu:", template);
     console.log("Template.templateImages:", template.templateImages);
+    console.log("Template.fields:", template.fields);
     
-    // S'assurer que les tableaux sont toujours initialisés
-    const sanitizedTemplate = {
+    // Vérifier et initialiser les tableaux si nécessaire
+    const images = Array.isArray(template.templateImages) ? template.templateImages : [];
+    const fields = Array.isArray(template.fields) ? template.fields : [];
+    
+    console.log("Images après vérification:", images.length);
+    console.log("Champs après vérification:", fields.length);
+    
+    // Mettre à jour le template local avec des tableaux garantis
+    setLocalTemplate({
       ...template,
-      fields: Array.isArray(template.fields) ? template.fields : [],
-      templateImages: Array.isArray(template.templateImages) ? template.templateImages : []
-    };
+      templateImages: images,
+      fields: fields
+    });
+  }, []);
+  
+  // Mettre à jour le template local lorsque le template parent change
+  useEffect(() => {
+    console.log("Template parent mis à jour:", template);
+    console.log("Template.templateImages:", template.templateImages);
+    console.log("Template.fields:", template.fields);
     
-    console.log("Template sanitisé:", sanitizedTemplate);
-    setLocalTemplate(sanitizedTemplate);
+    // Vérifier et initialiser les tableaux si nécessaire
+    const images = Array.isArray(template.templateImages) ? template.templateImages : [];
+    const fields = Array.isArray(template.fields) ? template.fields : [];
+    
+    console.log("Images après vérification:", images.length);
+    console.log("Champs après vérification:", fields.length);
+    
+    // Mettre à jour le template local avec des tableaux garantis
+    setLocalTemplate({
+      ...template,
+      templateImages: images,
+      fields: fields
+    });
   }, [template]);
   
-  if (!localTemplate) {
-    return (
-      <div className="flex justify-center items-center h-40">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Chargement du modèle...</span>
-      </div>
-    );
-  }
-  
-  // Convertir les images du template en format local
-  const getLocalImages = (): TemplateImage[] => {
-    if (!localTemplate.templateImages || !Array.isArray(localTemplate.templateImages)) {
-      console.log("Aucune image dans le template ou format invalide");
-      return [];
-    }
-    
-    return localTemplate.templateImages.map((img: any, idx: number) => {
-      // Si l'image est déjà au bon format, la retourner telle quelle
-      if (img.data) return img;
-      
-      // Sinon, créer une nouvelle structure avec des valeurs par défaut
-      return {
-        id: img.id || `image-${idx}`,
-        name: img.name || `Page ${idx + 1}`,
-        data: img.url || img.data || '',
-        page: img.page !== undefined ? img.page : idx
-      };
-    });
+  // Vérifier que les tableaux du template local sont toujours des tableaux
+  const safeTemplate = {
+    ...localTemplate,
+    templateImages: Array.isArray(localTemplate.templateImages) ? localTemplate.templateImages : [],
+    fields: Array.isArray(localTemplate.fields) ? localTemplate.fields : []
   };
   
-  // Gestionnaire pour les images
-  const handleImagesChange = (images: TemplateImage[]) => {
+  // Gestionnaire d'images
+  const handleImagesChange = useCallback((images: TemplateImage[]) => {
     console.log("Images mises à jour:", images);
+    console.log("Nombre d'images:", images.length);
     
     const updatedTemplate = {
       ...localTemplate,
@@ -104,11 +114,12 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     
     setLocalTemplate(updatedTemplate);
     onSave(updatedTemplate);
-  };
+  }, [localTemplate, onSave]);
   
-  // Gestionnaire pour les champs
-  const handleFieldsChange = (fields: PDFField[]) => {
+  // Gestionnaire de champs
+  const handleFieldsChange = useCallback((fields: PDFField[]) => {
     console.log("Champs mis à jour:", fields);
+    console.log("Nombre de champs:", fields.length);
     
     const updatedTemplate = {
       ...localTemplate,
@@ -117,80 +128,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     
     setLocalTemplate(updatedTemplate);
     onSave(updatedTemplate);
-  };
-  
-  // Fonction pour supprimer un champ
-  const handleDeleteField = (fieldId: string) => {
-    const updatedFields = (localTemplate.fields || []).filter(field => field.id !== fieldId);
-    
-    const updatedTemplate = {
-      ...localTemplate,
-      fields: updatedFields
-    };
-    
-    setLocalTemplate(updatedTemplate);
-    onSave(updatedTemplate);
-    toast.success("Champ supprimé avec succès");
-  };
-  
-  // Fonction pour ajouter un champ
-  const handleAddField = (field: PDFField) => {
-    const newField = {
-      ...field,
-      id: uuidv4()
-    };
-    
-    const updatedFields = [...(localTemplate.fields || []), newField];
-    
-    const updatedTemplate = {
-      ...localTemplate,
-      fields: updatedFields
-    };
-    
-    setLocalTemplate(updatedTemplate);
-    onSave(updatedTemplate);
-    toast.success("Champ ajouté avec succès");
-  };
-  
-  // Fonction pour dupliquer un champ sur une autre page
-  const handleDuplicateField = (fieldId: string, targetPage: number) => {
-    const fieldToDuplicate = (localTemplate.fields || []).find(field => field.id === fieldId);
-    
-    if (fieldToDuplicate) {
-      const duplicatedField = {
-        ...fieldToDuplicate,
-        id: `${fieldId}_page${targetPage}`,
-        page: targetPage
-      };
-      
-      const updatedFields = [...(localTemplate.fields || []), duplicatedField];
-      
-      const updatedTemplate = {
-        ...localTemplate,
-        fields: updatedFields
-      };
-      
-      setLocalTemplate(updatedTemplate);
-      onSave(updatedTemplate);
-      toast.success(`Champ dupliqué sur la page ${targetPage + 1}`);
-    }
-  };
-  
-  // Fonction pour retirer un champ d'une page
-  const handleRemoveFieldFromPage = (fieldId: string, page: number) => {
-    const updatedFields = (localTemplate.fields || []).filter(field => 
-      !(field.id === fieldId && field.page === page)
-    );
-    
-    const updatedTemplate = {
-      ...localTemplate,
-      fields: updatedFields
-    };
-    
-    setLocalTemplate(updatedTemplate);
-    onSave(updatedTemplate);
-    toast.success(`Champ retiré de la page ${page + 1}`);
-  };
+  }, [localTemplate, onSave]);
   
   // Fonction pour convertir un fichier en base64
   const convertFileToBase64 = (file: File): Promise<string> => {
@@ -219,17 +157,34 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
       // Convertir l'image en base64
       const base64Data = await convertFileToBase64(file);
       
+      // Récupérer les images existantes de façon sûre
+      const existingImages = Array.isArray(localTemplate.templateImages) 
+        ? localTemplate.templateImages 
+        : [];
+      
       // Créer une nouvelle entrée d'image
       const newImage: TemplateImage = {
         id: uuidv4(),
         name: file.name,
         data: base64Data,
-        page: getLocalImages().length
+        page: existingImages.length
       };
       
       // Ajouter la nouvelle image
-      const updatedImages = [...getLocalImages(), newImage];
-      handleImagesChange(updatedImages);
+      const updatedImages = [...existingImages, newImage];
+      
+      const updatedTemplate = {
+        ...localTemplate,
+        templateImages: updatedImages
+      };
+      
+      console.log("Mise à jour du template avec la nouvelle image");
+      console.log("Nombre d'images avant:", existingImages.length);
+      console.log("Nombre d'images après:", updatedImages.length);
+      
+      setLocalTemplate(updatedTemplate);
+      onSave(updatedTemplate);
+      
       toast.success("Image ajoutée avec succès");
       
       // S'il s'agit de la première image, la sélectionner automatiquement
@@ -241,19 +196,35 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
       toast.error("Une erreur est survenue lors de l'ajout de l'image");
     } finally {
       setIsUploading(false);
+      
+      // Réinitialiser l'input file
+      if (e.target) {
+        e.target.value = "";
+      }
     }
   };
   
   // Supprimer une image
   const handleDeleteImage = (imageId: string) => {
-    const updatedImages = getLocalImages().filter(img => img.id !== imageId);
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
+    
+    const updatedImages = existingImages.filter(img => img.id !== imageId);
     
     // Réindexer les numéros de page
     updatedImages.forEach((img, idx) => {
       img.page = idx;
     });
     
-    handleImagesChange(updatedImages);
+    const updatedTemplate = {
+      ...localTemplate,
+      templateImages: updatedImages
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
     
     // Si la page actuellement sélectionnée n'existe plus, sélectionner la dernière page disponible
     if (selectedPage >= updatedImages.length) {
@@ -267,7 +238,12 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   const moveImageUp = (index: number) => {
     if (index === 0) return;
     
-    const newImages = [...getLocalImages()];
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
+    
+    const newImages = [...existingImages];
     [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
     
     // Mettre à jour les numéros de page
@@ -275,7 +251,13 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
       img.page = idx;
     });
     
-    handleImagesChange(newImages);
+    const updatedTemplate = {
+      ...localTemplate,
+      templateImages: newImages
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
     
     // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
     if (selectedPage === index || selectedPage === index - 1) {
@@ -285,10 +267,14 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   
   // Déplacer une image vers le bas
   const moveImageDown = (index: number) => {
-    const images = getLocalImages();
-    if (index === images.length - 1) return;
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
     
-    const newImages = [...images];
+    if (index === existingImages.length - 1) return;
+    
+    const newImages = [...existingImages];
     [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
     
     // Mettre à jour les numéros de page
@@ -296,7 +282,13 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
       img.page = idx;
     });
     
-    handleImagesChange(newImages);
+    const updatedTemplate = {
+      ...localTemplate,
+      templateImages: newImages
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
     
     // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
     if (selectedPage === index || selectedPage === index + 1) {
@@ -309,15 +301,139 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     window.open(imageData, '_blank');
   };
   
-  // Gestionnaire de changement de page
-  const handlePageChange = (newPage: number) => {
-    setSelectedPage(newPage);
+  // Gestion des champs spécifiques
+  
+  // Ajouter un champ
+  const handleAddField = (field: PDFField) => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    const newField = {
+      ...field,
+      id: uuidv4()
+    };
+    
+    const updatedFields = [...existingFields, newField];
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success("Champ ajouté avec succès");
+  };
+  
+  // Supprimer un champ
+  const handleDeleteField = (fieldId: string) => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    const updatedFields = existingFields.filter(field => field.id !== fieldId);
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success("Champ supprimé avec succès");
+  };
+  
+  // Dupliquer un champ sur une autre page
+  const handleDuplicateField = (fieldId: string, targetPage: number) => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    const fieldToDuplicate = existingFields.find(field => field.id === fieldId);
+    
+    if (fieldToDuplicate) {
+      const duplicatedField = {
+        ...fieldToDuplicate,
+        id: uuidv4(),
+        page: targetPage
+      };
+      
+      const updatedFields = [...existingFields, duplicatedField];
+      
+      const updatedTemplate = {
+        ...localTemplate,
+        fields: updatedFields
+      };
+      
+      setLocalTemplate(updatedTemplate);
+      onSave(updatedTemplate);
+      toast.success(`Champ dupliqué sur la page ${targetPage + 1}`);
+    }
+  };
+  
+  // Retirer un champ d'une page
+  const handleRemoveFieldFromPage = (fieldId: string, page: number) => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    const updatedFields = existingFields.filter(field => 
+      !(field.id === fieldId && field.page === page)
+    );
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success(`Champ retiré de la page ${page + 1}`);
+  };
+  
+  // Ajout d'un champ simple pour débogage
+  const addDebugField = () => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    const newField = {
+      id: uuidv4(),
+      label: "Champ de test",
+      type: "text",
+      category: "client",
+      isVisible: true,
+      value: "Valeur de test",
+      position: { x: 50, y: 50 },
+      page: selectedPage
+    };
+    
+    const updatedFields = [...existingFields, newField];
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success("Champ de test ajouté avec succès");
   };
   
   // Rendu du composant d'upload et de gestion des images
   const renderImageUploader = () => {
-    const images = getLocalImages();
-    console.log("Images locales obtenues:", images.length);
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
+    
+    console.log("renderImageUploader - Nombre d'images:", existingImages.length);
     
     return (
       <div className="space-y-6">
@@ -349,9 +465,14 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
         </div>
         
         <div className="space-y-4">
-          <h3 className="text-sm font-medium">Pages du modèle ({images.length})</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-medium">Pages du modèle ({existingImages.length})</h3>
+            <Button variant="outline" size="sm" onClick={() => console.log("Images du template:", existingImages)}>
+              Debug Images
+            </Button>
+          </div>
           
-          {images.length === 0 ? (
+          {existingImages.length === 0 ? (
             <div className="text-center p-8 border border-dashed rounded-md">
               <p className="text-sm text-muted-foreground">
                 Aucune page n'a encore été ajoutée. Utilisez le formulaire ci-dessus pour ajouter des pages à votre modèle.
@@ -359,7 +480,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {images.map((image, index) => (
+              {existingImages.map((image, index) => (
                 <Card 
                   key={`${image.id}-${index}`} 
                   className={`overflow-hidden ${selectedPage === index ? 'ring-2 ring-primary' : ''}`}
@@ -404,7 +525,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
                             e.stopPropagation();
                             moveImageDown(index);
                           }}
-                          disabled={index === images.length - 1}
+                          disabled={index === existingImages.length - 1}
                         >
                           <ArrowDown className="h-4 w-4" />
                         </Button>
@@ -444,29 +565,70 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   
   // Rendu du composant d'édition des champs
   const renderFieldsEditor = () => {
-    const fields = Array.isArray(localTemplate.fields) ? localTemplate.fields : [];
-    const images = getLocalImages();
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
     
-    console.log("Nombre de champs à éditer:", fields.length);
-    console.log("Nombre d'images pour le positionnement:", images.length);
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
+    
+    console.log("renderFieldsEditor - Nombre de champs:", existingFields.length);
+    console.log("renderFieldsEditor - Nombre d'images:", existingImages.length);
+    
+    // Si nous n'avons pas d'images, afficher un message
+    if (existingImages.length === 0) {
+      return (
+        <div className="text-center p-8 border border-dashed rounded-md">
+          <p className="text-sm text-muted-foreground">
+            Veuillez d'abord ajouter au moins une page de modèle dans l'onglet "Pages du modèle" avant de pouvoir ajouter des champs.
+          </p>
+        </div>
+      );
+    }
     
     return (
-      <PDFFieldsEditor 
-        fields={fields}
-        onChange={handleFieldsChange}
-        activePage={selectedPage}
-        onPageChange={handlePageChange}
-        template={localTemplate}
-        onDeleteField={handleDeleteField}
-        onAddField={handleAddField}
-        onDuplicateField={handleDuplicateField}
-        onRemoveFieldFromPage={handleRemoveFieldFromPage}
-      />
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-sm font-medium">Champs du document ({existingFields.length})</h3>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={addDebugField}>
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un champ test
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => console.log("Champs:", existingFields)}>
+              Debug Champs
+            </Button>
+          </div>
+        </div>
+        
+        <PDFFieldsEditor 
+          fields={existingFields}
+          onChange={handleFieldsChange}
+          activePage={selectedPage}
+          onPageChange={setSelectedPage}
+          template={safeTemplate}
+          onDeleteField={handleDeleteField}
+          onAddField={handleAddField}
+          onDuplicateField={handleDuplicateField}
+          onRemoveFieldFromPage={handleRemoveFieldFromPage}
+        />
+      </div>
     );
   };
   
+  // Log avant le rendu final
+  console.log("Rendu final PDFTemplateWithFields", {
+    templateImagesCount: safeTemplate.templateImages.length,
+    fieldsCount: safeTemplate.fields.length,
+    selectedPage,
+    activeTab
+  });
+  
   return (
-    <Tabs defaultValue="images" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="images">Pages du modèle</TabsTrigger>
         <TabsTrigger value="fields">Champs du document</TabsTrigger>
