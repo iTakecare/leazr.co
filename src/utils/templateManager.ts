@@ -22,9 +22,11 @@ export interface TemplateField {
   page: number;
   style?: {
     fontSize: number;
+    fontFamily?: string;
     fontWeight: string;
     fontStyle: string;
     textDecoration: string;
+    color?: string;
   };
 }
 
@@ -258,3 +260,4 @@ export const listTemplates = async (): Promise<PDFTemplate[]> => {
     return [];
   }
 };
+
