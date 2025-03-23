@@ -203,7 +203,7 @@ export const listFiles = async (bucketName: string, path?: string): Promise<any[
 
 /**
  * Télécharge une image depuis une URL et la sauvegarde dans un bucket
- * @param imageUrl - URL de l'image à télécharger
+ * @param sourceUrl - URL de l'image à télécharger
  * @param destinationPath - Chemin de destination dans le bucket
  * @param bucketName - Nom du bucket
  * @returns URL publique de l'image téléchargée
@@ -263,10 +263,13 @@ export const downloadAndUploadImage = async (
   }
 };
 
-export default {
+// Export toutes les fonctions individuellement et aussi comme export par défaut
+const storageService = {
   ensureStorageBucket,
   uploadFile,
   deleteFile,
   listFiles,
   downloadAndUploadImage
 };
+
+export default storageService;
