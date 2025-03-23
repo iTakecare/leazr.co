@@ -440,10 +440,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
                         setDragOffsetY(offsetY);
                       }}
                       onDrag={handleDrag}
-                      onEndDrag={() => {
-                        setIsDragging(false);
-                        setDraggedFieldId(null);
-                      }}
+                      onEndDrag={handleDragEnd}
                     />
                   ))}
                 </div>

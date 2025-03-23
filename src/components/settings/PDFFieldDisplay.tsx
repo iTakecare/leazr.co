@@ -1,4 +1,3 @@
-
 import React from "react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -148,48 +147,23 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   onDrag,
   onEndDrag
 }) => {
-  // Debug pour voir les champs et leurs positions
-  console.log(`Rendering field ${field.id} for page ${field.page}`, field);
-  
   // Convertir mm en px avec le zoom appliqué (1 mm = 3.7795275591 px)
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
   
-  // Position et style du champ
+  // Position en X - conversion directe de mm à px
   const xPx = mmToPx(field.position?.x || 0);
   
-  // Correction pour la position verticale - limiter à la hauteur du document A4
-  // La hauteur d'un A4 est de 297mm
-  let yPos = field.position?.y || 0;
-  
-  // Au lieu de limiter la position Y, nous allons nous assurer qu'elle est correcte
-  // Si la position Y est anormalement grande (comme 900mm), c'est probablement une erreur
-  // On la ramène à une valeur plus raisonnable en divisant par 3 (approximativement)
-  if (yPos > 297) {
-    console.warn(`Field ${field.id} has y position ${yPos}mm which is beyond A4 height (297mm). Adjusting.`);
-    // Plutôt que de simplement limiter, essayons de mettre à l'échelle
-    // Si la position est anormalement grande, c'est peut-être qu'elle est en pixels au lieu de mm
-    yPos = yPos / 3;
-    
-    // Si c'est toujours trop grand, on limite à 290mm
-    if (yPos > 290) {
-      yPos = 290;
-    }
-  }
-  
-  const yPx = mmToPx(yPos);
-  
-  // Taille de police ajustée avec le zoom
-  const fontSize = field.style?.fontSize 
-    ? field.style.fontSize * zoomLevel
-    : 9 * zoomLevel;
+  // Position en Y - conversion directe de mm à px
+  // Pas de correction ou d'ajustement de la position Y - on utilise la valeur exacte
+  const yPx = mmToPx(field.position?.y || 0);
   
   // Style du champ
   const style = {
     position: "absolute" as const,
     left: `${xPx}px`,
     top: `${yPx}px`,
-    zIndex: 10, // Augmenter le z-index pour s'assurer que les champs sont au-dessus de l'image
-    fontSize: `${fontSize}px`,
+    zIndex: 10,
+    fontSize: `${field.style?.fontSize ? field.style.fontSize * zoomLevel : 9 * zoomLevel}px`,
     fontWeight: field.style?.fontWeight || 'normal',
     fontStyle: field.style?.fontStyle || 'normal',
     textDecoration: field.style?.textDecoration || 'none',
@@ -199,7 +173,6 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
       ? `${mmToPx(150)}px` 
       : `${mmToPx(80)}px`,
     cursor: isDraggable ? 'move' : 'default',
-    // Ajouter une bordure visible pour débogage
     border: isDraggable ? '1px dashed blue' : 'none',
     padding: '2px',
     backgroundColor: isDraggable ? 'rgba(200, 200, 255, 0.1)' : 'transparent'
