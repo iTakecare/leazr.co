@@ -11,7 +11,7 @@ interface PreviewControlsProps {
   isDraggable: boolean;
   setIsDraggable: (draggable: boolean) => void;
   hasUnsavedChanges: boolean;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   sampleData: any;
   localTemplate: any;
   setLoading: (loading: boolean) => void;
@@ -33,6 +33,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
   const handleGeneratePreview = async () => {
     try {
       setLoading(true);
+      toast.info("Génération du PDF en cours...");
       
       const offerWithTemplate = {
         ...sampleData,
@@ -61,8 +62,20 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
     setZoomLevel(newZoom);
   };
 
+  const handleSaveClick = async () => {
+    if (hasUnsavedChanges && !isSaving) {
+      try {
+        await onSave();
+        // Le toast de succès est géré dans la fonction onSave
+      } catch (error) {
+        console.error("Erreur lors de la sauvegarde:", error);
+        // Le toast d'erreur est géré dans la fonction onSave
+      }
+    }
+  };
+
   return (
-    <div className="flex flex-wrap justify-between items-center gap-2">
+    <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2">
       <h3 className="text-sm font-medium">Aperçu du modèle de PDF</h3>
       <div className="flex flex-wrap gap-2">
         <div className="flex items-center border rounded-md">
@@ -103,7 +116,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
           <Button
             variant="default"
             size="sm"
-            onClick={onSave}
+            onClick={handleSaveClick}
             disabled={isSaving}
             className="h-8"
           >
@@ -125,6 +138,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
           size="sm"
           onClick={handleGeneratePreview}
           className="h-8"
+          disabled={isSaving || (localTemplate?.fields?.length === 0)}
         >
           <FileDown className="h-4 w-4 mr-2" />
           Générer un PDF d'exemple

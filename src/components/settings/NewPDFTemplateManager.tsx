@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Loader2, AlertCircle } from "lucide-react";
+import { Save, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { ensureBucket } from "@/services/fileStorage";
@@ -18,10 +18,19 @@ const NewPDFTemplateManager = () => {
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   
+  // Initialisation du gestionnaire au montage du composant
   useEffect(() => {
     console.log("Initialisation du gestionnaire de templates");
     initializeManager();
+    
+    // Nettoyer le timeout lors du démontage
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
   }, []);
   
   const initializeManager = async () => {
@@ -40,9 +49,17 @@ const NewPDFTemplateManager = () => {
       
       if (templateData) {
         console.log("Template chargé avec succès");
-        console.log("Nombre d'images:", templateData.templateImages.length);
-        console.log("Nombre de champs:", templateData.fields.length);
-        setTemplate(templateData);
+        console.log("Nombre d'images:", templateData.templateImages ? templateData.templateImages.length : 0);
+        console.log("Nombre de champs:", templateData.fields ? templateData.fields.length : 0);
+        
+        // S'assurer que les tableaux sont correctement initialisés
+        const sanitizedTemplate = {
+          ...templateData,
+          templateImages: Array.isArray(templateData.templateImages) ? templateData.templateImages : [],
+          fields: Array.isArray(templateData.fields) ? templateData.fields : []
+        };
+        
+        setTemplate(sanitizedTemplate);
         toast.success("Modèle chargé avec succès");
       } else {
         console.error("Impossible de charger le template");
@@ -56,47 +73,77 @@ const NewPDFTemplateManager = () => {
     }
   };
   
-  const handleSaveTemplate = async (updatedTemplate: PDFTemplate) => {
+  // Fonction optimisée pour sauvegarder avec un debounce
+  const handleSaveTemplate = useCallback(async (updatedTemplate: PDFTemplate) => {
     try {
       setSaving(true);
       setError(null);
       
-      console.log("Sauvegarde du template:", updatedTemplate.name);
-      console.log("Nombre d'images:", updatedTemplate.templateImages.length);
-      console.log("Nombre de champs:", updatedTemplate.fields.length);
+      // Annuler tout timeout de sauvegarde en cours
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+        setSaveTimeout(null);
+      }
       
+      console.log("Préparation sauvegarde du template:", updatedTemplate.name);
+      console.log("Nombre d'images:", updatedTemplate.templateImages ? updatedTemplate.templateImages.length : 0);
+      console.log("Nombre de champs:", updatedTemplate.fields ? updatedTemplate.fields.length : 0);
+      
+      // S'assurer que les champs ont des coordonnées valides
+      if (Array.isArray(updatedTemplate.fields)) {
+        updatedTemplate.fields = updatedTemplate.fields.map(field => {
+          if (!field.position || typeof field.position.x !== 'number' || typeof field.position.y !== 'number') {
+            return {
+              ...field,
+              position: { x: 10, y: 10 } // Valeurs par défaut
+            };
+          }
+          
+          // Arrondir les valeurs à 1 décimale
+          return {
+            ...field,
+            position: {
+              x: Math.round(field.position.x * 10) / 10,
+              y: Math.round(field.position.y * 10) / 10
+            }
+          };
+        });
+      }
+      
+      // Sauvegarder les modifications
       const success = await saveTemplate(updatedTemplate);
       
       if (success) {
         setTemplate(updatedTemplate);
-        toast.success("Modèle sauvegardé avec succès");
+        // Toast déjà affiché dans SimplePDFPreview
       } else {
         setError("Erreur lors de la sauvegarde");
         toast.error("Erreur lors de la sauvegarde du modèle");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Exception lors de la sauvegarde:", err);
-      setError("Erreur lors de la sauvegarde");
-      toast.error("Erreur lors de la sauvegarde du modèle");
+      const errorMessage = err.message || "Erreur lors de la sauvegarde";
+      setError(errorMessage);
+      toast.error(`Erreur: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
-  };
+  }, [saveTimeout]);
   
-  const handleCompanyInfoUpdate = (companyInfo: Partial<PDFTemplate>) => {
+  const handleCompanyInfoUpdate = useCallback(async (companyInfo: Partial<PDFTemplate>) => {
     if (template) {
       const updatedTemplate = {
         ...template,
         ...companyInfo
       };
       
-      handleSaveTemplate(updatedTemplate);
+      await handleSaveTemplate(updatedTemplate);
     }
-  };
+  }, [template, handleSaveTemplate]);
   
-  const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
-    handleSaveTemplate(updatedTemplate);
-  };
+  const handleTemplateUpdate = useCallback(async (updatedTemplate: PDFTemplate) => {
+    await handleSaveTemplate(updatedTemplate);
+  }, [handleSaveTemplate]);
   
   const handleRetry = () => {
     initializeManager();
@@ -106,24 +153,35 @@ const NewPDFTemplateManager = () => {
     <Card className="w-full mt-6">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Gestionnaire de modèles PDF</CardTitle>
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={() => template && handleSaveTemplate(template)}
-          disabled={saving || loading || !template}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sauvegarde...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Sauvegarder
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRetry}
+            disabled={loading}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Rafraîchir
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => template && handleSaveTemplate(template)}
+            disabled={saving || loading || !template}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sauvegarde...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Sauvegarder
+              </>
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {error && (
