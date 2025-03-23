@@ -6,7 +6,6 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Upload, Image as ImageIcon, ArrowRight, ArrowLeft, Save } from "lucide-react";
-import { toast } from "sonner";
 
 // Composant de téléchargement de modèles PDF avec support readOnly
 const PDFTemplateUploader = ({ 
@@ -45,7 +44,6 @@ const PDFTemplateUploader = ({
   // Télécharger l'image
   const handleUpload = async () => {
     if (!file) {
-      toast.error("Veuillez sélectionner un fichier à télécharger");
       return;
     }
 
@@ -66,7 +64,6 @@ const PDFTemplateUploader = ({
         
       if (error) {
         console.error("Error uploading file:", error);
-        toast.error(`Erreur lors du téléchargement: ${error.message}`);
         setUploading(false);
         return;
       }
@@ -77,7 +74,6 @@ const PDFTemplateUploader = ({
         .getPublicUrl(filePath);
         
       if (!urlData || !urlData.publicUrl) {
-        toast.error("Impossible d'obtenir l'URL publique de l'image");
         setUploading(false);
         return;
       }
@@ -123,11 +119,8 @@ const PDFTemplateUploader = ({
       if (onPageSelect) {
         onPageSelect(newPageNumber - 1);
       }
-      
-      toast.success("Image ajoutée - N'oubliez pas de sauvegarder");
     } catch (error) {
       console.error("Error in upload process:", error);
-      toast.error(`Erreur: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -179,11 +172,8 @@ const PDFTemplateUploader = ({
       if (onPageSelect) {
         onPageSelect(Math.max(0, newSelectedPage));
       }
-      
-      toast.success("Image supprimée - N'oubliez pas de sauvegarder");
     } catch (error) {
       console.error("Error deleting image:", error);
-      toast.error(`Erreur: ${error.message}`);
     }
   };
 
@@ -192,7 +182,6 @@ const PDFTemplateUploader = ({
     if (onChange) {
       onChange(images);
       setHasUnsavedChanges(false);
-      toast.success("Modifications enregistrées avec succès");
     }
   }, [images, onChange]);
 
@@ -308,8 +297,7 @@ const PDFTemplateUploader = ({
               </div>
 
               {hasUnsavedChanges && (
-                <div className="mt-4 bg-amber-50 border border-amber-200 rounded-md p-3">
-                  <p className="text-sm text-amber-700 mb-2">Vous avez des modifications non sauvegardées</p>
+                <div className="mt-4">
                   <Button
                     onClick={handleSaveChanges}
                     className="w-full bg-blue-600 hover:bg-blue-700"
