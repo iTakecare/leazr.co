@@ -144,9 +144,20 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
 
   // Obtenir les champs pour la page actuelle
   const getCurrentPageFields = () => {
-    return localTemplate?.fields?.filter((f: any) => 
-      f.isVisible && (f.page === currentPage || (currentPage === 0 && f.page === undefined))
-    ) || [];
+    // Debug: Afficher les informations sur les champs pour voir pourquoi ils ne s'affichent pas
+    console.log("Template fields:", localTemplate?.fields);
+    console.log("Current page:", currentPage);
+    
+    // Filtrer les champs pour la page actuelle ou sans page spécifiée (pour la page 0)
+    const fields = localTemplate?.fields?.filter((f: any) => {
+      const isForCurrentPage = f.page === currentPage || (currentPage === 0 && f.page === undefined);
+      const isVisible = f.isVisible !== false; // Si isVisible n'est pas défini, on considère le champ comme visible
+      console.log(`Field ${f.id}: page=${f.page}, isVisible=${f.isVisible}, willShow=${isForCurrentPage && isVisible}`);
+      return isForCurrentPage && isVisible;
+    }) || [];
+    
+    console.log("Fields for current page:", fields);
+    return fields;
   };
 
   // Vérifier si des images de template sont disponibles
@@ -195,7 +206,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
 
     // Mettre à jour le champ dans le template local SANS sauvegarder
     const updatedFields = localTemplate.fields.map((field: any) => {
-      if (field.id === draggedFieldId && field.page === currentPage) {
+      if (field.id === draggedFieldId && (field.page === currentPage || (currentPage === 0 && field.page === undefined))) {
         return {
           ...field,
           position: {

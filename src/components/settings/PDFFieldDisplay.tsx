@@ -15,6 +15,8 @@ type PDFFieldDisplayProps = {
       textDecoration?: string;
       color?: string;
     };
+    page?: number; // Ajout du numéro de page facultatif
+    isVisible?: boolean; // Indique si le champ est visible
   };
   zoomLevel: number;
   currentPage: number;
@@ -137,6 +139,9 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   onDrag,
   onEndDrag
 }) => {
+  // Debug pour voir les champs et leurs positions
+  console.log(`Rendering field ${field.id} for page ${field.page}`, field);
+  
   // Convertir mm en px avec le zoom appliqué
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
   
@@ -164,7 +169,11 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     maxWidth: field.id === 'equipment_table' 
       ? `${mmToPx(150)}px` 
       : `${mmToPx(80)}px`,
-    cursor: isDraggable ? 'move' : 'default'
+    cursor: isDraggable ? 'move' : 'default',
+    // Ajouter une bordure visible pour débogage
+    border: isDraggable ? '1px dashed blue' : 'none',
+    padding: '2px',
+    backgroundColor: isDraggable ? 'rgba(200, 200, 255, 0.1)' : 'transparent'
   };
   
   // Gestionnaires d'événements pour le drag and drop
@@ -178,6 +187,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
     
+    console.log(`Starting drag for field ${field.id} with offset ${offsetX}, ${offsetY}`);
     onStartDrag(field.id, offsetX, offsetY);
     
     // Ajouter les événements de suivi du mouvement de la souris au document
@@ -191,6 +201,8 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   };
   
   const handleMouseUp = () => {
+    if (!isDraggable) return;
+    console.log(`Ending drag for field ${field.id}`);
     onEndDrag();
     
     // Nettoyer les événements
@@ -198,18 +210,23 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     document.removeEventListener('mouseup', handleMouseUp);
   };
   
-  // Rendu du contenu du champ
+  // Rendu du contenu du champ avec gestion des cas particuliers
+  const renderContent = () => {
+    if (field.id === 'equipment_table') {
+      return renderEquipmentTable(sampleData, zoomLevel);
+    }
+    
+    const resolvedValue = resolveFieldValue(field.value, sampleData, currentPage);
+    return <span>{resolvedValue}</span>;
+  };
+  
   return (
     <div 
       style={style}
       className={`pdf-field ${isDraggable ? 'hover:bg-blue-100 hover:opacity-80' : ''}`}
       onMouseDown={handleDragStart}
     >
-      {field.id === 'equipment_table' ? (
-        renderEquipmentTable(sampleData, zoomLevel)
-      ) : (
-        <span>{resolveFieldValue(field.value, sampleData, currentPage)}</span>
-      )}
+      {renderContent()}
     </div>
   );
 };
