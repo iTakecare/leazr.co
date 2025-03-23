@@ -20,11 +20,49 @@ const PDFModelManager = () => {
   const [model, setModel] = useState<PDFModel | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
+  const [initComplete, setInitComplete] = useState(false);
   
-  // Chargement du modèle au montage du composant
+  // Initialisation au montage du composant
   useEffect(() => {
-    loadModelData();
+    initializeStorage();
   }, []);
+  
+  // Fonction d'initialisation du stockage et de la table
+  const initializeStorage = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log("Initialisation du stockage et de la structure de données...");
+      
+      // Première étape: vérifier si le bucket de stockage existe
+      const bucketCreated = await ensureStorageBucket('pdf-templates');
+      
+      if (bucketCreated) {
+        console.log("Bucket de stockage vérifié avec succès");
+        
+        // Deuxième étape: s'assurer que la table existe avant toute opération
+        const tableCreated = await ensurePDFModelTableExists();
+        
+        if (tableCreated) {
+          console.log("Table pdf_models vérifiée/créée avec succès");
+          setInitComplete(true);
+          
+          // Charger le modèle une fois l'initialisation terminée
+          await loadModelData();
+        } else {
+          throw new Error("Échec de la création/vérification de la table pdf_models");
+        }
+      } else {
+        throw new Error("Échec de la création/vérification du bucket de stockage");
+      }
+    } catch (err: any) {
+      console.error("Erreur lors de l'initialisation:", err);
+      setError(err.message || "Erreur lors de l'initialisation");
+      toast.error("Erreur d'initialisation du gestionnaire de modèles PDF");
+      setLoading(false);
+    }
+  };
 
   // Fonction pour charger le modèle
   const loadModelData = async () => {
@@ -32,15 +70,7 @@ const PDFModelManager = () => {
     setError(null);
     
     try {
-      console.log("Tentative de création/vérification de la table et du stockage...");
-      
-      // Première étape: vérifier si le bucket de stockage existe
-      await ensureStorageBucket('pdf-templates');
-      
-      // Deuxième étape: s'assurer que la table existe avant toute opération
-      await ensurePDFModelTableExists();
-      
-      console.log("Table et stockage vérifiés, tentative de chargement du modèle PDF...");
+      console.log("Tentative de chargement du modèle PDF...");
       
       // Charger le modèle
       const modelData = await loadPDFModel('default');
@@ -104,7 +134,11 @@ const PDFModelManager = () => {
 
   // Fonction pour réessayer le chargement en cas d'erreur
   const handleRetry = () => {
-    loadModelData();
+    if (!initComplete) {
+      initializeStorage();
+    } else {
+      loadModelData();
+    }
   };
 
   return (
@@ -153,7 +187,7 @@ const PDFModelManager = () => {
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-sm text-muted-foreground">
-              Chargement du modèle...
+              {!initComplete ? "Initialisation..." : "Chargement du modèle..."}
             </p>
           </div>
         ) : (

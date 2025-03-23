@@ -1384,6 +1384,12 @@ export type Database = {
           clients_count: number
         }[]
       }
+      check_bucket_exists: {
+        Args: {
+          bucket_name: string
+        }
+        Returns: boolean
+      }
       check_table_exists: {
         Args: {
           table_name: string
@@ -1406,6 +1412,21 @@ export type Database = {
           ambassador_id: string
         }
         Returns: string
+      }
+      create_storage_bucket: {
+        Args: {
+          bucket_name: string
+        }
+        Returns: undefined
+      }
+      create_storage_policy: {
+        Args: {
+          bucket_name: string
+          policy_name: string
+          definition: string
+          policy_type: string
+        }
+        Returns: undefined
       }
       delete_brand: {
         Args: {

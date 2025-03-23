@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { ensureStorageBucket } from "@/services/storageService";
 
@@ -44,25 +43,9 @@ export const ensurePDFModelTableExists = async (): Promise<boolean> => {
   const supabase = getSupabaseClient();
   
   try {
-    console.log("Vérification et création de la table pdf_models et du stockage si nécessaire...");
+    console.log("Vérification de l'existence de la table pdf_models...");
     
-    // 1. Créer le bucket de stockage pour les templates PDF
-    try {
-      console.log("Création/vérification du bucket de stockage pdf-templates...");
-      const bucketCreated = await ensureStorageBucket('pdf-templates');
-      
-      if (!bucketCreated) {
-        console.error("Erreur lors de la création/vérification du bucket pdf-templates");
-        // On continue quand même pour la table
-      } else {
-        console.log("Bucket pdf-templates vérifié avec succès");
-      }
-    } catch (bucketError) {
-      console.error("Erreur lors de la création/vérification du bucket:", bucketError);
-      // On continue pour la table
-    }
-    
-    // 2. Vérifier si la table existe déjà via la fonction RPC
+    // 1. Vérifier si la table existe déjà via la fonction RPC
     const { data: tableExists, error: checkError } = await supabase.rpc(
       'check_table_exists',
       { table_name: 'pdf_models' }
