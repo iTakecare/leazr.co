@@ -221,29 +221,39 @@ export const generateAndDownloadOfferPdf = async (offerId: string) => {
  */
 export const generateSamplePdf = async (sampleData: any, template: any) => {
   try {
-    console.log("Génération d'un PDF d'exemple");
+    console.log("=== DÉBUT GÉNÉRATION PDF D'EXEMPLE ===");
+    console.log("Vérification des données et du template...");
     
     if (!sampleData) {
-      console.error("Aucune donnée d'exemple fournie");
+      console.error("ERREUR: Aucune donnée d'exemple fournie");
       throw new Error("Données d'exemple manquantes");
     }
+    
+    if (!template) {
+      console.error("ERREUR: Aucun modèle fourni");
+      throw new Error("Modèle PDF manquant");
+    }
+    
+    console.log("Template utilisé:", template.name || "Sans nom");
+    console.log("Nombre d'images:", template.templateImages?.length || 0);
+    console.log("Nombre de champs:", template.fields?.length || 0);
     
     // Créer des données d'exemple enrichies avec des valeurs par défaut
     const completeSampleData = {
       id: sampleData.id || `preview-${Date.now()}`,
-      client_name: sampleData.client_name || "Dupont",
+      offer_id: sampleData.offer_id || `OFR-${Math.floor(Math.random() * 9000) + 1000}`,
+      client_name: sampleData.client_name || "Client Exemple S.A.",
       client_first_name: sampleData.client_first_name || "Jean",
       client_last_name: sampleData.client_last_name || "Dupont",
       client_email: sampleData.client_email || "jean.dupont@exemple.com", 
       client_phone: sampleData.client_phone || "0123456789",
-      client_company: sampleData.client_company || "Entreprise Exemple",
+      client_company: sampleData.client_company || "Société Exemple S.A.",
       client_address: sampleData.client_address || "15 Rue de l'Exemple",
       client_postal_code: sampleData.client_postal_code || "75000",
       client_city: sampleData.client_city || "Paris",
       amount: sampleData.amount || 10000,
       monthly_payment: sampleData.monthly_payment || 300,
       created_at: sampleData.created_at || new Date().toISOString(),
-      offer_id: sampleData.offer_id || `OFR-2023-001`,
       equipment_description: sampleData.equipment_description || JSON.stringify([
         {
           title: "MacBook Pro 16\" M2",
@@ -258,24 +268,27 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
           margin: 15
         }
       ]),
+      clients: sampleData.clients || {
+        company: sampleData.client_company || "Société Exemple S.A.",
+        name: (sampleData.client_first_name || "Jean") + " " + (sampleData.client_last_name || "Dupont"),
+        email: sampleData.client_email || "jean.dupont@exemple.com",
+        address: sampleData.client_address || "15 Rue de l'Exemple",
+        postal_code: sampleData.client_postal_code || "75000",
+        city: sampleData.client_city || "Paris",
+        phone: sampleData.client_phone || "0123456789"
+      },
       ...sampleData // Conserver toutes les autres propriétés
     };
     
     // Afficher les données complètes pour déboguer
     console.log("Données d'exemple préparées:", {
       id: completeSampleData.id,
+      offer_id: completeSampleData.offer_id,
       client_name: completeSampleData.client_name,
+      client_company: completeSampleData.client_company,
       client_first_name: completeSampleData.client_first_name,
-      client_email: completeSampleData.client_email,
-      company: completeSampleData.client_company,
-      offer_id: completeSampleData.offer_id
+      client_email: completeSampleData.client_email
     });
-    
-    // Vérifier que le template est correctement défini
-    if (!template) {
-      console.error("Aucun modèle fourni pour la génération du PDF");
-      throw new Error("Modèle PDF manquant");
-    }
     
     // S'assurer que les tableaux sont correctement initialisés
     const completeTemplate = {
@@ -286,36 +299,54 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
     
     // Vérifier les positions des champs
     if (completeTemplate.fields.length > 0) {
-      // Afficher les champs pour déboguer
-      console.log("Champs disponibles pour le PDF :", completeTemplate.fields.length);
+      console.log("=== VÉRIFICATION DES CHAMPS AVANT GÉNÉRATION PDF ===");
+      console.log(`Total de ${completeTemplate.fields.length} champs disponibles`);
       
       const fieldsWithPositions = completeTemplate.fields.filter(f => 
         f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
       );
       
-      console.log("Nombre de champs avec positions valides:", fieldsWithPositions.length);
+      console.log(`${fieldsWithPositions.length} champs ont des positions valides`);
       
-      for (const field of fieldsWithPositions) {
-        // Résoudre la valeur du champ pour le déboguer
-        let fieldValue = field.value;
-        if (typeof fieldValue === 'string' && fieldValue.includes('{')) {
-          // Simple variable pattern replacement for debugging
-          fieldValue = fieldValue.replace(/\{([^}]+)\}/g, (match, key) => {
-            console.log(`Résolution de ${key} pour le pattern ${field.value}`);
-            
-            const value = completeSampleData[key];
-            console.log(`Accès à ${key}: ${JSON.stringify(value)}`);
-            
-            if (value === undefined || value === null) {
-              return "[Non disponible]";
-            }
-            return String(value);
-          });
+      // Vérifier les valeurs des champs pour le débogage
+      fieldsWithPositions.forEach(field => {
+        try {
+          console.log(`Champ "${field.label}" (${field.id}):`);
+          console.log(` - Position: (${field.position.x}, ${field.position.y})`);
+          console.log(` - Valeur brute: "${field.value}"`);
+          
+          // Résoudre les variables dans les valeurs
+          if (typeof field.value === 'string' && field.value.includes('{')) {
+            const resolvedValue = field.value.replace(/\{([^}]+)\}/g, (match, key) => {
+              const value = completeSampleData[key];
+              console.log(`   - Résolution de {${key}} => ${value !== undefined ? value : 'NON TROUVÉ'}`);
+              return value !== undefined ? String(value) : `[${key} non trouvé]`;
+            });
+            console.log(` - Valeur résolue: "${resolvedValue}"`);
+          }
+        } catch (e) {
+          console.error(` - ERREUR lors de l'analyse du champ:`, e);
         }
+      });
+    } else {
+      console.warn("ATTENTION: Aucun champ défini dans le template");
+    }
+    
+    // Vérifier les images du template
+    if (completeTemplate.templateImages.length > 0) {
+      console.log("=== VÉRIFICATION DES IMAGES DU TEMPLATE ===");
+      completeTemplate.templateImages.forEach((img, idx) => {
+        console.log(`Image ${idx+1}:`);
+        console.log(` - Page: ${img.page}`);
+        console.log(` - Données base64: ${img.data ? 'présentes' : 'absentes'}`);
+        console.log(` - URL: ${img.url ? img.url : 'absente'}`);
         
-        console.log(`Résolution du champ: ${field.label} ${field.value}`);
-        console.log(`Valeur résolue: "${fieldValue}"`);
-      }
+        if (!img.data && !img.url) {
+          console.error(` - ERREUR: Cette image n'a ni données base64 ni URL`);
+        }
+      });
+    } else {
+      console.warn("ATTENTION: Aucune image définie dans le template");
     }
     
     // Fusionner les données et le template
@@ -324,23 +355,17 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
       __template: completeTemplate
     };
     
-    // Vérifier les images du template
-    console.log("Images du template:");
-    if (completeTemplate.templateImages.length > 0) {
-      completeTemplate.templateImages.forEach((img, idx) => {
-        console.log(`Image ${idx+1}: page ${img.page}, data: ${img.data ? 'présente' : 'absente'}, url: ${img.url ? 'présente' : 'absente'}`);
-      });
-    } else {
-      console.warn("Aucune image de template n'a été définie");
-    }
+    console.log("=== LANCEMENT DE LA GÉNÉRATION PDF ===");
+    console.log("Appel de generateOfferPdf...");
     
     // Générer le PDF avec les données complètes
     const filename = await generateOfferPdf(dataWithTemplate);
     
-    console.log("PDF d'exemple généré:", filename);
+    console.log("=== PDF GÉNÉRÉ AVEC SUCCÈS ===");
+    console.log("Nom du fichier:", filename);
     return filename;
   } catch (error) {
-    console.error("Erreur lors de la génération du PDF d'exemple:", error);
+    console.error("=== ERREUR LORS DE LA GÉNÉRATION DU PDF ===", error);
     throw error;
   }
 };

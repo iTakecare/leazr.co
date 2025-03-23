@@ -50,20 +50,27 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
         return;
       }
       
-      // Vérifier que les champs sont correctement définis
+      // Log template structure for debugging
+      console.log("Structure du modèle pour génération PDF:", {
+        nom: localTemplate.name,
+        images: localTemplate.templateImages?.length || 0,
+        champs: localTemplate.fields?.length || 0
+      });
+      
+      // Check fields and their positions
       if (!Array.isArray(localTemplate.fields) || localTemplate.fields.length === 0) {
         toast.info("Le modèle n'a pas de champs définis. Le PDF généré sera basique.");
       } else {
         console.log("Champs disponibles pour le PDF:", localTemplate.fields.length);
         
-        // Vérifier les positions des champs
+        // Check field positions
         const fieldsWithPositions = localTemplate.fields.filter(f => 
           f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
         );
         
         console.log("Champs avec positions valides:", fieldsWithPositions.length);
         
-        // Afficher les détails de chaque champ pour le débogage
+        // Show details of each field for debugging
         for (const field of fieldsWithPositions) {
           console.log(`Champ ${field.id}: "${field.value}" à (${field.position.x}, ${field.position.y})`);
         }
@@ -73,17 +80,21 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
         }
       }
       
-      // Log key data for debugging
-      console.log("Génération PDF avec:");
-      console.log("- Template:", localTemplate.name);
-      console.log("- Nombre d'images:", localTemplate.templateImages?.length || 0);
-      console.log("- Nombre de champs:", localTemplate.fields?.length || 0);
-      
-      // Afficher les données utilisées pour le test
+      // Select data to use (real or sample)
       const dataToUse = useRealData && realData ? realData : sampleData;
       console.log("Données utilisées pour la génération:", dataToUse);
       
-      // Utiliser la nouvelle fonction pour générer le PDF d'exemple
+      // Log template images
+      if (localTemplate.templateImages && localTemplate.templateImages.length > 0) {
+        console.log("Images du template pour le PDF:");
+        localTemplate.templateImages.forEach((img, idx) => {
+          console.log(`Image ${idx+1}: page ${img.page}, data présente: ${Boolean(img.data)}, url présente: ${Boolean(img.url)}`);
+        });
+      } else {
+        console.warn("ATTENTION: Aucune image de template n'est définie pour le PDF");
+      }
+      
+      // Generate the PDF using the sample generator
       const pdfFilename = await generateSamplePdf(dataToUse, localTemplate);
       
       toast.success(`PDF généré avec succès : ${pdfFilename}`);
