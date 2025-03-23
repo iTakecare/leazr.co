@@ -44,14 +44,15 @@ const PDFCompanyInfo = ({ template, onSave, loading }) => {
 
   // Submit handler
   const handleSubmit = form.handleSubmit((data) => {
-    if (onSave) {
-      onSave(data);
-    }
+    // Nous ne sauvegardons plus automatiquement (commenté)
+    // if (onSave) {
+    //   onSave(data);
+    // }
+    // Le formulaire est soumis mais aucune action n'est effectuée
+    console.log("Form submitted but auto-save is disabled:", data);
   });
 
   const handleLogoUpload = async (e) => {
-    // Cette fonction serait implémentée pour gérer l'upload d'image
-    // Pour le moment, nous utiliserons simplement l'URL de l'image
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -182,7 +183,7 @@ const PDFCompanyInfo = ({ template, onSave, loading }) => {
       
       <div className="flex justify-end">
         <Button type="submit" disabled={loading}>
-          {loading ? 'Sauvegarde en cours...' : 'Sauvegarder les informations'}
+          {loading ? 'Sauvegarde en cours...' : 'Appliquer les modifications'}
         </Button>
       </div>
     </form>

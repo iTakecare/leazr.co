@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -416,15 +415,8 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       templateImages: newImages
     });
     
-    // Auto-save the template
-    if (onSave) {
-      onSave({
-        ...currentTemplate,
-        templateImages: newImages
-      });
-    }
-    
-    toast.success("Images du modèle enregistrées");
+    // Auto-save supprimée
+    toast.success("Images du modèle mises à jour");
   };
   
   // Update fields when they change
@@ -434,13 +426,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       fields: newFields
     });
     
-    // Auto-save the template
-    if (onSave) {
-      onSave({
-        ...currentTemplate,
-        fields: newFields
-      });
-    }
+    // Auto-save supprimée
   };
 
   // Add a new field to the template

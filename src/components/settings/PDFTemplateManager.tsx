@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -119,6 +120,7 @@ const PDFTemplateManager = () => {
     }
   };
   
+  // Cette fonction n'est plus utilisée automatiquement mais via le bouton de sauvegarde
   const handleCompanyInfoUpdate = (companyInfo) => {
     if (template) {
       const updatedTemplate = {
@@ -140,13 +142,32 @@ const PDFTemplateManager = () => {
     }
   };
   
+  // Cette fonction n'est plus utilisée automatiquement mais via le bouton de sauvegarde
   const handleTemplateUpdate = (updatedTemplate) => {
     saveTemplate(updatedTemplate);
   };
 
   const handleManualSave = () => {
     if (template) {
-      saveTemplate(template);
+      // Nous récupérons toutes les modifications du template depuis les composants enfants
+      // et nous les appliquons à l'état actuel du template
+      
+      // Pour PDFCompanyInfo, nous utilisons les valeurs du formulaire
+      const companyInfoFields = document.querySelectorAll('input[name]');
+      const companyInfo = {};
+      companyInfoFields.forEach(field => {
+        if (field.name && field.name !== '') {
+          companyInfo[field.name] = field.value;
+        }
+      });
+      
+      // Pour PDFTemplateWithFields, nous utilisons l'état actuel de currentTemplate
+      const updatedTemplate = {
+        ...template,
+        ...companyInfo
+      };
+      
+      saveTemplate(updatedTemplate);
     } else {
       toast.error("Aucun modèle à sauvegarder");
     }
