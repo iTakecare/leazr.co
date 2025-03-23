@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+
+import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import FieldEditor from "./PDFFieldEditor";
 import ColorPicker from "../ui/ColorPicker";
 import { uploadImage } from "@/services/storageService";
+import PDFFieldPositioner from "./PDFFieldPositioner";
 
 interface PDFTemplateEditorProps {
   template: any;
@@ -29,6 +31,7 @@ interface TemplateImage {
 const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const [currentTemplate, setCurrentTemplate] = useState(template);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedField, setSelectedField] = useState<any>(null);
@@ -87,7 +90,10 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
       toast.error("Erreur lors du téléchargement de l'image");
     }
     
-    event.target.value = '';
+    // Reset the file input value to allow uploading the same file again
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   const addField = () => {
@@ -131,6 +137,31 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
     setSelectedField(newField);
   };
 
+  const duplicateField = useCallback(() => {
+    if (!selectedField) return;
+    
+    const newField = {
+      ...selectedField,
+      id: `field-${Date.now()}`,
+      x: selectedField.x + 20,
+      y: selectedField.y + 20
+    };
+    
+    const updatedTemplateImages = [...currentTemplate.templateImages];
+    const currentPageData = { ...updatedTemplateImages[currentPage] };
+    
+    currentPageData.fields[newField.id] = newField;
+    updatedTemplateImages[currentPage] = currentPageData;
+    
+    setCurrentTemplate({
+      ...currentTemplate,
+      templateImages: updatedTemplateImages
+    });
+    
+    setSelectedField(newField);
+    toast.success("Champ dupliqué");
+  }, [selectedField, currentTemplate, currentPage]);
+
   const updateField = (fieldId: string, updatedField: any) => {
     const updatedTemplateImages = [...currentTemplate.templateImages];
     const currentPageData = { ...updatedTemplateImages[currentPage] };
@@ -166,6 +197,7 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
     });
     
     setSelectedField(null);
+    toast.success("Champ supprimé");
   };
 
   const deletePage = () => {
@@ -184,6 +216,13 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
       });
       
       setCurrentPage(Math.max(0, currentPage - 1));
+    }
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only handle clicks on the canvas itself, not on fields
+    if ((e.target as HTMLElement).id === 'pdf-canvas') {
+      setSelectedField(null);
     }
   };
 
@@ -402,43 +441,38 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
       
       <div className="flex-1 relative overflow-auto p-8 bg-gray-100">
         {currentTemplate.templateImages?.length > 0 ? (
-          <div className="relative mx-auto" style={{ 
-            width: '595px', // A4 width at 72dpi
-            minHeight: '842px', // A4 height at 72dpi
-            backgroundColor: 'white',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            backgroundImage: `url(${currentTemplate.templateImages[currentPage]?.imageUrl})`,
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-          }}>
-            {currentTemplate.templateImages[currentPage]?.fields && Object.values(currentTemplate.templateImages[currentPage].fields).map((field: any) => (
-              <div
-                key={field.id}
-                style={{
-                  position: 'absolute',
-                  left: `${field.x}px`,
-                  top: `${field.y}px`,
-                  width: `${field.width}px`,
-                  height: `${field.height}px`,
-                  border: selectedField?.id === field.id ? '2px solid #3B82F6' : '1px dashed #d1d5db',
-                  padding: '4px',
-                  cursor: 'move',
-                  background: selectedField?.id === field.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                  fontSize: `${field.fontSize}px`,
-                  fontFamily: field.fontFamily || 'Arial',
-                  color: field.color || '#000000',
-                  fontWeight: field.bold ? 'bold' : 'normal',
-                  fontStyle: field.italic ? 'italic' : 'normal',
-                  textAlign: field.alignment || 'left',
-                  overflow: 'hidden',
-                  userSelect: 'none'
-                }}
-                onClick={() => setSelectedField(field)}
-              >
-                {field.value}
-              </div>
-            ))}
+          <div 
+            ref={canvasRef}
+            id="pdf-canvas"
+            className="relative mx-auto" 
+            style={{ 
+              width: '595px', // A4 width at 72dpi
+              minHeight: '842px', // A4 height at 72dpi
+              backgroundColor: 'white',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              backgroundImage: `url(${currentTemplate.templateImages[currentPage]?.imageUrl})`,
+              backgroundSize: 'contain',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat'
+            }}
+            onClick={handleCanvasClick}
+          >
+            {currentTemplate.templateImages[currentPage]?.fields && 
+              Object.values(currentTemplate.templateImages[currentPage].fields).map((field: any) => (
+                <PDFFieldPositioner
+                  key={field.id}
+                  field={field}
+                  page={currentTemplate.templateImages[currentPage]}
+                  onUpdate={(updatedField) => updateField(field.id, updatedField)}
+                  onDelete={() => deleteField(field.id)}
+                  onDuplicate={selectedField?.id === field.id ? duplicateField : () => {
+                    setSelectedField(field);
+                    duplicateField();
+                  }}
+                  isSelected={selectedField?.id === field.id}
+                />
+              ))
+            }
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full">
