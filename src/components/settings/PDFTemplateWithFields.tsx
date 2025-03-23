@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -555,6 +556,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
           onClick={handleSaveTemplate} 
           disabled={saving || !hasChanges}
           className="ml-auto"
+          variant="primary"
         >
           {saving ? (
             <>

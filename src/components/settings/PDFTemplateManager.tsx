@@ -97,7 +97,37 @@ const PDFTemplateManager = () => {
     loadTemplate();
   }, []);
   
-  // Sauvegarder le modèle (maintenant appelé uniquement via le bouton Sauvegarder)
+  // Mise à jour du template dans PDFTemplateManager
+  const handleTemplateUpdate = (updatedTemplate) => {
+    // Stockage temporaire des changements
+    setPendingChanges(updatedTemplate);
+    setUnsavedChanges(true);
+  };
+  
+  // Gestion des informations de l'entreprise
+  const handleCompanyInfoUpdate = (companyInfo) => {
+    let updatedTemplate;
+    
+    if (template) {
+      updatedTemplate = {
+        ...template,
+        ...companyInfo
+      };
+    } else {
+      updatedTemplate = {
+        id: 'default',
+        name: 'Modèle par défaut',
+        templateImages: [],
+        fields: [],
+        ...companyInfo
+      };
+    }
+    
+    setPendingChanges(updatedTemplate);
+    setUnsavedChanges(true);
+  };
+  
+  // Sauvegarde globale (maintenant utilisée uniquement depuis le bouton principal de PDFTemplateManager)
   const saveTemplate = async () => {
     if (!pendingChanges) {
       toast.info("Aucune modification à sauvegarder");
@@ -132,38 +162,6 @@ const PDFTemplateManager = () => {
     } finally {
       setSaving(false);
     }
-  };
-  
-  // Mettre à jour les informations de l'entreprise (stocke les changements sans sauvegarder)
-  const handleCompanyInfoUpdate = (companyInfo) => {
-    let updatedTemplate;
-    
-    if (template) {
-      updatedTemplate = {
-        ...template,
-        ...companyInfo
-      };
-    } else {
-      // Créer un nouveau modèle avec les informations de l'entreprise
-      updatedTemplate = {
-        id: 'default',
-        name: 'Modèle par défaut',
-        templateImages: [],
-        fields: [],
-        ...companyInfo
-      };
-    }
-    
-    setPendingChanges(updatedTemplate);
-    setUnsavedChanges(true);
-    toast.info("Modifications en attente de sauvegarde");
-  };
-  
-  // Mettre à jour les pages et champs du modèle (stocke les changements sans sauvegarder)
-  const handleTemplateUpdate = (updatedTemplate) => {
-    setPendingChanges(updatedTemplate);
-    setUnsavedChanges(true);
-    toast.info("Modifications en attente de sauvegarde");
   };
   
   return (
