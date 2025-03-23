@@ -12,6 +12,9 @@ interface SimplePDFPreviewProps {
   onSave: (updatedTemplate: any) => void;
 }
 
+// Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px à 96 DPI)
+const MM_TO_PX = 3.7795275591;
+
 const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -25,9 +28,6 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [localTemplate, setLocalTemplate] = useState(template);
   const previewRef = useRef<HTMLDivElement>(null);
-
-  // Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px à 96 DPI)
-  const MM_TO_PX = 3.7795275591;
 
   useEffect(() => {
     setLocalTemplate(template);

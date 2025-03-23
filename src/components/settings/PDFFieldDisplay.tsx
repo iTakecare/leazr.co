@@ -27,6 +27,9 @@ type PDFFieldDisplayProps = {
   onEndDrag: () => void;
 };
 
+// Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px à 96 DPI)
+const MM_TO_PX = 3.7795275591;
+
 // Fonction pour résoudre les valeurs des champs avec les données d'exemple
 const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number): string => {
   if (!pattern || typeof pattern !== 'string') return '';
@@ -148,9 +151,6 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   onDrag,
   onEndDrag
 }) => {
-  // Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px à 96 DPI)
-  const MM_TO_PX = 3.7795275591;
-  
   // Calcul précis des positions en pixels à partir des positions en mm
   const xPx = field.position.x * MM_TO_PX * zoomLevel;
   const yPx = field.position.y * MM_TO_PX * zoomLevel;
