@@ -237,15 +237,15 @@ export const downloadAndUploadImage = async (
     const imageBlob = await response.blob();
     
     // Uploadez l'image vers Supabase Storage
-    const imageUrl = await uploadFile(
+    const uploadedUrl = await uploadFile(
       bucketName,
       destinationPath,
       imageBlob,
       { contentType, isPublic: true }
     );
     
-    console.log(`Image téléchargée et sauvegardée avec succès: ${imageUrl}`);
-    return imageUrl;
+    console.log(`Image téléchargée et sauvegardée avec succès: ${uploadedUrl}`);
+    return uploadedUrl;
   } catch (error) {
     console.error("Erreur lors du téléchargement et de l'upload de l'image:", error);
     return null;
