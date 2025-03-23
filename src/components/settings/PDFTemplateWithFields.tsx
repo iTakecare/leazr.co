@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PDFTemplate } from "./PDFTemplateManager";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,9 +47,22 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   const [localTemplate, setLocalTemplate] = useState<PDFTemplate>(template);
   const [isUploading, setIsUploading] = useState(false);
   
+  // Effect pour initialiser correctement le state local avec les données du template
+  useEffect(() => {
+    setLocalTemplate(template);
+    console.log("Template reçu:", template);
+    console.log("Images du template:", template.templateImages);
+    console.log("Champs du template:", template.fields);
+  }, [template]);
+  
   // Convertir les images du template en format local si nécessaire
   const convertTemplateimagesToLocalFormat = (images: any[]): TemplateImage[] => {
-    if (!images || !Array.isArray(images)) return [];
+    if (!images || !Array.isArray(images)) {
+      console.log("Aucune image trouvée ou format invalide");
+      return [];
+    }
+    
+    console.log("Conversion des images:", images);
     
     return images.map((img, idx) => {
       // Si l'image est déjà au bon format, la retourner telle quelle
@@ -67,9 +80,14 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   
   // Obtenir les images au format local
   const getLocalImages = (): TemplateImage[] => {
-    if (!localTemplate.templateImages) return [];
+    if (!localTemplate.templateImages) {
+      console.log("Aucune image dans le template");
+      return [];
+    }
     
-    return convertTemplateimagesToLocalFormat(localTemplate.templateImages);
+    const images = convertTemplateimagesToLocalFormat(localTemplate.templateImages);
+    console.log("Images locales obtenues:", images);
+    return images;
   };
   
   // Gestionnaire pour les images
@@ -114,7 +132,12 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   
   // Fonction pour ajouter un champ
   const handleAddField = (field: PDFField) => {
-    const updatedFields = [...(localTemplate.fields || []), field];
+    const newField = {
+      ...field,
+      id: uuidv4()
+    };
+    
+    const updatedFields = [...(localTemplate.fields || []), newField];
     
     const updatedTemplate = {
       ...localTemplate,
@@ -417,9 +440,12 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   
   // Rendu du composant d'édition des champs
   const renderFieldsEditor = () => {
+    const fields = localTemplate.fields || [];
+    const images = getLocalImages();
+    
     return (
       <PDFFieldsEditor 
-        fields={localTemplate.fields || []}
+        fields={fields}
         onChange={handleFieldsChange}
         activePage={selectedPage}
         onPageChange={handlePageChange}

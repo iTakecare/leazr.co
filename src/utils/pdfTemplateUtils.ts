@@ -82,7 +82,11 @@ export const ensurePDFTemplateTableExists = async (): Promise<boolean> => {
     }
     
     // S'assurer que le bucket de stockage existe aussi
-    await ensureBucket('pdf-templates');
+    try {
+      await ensureBucket('pdf-templates');
+    } catch (bucketError) {
+      console.warn("Impossible de créer le bucket, mais on continue car on utilise le stockage base64:", bucketError);
+    }
     
     return true;
   } catch (error) {
@@ -162,7 +166,18 @@ export const loadPDFTemplate = async (id: string = 'default') => {
       return DEFAULT_TEMPLATE;
     }
     
-    return data;
+    // S'assurer que les champs importants sont initialisés
+    const template = {
+      ...data,
+      templateImages: data.templateImages || [],
+      fields: data.fields || []
+    };
+    
+    console.log("Modèle chargé:", template);
+    console.log("Nombre d'images:", template.templateImages.length);
+    console.log("Nombre de champs:", template.fields.length);
+    
+    return template;
   } catch (error) {
     console.error("Exception lors du chargement du modèle:", error);
     return DEFAULT_TEMPLATE;
@@ -183,11 +198,17 @@ export const savePDFTemplate = async (template: any) => {
       throw new Error("Impossible de créer/vérifier la table pdf_templates");
     }
     
-    // Préparer le modèle à sauvegarder
+    // Préparer le modèle à sauvegarder en s'assurant que les tableaux sont initialisés
     const templateToSave = {
       ...template,
+      templateImages: template.templateImages || [],
+      fields: template.fields || [],
       updated_at: new Date().toISOString()
     };
+    
+    console.log("Modèle à sauvegarder:", templateToSave);
+    console.log("Nombre d'images à sauvegarder:", templateToSave.templateImages.length);
+    console.log("Nombre de champs à sauvegarder:", templateToSave.fields.length);
     
     // Essayer avec le client admin d'abord
     const adminClient = getAdminSupabaseClient();
