@@ -7,12 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
+import { Save } from "lucide-react";
 
 const PDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState(null);
   const [activeTab, setActiveTab] = useState("design");
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState(null);
 
   // Charger le modèle existant s'il existe
   useEffect(() => {
@@ -94,8 +97,13 @@ const PDFTemplateManager = () => {
     loadTemplate();
   }, []);
   
-  // Sauvegarder le modèle
-  const saveTemplate = async (updatedTemplate) => {
+  // Sauvegarder le modèle (maintenant appelé uniquement via le bouton Sauvegarder)
+  const saveTemplate = async () => {
+    if (!pendingChanges) {
+      toast.info("Aucune modification à sauvegarder");
+      return;
+    }
+    
     setSaving(true);
     
     try {
@@ -105,7 +113,7 @@ const PDFTemplateManager = () => {
         .from('pdf_templates')
         .upsert({
           id: 'default',
-          ...updatedTemplate,
+          ...pendingChanges,
           updated_at: new Date().toISOString()
         });
         
@@ -114,7 +122,9 @@ const PDFTemplateManager = () => {
         throw new Error("Erreur lors de la sauvegarde du modèle");
       }
       
-      setTemplate(updatedTemplate);
+      setTemplate(pendingChanges);
+      setPendingChanges(null);
+      setUnsavedChanges(false);
       toast.success("Modèle sauvegardé avec succès");
     } catch (error) {
       console.error("Error saving template:", error);
@@ -124,38 +134,59 @@ const PDFTemplateManager = () => {
     }
   };
   
-  // Mettre à jour les informations de l'entreprise
+  // Mettre à jour les informations de l'entreprise (stocke les changements sans sauvegarder)
   const handleCompanyInfoUpdate = (companyInfo) => {
+    let updatedTemplate;
+    
     if (template) {
-      const updatedTemplate = {
+      updatedTemplate = {
         ...template,
         ...companyInfo
       };
-      
-      saveTemplate(updatedTemplate);
     } else {
       // Créer un nouveau modèle avec les informations de l'entreprise
-      const newTemplate = {
+      updatedTemplate = {
         id: 'default',
         name: 'Modèle par défaut',
         templateImages: [],
         fields: [],
         ...companyInfo
       };
-      
-      saveTemplate(newTemplate);
     }
+    
+    setPendingChanges(updatedTemplate);
+    setUnsavedChanges(true);
+    toast.info("Modifications en attente de sauvegarde");
   };
   
-  // Mettre à jour les pages et champs du modèle
+  // Mettre à jour les pages et champs du modèle (stocke les changements sans sauvegarder)
   const handleTemplateUpdate = (updatedTemplate) => {
-    saveTemplate(updatedTemplate);
+    setPendingChanges(updatedTemplate);
+    setUnsavedChanges(true);
+    toast.info("Modifications en attente de sauvegarde");
   };
   
   return (
     <Card className="w-full mt-6">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Gestionnaire de modèles PDF</CardTitle>
+        <Button 
+          onClick={saveTemplate} 
+          disabled={saving || !unsavedChanges}
+          className="ml-auto"
+        >
+          {saving ? (
+            <>
+              <div className="animate-spin mr-2 h-4 w-4 border-b-2 border-white rounded-full"></div>
+              Sauvegarde...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Sauvegarder
+            </>
+          )}
+        </Button>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -174,7 +205,7 @@ const PDFTemplateManager = () => {
             
             <TabsContent value="company" className="mt-6">
               <PDFCompanyInfo 
-                template={template} 
+                template={pendingChanges || template} 
                 onSave={handleCompanyInfoUpdate} 
                 loading={saving}
               />
@@ -182,11 +213,20 @@ const PDFTemplateManager = () => {
             
             <TabsContent value="design" className="mt-6">
               <PDFTemplateWithFields 
-                template={template}
+                template={pendingChanges || template}
                 onSave={handleTemplateUpdate}
               />
             </TabsContent>
           </Tabs>
+        )}
+        
+        {unsavedChanges && (
+          <div className="mt-4 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-800 flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Vous avez des modifications non sauvegardées. Cliquez sur "Sauvegarder" pour les enregistrer.
+            </p>
+          </div>
         )}
       </CardContent>
     </Card>

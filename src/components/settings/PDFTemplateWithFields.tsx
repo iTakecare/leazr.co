@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +15,7 @@ const DEFAULT_FIELDS = [
     label: 'Nom du client',
     type: 'text',
     category: 'client',
-    isVisible: false,
+    isVisible: true,
     value: '{clients.name}',
     position: { x: 20, y: 40 },
     page: null,
@@ -32,7 +31,7 @@ const DEFAULT_FIELDS = [
     label: 'Société',
     type: 'text',
     category: 'client',
-    isVisible: false,
+    isVisible: true,
     value: '{clients.company}',
     position: { x: 20, y: 50 },
     page: null,
@@ -48,7 +47,7 @@ const DEFAULT_FIELDS = [
     label: 'Email',
     type: 'email',
     category: 'client',
-    isVisible: false,
+    isVisible: true,
     value: '{clients.email}',
     position: { x: 20, y: 60 },
     page: null,
@@ -64,7 +63,7 @@ const DEFAULT_FIELDS = [
     label: 'Adresse',
     type: 'text',
     category: 'client',
-    isVisible: false,
+    isVisible: true,
     value: '{clients.address}',
     position: { x: 20, y: 70 },
     page: null,
@@ -80,7 +79,7 @@ const DEFAULT_FIELDS = [
     label: 'Téléphone',
     type: 'text',
     category: 'client',
-    isVisible: false,
+    isVisible: true,
     value: '{clients.phone}',
     position: { x: 20, y: 80 },
     page: null,
@@ -98,7 +97,7 @@ const DEFAULT_FIELDS = [
     label: 'Numéro d\'offre',
     type: 'text',
     category: 'offer',
-    isVisible: false,
+    isVisible: true,
     value: '{id}',
     position: { x: 150, y: 40 },
     page: null,
@@ -114,7 +113,7 @@ const DEFAULT_FIELDS = [
     label: 'Date de l\'offre',
     type: 'date',
     category: 'offer',
-    isVisible: false,
+    isVisible: true,
     value: '{created_at}',
     position: { x: 150, y: 50 },
     page: null,
@@ -130,7 +129,7 @@ const DEFAULT_FIELDS = [
     label: 'Montant total',
     type: 'currency',
     category: 'offer',
-    isVisible: false,
+    isVisible: true,
     value: '{amount}',
     position: { x: 150, y: 80 },
     page: null,
@@ -146,7 +145,7 @@ const DEFAULT_FIELDS = [
     label: 'Mensualité',
     type: 'currency',
     category: 'offer',
-    isVisible: false,
+    isVisible: true,
     value: '{monthly_payment}',
     position: { x: 150, y: 90 },
     page: null,
@@ -162,7 +161,7 @@ const DEFAULT_FIELDS = [
     label: 'Coefficient',
     type: 'number',
     category: 'offer',
-    isVisible: false,
+    isVisible: true,
     value: '{coefficient}',
     position: { x: 150, y: 100 },
     page: null,
@@ -178,7 +177,7 @@ const DEFAULT_FIELDS = [
     label: 'Type d\'offre',
     type: 'text',
     category: 'offer',
-    isVisible: false,
+    isVisible: true,
     value: '{type}',
     position: { x: 150, y: 110 },
     page: null,
@@ -194,7 +193,7 @@ const DEFAULT_FIELDS = [
     label: 'Remarques',
     type: 'text',
     category: 'offer',
-    isVisible: false,
+    isVisible: true,
     value: '{remarks}',
     position: { x: 20, y: 200 },
     page: null,
@@ -210,7 +209,7 @@ const DEFAULT_FIELDS = [
     label: 'Statut',
     type: 'text',
     category: 'offer',
-    isVisible: false,
+    isVisible: true,
     value: '{workflow_status}',
     position: { x: 150, y: 120 },
     page: null,
@@ -226,7 +225,7 @@ const DEFAULT_FIELDS = [
     label: 'Commission',
     type: 'currency',
     category: 'offer',
-    isVisible: false,
+    isVisible: true,
     value: '{commission}',
     position: { x: 150, y: 130 },
     page: null,
@@ -244,7 +243,7 @@ const DEFAULT_FIELDS = [
     label: 'Tableau des équipements',
     type: 'table',
     category: 'equipment',
-    isVisible: false,
+    isVisible: true,
     value: '{equipment_description}',
     position: { x: 20, y: 120 },
     page: null,
@@ -260,7 +259,7 @@ const DEFAULT_FIELDS = [
     label: 'Total équipement',
     type: 'currency',
     category: 'equipment',
-    isVisible: false,
+    isVisible: true,
     value: '{equipment_total}',
     position: { x: 150, y: 170 },
     page: null,
@@ -278,7 +277,7 @@ const DEFAULT_FIELDS = [
     label: 'Nom du vendeur',
     type: 'text',
     category: 'user',
-    isVisible: false,
+    isVisible: true,
     value: '{user.name}',
     position: { x: 20, y: 230 },
     page: null,
@@ -294,7 +293,7 @@ const DEFAULT_FIELDS = [
     label: 'Email du vendeur',
     type: 'email',
     category: 'user',
-    isVisible: false,
+    isVisible: true,
     value: '{user.email}',
     position: { x: 20, y: 240 },
     page: null,
@@ -310,7 +309,7 @@ const DEFAULT_FIELDS = [
     label: 'Téléphone du vendeur',
     type: 'text',
     category: 'user',
-    isVisible: false,
+    isVisible: true,
     value: '{user.phone}',
     position: { x: 20, y: 250 },
     page: null,
@@ -328,7 +327,7 @@ const DEFAULT_FIELDS = [
     label: 'Numéro de page',
     type: 'text',
     category: 'general',
-    isVisible: false,
+    isVisible: true,
     value: 'Page {page_number}',
     position: { x: 180, y: 280 },
     page: null,
@@ -344,7 +343,7 @@ const DEFAULT_FIELDS = [
     label: 'Nombre total de pages',
     type: 'text',
     category: 'general',
-    isVisible: false,
+    isVisible: true,
     value: 'sur {total_pages}',
     position: { x: 200, y: 280 },
     page: null,
@@ -360,7 +359,7 @@ const DEFAULT_FIELDS = [
     label: 'Date actuelle',
     type: 'date',
     category: 'general',
-    isVisible: false,
+    isVisible: true,
     value: '{current_date}',
     position: { x: 20, y: 280 },
     page: null,
@@ -376,7 +375,7 @@ const DEFAULT_FIELDS = [
     label: 'Période de validité',
     type: 'text',
     category: 'general',
-    isVisible: false,
+    isVisible: true,
     value: 'Offre valable 30 jours',
     position: { x: 20, y: 260 },
     page: null,
@@ -411,41 +410,47 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   
   // Update template images when they change
   const handleImagesChange = (newImages) => {
-    setCurrentTemplate({
+    const updatedTemplate = {
       ...currentTemplate,
       templateImages: newImages
-    });
+    };
     
-    // Auto-save the template
+    setCurrentTemplate(updatedTemplate);
+    
+    // Notify parent component of changes without auto-saving
     if (onSave) {
-      onSave({
-        ...currentTemplate,
-        templateImages: newImages
-      });
+      onSave(updatedTemplate);
     }
-    
-    toast.success("Images du modèle enregistrées");
   };
   
   // Update fields when they change
   const handleFieldsChange = (newFields) => {
-    setCurrentTemplate({
+    const updatedTemplate = {
       ...currentTemplate,
-      fields: newFields
-    });
+      fields: newFields.map(field => ({
+        ...field,
+        isVisible: field.isVisible !== undefined ? field.isVisible : true
+      }))
+    };
     
-    // Auto-save the template
+    setCurrentTemplate(updatedTemplate);
+    
+    // Notify parent component of changes without auto-saving
     if (onSave) {
-      onSave({
-        ...currentTemplate,
-        fields: newFields
-      });
+      onSave(updatedTemplate);
     }
   };
 
   // Add a new field to the template
   const handleAddField = (field) => {
-    const newFields = [...currentTemplate.fields, field];
+    const newFields = [
+      ...currentTemplate.fields, 
+      {
+        ...field,
+        isVisible: true
+      }
+    ];
+    
     handleFieldsChange(newFields);
     toast.success(`Champ "${field.label}" ajouté`);
   };
@@ -480,7 +485,8 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     const duplicatedField = {
       ...fieldToDuplicate,
       id: newId,
-      page: targetPage
+      page: targetPage,
+      isVisible: true
     };
     
     const newFields = [...currentTemplate.fields, duplicatedField];
@@ -525,7 +531,10 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
         
         <TabsContent value="fields" className="mt-6">
           <PDFFieldsEditor 
-            fields={currentTemplate.fields} 
+            fields={currentTemplate.fields.map(field => ({
+              ...field,
+              isVisible: field.isVisible !== undefined ? field.isVisible : true
+            }))} 
             onChange={handleFieldsChange}
             activePage={selectedPage}
             onPageChange={setSelectedPage}

@@ -112,6 +112,7 @@ export type Database = {
           last_commission: number | null
           name: string
           notes: string | null
+          pdf_template_id: string | null
           phone: string | null
           postal_code: string | null
           region: string | null
@@ -136,6 +137,7 @@ export type Database = {
           last_commission?: number | null
           name: string
           notes?: string | null
+          pdf_template_id?: string | null
           phone?: string | null
           postal_code?: string | null
           region?: string | null
@@ -160,6 +162,7 @@ export type Database = {
           last_commission?: number | null
           name?: string
           notes?: string | null
+          pdf_template_id?: string | null
           phone?: string | null
           postal_code?: string | null
           region?: string | null
@@ -175,6 +178,13 @@ export type Database = {
             columns: ["commission_level_id"]
             isOneToOne: false
             referencedRelation: "commission_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassadors_pdf_template_id_fkey"
+            columns: ["pdf_template_id"]
+            isOneToOne: false
+            referencedRelation: "pdf_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -848,6 +858,7 @@ export type Database = {
           last_transaction: number | null
           name: string
           notes: string | null
+          pdf_template_id: string | null
           phone: string | null
           revenue_total: number | null
           status: string
@@ -867,6 +878,7 @@ export type Database = {
           last_transaction?: number | null
           name: string
           notes?: string | null
+          pdf_template_id?: string | null
           phone?: string | null
           revenue_total?: number | null
           status?: string
@@ -886,6 +898,7 @@ export type Database = {
           last_transaction?: number | null
           name?: string
           notes?: string | null
+          pdf_template_id?: string | null
           phone?: string | null
           revenue_total?: number | null
           status?: string
@@ -900,6 +913,13 @@ export type Database = {
             columns: ["commission_level_id"]
             isOneToOne: false
             referencedRelation: "commission_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partners_pdf_template_id_fkey"
+            columns: ["pdf_template_id"]
+            isOneToOne: false
+            referencedRelation: "pdf_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -1358,6 +1378,26 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_pdf_templates: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          companyAddress: string
+          companyContact: string
+          companyName: string
+          companySiret: string
+          created_at: string
+          fields: Json
+          footerText: string
+          headerText: string
+          id: string
+          logoURL: string | null
+          name: string
+          primaryColor: string
+          secondaryColor: string
+          templateImages: Json | null
+          updated_at: string
+        }[]
       }
       get_user_id_by_email: {
         Args: {
