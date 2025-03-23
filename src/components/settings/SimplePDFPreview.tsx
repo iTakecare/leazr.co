@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -192,26 +191,16 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
   };
 
-  const handleDragStart = (fieldId: string, offsetX: number, offsetY: number) => {
-    if (!isDraggable) return;
-    setIsDragging(true);
-    setDraggedFieldId(fieldId);
-    setDragOffsetX(offsetX);
-    setDragOffsetY(offsetY);
-  };
-
   const handleDrag = (clientX: number, clientY: number) => {
     if (!isDragging || !draggedFieldId || !pdfDocumentRef.current) return;
 
     const rect = pdfDocumentRef.current.getBoundingClientRect();
     
-    // Convertir les pixels en millimètres avec le zoom
-    // 1mm = 3.7795275591px à 96dpi
-    const x = (clientX - rect.left - dragOffsetX) / (3.7795275591 * zoomLevel);
-    const y = (clientY - rect.top - dragOffsetY) / (3.7795275591 * zoomLevel);
+    const pxToMm = (px: number) => px / (3.7795275591 * zoomLevel);
+    
+    const x = pxToMm(clientX - rect.left - dragOffsetX);
+    const y = pxToMm(clientY - rect.top - dragOffsetY);
 
-    // Vérifier que les coordonnées sont à l'intérieur du document A4
-    // Un A4 fait 210x297mm
     const boundedX = Math.max(0, Math.min(x, 210));
     const boundedY = Math.max(0, Math.min(y, 297));
 
@@ -267,7 +256,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
             <Button
               variant="ghost"
               size="sm"
-              onClick={zoomOut}
+              onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.5))}
               disabled={zoomLevel <= 0.5}
               className="h-8 px-2"
             >
@@ -277,7 +266,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
             <Button
               variant="ghost"
               size="sm"
-              onClick={zoomIn}
+              onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 2))}
               disabled={zoomLevel >= 2}
               className="h-8 px-2"
             >
@@ -287,7 +276,12 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
           <Button
             variant={isDraggable ? "default" : "outline"}
             size="sm"
-            onClick={toggleDragMode}
+            onClick={() => {
+              setIsDraggable(!isDraggable);
+              if (isDraggable && hasUnsavedChanges) {
+                toast.info("N'oubliez pas de sauvegarder vos modifications");
+              }
+            }}
             className="h-8"
           >
             {isDraggable ? "Terminer le positionnement" : "Positionner les champs"}
@@ -296,7 +290,13 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
             <Button
               variant="default"
               size="sm"
-              onClick={handleSaveChanges}
+              onClick={() => {
+                if (onSave && hasUnsavedChanges) {
+                  onSave(localTemplate);
+                  setHasUnsavedChanges(false);
+                  toast.success("Positions des champs sauvegardées avec succès");
+                }
+              }}
               className="h-8"
             >
               <Save className="h-4 w-4 mr-2" />
@@ -306,7 +306,29 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
           <Button
             variant="outline"
             size="sm"
-            onClick={handleGeneratePreview}
+            onClick={() => {
+              try {
+                setLoading(true);
+                
+                const offerWithTemplate = {
+                  ...SAMPLE_DATA,
+                  __template: localTemplate
+                };
+                
+                generateOfferPdf(offerWithTemplate).then(pdfFilename => {
+                  toast.success(`PDF généré avec succès : ${pdfFilename}`);
+                }).catch(error => {
+                  console.error("Erreur lors de la génération du PDF:", error);
+                  toast.error("Erreur lors de la génération du PDF");
+                }).finally(() => {
+                  setLoading(false);
+                });
+              } catch (error) {
+                console.error("Erreur lors de la génération du PDF:", error);
+                toast.error("Erreur lors de la génération du PDF");
+                setLoading(false);
+              }
+            }}
             disabled={loading}
           >
             <FileDown className="h-4 w-4 mr-2" />
@@ -330,25 +352,25 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
                 maxWidth: "100%"
               }}
             >
-              {totalPages > 1 && (
+              {localTemplate?.templateImages?.length > 1 && (
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={prevPage}
+                    onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                     disabled={currentPage === 0}
                     className="h-8 w-8 bg-white bg-opacity-75"
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                   <span className="flex items-center justify-center text-sm px-2 bg-white bg-opacity-75 rounded">
-                    {currentPage + 1} / {totalPages}
+                    {currentPage + 1} / {localTemplate.templateImages.length}
                   </span>
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={nextPage}
-                    disabled={currentPage === totalPages - 1}
+                    onClick={() => setCurrentPage(prev => Math.min(localTemplate.templateImages.length - 1, prev + 1))}
+                    disabled={currentPage === localTemplate.templateImages.length - 1}
                     className="h-8 w-8 bg-white bg-opacity-75"
                   >
                     <ArrowRight className="h-4 w-4" />
@@ -356,22 +378,51 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
                 </div>
               )}
               
-              {hasTemplateImages ? (
+              {Array.isArray(localTemplate?.templateImages) && localTemplate.templateImages.length > 0 ? (
                 <div className="relative" style={{ height: "100%" }}>
-                  {getPageBackground() ? (
-                    <img 
-                      src={getPageBackground()} 
-                      alt={`Template page ${currentPage + 1}`}
-                      className="w-full h-full object-contain"
-                      onError={handleImageError}
-                      onLoad={handleImageLoad}
-                      style={{ display: "block" }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-white flex items-center justify-center border">
-                      <p className="text-gray-400">Pas d'image pour la page {currentPage + 1}</p>
-                    </div>
-                  )}
+                  {(() => {
+                    const pageImage = localTemplate.templateImages.find(
+                      (img: any) => img.page === currentPage
+                    );
+                    
+                    if (pageImage) {
+                      if (pageImage.url) {
+                        return (
+                          <img 
+                            src={`${pageImage.url}?t=${new Date().getTime()}`}
+                            alt={`Template page ${currentPage + 1}`}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              console.error("Erreur de chargement de l'image:", e.currentTarget.src);
+                              e.currentTarget.src = "/placeholder.svg";
+                            }}
+                            onLoad={() => setPageLoaded(true)}
+                            style={{ display: "block" }}
+                          />
+                        );
+                      } else if (pageImage.data) {
+                        return (
+                          <img 
+                            src={pageImage.data}
+                            alt={`Template page ${currentPage + 1}`}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              console.error("Erreur de chargement de l'image:", e.currentTarget.src);
+                              e.currentTarget.src = "/placeholder.svg";
+                            }}
+                            onLoad={() => setPageLoaded(true)}
+                            style={{ display: "block" }}
+                          />
+                        );
+                      }
+                    }
+                    
+                    return (
+                      <div className="w-full h-full bg-white flex items-center justify-center border">
+                        <p className="text-gray-400">Pas d'image pour la page {currentPage + 1}</p>
+                      </div>
+                    );
+                  })()}
                   
                   {pageLoaded && getCurrentPageFields().map((field: any) => (
                     <PDFFieldDisplay 
@@ -381,9 +432,18 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
                       currentPage={currentPage}
                       sampleData={SAMPLE_DATA}
                       isDraggable={isDraggable}
-                      onStartDrag={handleDragStart}
+                      onStartDrag={(fieldId, offsetX, offsetY) => {
+                        if (!isDraggable) return;
+                        setIsDragging(true);
+                        setDraggedFieldId(fieldId);
+                        setDragOffsetX(offsetX);
+                        setDragOffsetY(offsetY);
+                      }}
                       onDrag={handleDrag}
-                      onEndDrag={handleDragEnd}
+                      onEndDrag={() => {
+                        setIsDragging(false);
+                        setDraggedFieldId(null);
+                      }}
                     />
                   ))}
                 </div>
