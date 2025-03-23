@@ -7,7 +7,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import LeaserManager from "@/components/settings/LeaserManager";
 import SmtpSettings from "@/components/settings/SmtpSettings";
 import CommissionManager from "@/components/settings/CommissionManager";
-import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
+import PDFModelManager from "@/components/settings/PDFModelManager";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Container from "@/components/layout/Container";
 
@@ -64,7 +64,7 @@ const Settings = () => {
             </TabsContent>
 
             <TabsContent value="pdf" className="space-y-4">
-              <PDFTemplateManager />
+              <PDFModelManager />
             </TabsContent>
 
             <TabsContent value="users" className="space-y-4">
