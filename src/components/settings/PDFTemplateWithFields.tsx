@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
 import PDFPreview from './PDFPreview';
 import { toast } from "sonner";
 import { OfferData, EquipmentItem } from '@/services/offers/types';
+import { Save } from 'lucide-react';
+import { getSupabaseClient } from '@/integrations/supabase/client';
 
 // Default fields for the PDF template if none exist yet
 const DEFAULT_FIELDS = [
@@ -407,7 +410,9 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   
   const [selectedPage, setSelectedPage] = useState(0);
   const [activeTab, setActiveTab] = useState("template");
-  
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
   // Update template images when they change
   const handleImagesChange = (newImages) => {
     const updatedTemplate = {
@@ -416,6 +421,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     };
     
     setCurrentTemplate(updatedTemplate);
+    setHasChanges(true);
     
     // Notify parent component of changes without auto-saving
     if (onSave) {
@@ -434,6 +440,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     };
     
     setCurrentTemplate(updatedTemplate);
+    setHasChanges(true);
     
     // Notify parent component of changes without auto-saving
     if (onSave) {
@@ -453,6 +460,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     
     handleFieldsChange(newFields);
     toast.success(`Champ "${field.label}" ajouté`);
+    setHasChanges(true);
   };
 
   // Delete a field from the template
@@ -460,6 +468,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     const newFields = currentTemplate.fields.filter(field => field.id !== fieldId);
     handleFieldsChange(newFields);
     toast.success("Champ supprimé");
+    setHasChanges(true);
   };
   
   // Duplicate a field for a different page
@@ -492,6 +501,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     const newFields = [...currentTemplate.fields, duplicatedField];
     handleFieldsChange(newFields);
     toast.success(`Champ "${fieldToDuplicate.label}" ajouté à la page ${targetPage + 1}`);
+    setHasChanges(true);
   };
   
   // Remove a field from a specific page only
@@ -505,10 +515,61 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     const newFields = currentTemplate.fields.filter(field => !(field.id === fieldId && field.page === page));
     handleFieldsChange(newFields);
     toast.success(`Champ supprimé de la page ${page + 1}`);
+    setHasChanges(true);
+  };
+
+  // Sauvegarder le modèle directement
+  const handleSaveTemplate = async () => {
+    setSaving(true);
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { error } = await supabase
+        .from('pdf_templates')
+        .upsert({
+          id: 'default',
+          ...currentTemplate,
+          updated_at: new Date().toISOString()
+        });
+        
+      if (error) {
+        console.error("Erreur lors de la sauvegarde du modèle:", error);
+        throw new Error("Erreur lors de la sauvegarde du modèle");
+      }
+      
+      setHasChanges(false);
+      toast.success("Modèle sauvegardé avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde du modèle:", error);
+      toast.error("Erreur lors de la sauvegarde du modèle");
+    } finally {
+      setSaving(false);
+    }
   };
   
   return (
     <div className="space-y-8">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium">Conception du modèle PDF</h3>
+        <Button 
+          onClick={handleSaveTemplate} 
+          disabled={saving || !hasChanges}
+          className="ml-auto"
+        >
+          {saving ? (
+            <>
+              <div className="animate-spin mr-2 h-4 w-4 border-b-2 border-white rounded-full"></div>
+              Sauvegarde en cours...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Sauvegarder le modèle
+            </>
+          )}
+        </Button>
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="template">Pages du modèle</TabsTrigger>
