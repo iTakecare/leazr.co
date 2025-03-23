@@ -44,16 +44,34 @@ interface PDFField {
 
 const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps) => {
   const [selectedPage, setSelectedPage] = useState(0);
-  const [localTemplate, setLocalTemplate] = useState<PDFTemplate>(template);
+  const [localTemplate, setLocalTemplate] = useState<PDFTemplate | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
-  // Effect pour initialiser correctement le state local avec les données du template
+  // Effet pour initialiser le state local avec les données du template
   useEffect(() => {
-    setLocalTemplate(template);
-    console.log("Template reçu:", template);
-    console.log("Images du template:", template.templateImages);
-    console.log("Champs du template:", template.fields);
+    // Assurez-vous que template.fields et template.templateImages sont toujours des tableaux
+    const sanitizedTemplate = {
+      ...template,
+      fields: Array.isArray(template.fields) ? template.fields : [],
+      templateImages: Array.isArray(template.templateImages) ? template.templateImages : []
+    };
+    
+    console.log("Template reçu (sanitized):", sanitizedTemplate);
+    console.log("Images du template:", sanitizedTemplate.templateImages);
+    console.log("Champs du template:", sanitizedTemplate.fields);
+    
+    setLocalTemplate(sanitizedTemplate);
   }, [template]);
+  
+  // Si le template n'est pas encore chargé, afficher un indicateur de chargement
+  if (!localTemplate) {
+    return (
+      <div className="flex justify-center items-center h-40">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Chargement du modèle...</span>
+      </div>
+    );
+  }
   
   // Convertir les images du template en format local si nécessaire
   const convertTemplateimagesToLocalFormat = (images: any[]): TemplateImage[] => {
@@ -80,13 +98,13 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   
   // Obtenir les images au format local
   const getLocalImages = (): TemplateImage[] => {
-    if (!localTemplate.templateImages) {
-      console.log("Aucune image dans le template");
+    if (!localTemplate.templateImages || !Array.isArray(localTemplate.templateImages)) {
+      console.log("Aucune image dans le template ou format invalide");
       return [];
     }
     
     const images = convertTemplateimagesToLocalFormat(localTemplate.templateImages);
-    console.log("Images locales obtenues:", images);
+    console.log("Images locales obtenues:", images.length);
     return images;
   };
   
@@ -314,6 +332,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   // Rendu du composant d'upload et de gestion des images
   const renderImageUploader = () => {
     const images = getLocalImages();
+    console.log("Nombre d'images à afficher:", images.length);
     
     return (
       <div className="space-y-6">
@@ -440,8 +459,11 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   
   // Rendu du composant d'édition des champs
   const renderFieldsEditor = () => {
-    const fields = localTemplate.fields || [];
+    const fields = Array.isArray(localTemplate.fields) ? localTemplate.fields : [];
     const images = getLocalImages();
+    
+    console.log("Nombre de champs à éditer:", fields.length);
+    console.log("Nombre d'images pour le positionnement:", images.length);
     
     return (
       <PDFFieldsEditor 

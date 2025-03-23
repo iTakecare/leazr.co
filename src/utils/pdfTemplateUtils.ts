@@ -169,8 +169,8 @@ export const loadPDFTemplate = async (id: string = 'default') => {
     // S'assurer que les champs importants sont initialisés
     const template = {
       ...data,
-      templateImages: data.templateImages || [],
-      fields: data.fields || []
+      templateImages: Array.isArray(data.templateImages) ? data.templateImages : [],
+      fields: Array.isArray(data.fields) ? data.fields : []
     };
     
     console.log("Modèle chargé:", template);
@@ -201,8 +201,8 @@ export const savePDFTemplate = async (template: any) => {
     // Préparer le modèle à sauvegarder en s'assurant que les tableaux sont initialisés
     const templateToSave = {
       ...template,
-      templateImages: template.templateImages || [],
-      fields: template.fields || [],
+      templateImages: Array.isArray(template.templateImages) ? template.templateImages : [],
+      fields: Array.isArray(template.fields) ? template.fields : [],
       updated_at: new Date().toISOString()
     };
     
@@ -297,8 +297,15 @@ export const getAllPDFTemplates = async () => {
       return [];
     }
     
-    console.log(`${data?.length || 0} modèles récupérés`);
-    return data || [];
+    // S'assurer que les tableaux sont initialisés pour chaque modèle
+    const templates = (data || []).map(template => ({
+      ...template,
+      templateImages: Array.isArray(template.templateImages) ? template.templateImages : [],
+      fields: Array.isArray(template.fields) ? template.fields : []
+    }));
+    
+    console.log(`${templates.length} modèles récupérés`);
+    return templates;
   } catch (error) {
     console.error("Exception lors de la récupération des modèles:", error);
     return [];
