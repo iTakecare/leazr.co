@@ -6,14 +6,57 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PDFTemplate, TemplateImage, TemplateField } from "@/utils/templateManager";
-import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2, Plus } from "lucide-react";
+import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2, Plus, Move } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface NewPDFTemplateEditorProps {
   template: PDFTemplate;
   onSave: (template: PDFTemplate) => void;
 }
+
+// Available field categories with their fields
+const AVAILABLE_FIELDS = {
+  client: [
+    { label: "Nom du client", key: "client_name" },
+    { label: "Prénom du client", key: "client_first_name" },
+    { label: "Email", key: "client_email" },
+    { label: "Téléphone", key: "client_phone" },
+    { label: "Société", key: "client_company" },
+    { label: "TVA", key: "client_vat_number" },
+    { label: "Adresse", key: "client_address" },
+    { label: "Code postal", key: "client_postal_code" },
+    { label: "Ville", key: "client_city" },
+    { label: "Pays", key: "client_country" },
+  ],
+  offer: [
+    { label: "Numéro d'offre", key: "offer_id" },
+    { label: "Date de création", key: "offer_created_at" },
+    { label: "Montant total HT", key: "offer_total_price_excl" },
+    { label: "Montant total TTC", key: "offer_total_price_incl" },
+    { label: "Mensualité", key: "offer_monthly_payment" },
+  ],
+  equipment: [
+    { label: "Titre du matériel", key: "equipment_title" },
+    { label: "Description", key: "equipment_description" },
+    { label: "Prix", key: "equipment_price" },
+    { label: "Quantité", key: "equipment_quantity" },
+  ],
+  leaser: [
+    { label: "Nom du leaser", key: "leaser_name" },
+    { label: "Durée du contrat", key: "lease_duration" },
+    { label: "Taux d'intérêt", key: "lease_interest_rate" },
+  ],
+};
 
 const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) => {
   const [activeTab, setActiveTab] = useState("images");
@@ -24,6 +67,9 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
     templateImages: Array.isArray(template.templateImages) ? [...template.templateImages] : [],
     fields: Array.isArray(template.fields) ? [...template.fields] : []
   });
+  const [selectedCategory, setSelectedCategory] = useState<string>("client");
+  const [selectedField, setSelectedField] = useState<string>("");
+  const [fieldPosition, setFieldPosition] = useState({ x: 100, y: 100 });
   
   // Debug logs on mount
   useEffect(() => {
@@ -239,23 +285,43 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
     window.open(imageData, '_blank');
   };
   
-  // Add debug field
-  const addDebugField = () => {
+  // Add field to template
+  const addField = () => {
+    if (!selectedField) {
+      toast.error("Veuillez sélectionner un champ");
+      return;
+    }
+    
     // Get existing fields
     const existingFields: TemplateField[] = Array.isArray(localTemplate.fields) 
       ? [...localTemplate.fields] 
       : [];
     
+    // Find the selected field definition
+    const fieldDefinition = AVAILABLE_FIELDS[selectedCategory as keyof typeof AVAILABLE_FIELDS]
+      .find(field => field.key === selectedField);
+    
+    if (!fieldDefinition) {
+      toast.error("Champ non trouvé");
+      return;
+    }
+    
     // Create new field
     const newField: TemplateField = {
       id: uuidv4(),
-      label: "Champ de test",
+      label: fieldDefinition.label,
       type: "text",
-      category: "client",
+      category: selectedCategory,
       isVisible: true,
-      value: "Valeur de test",
-      position: { x: 100, y: 100 },
-      page: selectedPage
+      value: `{${fieldDefinition.key}}`,
+      position: { ...fieldPosition },
+      page: selectedPage,
+      style: {
+        fontSize: 12,
+        fontWeight: "normal",
+        fontStyle: "normal",
+        textDecoration: "none"
+      }
     };
     
     // Update fields array
@@ -273,7 +339,38 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
     // Save changes
     onSave(updatedTemplate);
     
-    toast.success("Champ de test ajouté avec succès");
+    toast.success(`Champ "${fieldDefinition.label}" ajouté avec succès`);
+    
+    // Update position for next field
+    setFieldPosition({
+      x: fieldPosition.x + 20,
+      y: fieldPosition.y + 20
+    });
+  };
+  
+  // Delete field
+  const deleteField = (fieldId: string) => {
+    // Get existing fields
+    const existingFields: TemplateField[] = Array.isArray(localTemplate.fields) 
+      ? [...localTemplate.fields] 
+      : [];
+    
+    // Filter out deleted field
+    const updatedFields = existingFields.filter(field => field.id !== fieldId);
+    
+    // Create updated template
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    // Update local state
+    setLocalTemplate(updatedTemplate);
+    
+    // Save changes
+    onSave(updatedTemplate);
+    
+    toast.success("Champ supprimé avec succès");
   };
   
   // Render images tab
@@ -317,9 +414,6 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-sm font-medium">Pages du modèle ({images.length})</h3>
-            <Button variant="outline" size="sm" onClick={() => console.log("Images:", images)}>
-              Debug Images
-            </Button>
           </div>
           
           {images.length === 0 ? (
@@ -446,15 +540,6 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-medium">Champs du document (Page {selectedPage + 1})</h3>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={addDebugField}>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un champ test
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => console.log("Champs:", fields)}>
-              Debug Champs
-            </Button>
-          </div>
         </div>
         
         {/* Page selector */}
@@ -471,44 +556,128 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
           ))}
         </div>
         
-        {/* Field editor area */}
-        <div className="relative border rounded-md bg-gray-50 min-h-[400px]">
-          {/* Selected page image as background */}
-          {images[selectedPage] && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <img 
-                src={images[selectedPage].data} 
-                alt={`Template page ${selectedPage + 1}`}
-                className="max-h-full max-w-full object-contain opacity-30"
-              />
-            </div>
-          )}
-          
-          {/* Fields */}
-          {pageFields.length === 0 ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center p-8">
-                <p className="text-sm text-muted-foreground">
-                  Aucun champ n'a encore été ajouté à cette page. 
-                  Utilisez le bouton "Ajouter un champ test" pour ajouter des champs.
-                </p>
-              </div>
-            </div>
-          ) : (
-            pageFields.map(field => (
-              <div 
-                key={field.id}
-                className="absolute bg-white border border-blue-500 p-2 rounded shadow-sm cursor-move"
-                style={{ 
-                  left: `${field.position.x}px`, 
-                  top: `${field.position.y}px`
-                }}
+        {/* Field selector */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4 border rounded-md p-4">
+            <h4 className="text-sm font-medium">Ajouter un champ</h4>
+            
+            <div className="space-y-2">
+              <Label htmlFor="field-category">Catégorie</Label>
+              <Select
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}
               >
-                <div className="text-xs font-medium">{field.label}</div>
-                <div className="text-xs text-gray-500">{field.type}</div>
+                <SelectTrigger id="field-category">
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="offer">Offre</SelectItem>
+                  <SelectItem value="equipment">Équipement</SelectItem>
+                  <SelectItem value="leaser">Leaser</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="field-name">Champ</Label>
+              <Select
+                value={selectedField}
+                onValueChange={setSelectedField}
+              >
+                <SelectTrigger id="field-name">
+                  <SelectValue placeholder="Sélectionner un champ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AVAILABLE_FIELDS[selectedCategory as keyof typeof AVAILABLE_FIELDS]?.map((field) => (
+                    <SelectItem key={field.key} value={field.key}>
+                      {field.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="field-x">Position X</Label>
+                <Input
+                  id="field-x"
+                  type="number"
+                  min="0"
+                  value={fieldPosition.x}
+                  onChange={(e) => setFieldPosition({
+                    ...fieldPosition, 
+                    x: parseInt(e.target.value) || 0
+                  })}
+                />
               </div>
-            ))
-          )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="field-y">Position Y</Label>
+                <Input
+                  id="field-y"
+                  type="number"
+                  min="0"
+                  value={fieldPosition.y}
+                  onChange={(e) => setFieldPosition({
+                    ...fieldPosition, 
+                    y: parseInt(e.target.value) || 0
+                  })}
+                />
+              </div>
+            </div>
+            
+            <Button onClick={addField} className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter le champ
+            </Button>
+          </div>
+          
+          {/* Field editor area */}
+          <div className="border rounded-md overflow-hidden">
+            <div className="relative bg-gray-50 min-h-[300px]">
+              {/* Selected page image as background */}
+              {images[selectedPage] && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <img 
+                    src={images[selectedPage].data} 
+                    alt={`Template page ${selectedPage + 1}`}
+                    className="max-h-full max-w-full object-contain opacity-30"
+                  />
+                </div>
+              )}
+              
+              {/* Fields */}
+              {pageFields.length === 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center p-8">
+                    <p className="text-sm text-muted-foreground">
+                      Aucun champ n'a encore été ajouté à cette page. 
+                      Utilisez le formulaire à gauche pour ajouter des champs.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                pageFields.map(field => (
+                  <div 
+                    key={field.id}
+                    className="absolute bg-white border border-blue-500 p-2 rounded shadow-sm cursor-move"
+                    style={{ 
+                      left: `${field.position.x}px`, 
+                      top: `${field.position.y}px`
+                    }}
+                  >
+                    <div className="flex items-center gap-1">
+                      <Move className="h-3 w-3 text-gray-500" />
+                      <div className="text-xs font-medium">{field.label}</div>
+                    </div>
+                    <div className="text-xs text-gray-500">{field.value}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
         
         {/* Field list */}
@@ -531,17 +700,7 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-red-500"
-                    onClick={() => {
-                      // Remove field
-                      const updatedFields = fields.filter(f => f.id !== field.id);
-                      const updatedTemplate = {
-                        ...localTemplate,
-                        fields: updatedFields
-                      };
-                      setLocalTemplate(updatedTemplate);
-                      onSave(updatedTemplate);
-                      toast.success("Champ supprimé");
-                    }}
+                    onClick={() => deleteField(field.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
