@@ -1,71 +1,20 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 
-// Fonction pour vérifier et créer la table pdf_templates si nécessaire
-const ensurePDFTemplateTableExists = async () => {
+// Fonction pour vérifier et récupérer la table pdf_templates
+const getPDFTemplate = async (templateId = 'default') => {
   const supabase = getSupabaseClient();
   
   try {
-    // Vérifier si la table existe
-    const { data: tableExists, error: tableCheckError } = await supabase.rpc(
-      'check_table_exists',
-      { table_name: 'pdf_templates' }
-    );
-    
-    if (tableCheckError || !tableExists) {
-      // La table n'existe pas, la créer
-      const { error: createError } = await supabase.rpc('execute_sql', {
-        sql: `
-          CREATE TABLE IF NOT EXISTS public.pdf_templates (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            "companyName" TEXT NOT NULL,
-            "companyAddress" TEXT NOT NULL,
-            "companyContact" TEXT NOT NULL,
-            "companySiret" TEXT NOT NULL,
-            "logoURL" TEXT,
-            "primaryColor" TEXT NOT NULL,
-            "secondaryColor" TEXT NOT NULL,
-            "headerText" TEXT NOT NULL,
-            "footerText" TEXT NOT NULL,
-            "templateImages" JSONB,
-            fields JSONB NOT NULL,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-          );
-        `
-      });
-      
-      if (createError) {
-        console.error("Erreur lors de la création de la table pdf_templates:", createError);
-        return null;
-      }
-      
-      return null;
-    }
-    
-    return tableExists;
-  } catch (error) {
-    console.error("Erreur lors de la vérification de la table pdf_templates:", error);
-    return null;
-  }
-};
-
-// Récupérer le modèle PDF depuis la base de données
-const getPDFTemplate = async () => {
-  const supabase = getSupabaseClient();
-  
-  try {
-    // S'assurer que la table existe
-    await ensurePDFTemplateTableExists();
-    
+    // Récupérer le template spécifié
     const { data, error } = await supabase
       .from('pdf_templates')
       .select('*')
-      .eq('id', 'default')
-      .single();
+      .eq('id', templateId)
+      .maybeSingle();
     
     if (error) {
       console.error("Erreur lors de la récupération du modèle PDF:", error);
@@ -101,9 +50,9 @@ const preloadImages = async (templateImages) => {
   }
 };
 
-export const generateOfferPdf = async (offer: any) => {
+export const generateOfferPdf = async (offer: any, templateId = 'default') => {
   // Si l'offre contient déjà un template, l'utiliser (pour les aperçus)
-  const template = offer.__template || await getPDFTemplate();
+  const template = offer.__template || await getPDFTemplate(templateId);
   
   // Supprimer le template de l'offre si présent (pour éviter de le stocker)
   if (offer.__template) {
@@ -113,18 +62,36 @@ export const generateOfferPdf = async (offer: any) => {
   // Créer un nouveau document PDF
   const doc = new jsPDF();
   
+  // Si aucun template n'est trouvé, générer un PDF simple
+  if (!template) {
+    console.warn("Aucun modèle PDF trouvé, génération d'un PDF simple");
+    
+    doc.setFontSize(20);
+    doc.text(`Offre ${offer.id.slice(0, 8)}`, 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Client: ${offer.client_name || 'Non spécifié'}`, 20, 40);
+    doc.text(`Montant: ${formatCurrency(offer.amount || 0)}`, 20, 50);
+    doc.text(`Date: ${formatDate(offer.created_at || new Date())}`, 20, 60);
+    
+    const filename = `Offre_${offer.id.slice(0, 8)}_simple.pdf`;
+    doc.save(filename);
+    
+    return filename;
+  }
+  
   // Définir les propriétés du document
   doc.setProperties({
     title: `Offre ${offer.id.slice(0, 8)}`,
     subject: 'Offre commerciale',
-    author: template?.companyName || 'iTakeCare',
+    author: template.companyName || 'iTakeCare',
     keywords: 'offre, leasing, équipement',
-    creator: template?.companyName || 'iTakeCare Plateforme'
+    creator: template.companyName || 'iTakeCare Plateforme'
   });
   
   // Définir les couleurs principales en fonction du modèle
-  const primaryColor = template?.primaryColor || '#2C3E50';
-  const secondaryColor = template?.secondaryColor || '#3498DB';
+  const primaryColor = template.primaryColor || '#2C3E50';
+  const secondaryColor = template.secondaryColor || '#3498DB';
   
   // Convertir les couleurs hexadécimales en RGB pour jsPDF
   const hexToRgb = (hex: string) => {
@@ -140,7 +107,20 @@ export const generateOfferPdf = async (offer: any) => {
   
   // Fonction pour résoudre les valeurs des champs
   const resolveFieldValue = (pattern: string) => {
+    // Ajouter variables système
+    const currentDate = new Date();
+    const systemVars = {
+      current_date: formatDate(currentDate),
+      page_number: '{{page}}', // Sera remplacé par jsPDF
+      total_pages: '{{pages}}' // Sera remplacé par jsPDF
+    };
+    
     return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
+      // Vérifier d'abord les variables système
+      if (systemVars[key] !== undefined) {
+        return systemVars[key];
+      }
+      
       const keyParts = key.split('.');
       let value = offer;
       
@@ -162,7 +142,7 @@ export const generateOfferPdf = async (offer: any) => {
         return formatDate(value);
       }
       
-      return value || 'Non renseigné';
+      return value || '';
     });
   };
   
@@ -198,7 +178,7 @@ export const generateOfferPdf = async (offer: any) => {
   };
   
   // Vérifier si nous avons des images de template
-  const hasTemplateImages = template?.templateImages && template.templateImages.length > 0;
+  const hasTemplateImages = template.templateImages && template.templateImages.length > 0;
   
   if (hasTemplateImages) {
     // Précharger les images de template
@@ -236,7 +216,7 @@ export const generateOfferPdf = async (offer: any) => {
       }
       
       // Ajouter les champs pour cette page
-      if (template?.fields) {
+      if (template.fields) {
         template.fields
           .filter(field => field.isVisible && (field.page === index || field.page === null))
           .forEach(field => {
@@ -347,7 +327,7 @@ export const generateOfferPdf = async (offer: any) => {
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
     doc.text(
-      template?.footerText || 
+      template.footerText || 
       'Cette offre est valable 30 jours à compter de sa date d\'émission. Cette offre est soumise à l\'acceptation finale du bailleur.',
       doc.internal.pageSize.getWidth() / 2, 
       doc.internal.pageSize.getHeight() - 20,
@@ -355,14 +335,14 @@ export const generateOfferPdf = async (offer: any) => {
     );
     
     doc.text(
-      `${template?.companyName || 'iTakeCare'} - ${template?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}`,
+      `${template.companyName || 'iTakeCare'} - ${template.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}`,
       doc.internal.pageSize.getWidth() / 2, 
       doc.internal.pageSize.getHeight() - 15,
       { align: 'center' }
     );
     
     doc.text(
-      `${template?.companySiret || 'TVA: BE 0795.642.894'} - ${template?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}`,
+      `${template.companySiret || 'TVA: BE 0795.642.894'} - ${template.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}`,
       doc.internal.pageSize.getWidth() / 2, 
       doc.internal.pageSize.getHeight() - 10,
       { align: 'center' }
@@ -372,7 +352,7 @@ export const generateOfferPdf = async (offer: any) => {
     // Générer le PDF standard sans images de template
     
     // Ajouter le logo de l'entreprise s'il existe
-    if (template?.logoURL) {
+    if (template.logoURL) {
       try {
         const img = new Image();
         img.src = template.logoURL;
@@ -395,12 +375,12 @@ export const generateOfferPdf = async (offer: any) => {
     // Ajouter le titre du document
     doc.setFontSize(20);
     doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
-    const headerText = template?.headerText?.replace('{offer_id}', `OFF-${offer.id.slice(0, 8)}`) || 
+    const headerText = template.headerText?.replace('{offer_id}', `OFF-${offer.id.slice(0, 8)}`) || 
                       `OFFRE N° OFF-${offer.id.slice(0, 8)}`;
     doc.text(headerText, 105, 30, { align: 'center' });
     
     // Ajouter les champs selon le modèle personnalisé
-    if (template?.fields) {
+    if (template.fields) {
       // Parcourir tous les champs visibles et les ajouter au PDF
       template.fields
         .filter(field => field.isVisible && (field.page === 0 || field.page === null))
@@ -513,7 +493,7 @@ export const generateOfferPdf = async (offer: any) => {
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
     doc.text(
-      template?.footerText || 
+      template.footerText || 
       'Cette offre est valable 30 jours à compter de sa date d\'émission. Cette offre est soumise à l\'acceptation finale du bailleur.',
       14, 270
     );
@@ -521,12 +501,12 @@ export const generateOfferPdf = async (offer: any) => {
     // Ajouter le pied de page avec les informations de l'entreprise
     doc.setFontSize(8);
     doc.setTextColor(120, 120, 120);
-    doc.text(`${template?.companyName || 'iTakeCare'} - ${template?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}`, 105, 280, { align: 'center' });
-    doc.text(`${template?.companySiret || 'TVA: BE 0795.642.894'} - ${template?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}`, 105, 285, { align: 'center' });
+    doc.text(`${template.companyName || 'iTakeCare'} - ${template.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}`, 105, 280, { align: 'center' });
+    doc.text(`${template.companySiret || 'TVA: BE 0795.642.894'} - ${template.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}`, 105, 285, { align: 'center' });
   }
   
   // Enregistrer le PDF avec un nom de fichier approprié
-  const filename = `Offre_${offer.id.slice(0, 8)}_${offer.client_name.replace(/\s+/g, '_')}.pdf`;
+  const filename = `Offre_${offer.id.slice(0, 8)}_${offer.client_name ? offer.client_name.replace(/\s+/g, '_') : 'client'}.pdf`;
   doc.save(filename);
   
   return filename;

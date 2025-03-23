@@ -6,6 +6,7 @@ import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
 import PDFPreview from './PDFPreview';
 
+// Les champs par défaut sont conservés
 const DEFAULT_FIELDS = [
   // Client fields
   {
@@ -386,7 +387,19 @@ const DEFAULT_FIELDS = [
   }
 ];
 
-const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => {
+interface PDFTemplateWithFieldsProps {
+  template: any;
+  onSave: (template: any) => void;
+  activeTab?: string;
+  readOnly?: boolean;
+}
+
+const PDFTemplateWithFields: React.FC<PDFTemplateWithFieldsProps> = ({ 
+  template, 
+  onSave, 
+  activeTab = "template",
+  readOnly = false
+}) => {
   const [currentTemplate, setCurrentTemplate] = useState(template || {
     id: 'default',
     name: 'Modèle par défaut',
@@ -405,22 +418,24 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
   
   const [selectedPage, setSelectedPage] = useState(0);
   const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Update the local state when the parent template changes
+  // Mettre à jour l'état local lorsque le modèle parent change
   useEffect(() => {
     if (template) {
       setCurrentTemplate(template);
+      setHasUnsavedChanges(false);
     }
   }, [template]);
 
-  // Update active tab when prop changes
+  // Mettre à jour l'onglet actif lorsque la prop change
   useEffect(() => {
     if (activeTab) {
       setInternalActiveTab(activeTab);
     }
   }, [activeTab]);
 
-  // Handle images change without triggering save directly
+  // Gérer le changement d'images sans déclencher de sauvegarde directe
   const handleImagesChange = (newImages) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -428,13 +443,10 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
     };
     
     setCurrentTemplate(updatedTemplate);
-    
-    if (onSave) {
-      onSave(updatedTemplate);
-    }
+    setHasUnsavedChanges(true);
   };
 
-  // Handle fields change without triggering save directly
+  // Gérer le changement de champs sans déclencher de sauvegarde directe
   const handleFieldsChange = (newFields) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -445,9 +457,14 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
     };
     
     setCurrentTemplate(updatedTemplate);
-    
-    if (onSave) {
-      onSave(updatedTemplate);
+    setHasUnsavedChanges(true);
+  };
+
+  // Fonction pour sauvegarder explicitement
+  const handleSaveTemplate = () => {
+    if (onSave && hasUnsavedChanges) {
+      onSave(currentTemplate);
+      setHasUnsavedChanges(false);
     }
   };
 
@@ -503,7 +520,7 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
     handleFieldsChange(newFields);
   };
 
-  // If displaying only one tab, skip the tab interface
+  // Si l'affichage est limité à un seul onglet, ne pas afficher l'interface à onglets
   if (activeTab && activeTab !== "all") {
     if (activeTab === "template") {
       return (
@@ -518,6 +535,7 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
                 onChange={handleImagesChange}
                 selectedPage={selectedPage}
                 onPageSelect={setSelectedPage}
+                readOnly={readOnly}
               />
             </CardContent>
           </Card>
@@ -538,6 +556,7 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
           onAddField={handleAddField}
           onDuplicateField={handleDuplicateField}
           onRemoveFieldFromPage={handleRemoveFieldFromPage}
+          readOnly={readOnly}
         />
       );
     } else if (activeTab === "preview") {
@@ -545,7 +564,7 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
     }
   }
 
-  // Full tabs interface
+  // Interface à onglets complète
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center mb-4">
@@ -567,6 +586,7 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
                 onChange={handleImagesChange}
                 selectedPage={selectedPage}
                 onPageSelect={setSelectedPage}
+                readOnly={readOnly}
               />
             </CardContent>
           </Card>
@@ -586,6 +606,7 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
             onAddField={handleAddField}
             onDuplicateField={handleDuplicateField}
             onRemoveFieldFromPage={handleRemoveFieldFromPage}
+            readOnly={readOnly}
           />
         </TabsContent>
         
@@ -597,4 +618,5 @@ const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => 
   );
 };
 
+export { DEFAULT_FIELDS };
 export default PDFTemplateWithFields;

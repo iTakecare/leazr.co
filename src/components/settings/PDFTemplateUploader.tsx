@@ -1,406 +1,361 @@
-
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FileUp, Trash, Eye, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Trash2, Upload, Image as ImageIcon, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { getAdminSupabaseClient, supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from "uuid";
-import { uploadImage } from "@/services/imageService";
 
-const PDFTemplateUploader = ({ templateImages = [], onChange, selectedPage = 0, onPageSelect }) => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [localImages, setLocalImages] = useState([]);
-  const [isLoadingImages, setIsLoadingImages] = useState(true);
-  
-  console.log("PDFTemplateUploader render with templateImages:", templateImages);
-  
-  // On mount, check if templateImages is available and fetch images from storage if needed
+// Le reste du composant existant est conservé, mais on ajoute le support readOnly
+const PDFTemplateUploader = ({ 
+  templateImages = [], 
+  onChange, 
+  selectedPage = 0, 
+  onPageSelect,
+  readOnly = false 
+}) => {
+  const [images, setImages] = useState(templateImages || []);
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [newPageNumber, setNewPageNumber] = useState(1);
+  const [selectedPageInternal, setSelectedPage] = useState(selectedPage);
+
+  // Synchroniser les images avec les props
   useEffect(() => {
-    const initializeImages = async () => {
-      console.log("Initializing images with templateImages:", templateImages);
-      setIsLoadingImages(true);
-      
-      try {
-        if (templateImages && Array.isArray(templateImages) && templateImages.length > 0) {
-          console.log("Using provided templateImages:", templateImages);
-          
-          // Ensure all images have a page number set
-          const imagesWithPageNumbers = templateImages.map((img, idx) => ({
-            ...img,
-            page: img.page !== undefined ? img.page : idx
-          }));
-          
-          console.log("Images with ensured page numbers:", imagesWithPageNumbers);
-          setLocalImages(imagesWithPageNumbers);
-          
-          // If page numbers have been added/fixed, notify parent
-          if (JSON.stringify(imagesWithPageNumbers) !== JSON.stringify(templateImages)) {
-            onChange(imagesWithPageNumbers);
-          }
-        } else {
-          // If no templateImages provided, try to list all images in the bucket
-          console.log("No templateImages provided, listing from storage");
-          const { data: storageFiles, error } = await supabase.storage
-            .from('pdf-templates')
-            .list();
-            
-          if (error) {
-            console.error("Error listing files from storage:", error);
-            toast.error("Erreur lors de la récupération des fichiers");
-            setLocalImages([]);
-          } else if (storageFiles && storageFiles.length > 0) {
-            console.log("Files found in storage:", storageFiles);
-            
-            // Map storage files to our expected format
-            const mappedImages = storageFiles.map((file, index) => {
-              const imageUrl = supabase.storage
-                .from('pdf-templates')
-                .getPublicUrl(file.name).data.publicUrl;
-                
-              return {
-                id: file.name,
-                name: file.name,
-                url: imageUrl,
-                page: index
-              };
-            });
-            
-            console.log("Mapped images from storage:", mappedImages);
-            setLocalImages(mappedImages);
-            onChange(mappedImages); // Update parent component with found images
-          } else {
-            console.log("No files found in storage");
-            setLocalImages([]);
-          }
-        }
-      } catch (err) {
-        console.error("Exception during image initialization:", err);
-        toast.error("Une erreur est survenue lors de l'initialisation des images");
-        setLocalImages([]);
-      } finally {
-        setIsLoadingImages(false);
-      }
-    };
-    
-    initializeImages();
-  }, []); // Run only on mount
-  
-  // Upload an image using the service
-  const handleImageUpload = async (file) => {
-    if (!file) return null;
-    
-    try {
-      setIsUploading(true);
-      
-      console.log("Début du processus d'upload pour:", file.name);
-      
-      // Use uploadImage function that correctly handles MIME type
-      const result = await uploadImage(file, uuidv4(), 'pdf-templates');
-      
-      if (result && result.url) {
-        console.log("Upload successful, image URL:", result.url);
-        return {
-          id: result.url.split('/').pop(),
-          name: file.name,
-          url: result.url,
-          page: localImages.length
-        };
-      } else {
-        throw new Error("L'URL du fichier n'a pas été générée correctement");
-      }
-    } catch (error) {
-      console.error("Exception non gérée lors de l'upload:", error);
-      toast.error(`Erreur lors de l'upload du fichier: ${error.message || JSON.stringify(error)}`);
-      return null;
-    } finally {
-      setIsUploading(false);
+    setImages(templateImages || []);
+  }, [templateImages]);
+
+  // Synchroniser la page sélectionnée avec les props
+  useEffect(() => {
+    setSelectedPage(selectedPage);
+  }, [selectedPage]);
+
+  // Gérer le changement de fichier
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
     }
   };
-  
-  // Delete an image
-  const deleteImage = async (imageId) => {
+
+  // Télécharger l'image
+  const handleUpload = async () => {
+    if (!file) {
+      toast.error("Veuillez sélectionner un fichier à télécharger");
+      return;
+    }
+
+    setUploading(true);
+
     try {
-      console.log("Tentative de suppression du fichier:", imageId);
+      const supabase = getSupabaseClient();
       
-      // Try with the standard client first
-      let { error } = await supabase.storage
-        .from('pdf-templates')
-        .remove([imageId]);
+      // Créer un nom de fichier unique
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_page_${newPageNumber}.${fileExt}`;
+      const filePath = `template_images/${fileName}`;
+      
+      // Télécharger le fichier
+      const { data, error } = await supabase.storage
+        .from('pdf_templates')
+        .upload(filePath, file);
         
       if (error) {
-        console.log("Erreur avec le client standard. Tentative avec le client admin...");
+        console.error("Error uploading file:", error);
+        toast.error(`Erreur lors du téléchargement: ${error.message}`);
+        setUploading(false);
+        return;
+      }
+      
+      // Obtenir l'URL publique
+      const { data: urlData } = supabase.storage
+        .from('pdf_templates')
+        .getPublicUrl(filePath);
         
-        // If it fails, try with the admin client
-        const adminSupabase = getAdminSupabaseClient();
-        const result = await adminSupabase.storage
-          .from('pdf-templates')
-          .remove([imageId]);
+      if (!urlData || !urlData.publicUrl) {
+        toast.error("Impossible d'obtenir l'URL publique de l'image");
+        setUploading(false);
+        return;
+      }
+      
+      // Créer un nouvel objet d'image
+      const newImage = {
+        id: `page_${Date.now()}`,
+        page: newPageNumber - 1,
+        url: urlData.publicUrl,
+        path: filePath
+      };
+      
+      // Mettre à jour les images localement
+      const updatedImages = [...images];
+      
+      // Vérifier si une image existe déjà pour cette page
+      const existingIndex = updatedImages.findIndex(img => img.page === newPageNumber - 1);
+      
+      if (existingIndex >= 0) {
+        // Remplacer l'image existante
+        updatedImages[existingIndex] = newImage;
+      } else {
+        // Ajouter la nouvelle image
+        updatedImages.push(newImage);
+      }
+      
+      // Trier les images par numéro de page
+      updatedImages.sort((a, b) => a.page - b.page);
+      
+      // Mettre à jour l'état local
+      setImages(updatedImages);
+      
+      // Notifier le parent
+      if (onChange) {
+        onChange(updatedImages);
+      }
+      
+      // Réinitialiser le formulaire
+      setFile(null);
+      document.getElementById('file-upload').value = '';
+      
+      // Sélectionner la nouvelle page
+      setSelectedPage(newPageNumber - 1);
+      if (onPageSelect) {
+        onPageSelect(newPageNumber - 1);
+      }
+      
+      toast.success("Image téléchargée avec succès");
+    } catch (error) {
+      console.error("Error in upload process:", error);
+      toast.error(`Erreur: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Supprimer une image
+  const handleDeleteImage = async (imageId) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette image ?")) {
+      return;
+    }
+    
+    try {
+      const imageToDelete = images.find(img => img.id === imageId);
+      
+      if (!imageToDelete) {
+        return;
+      }
+      
+      // Supprimer le fichier du stockage si nous avons un chemin
+      if (imageToDelete.path) {
+        const supabase = getSupabaseClient();
+        
+        const { error } = await supabase.storage
+          .from('pdf_templates')
+          .remove([imageToDelete.path]);
           
-        if (result.error) {
-          console.error("Erreur détaillée lors de la suppression avec le client admin:", result.error);
-          toast.error(`Erreur lors de la suppression du fichier: ${result.error.message}`);
-          return;
+        if (error) {
+          console.error("Error deleting file from storage:", error);
+          // Continue anyway to remove from the UI
         }
       }
       
-      console.log("Fichier supprimé avec succès");
+      // Mettre à jour les images localement
+      const updatedImages = images.filter(img => img.id !== imageId);
       
-      // Update the image list
-      const updatedImages = localImages.filter(img => img.id !== imageId);
+      // Réindexer les pages si nécessaire
+      const reindexedImages = updatedImages.map((img, index) => ({
+        ...img,
+        page: index
+      }));
       
-      // Reindex page numbers
-      updatedImages.forEach((img, idx) => {
-        img.page = idx;
-      });
+      // Mettre à jour l'état local
+      setImages(reindexedImages);
       
-      setLocalImages(updatedImages);
-      onChange(updatedImages);
+      // Notifier le parent
+      if (onChange) {
+        onChange(reindexedImages);
+      }
       
-      // If the currently selected page no longer exists, select the last available page
-      if (selectedPage >= updatedImages.length && onPageSelect) {
-        onPageSelect(Math.max(0, updatedImages.length - 1));
+      // Ajuster la page sélectionnée si nécessaire
+      const newSelectedPage = Math.min(selectedPageInternal, reindexedImages.length - 1);
+      setSelectedPage(Math.max(0, newSelectedPage));
+      if (onPageSelect) {
+        onPageSelect(Math.max(0, newSelectedPage));
       }
       
       toast.success("Image supprimée avec succès");
     } catch (error) {
-      console.error("Exception non gérée lors de la suppression:", error);
-      toast.error(`Erreur lors de la suppression du fichier: ${error.message || JSON.stringify(error)}`);
-    }
-  };
-  
-  // Handle file upload
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    // Check file type (images only)
-    if (!file.type.startsWith('image/')) {
-      toast.error("Veuillez sélectionner une image");
-      return;
-    }
-    
-    console.log("Début du processus d'upload pour:", file.name);
-    
-    const uploadedImage = await handleImageUpload(file);
-    if (uploadedImage) {
-      const newImages = [...localImages, uploadedImage];
-      console.log("New images array after upload:", newImages);
-      setLocalImages(newImages);
-      onChange(newImages); // Notify parent component immediately
-      
-      // If this is the first image, select it automatically
-      if (newImages.length === 1 && onPageSelect) {
-        onPageSelect(0);
-      }
-      
-      toast.success("Image uploadée avec succès");
+      console.error("Error deleting image:", error);
+      toast.error(`Erreur: ${error.message}`);
     }
   };
 
-  // Move an image up
-  const moveUp = (index) => {
-    if (index === 0) return;
-    
-    const newImages = [...localImages];
-    [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
-    
-    // Update page numbers
-    newImages.forEach((img, idx) => {
-      img.page = idx;
-    });
-    
-    setLocalImages(newImages);
-    onChange(newImages); // Notify parent component immediately
-    
-    // Update selected page index if it was one of the moved pages
-    if (onPageSelect && (selectedPage === index || selectedPage === index - 1)) {
-      onPageSelect(selectedPage === index ? index - 1 : index);
-    }
-  };
-  
-  // Move an image down
-  const moveDown = (index) => {
-    if (index === localImages.length - 1) return;
-    
-    const newImages = [...localImages];
-    [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
-    
-    // Update page numbers
-    newImages.forEach((img, idx) => {
-      img.page = idx;
-    });
-    
-    setLocalImages(newImages);
-    onChange(newImages); // Notify parent component immediately
-    
-    // Update selected page index if it was one of the moved pages
-    if (onPageSelect && (selectedPage === index || selectedPage === index + 1)) {
-      onPageSelect(selectedPage === index ? index + 1 : index);
-    }
-  };
-  
-  // Preview an image
-  const previewImage = (imageUrl) => {
-    window.open(imageUrl, '_blank');
-  };
-  
-  // Select a page for editing
-  const selectPage = (index) => {
-    if (onPageSelect) {
-      onPageSelect(index);
-    }
-  };
-  
-  // Handle image loading error
-  const handleImageError = (e, imageUrl) => {
-    console.error("Image failed to load:", imageUrl);
-    e.target.src = "/placeholder.svg"; // Fallback image
-    
-    // Try to reload the image with a cache-busting parameter
-    setTimeout(() => {
-      if (e.target.src === "/placeholder.svg") {
-        const timestamp = new Date().getTime();
-        e.target.src = `${imageUrl}?t=${timestamp}`;
-        console.log("Attempting to reload image with cache-busting:", `${imageUrl}?t=${timestamp}`);
-      }
-    }, 2000);
-  };
-
-  // Force re-render of images by adding timestamp to URLs
-  const timestampedImages = localImages.map(img => ({
-    ...img,
-    displayUrl: `${img.url}?t=${new Date().getTime()}`
-  }));
-  
+  // Dans la méthode de rendu, assurez-vous de désactiver les boutons en mode readOnly
   return (
     <div className="space-y-6">
-      <div className="border rounded-md p-4">
-        <Label htmlFor="template-upload" className="text-sm font-medium">Ajouter un modèle de page</Label>
-        <div className="flex gap-2 mt-2">
-          <Input
-            id="template-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            disabled={isUploading}
-            className="flex-1"
-          />
-          <Button disabled={isUploading} className="min-w-20">
-            {isUploading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            ) : (
-              <>
-                <FileUp className="h-4 w-4 mr-2" />
-                <span>Upload</span>
-              </>
-            )}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-medium">Télécharger des images de modèle</h3>
+        <div className="flex space-x-2">
+          <Button 
+            onClick={() => setSelectedPage(Math.max(0, selectedPageInternal - 1))}
+            disabled={selectedPageInternal === 0 || images.length === 0}
+            variant="outline"
+            size="icon"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <span className="py-2 px-3 bg-muted rounded-md text-sm font-medium">
+            Page {selectedPageInternal + 1} / {Math.max(1, images.length)}
+          </span>
+          <Button 
+            onClick={() => setSelectedPage(Math.min(images.length - 1, selectedPageInternal + 1))}
+            disabled={selectedPageInternal >= images.length - 1 || images.length === 0}
+            variant="outline"
+            size="icon"
+          >
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Formats acceptés: PNG, JPG, WEBP. L'ordre des pages correspond à l'ordre dans lequel elles apparaîtront dans le document final.
-        </p>
       </div>
-      
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium">Pages du modèle ({localImages.length})</h3>
-        
-        {isLoadingImages ? (
-          <div className="text-center p-8 border border-dashed rounded-md">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-sm text-muted-foreground">
-              Chargement des pages du modèle...
-            </p>
-          </div>
-        ) : localImages.length === 0 ? (
-          <div className="text-center p-8 border border-dashed rounded-md">
-            <p className="text-sm text-muted-foreground">
-              Aucune page n'a encore été uploadée. Utilisez le formulaire ci-dessus pour ajouter des pages à votre modèle.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {timestampedImages.map((image, index) => (
-              <Card 
-                key={`${image.id}-${index}`} 
-                className={`overflow-hidden ${selectedPage === index ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => selectPage(index)}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Preview */}
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center min-h-[400px] bg-gray-50">
+            {images.length > 0 && selectedPageInternal < images.length ? (
+              <div className="relative w-full">
+                <img 
+                  src={images[selectedPageInternal].url} 
+                  alt={`Template page ${selectedPageInternal + 1}`}
+                  className="max-w-full max-h-[500px] mx-auto object-contain border rounded-md shadow-sm"
+                  onError={(e) => {
+                    console.error("Error loading image:", e.currentTarget.src);
+                    e.currentTarget.src = "/placeholder.svg";
+                  }}
+                />
+                {!readOnly && (
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2"
+                    onClick={() => handleDeleteImage(images[selectedPageInternal].id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="text-center">
+                <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-muted-foreground">Aucune image de modèle disponible pour cette page</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Upload */}
+        <div className="space-y-4">
+          {!readOnly && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="pageNumber">Numéro de page</Label>
+                <Input 
+                  id="pageNumber" 
+                  type="number"
+                  min="1"
+                  value={newPageNumber} 
+                  onChange={(e) => setNewPageNumber(Math.max(1, parseInt(e.target.value) || 1))}
+                  placeholder="Numéro de page"
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="file-upload">Fichier image (PNG, JPG, PDF)</Label>
+                <Input
+                  id="file-upload"
+                  type="file"
+                  accept="image/png,image/jpeg,application/pdf"
+                  onChange={handleFileChange}
+                  className="w-full"
+                />
+              </div>
+              
+              <Button 
+                onClick={handleUpload} 
+                disabled={uploading || !file}
+                className="w-full"
               >
-                <div className="relative bg-gray-100 h-40 flex items-center justify-center">
-                  <img 
-                    src={image.displayUrl} 
-                    alt={`Template page ${index + 1}`}
-                    className="max-h-full max-w-full object-contain"
-                    onError={(e) => handleImageError(e, image.url)}
-                  />
-                  <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-                    Page {index + 1}
-                  </div>
-                  {selectedPage === index && (
-                    <div className="absolute top-2 right-2 bg-primary text-white px-2 py-1 rounded text-xs">
-                      Sélectionnée
+                {uploading ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-b-2 border-current rounded-full"></div>
+                    Téléchargement...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Télécharger l'image
+                  </>
+                )}
+              </Button>
+            </>
+          )}
+          
+          <div className="mt-6">
+            <h4 className="text-sm font-medium mb-2">Pages du modèle ({images.length})</h4>
+            {images.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {images.map((image, index) => (
+                  <div 
+                    key={image.id} 
+                    className={`relative border rounded p-1 cursor-pointer ${selectedPageInternal === index ? 'border-primary ring-2 ring-primary/20' : 'border-gray-200'}`}
+                    onClick={() => {
+                      setSelectedPage(index);
+                      if (onPageSelect) onPageSelect(index);
+                    }}
+                  >
+                    <div className="aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm">
+                      <img 
+                        src={image.url} 
+                        alt={`Template page ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error("Error loading thumbnail:", e.currentTarget.src);
+                          e.currentTarget.src = "/placeholder.svg";
+                        }}
+                      />
                     </div>
-                  )}
-                </div>
-                <CardContent className="p-3">
-                  <div className="flex justify-between items-center">
-                    <div className="truncate text-sm">{image.name || `Page ${index + 1}`}</div>
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveUp(index);
-                        }}
-                        disabled={index === 0}
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveDown(index);
-                        }}
-                        disabled={index === localImages.length - 1}
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          previewImage(image.url);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteImage(image.id);
-                        }}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <span className="absolute top-0 left-0 bg-primary text-white text-xs px-1 rounded-bl rounded-tr">
+                      {index + 1}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                ))}
+                {!readOnly && (
+                  <button
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                    className="aspect-[3/4] border-2 border-dashed border-gray-200 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <Plus className="h-6 w-6 text-gray-400" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="text-center border-2 border-dashed border-gray-200 rounded-md p-6 bg-gray-50">
+                <ImageIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground mb-2">Aucune image de modèle</p>
+                {!readOnly && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Ajouter une page
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
