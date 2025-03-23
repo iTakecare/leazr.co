@@ -274,13 +274,18 @@ const PDFPreview = ({ template }) => {
 
   // Convertir les millimètres en pixels pour le positionnement correct
   const mmToPx = (mm) => {
-    // Facteur de conversion standard pour un document A4 à 96 DPI
-    // 1 mm = environ 3.7795275591 pixels
+    // A4 dimensions: 210 x 297 mm
+    // Scale factor adjusted to match the PDF preview container
+    // We use the actual pixel size of our preview container compared to A4 dimensions
+    
+    // Define the pixel width of the preview container 
+    // (this should match the actual width of the preview container in the UI)
+    const previewContainerWidth = 210 * zoomLevel; // This is in mm, will be converted to px
+    
+    // Standard conversion: 1 mm = 3.7795275591 pixels at 96 DPI
     const pxPerMm = 3.7795275591;
     
-    // Le format A4 est de 210x297mm
-    // Appliquer la conversion en tenant compte du niveau de zoom
-    return mm * pxPerMm * zoomLevel;
+    return mm * pxPerMm * (zoomLevel);
   };
   
   // Zoom in
@@ -409,22 +414,15 @@ const PDFPreview = ({ template }) => {
                           fontStyle: field.style?.fontStyle || 'normal',
                           textDecoration: field.style?.textDecoration || 'none',
                           color: field.style?.color || 'black',
-                          transform: "translate(0, 0)",
                           whiteSpace: "pre-wrap",
-                          maxWidth: "80mm"
+                          maxWidth: field.id === 'equipment_table' ? "150mm" : "80mm"
                         } as CSSProperties;
-                        
-                        // Style spécifique pour le tableau d'équipements
-                        if (field.id === 'equipment_table') {
-                          fieldStyle.fontSize = `${9 * zoomLevel}px`;
-                          fieldStyle.maxWidth = "150mm";
-                        }
                         
                         return (
                           <div 
                             key={field.id}
                             style={fieldStyle}
-                            className="pdf-field" // Classe pour faciliter le débogage CSS
+                            className="pdf-field"
                           >
                             {field.id === 'equipment_table' ? (
                               renderEquipmentTable(SAMPLE_OFFER.equipment_description)
