@@ -23,7 +23,7 @@ const PDFField = ({ field, zoomLevel, resolveValue }) => {
   
   // Style du champ
   const style = {
-    position: "absolute",
+    position: "absolute" as const, // Using type assertion to fix the error
     left: `${xPx}px`,
     top: `${yPx}px`,
     zIndex: 5,
@@ -32,7 +32,7 @@ const PDFField = ({ field, zoomLevel, resolveValue }) => {
     fontStyle: field.style?.fontStyle || 'normal',
     textDecoration: field.style?.textDecoration || 'none',
     color: field.style?.color || 'black',
-    whiteSpace: "pre-wrap",
+    whiteSpace: "pre-wrap" as const,
     maxWidth: field.id === 'equipment_table' 
       ? `${mmToPx(150)}px` 
       : `${mmToPx(80)}px`
