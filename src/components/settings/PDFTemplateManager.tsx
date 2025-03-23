@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
+import { Save } from "lucide-react";
 
 const PDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
@@ -151,11 +152,30 @@ const PDFTemplateManager = () => {
   const handleTemplateUpdate = (updatedTemplate) => {
     saveTemplate(updatedTemplate);
   };
+
+  // Sauvegarder manuellement le modèle actuel
+  const handleManualSave = () => {
+    if (template) {
+      saveTemplate(template);
+    } else {
+      toast.error("Aucun modèle à sauvegarder");
+    }
+  };
   
   return (
     <Card className="w-full mt-6">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Gestionnaire de modèles PDF</CardTitle>
+        <Button 
+          variant="default" 
+          size="sm" 
+          onClick={handleManualSave}
+          disabled={saving || loading || !template}
+          className="ml-auto"
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? "Sauvegarde..." : "Sauvegarder"}
+        </Button>
       </CardHeader>
       <CardContent>
         {loading ? (
