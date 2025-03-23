@@ -73,6 +73,12 @@ const getPDFTemplate = async () => {
       return null;
     }
     
+    console.log("Modèle PDF récupéré:", {
+      nom: data?.name,
+      nbChamps: Array.isArray(data?.fields) ? data.fields.length : 0,
+      nbImages: Array.isArray(data?.templateImages) ? data.templateImages.length : 0
+    });
+    
     return data || null;
   } catch (error) {
     console.error("Erreur lors de la récupération du modèle PDF:", error);
@@ -160,7 +166,7 @@ const preloadImages = async (templateImages) => {
 
 export const generateOfferPdf = async (offer: any) => {
   console.log("Débogage génération PDF: Démarrage de la génération PDF");
-  console.log("Débogage génération PDF: Objet offre:", JSON.stringify(offer, null, 2));
+  console.log("Débogage génération PDF: Clés de l'objet offre:", Object.keys(offer));
   
   // Si l'offre contient déjà un template, l'utiliser (pour les aperçus)
   const template = offer.__template || await getPDFTemplate();
@@ -170,17 +176,21 @@ export const generateOfferPdf = async (offer: any) => {
     throw new Error("Aucun modèle disponible pour la génération PDF");
   }
   
-  console.log("Débogage génération PDF: Champs du modèle:", 
-    template.fields && template.fields.map(f => ({
-      id: f.id, 
-      value: f.value, 
-      position: f.position, 
-      page: f.page
-    }))
-  );
+  console.log("Débogage génération PDF: Modèle chargé", {
+    nom: template.name,
+    nbChamps: Array.isArray(template.fields) ? template.fields.length : 0,
+    nbImages: Array.isArray(template.templateImages) ? template.templateImages.length : 0
+  });
 
-  // Débogage: Vérifier les données d'offre pour la résolution des champs
-  console.log("Débogage génération PDF: Clés d'offre disponibles:", Object.keys(offer));
+  // Afficher les détails des champs pour le débogage
+  if (Array.isArray(template.fields) && template.fields.length > 0) {
+    console.log("Débogage champs du modèle:");
+    template.fields.forEach((field, idx) => {
+      console.log(`Champ ${idx}: ${field.id || 'sans-id'} - Valeur: "${field.value}" - Position: ${JSON.stringify(field.position || 'non définie')}`);
+    });
+  } else {
+    console.error("Aucun champ défini dans le modèle ou format invalide");
+  }
 
   // Supprimer le template de l'offre si présent (pour éviter de le stocker)
   if (offer.__template) {
@@ -192,7 +202,7 @@ export const generateOfferPdf = async (offer: any) => {
   
   // Définir les propriétés du document
   doc.setProperties({
-    title: `Offre ${offer.id.slice(0, 8)}`,
+    title: `Offre ${offer.id ? offer.id.slice(0, 8) : 'sans id'}`,
     subject: 'Offre commerciale',
     author: template?.companyName || 'iTakeCare',
     keywords: 'offre, leasing, équipement',
@@ -215,24 +225,36 @@ export const generateOfferPdf = async (offer: any) => {
   
   const primaryRgb = hexToRgb(primaryColor);
   
-  // Fonction pour résoudre les valeurs des champs
+  // Fonction pour résoudre les valeurs des champs avec plus de détails de débogage
   const resolveFieldValue = (pattern: string) => {
-    console.log(`Résolution de la valeur du champ pour le motif: ${pattern}`);
-  
     if (!pattern || typeof pattern !== 'string') {
       console.warn(`Motif invalide: ${pattern}`);
       return '';
     }
     
     try {
-      return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
+      console.log(`Résolution du motif: "${pattern}"`);
+      
+      // Afficher toutes les données disponibles pour débogage
+      console.log("Données disponibles pour la résolution:", {
+        clientName: offer.client_name,
+        amount: offer.amount,
+        monthlyPayment: offer.monthly_payment,
+        equipment: typeof offer.equipment_description === 'string' && offer.equipment_description.length > 20 
+          ? offer.equipment_description.substring(0, 20) + '...' 
+          : offer.equipment_description
+      });
+      
+      // Résoudre les placeholders avec une syntaxe {clé}
+      const resolvedValue = pattern.replace(/\{([^}]+)\}/g, (match, key) => {
         console.log(`Tentative de résolution de la clé: ${key}`);
         
+        // Support pour la notation avec points (obj.prop)
         const keyParts = key.split('.');
         let value = offer;
         
         for (const part of keyParts) {
-          console.log(`Vérification de la partie: ${part}`);
+          console.log(`Recherche de la partie: ${part}`);
           if (value === undefined || value === null) {
             console.warn(`Valeur indéfinie pour la partie de clé: ${part}`);
             return '[Non disponible]';
@@ -240,25 +262,38 @@ export const generateOfferPdf = async (offer: any) => {
           value = value[part];
         }
         
-        // Journalisation améliorée pour la résolution des valeurs
-        console.log(`Valeur résolue pour ${key}:`, value);
+        console.log(`Valeur trouvée pour ${key}:`, value);
         
         // Formater selon le type
         if (typeof value === 'number') {
           // Détecter si c'est une valeur monétaire
           if (key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) {
-            return formatCurrency(value);
+            const formatted = formatCurrency(value);
+            console.log(`Formatage monétaire appliqué: ${value} -> ${formatted}`);
+            return formatted;
           }
           return value.toString();
         } else if (value instanceof Date || (typeof value === 'string' && Date.parse(value))) {
-          return formatDate(value);
+          const formatted = formatDate(value);
+          console.log(`Formatage de date appliqué: ${value} -> ${formatted}`);
+          return formatted;
         }
         
-        return value || '[Non disponible]';
+        // Si la valeur est vide ou nulle, renvoyer une chaîne par défaut
+        if (value === undefined || value === null || value === '') {
+          console.warn(`Valeur manquante pour ${key}`);
+          return '[Non disponible]';
+        }
+        
+        // Renvoyer la valeur telle quelle (convertie en chaîne si nécessaire)
+        return String(value);
       });
+      
+      console.log(`Résolution finale: "${pattern}" -> "${resolvedValue}"`);
+      return resolvedValue;
     } catch (error) {
       console.error(`Erreur lors de la résolution de la valeur du champ pour le motif ${pattern}:`, error);
-      return pattern; // Retourner le motif original en cas d'erreur
+      return `[Erreur: ${pattern}]`; // Retourner un message d'erreur visible
     }
   };
   
@@ -269,7 +304,8 @@ export const generateOfferPdf = async (offer: any) => {
       fontSize: 10,
       fontWeight: 'normal',
       fontStyle: 'normal',
-      textDecoration: 'none'
+      textDecoration: 'none',
+      color: '#000000'
     };
     
     const style = field.style || defaultStyle;
@@ -289,7 +325,16 @@ export const generateOfferPdf = async (offer: any) => {
     
     doc.setFont('helvetica', fontStyle);
     
-    // Remarque: La décoration de texte comme le soulignement doit être gérée séparément lors du dessin du texte
+    // Définir la couleur du texte si spécifiée
+    if (style.color) {
+      const textRgb = hexToRgb(style.color);
+      doc.setTextColor(textRgb.r, textRgb.g, textRgb.b);
+    } else {
+      // Couleur par défaut (noir)
+      doc.setTextColor(0, 0, 0);
+    }
+    
+    // Retourner si le texte doit être souligné
     return style.textDecoration === 'underline';
   };
 
@@ -299,31 +344,30 @@ export const generateOfferPdf = async (offer: any) => {
                             Array.isArray(template.templateImages) && 
                             template.templateImages.length > 0;
     
-    console.log("Has template images:", hasTemplateImages, 
-                template?.templateImages?.length || 0);
+    console.log(`Images de template: ${hasTemplateImages ? 'OUI' : 'NON'}, ${template?.templateImages?.length || 0} images`);
     
     if (hasTemplateImages) {
-      console.log("Template has images, attempting to preload them");
+      console.log("Template a des images, préchargement en cours");
       // Précharger les images de template
       const loadedImages = await preloadImages(template.templateImages);
       
-      console.log(`Loaded ${loadedImages.length} images for PDF`);
+      console.log(`${loadedImages.length} images chargées pour le PDF`);
       
-      // Filter to keep only successfully loaded images
+      // Filtrer pour ne garder que les images chargées avec succès
       const successfullyLoadedImages = loadedImages.filter(img => img.image);
       
-      console.log(`Successfully loaded ${successfullyLoadedImages.length} out of ${loadedImages.length} images`);
+      console.log(`${successfullyLoadedImages.length} sur ${loadedImages.length} images chargées avec succès`);
       
       // Si aucune image n'a été chargée correctement, utiliser le modèle standard
       if (successfullyLoadedImages.length === 0) {
-        console.warn("No template images were loaded successfully, falling back to standard template");
+        console.warn("Aucune image de template n'a été chargée avec succès, utilisation du modèle standard");
         generateStandardPdf(doc, offer, template, primaryRgb, resolveFieldValue, applyTextStyle);
       } else {
         // Trier les images par numéro de page
         const sortedImages = successfullyLoadedImages
           .sort((a, b) => (a.page || 0) - (b.page || 0));
         
-        console.log(`Generating PDF with ${sortedImages.length} sorted images`);
+        console.log(`Génération du PDF avec ${sortedImages.length} images triées`);
         
         // Générer chaque page avec l'image correspondante
         sortedImages.forEach((pageImage, index) => {
@@ -334,17 +378,17 @@ export const generateOfferPdf = async (offer: any) => {
           
           // Ajouter l'image de fond
           try {
-            console.log(`Adding image for page ${index + 1}`);
+            console.log(`Ajout de l'image pour la page ${index + 1}`);
             
             if (!pageImage.image) {
-              console.error(`Image for page ${index + 1} is null, skipping`);
+              console.error(`Image pour la page ${index + 1} est null, ignorée`);
               return;
             }
             
             const { width, height } = pageImage.image;
             
             if (!width || !height) {
-              console.error(`Invalid image dimensions for page ${index + 1}: ${width}x${height}`);
+              console.error(`Dimensions d'image invalides pour la page ${index + 1}: ${width}x${height}`);
               return;
             }
             
@@ -362,17 +406,22 @@ export const generateOfferPdf = async (offer: any) => {
             
             doc.addImage(pageImage.image, 'JPEG', offsetX, offsetY, scaledWidth, scaledHeight);
             
-            console.log(`Added image for page ${index + 1}: ${scaledWidth}x${scaledHeight} at ${offsetX},${offsetY}`);
+            console.log(`Image ajoutée pour la page ${index + 1}: ${scaledWidth}x${scaledHeight} à ${offsetX},${offsetY}`);
           } catch (error) {
             console.error(`Erreur lors de l'ajout de l'image pour la page ${index + 1}:`, error);
           }
           
           // Ajouter les champs pour cette page
           if (template?.fields && Array.isArray(template.fields)) {
-            console.log(`Adding fields for page ${index + 1}`);
+            console.log(`Ajout des champs pour la page ${index + 1}`);
             
             const pageFields = template.fields
               .filter(field => {
+                if (!field) {
+                  console.warn("Champ invalide trouvé (null ou undefined)");
+                  return false;
+                }
+                
                 const isVisible = field.isVisible !== false;
                 const isForThisPage = field.page === index || (index === 0 && field.page === undefined);
                 const hasValidPosition = field.position && 
@@ -380,22 +429,30 @@ export const generateOfferPdf = async (offer: any) => {
                                       typeof field.position.y === 'number';
                 
                 if (isForThisPage && !hasValidPosition) {
-                  console.warn(`Field ${field.id || 'unknown'} is for page ${index + 1} but has invalid position:`, field.position);
+                  console.warn(`Champ ${field.id || 'unknown'} est pour la page ${index + 1} mais a une position invalide:`, field.position);
                 }
                 
                 return isVisible && isForThisPage && hasValidPosition;
               });
             
-            console.log(`Found ${pageFields.length} valid fields for page ${index + 1}`);
+            console.log(`${pageFields.length} champs valides trouvés pour la page ${index + 1}`);
+            
+            // Liste détaillée des champs filtrés pour la page
+            if (pageFields.length > 0) {
+              console.log("Détail des champs pour cette page:");
+              pageFields.forEach((f, i) => {
+                console.log(`  ${i+1}. ID: ${f.id || 'sans-id'}, Label: ${f.label || 'sans-label'}, Position: (${f.position?.x || '?'}, ${f.position?.y || '?'})`);
+              });
+            }
             
             pageFields.forEach((field, fieldIndex) => {
-              // Double-check field position
+              // Double vérification de la position du champ
               if (!field.position || typeof field.position.x !== 'number' || typeof field.position.y !== 'number') {
-                console.warn(`Skipping field ${field.id || 'unknown'} due to invalid position:`, field.position);
+                console.warn(`Ignoré champ ${field.id || 'unknown'} à cause d'une position invalide:`, field.position);
                 return;
               }
               
-              console.log(`Processing field ${fieldIndex}: ${field.id || 'unknown'} at position (${field.position.x}, ${field.position.y})`);
+              console.log(`Traitement du champ ${fieldIndex}: ${field.id || 'unknown'} à la position (${field.position.x}, ${field.position.y})`);
               
               // Conversion des millimètres en points (unité utilisée par jsPDF)
               // 1 mm = 2.83464567 points
@@ -412,6 +469,8 @@ export const generateOfferPdf = async (offer: any) => {
                     equipmentItems = typeof offer.equipment_description === 'string'
                       ? JSON.parse(offer.equipment_description)
                       : offer.equipment_description;
+                      
+                    console.log(`Équipements extraits: ${equipmentItems.length} items`);
                   }
                 } catch (e) {
                   console.error("Erreur lors de l'analyse des données d'équipement:", e);
@@ -455,39 +514,39 @@ export const generateOfferPdf = async (offer: any) => {
                     margin: { left: x }
                   });
                   
-                  console.log(`Added equipment table at (${x}, ${y}) with ${equipmentItems.length} items`);
+                  console.log(`Tableau d'équipements ajouté à (${x}, ${y}) avec ${equipmentItems.length} items`);
                 }
               } else {
                 // Texte simple avec style
                 try {
-                  // Apply text style
-                  const needsUnderline = applyTextStyle(doc, field);
-                  doc.setTextColor(0, 0, 0);
-                  
-                  // Resolve the value from the data
+                  // Résoudre la valeur à partir des données
                   const resolvedValue = resolveFieldValue(field.value || '');
-                  console.log(`Field ${field.id || 'unknown'}: "${field.value}" -> "${resolvedValue}"`);
+                  console.log(`Champ ${field.id || 'unknown'}: "${field.value}" -> "${resolvedValue}"`);
                   
-                  // Draw the text
+                  // Appliquer le style de texte
+                  const needsUnderline = applyTextStyle(doc, field);
+                  
+                  // Dessiner le texte
                   doc.text(resolvedValue, x, y);
                   
-                  // Add underline if needed
+                  // Ajouter un soulignement si nécessaire
                   if (needsUnderline) {
                     const textWidth = doc.getTextWidth(resolvedValue);
-                    const textHeight = field.style?.fontSize || 10;
-                    const underlineY = y + 1; // Slight offset below text
+                    const underlineY = y + 1; // Léger décalage sous le texte
                     doc.line(x, underlineY, x + textWidth, underlineY);
                   }
                   
-                  console.log(`Added text field at (${x}, ${y}): "${resolvedValue}"`);
+                  console.log(`Champ texte ajouté à (${x}, ${y}): "${resolvedValue}"`);
                 } catch (error) {
-                  console.error(`Error rendering field ${field.id || 'unknown'}:`, error);
+                  console.error(`Erreur lors du rendu du champ ${field.id || 'unknown'}:`, error);
                 }
                 
                 // Réinitialiser la police
                 doc.setFont('helvetica', 'normal');
               }
             });
+          } else {
+            console.warn(`Aucun champ trouvé dans le template pour la page ${index + 1}`);
           }
         });
         
@@ -519,46 +578,55 @@ export const generateOfferPdf = async (offer: any) => {
           { align: 'center' }
         );
         
-        console.log("Added footer to the last page");
+        console.log("Pied de page ajouté à la dernière page");
       }
     } else {
       // Générer le PDF standard sans images de template
-      console.log("No template images found, using standard template");
+      console.log("Aucune image de template trouvée, utilisation du modèle standard");
       generateStandardPdf(doc, offer, template, primaryRgb, resolveFieldValue, applyTextStyle);
     }
   } catch (error) {
-    console.error("Error during PDF generation:", error);
-    // If an error occurs during generation, fall back to the standard template
+    console.error("Erreur pendant la génération du PDF:", error);
+    // En cas d'erreur pendant la génération, utiliser le modèle standard
     try {
-      console.log("FALLBACK: Using standard template due to error");
-      // Reset the document to start fresh
+      console.log("SOLUTION DE SECOURS: Utilisation du modèle standard en raison d'une erreur");
+      // Réinitialiser le document pour repartir de zéro
       const doc = new jsPDF();
       generateStandardPdf(doc, offer, template, primaryRgb, resolveFieldValue, applyTextStyle);
     } catch (fallbackError) {
-      console.error("Even fallback PDF generation failed:", fallbackError);
-      throw new Error(`PDF generation failed completely: ${error.message}`);
+      console.error("Même la génération de secours a échoué:", fallbackError);
+      throw new Error(`La génération du PDF a complètement échoué: ${error.message}`);
     }
   }
   
   // Enregistrer le PDF avec un nom de fichier approprié
-  const filename = `Offre_${offer.id.slice(0, 8)}_${offer.client_name.replace(/\s+/g, '_')}.pdf`;
+  const filename = `Offre_${offer.id ? offer.id.slice(0, 8) : 'exemple'}_${(offer.client_name || 'Client').replace(/\s+/g, '_')}.pdf`;
   doc.save(filename);
   
-  console.log(`PDF saved with filename: ${filename}`);
+  console.log(`PDF enregistré avec le nom de fichier: ${filename}`);
   return filename;
 };
 
-// Function to generate a standard PDF template without background images
+// Fonction pour générer un modèle PDF standard sans images d'arrière-plan
 const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue, applyTextStyle) => {
-  console.log("Generating standard PDF template");
+  console.log("Génération du modèle PDF standard");
   
   try {
+    // Afficher les données disponibles
+    console.log("Données disponibles pour le PDF standard:", {
+      offerId: offer.id ? offer.id.slice(0, 8) : 'sans-id',
+      clientName: offer.client_name,
+      amount: offer.amount,
+      monthlyPayment: offer.monthly_payment
+    });
+    
     // Ajouter le logo de l'entreprise s'il existe
     if (template?.logoURL) {
       try {
         const img = new Image();
         img.src = template.logoURL;
-        // Wait for image to load
+        // Attendre que l'image se charge
+        console.log("Ajout du logo:", template.logoURL);
         doc.addImage(template.logoURL, 'PNG', 10, 10, 40, 20);
       } catch (error) {
         console.error("Erreur lors du chargement du logo:", error);
@@ -568,18 +636,18 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
     // Ajouter le titre du document
     doc.setFontSize(20);
     doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
-    const headerText = template?.headerText?.replace('{offer_id}', `OFF-${offer.id.slice(0, 8)}`) || 
-                      `OFFRE N° OFF-${offer.id.slice(0, 8)}`;
+    const headerText = template?.headerText?.replace('{offer_id}', `OFF-${offer.id ? offer.id.slice(0, 8) : 'exemple'}`) || 
+                      `OFFRE N° OFF-${offer.id ? offer.id.slice(0, 8) : 'exemple'}`;
     doc.text(headerText, 105, 30, { align: 'center' });
     
-    // Add client information
+    // Ajouter les informations du client
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
     doc.text(`Client: ${offer.client_name || 'Non spécifié'}`, 20, 50);
     doc.text(`Email: ${offer.client_email || 'Non spécifié'}`, 20, 60);
     doc.text(`Téléphone: ${offer.client_phone || 'Non spécifié'}`, 20, 70);
     
-    // Add offer details
+    // Ajouter les détails de l'offre
     doc.setFontSize(12);
     doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
     doc.text("Détails de l'offre", 20, 90);
@@ -589,13 +657,15 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
     doc.text(`Mensualité: ${offer.monthly_payment ? formatCurrency(offer.monthly_payment) : 'Non spécifié'}`, 20, 110);
     doc.text(`Date de création: ${offer.created_at ? formatDate(offer.created_at) : 'Non spécifié'}`, 20, 120);
     
-    // Add equipment section if available
+    // Ajouter la section équipement si disponible
     let equipmentItems = [];
     try {
       if (offer.equipment_description) {
         equipmentItems = typeof offer.equipment_description === 'string'
           ? JSON.parse(offer.equipment_description)
           : offer.equipment_description;
+          
+        console.log(`Équipements extraits (standard): ${equipmentItems.length} items`);
       }
     } catch (e) {
       console.error("Erreur lors de l'analyse des données d'équipement:", e);
@@ -640,7 +710,7 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
       });
     }
     
-    // Add custom fields if specified
+    // Ajouter les champs personnalisés si spécifiés
     if (template?.fields && Array.isArray(template.fields)) {
       const standardFields = template.fields.filter(field => 
         field.isVisible !== false && 
@@ -648,10 +718,10 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
         field.position && 
         typeof field.position.x === 'number' && 
         typeof field.position.y === 'number' &&
-        field.id !== 'equipment_table' // Skip equipment table as we've already added it
+        field.id !== 'equipment_table' // Ignorer le tableau d'équipement car déjà ajouté
       );
       
-      console.log(`Adding ${standardFields.length} fields to standard PDF`);
+      console.log(`Ajout de ${standardFields.length} champs au PDF standard`);
       
       standardFields.forEach((field, idx) => {
         // Conversion des millimètres en points (unité utilisée par jsPDF)
@@ -660,26 +730,26 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
         const x = mmToPoints(field.position.x || 0);
         const y = mmToPoints(field.position.y || 0);
         
-        console.log(`Adding field ${idx} at position (${x}, ${y})`);
-        
-        // Texte simple avec style
-        const needsUnderline = applyTextStyle(doc, field);
-        doc.setTextColor(0, 0, 0);
+        console.log(`Ajout du champ ${idx} à la position (${x}, ${y})`);
         
         try {
+          // Texte simple avec style
+          const needsUnderline = applyTextStyle(doc, field);
+          
+          // Résoudre la valeur
           const resolvedValue = resolveFieldValue(field.value || '');
-          console.log(`Field value: "${field.value}" -> "${resolvedValue}"`);
+          console.log(`Valeur du champ: "${field.value}" -> "${resolvedValue}"`);
           
           doc.text(resolvedValue, x, y);
           
-          // Add underline if needed
+          // Ajouter un soulignement si nécessaire
           if (needsUnderline) {
             const textWidth = doc.getTextWidth(resolvedValue);
-            const underlineY = y + 1; // Slight offset below text
+            const underlineY = y + 1; // Léger décalage sous le texte
             doc.line(x, underlineY, x + textWidth, underlineY);
           }
         } catch (error) {
-          console.error(`Error rendering field ${field.id || 'unknown'}:`, error);
+          console.error(`Erreur lors du rendu du champ ${field.id || 'unknown'}:`, error);
         }
         
         // Réinitialiser la police
@@ -710,9 +780,9 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
     doc.text(`${template?.companyName || 'iTakeCare'} - ${template?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}`, 105, 280, { align: 'center' });
     doc.text(`${template?.companySiret || 'TVA: BE 0795.642.894'} - ${template?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}`, 105, 285, { align: 'center' });
   } catch (error) {
-    console.error("Error generating standard PDF:", error);
+    console.error("Erreur lors de la génération du PDF standard:", error);
     
-    // Super basic fallback - at least create something
+    // Solution de secours super basique - au moins créer quelque chose
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
     doc.text("ERREUR: Impossible de générer le document correctement", 105, 30, { align: 'center' });
