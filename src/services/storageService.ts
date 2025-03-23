@@ -10,17 +10,31 @@ import { v4 as uuidv4 } from "uuid";
  */
 export const uploadImage = async (file: File, bucket: string = 'pdf-templates'): Promise<string | null> => {
   try {
-    const fileExt = file.name.split('.').pop();
+    // Ensure the bucket exists
+    const bucketExists = await ensureStorageBucket(bucket);
+    if (!bucketExists) {
+      console.error(`Failed to ensure bucket ${bucket} exists`);
+      return null;
+    }
+    
+    // Prepare the file for upload
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const fileName = `${uuidv4()}.${fileExt}`;
     const filePath = `${fileName}`;
     
-    console.log(`Uploading file to ${bucket}/${filePath}`);
+    console.log(`Uploading file to ${bucket}/${filePath} with type ${file.type}`);
     
+    // Create a new file with explicit content type
+    const contentType = file.type || `image/${fileExt}`;
+    const fileBlob = new Blob([await file.arrayBuffer()], { type: contentType });
+    
+    // Upload with explicit content type
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(filePath, file, {
+      .upload(filePath, fileBlob, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: contentType
       });
     
     if (error) {
@@ -139,12 +153,17 @@ export const downloadAndUploadImage = async (
         const extension = blob.type.split('/')[1] || 'jpg';
         const fileName = `${path}.${extension}`;
         
-        // Upload to Supabase
+        // Create a new blob with explicit content type
+        const contentType = blob.type || `image/${extension}`;
+        const fileBlob = new Blob([await blob.arrayBuffer()], { type: contentType });
+        
+        // Upload to Supabase with explicit content type
         const { data, error } = await supabase.storage
           .from(bucket)
-          .upload(fileName, blob, {
+          .upload(fileName, fileBlob, {
             cacheControl: '3600',
-            upsert: true
+            upsert: true,
+            contentType: contentType
           });
         
         if (error) {
@@ -178,12 +197,16 @@ export const downloadAndUploadImage = async (
     const extension = contentType.split('/')[1] || 'jpg';
     const fileName = `${path}.${extension}`;
     
-    // Upload to Supabase
+    // Create a new blob with explicit content type
+    const fileBlob = new Blob([await blob.arrayBuffer()], { type: contentType });
+    
+    // Upload to Supabase with explicit content type
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(fileName, blob, {
+      .upload(fileName, fileBlob, {
         cacheControl: '3600',
-        upsert: true
+        upsert: true,
+        contentType: contentType
       });
     
     if (error) {
