@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +10,6 @@ import { OfferData, EquipmentItem } from '@/services/offers/types';
 import { Save } from 'lucide-react';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 
-// Default fields for the PDF template if none exist yet
 const DEFAULT_FIELDS = [
   // Client fields
   {
@@ -414,7 +412,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Update template images when they change
   const handleImagesChange = (newImages) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -424,13 +421,11 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     setCurrentTemplate(updatedTemplate);
     setHasChanges(true);
     
-    // Notify parent component of changes without auto-saving
     if (onSave) {
       onSave(updatedTemplate);
     }
   };
-  
-  // Update fields when they change
+
   const handleFieldsChange = (newFields) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -443,13 +438,11 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     setCurrentTemplate(updatedTemplate);
     setHasChanges(true);
     
-    // Notify parent component of changes without auto-saving
     if (onSave) {
       onSave(updatedTemplate);
     }
   };
 
-  // Add a new field to the template
   const handleAddField = (field) => {
     const newFields = [
       ...currentTemplate.fields, 
@@ -464,24 +457,20 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     setHasChanges(true);
   };
 
-  // Delete a field from the template
   const handleDeleteField = (fieldId) => {
     const newFields = currentTemplate.fields.filter(field => field.id !== fieldId);
     handleFieldsChange(newFields);
     toast.success("Champ supprimé");
     setHasChanges(true);
   };
-  
-  // Duplicate a field for a different page
+
   const handleDuplicateField = (fieldId, targetPage) => {
     const fieldToDuplicate = currentTemplate.fields.find(field => field.id === fieldId);
     
     if (!fieldToDuplicate) return;
     
-    // Create a new ID for the duplicated field
     const newId = `${fieldToDuplicate.id}_page${targetPage}`;
     
-    // Check if this field already exists on the target page to avoid duplicates
     const fieldExistsOnPage = currentTemplate.fields.some(
       field => field.id === newId || (field.id === fieldId && field.page === targetPage)
     );
@@ -491,7 +480,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       return;
     }
     
-    // Create the duplicated field for the target page
     const duplicatedField = {
       ...fieldToDuplicate,
       id: newId,
@@ -504,22 +492,18 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     toast.success(`Champ "${fieldToDuplicate.label}" ajouté à la page ${targetPage + 1}`);
     setHasChanges(true);
   };
-  
-  // Remove a field from a specific page only
+
   const handleRemoveFieldFromPage = (fieldId, page) => {
-    // Find the field
     const fieldToRemove = currentTemplate.fields.find(field => field.id === fieldId && field.page === page);
     
     if (!fieldToRemove) return;
     
-    // Remove the field from the array
     const newFields = currentTemplate.fields.filter(field => !(field.id === fieldId && field.page === page));
     handleFieldsChange(newFields);
     toast.success(`Champ supprimé de la page ${page + 1}`);
     setHasChanges(true);
   };
 
-  // Sauvegarder le modèle directement
   const handleSaveTemplate = async () => {
     setSaving(true);
     try {
@@ -547,7 +531,7 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
       setSaving(false);
     }
   };
-  
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center mb-4">
@@ -555,8 +539,8 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
         <Button 
           onClick={handleSaveTemplate} 
           disabled={saving || !hasChanges}
-          className="ml-auto"
-          variant="primary"
+          className="ml-auto bg-blue-600 hover:bg-blue-700 text-white"
+          variant="default"
         >
           {saving ? (
             <>
