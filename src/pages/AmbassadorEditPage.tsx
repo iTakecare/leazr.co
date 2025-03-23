@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { getAmbassadorById, updateAmbassador, Ambassador } from '@/services/ambassadorService';
-import { getPDFTemplates } from '@/services/pdfTemplateService';
+import { getPDFTemplates, assignTemplateToAmbassador } from '@/services/pdfTemplateService';
 
 interface PDFTemplate {
   id: string;
@@ -125,7 +125,7 @@ export const AmbassadorEditPage = () => {
 
   // Load ambassador data when component mounts or ID changes
   useEffect(() => {
-    loadAmbassador(); // Fixing the error here - calling without arguments
+    loadAmbassador();
   }, [loadAmbassador]);
 
   const handleTemplateChange = async (value: string) => {
@@ -133,22 +133,7 @@ export const AmbassadorEditPage = () => {
     setSelectedTemplateId(value);
     
     try {
-      await updateAmbassador(id, {
-        name: ambassador!.name,
-        email: ambassador!.email,
-        phone: ambassador!.phone,
-        status: ambassador!.status as "active" | "inactive",
-        notes: ambassador!.notes,
-        region: ambassador!.region,
-        company: ambassador!.company,
-        vat_number: ambassador!.vat_number,
-        address: ambassador!.address,
-        city: ambassador!.city,
-        postal_code: ambassador!.postal_code,
-        country: ambassador!.country,
-        commission_level_id: ambassador!.commission_level_id,
-        pdf_template_id: value
-      });
+      await assignTemplateToAmbassador(id, value);
       toast.success("Modèle PDF mis à jour avec succès");
     } catch (error) {
       console.error("Erreur lors de la mise à jour du modèle PDF:", error);

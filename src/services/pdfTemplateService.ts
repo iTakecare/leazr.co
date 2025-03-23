@@ -25,6 +25,19 @@ export const getPDFTemplates = async (): Promise<PDFTemplate[]> => {
       .order("name");
 
     if (error) throw error;
+    
+    // Ensure all fields have isVisible set to true
+    if (data) {
+      data.forEach(template => {
+        if (template.fields && Array.isArray(template.fields)) {
+          template.fields = template.fields.map(field => ({
+            ...field,
+            isVisible: true
+          }));
+        }
+      });
+    }
+    
     return data || [];
   } catch (error) {
     console.error("Error fetching PDF templates:", error);
@@ -41,6 +54,15 @@ export const getPDFTemplateById = async (id: string): Promise<PDFTemplate | null
       .single();
 
     if (error) throw error;
+    
+    // Ensure all fields have isVisible set to true
+    if (data && data.fields && Array.isArray(data.fields)) {
+      data.fields = data.fields.map(field => ({
+        ...field,
+        isVisible: true
+      }));
+    }
+    
     return data;
   } catch (error) {
     console.error(`Error fetching PDF template with ID ${id}:`, error);
@@ -139,6 +161,14 @@ export const createPDFTemplate = async (templateData: Partial<PDFTemplate>): Pro
       fields: templateData.fields || [],
       templateImages: templateData.templateImages || []
     };
+
+    // Ensure all fields have isVisible set to true
+    if (newTemplate.fields && Array.isArray(newTemplate.fields)) {
+      newTemplate.fields = newTemplate.fields.map(field => ({
+        ...field,
+        isVisible: true
+      }));
+    }
 
     const { data, error } = await supabase
       .from('pdf_templates')
