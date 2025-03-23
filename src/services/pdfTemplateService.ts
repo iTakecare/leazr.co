@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { downloadAndUploadImage } from "@/services/storageService";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
@@ -55,6 +54,7 @@ export const savePDFTemplate = async (template: any) => {
   try {
     // Gestion du logo (si présent)
     if (template.logoURL && template.logoURL.startsWith('blob:')) {
+      console.log('Processing logoURL from blob');
       const logoURL = await downloadAndUploadImage(
         template.logoURL,
         `logo-${Date.now()}`,
@@ -68,6 +68,7 @@ export const savePDFTemplate = async (template: any) => {
       for (let i = 0; i < template.templateImages.length; i++) {
         const image = template.templateImages[i];
         if (image.imageUrl && image.imageUrl.startsWith('blob:')) {
+          console.log(`Processing template image ${i} from blob`);
           const imageUrl = await downloadAndUploadImage(
             image.imageUrl,
             `template-${Date.now()}-page-${i}`,

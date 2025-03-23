@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -63,7 +62,12 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
       
       console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
       
-      const imageUrl = await uploadImage(file, 'pdf-templates');
+      // Create a new File object to ensure the correct MIME type is preserved
+      const correctFile = new File([file], file.name, {
+        type: file.type || 'image/png' // Fallback to image/png if no type is detected
+      });
+      
+      const imageUrl = await uploadImage(correctFile, 'pdf-templates');
       console.log("Image uploaded, received URL:", imageUrl);
       
       if (imageUrl) {
@@ -83,11 +87,11 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
         setCurrentPage(newTemplateImages.length - 1);
         toast.success("Image téléchargée avec succès");
       } else {
-        toast.error("L'image n'a pas pu être téléchargée. Vérifiez les logs pour plus de détails.");
+        toast.error("L'image n'a pas pu être téléchargée");
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Erreur lors du téléchargement de l'image");
+      toast.error(`Erreur lors du téléchargement de l'image: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
     
     // Reset the file input value to allow uploading the same file again
