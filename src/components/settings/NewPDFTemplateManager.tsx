@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { ensureBucket } from "@/services/fileStorage";
 import { loadTemplate, saveTemplate, PDFTemplate } from "@/utils/templateManager";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import NewPDFTemplateEditor from "./NewPDFTemplateEditor";
-import PDFPreview from "./PDFPreview";
+import NewPDFPreview from "./NewPDFPreview";
 
 const NewPDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
@@ -19,19 +18,16 @@ const NewPDFTemplateManager = () => {
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
   
-  // Initialize on component mount
   useEffect(() => {
     console.log("Initialisation du gestionnaire de templates");
     initializeManager();
   }, []);
   
-  // Initialize manager
   const initializeManager = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Ensure storage bucket exists
       try {
         await ensureBucket('pdf-templates');
       } catch (e) {
@@ -39,7 +35,6 @@ const NewPDFTemplateManager = () => {
         toast.warning("Stockage en mode local uniquement");
       }
       
-      // Load template
       const templateData = await loadTemplate();
       
       if (templateData) {
@@ -60,13 +55,11 @@ const NewPDFTemplateManager = () => {
     }
   };
   
-  // Save template
   const handleSaveTemplate = async (updatedTemplate: PDFTemplate) => {
     try {
       setSaving(true);
       setError(null);
       
-      // Log for debugging
       console.log("Sauvegarde du template:", updatedTemplate.name);
       console.log("Nombre d'images:", updatedTemplate.templateImages.length);
       console.log("Nombre de champs:", updatedTemplate.fields.length);
@@ -89,7 +82,6 @@ const NewPDFTemplateManager = () => {
     }
   };
   
-  // Update company info
   const handleCompanyInfoUpdate = (companyInfo: Partial<PDFTemplate>) => {
     if (template) {
       const updatedTemplate = {
@@ -101,12 +93,10 @@ const NewPDFTemplateManager = () => {
     }
   };
   
-  // Update template
   const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
     handleSaveTemplate(updatedTemplate);
   };
   
-  // Retry loading
   const handleRetry = () => {
     initializeManager();
   };
@@ -189,7 +179,7 @@ const NewPDFTemplateManager = () => {
             
             <TabsContent value="preview" className="mt-6">
               {template && (
-                <PDFPreview 
+                <NewPDFPreview 
                   template={template}
                 />
               )}
