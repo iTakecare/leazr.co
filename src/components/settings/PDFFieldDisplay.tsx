@@ -17,15 +17,25 @@ const resolveFieldValue = (pattern: string, data: any): string => {
   if (!pattern) return '[Valeur manquante]';
   
   try {
+    // Vérifier si data est null ou undefined
+    if (!data) {
+      console.log("Données invalides lors de la résolution de la valeur du champ", pattern);
+      return '[Données manquantes]';
+    }
+    
     return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
+      console.log(`Résolution de ${key} pour le pattern ${pattern}`);
+      
       const keyParts = key.split('.');
       let value = data;
       
       for (const part of keyParts) {
         if (value === undefined || value === null) {
+          console.log(`La propriété ${part} n'existe pas dans`, value);
           return '[Non disponible]';
         }
         value = value[part];
+        console.log(`Accès à ${part}:`, value);
       }
       
       // Si c'est un objet, le formater en JSON
@@ -67,7 +77,9 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   // Calculer la valeur résolue une seule fois
   const resolvedValue = useMemo(() => {
     try {
+      console.log(`Résolution du champ: ${field.label || field.id}`, field.value);
       let displayValue = resolveFieldValue(field.value || '', sampleData);
+      console.log(`Valeur résolue: "${displayValue}"`);
       
       // Limiter la longueur pour l'affichage
       if (displayValue.length > 50) {
@@ -79,7 +91,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
       console.error("Erreur lors de la résolution de la valeur du champ:", error);
       return "[Erreur]";
     }
-  }, [field.value, sampleData]);
+  }, [field.value, field.label, field.id, sampleData]);
 
   // Style et position du champ
   const fieldStyle = useMemo(() => {
@@ -135,7 +147,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
       )}
       style={fieldStyle}
       onMouseDown={handleMouseDown}
-      title={`Champ: ${field.label || field.id}`}
+      title={`Champ: ${field.label || field.id} - Valeur: ${resolvedValue}`}
     >
       {resolvedValue || "[Vide]"}
     </div>

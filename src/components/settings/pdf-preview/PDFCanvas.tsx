@@ -76,31 +76,58 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
 
   const getCurrentPageFields = () => {
     if (!localTemplate?.fields || !Array.isArray(localTemplate.fields)) {
+      console.log("Pas de champs disponibles dans le template");
       return [];
     }
     
+    // Vérifier que les champs sont bien définis pour cette page
     const fields = localTemplate.fields.filter((f: any) => {
-      if (!f) return false;
+      if (!f) {
+        console.log("Champ invalide trouvé (null ou undefined)");
+        return false;
+      }
       
+      // Vérifier si le champ est destiné à la page actuelle
       const isForCurrentPage = f.page === currentPage || (currentPage === 0 && f.page === undefined);
+      if (!isForCurrentPage) return false;
+      
+      // Vérifier si le champ est visible
       const isVisible = f.isVisible !== false;
+      if (!isVisible) return false;
+      
+      // Vérifier si le champ a une position valide
       const hasValidPosition = f.position && 
-                             typeof f.position.x === 'number' && !isNaN(f.position.x) &&
-                             typeof f.position.y === 'number' && !isNaN(f.position.y) &&
-                             f.position.x >= 0 && f.position.x <= PAGE_WIDTH_MM &&
-                             f.position.y >= 0 && f.position.y <= PAGE_HEIGHT_MM;
+                            typeof f.position.x === 'number' && !isNaN(f.position.x) &&
+                            typeof f.position.y === 'number' && !isNaN(f.position.y) &&
+                            f.position.x >= 0 && f.position.x <= PAGE_WIDTH_MM &&
+                            f.position.y >= 0 && f.position.y <= PAGE_HEIGHT_MM;
+      
+      // Journaliser les champs qui sont filtrés à cause d'une position invalide
+      if (!hasValidPosition && isForCurrentPage && isVisible) {
+        console.log("Champ filtré car position invalide:", f.id, f.label, f.position);
+      }
       
       return isForCurrentPage && isVisible && hasValidPosition;
     });
+    
+    console.log(`Champs pour la page ${currentPage + 1}:`, fields.length);
+    fields.forEach(f => console.log(` - ${f.id}: "${f.label}" à (${f.position.x}, ${f.position.y})`));
     
     return fields;
   };
 
   const getCurrentPageImage = () => {
     if (Array.isArray(localTemplate?.templateImages) && localTemplate.templateImages.length > 0) {
-      return localTemplate.templateImages.find(
+      const image = localTemplate.templateImages.find(
         (img: any) => img.page === currentPage
       );
+      
+      if (image) {
+        console.log(`Image trouvée pour la page ${currentPage + 1}`);
+        return image;
+      } else {
+        console.log(`Aucune image trouvée pour la page ${currentPage + 1}`);
+      }
     }
     return null;
   };
@@ -168,6 +195,31 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
             </div>
           )}
         </div>
+      </div>
+      
+      {/* Ajouter une section de débogage pour voir les champs disponibles */}
+      <div className="mt-4 p-3 border rounded bg-white text-xs">
+        <details>
+          <summary className="font-medium cursor-pointer">Informations de débogage ({fields.length} champs sur cette page)</summary>
+          {fields.length > 0 ? (
+            <div className="mt-2 space-y-1">
+              {fields.map((field: any) => (
+                <div key={field.id} className="p-1 border-b">
+                  <span className="font-bold">{field.label}</span>: {field.value} à ({field.position.x.toFixed(1)}, {field.position.y.toFixed(1)})
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-gray-500">Aucun champ à afficher sur cette page.</p>
+          )}
+          
+          <div className="mt-3 pt-2 border-t">
+            <div className="font-medium">Vérification des données:</div>
+            <p className="mt-1">Exemple de donnée client: {sampleData.client_name || "Non défini"}</p>
+            <p>Page actuelle: {currentPage + 1}</p>
+            <p>Champs totaux: {localTemplate?.fields?.length || 0}</p>
+          </div>
+        </details>
       </div>
     </div>
   );

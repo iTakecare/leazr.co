@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save, FileDown, Loader2 } from "lucide-react";
@@ -82,13 +83,24 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
         });
       }
       
+      // Afficher les données utilisées pour le test
+      console.log("Données utilisées pour la génération:", sampleData);
+      
+      // Créer une copie profonde du template pour éviter les problèmes de référence
+      const templateCopy = JSON.parse(JSON.stringify(localTemplate));
+      
       // Create a complete data object with all required fields
       const dataWithValidId = {
         ...sampleData,
         id: sampleData.id || `preview-${Date.now()}`,
         client_name: sampleData.client_name || "Client Exemple",
+        client_first_name: sampleData.client_first_name || "Prénom",
         client_email: sampleData.client_email || "client@exemple.com",
         client_phone: sampleData.client_phone || "0123456789",
+        client_company: sampleData.client_company || "Entreprise Exemple",
+        client_address: sampleData.client_address || "123 Rue Exemple",
+        client_postal_code: sampleData.client_postal_code || "75000",
+        client_city: sampleData.client_city || "Paris",
         amount: sampleData.amount || 10000,
         monthly_payment: sampleData.monthly_payment || 300,
         created_at: sampleData.created_at || new Date().toISOString(),
@@ -101,23 +113,15 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
             margin: 10
           }
         ]),
-        // Include complete template data - Create a deep copy to avoid reference issues
-        __template: {
-          ...JSON.parse(JSON.stringify(localTemplate)),
-          // Ensure arrays are present and properly formatted
-          templateImages: Array.isArray(localTemplate.templateImages) 
-            ? JSON.parse(JSON.stringify(localTemplate.templateImages)) 
-            : [],
-          fields: Array.isArray(localTemplate.fields) 
-            ? JSON.parse(JSON.stringify(localTemplate.fields)) 
-            : []
-        }
+        // Include complete template data
+        __template: templateCopy
       };
       
       // Validation des données clés
       console.log("Données envoyées au générateur:", {
         id: dataWithValidId.id,
         client_name: dataWithValidId.client_name,
+        client_first_name: dataWithValidId.client_first_name,
         templateImagesCount: dataWithValidId.__template.templateImages.length,
         fieldsCount: dataWithValidId.__template.fields.length
       });
@@ -126,6 +130,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       if (dataWithValidId.__template.fields.length > 0) {
         console.log("Premier champ:", {
           id: dataWithValidId.__template.fields[0].id,
+          label: dataWithValidId.__template.fields[0].label,
           value: dataWithValidId.__template.fields[0].value,
           hasPosition: !!dataWithValidId.__template.fields[0].position,
           x: dataWithValidId.__template.fields[0].position?.x,
@@ -186,6 +191,15 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       });
     }
   };
+  
+  // Changer l'utilisation des données réelles ou d'exemple
+  const handleRealDataChange = (useReal: boolean) => {
+    setUseRealData(useReal);
+    toast.info(useReal ? 
+      "Utilisation des données réelles activée" : 
+      "Utilisation des données d'exemple activée"
+    );
+  };
 
   return (
     <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2 mb-4">
@@ -195,7 +209,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
           <Switch
             id="use-real-data"
             checked={useRealData}
-            onCheckedChange={setUseRealData}
+            onCheckedChange={handleRealDataChange}
           />
           <Label htmlFor="use-real-data" className="text-sm">
             Utiliser des données réelles
