@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
     color: 'grey'
   },
   table: {
-    display: 'table',
+    display: 'flex',
     width: 'auto',
     borderStyle: 'solid',
     borderWidth: 1,
@@ -120,7 +121,12 @@ const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
   }, 2000);
 };
 
-const PDFPreview = ({ template, offer }: { template: any, offer?: OfferData }) => {
+// Create a custom interface for extended OfferData that includes equipment
+interface ExtendedOfferData extends OfferData {
+  equipment?: EquipmentItem[];
+}
+
+const PDFPreview = ({ template, offer }: { template: any, offer?: ExtendedOfferData }) => {
   const [scale, setScale] = useState(1.0);
   const [pageOrientation, setPageOrientation] = useState('portrait');
   const [showToolbar, setShowToolbar] = useState(true);
@@ -153,7 +159,6 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: OfferData }) =
                 <Image
                   src={image.src}
                   style={styles.image}
-                  onError={handleImageError}
                 />
                 {template.fields && template.fields.length > 0 ? (
                   template.fields
@@ -218,7 +223,7 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: OfferData }) =
       return;
     }
     
-    const pdfjsLib = window['pdfjsLib'];
+    const pdfjsLib = (window as any)['pdfjsLib'];
     
     if (!pdfjsLib) {
       toast.error("pdfjsLib n'est pas disponible. Assurez-vous qu'il est correctement importé.");
@@ -227,11 +232,15 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: OfferData }) =
     
     const loadingTask = pdfjsLib.getDocument(pdfUrl);
     
-    loadingTask.promise.then(pdf => {
-      pdf.getPage(1).then(page => {
+    loadingTask.promise.then((pdf: any) => {
+      pdf.getPage(1).then((page: any) => {
         const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
+        if (!context) {
+          toast.error("Impossible de créer le contexte de canvas");
+          return;
+        }
         canvas.height = viewport.height;
         canvas.width = viewport.width;
         
@@ -259,7 +268,7 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: OfferData }) =
       return;
     }
     
-    const pdfjsLib = window['pdfjsLib'];
+    const pdfjsLib = (window as any)['pdfjsLib'];
     
     if (!pdfjsLib) {
       toast.error("pdfjsLib n'est pas disponible. Assurez-vous qu'il est correctement importé.");
@@ -268,11 +277,15 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: OfferData }) =
     
     const loadingTask = pdfjsLib.getDocument(pdfUrl);
     
-    loadingTask.promise.then(pdf => {
-      pdf.getPage(1).then(page => {
+    loadingTask.promise.then((pdf: any) => {
+      pdf.getPage(1).then((page: any) => {
         const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
+        if (!context) {
+          toast.error("Impossible de créer le contexte de canvas");
+          return;
+        }
         canvas.height = viewport.height;
         canvas.width = viewport.width;
         
@@ -322,9 +335,9 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: OfferData }) =
     // Data rows
     offer.equipment.forEach(item => {
       const values = [
-        item.description.replace(/,/g, ''), // Remove commas from description
+        item.description ? item.description.replace(/,/g, '') : item.title.replace(/,/g, ''), // Remove commas from description
         item.quantity,
-        item.price
+        item.price || item.purchasePrice
       ];
       csvRows.push(values.join(","));
     });
@@ -346,14 +359,29 @@ const PDFPreview = ({ template, offer }: { template: any, offer?: OfferData }) =
       return;
     }
     
-    const wb = jsPDF.utils.book_new();
-    const wsData = [
-      ["Description", "Quantity", "Price"],
-      ...offer.equipment.map(item => [item.description, item.quantity, item.price])
-    ];
-    const ws = jsPDF.utils.aoa_to_sheet(wsData);
-    jsPDF.utils.book_append_sheet(wb, ws, "Equipment");
-    jsPDF.writeFile(wb, 'equipment.xlsx');
+    // Create raw data for Excel export
+    const headers = ["Description", "Quantity", "Price"];
+    const data = offer.equipment.map(item => [
+      item.description || item.title, 
+      item.quantity, 
+      item.price || item.purchasePrice
+    ]);
+    
+    // Create CSV data (as a fallback for Excel)
+    const csvContent = [
+      headers.join(","),
+      ...data.map(row => row.join(","))
+    ].join("\n");
+    
+    // Create a CSV blob and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'equipment.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
   
   return (

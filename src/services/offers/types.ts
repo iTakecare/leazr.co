@@ -5,6 +5,8 @@ export interface EquipmentItem {
   purchasePrice: number;
   quantity: number;
   margin: number;
+  description?: string;
+  price?: number;
 }
 
 export interface OfferData {
@@ -18,8 +20,9 @@ export interface OfferData {
   commission: number;
   user_id: string;
   type?: string;
-  remarks?: string; // Assurons-nous que cette propriété existe bien et soit optionnelle
+  remarks?: string;
   workflow_status?: string;
+  equipment?: EquipmentItem[]; // Add the equipment property
 }
 
 export interface RequestInfoData {
