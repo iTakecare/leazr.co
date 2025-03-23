@@ -10,7 +10,7 @@ import { ensureBucket } from "@/services/fileStorage";
 import { loadTemplate, saveTemplate, PDFTemplate } from "@/utils/templateManager";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import NewPDFTemplateEditor from "./NewPDFTemplateEditor";
-import NewPDFPreview from "./NewPDFPreview";
+import SimplePDFPreview from "./SimplePDFPreview";
 
 const NewPDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
@@ -180,7 +180,7 @@ const NewPDFTemplateManager = () => {
             
             <TabsContent value="preview" className="mt-6">
               {template && (
-                <NewPDFPreview 
+                <SimplePDFPreview 
                   template={template}
                   onSave={handleTemplateUpdate}
                 />
