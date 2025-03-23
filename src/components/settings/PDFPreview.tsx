@@ -11,7 +11,7 @@ const PDFPreview = ({ template }) => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageLoaded, setPageLoaded] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1); // Ajout d'un niveau de zoom
+  const [zoomLevel, setZoomLevel] = useState(1);
   const previewRef = useRef(null);
 
   // Reset pageLoaded when currentPage changes
@@ -274,10 +274,13 @@ const PDFPreview = ({ template }) => {
 
   // Convertir les millimètres en pixels pour le positionnement correct
   const mmToPx = (mm) => {
-    // Facteur de conversion (1 mm = environ 3.78 pixels pour un affichage A4 standard à 96 DPI)
-    // Le facteur peut être ajusté en fonction de la taille de rendu souhaitée
-    const conversionFactor = 3.78;
-    return mm * conversionFactor * zoomLevel;
+    // Facteur de conversion standard pour un document A4 à 96 DPI
+    // 1 mm = environ 3.7795275591 pixels
+    const pxPerMm = 3.7795275591;
+    
+    // Le format A4 est de 210x297mm
+    // Appliquer la conversion en tenant compte du niveau de zoom
+    return mm * pxPerMm * zoomLevel;
   };
   
   // Zoom in
