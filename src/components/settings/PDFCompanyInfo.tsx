@@ -8,8 +8,28 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 
-const PDFCompanyInfo = ({ template, onSave, loading }) => {
-  const form = useForm({
+interface PDFTemplate {
+  name?: string;
+  companyName?: string;
+  companyAddress?: string;
+  companyContact?: string;
+  companySiret?: string;
+  logoURL?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  headerText?: string;
+  footerText?: string;
+  [key: string]: any;
+}
+
+interface PDFCompanyInfoProps {
+  template: PDFTemplate | null;
+  onSave: (data: PDFTemplate) => void;
+  loading: boolean;
+}
+
+const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loading }) => {
+  const form = useForm<PDFTemplate>({
     defaultValues: {
       name: template?.name || "Modèle par défaut",
       companyName: template?.companyName || "iTakeCare",
@@ -44,20 +64,18 @@ const PDFCompanyInfo = ({ template, onSave, loading }) => {
 
   // Submit handler
   const handleSubmit = form.handleSubmit((data) => {
-    // Nous ne sauvegardons plus automatiquement (commenté)
-    // if (onSave) {
-    //   onSave(data);
-    // }
-    // Le formulaire est soumis mais aucune action n'est effectuée
+    // La sauvegarde automatique est désactivée
     console.log("Form submitted but auto-save is disabled:", data);
   });
 
-  const handleLogoUpload = async (e) => {
-    const file = e.target.files[0];
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        form.setValue('logoURL', event.target.result);
+        if (event.target?.result) {
+          form.setValue('logoURL', event.target.result as string);
+        }
       };
       reader.readAsDataURL(file);
     }

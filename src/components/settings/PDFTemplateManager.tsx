@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,27 @@ import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { Save } from "lucide-react";
 
+interface PDFTemplate {
+  id: string;
+  name: string;
+  companyName: string;
+  companyAddress: string;
+  companyContact: string;
+  companySiret: string;
+  logoURL: string;
+  primaryColor: string;
+  secondaryColor: string;
+  headerText: string;
+  footerText: string;
+  templateImages: any[];
+  fields: any[];
+  [key: string]: any;
+}
+
 const PDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [template, setTemplate] = useState(null);
+  const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("design");
 
   useEffect(() => {
@@ -90,8 +108,9 @@ const PDFTemplateManager = () => {
     loadTemplate();
   }, []);
   
-  const saveTemplate = async (updatedTemplate) => {
+  const saveTemplate = async (updatedTemplate: PDFTemplate) => {
     setSaving(true);
+    console.log("Saving template:", updatedTemplate);
     
     try {
       const supabase = getSupabaseClient();
@@ -119,7 +138,7 @@ const PDFTemplateManager = () => {
     }
   };
   
-  const handleCompanyInfoUpdate = (companyInfo) => {
+  const handleCompanyInfoUpdate = (companyInfo: Partial<PDFTemplate>) => {
     if (template) {
       const updatedTemplate = {
         ...template,
@@ -128,40 +147,48 @@ const PDFTemplateManager = () => {
       
       saveTemplate(updatedTemplate);
     } else {
-      const newTemplate = {
+      const newTemplate: PDFTemplate = {
         id: 'default',
         name: 'Modèle par défaut',
         templateImages: [],
         fields: [],
-        ...companyInfo
+        ...companyInfo as PDFTemplate
       };
       
       saveTemplate(newTemplate);
     }
   };
   
-  const handleTemplateUpdate = (updatedTemplate) => {
+  const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
     saveTemplate(updatedTemplate);
   };
 
   const handleManualSave = () => {
     if (template) {
-      const companyInfoFields = document.querySelectorAll('input[name]');
-      const companyInfo: Record<string, string> = {};
-      
-      companyInfoFields.forEach((field) => {
-        const inputField = field as HTMLInputElement;
-        if (inputField.name && inputField.name !== '') {
-          companyInfo[inputField.name] = inputField.value;
-        }
-      });
-      
-      const updatedTemplate = {
-        ...template,
-        ...companyInfo
-      };
-      
-      saveTemplate(updatedTemplate);
+      try {
+        const companyInfoFields = document.querySelectorAll('input[name]');
+        const companyInfo: Record<string, string> = {};
+        
+        companyInfoFields.forEach((field) => {
+          const inputField = field as HTMLInputElement;
+          if (inputField.name && inputField.name !== '') {
+            companyInfo[inputField.name] = inputField.value;
+          }
+        });
+        
+        console.log("Collected form data:", companyInfo);
+        
+        const updatedTemplate = {
+          ...template,
+          ...companyInfo
+        };
+        
+        console.log("Manual save triggered with template:", updatedTemplate);
+        saveTemplate(updatedTemplate);
+      } catch (error) {
+        console.error("Error in manual save:", error);
+        toast.error("Erreur lors de la sauvegarde manuelle");
+      }
     } else {
       toast.error("Aucun modèle à sauvegarder");
     }
