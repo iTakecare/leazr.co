@@ -59,7 +59,10 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
 
     try {
       toast.info("Téléchargement de l'image en cours...");
+      
+      // Appel à uploadImage avec traitement d'erreur amélioré
       const imageUrl = await uploadImage(file);
+      console.log("Image uploaded, received URL:", imageUrl);
       
       if (imageUrl) {
         const newTemplateImages = [...(currentTemplate.templateImages || [])];
@@ -78,6 +81,8 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
         // Passer à la nouvelle page
         setCurrentPage(newTemplateImages.length - 1);
         toast.success("Image téléchargée avec succès");
+      } else {
+        toast.error("L'image n'a pas pu être téléchargée. Vérifiez les logs pour plus de détails.");
       }
     } catch (error) {
       console.error("Upload error:", error);

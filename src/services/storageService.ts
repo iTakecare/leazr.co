@@ -1,5 +1,5 @@
 
-import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
+import { supabase, STORAGE_URL, SUPABASE_KEY, adminSupabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -10,41 +10,67 @@ import { v4 as uuidv4 } from "uuid";
  */
 export const uploadImage = async (file: File, bucket: string = 'pdf-templates'): Promise<string | null> => {
   try {
-    // Ensure the bucket exists
-    const bucketExists = await ensureStorageBucket(bucket);
-    if (!bucketExists) {
-      console.error(`Failed to ensure bucket ${bucket} exists`);
-      return null;
-    }
-    
-    // Prepare the file for upload
+    // Préparer le fichier pour l'upload
     const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const fileName = `${uuidv4()}.${fileExt}`;
     const filePath = `${fileName}`;
     
     console.log(`Uploading file to ${bucket}/${filePath} with type ${file.type}`);
     
-    // Create a new file with explicit content type
+    // Créer un blob avec le type de contenu correct
     const contentType = file.type || `image/${fileExt}`;
-    const fileBlob = new Blob([await file.arrayBuffer()], { type: contentType });
+    const arrayBuffer = await file.arrayBuffer();
+    const fileBlob = new Blob([arrayBuffer], { type: contentType });
     
-    // Upload with explicit content type
+    // Essayer d'uploader directement sans vérifier si le bucket existe
+    // Utiliser d'abord le client standard
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(filePath, fileBlob, {
         cacheControl: '3600',
-        upsert: false,
+        upsert: true,
         contentType: contentType
       });
     
     if (error) {
       console.error('Error uploading file:', error);
-      throw error;
+      
+      // Si l'erreur est liée à l'absence du bucket, essayer de l'utiliser avec le client admin
+      if (error.message.includes('The resource was not found') || 
+          error.message.includes('bucket') || 
+          error.message.includes('policy')) {
+        console.log('Trying with admin client...');
+        
+        // Essayer avec le client admin
+        const { data: adminData, error: adminError } = await adminSupabase.storage
+          .from(bucket)
+          .upload(filePath, fileBlob, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: contentType
+          });
+        
+        if (adminError) {
+          console.error('Error uploading file with admin client:', adminError);
+          return null;
+        }
+        
+        console.log('File uploaded successfully with admin client:', adminData);
+        
+        // Obtenir l'URL publique
+        const { data: urlData } = adminSupabase.storage
+          .from(bucket)
+          .getPublicUrl(filePath);
+        
+        return urlData.publicUrl;
+      }
+      
+      return null;
     }
     
     console.log('File uploaded successfully:', data);
     
-    // Get public URL
+    // Obtenir l'URL publique
     const { data: urlData } = supabase.storage
       .from(bucket)
       .getPublicUrl(filePath);
@@ -89,7 +115,7 @@ export const deleteImage = async (path: string, bucket: string = 'images'): Prom
  */
 export const ensureStorageBucket = async (bucket: string): Promise<boolean> => {
   try {
-    // First check if the bucket exists
+    // D'abord vérifier si le bucket existe
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
     if (listError) {
@@ -97,7 +123,7 @@ export const ensureStorageBucket = async (bucket: string): Promise<boolean> => {
       return false;
     }
     
-    // Check if our bucket is in the list
+    // Vérifier si notre bucket est dans la liste
     const bucketExists = buckets.some(b => b.name === bucket);
     
     if (bucketExists) {
@@ -105,14 +131,30 @@ export const ensureStorageBucket = async (bucket: string): Promise<boolean> => {
       return true;
     }
     
-    // Create the bucket if it doesn't exist
+    console.log(`Bucket ${bucket} does not exist, trying to create with standard client`);
+    
+    // Créer le bucket s'il n'existe pas
+    // Essayer d'abord avec le client standard
     const { data, error } = await supabase.storage.createBucket(bucket, {
       public: true
     });
     
     if (error) {
       console.error(`Error creating bucket ${bucket}:`, error);
-      return false;
+      
+      // Essayer avec le client admin
+      console.log(`Trying to create bucket ${bucket} with admin client`);
+      const { data: adminData, error: adminError } = await adminSupabase.storage.createBucket(bucket, {
+        public: true
+      });
+      
+      if (adminError) {
+        console.error(`Error creating bucket ${bucket} with admin client:`, adminError);
+        return false;
+      }
+      
+      console.log(`Created bucket ${bucket} successfully with admin client`);
+      return true;
     }
     
     console.log(`Created bucket ${bucket} successfully`);
@@ -136,28 +178,22 @@ export const downloadAndUploadImage = async (
   bucket: string = 'images'
 ): Promise<string | null> => {
   try {
-    // First ensure the bucket exists
-    const bucketExists = await ensureStorageBucket(bucket);
-    if (!bucketExists) {
-      console.error(`Failed to ensure bucket ${bucket} exists`);
-      return null;
-    }
-    
-    // If the URL is a blob URL from the browser, we need to handle it differently
+    // Si l'URL est une URL blob du navigateur, nous devons la traiter différemment
     if (url.startsWith('blob:')) {
       try {
         const response = await fetch(url);
         const blob = await response.blob();
         
-        // Generate a file name for this blob
+        // Générer un nom de fichier pour ce blob
         const extension = blob.type.split('/')[1] || 'jpg';
         const fileName = `${path}.${extension}`;
         
-        // Create a new blob with explicit content type
+        // Créer un nouveau blob avec le type de contenu explicite
         const contentType = blob.type || `image/${extension}`;
-        const fileBlob = new Blob([await blob.arrayBuffer()], { type: contentType });
+        const arrayBuffer = await blob.arrayBuffer();
+        const fileBlob = new Blob([arrayBuffer], { type: contentType });
         
-        // Upload to Supabase with explicit content type
+        // Upload vers Supabase avec le type de contenu explicite
         const { data, error } = await supabase.storage
           .from(bucket)
           .upload(fileName, fileBlob, {
@@ -168,10 +204,30 @@ export const downloadAndUploadImage = async (
         
         if (error) {
           console.error('Error uploading blob:', error);
-          return null;
+          
+          // Essayer avec le client admin
+          const { data: adminData, error: adminError } = await adminSupabase.storage
+            .from(bucket)
+            .upload(fileName, fileBlob, {
+              cacheControl: '3600',
+              upsert: true,
+              contentType: contentType
+            });
+          
+          if (adminError) {
+            console.error('Error uploading blob with admin client:', adminError);
+            return null;
+          }
+          
+          // Obtenir l'URL publique
+          const { data: urlData } = adminSupabase.storage
+            .from(bucket)
+            .getPublicUrl(fileName);
+            
+          return urlData.publicUrl;
         }
         
-        // Get the public URL
+        // Obtenir l'URL publique
         const { data: urlData } = supabase.storage
           .from(bucket)
           .getPublicUrl(fileName);
@@ -183,7 +239,7 @@ export const downloadAndUploadImage = async (
       }
     }
     
-    // For regular URLs, fetch the image
+    // Pour les URLs normales, récupérer l'image
     const response = await fetch(url);
     if (!response.ok) {
       console.error(`Failed to download image: ${response.status} ${response.statusText}`);
@@ -192,15 +248,16 @@ export const downloadAndUploadImage = async (
     
     const blob = await response.blob();
     
-    // Determine file extension based on content type
+    // Déterminer l'extension de fichier basée sur le type de contenu
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     const extension = contentType.split('/')[1] || 'jpg';
     const fileName = `${path}.${extension}`;
     
-    // Create a new blob with explicit content type
-    const fileBlob = new Blob([await blob.arrayBuffer()], { type: contentType });
+    // Créer un nouveau blob avec le type de contenu explicite
+    const arrayBuffer = await blob.arrayBuffer();
+    const fileBlob = new Blob([arrayBuffer], { type: contentType });
     
-    // Upload to Supabase with explicit content type
+    // Upload vers Supabase avec le type de contenu explicite
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(fileName, fileBlob, {
@@ -211,10 +268,30 @@ export const downloadAndUploadImage = async (
     
     if (error) {
       console.error('Error uploading image:', error);
-      return null;
+      
+      // Essayer avec le client admin
+      const { data: adminData, error: adminError } = await adminSupabase.storage
+        .from(bucket)
+        .upload(fileName, fileBlob, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: contentType
+        });
+      
+      if (adminError) {
+        console.error('Error uploading image with admin client:', adminError);
+        return null;
+      }
+      
+      // Obtenir l'URL publique
+      const { data: urlData } = adminSupabase.storage
+        .from(bucket)
+        .getPublicUrl(fileName);
+        
+      return urlData.publicUrl;
     }
     
-    // Get the public URL
+    // Obtenir l'URL publique
     const { data: urlData } = supabase.storage
       .from(bucket)
       .getPublicUrl(fileName);
