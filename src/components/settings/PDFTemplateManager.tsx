@@ -1,166 +1,195 @@
 
 import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash, Eye, Copy } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPDFTemplates, deletePDFTemplate } from "@/services/pdfTemplateService";
-import PDFTemplateEditor from "./PDFTemplateEditor";
-import PDFTemplatePreview from "./PDFTemplatePreview";
-import PDFTemplateCard from "./PDFTemplateCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getSupabaseClient } from "@/integrations/supabase/client";
+import PDFCompanyInfo from "./PDFCompanyInfo";
+import PDFTemplateWithFields from "./PDFTemplateWithFields";
 
 const PDFTemplateManager = () => {
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-  const [editMode, setEditMode] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
-  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [template, setTemplate] = useState(null);
+  const [activeTab, setActiveTab] = useState("design");
 
-  // Fetch templates
-  const { data: templates = [], isLoading, error } = useQuery({
-    queryKey: ['pdfTemplates'],
-    queryFn: getPDFTemplates
-  });
-
-  // Delete template mutation
-  const deleteMutation = useMutation({
-    mutationFn: deletePDFTemplate,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pdfTemplates'] });
-      toast.success("Le modèle a été supprimé avec succès");
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de la suppression du modèle");
-      console.error("Delete error:", error);
-    }
-  });
-
-  const handleDelete = (id: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce modèle ?")) {
-      deleteMutation.mutate(id);
-    }
-  };
-
-  const handleEdit = (template: any) => {
-    setSelectedTemplate(template);
-    setEditMode(true);
-  };
-
-  const handlePreview = (template: any) => {
-    setSelectedTemplate(template);
-    setPreviewMode(true);
-  };
-
-  const handleDuplicate = (template: any) => {
-    // Créer une copie du template avec un nouveau nom
-    const duplicatedTemplate = {
-      ...template,
-      id: undefined,
-      name: `${template.name} (copie)`
+  // Charger le modèle existant s'il existe
+  useEffect(() => {
+    const loadTemplate = async () => {
+      setLoading(true);
+      
+      try {
+        const supabase = getSupabaseClient();
+        
+        // Vérifier si la table existe
+        const { data: tableExists, error: tableError } = await supabase.rpc(
+          'check_table_exists', 
+          { table_name: 'pdf_templates' }
+        );
+        
+        if (tableError) {
+          console.error("Error checking table existence:", tableError);
+          throw new Error("Erreur lors de la vérification de la table");
+        }
+        
+        if (!tableExists) {
+          console.log("Table doesn't exist, creating it");
+          // Créer la table si elle n'existe pas
+          const { error: createError } = await supabase.rpc('execute_sql', {
+            sql: `
+              CREATE TABLE IF NOT EXISTS public.pdf_templates (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                "companyName" TEXT NOT NULL,
+                "companyAddress" TEXT NOT NULL,
+                "companyContact" TEXT NOT NULL,
+                "companySiret" TEXT NOT NULL,
+                "logoURL" TEXT,
+                "primaryColor" TEXT NOT NULL,
+                "secondaryColor" TEXT NOT NULL,
+                "headerText" TEXT NOT NULL,
+                "footerText" TEXT NOT NULL,
+                "templateImages" JSONB,
+                fields JSONB NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+              );
+            `
+          });
+          
+          if (createError) {
+            console.error("Error creating table:", createError);
+            throw new Error("Erreur lors de la création de la table");
+          }
+        }
+        
+        // Récupérer le modèle par défaut
+        const { data, error } = await supabase
+          .from('pdf_templates')
+          .select('*')
+          .eq('id', 'default')
+          .single();
+          
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+          console.error("Error fetching template:", error);
+          throw new Error("Erreur lors de la récupération du modèle");
+        }
+        
+        if (data) {
+          console.log("Template loaded successfully:", data);
+          setTemplate(data);
+        } else {
+          console.log("No template found, will create a default one");
+          setTemplate(null);
+        }
+      } catch (error) {
+        console.error("Error loading template:", error);
+        toast.error("Erreur lors du chargement du modèle");
+      } finally {
+        setLoading(false);
+      }
     };
-    setSelectedTemplate(duplicatedTemplate);
-    setEditMode(true);
+    
+    loadTemplate();
+  }, []);
+  
+  // Sauvegarder le modèle
+  const saveTemplate = async (updatedTemplate) => {
+    setSaving(true);
+    
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { error } = await supabase
+        .from('pdf_templates')
+        .upsert({
+          id: 'default',
+          ...updatedTemplate,
+          updated_at: new Date().toISOString()
+        });
+        
+      if (error) {
+        console.error("Error saving template:", error);
+        throw new Error("Erreur lors de la sauvegarde du modèle");
+      }
+      
+      setTemplate(updatedTemplate);
+      toast.success("Modèle sauvegardé avec succès");
+    } catch (error) {
+      console.error("Error saving template:", error);
+      toast.error("Erreur lors de la sauvegarde du modèle");
+    } finally {
+      setSaving(false);
+    }
   };
-
-  const handleCreateNew = () => {
-    // Initialiser un nouveau template vide
-    setSelectedTemplate({
-      name: "Nouveau modèle",
-      companyName: "",
-      companyAddress: "",
-      companySiret: "",
-      companyContact: "",
-      headerText: "",
-      footerText: "",
-      primaryColor: "#3B82F6",
-      secondaryColor: "#1E3A8A",
-      logoURL: "",
-      templateImages: [],
-      fields: {}
-    });
-    setEditMode(true);
+  
+  // Mettre à jour les informations de l'entreprise
+  const handleCompanyInfoUpdate = (companyInfo) => {
+    if (template) {
+      const updatedTemplate = {
+        ...template,
+        ...companyInfo
+      };
+      
+      saveTemplate(updatedTemplate);
+    } else {
+      // Créer un nouveau modèle avec les informations de l'entreprise
+      const newTemplate = {
+        id: 'default',
+        name: 'Modèle par défaut',
+        templateImages: [],
+        fields: [],
+        ...companyInfo
+      };
+      
+      saveTemplate(newTemplate);
+    }
   };
-
-  const closeModals = () => {
-    setEditMode(false);
-    setPreviewMode(false);
-    setSelectedTemplate(null);
+  
+  // Mettre à jour les pages et champs du modèle
+  const handleTemplateUpdate = (updatedTemplate) => {
+    saveTemplate(updatedTemplate);
   };
-
+  
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold">Gestion des modèles PDF</h3>
-        <Button onClick={handleCreateNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouveau modèle
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="text-center py-8">Chargement des modèles...</div>
-      ) : error ? (
-        <div className="text-center py-8 text-destructive">
-          Une erreur est survenue lors du chargement des modèles
-        </div>
-      ) : templates.length === 0 ? (
-        <div className="text-center py-12 border rounded-md">
-          <h4 className="text-lg font-medium mb-2">Aucun modèle PDF</h4>
-          <p className="text-muted-foreground mb-4">
-            Commencez par créer votre premier modèle PDF pour vos documents.
-          </p>
-          <Button onClick={handleCreateNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            Créer un modèle
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates.map((template: any) => (
-            <PDFTemplateCard
-              key={template.id}
-              template={template}
-              onEdit={() => handleEdit(template)}
-              onDelete={() => handleDelete(template.id)}
-              onPreview={() => handlePreview(template)}
-              onDuplicate={() => handleDuplicate(template)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Modal d'édition */}
-      <Dialog open={editMode} onOpenChange={setEditMode}>
-        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedTemplate?.id ? `Modifier ${selectedTemplate.name}` : "Créer un nouveau modèle"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden">
-            {selectedTemplate && (
-              <PDFTemplateEditor 
-                template={selectedTemplate} 
-                onClose={closeModals} 
-              />
-            )}
+    <Card className="w-full mt-6">
+      <CardHeader>
+        <CardTitle>Gestionnaire de modèles PDF</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-sm text-muted-foreground">
+              Chargement du modèle...
+            </p>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de prévisualisation */}
-      <Dialog open={previewMode} onOpenChange={setPreviewMode}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>Aperçu: {selectedTemplate?.name}</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="flex-1 h-[70vh]">
-            {selectedTemplate && <PDFTemplatePreview template={selectedTemplate} />}
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
-    </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="company">Informations de l'entreprise</TabsTrigger>
+              <TabsTrigger value="design">Conception du modèle</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="company" className="mt-6">
+              <PDFCompanyInfo 
+                template={template} 
+                onSave={handleCompanyInfoUpdate} 
+                loading={saving}
+              />
+            </TabsContent>
+            
+            <TabsContent value="design" className="mt-6">
+              <PDFTemplateWithFields 
+                template={template}
+                onSave={handleTemplateUpdate}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

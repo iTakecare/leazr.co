@@ -37,7 +37,7 @@ const Settings = () => {
                 <BadgePercent className="h-4 w-4" />
                 <span>Commissions</span>
               </TabsTrigger>
-              <TabsTrigger value="pdf-templates" className="flex items-center gap-2">
+              <TabsTrigger value="pdf" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 <span>Modèles PDF</span>
               </TabsTrigger>
@@ -63,7 +63,7 @@ const Settings = () => {
               <CommissionManager />
             </TabsContent>
 
-            <TabsContent value="pdf-templates" className="space-y-4">
+            <TabsContent value="pdf" className="space-y-4">
               <PDFTemplateManager />
             </TabsContent>
 
