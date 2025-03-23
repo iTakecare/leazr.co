@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -274,18 +273,14 @@ const PDFPreview = ({ template }) => {
 
   // Convertir les millimètres en pixels pour le positionnement correct
   const mmToPx = (mm) => {
-    // A4 dimensions: 210 x 297 mm
-    // Scale factor adjusted to match the PDF preview container
-    // We use the actual pixel size of our preview container compared to A4 dimensions
-    
-    // Define the pixel width of the preview container 
-    // (this should match the actual width of the preview container in the UI)
-    const previewContainerWidth = 210 * zoomLevel; // This is in mm, will be converted to px
+    // A4 standard dimensions: 210 x 297 mm
     
     // Standard conversion: 1 mm = 3.7795275591 pixels at 96 DPI
+    // This is a constant conversion factor for screen display
     const pxPerMm = 3.7795275591;
     
-    return mm * pxPerMm * (zoomLevel);
+    // We need to account for the zoom level
+    return mm * pxPerMm * zoomLevel;
   };
   
   // Zoom in
@@ -390,18 +385,14 @@ const PDFPreview = ({ template }) => {
                       
                       {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
                       {pageLoaded && getCurrentPageFields().map((field) => {
-                        // Position en millimètres
-                        const xMm = field.position?.x || 0;
-                        const yMm = field.position?.y || 0;
-                        
-                        // Convertir en pixels pour l'affichage
-                        const xPx = mmToPx(xMm);
-                        const yPx = mmToPx(yMm);
-                        
                         // Définir la taille de police en fonction du style ou de la valeur par défaut
                         const fontSize = field.style?.fontSize 
                           ? field.style.fontSize * zoomLevel
                           : 9 * zoomLevel;
+                        
+                        // Convertir en pixels pour l'affichage
+                        const xPx = mmToPx(field.position?.x || 0);
+                        const yPx = mmToPx(field.position?.y || 0);
                         
                         // Définir le style de position avec les autres propriétés de style
                         const fieldStyle = {
@@ -414,9 +405,15 @@ const PDFPreview = ({ template }) => {
                           fontStyle: field.style?.fontStyle || 'normal',
                           textDecoration: field.style?.textDecoration || 'none',
                           color: field.style?.color || 'black',
-                          whiteSpace: "pre-wrap",
-                          maxWidth: field.id === 'equipment_table' ? "150mm" : "80mm"
+                          whiteSpace: "pre-wrap"
                         } as CSSProperties;
+                        
+                        // Ajuster la largeur maximale en fonction du type de champ
+                        if (field.id === 'equipment_table') {
+                          fieldStyle.maxWidth = `${150 * zoomLevel}mm`;
+                        } else {
+                          fieldStyle.maxWidth = `${80 * zoomLevel}mm`;
+                        }
                         
                         return (
                           <div 
