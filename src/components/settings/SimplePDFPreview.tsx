@@ -18,6 +18,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const [pageLoaded, setPageLoaded] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const previewRef = useRef<HTMLDivElement>(null);
+  const pdfDocumentRef = useRef<HTMLDivElement>(null);
   const [isDraggable, setIsDraggable] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
@@ -200,22 +201,29 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   };
 
   const handleDrag = (clientX: number, clientY: number) => {
-    if (!isDragging || !draggedFieldId || !previewRef.current) return;
+    if (!isDragging || !draggedFieldId || !pdfDocumentRef.current) return;
 
-    const rect = previewRef.current.getBoundingClientRect();
+    const rect = pdfDocumentRef.current.getBoundingClientRect();
     
     // Convertir les pixels en millimètres avec le zoom
     // 1mm = 3.7795275591px à 96dpi
     const x = (clientX - rect.left - dragOffsetX) / (3.7795275591 * zoomLevel);
     const y = (clientY - rect.top - dragOffsetY) / (3.7795275591 * zoomLevel);
 
+    // Vérifier que les coordonnées sont à l'intérieur du document A4
+    // Un A4 fait 210x297mm
+    const boundedX = Math.max(0, Math.min(x, 210));
+    const boundedY = Math.max(0, Math.min(y, 297));
+
+    console.log(`Moving field ${draggedFieldId} to x=${boundedX}mm, y=${boundedY}mm`);
+
     const updatedFields = localTemplate.fields.map((field: any) => {
       if (field.id === draggedFieldId && (field.page === currentPage || (currentPage === 0 && field.page === undefined))) {
         return {
           ...field,
           position: {
-            x: Math.max(0, x),
-            y: Math.max(0, y)
+            x: boundedX,
+            y: boundedY
           }
         };
       }
@@ -313,11 +321,15 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
             ref={previewRef}
             className="bg-gray-100 p-4 flex justify-center min-h-[800px] overflow-auto"
           >
-            <div className="bg-white shadow-lg relative" style={{ 
-              width: `${210 * zoomLevel}mm`, 
-              height: `${297 * zoomLevel}mm`,
-              maxWidth: "100%"
-            }}>
+            <div 
+              ref={pdfDocumentRef}
+              className="bg-white shadow-lg relative" 
+              style={{ 
+                width: `${210 * zoomLevel}mm`, 
+                height: `${297 * zoomLevel}mm`,
+                maxWidth: "100%"
+              }}
+            >
               {totalPages > 1 && (
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
                   <Button

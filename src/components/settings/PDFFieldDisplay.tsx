@@ -156,7 +156,16 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   
   // Position et style du champ
   const xPx = mmToPx(field.position?.x || 0);
-  const yPx = mmToPx(field.position?.y || 0);
+  
+  // Correction pour la position verticale - limiter à la hauteur du document A4
+  // La hauteur d'un A4 est de 297mm
+  let yPos = field.position?.y || 0;
+  if (yPos > 297) {
+    console.warn(`Field ${field.id} has y position ${yPos}mm which is beyond A4 height (297mm). Capping at 290mm.`);
+    yPos = Math.min(yPos, 290); // Limiter à 290mm pour garantir la visibilité
+  }
+  
+  const yPx = mmToPx(yPos);
   
   // Taille de police ajustée avec le zoom
   const fontSize = field.style?.fontSize 
@@ -168,7 +177,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     position: "absolute" as const,
     left: `${xPx}px`,
     top: `${yPx}px`,
-    zIndex: 5,
+    zIndex: 10, // Augmenter le z-index pour s'assurer que les champs sont au-dessus de l'image
     fontSize: `${fontSize}px`,
     fontWeight: field.style?.fontWeight || 'normal',
     fontStyle: field.style?.fontStyle || 'normal',
