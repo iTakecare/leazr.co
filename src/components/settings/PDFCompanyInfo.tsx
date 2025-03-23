@@ -50,8 +50,6 @@ const PDFCompanyInfo = ({ template, onSave, loading }) => {
   });
 
   const handleLogoUpload = async (e) => {
-    // Cette fonction serait implémentée pour gérer l'upload d'image
-    // Pour le moment, nous utiliserons simplement l'URL de l'image
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();

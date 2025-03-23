@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Upload, Image as ImageIcon, ArrowRight, ArrowLeft } from "lucide-react";
 
-// Composant simplifié de téléchargement de modèles PDF
+// Version simplifiée du composant de téléchargement de modèles PDF
 const PDFTemplateUploader = ({ 
   templateImages = [], 
   onChange, 
@@ -151,7 +151,6 @@ const PDFTemplateUploader = ({
           
         if (error) {
           console.error("Error deleting file from storage:", error);
-          // Continue anyway to remove from the UI
         }
       }
       
@@ -189,7 +188,10 @@ const PDFTemplateUploader = ({
         <h3 className="text-lg font-medium">Télécharger des images de modèle</h3>
         <div className="flex space-x-2">
           <Button 
-            onClick={() => setSelectedPage(Math.max(0, selectedPageInternal - 1))}
+            onClick={() => {
+              setSelectedPage(Math.max(0, selectedPageInternal - 1));
+              if (onPageSelect) onPageSelect(Math.max(0, selectedPageInternal - 1));
+            }}
             disabled={selectedPageInternal === 0 || images.length === 0}
             variant="outline"
             size="icon"
@@ -200,7 +202,10 @@ const PDFTemplateUploader = ({
             Page {selectedPageInternal + 1} / {Math.max(1, images.length)}
           </span>
           <Button 
-            onClick={() => setSelectedPage(Math.min(images.length - 1, selectedPageInternal + 1))}
+            onClick={() => {
+              setSelectedPage(Math.min(images.length - 1, selectedPageInternal + 1));
+              if (onPageSelect) onPageSelect(Math.min(images.length - 1, selectedPageInternal + 1));
+            }}
             disabled={selectedPageInternal >= images.length - 1 || images.length === 0}
             variant="outline"
             size="icon"

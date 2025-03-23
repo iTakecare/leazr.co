@@ -10,10 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, ArrowRight, ArrowLeft, Edit, Trash2, Copy, X, MoveHorizontal, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { ColorPicker } from 'react-color-palette';
-import 'react-color-palette/lib/css/styles.css';
 
-// Le composant est similaire mais ajoute le support de readOnly
+// Le composant est simplifié mais garde les fonctionnalités essentielles
 const PDFFieldsEditor = ({ 
   fields, 
   onChange, 
@@ -224,7 +222,6 @@ const PDFFieldsEditor = ({
         </div>
       </div>
 
-      {/* Rest of the component with conditional rendering based on readOnly */}
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">
           <Card>
