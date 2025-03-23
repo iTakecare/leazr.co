@@ -6,6 +6,7 @@ import { SAMPLE_DATA } from "./pdf-preview/SampleData";
 import PreviewControls from "./pdf-preview/PreviewControls";
 import PDFCanvas from "./pdf-preview/PDFCanvas";
 import InstructionsPanel from "./pdf-preview/InstructionsPanel";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 
 interface SimplePDFPreviewProps {
   template: any;
@@ -42,6 +43,8 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
   const [localTemplate, setLocalTemplate] = useState(template);
   const [isSaving, setIsSaving] = useState(false);
   const [saveAttempts, setSaveAttempts] = useState(0);
+  const [useRealData, setUseRealData] = useState(false);
+  const [realData, setRealData] = useState<any>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Réinitialiser les données locales lorsque le template parent change
@@ -58,6 +61,46 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
       setHasUnsavedChanges(false);
     }
   }, [template]);
+
+  // Charger les vraies données pour démonstration
+  useEffect(() => {
+    const loadRealData = async () => {
+      if (useRealData && !realData) {
+        try {
+          setLoading(true);
+          // Récupérer une offre récente de la base de données
+          const supabase = getSupabaseClient();
+          const { data, error } = await supabase
+            .from('offers')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (error) {
+            console.error("Erreur lors de la récupération des données réelles:", error);
+            toast.error("Impossible de charger des données réelles");
+            setUseRealData(false);
+          } else if (data) {
+            console.log("Données réelles chargées:", data);
+            setRealData(data);
+            toast.success("Données réelles chargées avec succès");
+          } else {
+            toast.warning("Aucune donnée réelle trouvée");
+            setUseRealData(false);
+          }
+        } catch (err) {
+          console.error("Erreur lors du chargement des données réelles:", err);
+          toast.error("Erreur lors du chargement des données réelles");
+          setUseRealData(false);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadRealData();
+  }, [useRealData, realData]);
 
   // Réinitialiser l'état de chargement de la page lors du changement de page
   useEffect(() => {
@@ -210,6 +253,9 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     setDragOffsetY(offsetY);
   }, [isDraggable]);
   
+  // Déterminer quelles données utiliser
+  const currentData = useRealData && realData ? realData : SAMPLE_DATA;
+  
   return (
     <div className="space-y-4" ref={previewRef}>
       <PreviewControls 
@@ -219,10 +265,12 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
         setIsDraggable={setIsDraggable}
         hasUnsavedChanges={hasUnsavedChanges}
         onSave={handleSaveChanges}
-        sampleData={SAMPLE_DATA}
+        sampleData={currentData}
         localTemplate={localTemplate}
         setLoading={setLoading}
         isSaving={isSaving}
+        useRealData={useRealData}
+        setUseRealData={setUseRealData}
       />
       
       <Card>
@@ -235,10 +283,11 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
             pageLoaded={pageLoaded}
             setPageLoaded={setPageLoaded}
             isDraggable={isDraggable}
-            sampleData={SAMPLE_DATA}
+            sampleData={currentData}
             onStartDrag={handleStartDrag}
             onDrag={handleDrag}
             onEndDrag={handleDragEnd}
+            useRealData={useRealData}
           />
         </CardContent>
       </Card>

@@ -1,9 +1,11 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save, FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface PreviewControlsProps {
   zoomLevel: number;
@@ -16,6 +18,8 @@ interface PreviewControlsProps {
   localTemplate: any;
   setLoading: (loading: boolean) => void;
   isSaving?: boolean;
+  useRealData: boolean;
+  setUseRealData: (useReal: boolean) => void;
 }
 
 const PreviewControls: React.FC<PreviewControlsProps> = ({
@@ -28,7 +32,9 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
   sampleData,
   localTemplate,
   setLoading,
-  isSaving = false
+  isSaving = false,
+  useRealData,
+  setUseRealData
 }) => {
   const handleGeneratePreview = async () => {
     try {
@@ -77,7 +83,18 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
   return (
     <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2">
       <h3 className="text-sm font-medium">Aperçu du modèle de PDF</h3>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 mr-4">
+          <Switch
+            id="use-real-data"
+            checked={useRealData}
+            onCheckedChange={setUseRealData}
+          />
+          <Label htmlFor="use-real-data" className="text-sm">
+            Utiliser des données réelles
+          </Label>
+        </div>
+        
         <div className="flex items-center border rounded-md">
           <Button
             variant="ghost"

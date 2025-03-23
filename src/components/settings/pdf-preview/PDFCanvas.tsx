@@ -16,6 +16,7 @@ interface PDFCanvasProps {
   onStartDrag: (fieldId: string, offsetX: number, offsetY: number) => void;
   onDrag: (clientX: number, clientY: number) => void;
   onEndDrag: () => void;
+  useRealData?: boolean;
 }
 
 // Constantes pour les dimensions de page A4 en mm
@@ -33,7 +34,8 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
   sampleData,
   onStartDrag,
   onDrag,
-  onEndDrag
+  onEndDrag,
+  useRealData = false
 }) => {
   const pdfDocumentRef = useRef<HTMLDivElement>(null);
   const hasTemplateImages = localTemplate?.templateImages && 
@@ -105,14 +107,25 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
 
   const fields = getCurrentPageFields();
 
+  // Ajouter des informations sur l'utilisation de données réelles vs exemples
+  const dataSourceText = useRealData ? 
+    "Utilisation de données réelles" : 
+    "Utilisation de données d'exemple";
+
   return (
     <div 
-      className="bg-gray-100 p-4 flex justify-center min-h-[800px] overflow-auto"
+      className="bg-gray-100 p-4 flex flex-col justify-center min-h-[800px] overflow-auto"
       onMouseLeave={onEndDrag}
     >
+      {useRealData && (
+        <div className="text-xs text-blue-600 font-medium mb-2 px-2 py-1 bg-blue-50 rounded-md inline-self-start max-w-max">
+          {dataSourceText}
+        </div>
+      )}
+      
       <div 
         ref={pdfDocumentRef}
-        className="bg-white shadow-lg relative" 
+        className="bg-white shadow-lg relative mx-auto" 
         style={{ 
           width: `${210 * zoomLevel}mm`, 
           height: `${297 * zoomLevel}mm`,
@@ -145,6 +158,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
               onStartDrag={onStartDrag}
               onDrag={onDrag}
               onEndDrag={onEndDrag}
+              useRealData={useRealData}
             />
           ))}
           
