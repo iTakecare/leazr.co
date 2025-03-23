@@ -151,7 +151,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   
   // Style du champ
   const style = {
-    position: "absolute" as "absolute", // Type assertion pour éviter l'erreur TS
+    position: "absolute" as const, // Type assertion pour éviter l'erreur TS
     left: `${xPx}px`,
     top: `${yPx}px`,
     zIndex: 5,
@@ -160,7 +160,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     fontStyle: field.style?.fontStyle || 'normal',
     textDecoration: field.style?.textDecoration || 'none',
     color: field.style?.color || 'black',
-    whiteSpace: "pre-wrap" as "pre-wrap", // Type assertion pour éviter l'erreur TS
+    whiteSpace: "pre-wrap" as const, // Type assertion pour éviter l'erreur TS
     maxWidth: field.id === 'equipment_table' 
       ? `${mmToPx(150)}px` 
       : `${mmToPx(80)}px`,
@@ -168,28 +168,42 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   };
   
   // Gestionnaires d'événements pour le drag and drop
-  const handleDragStart = (e: React.DragEvent) => {
+  const handleDragStart = (e: React.MouseEvent) => {
     if (!isDraggable) return;
+    
+    // Empêcher le comportement par défaut du navigateur
+    e.preventDefault();
+    
     const rect = e.currentTarget.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
+    
     onStartDrag(field.id, offsetX, offsetY);
+    
+    // Ajouter les événements de suivi du mouvement de la souris au document
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
   
-  const handleDrag = (e: React.DragEvent) => {
-    if (!isDraggable || !e.clientX) return;
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDraggable) return;
     onDrag(e.clientX, e.clientY);
+  };
+  
+  const handleMouseUp = () => {
+    onEndDrag();
+    
+    // Nettoyer les événements
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
   };
   
   // Rendu du contenu du champ
   return (
     <div 
       style={style}
-      className="pdf-field"
-      draggable={isDraggable}
-      onDragStart={handleDragStart}
-      onDrag={handleDrag}
-      onDragEnd={onEndDrag}
+      className={`pdf-field ${isDraggable ? 'hover:bg-blue-100 hover:opacity-80' : ''}`}
+      onMouseDown={handleDragStart}
     >
       {field.id === 'equipment_table' ? (
         renderEquipmentTable(sampleData, zoomLevel)

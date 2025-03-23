@@ -173,7 +173,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
   };
 
-  // Gestion du drag and drop des champs
+  // Gestion du drag and drop des champs - SANS sauvegarde automatique
   const handleDragStart = (fieldId: string, offsetX: number, offsetY: number) => {
     if (!isDraggable) return;
     setIsDragging(true);
@@ -191,7 +191,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     const x = (clientX - rect.left - dragOffsetX) / (3.7795275591 * zoomLevel);
     const y = (clientY - rect.top - dragOffsetY) / (3.7795275591 * zoomLevel);
 
-    // Mettre à jour le champ dans le template local
+    // Mettre à jour le champ dans le template local SANS sauvegarder
     const updatedFields = localTemplate.fields.map((field: any) => {
       if (field.id === draggedFieldId && field.page === currentPage) {
         return {
@@ -205,12 +205,13 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
       return field;
     });
 
-    // Mettre à jour le template local sans sauvegarder automatiquement
+    // Mettre à jour le template local sans sauvegarder
     setLocalTemplate({
       ...localTemplate,
       fields: updatedFields
     });
     
+    // Indiquer qu'il y a des changements non sauvegardés
     setHasUnsavedChanges(true);
   };
 
@@ -228,12 +229,12 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
     }
   };
 
-  // Sauvegarder les modifications
+  // Sauvegarder les modifications - EXPLICITEMENT
   const handleSaveChanges = () => {
     if (onSave && hasUnsavedChanges) {
       onSave(localTemplate);
       setHasUnsavedChanges(false);
-      toast.success("Modifications sauvegardées");
+      toast.success("Positions des champs sauvegardées avec succès");
     }
   };
   
@@ -279,7 +280,7 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
               className="h-8"
             >
               <Save className="h-4 w-4 mr-2" />
-              Sauvegarder
+              Sauvegarder les positions
             </Button>
           )}
           <Button
@@ -385,14 +386,13 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
       <div className="text-sm text-muted-foreground">
         <p>Pour positionner les champs sur vos pages:</p>
         <ol className="list-decimal list-inside ml-4 space-y-1 mt-2">
-          <li>Ajoutez des pages en uploadant des images dans l'onglet "Conception du modèle"</li>
-          <li>Allez dans l'onglet "Conception du modèle" pour définir les champs</li>
-          <li>Cliquez sur "Positionner les champs" pour activer le mode de positionnement</li>
+          <li>Cliquez sur "Positionner les champs" pour activer le mode d'édition</li>
           <li>Déplacez les champs en les faisant glisser à l'emplacement souhaité</li>
-          <li>Cliquez sur "Sauvegarder" pour enregistrer les positions</li>
-          <li>Cliquez sur "Terminer le positionnement" pour désactiver le mode d'édition</li>
+          <li>Un bouton "Sauvegarder les positions" apparaîtra quand vous aurez fait des modifications</li>
+          <li>Cliquez sur "Sauvegarder les positions" pour enregistrer vos changements</li>
+          <li>Cliquez sur "Terminer le positionnement" pour quitter le mode d'édition</li>
         </ol>
-        <p className="mt-2 font-medium text-blue-600">Note: Les coordonnées X/Y représentent la position en millimètres depuis le coin supérieur gauche de la page.</p>
+        <p className="mt-2 font-medium text-blue-600">Note: Les positions des champs ne seront sauvegardées que lorsque vous cliquez sur le bouton "Sauvegarder les positions".</p>
       </div>
     </div>
   );
