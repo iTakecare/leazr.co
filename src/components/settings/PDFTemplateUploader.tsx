@@ -115,7 +115,7 @@ const PDFTemplateUploader = ({
       
       // Réinitialiser le formulaire
       setFile(null);
-      const fileInput = document.getElementById('file-upload');
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
       if (fileInput) {
         fileInput.value = '';
       }
@@ -336,7 +336,7 @@ const PDFTemplateUploader = ({
                 {!readOnly && (
                   <button
                     onClick={() => {
-                      const fileInput = document.getElementById('file-upload');
+                      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
                       if (fileInput) fileInput.click();
                     }}
                     className="aspect-[3/4] border-2 border-dashed border-gray-200 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -354,7 +354,7 @@ const PDFTemplateUploader = ({
                     variant="outline" 
                     size="sm"
                     onClick={() => {
-                      const fileInput = document.getElementById('file-upload');
+                      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
                       if (fileInput) fileInput.click();
                     }}
                   >
