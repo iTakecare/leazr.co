@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +5,6 @@ import PDFTemplateUploader from './PDFTemplateUploader';
 import PDFFieldsEditor from './PDFFieldsEditor';
 import PDFPreview from './PDFPreview';
 
-// Les champs par défaut sont conservés
 const DEFAULT_FIELDS = [
   // Client fields
   {
@@ -418,24 +416,19 @@ const PDFTemplateWithFields: React.FC<PDFTemplateWithFieldsProps> = ({
   
   const [selectedPage, setSelectedPage] = useState(0);
   const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Mettre à jour l'état local lorsque le modèle parent change
   useEffect(() => {
     if (template) {
       setCurrentTemplate(template);
-      setHasUnsavedChanges(false);
     }
   }, [template]);
 
-  // Mettre à jour l'onglet actif lorsque la prop change
   useEffect(() => {
     if (activeTab) {
       setInternalActiveTab(activeTab);
     }
   }, [activeTab]);
 
-  // Gérer le changement d'images sans déclencher de sauvegarde directe
   const handleImagesChange = (newImages) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -443,10 +436,11 @@ const PDFTemplateWithFields: React.FC<PDFTemplateWithFieldsProps> = ({
     };
     
     setCurrentTemplate(updatedTemplate);
-    setHasUnsavedChanges(true);
+    if (onSave) {
+      onSave(updatedTemplate);
+    }
   };
 
-  // Gérer le changement de champs sans déclencher de sauvegarde directe
   const handleFieldsChange = (newFields) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -457,14 +451,8 @@ const PDFTemplateWithFields: React.FC<PDFTemplateWithFieldsProps> = ({
     };
     
     setCurrentTemplate(updatedTemplate);
-    setHasUnsavedChanges(true);
-  };
-
-  // Fonction pour sauvegarder explicitement
-  const handleSaveTemplate = () => {
-    if (onSave && hasUnsavedChanges) {
-      onSave(currentTemplate);
-      setHasUnsavedChanges(false);
+    if (onSave) {
+      onSave(updatedTemplate);
     }
   };
 
@@ -520,7 +508,6 @@ const PDFTemplateWithFields: React.FC<PDFTemplateWithFieldsProps> = ({
     handleFieldsChange(newFields);
   };
 
-  // Si l'affichage est limité à un seul onglet, ne pas afficher l'interface à onglets
   if (activeTab && activeTab !== "all") {
     if (activeTab === "template") {
       return (
@@ -564,7 +551,6 @@ const PDFTemplateWithFields: React.FC<PDFTemplateWithFieldsProps> = ({
     }
   }
 
-  // Interface à onglets complète
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center mb-4">

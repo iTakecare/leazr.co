@@ -1,13 +1,13 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Upload, Image as ImageIcon, ArrowRight, ArrowLeft, Save } from "lucide-react";
+import { Plus, Trash2, Upload, Image as ImageIcon, ArrowRight, ArrowLeft } from "lucide-react";
 
-// Composant de téléchargement de modèles PDF avec support readOnly
+// Composant simplifié de téléchargement de modèles PDF
 const PDFTemplateUploader = ({ 
   templateImages = [], 
   onChange, 
@@ -20,7 +20,6 @@ const PDFTemplateUploader = ({
   const [uploading, setUploading] = useState(false);
   const [newPageNumber, setNewPageNumber] = useState(1);
   const [selectedPageInternal, setSelectedPage] = useState(selectedPage);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Synchroniser les images avec les props
   useEffect(() => {
@@ -37,7 +36,6 @@ const PDFTemplateUploader = ({
     const selectedFile = e.target.files[0];
     if (selectedFile) {
       setFile(selectedFile);
-      setHasUnsavedChanges(true);
     }
   };
 
@@ -105,7 +103,11 @@ const PDFTemplateUploader = ({
       
       // Mettre à jour l'état local
       setImages(updatedImages);
-      setHasUnsavedChanges(true);
+      
+      // Sauvegarder les changements immédiatement
+      if (onChange) {
+        onChange(updatedImages);
+      }
       
       // Réinitialiser le formulaire
       setFile(null);
@@ -164,7 +166,11 @@ const PDFTemplateUploader = ({
       
       // Mettre à jour l'état local
       setImages(reindexedImages);
-      setHasUnsavedChanges(true);
+      
+      // Sauvegarder les changements immédiatement
+      if (onChange) {
+        onChange(reindexedImages);
+      }
       
       // Ajuster la page sélectionnée si nécessaire
       const newSelectedPage = Math.min(selectedPageInternal, reindexedImages.length - 1);
@@ -177,15 +183,6 @@ const PDFTemplateUploader = ({
     }
   };
 
-  // Sauvegarder les modifications
-  const handleSaveChanges = useCallback(() => {
-    if (onChange) {
-      onChange(images);
-      setHasUnsavedChanges(false);
-    }
-  }, [images, onChange]);
-
-  // Dans la méthode de rendu, assurez-vous de désactiver les boutons en mode readOnly
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-4">
@@ -295,18 +292,6 @@ const PDFTemplateUploader = ({
                   )}
                 </Button>
               </div>
-
-              {hasUnsavedChanges && (
-                <div className="mt-4">
-                  <Button
-                    onClick={handleSaveChanges}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Sauvegarder les modifications
-                  </Button>
-                </div>
-              )}
             </>
           )}
           
