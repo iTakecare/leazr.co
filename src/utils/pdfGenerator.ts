@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -178,6 +179,23 @@ export const generateOfferPdf = async (offer: any) => {
     fieldsCount: template.fields?.length || 0
   });
   
+  // Logs détaillés pour le débogage des champs
+  if (template.fields && Array.isArray(template.fields) && template.fields.length > 0) {
+    console.log("Champs disponibles:");
+    template.fields.forEach((field, idx) => {
+      console.log(`Champ ${idx}:`, {
+        id: field.id,
+        value: field.value,
+        page: field.page,
+        hasPosition: !!field.position,
+        x: field.position?.x,
+        y: field.position?.y
+      });
+    });
+  } else {
+    console.warn("Aucun champ disponible dans le modèle");
+  }
+  
   // Supprimer le template de l'offre si présent (pour éviter de le stocker)
   if (offer.__template) {
     delete offer.__template;
@@ -213,30 +231,40 @@ export const generateOfferPdf = async (offer: any) => {
   
   // Fonction pour résoudre les valeurs des champs
   const resolveFieldValue = (pattern: string) => {
-    return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
-      const keyParts = key.split('.');
-      let value = offer;
-      
-      for (const part of keyParts) {
-        if (value === undefined || value === null) {
-          return '';
+    if (!pattern || typeof pattern !== 'string') {
+      console.warn("Invalid pattern for field value:", pattern);
+      return '';
+    }
+    
+    try {
+      return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
+        const keyParts = key.split('.');
+        let value = offer;
+        
+        for (const part of keyParts) {
+          if (value === undefined || value === null) {
+            return '';
+          }
+          value = value[part];
         }
-        value = value[part];
-      }
-      
-      // Formater selon le type
-      if (typeof value === 'number') {
-        // Détecter si c'est une valeur monétaire
-        if (key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) {
-          return formatCurrency(value);
+        
+        // Formater selon le type
+        if (typeof value === 'number') {
+          // Détecter si c'est une valeur monétaire
+          if (key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) {
+            return formatCurrency(value);
+          }
+          return value.toString();
+        } else if (value instanceof Date || (typeof value === 'string' && Date.parse(value))) {
+          return formatDate(value);
         }
-        return value.toString();
-      } else if (value instanceof Date || (typeof value === 'string' && Date.parse(value))) {
-        return formatDate(value);
-      }
-      
-      return value || 'Non renseigné';
-    });
+        
+        return value || 'Non renseigné';
+      });
+    } catch (error) {
+      console.error("Error resolving field value for pattern:", pattern, error);
+      return pattern; // Return original pattern on error
+    }
   };
   
   // Appliquer le style de texte au champ
@@ -349,17 +377,30 @@ export const generateOfferPdf = async (offer: any) => {
             console.log(`Adding fields for page ${index + 1}`);
             
             const pageFields = template.fields
-              .filter(field => field.isVisible !== false && 
-                     (field.page === index || (index === 0 && field.page === undefined)));
+              .filter(field => {
+                const isVisible = field.isVisible !== false;
+                const isForThisPage = field.page === index || (index === 0 && field.page === undefined);
+                const hasValidPosition = field.position && 
+                                      typeof field.position.x === 'number' && 
+                                      typeof field.position.y === 'number';
+                
+                if (isForThisPage && !hasValidPosition) {
+                  console.warn(`Field ${field.id || 'unknown'} is for page ${index + 1} but has invalid position:`, field.position);
+                }
+                
+                return isVisible && isForThisPage && hasValidPosition;
+              });
             
-            console.log(`Found ${pageFields.length} fields for page ${index + 1}`);
+            console.log(`Found ${pageFields.length} valid fields for page ${index + 1}`);
             
-            pageFields.forEach(field => {
-              // Skip fields without valid positions
+            pageFields.forEach((field, fieldIndex) => {
+              // Double-check field position
               if (!field.position || typeof field.position.x !== 'number' || typeof field.position.y !== 'number') {
-                console.log(`Skipping field ${field.id || 'unknown'} due to invalid position`);
+                console.warn(`Skipping field ${field.id || 'unknown'} due to invalid position:`, field.position);
                 return;
               }
+              
+              console.log(`Processing field ${fieldIndex}: ${field.id || 'unknown'} at position (${field.position.x}, ${field.position.y})`);
               
               // Conversion des millimètres en points (unité utilisée par jsPDF)
               // 1 mm = 2.83464567 points
@@ -418,14 +459,19 @@ export const generateOfferPdf = async (offer: any) => {
                     },
                     margin: { left: x }
                   });
+                  
+                  console.log(`Added equipment table at (${x}, ${y}) with ${equipmentItems.length} items`);
                 }
               } else {
                 // Texte simple avec style
-                const needsUnderline = applyTextStyle(doc, field);
-                doc.setTextColor(0, 0, 0);
-                
                 try {
+                  // Apply text style
+                  const needsUnderline = applyTextStyle(doc, field);
+                  doc.setTextColor(0, 0, 0);
+                  
+                  // Resolve the value from the data
                   const resolvedValue = resolveFieldValue(field.value || '');
+                  console.log(`Field ${field.id || 'unknown'}: "${field.value}" -> "${resolvedValue}"`);
                   
                   // Draw the text
                   doc.text(resolvedValue, x, y);
@@ -437,6 +483,8 @@ export const generateOfferPdf = async (offer: any) => {
                     const underlineY = y + 1; // Slight offset below text
                     doc.line(x, underlineY, x + textWidth, underlineY);
                   }
+                  
+                  console.log(`Added text field at (${x}, ${y}): "${resolvedValue}"`);
                 } catch (error) {
                   console.error(`Error rendering field ${field.id || 'unknown'}:`, error);
                 }
@@ -475,6 +523,8 @@ export const generateOfferPdf = async (offer: any) => {
           doc.internal.pageSize.getHeight() - 10,
           { align: 'center' }
         );
+        
+        console.log("Added footer to the last page");
       }
     } else {
       // Générer le PDF standard sans images de template
@@ -606,12 +656,16 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
         field.id !== 'equipment_table' // Skip equipment table as we've already added it
       );
       
-      standardFields.forEach(field => {
+      console.log(`Adding ${standardFields.length} fields to standard PDF`);
+      
+      standardFields.forEach((field, idx) => {
         // Conversion des millimètres en points (unité utilisée par jsPDF)
         const mmToPoints = (mm) => mm * 2.83464567;
         
         const x = mmToPoints(field.position.x || 0);
         const y = mmToPoints(field.position.y || 0);
+        
+        console.log(`Adding field ${idx} at position (${x}, ${y})`);
         
         // Texte simple avec style
         const needsUnderline = applyTextStyle(doc, field);
@@ -619,6 +673,8 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
         
         try {
           const resolvedValue = resolveFieldValue(field.value || '');
+          console.log(`Field value: "${field.value}" -> "${resolvedValue}"`);
+          
           doc.text(resolvedValue, x, y);
           
           // Add underline if needed

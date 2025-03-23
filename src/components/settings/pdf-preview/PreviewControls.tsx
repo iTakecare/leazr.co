@@ -50,9 +50,20 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       
       // Vérifier que les champs sont correctement définis
       if (!Array.isArray(localTemplate.fields) || localTemplate.fields.length === 0) {
-        toast.error("Le modèle n'a pas de champs définis. Ajoutez des champs avant de générer un PDF.");
-        setLoading(false);
-        return;
+        toast.warn("Le modèle n'a pas de champs définis. Le PDF généré sera basique.");
+      } else {
+        console.log("Champs disponibles pour le PDF:", localTemplate.fields.length);
+        
+        // Vérifier les positions des champs
+        const fieldsWithPositions = localTemplate.fields.filter(f => 
+          f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
+        );
+        
+        console.log("Champs avec positions valides:", fieldsWithPositions.length);
+        
+        if (fieldsWithPositions.length === 0 && localTemplate.fields.length > 0) {
+          toast.warn("Aucun champ n'a de position définie. Utilisez le mode de positionnement pour placer les champs.");
+        }
       }
       
       // Log key data for debugging
@@ -60,6 +71,17 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       console.log("- Template:", localTemplate.name);
       console.log("- Nombre d'images:", localTemplate.templateImages?.length || 0);
       console.log("- Nombre de champs:", localTemplate.fields?.length || 0);
+      
+      // Vérifier si les champs ont des positions valides
+      if (Array.isArray(localTemplate.fields) && localTemplate.fields.length > 0) {
+        localTemplate.fields.forEach((field, idx) => {
+          if (!field.position || typeof field.position.x !== 'number' || typeof field.position.y !== 'number') {
+            console.warn(`Champ ${idx} (${field.id || 'sans id'}) n'a pas de position valide:`, field.position);
+          } else {
+            console.log(`Champ ${idx} (${field.id || 'sans id'}) position:`, field.position);
+          }
+        });
+      }
       
       // Create a complete data object with all required fields
       const dataWithValidId = {
@@ -80,21 +102,37 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
             margin: 10
           }
         ]),
-        // Include complete template data
+        // Include complete template data - Create a deep copy to avoid reference issues
         __template: {
-          ...localTemplate,
-          // Ensure arrays are present
-          templateImages: Array.isArray(localTemplate.templateImages) ? localTemplate.templateImages : [],
-          fields: Array.isArray(localTemplate.fields) ? localTemplate.fields : []
+          ...JSON.parse(JSON.stringify(localTemplate)),
+          // Ensure arrays are present and properly formatted
+          templateImages: Array.isArray(localTemplate.templateImages) 
+            ? JSON.parse(JSON.stringify(localTemplate.templateImages)) 
+            : [],
+          fields: Array.isArray(localTemplate.fields) 
+            ? JSON.parse(JSON.stringify(localTemplate.fields)) 
+            : []
         }
       };
       
+      // Validation des données clés
       console.log("Données envoyées au générateur:", {
         id: dataWithValidId.id,
         client_name: dataWithValidId.client_name,
         templateImagesCount: dataWithValidId.__template.templateImages.length,
         fieldsCount: dataWithValidId.__template.fields.length
       });
+      
+      // Log détaillé des champs pour débogage
+      if (dataWithValidId.__template.fields.length > 0) {
+        console.log("Premier champ:", {
+          id: dataWithValidId.__template.fields[0].id,
+          value: dataWithValidId.__template.fields[0].value,
+          hasPosition: !!dataWithValidId.__template.fields[0].position,
+          x: dataWithValidId.__template.fields[0].position?.x,
+          y: dataWithValidId.__template.fields[0].position?.y
+        });
+      }
       
       if (dataWithValidId.__template.templateImages.length > 0) {
         console.log("Première image:", {
