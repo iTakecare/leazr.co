@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface PDFTemplate {
+  id?: string;
   name?: string;
   companyName?: string;
   companyAddress?: string;
@@ -19,6 +21,8 @@ interface PDFTemplate {
   secondaryColor?: string;
   headerText?: string;
   footerText?: string;
+  templateImages?: any[];
+  fields?: any[];
   [key: string]: any;
 }
 
@@ -29,6 +33,8 @@ interface PDFCompanyInfoProps {
 }
 
 const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loading }) => {
+  console.log("PDFCompanyInfo rendering with template:", template);
+  
   const form = useForm<PDFTemplate>({
     defaultValues: {
       name: template?.name || "Modèle par défaut",
@@ -44,9 +50,10 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
     }
   });
 
-  // Update form values when template changes
-  React.useEffect(() => {
+  // Mettre à jour les valeurs du formulaire lorsque le template change
+  useEffect(() => {
     if (template) {
+      console.log("Template changed, updating form values:", template);
       form.reset({
         name: template.name || "Modèle par défaut",
         companyName: template.companyName || "iTakeCare",
@@ -62,30 +69,41 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
     }
   }, [template, form]);
 
-  // Submit handler (désactivé pour éviter la sauvegarde automatique)
-  const handleSubmit = form.handleSubmit((data) => {
-    console.log("Form submitted but auto-save is disabled:", data);
-  });
-
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Gestionnaire logo
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          form.setValue('logoURL', event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    
+    console.log("Logo file selected:", file.name);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        const logoUrl = event.target.result as string;
+        console.log("Logo loaded as base64, updating form");
+        form.setValue('logoURL', logoUrl);
+        
+        // Notification visuelle pour l'utilisateur mais pas de sauvegarde automatique
+        toast.info("Logo chargé. Cliquez sur Sauvegarder pour appliquer les changements.");
+      }
+    };
+    reader.readAsDataURL(file);
   };
   
+  // Suppression du logo
   const removeLogo = () => {
+    console.log("Removing logo");
     form.setValue('logoURL', '');
+    toast.info("Logo supprimé. Cliquez sur Sauvegarder pour appliquer les changements.");
+  };
+  
+  // Récupérer toutes les valeurs actuelles du formulaire
+  const getAllFormValues = (): PDFTemplate => {
+    return form.getValues();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <FormField
           control={form.control}
@@ -151,6 +169,63 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
             </FormItem>
           )}
         />
+        
+        <FormField
+          control={form.control}
+          name="primaryColor"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Couleur principale</FormLabel>
+              <div className="flex gap-2">
+                <Input type="color" {...field} className="w-14 h-10 p-1" />
+                <Input {...field} placeholder="#2C3E50" className="flex-1" />
+              </div>
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="secondaryColor"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Couleur secondaire</FormLabel>
+              <div className="flex gap-2">
+                <Input type="color" {...field} className="w-14 h-10 p-1" />
+                <Input {...field} placeholder="#3498DB" className="flex-1" />
+              </div>
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="headerText"
+          render={({ field }) => (
+            <FormItem className="md:col-span-2">
+              <FormLabel>Texte d'en-tête</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="OFFRE N° {offer_id}" />
+              </FormControl>
+              <FormDescription>
+                Utilisez {offer_id} pour insérer le numéro d'offre.
+              </FormDescription>
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="footerText"
+          render={({ field }) => (
+            <FormItem className="md:col-span-2">
+              <FormLabel>Texte de pied de page</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Cette offre est valable 30 jours à compter de sa date d'émission." />
+              </FormControl>
+            </FormItem>
+          )}
+        />
       </div>
       
       <Card className="p-4">
@@ -168,6 +243,10 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
                         src={field.value} 
                         alt="Logo de l'entreprise" 
                         className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          console.error("Error loading logo image");
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
                       />
                       <Button
                         type="button"
@@ -200,8 +279,17 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
           />
         </div>
       </Card>
-    </form>
+    </div>
   );
+};
+
+// Exposer une fonction pour récupérer toutes les valeurs du formulaire
+// Cette fonction sera utilisée par le composant parent pour la sauvegarde manuelle
+PDFCompanyInfo.getFormValues = (formRef: any): PDFTemplate => {
+  if (formRef && formRef.current) {
+    return formRef.current.getAllFormValues();
+  }
+  return {};
 };
 
 export default PDFCompanyInfo;
