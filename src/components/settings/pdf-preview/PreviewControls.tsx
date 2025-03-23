@@ -63,6 +63,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
         
         console.log("Champs avec positions valides:", fieldsWithPositions.length);
         
+        // Afficher les détails de chaque champ pour le débogage
         for (const field of fieldsWithPositions) {
           console.log(`Champ ${field.id}: "${field.value}" à (${field.position.x}, ${field.position.y})`);
         }

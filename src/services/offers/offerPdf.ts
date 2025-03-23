@@ -223,38 +223,100 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
   try {
     console.log("Génération d'un PDF d'exemple");
     
-    // Préparer les données d'exemple avec des valeurs par défaut
+    if (!sampleData) {
+      console.error("Aucune donnée d'exemple fournie");
+      throw new Error("Données d'exemple manquantes");
+    }
+    
+    // Créer des données d'exemple enrichies avec des valeurs par défaut
     const completeSampleData = {
       id: sampleData.id || `preview-${Date.now()}`,
-      client_name: sampleData.client_name || "Client Exemple",
-      client_first_name: sampleData.client_first_name || "Prénom",
-      client_email: sampleData.client_email || "client@exemple.com", 
+      client_name: sampleData.client_name || "Dupont",
+      client_first_name: sampleData.client_first_name || "Jean",
+      client_last_name: sampleData.client_last_name || "Dupont",
+      client_email: sampleData.client_email || "jean.dupont@exemple.com", 
       client_phone: sampleData.client_phone || "0123456789",
       client_company: sampleData.client_company || "Entreprise Exemple",
-      client_address: sampleData.client_address || "123 Rue Exemple",
+      client_address: sampleData.client_address || "15 Rue de l'Exemple",
       client_postal_code: sampleData.client_postal_code || "75000",
       client_city: sampleData.client_city || "Paris",
       amount: sampleData.amount || 10000,
       monthly_payment: sampleData.monthly_payment || 300,
       created_at: sampleData.created_at || new Date().toISOString(),
-      offer_id: sampleData.offer_id || `DEMO-${Date.now().toString().slice(-5)}`,
+      offer_id: sampleData.offer_id || `OFR-2023-001`,
       equipment_description: sampleData.equipment_description || JSON.stringify([
         {
-          title: "Équipement exemple",
-          purchasePrice: 2000, 
-          quantity: 2,
+          title: "MacBook Pro 16\" M2",
+          purchasePrice: 2699, 
+          quantity: 1,
           margin: 10
+        },
+        {
+          title: "Écran Dell 27\" UltraHD",
+          purchasePrice: 499, 
+          quantity: 2,
+          margin: 15
         }
       ]),
-      ...sampleData // Ajouter toutes les autres propriétés de sampleData
+      ...sampleData // Conserver toutes les autres propriétés
     };
     
-    // Préparer le template en veillant à ce que tous les champs soient définis
+    // Afficher les données complètes pour déboguer
+    console.log("Données d'exemple préparées:", {
+      id: completeSampleData.id,
+      client_name: completeSampleData.client_name,
+      client_first_name: completeSampleData.client_first_name,
+      client_email: completeSampleData.client_email,
+      company: completeSampleData.client_company,
+      offer_id: completeSampleData.offer_id
+    });
+    
+    // Vérifier que le template est correctement défini
+    if (!template) {
+      console.error("Aucun modèle fourni pour la génération du PDF");
+      throw new Error("Modèle PDF manquant");
+    }
+    
+    // S'assurer que les tableaux sont correctement initialisés
     const completeTemplate = {
       ...template,
       templateImages: Array.isArray(template.templateImages) ? template.templateImages : [],
       fields: Array.isArray(template.fields) ? template.fields : []
     };
+    
+    // Vérifier les positions des champs
+    if (completeTemplate.fields.length > 0) {
+      // Afficher les champs pour déboguer
+      console.log("Champs disponibles pour le PDF :", completeTemplate.fields.length);
+      
+      const fieldsWithPositions = completeTemplate.fields.filter(f => 
+        f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
+      );
+      
+      console.log("Nombre de champs avec positions valides:", fieldsWithPositions.length);
+      
+      for (const field of fieldsWithPositions) {
+        // Résoudre la valeur du champ pour le déboguer
+        let fieldValue = field.value;
+        if (typeof fieldValue === 'string' && fieldValue.includes('{')) {
+          // Simple variable pattern replacement for debugging
+          fieldValue = fieldValue.replace(/\{([^}]+)\}/g, (match, key) => {
+            console.log(`Résolution de ${key} pour le pattern ${field.value}`);
+            
+            const value = completeSampleData[key];
+            console.log(`Accès à ${key}: ${JSON.stringify(value)}`);
+            
+            if (value === undefined || value === null) {
+              return "[Non disponible]";
+            }
+            return String(value);
+          });
+        }
+        
+        console.log(`Résolution du champ: ${field.label} ${field.value}`);
+        console.log(`Valeur résolue: "${fieldValue}"`);
+      }
+    }
     
     // Fusionner les données et le template
     const dataWithTemplate = {
@@ -262,15 +324,15 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
       __template: completeTemplate
     };
     
-    // Vérifier les données clés avant la génération
-    console.log("Données pour la génération du PDF:", {
-      client_name: dataWithTemplate.client_name,
-      client_email: dataWithTemplate.client_email,
-      id: dataWithTemplate.id,
-      amount: dataWithTemplate.amount,
-      nbFields: dataWithTemplate.__template.fields.length,
-      nbImages: dataWithTemplate.__template.templateImages.length
-    });
+    // Vérifier les images du template
+    console.log("Images du template:");
+    if (completeTemplate.templateImages.length > 0) {
+      completeTemplate.templateImages.forEach((img, idx) => {
+        console.log(`Image ${idx+1}: page ${img.page}, data: ${img.data ? 'présente' : 'absente'}, url: ${img.url ? 'présente' : 'absente'}`);
+      });
+    } else {
+      console.warn("Aucune image de template n'a été définie");
+    }
     
     // Générer le PDF avec les données complètes
     const filename = await generateOfferPdf(dataWithTemplate);
