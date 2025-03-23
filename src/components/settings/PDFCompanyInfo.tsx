@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
+import { Trash2 } from "lucide-react";
 
 interface PDFTemplate {
   name?: string;
@@ -45,7 +45,7 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
   });
 
   // Update form values when template changes
-  useEffect(() => {
+  React.useEffect(() => {
     if (template) {
       form.reset({
         name: template.name || "Modèle par défaut",
@@ -60,11 +60,10 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
         footerText: template.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."
       });
     }
-  }, [template]);
+  }, [template, form]);
 
-  // Submit handler
+  // Submit handler (désactivé pour éviter la sauvegarde automatique)
   const handleSubmit = form.handleSubmit((data) => {
-    // La sauvegarde automatique est désactivée
     console.log("Form submitted but auto-save is disabled:", data);
   });
 
@@ -79,6 +78,10 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
       };
       reader.readAsDataURL(file);
     }
+  };
+  
+  const removeLogo = () => {
+    form.setValue('logoURL', '');
   };
 
   return (
@@ -160,34 +163,33 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
                 <FormLabel>Logo de l'entreprise</FormLabel>
                 <div className="flex flex-col gap-4">
                   {field.value && (
-                    <div className="border p-2 rounded-md w-40 h-20 flex items-center justify-center overflow-hidden">
+                    <div className="relative border p-2 rounded-md w-40 h-20 flex items-center justify-center overflow-hidden">
                       <img 
                         src={field.value} 
                         alt="Logo de l'entreprise" 
                         className="max-w-full max-h-full object-contain"
                       />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6"
+                        onClick={removeLogo}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   )}
                   
                   <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label htmlFor="logo-upload">Choisir un logo</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        id="logo-upload" 
-                        type="file" 
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => form.setValue('logoURL', '')}
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Input 
+                      id="logo-upload" 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="flex-1"
+                    />
                     <FormDescription>
                       Taille recommandée : 200x100 pixels. Format : PNG ou JPG.
                     </FormDescription>
@@ -198,12 +200,6 @@ const PDFCompanyInfo: React.FC<PDFCompanyInfoProps> = ({ template, onSave, loadi
           />
         </div>
       </Card>
-      
-      <div className="flex justify-end">
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Sauvegarde en cours...' : 'Appliquer les modifications'}
-        </Button>
-      </div>
     </form>
   );
 };

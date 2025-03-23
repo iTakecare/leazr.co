@@ -30,83 +30,83 @@ const PDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState("design");
+  const [activeTab, setActiveTab] = useState("company");
 
   useEffect(() => {
-    const loadTemplate = async () => {
-      setLoading(true);
-      
-      try {
-        const supabase = getSupabaseClient();
-        
-        const { data: tableExists, error: tableError } = await supabase.rpc(
-          'check_table_exists', 
-          { table_name: 'pdf_templates' }
-        );
-        
-        if (tableError) {
-          console.error("Error checking table existence:", tableError);
-          throw new Error("Erreur lors de la vérification de la table");
-        }
-        
-        if (!tableExists) {
-          console.log("Table doesn't exist, creating it");
-          const { error: createError } = await supabase.rpc('execute_sql', {
-            sql: `
-              CREATE TABLE IF NOT EXISTS public.pdf_templates (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                "companyName" TEXT NOT NULL,
-                "companyAddress" TEXT NOT NULL,
-                "companyContact" TEXT NOT NULL,
-                "companySiret" TEXT NOT NULL,
-                "logoURL" TEXT,
-                "primaryColor" TEXT NOT NULL,
-                "secondaryColor" TEXT NOT NULL,
-                "headerText" TEXT NOT NULL,
-                "footerText" TEXT NOT NULL,
-                "templateImages" JSONB,
-                fields JSONB NOT NULL,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-              );
-            `
-          });
-          
-          if (createError) {
-            console.error("Error creating table:", createError);
-            throw new Error("Erreur lors de la création de la table");
-          }
-        }
-        
-        const { data, error } = await supabase
-          .from('pdf_templates')
-          .select('*')
-          .eq('id', 'default')
-          .single();
-          
-        if (error && error.code !== 'PGRST116') {
-          console.error("Error fetching template:", error);
-          throw new Error("Erreur lors de la récupération du modèle");
-        }
-        
-        if (data) {
-          console.log("Template loaded successfully:", data);
-          setTemplate(data);
-        } else {
-          console.log("No template found, will create a default one");
-          setTemplate(null);
-        }
-      } catch (error) {
-        console.error("Error loading template:", error);
-        toast.error("Erreur lors du chargement du modèle");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     loadTemplate();
   }, []);
+
+  const loadTemplate = async () => {
+    setLoading(true);
+    
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { data: tableExists, error: tableError } = await supabase.rpc(
+        'check_table_exists', 
+        { table_name: 'pdf_templates' }
+      );
+      
+      if (tableError) {
+        console.error("Error checking table existence:", tableError);
+        throw new Error("Erreur lors de la vérification de la table");
+      }
+      
+      if (!tableExists) {
+        console.log("Table doesn't exist, creating it");
+        const { error: createError } = await supabase.rpc('execute_sql', {
+          sql: `
+            CREATE TABLE IF NOT EXISTS public.pdf_templates (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              "companyName" TEXT NOT NULL,
+              "companyAddress" TEXT NOT NULL,
+              "companyContact" TEXT NOT NULL,
+              "companySiret" TEXT NOT NULL,
+              "logoURL" TEXT,
+              "primaryColor" TEXT NOT NULL,
+              "secondaryColor" TEXT NOT NULL,
+              "headerText" TEXT NOT NULL,
+              "footerText" TEXT NOT NULL,
+              "templateImages" JSONB,
+              fields JSONB NOT NULL,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+            );
+          `
+        });
+        
+        if (createError) {
+          console.error("Error creating table:", createError);
+          throw new Error("Erreur lors de la création de la table");
+        }
+      }
+      
+      const { data, error } = await supabase
+        .from('pdf_templates')
+        .select('*')
+        .eq('id', 'default')
+        .single();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching template:", error);
+        throw new Error("Erreur lors de la récupération du modèle");
+      }
+      
+      if (data) {
+        console.log("Template loaded successfully:", data);
+        setTemplate(data);
+      } else {
+        console.log("No template found, will create a default one");
+        setTemplate(null);
+      }
+    } catch (error) {
+      console.error("Error loading template:", error);
+      toast.error("Erreur lors du chargement du modèle");
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const saveTemplate = async (updatedTemplate: PDFTemplate) => {
     setSaving(true);
@@ -166,10 +166,12 @@ const PDFTemplateManager = () => {
   const handleManualSave = () => {
     if (template) {
       try {
-        const companyInfoFields = document.querySelectorAll('input[name]');
+        // Récupérer toutes les entrées du formulaire
+        const formInputs = document.querySelectorAll('input[name]');
         const companyInfo: Record<string, string> = {};
         
-        companyInfoFields.forEach((field) => {
+        formInputs.forEach((field) => {
+          // Cast en HTMLInputElement pour accéder aux propriétés name et value
           const inputField = field as HTMLInputElement;
           if (inputField.name && inputField.name !== '') {
             companyInfo[inputField.name] = inputField.value;
@@ -178,6 +180,7 @@ const PDFTemplateManager = () => {
         
         console.log("Collected form data:", companyInfo);
         
+        // Mise à jour du template avec les valeurs du formulaire
         const updatedTemplate = {
           ...template,
           ...companyInfo
