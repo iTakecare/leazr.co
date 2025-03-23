@@ -1,5 +1,10 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
-import { ensureStorageBucket, uploadFile, downloadAndUploadImage } from "./storageService";
+import { ensureStorageBucket, uploadFile } from "./storageService";
+import storageService from "./storageService";
+
+// Utilisons directement l'import depuis le default export
+const { downloadAndUploadImage } = storageService;
 
 /**
  * Prepare a SEO-friendly filename from the original file name
@@ -409,7 +414,7 @@ export async function downloadProductImage(
     const timestamp = Date.now();
     const filename = `${productId}/${isMain ? 'main' : `additional_${timestamp}`}-${seoFilename}`;
     
-    // Download and upload the image
+    // Download and upload the image using the imported function
     const url = await downloadAndUploadImage(imageUrl, filename, bucket);
     
     if (!url) return null;

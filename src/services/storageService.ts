@@ -209,18 +209,18 @@ export const listFiles = async (bucketName: string, path?: string): Promise<any[
  * @returns URL publique de l'image téléchargée
  */
 export const downloadAndUploadImage = async (
-  imageUrl: string,
+  sourceUrl: string,
   destinationPath: string,
   bucketName: string = 'product-images'
 ): Promise<string | null> => {
   try {
-    console.log(`Téléchargement de l'image depuis ${imageUrl} vers ${bucketName}/${destinationPath}`);
+    console.log(`Téléchargement de l'image depuis ${sourceUrl} vers ${bucketName}/${destinationPath}`);
     
     // S'assurer que le bucket existe
     await ensureStorageBucket(bucketName);
     
     // Télécharger l'image depuis l'URL
-    const response = await fetch(imageUrl, {
+    const response = await fetch(sourceUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       }
@@ -237,17 +237,36 @@ export const downloadAndUploadImage = async (
     const imageBlob = await response.blob();
     
     // Uploadez l'image vers Supabase Storage
-    const uploadedUrl = await uploadFile(
-      bucketName,
-      destinationPath,
-      imageBlob,
-      { contentType, isPublic: true }
-    );
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(destinationPath, imageBlob, {
+        contentType,
+        upsert: true
+      });
     
-    console.log(`Image téléchargée et sauvegardée avec succès: ${uploadedUrl}`);
-    return uploadedUrl;
+    if (error) {
+      console.error("Erreur lors de l'upload de l'image téléchargée:", error);
+      return null;
+    }
+    
+    // Obtenir l'URL publique
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(data.path);
+    
+    console.log(`Image téléchargée et sauvegardée avec succès: ${urlData.publicUrl}`);
+    return urlData.publicUrl;
   } catch (error) {
     console.error("Erreur lors du téléchargement et de l'upload de l'image:", error);
     return null;
   }
+};
+
+export default {
+  ensureStorageBucket,
+  uploadFile,
+  deleteFile,
+  listFiles,
+  downloadAndUploadImage
 };
