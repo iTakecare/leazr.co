@@ -1,13 +1,13 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { Save, Loader2 } from "lucide-react";
+import { loadPDFTemplate, savePDFTemplate } from "@/utils/pdfTemplateUtils";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
-import { Save } from "lucide-react";
 
 interface PDFTemplate {
   id: string;
@@ -26,129 +26,71 @@ interface PDFTemplate {
   [key: string]: any;
 }
 
-// Type for the ref to access PDFCompanyInfo methods
-interface PDFCompanyInfoRef {
-  getAllFormValues: () => PDFTemplate;
-}
-
 const PDFTemplateManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   
-  // Reference to PDFCompanyInfo component to access its methods
-  const companyInfoRef = useRef<PDFCompanyInfoRef>(null);
-
   useEffect(() => {
-    console.log("PDFTemplateManager mounted, loading template");
+    console.log("PDFTemplateManager monté, chargement du modèle");
     loadTemplate();
   }, []);
 
   const loadTemplate = async () => {
     setLoading(true);
-    console.log("Starting to load template");
+    console.log("Début du chargement du modèle");
     
     try {
-      const supabase = getSupabaseClient();
-      
-      // Check if pdf_templates table exists
-      const { data: tableExists, error: tableError } = await supabase.rpc(
-        'check_table_exists', 
-        { table_name: 'pdf_templates' }
-      );
-      
-      if (tableError) {
-        console.error("Error checking table existence:", tableError);
-        throw new Error("Erreur lors de la vérification de la table");
-      }
-      
-      // Create the table if it doesn't exist
-      if (!tableExists) {
-        console.log("Table doesn't exist, creating it");
-        const { error: createError } = await supabase.rpc('execute_sql', {
-          sql: `
-            CREATE TABLE IF NOT EXISTS public.pdf_templates (
-              id TEXT PRIMARY KEY,
-              name TEXT NOT NULL,
-              "companyName" TEXT NOT NULL,
-              "companyAddress" TEXT NOT NULL,
-              "companyContact" TEXT NOT NULL,
-              "companySiret" TEXT NOT NULL,
-              "logoURL" TEXT,
-              "primaryColor" TEXT NOT NULL,
-              "secondaryColor" TEXT NOT NULL,
-              "headerText" TEXT NOT NULL,
-              "footerText" TEXT NOT NULL,
-              "templateImages" JSONB,
-              fields JSONB NOT NULL,
-              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-            );
-          `
-        });
-        
-        if (createError) {
-          console.error("Error creating table:", createError);
-          throw new Error("Erreur lors de la création de la table");
-        }
-      }
-      
-      // Get template from database
-      const { data, error } = await supabase
-        .from('pdf_templates')
-        .select('*')
-        .eq('id', 'default')
-        .single();
-        
-      if (error && error.code !== 'PGRST116') {
-        console.error("Error fetching template:", error);
-        throw new Error("Erreur lors de la récupération du modèle");
-      }
+      // Utiliser la nouvelle fonction utilitaire pour charger le modèle
+      const data = await loadPDFTemplate();
       
       if (data) {
-        console.log("Template loaded successfully:", data);
+        console.log("Modèle chargé avec succès:", data);
         setTemplate(data);
+        toast.success("Modèle chargé avec succès");
       } else {
-        console.log("No template found, will create a default one when saving");
-        setTemplate(null);
+        console.log("Aucun modèle trouvé, un modèle par défaut sera créé lors de la sauvegarde");
+        
+        // Créer un modèle par défaut
+        const defaultTemplate: PDFTemplate = {
+          id: 'default',
+          name: 'Modèle par défaut',
+          companyName: 'iTakeCare',
+          companyAddress: 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique',
+          companyContact: 'Tel: +32 471 511 121 - Email: hello@itakecare.be',
+          companySiret: 'TVA: BE 0795.642.894',
+          logoURL: '',
+          primaryColor: '#2C3E50',
+          secondaryColor: '#3498DB',
+          headerText: 'OFFRE N° {offer_id}',
+          footerText: 'Cette offre est valable 30 jours à compter de sa date d\'émission.',
+          templateImages: [],
+          fields: []
+        };
+        
+        setTemplate(defaultTemplate);
       }
     } catch (error) {
-      console.error("Error loading template:", error);
+      console.error("Erreur lors du chargement du modèle:", error);
       toast.error("Erreur lors du chargement du modèle");
     } finally {
       setLoading(false);
     }
   };
   
-  const saveTemplate = async (updatedTemplate: PDFTemplate) => {
+  const handleSaveTemplate = async (updatedTemplate: PDFTemplate) => {
     setSaving(true);
-    console.log("Saving template:", updatedTemplate);
+    console.log("Sauvegarde du modèle:", updatedTemplate);
     
     try {
-      const supabase = getSupabaseClient();
+      // Utiliser la nouvelle fonction utilitaire pour sauvegarder le modèle
+      await savePDFTemplate(updatedTemplate);
       
-      const templateToSave = {
-        id: 'default',
-        ...updatedTemplate,
-        updated_at: new Date().toISOString()
-      };
-      
-      console.log("Final template to save:", templateToSave);
-      
-      const { error } = await supabase
-        .from('pdf_templates')
-        .upsert(templateToSave);
-        
-      if (error) {
-        console.error("Error saving template:", error);
-        throw new Error("Erreur lors de la sauvegarde du modèle");
-      }
-      
-      setTemplate(templateToSave);
+      setTemplate(updatedTemplate);
       toast.success("Modèle sauvegardé avec succès");
     } catch (error) {
-      console.error("Error saving template:", error);
+      console.error("Erreur lors de la sauvegarde du modèle:", error);
       toast.error("Erreur lors de la sauvegarde du modèle");
     } finally {
       setSaving(false);
@@ -162,7 +104,7 @@ const PDFTemplateManager = () => {
         ...companyInfo
       };
       
-      saveTemplate(updatedTemplate);
+      handleSaveTemplate(updatedTemplate);
     } else {
       const newTemplate: PDFTemplate = {
         id: 'default',
@@ -172,47 +114,14 @@ const PDFTemplateManager = () => {
         ...companyInfo as PDFTemplate
       };
       
-      saveTemplate(newTemplate);
+      handleSaveTemplate(newTemplate);
     }
   };
   
   const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
-    saveTemplate(updatedTemplate);
+    handleSaveTemplate(updatedTemplate);
   };
 
-  const handleManualSave = () => {
-    console.log("Manual save button clicked", { activeTab, companyInfoRef });
-    
-    if (!template) {
-      toast.error("Aucun modèle à sauvegarder");
-      return;
-    }
-    
-    try {
-      if (activeTab === "company" && companyInfoRef.current) {
-        // Get form values using the ref
-        console.log("Getting form values through ref");
-        const formValues = companyInfoRef.current.getAllFormValues();
-        console.log("Collected form data:", formValues);
-        
-        // Update template with form values
-        const updatedTemplate = {
-          ...template,
-          ...formValues
-        };
-        
-        console.log("Manual save triggered with template:", updatedTemplate);
-        saveTemplate(updatedTemplate);
-      } else if (activeTab === "design") {
-        // For design tab, use the dedicated handler
-        toast.info("Utilisez le bouton de sauvegarde dans l'onglet Conception du modèle");
-      }
-    } catch (error) {
-      console.error("Error in manual save:", error);
-      toast.error("Erreur lors de la sauvegarde manuelle");
-    }
-  };
-  
   return (
     <Card className="w-full mt-6">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -220,17 +129,26 @@ const PDFTemplateManager = () => {
         <Button 
           variant="default" 
           size="sm" 
-          onClick={handleManualSave}
+          onClick={() => template && handleSaveTemplate(template)}
           disabled={saving || loading || !template}
         >
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? "Sauvegarde..." : "Sauvegarder"}
+          {saving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sauvegarde...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Sauvegarder
+            </>
+          )}
         </Button>
       </CardHeader>
       <CardContent>
         {loading ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-sm text-muted-foreground">
               Chargement du modèle...
             </p>
@@ -247,7 +165,6 @@ const PDFTemplateManager = () => {
                 template={template} 
                 onSave={handleCompanyInfoUpdate} 
                 loading={saving}
-                ref={companyInfoRef}
               />
             </TabsContent>
             
