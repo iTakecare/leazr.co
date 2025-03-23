@@ -48,6 +48,17 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
     }
   };
 
+  // Helper functions for zoom control
+  const decreaseZoom = () => {
+    const newZoom = Math.max(zoomLevel - 0.1, 0.5);
+    setZoomLevel(newZoom);
+  };
+
+  const increaseZoom = () => {
+    const newZoom = Math.min(zoomLevel + 0.1, 2);
+    setZoomLevel(newZoom);
+  };
+
   return (
     <div className="flex justify-between items-center">
       <h3 className="text-sm font-medium">Aperçu du modèle de PDF</h3>
@@ -56,7 +67,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.5))}
+            onClick={decreaseZoom}
             disabled={zoomLevel <= 0.5}
             className="h-8 px-2"
           >
@@ -66,7 +77,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 2))}
+            onClick={increaseZoom}
             disabled={zoomLevel >= 2}
             className="h-8 px-2"
           >
