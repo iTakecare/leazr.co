@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import PDFTemplateUploader from './PDFTemplateUploader';
@@ -386,7 +386,7 @@ const DEFAULT_FIELDS = [
   }
 ];
 
-const PDFTemplateWithFields = ({ template, onSave }) => {
+const PDFTemplateWithFields = ({ template, onSave, activeTab = "template" }) => {
   const [currentTemplate, setCurrentTemplate] = useState(template || {
     id: 'default',
     name: 'Modèle par défaut',
@@ -404,9 +404,23 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
   });
   
   const [selectedPage, setSelectedPage] = useState(0);
-  const [activeTab, setActiveTab] = useState("template");
+  const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
 
-  // Handle images change without triggering save
+  // Update the local state when the parent template changes
+  useEffect(() => {
+    if (template) {
+      setCurrentTemplate(template);
+    }
+  }, [template]);
+
+  // Update active tab when prop changes
+  useEffect(() => {
+    if (activeTab) {
+      setInternalActiveTab(activeTab);
+    }
+  }, [activeTab]);
+
+  // Handle images change without triggering save directly
   const handleImagesChange = (newImages) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -416,12 +430,11 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     setCurrentTemplate(updatedTemplate);
     
     if (onSave) {
-      // Just track changes, don't save automatically
       onSave(updatedTemplate);
     }
   };
 
-  // Handle fields change without triggering save
+  // Handle fields change without triggering save directly
   const handleFieldsChange = (newFields) => {
     const updatedTemplate = {
       ...currentTemplate,
@@ -434,7 +447,6 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     setCurrentTemplate(updatedTemplate);
     
     if (onSave) {
-      // Just track changes, don't save automatically
       onSave(updatedTemplate);
     }
   };
@@ -491,13 +503,56 @@ const PDFTemplateWithFields = ({ template, onSave }) => {
     handleFieldsChange(newFields);
   };
 
+  // If displaying only one tab, skip the tab interface
+  if (activeTab && activeTab !== "all") {
+    if (activeTab === "template") {
+      return (
+        <div className="space-y-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Pages du modèle PDF</h3>
+          </div>
+          <Card>
+            <CardContent className="p-6">
+              <PDFTemplateUploader 
+                templateImages={currentTemplate.templateImages} 
+                onChange={handleImagesChange}
+                selectedPage={selectedPage}
+                onPageSelect={setSelectedPage}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      );
+    } else if (activeTab === "fields") {
+      return (
+        <PDFFieldsEditor 
+          fields={currentTemplate.fields.map(field => ({
+            ...field,
+            isVisible: field.isVisible !== undefined ? field.isVisible : true
+          }))} 
+          onChange={handleFieldsChange}
+          activePage={selectedPage}
+          onPageChange={setSelectedPage}
+          template={currentTemplate}
+          onDeleteField={handleDeleteField}
+          onAddField={handleAddField}
+          onDuplicateField={handleDuplicateField}
+          onRemoveFieldFromPage={handleRemoveFieldFromPage}
+        />
+      );
+    } else if (activeTab === "preview") {
+      return <PDFPreview template={currentTemplate} />;
+    }
+  }
+
+  // Full tabs interface
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">Conception du modèle PDF</h3>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={internalActiveTab} onValueChange={setInternalActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="template">Pages du modèle</TabsTrigger>
           <TabsTrigger value="fields">Champs et positionnement</TabsTrigger>
