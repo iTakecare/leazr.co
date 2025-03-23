@@ -104,11 +104,17 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
     );
   }
 
+  // Handle null or undefined status and default to 'draft'
+  const safeStatus = status || 'draft';
+  
   // Récupérer les informations du statut (support uppercase or lowercase status ids)
-  const statusUpper = status.toUpperCase();
+  const statusUpper = safeStatus.toUpperCase();
+  
+  // First try to get the status info by direct key access, then by searching through all values
   const statusInfo = OFFER_STATUSES[statusUpper] || 
-                    Object.values(OFFER_STATUSES).find(s => s.id === status) || 
+                    Object.values(OFFER_STATUSES).find(s => s.id === safeStatus) || 
                     OFFER_STATUSES.DRAFT;
+  
   const Icon = statusInfo.icon;
 
   return (
