@@ -1,14 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Upload, Image as ImageIcon, ArrowRight, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Upload, Image as ImageIcon, ArrowRight, ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 
-// Le reste du composant existant est conservé, mais on ajoute le support readOnly
+// Composant de téléchargement de modèles PDF avec support readOnly
 const PDFTemplateUploader = ({ 
   templateImages = [], 
   onChange, 
@@ -21,6 +21,7 @@ const PDFTemplateUploader = ({
   const [uploading, setUploading] = useState(false);
   const [newPageNumber, setNewPageNumber] = useState(1);
   const [selectedPageInternal, setSelectedPage] = useState(selectedPage);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Synchroniser les images avec les props
   useEffect(() => {
@@ -37,6 +38,7 @@ const PDFTemplateUploader = ({
     const selectedFile = e.target.files[0];
     if (selectedFile) {
       setFile(selectedFile);
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -107,11 +109,7 @@ const PDFTemplateUploader = ({
       
       // Mettre à jour l'état local
       setImages(updatedImages);
-      
-      // Notifier le parent
-      if (onChange) {
-        onChange(updatedImages);
-      }
+      setHasUnsavedChanges(true);
       
       // Réinitialiser le formulaire
       setFile(null);
@@ -126,7 +124,7 @@ const PDFTemplateUploader = ({
         onPageSelect(newPageNumber - 1);
       }
       
-      toast.success("Image téléchargée avec succès");
+      toast.success("Image ajoutée - N'oubliez pas de sauvegarder");
     } catch (error) {
       console.error("Error in upload process:", error);
       toast.error(`Erreur: ${error.message}`);
@@ -173,11 +171,7 @@ const PDFTemplateUploader = ({
       
       // Mettre à jour l'état local
       setImages(reindexedImages);
-      
-      // Notifier le parent
-      if (onChange) {
-        onChange(reindexedImages);
-      }
+      setHasUnsavedChanges(true);
       
       // Ajuster la page sélectionnée si nécessaire
       const newSelectedPage = Math.min(selectedPageInternal, reindexedImages.length - 1);
@@ -186,12 +180,21 @@ const PDFTemplateUploader = ({
         onPageSelect(Math.max(0, newSelectedPage));
       }
       
-      toast.success("Image supprimée avec succès");
+      toast.success("Image supprimée - N'oubliez pas de sauvegarder");
     } catch (error) {
       console.error("Error deleting image:", error);
       toast.error(`Erreur: ${error.message}`);
     }
   };
+
+  // Sauvegarder les modifications
+  const handleSaveChanges = useCallback(() => {
+    if (onChange) {
+      onChange(images);
+      setHasUnsavedChanges(false);
+      toast.success("Modifications enregistrées avec succès");
+    }
+  }, [images, onChange]);
 
   // Dans la méthode de rendu, assurez-vous de désactiver les boutons en mode readOnly
   return (
@@ -284,23 +287,38 @@ const PDFTemplateUploader = ({
                 />
               </div>
               
-              <Button 
-                onClick={handleUpload} 
-                disabled={uploading || !file}
-                className="w-full"
-              >
-                {uploading ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-b-2 border-current rounded-full"></div>
-                    Téléchargement...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Télécharger l'image
-                  </>
-                )}
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={handleUpload} 
+                  disabled={uploading || !file}
+                  className="w-full"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin mr-2 h-4 w-4 border-b-2 border-current rounded-full"></div>
+                      Téléchargement...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Télécharger l'image
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {hasUnsavedChanges && (
+                <div className="mt-4 bg-amber-50 border border-amber-200 rounded-md p-3">
+                  <p className="text-sm text-amber-700 mb-2">Vous avez des modifications non sauvegardées</p>
+                  <Button
+                    onClick={handleSaveChanges}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Sauvegarder les modifications
+                  </Button>
+                </div>
+              )}
             </>
           )}
           
