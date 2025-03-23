@@ -15,8 +15,8 @@ type PDFFieldDisplayProps = {
       textDecoration?: string;
       color?: string;
     };
-    page?: number; // Ajout du numéro de page facultatif
-    isVisible?: boolean; // Indique si le champ est visible
+    page?: number;
+    isVisible?: boolean;
   };
   zoomLevel: number;
   currentPage: number;
@@ -31,7 +31,7 @@ type PDFFieldDisplayProps = {
 const resolveFieldValue = (pattern: string, sampleData: any, currentPage: number): string => {
   if (!pattern || typeof pattern !== 'string') return '';
   
-  // Si le pattern ne contient pas de placeholders, on retourne une valeur démo explicite
+  // Si le pattern ne contient pas de placeholders, on retourne la valeur directement
   if (!pattern.includes('{')) {
     return pattern;
   }
@@ -148,21 +148,20 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   onDrag,
   onEndDrag
 }) => {
-  // Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px)
+  // Constante pour la conversion mm en pixels (standard: 1 mm = 3.7795275591 px à 96 DPI)
   const MM_TO_PX = 3.7795275591;
   
-  // Pour calculer correctement la position des champs sur la page A4:
-  // Position en mm * facteur de conversion * zoom
+  // Calcul précis des positions en pixels à partir des positions en mm
   const xPx = field.position.x * MM_TO_PX * zoomLevel;
   const yPx = field.position.y * MM_TO_PX * zoomLevel;
   
-  // Style du champ
+  // Style du champ avec les positions calculées précisément
   const style = {
     position: "absolute" as const,
     left: `${xPx}px`,
     top: `${yPx}px`,
     zIndex: 10,
-    fontSize: `${field.style?.fontSize ? field.style.fontSize * zoomLevel : 9 * zoomLevel}px`,
+    fontSize: `${(field.style?.fontSize || 9) * zoomLevel}px`,
     fontWeight: field.style?.fontWeight || 'normal',
     fontStyle: field.style?.fontStyle || 'normal',
     textDecoration: field.style?.textDecoration || 'none',
@@ -177,17 +176,19 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     backgroundColor: isDraggable ? 'rgba(200, 200, 255, 0.1)' : 'transparent'
   };
   
-  // Gestionnaires d'événements pour le drag and drop
+  // Gestionnaire de début de glisser-déposer
   const handleDragStart = (e: React.MouseEvent) => {
     if (!isDraggable) return;
     
-    // Empêcher le comportement par défaut du navigateur
+    // Empêcher le comportement par défaut du navigateur pour éviter les problèmes de drag
     e.preventDefault();
     
+    // Calculer l'offset pour maintenir la position relative du curseur pendant le drag
     const rect = e.currentTarget.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
     
+    // Démarrer le drag
     onStartDrag(field.id, offsetX, offsetY);
     
     // Ajouter les événements de suivi du mouvement de la souris au document
@@ -195,26 +196,30 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
   
+  // Gestionnaire de mouvement de la souris pendant le glisser-déposer
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDraggable) return;
     onDrag(e.clientX, e.clientY);
   };
   
+  // Gestionnaire de fin de glisser-déposer
   const handleMouseUp = () => {
     if (!isDraggable) return;
     onEndDrag();
     
-    // Nettoyer les événements
+    // Nettoyer les événements pour éviter les fuites de mémoire
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
   };
   
   // Rendu du contenu du champ avec gestion des cas particuliers
   const renderContent = () => {
+    // Cas spécial pour le tableau d'équipement
     if (field.id === 'equipment_table') {
       return renderEquipmentTable(sampleData, zoomLevel);
     }
     
+    // Pour tous les autres types de champs, résoudre la valeur
     const resolvedValue = resolveFieldValue(field.value, sampleData, currentPage);
     return <span>{resolvedValue}</span>;
   };
