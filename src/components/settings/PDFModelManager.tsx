@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Loader2 } from "lucide-react";
-import { loadPDFModel, savePDFModel, DEFAULT_MODEL } from "@/utils/pdfModelUtils";
+import { loadPDFModel, savePDFModel, DEFAULT_MODEL, ensurePDFModelTableExists } from "@/utils/pdfModelUtils";
 import PDFModelCompanyInfo from "./PDFModelCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { AlertCircle } from "lucide-react";
@@ -25,45 +25,30 @@ const PDFModelManager = () => {
     loadModelData();
   }, []);
 
-  // Fonction pour charger le modèle directement depuis Supabase
+  // Fonction pour charger le modèle
   const loadModelData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      console.log("Tentative de chargement du modèle PDF...");
+      console.log("Tentative de création/vérification de la table pdf_models...");
       
-      // Utiliser directement le client Supabase pour une requête plus simple
-      const supabase = getSupabaseClient();
-      const { data, error: queryError } = await supabase
-        .from('pdf_models')
-        .select('*')
-        .eq('id', 'default')
-        .maybeSingle();
+      // Assurez-vous d'abord que la table existe
+      await ensurePDFModelTableExists();
       
-      if (queryError) {
-        console.error("Erreur lors de la requête Supabase:", queryError);
-        throw new Error(`Erreur de base de données: ${queryError.message}`);
-      }
+      console.log("Table vérifiée, tentative de chargement du modèle PDF...");
       
-      if (data) {
-        console.log("Modèle chargé avec succès:", data);
-        setModel(data as PDFModel);
+      // Charger le modèle
+      const modelData = await loadPDFModel('default');
+      
+      if (modelData) {
+        console.log("Modèle chargé avec succès:", modelData);
+        setModel(modelData);
         toast.success("Modèle chargé avec succès");
       } else {
         console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
-        // Insérer le modèle par défaut dans la base de données
-        const { error: insertError } = await supabase
-          .from('pdf_models')
-          .insert(DEFAULT_MODEL);
-          
-        if (insertError) {
-          console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
-          throw new Error(`Impossible de créer le modèle par défaut: ${insertError.message}`);
-        }
-        
         setModel(DEFAULT_MODEL);
-        toast.success("Modèle par défaut créé");
+        toast.success("Modèle par défaut chargé");
       }
     } catch (err: any) {
       console.error("Erreur lors du chargement du modèle:", err);
@@ -76,33 +61,14 @@ const PDFModelManager = () => {
     }
   };
   
-  // Fonction pour sauvegarder le modèle directement dans Supabase
+  // Fonction pour sauvegarder le modèle
   const handleSaveModel = async (updatedModel: PDFModel) => {
     setSaving(true);
     setError(null);
     
     try {
       console.log("Sauvegarde du modèle:", updatedModel);
-      const supabase = getSupabaseClient();
-      
-      // Mettre à jour le modèle avec la date actuelle
-      const modelToSave = {
-        ...updatedModel,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Sauvegarder directement dans Supabase
-      const { error: saveError } = await supabase
-        .from('pdf_models')
-        .upsert(modelToSave, { 
-          onConflict: 'id',
-          ignoreDuplicates: false 
-        });
-      
-      if (saveError) {
-        console.error("Erreur lors de la sauvegarde du modèle:", saveError);
-        throw new Error(`Erreur de sauvegarde: ${saveError.message}`);
-      }
+      await savePDFModel(updatedModel);
       
       setModel(updatedModel);
       toast.success("Modèle sauvegardé avec succès");
