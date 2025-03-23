@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -35,7 +34,6 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
   const [selectedField, setSelectedField] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("general");
 
-  // Mutations for saving template
   const saveMutation = useMutation({
     mutationFn: savePDFTemplate,
     onSuccess: () => {
@@ -60,8 +58,9 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
     try {
       toast.info("Téléchargement de l'image en cours...");
       
-      // Appel à uploadImage avec traitement d'erreur amélioré
-      const imageUrl = await uploadImage(file);
+      console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+      
+      const imageUrl = await uploadImage(file, 'pdf-templates');
       console.log("Image uploaded, received URL:", imageUrl);
       
       if (imageUrl) {
@@ -78,7 +77,6 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
           templateImages: newTemplateImages
         });
         
-        // Passer à la nouvelle page
         setCurrentPage(newTemplateImages.length - 1);
         toast.success("Image téléchargée avec succès");
       } else {
@@ -88,6 +86,8 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
       console.error("Upload error:", error);
       toast.error("Erreur lors du téléchargement de l'image");
     }
+    
+    event.target.value = '';
   };
 
   const addField = () => {
@@ -189,7 +189,6 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
 
   return (
     <div className="flex h-[80vh] overflow-hidden">
-      {/* Sidebar de configuration */}
       <div className="w-64 border-r p-4 flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
           <TabsList className="grid grid-cols-3 mb-4">
@@ -401,7 +400,6 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
         </Tabs>
       </div>
       
-      {/* Éditeur visuel */}
       <div className="flex-1 relative overflow-auto p-8 bg-gray-100">
         {currentTemplate.templateImages?.length > 0 ? (
           <div className="relative mx-auto" style={{ 
@@ -437,7 +435,6 @@ const PDFTemplateEditor = ({ template, onClose }: PDFTemplateEditorProps) => {
                   userSelect: 'none'
                 }}
                 onClick={() => setSelectedField(field)}
-                // Ici on ajouterait la logique de drag-and-drop
               >
                 {field.value}
               </div>

@@ -1,6 +1,7 @@
 
 import { supabase, STORAGE_URL, SUPABASE_KEY, adminSupabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
+import { detectMimeTypeFromSignature, getMimeTypeFromExtension } from "@/services/imageService";
 
 /**
  * Upload an image to the specified bucket
@@ -10,67 +11,67 @@ import { v4 as uuidv4 } from "uuid";
  */
 export const uploadImage = async (file: File, bucket: string = 'pdf-templates'): Promise<string | null> => {
   try {
-    // Préparer le fichier pour l'upload
+    // Ensure bucket exists first
+    await ensureStorageBucket(bucket);
+    
+    // Generate unique filename
     const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const fileName = `${uuidv4()}.${fileExt}`;
     const filePath = `${fileName}`;
     
-    console.log(`Uploading file to ${bucket}/${filePath} with type ${file.type}`);
+    console.log(`Uploading file to ${bucket}/${filePath} with original type ${file.type}`);
     
-    // Créer un blob avec le type de contenu correct
-    const contentType = file.type || `image/${fileExt}`;
+    // Detect MIME type from file signature for more accurate content type
+    const signatureMimeType = await detectMimeTypeFromSignature(file);
+    const contentType = signatureMimeType || getMimeTypeFromExtension(fileExt, file.type || `image/${fileExt}`);
+    
+    console.log(`Determined content type: ${contentType} for upload`);
+    
+    // Create a blob with the explicit content type
     const arrayBuffer = await file.arrayBuffer();
     const fileBlob = new Blob([arrayBuffer], { type: contentType });
     
-    // Essayer d'uploader directement sans vérifier si le bucket existe
-    // Utiliser d'abord le client standard
+    // Try first with standard client
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(filePath, fileBlob, {
         cacheControl: '3600',
         upsert: true,
-        contentType: contentType
+        contentType: contentType // Explicitly set content type
       });
     
     if (error) {
       console.error('Error uploading file:', error);
       
-      // Si l'erreur est liée à l'absence du bucket, essayer de l'utiliser avec le client admin
-      if (error.message.includes('The resource was not found') || 
-          error.message.includes('bucket') || 
-          error.message.includes('policy')) {
-        console.log('Trying with admin client...');
-        
-        // Essayer avec le client admin
-        const { data: adminData, error: adminError } = await adminSupabase.storage
-          .from(bucket)
-          .upload(filePath, fileBlob, {
-            cacheControl: '3600',
-            upsert: true,
-            contentType: contentType
-          });
-        
-        if (adminError) {
-          console.error('Error uploading file with admin client:', adminError);
-          return null;
-        }
-        
-        console.log('File uploaded successfully with admin client:', adminData);
-        
-        // Obtenir l'URL publique
-        const { data: urlData } = adminSupabase.storage
-          .from(bucket)
-          .getPublicUrl(filePath);
-        
-        return urlData.publicUrl;
+      // If error, try with admin client
+      console.log('Trying with admin client...');
+      
+      const { data: adminData, error: adminError } = await adminSupabase.storage
+        .from(bucket)
+        .upload(filePath, fileBlob, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: contentType // Explicitly set content type
+        });
+      
+      if (adminError) {
+        console.error('Error uploading file with admin client:', adminError);
+        return null;
       }
       
-      return null;
+      console.log('File uploaded successfully with admin client:', adminData);
+      
+      // Get public URL
+      const { data: urlData } = adminSupabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+      
+      return urlData.publicUrl;
     }
     
     console.log('File uploaded successfully:', data);
     
-    // Obtenir l'URL publique
+    // Get public URL
     const { data: urlData } = supabase.storage
       .from(bucket)
       .getPublicUrl(filePath);
@@ -178,6 +179,9 @@ export const downloadAndUploadImage = async (
   bucket: string = 'images'
 ): Promise<string | null> => {
   try {
+    // Ensure bucket exists first
+    await ensureStorageBucket(bucket);
+    
     // Si l'URL est une URL blob du navigateur, nous devons la traiter différemment
     if (url.startsWith('blob:')) {
       try {
@@ -188,8 +192,13 @@ export const downloadAndUploadImage = async (
         const extension = blob.type.split('/')[1] || 'jpg';
         const fileName = `${path}.${extension}`;
         
+        // Déterminer le type MIME correct
+        const signatureMimeType = await detectMimeTypeFromSignature(new File([blob], "temp."+extension, { type: blob.type }));
+        const contentType = signatureMimeType || getMimeTypeFromExtension(extension, blob.type);
+        
+        console.log(`Uploading blob with determined content type: ${contentType}`);
+        
         // Créer un nouveau blob avec le type de contenu explicite
-        const contentType = blob.type || `image/${extension}`;
         const arrayBuffer = await blob.arrayBuffer();
         const fileBlob = new Blob([arrayBuffer], { type: contentType });
         
@@ -253,9 +262,15 @@ export const downloadAndUploadImage = async (
     const extension = contentType.split('/')[1] || 'jpg';
     const fileName = `${path}.${extension}`;
     
+    // Déterminer le type MIME correct
+    const signatureMimeType = await detectMimeTypeFromSignature(new File([blob], "temp."+extension, { type: contentType }));
+    const finalContentType = signatureMimeType || contentType;
+    
+    console.log(`Uploading remote file with determined content type: ${finalContentType}`);
+    
     // Créer un nouveau blob avec le type de contenu explicite
     const arrayBuffer = await blob.arrayBuffer();
-    const fileBlob = new Blob([arrayBuffer], { type: contentType });
+    const fileBlob = new Blob([arrayBuffer], { type: finalContentType });
     
     // Upload vers Supabase avec le type de contenu explicite
     const { data, error } = await supabase.storage
@@ -263,7 +278,7 @@ export const downloadAndUploadImage = async (
       .upload(fileName, fileBlob, {
         cacheControl: '3600',
         upsert: true,
-        contentType: contentType
+        contentType: finalContentType
       });
     
     if (error) {
@@ -275,7 +290,7 @@ export const downloadAndUploadImage = async (
         .upload(fileName, fileBlob, {
           cacheControl: '3600',
           upsert: true,
-          contentType: contentType
+          contentType: finalContentType
         });
       
       if (adminError) {
