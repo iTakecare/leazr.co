@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
+import PDFFieldsEditor from "./PDFFieldsEditor";
 
 interface PDFTemplateWithFieldsProps {
   template: PDFTemplate;
@@ -21,6 +22,24 @@ interface TemplateImage {
   name: string;
   data: string; // Données base64
   page: number;
+}
+
+// Interface pour les champs du PDF
+interface PDFField {
+  id: string;
+  label: string;
+  type: string;
+  category: string;
+  isVisible: boolean;
+  value: string;
+  position: { x: number; y: number };
+  page: number;
+  style?: {
+    fontSize: number;
+    fontWeight: string;
+    fontStyle: string;
+    textDecoration: string;
+  };
 }
 
 const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps) => {
@@ -67,7 +86,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   };
   
   // Gestionnaire pour les champs
-  const handleFieldsChange = (fields: any[]) => {
+  const handleFieldsChange = (fields: PDFField[]) => {
     console.log("Champs mis à jour:", fields);
     
     const updatedTemplate = {
@@ -81,7 +100,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   
   // Fonction pour supprimer un champ
   const handleDeleteField = (fieldId: string) => {
-    const updatedFields = localTemplate.fields.filter(field => field.id !== fieldId);
+    const updatedFields = (localTemplate.fields || []).filter(field => field.id !== fieldId);
     
     const updatedTemplate = {
       ...localTemplate,
@@ -90,10 +109,11 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     
     setLocalTemplate(updatedTemplate);
     onSave(updatedTemplate);
+    toast.success("Champ supprimé avec succès");
   };
   
   // Fonction pour ajouter un champ
-  const handleAddField = (field: any) => {
+  const handleAddField = (field: PDFField) => {
     const updatedFields = [...(localTemplate.fields || []), field];
     
     const updatedTemplate = {
@@ -103,11 +123,12 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     
     setLocalTemplate(updatedTemplate);
     onSave(updatedTemplate);
+    toast.success("Champ ajouté avec succès");
   };
   
   // Fonction pour dupliquer un champ sur une autre page
   const handleDuplicateField = (fieldId: string, targetPage: number) => {
-    const fieldToDuplicate = localTemplate.fields.find(field => field.id === fieldId);
+    const fieldToDuplicate = (localTemplate.fields || []).find(field => field.id === fieldId);
     
     if (fieldToDuplicate) {
       const duplicatedField = {
@@ -116,7 +137,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
         page: targetPage
       };
       
-      const updatedFields = [...localTemplate.fields, duplicatedField];
+      const updatedFields = [...(localTemplate.fields || []), duplicatedField];
       
       const updatedTemplate = {
         ...localTemplate,
@@ -125,12 +146,13 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
       
       setLocalTemplate(updatedTemplate);
       onSave(updatedTemplate);
+      toast.success(`Champ dupliqué sur la page ${targetPage + 1}`);
     }
   };
   
   // Fonction pour retirer un champ d'une page
   const handleRemoveFieldFromPage = (fieldId: string, page: number) => {
-    const updatedFields = localTemplate.fields.filter(field => 
+    const updatedFields = (localTemplate.fields || []).filter(field => 
       !(field.id === fieldId && field.page === page)
     );
     
@@ -141,6 +163,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     
     setLocalTemplate(updatedTemplate);
     onSave(updatedTemplate);
+    toast.success(`Champ retiré de la page ${page + 1}`);
   };
   
   // Fonction pour convertir un fichier en base64
@@ -258,6 +281,11 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   // Prévisualiser une image
   const previewImage = (imageData: string) => {
     window.open(imageData, '_blank');
+  };
+  
+  // Gestionnaire de changement de page
+  const handlePageChange = (newPage: number) => {
+    setSelectedPage(newPage);
   };
   
   // Rendu du composant d'upload et de gestion des images
@@ -389,48 +417,18 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   
   // Rendu du composant d'édition des champs
   const renderFieldsEditor = () => {
-    // Remplacer par le composant d'édition des champs
-    // Pour simplifier, nous utilisons une interface temporaire pour montrer que le sélecteur de page fonctionne
     return (
-      <div className="space-y-6">
-        <div className="border rounded-md p-4">
-          <h3 className="text-sm font-medium mb-4">Champs du document - Page {selectedPage + 1}</h3>
-          
-          {getLocalImages().length === 0 ? (
-            <div className="text-center p-8 border border-dashed rounded-md">
-              <p className="text-sm text-muted-foreground">
-                Veuillez d'abord ajouter des pages de modèle avant de définir des champs.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-muted-foreground text-sm">
-                Cette vue permet de définir les champs qui seront utilisés dans le document PDF.
-                Sélectionnez d'abord une page, puis ajoutez des champs à cette page.
-              </p>
-              
-              <div className="flex gap-2">
-                {getLocalImages().map((_, idx) => (
-                  <Button 
-                    key={idx} 
-                    variant={selectedPage === idx ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedPage(idx)}
-                  >
-                    Page {idx + 1}
-                  </Button>
-                ))}
-              </div>
-              
-              <div className="mt-4 p-4 border rounded-md bg-gray-50">
-                <p className="text-sm">
-                  Fonctionnalité d'édition de champs en cours d'implémentation.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <PDFFieldsEditor 
+        fields={localTemplate.fields || []}
+        onChange={handleFieldsChange}
+        activePage={selectedPage}
+        onPageChange={handlePageChange}
+        template={localTemplate}
+        onDeleteField={handleDeleteField}
+        onAddField={handleAddField}
+        onDuplicateField={handleDuplicateField}
+        onRemoveFieldFromPage={handleRemoveFieldFromPage}
+      />
     );
   };
   
