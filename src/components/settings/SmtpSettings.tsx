@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Send, AlertTriangle, CheckCircle2, Info, Loader2 } from "lucide-react";
+import { Mail, Send, AlertTriangle, CheckCircle2, Info, Loader2, HelpCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SmtpSettings = () => {
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,6 +37,54 @@ const SmtpSettings = () => {
     enabled: true
   });
 
+  // Presets pour les serveurs SMTP courants
+  const smtpPresets = {
+    "custom": {
+      name: "Configuration personnalisée",
+      host: "",
+      port: "587",
+      secure: false,
+      info: "Utilisez ce mode pour configurer manuellement vos paramètres SMTP"
+    },
+    "gmail": {
+      name: "Gmail",
+      host: "smtp.gmail.com",
+      port: "587",
+      secure: true,
+      info: "Pour Gmail, vous devez utiliser un mot de passe d'application (nécessite la 2FA activée sur votre compte)"
+    },
+    "outlook": {
+      name: "Microsoft 365/Outlook",
+      host: "smtp.office365.com",
+      port: "587",
+      secure: true,
+      info: "Utilisez votre adresse email Microsoft et votre mot de passe habituel"
+    },
+    "ovh": {
+      name: "OVH",
+      host: "ssl0.ovh.net",
+      port: "587",
+      secure: false,
+      info: "Pour les serveurs OVH sur le port 587, il est recommandé de désactiver l'option TLS"
+    },
+    "sendingblue": {
+      name: "Sendinblue/Brevo",
+      host: "smtp-relay.brevo.com",
+      port: "587",
+      secure: true,
+      info: "Utilisez les identifiants SMTP fournis dans votre interface Brevo"
+    },
+    "amazon": {
+      name: "Amazon SES",
+      host: "email-smtp.us-east-1.amazonaws.com",
+      port: "587", 
+      secure: true,
+      info: "Utilisez vos identifiants SES SMTP (différents de vos identifiants AWS)"
+    }
+  };
+
+  const [selectedPreset, setSelectedPreset] = useState<string>("custom");
+
   const fetchSettings = async () => {
     try {
       setLoading(true);
@@ -52,6 +102,14 @@ const SmtpSettings = () => {
 
       if (data) {
         setSettings(data);
+        
+        // Tentative de détecter le preset
+        for (const [key, preset] of Object.entries(smtpPresets)) {
+          if (preset.host === data.host) {
+            setSelectedPreset(key);
+            break;
+          }
+        }
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des paramètres:", error);
@@ -158,9 +216,27 @@ const SmtpSettings = () => {
     // Réinitialiser les résultats de test lorsque les paramètres changent
     setLastTestResult(null);
   };
+  
+  const handlePresetChange = (value: string) => {
+    setSelectedPreset(value);
+    
+    if (value !== "custom") {
+      const preset = smtpPresets[value as keyof typeof smtpPresets];
+      setSettings(prev => ({
+        ...prev,
+        host: preset.host,
+        port: preset.port,
+        secure: preset.secure
+      }));
+      
+      // Réinitialiser les résultats de test lorsque les paramètres changent
+      setLastTestResult(null);
+    }
+  };
 
   // Vérifier si les paramètres correspondent à OVH
-  const isOvhHost = settings.host?.includes('.mail.ovh.');
+  const isOvhHost = settings.host?.includes('.mail.ovh.') || settings.host?.includes('.ovh.');
+  const isGmailHost = settings.host === 'smtp.gmail.com';
   const isPort587 = settings.port === "587";
 
   if (loading) {
@@ -191,6 +267,48 @@ const SmtpSettings = () => {
             notamment pour les demandes d'informations complémentaires.
           </AlertDescription>
         </Alert>
+
+        <div className="space-y-2">
+          <Label htmlFor="preset">Service d'email</Label>
+          <Select value={selectedPreset} onValueChange={handlePresetChange}>
+            <SelectTrigger id="preset">
+              <SelectValue placeholder="Sélectionnez un service d'email" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(smtpPresets).map(([key, preset]) => (
+                <SelectItem key={key} value={key}>{preset.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-gray-500 mt-1">
+            {smtpPresets[selectedPreset as keyof typeof smtpPresets]?.info}
+          </p>
+        </div>
+
+        {isGmailHost && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertTitle>Configuration Gmail</AlertTitle>
+            <AlertDescription>
+              <p>Pour Gmail, vous devez:</p>
+              <ol className="list-decimal ml-5 mt-2 space-y-1">
+                <li>Activer la validation en 2 étapes sur votre compte Google</li>
+                <li>Créer un mot de passe d'application spécifique pour cette application</li>
+              </ol>
+              <div className="mt-2">
+                <a 
+                  href="https://myaccount.google.com/apppasswords" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  Créer un mot de passe d'application
+                  <HelpCircle className="h-3 w-3" />
+                </a>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {isOvhHost && (
           <Alert className="bg-blue-50 border-blue-200">
@@ -254,6 +372,23 @@ const SmtpSettings = () => {
             <Label htmlFor="secure" className="font-medium">
               Connexion sécurisée (TLS)
             </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="h-6 w-6 p-0" type="button">
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-2">
+                  <h4 className="font-medium">À propos de TLS</h4>
+                  <p className="text-sm text-muted-foreground">
+                    L'option TLS active le chiffrement de la connexion au serveur SMTP.
+                    Elle est généralement requise pour Gmail, Outlook et la plupart des services d'email professionnels.
+                    Pour OVH sur le port 587, elle peut devoir être désactivée.
+                  </p>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
