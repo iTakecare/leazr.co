@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -65,6 +64,17 @@ export const isOfferSigned = async (offerId: string): Promise<boolean> => {
     console.error("Exception checking if offer is signed:", error);
     return false;
   }
+};
+
+/**
+ * Génère un lien de signature pour une offre
+ */
+export const generateSignatureLink = (offerId: string): string => {
+  if (!offerId) return "";
+  
+  // Générer l'URL complète pour la signature de l'offre
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/signature/${offerId}`;
 };
 
 /**
