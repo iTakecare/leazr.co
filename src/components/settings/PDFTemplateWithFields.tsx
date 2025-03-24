@@ -1,499 +1,646 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PDFTemplate, TemplateField } from "@/utils/templateManager";
+import { PDFTemplate } from "./PDFTemplateManager";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import PDFFieldsEditor from "./PDFFieldsEditor";
 
-export interface PDFTemplateWithFieldsProps {
+interface PDFTemplateWithFieldsProps {
   template: PDFTemplate;
   onSave: (template: PDFTemplate) => void;
-  selectedPage?: number;
-  onPageSelect?: (page: number) => void;
 }
 
-// Interface for PDF fields
-export interface PDFField {
+// Interface pour les images du template
+interface TemplateImage {
   id: string;
-  type: "text" | "signature" | "date" | "checkbox";
   name: string;
+  data: string; // Données base64
+  page: number;
+}
+
+// Interface pour les champs du PDF
+interface PDFField {
+  id: string;
   label: string;
-  placeholder?: string;
-  defaultValue?: string;
-  required?: boolean;
-  x: number; // Position X percentage
-  y: number; // Position Y percentage
-  width: number; // Width percentage
-  height: number; // Height percentage
-  page: number; // Page number
-  fontSize?: number;
-  fontWeight?: string;
-  saveToDatabase?: {
-    enabled: boolean;
-    fieldName: string;
-    table: string;
+  type: string;
+  category: string;
+  isVisible: boolean;
+  value: string;
+  position: { x: number; y: number };
+  page: number;
+  style?: {
+    fontSize: number;
+    fontWeight: string;
+    fontStyle: string;
+    textDecoration: string;
   };
 }
 
-// Convert PDFField to TemplateField
-const convertPDFFieldToTemplateField = (field: PDFField): TemplateField => {
-  return {
-    id: field.id,
-    label: field.label,
-    type: field.type,
-    category: "form",
-    isVisible: true,
-    value: field.defaultValue || "",
-    position: {
-      x: field.x,
-      y: field.y
-    },
-    page: field.page,
-    style: {
-      fontSize: field.fontSize || 14,
-      fontWeight: field.fontWeight || "normal",
-      fontStyle: "normal",
-      textDecoration: "none"
-    }
-  };
-};
-
-// Convert TemplateField to PDFField
-const convertTemplateFieldToPDFField = (field: TemplateField): PDFField => {
-  return {
-    id: field.id,
-    name: field.id.toLowerCase().replace(/\s+/g, '_'),
-    label: field.label,
-    type: field.type as "text" | "signature" | "date" | "checkbox",
-    x: field.position?.x || 0,
-    y: field.position?.y || 0,
-    width: 20, // Default width
-    height: 10, // Default height
-    page: field.page,
-    fontSize: field.style?.fontSize || 14,
-    fontWeight: field.style?.fontWeight || "normal",
-    defaultValue: field.value || "",
-    required: false
-  };
-};
-
-const PDFTemplateWithFields = ({ 
-  template, 
-  onSave, 
-  selectedPage = 0, 
-  onPageSelect = () => {} 
-}: PDFTemplateWithFieldsProps) => {
-  const [activeTab, setActiveTab] = useState("fields");
+const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps) => {
+  const [selectedPage, setSelectedPage] = useState(0);
+  const [activeTab, setActiveTab] = useState("images");
   const [localTemplate, setLocalTemplate] = useState<PDFTemplate>({
     ...template,
-    templateImages: template.templateImages || [],
-    fields: template.fields || []
+    templateImages: Array.isArray(template.templateImages) ? template.templateImages : [],
+    fields: Array.isArray(template.fields) ? template.fields : []
   });
-  const [currentField, setCurrentField] = useState<PDFField | null>(null);
-  const [showFieldEditor, setShowFieldEditor] = useState(false);
-  const [placingMode, setPlacingMode] = useState(false);
-  const [newFieldType, setNewFieldType] = useState<"text" | "signature" | "date" | "checkbox">("text");
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
-  const canvasRef = React.useRef<HTMLDivElement>(null);
-
-  // Load local template data
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // Debug lors du premier rendu
   useEffect(() => {
+    console.log("PDFTemplateWithFields - Premier rendu");
+    console.log("Template reçu:", template);
+    console.log("Template.templateImages:", template.templateImages);
+    console.log("Template.fields:", template.fields);
+    
+    // Vérifier et initialiser les tableaux si nécessaire
+    const images = Array.isArray(template.templateImages) ? template.templateImages : [];
+    const fields = Array.isArray(template.fields) ? template.fields : [];
+    
+    console.log("Images après vérification:", images.length);
+    console.log("Champs après vérification:", fields.length);
+    
+    // Mettre à jour le template local avec des tableaux garantis
     setLocalTemplate({
       ...template,
-      templateImages: template.templateImages || [],
-      fields: template.fields || []
+      templateImages: images,
+      fields: fields
+    });
+  }, []);
+  
+  // Mettre à jour le template local lorsque le template parent change
+  useEffect(() => {
+    console.log("Template parent mis à jour:", template);
+    console.log("Template.templateImages:", template.templateImages);
+    console.log("Template.fields:", template.fields);
+    
+    // Vérifier et initialiser les tableaux si nécessaire
+    const images = Array.isArray(template.templateImages) ? template.templateImages : [];
+    const fields = Array.isArray(template.fields) ? template.fields : [];
+    
+    console.log("Images après vérification:", images.length);
+    console.log("Champs après vérification:", fields.length);
+    
+    // Mettre à jour le template local avec des tableaux garantis
+    setLocalTemplate({
+      ...template,
+      templateImages: images,
+      fields: fields
     });
   }, [template]);
-
-  // Save template changes
-  const saveChanges = useCallback(() => {
-    onSave(localTemplate);
+  
+  // Vérifier que les tableaux du template local sont toujours des tableaux
+  const safeTemplate = {
+    ...localTemplate,
+    templateImages: Array.isArray(localTemplate.templateImages) ? localTemplate.templateImages : [],
+    fields: Array.isArray(localTemplate.fields) ? localTemplate.fields : []
+  };
+  
+  // Gestionnaire d'images
+  const handleImagesChange = useCallback((images: TemplateImage[]) => {
+    console.log("Images mises à jour:", images);
+    console.log("Nombre d'images:", images.length);
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      templateImages: images
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
   }, [localTemplate, onSave]);
-
-  // Adjust canvas size
-  useEffect(() => {
-    const updateCanvasSize = () => {
-      if (canvasRef.current) {
-        setCanvasSize({
-          width: canvasRef.current.offsetWidth,
-          height: canvasRef.current.offsetHeight
-        });
+  
+  // Gestionnaire de champs
+  const handleFieldsChange = useCallback((fields: PDFField[]) => {
+    console.log("Champs mis à jour:", fields);
+    console.log("Nombre de champs:", fields.length);
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: fields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+  }, [localTemplate, onSave]);
+  
+  // Fonction pour convertir un fichier en base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+  
+  // Gestion de l'upload de fichier
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Vérifier le type de fichier (images seulement)
+    if (!file.type.startsWith('image/')) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+    
+    try {
+      setIsUploading(true);
+      
+      // Convertir l'image en base64
+      const base64Data = await convertFileToBase64(file);
+      
+      // Récupérer les images existantes de façon sûre
+      const existingImages = Array.isArray(localTemplate.templateImages) 
+        ? localTemplate.templateImages 
+        : [];
+      
+      // Créer une nouvelle entrée d'image
+      const newImage: TemplateImage = {
+        id: uuidv4(),
+        name: file.name,
+        data: base64Data,
+        page: existingImages.length
+      };
+      
+      // Ajouter la nouvelle image
+      const updatedImages = [...existingImages, newImage];
+      
+      const updatedTemplate = {
+        ...localTemplate,
+        templateImages: updatedImages
+      };
+      
+      console.log("Mise à jour du template avec la nouvelle image");
+      console.log("Nombre d'images avant:", existingImages.length);
+      console.log("Nombre d'images après:", updatedImages.length);
+      
+      setLocalTemplate(updatedTemplate);
+      onSave(updatedTemplate);
+      
+      toast.success("Image ajoutée avec succès");
+      
+      // S'il s'agit de la première image, la sélectionner automatiquement
+      if (updatedImages.length === 1) {
+        setSelectedPage(0);
       }
-    };
-
-    updateCanvasSize();
-    window.addEventListener("resize", updateCanvasSize);
-    return () => window.removeEventListener("resize", updateCanvasSize);
-  }, [selectedPage]);
-
-  // Handle page selection
-  const handlePageSelect = (pageIndex: number) => {
-    onPageSelect(pageIndex);
-    setCurrentField(null);
+    } catch (error) {
+      console.error("Erreur lors de l'upload:", error);
+      toast.error("Une erreur est survenue lors de l'ajout de l'image");
+    } finally {
+      setIsUploading(false);
+      
+      // Réinitialiser l'input file
+      if (e.target) {
+        e.target.value = "";
+      }
+    }
   };
-
-  // Add field
-  const addField = (type: "text" | "signature" | "date" | "checkbox") => {
-    setNewFieldType(type);
-    setPlacingMode(true);
-  };
-
-  // Place a new field on canvas
-  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!placingMode || !canvasRef.current) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-    // Create new field
-    const newField: PDFField = {
-      id: uuidv4(),
-      type: newFieldType,
-      name: `field_${Date.now()}`,
-      label: getDefaultLabelForType(newFieldType),
-      x,
-      y,
-      width: 20,
-      height: 10,
-      page: selectedPage,
-      required: false
+  
+  // Supprimer une image
+  const handleDeleteImage = (imageId: string) => {
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
+    
+    const updatedImages = existingImages.filter(img => img.id !== imageId);
+    
+    // Réindexer les numéros de page
+    updatedImages.forEach((img, idx) => {
+      img.page = idx;
+    });
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      templateImages: updatedImages
     };
-
-    // Convert to TemplateField for storage
-    const templateField = convertPDFFieldToTemplateField(newField);
     
-    // Store all fields at the template level
-    const updatedFields = [...(localTemplate.fields || []), templateField];
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
     
-    setLocalTemplate({
+    // Si la page actuellement sélectionnée n'existe plus, sélectionner la dernière page disponible
+    if (selectedPage >= updatedImages.length) {
+      setSelectedPage(Math.max(0, updatedImages.length - 1));
+    }
+    
+    toast.success("Image supprimée avec succès");
+  };
+  
+  // Déplacer une image vers le haut
+  const moveImageUp = (index: number) => {
+    if (index === 0) return;
+    
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
+    
+    const newImages = [...existingImages];
+    [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
+    
+    // Mettre à jour les numéros de page
+    newImages.forEach((img, idx) => {
+      img.page = idx;
+    });
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      templateImages: newImages
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    
+    // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
+    if (selectedPage === index || selectedPage === index - 1) {
+      setSelectedPage(selectedPage === index ? index - 1 : index);
+    }
+  };
+  
+  // Déplacer une image vers le bas
+  const moveImageDown = (index: number) => {
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
+    
+    if (index === existingImages.length - 1) return;
+    
+    const newImages = [...existingImages];
+    [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
+    
+    // Mettre à jour les numéros de page
+    newImages.forEach((img, idx) => {
+      img.page = idx;
+    });
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      templateImages: newImages
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    
+    // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
+    if (selectedPage === index || selectedPage === index + 1) {
+      setSelectedPage(selectedPage === index ? index + 1 : index);
+    }
+  };
+  
+  // Prévisualiser une image
+  const previewImage = (imageData: string) => {
+    window.open(imageData, '_blank');
+  };
+  
+  // Gestion des champs spécifiques
+  
+  // Ajouter un champ
+  const handleAddField = (field: PDFField) => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    const newField = {
+      ...field,
+      id: uuidv4()
+    };
+    
+    const updatedFields = [...existingFields, newField];
+    
+    const updatedTemplate = {
       ...localTemplate,
       fields: updatedFields
-    });
-    
-    // Select the new field for editing
-    setCurrentField(newField);
-    setShowFieldEditor(true);
-    
-    // Disable placing mode
-    setPlacingMode(false);
-    
-    // Save changes
-    saveChanges();
-  };
-
-  // Get default label for each field type
-  const getDefaultLabelForType = (type: string): string => {
-    switch (type) {
-      case "text":
-        return "Texte";
-      case "signature":
-        return "Signature";
-      case "date":
-        return "Date";
-      case "checkbox":
-        return "Case à cocher";
-      default:
-        return "Champ";
-    }
-  };
-
-  // Handle existing field selection
-  const handleFieldClick = (e: React.MouseEvent, pdfField: PDFField) => {
-    e.stopPropagation();
-    setCurrentField(pdfField);
-    setShowFieldEditor(true);
-  };
-
-  // Start field drag
-  const handleFieldMouseDown = (e: React.MouseEvent, pdfField: PDFField) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    setIsDragging(true);
-    setCurrentField(pdfField);
-    setStartPosition({
-      x: e.clientX,
-      y: e.clientY
-    });
-  };
-
-  // Move field
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !currentField || !canvasRef.current) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const deltaX = e.clientX - startPosition.x;
-    const deltaY = e.clientY - startPosition.y;
-    
-    // Convert movements to percentages
-    const deltaXPercent = (deltaX / rect.width) * 100;
-    const deltaYPercent = (deltaY / rect.height) * 100;
-    
-    // Update field coordinates
-    const newX = Math.max(0, Math.min(100 - currentField.width, currentField.x + deltaXPercent));
-    const newY = Math.max(0, Math.min(100 - currentField.height, currentField.y + deltaYPercent));
-    
-    // Update the currentField
-    const updatedPDFField = {
-      ...currentField,
-      x: newX,
-      y: newY
     };
     
-    setCurrentField(updatedPDFField);
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success("Champ ajouté avec succès");
+  };
+  
+  // Supprimer un champ
+  const handleDeleteField = (fieldId: string) => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
     
-    // Reset start position
-    setStartPosition({
-      x: e.clientX,
-      y: e.clientY
-    });
+    const updatedFields = existingFields.filter(field => field.id !== fieldId);
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success("Champ supprimé avec succès");
   };
-
-  // End field drag
-  const handleMouseUp = () => {
-    if (isDragging && currentField) {
-      // Update the field in the template
-      updateFieldProperties(currentField);
-      setIsDragging(false);
-    }
-  };
-
-  // Update field properties
-  const updateFieldProperties = (updatedPDFField: PDFField) => {
-    if (localTemplate.fields) {
-      // Convert to TemplateField
-      const updatedTemplateField = convertPDFFieldToTemplateField(updatedPDFField);
+  
+  // Dupliquer un champ sur une autre page
+  const handleDuplicateField = (fieldId: string, targetPage: number) => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    const fieldToDuplicate = existingFields.find(field => field.id === fieldId);
+    
+    if (fieldToDuplicate) {
+      const duplicatedField = {
+        ...fieldToDuplicate,
+        id: uuidv4(),
+        page: targetPage
+      };
       
-      const updatedFields = [...localTemplate.fields];
-      const fieldIndex = updatedFields.findIndex(f => f.id === updatedPDFField.id);
+      const updatedFields = [...existingFields, duplicatedField];
       
-      if (fieldIndex !== -1) {
-        updatedFields[fieldIndex] = updatedTemplateField;
-        
-        setLocalTemplate({
-          ...localTemplate,
-          fields: updatedFields
-        });
-        
-        saveChanges();
-      }
-    }
-  };
-
-  // Delete field
-  const deleteField = (fieldId: string) => {
-    if (localTemplate.fields) {
-      const updatedFields = localTemplate.fields.filter(f => f.id !== fieldId);
-      
-      setLocalTemplate({
+      const updatedTemplate = {
         ...localTemplate,
         fields: updatedFields
-      });
+      };
       
-      setCurrentField(null);
-      setShowFieldEditor(false);
-      saveChanges();
+      setLocalTemplate(updatedTemplate);
+      onSave(updatedTemplate);
+      toast.success(`Champ dupliqué sur la page ${targetPage + 1}`);
     }
   };
-
-  // Get fields for current page
-  const getCurrentPageFields = (): PDFField[] => {
-    if (!localTemplate.fields) return [];
+  
+  // Retirer un champ d'une page
+  const handleRemoveFieldFromPage = (fieldId: string, page: number) => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
     
-    // Convert TemplateFields to PDFFields for display
-    return localTemplate.fields
-      .filter(field => field.page === selectedPage)
-      .map(convertTemplateFieldToPDFField);
+    const updatedFields = existingFields.filter(field => 
+      !(field.id === fieldId && field.page === page)
+    );
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success(`Champ retiré de la page ${page + 1}`);
   };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="md:col-span-2">
-        <div
-          ref={canvasRef}
-          className={`relative border border-gray-300 rounded-md overflow-hidden ${
-            placingMode ? "cursor-crosshair" : "cursor-default"
-          }`}
-          style={{ height: "700px", backgroundColor: "#f8f9fa" }}
-          onClick={handleCanvasClick}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        >
-          {/* Display page image */}
-          {localTemplate.templateImages[selectedPage] && (
-            <img
-              src={localTemplate.templateImages[selectedPage].data}
-              alt={`Page ${selectedPage + 1}`}
-              className="w-full h-full object-contain"
+  
+  // Ajout d'un champ simple pour débogage
+  const addDebugField = () => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    const newField = {
+      id: uuidv4(),
+      label: "Champ de test",
+      type: "text",
+      category: "client",
+      isVisible: true,
+      value: "Valeur de test",
+      position: { x: 50, y: 50 },
+      page: selectedPage
+    };
+    
+    const updatedFields = [...existingFields, newField];
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success("Champ de test ajouté avec succès");
+  };
+  
+  // Rendu du composant d'upload et de gestion des images
+  const renderImageUploader = () => {
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
+    
+    console.log("renderImageUploader - Nombre d'images:", existingImages.length);
+    
+    return (
+      <div className="space-y-6">
+        <div className="border rounded-md p-4">
+          <Label htmlFor="template-upload" className="text-sm font-medium">Ajouter un modèle de page</Label>
+          <div className="flex gap-2 mt-2">
+            <Input
+              id="template-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={isUploading}
+              className="flex-1"
             />
-          )}
-
-          {/* Display fields on canvas */}
-          {getCurrentPageFields().map((field) => (
-            <div
-              key={field.id}
-              className={`absolute border-2 rounded ${
-                currentField && currentField.id === field.id
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-400 bg-white bg-opacity-70"
-              }`}
-              style={{
-                left: `${field.x}%`,
-                top: `${field.y}%`,
-                width: `${field.width}%`,
-                height: `${field.height}%`,
-                cursor: "move"
-              }}
-              onClick={(e) => handleFieldClick(e, field)}
-              onMouseDown={(e) => handleFieldMouseDown(e, field)}
-            >
-              <div className="text-xs p-1 truncate">
-                {field.label || field.name}
-              </div>
+            <Button disabled={isUploading} className="min-w-20">
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  <span>Upload</span>
+                </>
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Formats acceptés: PNG, JPG, WEBP. L'ordre des pages correspond à l'ordre dans lequel elles apparaîtront dans le document.
+          </p>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-medium">Pages du modèle ({existingImages.length})</h3>
+            <Button variant="outline" size="sm" onClick={() => console.log("Images du template:", existingImages)}>
+              Debug Images
+            </Button>
+          </div>
+          
+          {existingImages.length === 0 ? (
+            <div className="text-center p-8 border border-dashed rounded-md">
+              <p className="text-sm text-muted-foreground">
+                Aucune page n'a encore été ajoutée. Utilisez le formulaire ci-dessus pour ajouter des pages à votre modèle.
+              </p>
             </div>
-          ))}
-
-          {/* Placing mode instructions */}
-          {placingMode && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10">
-              <div className="bg-white p-4 rounded-md shadow-md">
-                <p>Cliquez pour placer le champ {getDefaultLabelForType(newFieldType)}</p>
-                <Button
-                  variant="outline"
-                  className="mt-2 w-full"
-                  onClick={() => setPlacingMode(false)}
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {existingImages.map((image, index) => (
+                <Card 
+                  key={`${image.id}-${index}`} 
+                  className={`overflow-hidden ${selectedPage === index ? 'ring-2 ring-primary' : ''}`}
+                  onClick={() => setSelectedPage(index)}
                 >
-                  Annuler
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Page navigation */}
-        <div className="flex justify-between items-center mt-4">
-          <Button
-            variant="outline"
-            disabled={selectedPage === 0}
-            onClick={() => handlePageSelect(selectedPage - 1)}
-          >
-            Page précédente
-          </Button>
-          <span>
-            Page {selectedPage + 1} sur {localTemplate.templateImages.length}
-          </span>
-          <Button
-            variant="outline"
-            disabled={selectedPage === localTemplate.templateImages.length - 1}
-            onClick={() => handlePageSelect(selectedPage + 1)}
-          >
-            Page suivante
-          </Button>
-        </div>
-      </div>
-
-      <div>
-        <Card>
-          <CardContent className="p-4">
-            <Tabs defaultValue="fields">
-              <TabsList className="grid grid-cols-2 mb-4">
-                <TabsTrigger value="fields">Champs</TabsTrigger>
-                <TabsTrigger value="properties">Propriétés</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="fields">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Ajouter un champ</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button onClick={() => addField("text")} variant="outline" className="justify-start">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Texte
-                    </Button>
-                    <Button onClick={() => addField("signature")} variant="outline" className="justify-start">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Signature
-                    </Button>
-                    <Button onClick={() => addField("date")} variant="outline" className="justify-start">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Date
-                    </Button>
-                    <Button onClick={() => addField("checkbox")} variant="outline" className="justify-start">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Case à cocher
-                    </Button>
+                  <div className="relative bg-gray-100 h-40 flex items-center justify-center">
+                    <img 
+                      src={image.data} 
+                      alt={`Template page ${index + 1}`}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                    <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                      Page {index + 1}
+                    </div>
+                    {selectedPage === index && (
+                      <div className="absolute top-2 right-2 bg-primary text-white px-2 py-1 rounded text-xs">
+                        Sélectionnée
+                      </div>
+                    )}
                   </div>
-
-                  {getCurrentPageFields().length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="text-sm font-medium mb-2">Champs de la page actuelle</h3>
-                      <div className="space-y-2">
-                        {getCurrentPageFields().map((field) => (
-                          <div
-                            key={field.id}
-                            className={`p-2 border rounded-md cursor-pointer ${
-                              currentField && currentField.id === field.id
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-200"
-                            }`}
-                            onClick={() => {
-                              setCurrentField(field);
-                              setShowFieldEditor(true);
-                            }}
-                          >
-                            <div className="flex justify-between items-center">
-                              <span>{field.label || field.name}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteField(field.id);
-                                }}
-                              >
-                                <svg className="h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="3 6 5 6 21 6" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                  <line x1="10" y1="11" x2="10" y2="17" />
-                                  <line x1="14" y1="11" x2="14" y2="17" />
-                                </svg>
-                              </Button>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Type: {getDefaultLabelForType(field.type)}
-                            </div>
-                          </div>
-                        ))}
+                  <CardContent className="p-3">
+                    <div className="flex justify-between items-center">
+                      <div className="truncate text-sm">{image.name || `Page ${index + 1}`}</div>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveImageUp(index);
+                          }}
+                          disabled={index === 0}
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveImageDown(index);
+                          }}
+                          disabled={index === existingImages.length - 1}
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            previewImage(image.data);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteImage(image.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="properties">
-                {currentField ? (
-                  <PDFFieldsEditor
-                    field={currentField}
-                    onUpdate={updateFieldProperties}
-                    onDelete={() => currentField && deleteField(currentField.id)}
-                  />
-                ) : (
-                  <div className="text-center py-6 text-gray-500">
-                    <p>Sélectionnez un champ pour modifier ses propriétés</p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    );
+  };
+  
+  // Rendu du composant d'édition des champs
+  const renderFieldsEditor = () => {
+    // Récupérer les champs existants de façon sûre
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    // Récupérer les images existantes de façon sûre
+    const existingImages = Array.isArray(localTemplate.templateImages) 
+      ? localTemplate.templateImages 
+      : [];
+    
+    console.log("renderFieldsEditor - Nombre de champs:", existingFields.length);
+    console.log("renderFieldsEditor - Nombre d'images:", existingImages.length);
+    
+    // Si nous n'avons pas d'images, afficher un message
+    if (existingImages.length === 0) {
+      return (
+        <div className="text-center p-8 border border-dashed rounded-md">
+          <p className="text-sm text-muted-foreground">
+            Veuillez d'abord ajouter au moins une page de modèle dans l'onglet "Pages du modèle" avant de pouvoir ajouter des champs.
+          </p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-sm font-medium">Champs du document ({existingFields.length})</h3>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={addDebugField}>
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un champ test
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => console.log("Champs:", existingFields)}>
+              Debug Champs
+            </Button>
+          </div>
+        </div>
+        
+        <PDFFieldsEditor 
+          fields={existingFields}
+          onChange={handleFieldsChange}
+          activePage={selectedPage}
+          onPageChange={setSelectedPage}
+          template={safeTemplate}
+          onDeleteField={handleDeleteField}
+          onAddField={handleAddField}
+          onDuplicateField={handleDuplicateField}
+          onRemoveFieldFromPage={handleRemoveFieldFromPage}
+        />
+      </div>
+    );
+  };
+  
+  // Log avant le rendu final
+  console.log("Rendu final PDFTemplateWithFields", {
+    templateImagesCount: safeTemplate.templateImages.length,
+    fieldsCount: safeTemplate.fields.length,
+    selectedPage,
+    activeTab
+  });
+  
+  return (
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="images">Pages du modèle</TabsTrigger>
+        <TabsTrigger value="fields">Champs du document</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="images" className="mt-6">
+        {renderImageUploader()}
+      </TabsContent>
+      
+      <TabsContent value="fields" className="mt-6">
+        {renderFieldsEditor()}
+      </TabsContent>
+    </Tabs>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { loadTemplate } from "@/utils/templateManager";
@@ -183,29 +182,7 @@ export const generateAndDownloadOfferPdf = async (offerId: string) => {
     
     // S'assurer que le template a tous les champs nécessaires
     if (!template.templateImages || template.templateImages.length === 0) {
-      console.warn("Aucune image de template n'a été définie, utilisation du template dynamique");
-      // Créer un template dynamique minimal si aucun modèle n'est défini
-      template.templateImages = [];
-      if (!template.fields || template.fields.length === 0) {
-        template.fields = [
-          {
-            id: "client_name",
-            label: "Nom du client",
-            value: "{client_name}",
-            position: { x: 20, y: 40 },
-            page: 0,
-            isVisible: true
-          },
-          {
-            id: "total_amount",
-            label: "Montant total",
-            value: "{amount}",
-            position: { x: 150, y: 120 },
-            page: 0,
-            isVisible: true
-          }
-        ];
-      }
+      console.warn("Aucune image de template n'a été définie");
     }
     
     // Préparer l'objet avec les données et le modèle
@@ -380,32 +357,6 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
       fields: Array.isArray(template.fields) ? template.fields : []
     };
     
-    // Si aucune image de template n'est définie, utiliser le template dynamique
-    if (completeTemplate.templateImages.length === 0) {
-      console.log("Aucune image de template définie, utilisation du template dynamique");
-      // Assurez-vous qu'il y a des champs définis pour le template dynamique
-      if (completeTemplate.fields.length === 0) {
-        completeTemplate.fields = [
-          {
-            id: "client_name",
-            label: "Nom du client",
-            value: "{client_name}",
-            position: { x: 20, y: 40 },
-            page: 0,
-            isVisible: true
-          },
-          {
-            id: "total_amount",
-            label: "Montant total",
-            value: "{amount}",
-            position: { x: 150, y: 120 },
-            page: 0,
-            isVisible: true
-          }
-        ];
-      }
-    }
-    
     // Vérifier les positions des champs
     if (completeTemplate.fields.length > 0) {
       console.log("=== VÉRIFICATION DES CHAMPS AVANT GÉNÉRATION PDF ===");
@@ -455,7 +406,7 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
         }
       });
     } else {
-      console.log("INFORMATION: Aucune image définie dans le template, utilisation du template dynamique");
+      console.warn("ATTENTION: Aucune image définie dans le template");
     }
     
     // Fusionner les données et le template

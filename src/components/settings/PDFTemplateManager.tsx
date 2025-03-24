@@ -1,292 +1,368 @@
 
 import React, { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, Plus, RefreshCw, AlertTriangle } from "lucide-react";
-import { loadTemplate, saveTemplate, PDFTemplate, DEFAULT_TEMPLATE } from "@/utils/templateManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Save, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { loadPDFTemplate, savePDFTemplate, DEFAULT_MODEL } from "@/utils/pdfTemplateUtils";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
-import PDFModelUploader from "./PDFModelUploader";
-import PDFTemplateImageUploader from "./PDFTemplateImageUploader";
-import { v4 as uuidv4 } from "uuid";
-import { resetStorageConnection, checkStorageConnection } from "@/services/fileStorage";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { checkStorageConnection, resetStorageConnection } from "@/services/fileStorage";
+import PDFPreview from "./PDFPreview";
 
-interface PDFTemplateManagerProps {
-  templateId: string;
+// Interface pour le modèle PDF
+export interface PDFTemplate {
+  id: string;
+  name: string;
+  companyName: string;
+  companyAddress: string;
+  companyContact: string;
+  companySiret: string;
+  logoURL: string;
+  primaryColor: string;
+  secondaryColor: string;
+  headerText: string;
+  footerText: string;
+  templateImages: any[];
+  fields: any[];
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: any;
 }
 
-const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
+interface PDFTemplateManagerProps {
+  templateId?: string;
+}
+
+const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'default' }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("company");
-  const [selectedPage, setSelectedPage] = useState(0);
-  const [storageError, setStorageError] = useState<string | null>(null);
-  const [checkingStorage, setCheckingStorage] = useState(false);
-
+  const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [templateExists, setTemplateExists] = useState(false);
+  const [templateName, setTemplateName] = useState<string | undefined>(undefined);
+  
+  // Initialisation au montage ou lorsque templateId change
   useEffect(() => {
-    const loadTemplateData = async () => {
-      setLoading(true);
-      try {
-        console.log("Chargement du template:", templateId);
-        const templateData = await loadTemplate(templateId);
-        setTemplate(templateData);
-        console.log("Template chargé:", templateData);
-        
-        // Check storage connection once template is loaded
-        await verifyStorageConnection();
-      } catch (error) {
-        console.error("Erreur lors du chargement du template:", error);
-        
-        // Vérifier si l'erreur est liée au stockage
-        if (error instanceof Error && error.message.includes("bucket")) {
-          setStorageError(error.message);
-          toast.error("Erreur avec le bucket de stockage. Vous pouvez continuer à utiliser l'application, mais l'upload d'images pourrait ne pas fonctionner.");
-        } else {
-          toast.error("Erreur lors du chargement du template");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTemplateData();
+    console.log(`Initialisation du gestionnaire pour le modèle: ${templateId}`);
+    initializeStorage();
   }, [templateId]);
 
-  const verifyStorageConnection = async () => {
+  // Fonction pour initialiser le stockage
+  const initializeStorage = async () => {
     try {
-      setCheckingStorage(true);
-      const isConnected = await checkStorageConnection();
-      if (!isConnected) {
-        setStorageError("Problème de connexion au stockage Supabase. L'upload d'images pourrait ne pas fonctionner.");
-      } else {
-        setStorageError(null);
+      setLoading(true);
+      setError(null);
+      
+      // Vérifier la connexion au stockage
+      try {
+        const isConnected = await checkStorageConnection();
+        if (isConnected) {
+          console.log("Connexion au stockage Supabase établie");
+          toast.success("Connexion au stockage Supabase établie");
+        } else {
+          console.log("Stockage Supabase non disponible");
+          setError("Connexion au stockage Supabase impossible. Veuillez réessayer.");
+          toast.error("Connexion au stockage Supabase impossible.");
+          setLoading(false);
+          return;
+        }
+      } catch (storageError) {
+        console.error("Erreur avec le stockage:", storageError);
+        setError("Erreur lors de la connexion au stockage Supabase.");
+        toast.error("Erreur lors de la connexion au stockage Supabase.");
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error("Erreur lors de la vérification de la connexion au stockage:", error);
-      setStorageError("Erreur lors de la vérification de la connexion au stockage");
-    } finally {
-      setCheckingStorage(false);
+      
+      // Charger le modèle spécifié
+      await loadTemplate(templateId);
+    } catch (err) {
+      console.error("Erreur lors de l'initialisation:", err);
+      setError("Erreur lors de l'initialisation du gestionnaire");
+      setLoading(false);
     }
   };
 
+  // Fonction pour réessayer la connexion
+  const handleRetryConnection = async () => {
+    try {
+      setReconnecting(true);
+      setError(null);
+      
+      toast.info("Tentative de connexion au stockage Supabase...");
+      
+      // Réinitialiser et vérifier la connexion au stockage
+      const isConnected = await resetStorageConnection();
+      
+      if (isConnected) {
+        console.log("Connexion au stockage Supabase établie");
+        toast.success("Connexion au stockage Supabase établie");
+        
+        // Recharger le modèle
+        await loadTemplate(templateId);
+      } else {
+        console.log("Stockage Supabase non disponible");
+        setError("Connexion au stockage Supabase impossible. Veuillez réessayer.");
+        toast.error("Connexion au stockage Supabase impossible.");
+      }
+    } catch (err) {
+      console.error("Erreur lors de la tentative de connexion:", err);
+      setError("Erreur lors de la tentative de connexion au stockage Supabase.");
+      toast.error("Erreur lors de la tentative de connexion au stockage Supabase.");
+    } finally {
+      setReconnecting(false);
+    }
+  };
+
+  // Fonction pour charger le modèle
+  const loadTemplate = async (id: string = 'default') => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`Chargement du modèle PDF: ${id}`);
+      const data = await loadPDFTemplate(id);
+      
+      if (!data) {
+        console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
+        console.log("Modèle par défaut:", DEFAULT_MODEL);
+        setTemplate({
+          ...DEFAULT_MODEL,
+          templateImages: [],
+          fields: []
+        });
+        setTemplateExists(false);
+        setTemplateName("Modèle par défaut");
+        toast.info("Modèle par défaut chargé");
+      } else {
+        console.log("Modèle chargé avec succès:", data);
+        
+        // S'assurer que les tableaux sont correctement initialisés
+        const sanitizedTemplate = {
+          ...data,
+          templateImages: Array.isArray(data.templateImages) ? data.templateImages : [],
+          fields: Array.isArray(data.fields) ? data.fields : []
+        };
+        
+        console.log("Modèle sanitisé:", sanitizedTemplate);
+        console.log("Nombre d'images:", sanitizedTemplate.templateImages ? sanitizedTemplate.templateImages.length : 0);
+        console.log("Nombre de champs:", sanitizedTemplate.fields ? sanitizedTemplate.fields.length : 0);
+        
+        setTemplate(sanitizedTemplate);
+        setTemplateExists(true);
+        setTemplateName(sanitizedTemplate.name);
+        toast.success(`Modèle "${sanitizedTemplate.name}" chargé avec succès`);
+      }
+    } catch (err) {
+      console.error("Erreur lors du chargement du modèle:", err);
+      setError("Erreur lors du chargement du modèle");
+      toast.error("Erreur lors du chargement du modèle");
+      
+      // En cas d'erreur, définir quand même un modèle par défaut
+      setTemplate({
+        ...DEFAULT_MODEL,
+        templateImages: [],
+        fields: []
+      });
+      setTemplateExists(false);
+      setTemplateName("Modèle par défaut (fallback)");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Fonction pour sauvegarder le modèle
   const handleSaveTemplate = async (updatedTemplate: PDFTemplate) => {
     setSaving(true);
+    setError(null);
+    
     try {
-      await saveTemplate(updatedTemplate);
-      setTemplate(updatedTemplate);
-      toast.success("Template sauvegardé avec succès");
-    } catch (error) {
-      console.error("Erreur lors de la sauvegarde du template:", error);
-      toast.error("Erreur lors de la sauvegarde du template");
+      console.log(`Sauvegarde du modèle: ${updatedTemplate.id}`, updatedTemplate);
+      
+      // Vérifier la connexion au stockage
+      const isConnected = await checkStorageConnection();
+      if (!isConnected) {
+        throw new Error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
+      }
+      
+      // S'assurer que les tableaux sont initialisés
+      const sanitizedTemplate: PDFTemplate = {
+        ...updatedTemplate,
+        templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
+        fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : [],
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log("Modèle à sauvegarder (sanitisé):", sanitizedTemplate);
+      console.log("Nombre d'images à sauvegarder:", sanitizedTemplate.templateImages.length);
+      console.log("Nombre de champs à sauvegarder:", sanitizedTemplate.fields.length);
+      
+      await savePDFTemplate(sanitizedTemplate);
+      
+      setTemplate(sanitizedTemplate);
+      setTemplateExists(true);
+      setTemplateName(sanitizedTemplate.name);
+      toast.success("Modèle sauvegardé avec succès");
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde du modèle:", err);
+      setError("Erreur lors de la sauvegarde du modèle: " + (err instanceof Error ? err.message : "Erreur inconnue"));
+      toast.error("Erreur lors de la sauvegarde du modèle");
     } finally {
       setSaving(false);
     }
   };
-
-  const handleAddOfferPage = () => {
-    if (!template) return;
-    
-    const offerImageData = {
-      id: uuidv4(),
-      name: "Page d'offre",
-      data: "/lovable-uploads/849a0eeb-fc21-4e26-81bf-c5353df2f650.png",
-      page: template.templateImages.length
-    };
-    
-    const updatedTemplate = {
-      ...template,
-      templateImages: [...template.templateImages, offerImageData]
-    };
-    
-    setTemplate(updatedTemplate);
-    handleSaveTemplate(updatedTemplate);
-    toast.success("Page d'offre ajoutée au modèle");
-    
-    setSelectedPage(updatedTemplate.templateImages.length - 1);
-    setActiveTab("design");
-  };
-
-  const handleImagesChange = (images: any[]) => {
-    if (!template) return;
-    
-    // Convert the images from the ImageUploader format back to the template format
-    const formattedImages = images.map(img => ({
-      id: img.id,
-      name: img.name,
-      data: img.data,
-      page: img.page
-    }));
-    
-    const updatedTemplate = {
-      ...template,
-      templateImages: formattedImages
-    };
-    
-    setTemplate(updatedTemplate);
-    handleSaveTemplate(updatedTemplate);
-  };
-
+  
+  // Gestion des informations de l'entreprise
   const handleCompanyInfoUpdate = (companyInfo: Partial<PDFTemplate>) => {
-    if (!template) return;
-    
-    const updatedTemplate = {
-      ...template,
-      ...companyInfo
-    };
-    
-    handleSaveTemplate(updatedTemplate);
-  };
-
-  const handlePageSelect = (page: number) => {
-    setSelectedPage(page);
-  };
-
-  const handleRetryConnection = async () => {
-    try {
-      setStorageError("Vérification de la connexion...");
-      const reconnected = await resetStorageConnection();
+    if (template) {
+      const updatedTemplate = {
+        ...template,
+        ...companyInfo
+      };
       
-      if (reconnected) {
-        setStorageError(null);
-        toast.success("Connexion au stockage rétablie");
-        
-        // Recharger le template
-        const templateData = await loadTemplate(templateId);
-        setTemplate(templateData);
-      } else {
-        setStorageError("Impossible de se connecter au stockage. Veuillez vérifier votre connexion réseau.");
-        toast.error("Erreur de connexion au stockage");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la tentative de reconnexion:", error);
-      setStorageError(error instanceof Error ? error.message : "Erreur inconnue");
-      toast.error("Échec de la reconnexion au stockage");
+      handleSaveTemplate(updatedTemplate);
     }
   };
-
-  if (loading) {
-    return (
-      <Card className="w-full mt-6">
-        <CardContent className="flex justify-center items-center p-6">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="ml-2">Chargement du modèle...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!template) {
-    return (
-      <Card className="w-full mt-6">
-        <CardContent className="p-6">
-          <p className="text-red-500">Impossible de charger le modèle.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  
+  // Gestion du modèle complet
+  const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
+    console.log("handleTemplateUpdate appelé avec:", updatedTemplate);
+    console.log("Nombre d'images dans updatedTemplate:", updatedTemplate.templateImages?.length || 0);
+    console.log("Nombre de champs dans updatedTemplate:", updatedTemplate.fields?.length || 0);
+    
+    // S'assurer que les tableaux sont initialisés
+    const sanitizedTemplate: PDFTemplate = {
+      ...updatedTemplate,
+      templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
+      fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : []
+    };
+    
+    handleSaveTemplate(sanitizedTemplate);
+  };
+  
+  // Fonction pour réessayer en cas d'erreur
+  const handleRetry = () => {
+    initializeStorage();
+  };
 
   return (
-    <Card className="w-full mt-6">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Gestion du modèle: {template.name}</CardTitle>
-          <div className="flex space-x-2">
-            <Button 
-              onClick={handleAddOfferPage}
-              variant="default"
-              className="bg-teal-600 hover:bg-teal-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter page offre
-            </Button>
-            <Button 
-              onClick={() => handleSaveTemplate(template)} 
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Sauvegarde...
-                </>
-              ) : (
-                "Sauvegarder"
-              )}
-            </Button>
-          </div>
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>
+            {loading 
+              ? "Chargement du modèle..." 
+              : `Modèle: ${templateName || 'Non défini'}`}
+          </CardTitle>
         </div>
-        <CardDescription>
-          Personnalisez les informations et l'apparence de votre modèle PDF
-        </CardDescription>
-        {storageError && (
-          <div className="mt-2 p-3 text-sm bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <AlertTriangle className="h-4 w-4 mr-2 text-yellow-500" />
-                <div>
-                  <strong>Attention:</strong> Un problème a été détecté avec le stockage Supabase. 
-                  L'upload d'images pourrait ne pas fonctionner correctement.
-                  Vous pouvez continuer à utiliser les autres fonctionnalités.
-                </div>
-              </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handleRetryConnection}
+            disabled={loading || reconnecting}
+          >
+            {reconnecting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Reconnexion...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Vérifier le stockage
+              </>
+            )}
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => template && handleSaveTemplate(template)}
+            disabled={saving || loading || !template}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sauvegarde...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Sauvegarder
+              </>
+            )}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription className="flex flex-col gap-2">
+              <p>{error}</p>
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={handleRetryConnection}
-                className="ml-2"
-                disabled={checkingStorage}
+                className="self-start" 
+                onClick={handleRetry}
               >
-                {checkingStorage ? (
-                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                ) : (
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                )}
                 Réessayer
               </Button>
-            </div>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
-      </CardHeader>
-      <CardContent>
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="company">Informations de l'entreprise</TabsTrigger>
-            <TabsTrigger value="pages">Pages du modèle</TabsTrigger>
-            <TabsTrigger value="design">Conception du modèle</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="company" className="mt-6">
-            <PDFCompanyInfo 
-              template={template} 
-              onSave={handleCompanyInfoUpdate}
-              loading={saving}
-            />
-          </TabsContent>
-          
-          <TabsContent value="pages" className="mt-6">
-            <PDFTemplateImageUploader
-              templateImages={template.templateImages}
-              onChange={handleImagesChange}
-              selectedPage={selectedPage}
-              onPageSelect={setSelectedPage}
-            />
-          </TabsContent>
-          
-          <TabsContent value="design" className="mt-6">
-            <PDFTemplateWithFields 
-              template={template}
-              onSave={handleSaveTemplate}
-              selectedPage={selectedPage}
-              onPageSelect={handlePageSelect}
-            />
-          </TabsContent>
-        </Tabs>
+        
+        {loading ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">
+              Chargement du modèle...
+            </p>
+          </div>
+        ) : template ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="company">Informations de l'entreprise</TabsTrigger>
+              <TabsTrigger value="design">Conception du modèle</TabsTrigger>
+              <TabsTrigger value="preview">Aperçu</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="company" className="mt-6">
+              <PDFCompanyInfo 
+                template={template} 
+                onSave={handleCompanyInfoUpdate} 
+                loading={saving}
+              />
+            </TabsContent>
+            
+            <TabsContent value="design" className="mt-6">
+              <PDFTemplateWithFields 
+                template={template}
+                onSave={handleTemplateUpdate}
+              />
+            </TabsContent>
+            
+            <TabsContent value="preview" className="mt-6">
+              <PDFPreview 
+                template={template}
+              />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <Alert variant="warning" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Aucun modèle disponible</AlertTitle>
+            <AlertDescription>
+              Impossible de charger le modèle. Veuillez vérifier la connexion au stockage Supabase.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

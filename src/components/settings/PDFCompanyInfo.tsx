@@ -8,30 +8,30 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { PDFTemplate } from "@/utils/templateManager";
+import { PDFTemplate } from "./PDFTemplateManager";
 
-export interface PDFCompanyInfoProps {
+interface PDFCompanyInfoProps {
   template: PDFTemplate;
   onSave: (data: Partial<PDFTemplate>) => void;
-  loading?: boolean;
+  loading: boolean;
 }
 
-const PDFCompanyInfo = ({ template, onSave, loading = false }: PDFCompanyInfoProps) => {
-  const [logoPreview, setLogoPreview] = useState<string | null>(template?.logoURL || null);
+const PDFCompanyInfo = ({ template, onSave, loading }: PDFCompanyInfoProps) => {
+  const [logoPreview, setLogoPreview] = useState<string | null>(template.logoURL || null);
   
   // Configurer React Hook Form
   const form = useForm<PDFTemplate>({
     defaultValues: {
-      name: template?.name || "Modèle par défaut",
-      companyName: template?.companyName || "iTakeCare",
-      companyAddress: template?.companyAddress || "",
-      companyContact: template?.companyContact || "",
-      companySiret: template?.companySiret || "",
-      logoURL: template?.logoURL || "",
-      primaryColor: template?.primaryColor || "#2C3E50",
-      secondaryColor: template?.secondaryColor || "#3498DB",
-      headerText: template?.headerText || "OFFRE N° {offer_id}",
-      footerText: template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."
+      name: template.name || "Modèle par défaut",
+      companyName: template.companyName || "iTakeCare",
+      companyAddress: template.companyAddress || "",
+      companyContact: template.companyContact || "",
+      companySiret: template.companySiret || "",
+      logoURL: template.logoURL || "",
+      primaryColor: template.primaryColor || "#2C3E50",
+      secondaryColor: template.secondaryColor || "#3498DB",
+      headerText: template.headerText || "OFFRE N° {offer_id}",
+      footerText: template.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."
     }
   });
 

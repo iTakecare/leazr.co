@@ -1,68 +1,105 @@
-import { getSupabaseClient } from "@/integrations/supabase/client";
+
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Récupère une offre pour affichage et signature par le client
+ * Enregistre la signature d'une offre
+ * @param offerId ID de l'offre
+ * @param signatureData URL de données de la signature
+ * @param signerName Nom du signataire
+ * @returns Succès de l'opération
  */
-export const getOfferForClient = async (offerId: string) => {
+export const saveOfferSignature = async (
+  offerId: string, 
+  signatureData: string,
+  signerName: string
+): Promise<boolean> => {
   try {
-    const supabase = getSupabaseClient();
-    
-    const { data, error } = await supabase
+    // 1. Mettre à jour le statut de l'offre en "approved"
+    const { error: updateError } = await supabase
       .from('offers')
-      .select(`
-        *,
-        client:client_id (name, email),
-        equipment:equipment (*)
-      `)
-      .eq('id', offerId)
-      .single();
-      
-    if (error) {
-      console.error("Error fetching offer for client:", error);
-      return null;
-    }
-    
-    // Transformer les données pour une utilisation plus facile
-    const offer = {
-      id: data.id,
-      client_name: data.client?.name || "Client inconnu",
-      client_email: data.client?.email || "",
-      amount: data.amount || 0,
-      monthly_payment: data.monthly_payment || 0,
-      equipment_list: data.equipment || [],
-      // Autres champs nécessaires
-    };
-    
-    return offer;
+      .update({
+        workflow_status: 'approved',
+        signature_data: signatureData,
+        signer_name: signerName,
+        signed_at: new Date().toISOString()
+      })
+      .eq('id', offerId);
+
+    if (updateError) throw updateError;
+
+    // 2. Ajouter une entrée dans les logs du workflow
+    const { error: logError } = await supabase
+      .from('offer_workflow_logs')
+      .insert({
+        offer_id: offerId,
+        previous_status: 'sent', // On suppose que l'offre était en statut "sent"
+        new_status: 'approved',
+        user_id: null, // Signature par le client, pas par un utilisateur
+        reason: `Offre signée électroniquement par ${signerName}`
+      });
+
+    if (logError) throw logError;
+
+    return true;
   } catch (error) {
-    console.error("Exception getting offer for client:", error);
-    return null;
+    console.error("Erreur lors de l'enregistrement de la signature:", error);
+    return false;
   }
 };
 
 /**
- * Vérifie si une offre a déjà été signée
+ * Vérifie si une offre est déjà signée
+ * @param offerId ID de l'offre
+ * @returns True si l'offre est déjà signée
  */
 export const isOfferSigned = async (offerId: string): Promise<boolean> => {
   try {
-    const supabase = getSupabaseClient();
-    
     const { data, error } = await supabase
-      .from('offer_signatures')
-      .select('id')
-      .eq('offer_id', offerId)
-      .maybeSingle();
-      
-    if (error) {
-      console.error("Error checking if offer is signed:", error);
-      return false;
-    }
+      .from('offers')
+      .select('signature_data, workflow_status')
+      .eq('id', offerId)
+      .single();
+
+    if (error) throw error;
     
-    return !!data;
+    return !!data.signature_data || data.workflow_status === 'approved';
   } catch (error) {
-    console.error("Exception checking if offer is signed:", error);
+    console.error("Erreur lors de la vérification de la signature:", error);
     return false;
+  }
+};
+
+/**
+ * Récupère les détails d'une offre par son ID public (pour le client)
+ * Ne révèle que les informations nécessaires pour le client
+ */
+export const getOfferForClient = async (offerId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('offers')
+      .select(`
+        id,
+        client_name,
+        client_email,
+        equipment_description,
+        amount,
+        monthly_payment,
+        coefficient,
+        workflow_status,
+        signature_data,
+        signer_name,
+        signed_at,
+        remarks
+      `)
+      .eq('id', offerId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Erreur lors de la récupération de l'offre:", error);
+    return null;
   }
 };
 
@@ -70,88 +107,8 @@ export const isOfferSigned = async (offerId: string): Promise<boolean> => {
  * Génère un lien de signature pour une offre
  */
 export const generateSignatureLink = (offerId: string): string => {
-  if (!offerId) return "";
-  
-  // Générer l'URL complète pour la signature de l'offre
+  // Base URL de l'application
   const baseUrl = window.location.origin;
-  return `${baseUrl}/signature/${offerId}`;
-};
-
-/**
- * Enregistre la signature d'une offre
- */
-export const saveOfferSignature = async (
-  offerId: string, 
-  signatureImage: string,
-  signerName: string
-): Promise<boolean> => {
-  try {
-    const supabase = getSupabaseClient();
-    
-    // Enregistrer l'image de signature dans le stockage
-    const timestamp = new Date().getTime();
-    const filePath = `signatures/${offerId}_${timestamp}.png`;
-    
-    // Convertir le Data URL en Blob
-    const base64Data = signatureImage.split(',')[1];
-    const blob = await fetch(`data:image/png;base64,${base64Data}`).then(res => res.blob());
-    
-    // Upload de l'image
-    const { error: uploadError } = await supabase.storage
-      .from('signatures')
-      .upload(filePath, blob, {
-        contentType: 'image/png',
-        upsert: true
-      });
-      
-    if (uploadError) {
-      console.error("Error uploading signature:", uploadError);
-      toast.error("Erreur lors de l'enregistrement de la signature");
-      return false;
-    }
-    
-    // Récupérer l'URL publique
-    const { data: urlData } = supabase.storage
-      .from('signatures')
-      .getPublicUrl(filePath);
-      
-    if (!urlData || !urlData.publicUrl) {
-      console.error("Error getting signature public URL");
-      toast.error("Erreur lors de la récupération de l'URL de signature");
-      return false;
-    }
-    
-    // Enregistrer la signature dans la base de données
-    const { error: dbError } = await supabase
-      .from('offer_signatures')
-      .upsert({
-        offer_id: offerId,
-        signer_name: signerName,
-        signature_url: urlData.publicUrl,
-        signed_at: new Date().toISOString()
-      });
-      
-    if (dbError) {
-      console.error("Error saving signature record:", dbError);
-      toast.error("Erreur lors de l'enregistrement de la signature");
-      return false;
-    }
-    
-    // Mettre à jour le statut de l'offre
-    const { error: statusError } = await supabase
-      .from('offers')
-      .update({ status: 'signed', updated_at: new Date().toISOString() })
-      .eq('id', offerId);
-      
-    if (statusError) {
-      console.error("Error updating offer status:", statusError);
-      // Ne pas échouer si seul le changement de statut échoue
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Exception saving offer signature:", error);
-    toast.error("Une erreur est survenue lors de l'enregistrement de la signature");
-    return false;
-  }
+  // URL de signature
+  return `${baseUrl}/client/sign-offer/${offerId}`;
 };

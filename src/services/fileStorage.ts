@@ -11,8 +11,6 @@ import { toast } from "sonner";
 // Variable pour suivre l'état de connexion à Supabase Storage
 let storageConnectionStatus: 'connected' | 'disconnected' | 'checking' = 'checking';
 let bucketStatusCache: Record<string, boolean> = {};
-let lastConnectionCheck: number = 0;
-const CONNECTION_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Vérifie la connexion à Supabase Storage
@@ -21,10 +19,14 @@ export const checkStorageConnection = async (): Promise<boolean> => {
   try {
     console.log("Vérification de la connexion à Supabase Storage...");
     
-    // Limite la fréquence des vérifications
-    const now = Date.now();
-    if (storageConnectionStatus === 'connected' && (now - lastConnectionCheck) < CONNECTION_CHECK_INTERVAL) {
+    // Si déjà vérifié et connecté, retourner directement
+    if (storageConnectionStatus === 'connected') {
       return true;
+    }
+    
+    // Si déjà vérifié et déconnecté, retourner directement
+    if (storageConnectionStatus === 'disconnected') {
+      return false;
     }
     
     const supabase = getSupabaseClient();
@@ -36,12 +38,12 @@ export const checkStorageConnection = async (): Promise<boolean> => {
       if (error) {
         console.error("Erreur lors de la vérification des buckets:", error);
         storageConnectionStatus = 'disconnected';
+        toast.error("Erreur de connexion au stockage Supabase. Veuillez réessayer.");
         return false;
       }
       
       console.log("Connexion à Supabase Storage établie avec succès. Buckets:", data);
       storageConnectionStatus = 'connected';
-      lastConnectionCheck = now;
       
       // Mettre à jour le cache de statut des buckets
       if (Array.isArray(data)) {
@@ -54,11 +56,13 @@ export const checkStorageConnection = async (): Promise<boolean> => {
     } catch (listError) {
       console.error("Erreur lors de la vérification des buckets:", listError);
       storageConnectionStatus = 'disconnected';
+      toast.error("Erreur de connexion au stockage Supabase. Veuillez réessayer.");
       return false;
     }
   } catch (error) {
     console.error("Exception lors de la vérification de la connexion à Supabase Storage:", error);
     storageConnectionStatus = 'disconnected';
+    toast.error("Erreur de connexion au stockage Supabase. Veuillez réessayer.");
     return false;
   }
 };
@@ -76,7 +80,7 @@ export const resetStorageConnection = async (): Promise<boolean> => {
 };
 
 /**
- * Vérifie si un bucket existe et le crée si nécessaire 
+ * Vérifie si un bucket existe - cette fonction n'essaie plus de créer des buckets
  */
 export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   try {
@@ -92,89 +96,38 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
     const isConnected = await checkStorageConnection();
     if (!isConnected) {
       console.warn("Connexion à Supabase Storage non disponible, opération impossible");
-      throw new Error(`Connexion à Supabase Storage non disponible. Le bucket ${bucketName} ne peut pas être vérifié.`);
+      toast.error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
+      return false;
     }
     
     // Utiliser le client standard pour vérifier les buckets
     const supabase = getSupabaseClient();
     
-    // Vérification directe dans la liste des buckets
-    const { data: bucketsList, error: listError } = await supabase.storage.listBuckets();
+    // Vérifier si le bucket existe
+    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
     
-    if (!listError && Array.isArray(bucketsList)) {
-      console.log("Liste des buckets récupérée:", bucketsList.map(b => b.name));
-      const bucketExists = bucketsList.some(b => b.name === bucketName);
-      
-      if (bucketExists) {
-        console.log(`Bucket ${bucketName} trouvé dans la liste des buckets`);
-        bucketStatusCache[bucketName] = true;
-        return true;
-      }
+    if (bucketError) {
+      console.error("Erreur lors de la vérification des buckets:", bucketError);
+      toast.error("Erreur lors de la vérification des buckets de stockage.");
+      return false;
     }
     
-    // Stratégie 2: Essayer de lister les fichiers dans le bucket
-    try {
-      const { data: testListFiles, error: testListError } = await supabase.storage.from(bucketName).list();
-      
-      if (!testListError) {
-        console.log(`Bucket ${bucketName} vérifié avec succès via list()`);
-        bucketStatusCache[bucketName] = true;
-        return true;
-      }
-    } catch (e) {
-      console.warn(`Erreur lors du test du bucket via list():`, e);
+    const bucketExists = buckets?.some(bucket => bucket.name === bucketName || bucket.id === bucketName);
+    
+    if (!bucketExists) {
+      console.log(`Bucket ${bucketName} non trouvé`);
+      toast.error(`Le bucket ${bucketName} n'existe pas dans Supabase Storage.`);
+      return false;
     }
     
-    // Stratégie 3: Tenter de créer le bucket
-    try {
-      console.log(`Tentative de création du bucket ${bucketName}...`);
-      const { error: createError } = await supabase.storage.createBucket(bucketName, {
-        public: true
-      });
-      
-      if (createError) {
-        // Si l'erreur indique que le bucket existe déjà, c'est un succès
-        if (createError.message && (
-            createError.message.includes("already exists") || 
-            createError.message.includes("existe déjà")
-          )) {
-          console.log(`Le bucket ${bucketName} existe déjà, confirmation par erreur de création`);
-          bucketStatusCache[bucketName] = true;
-          return true;
-        }
-        
-        console.error(`Erreur lors de la création du bucket:`, createError);
-        throw new Error(`Le bucket ${bucketName} n'existe pas et ne peut pas être créé: ${createError.message}`);
-      }
-      
-      console.log(`Bucket ${bucketName} créé avec succès`);
-      bucketStatusCache[bucketName] = true;
-      return true;
-    } catch (createErr) {
-      console.error("Exception lors de la création du bucket:", createErr);
-      
-      // Dernière vérification
-      try {
-        const { data: finalCheck } = await supabase.storage.from(bucketName).list();
-        if (finalCheck !== null) {
-          console.log(`Confirmation finale: le bucket ${bucketName} existe`);
-          bucketStatusCache[bucketName] = true;
-          return true;
-        }
-      } catch (finalErr) {
-        console.error("Échec de la vérification finale:", finalErr);
-      }
-      
-      throw createErr;
-    }
+    // Mettre en cache le résultat
+    bucketStatusCache[bucketName] = true;
+    console.log(`Bucket ${bucketName} existe`);
+    return true;
   } catch (error) {
-    console.error("Exception lors de la vérification/création du bucket:", error);
-    
-    if (error instanceof Error) {
-      throw new Error(`Erreur avec le bucket ${bucketName}: ${error.message}`);
-    } else {
-      throw new Error(`Erreur inconnue avec le bucket ${bucketName}`);
-    }
+    console.error("Exception lors de la vérification du bucket:", error);
+    toast.error("Erreur lors de la vérification du bucket de stockage.");
+    return false;
   }
 };
 
@@ -248,7 +201,7 @@ export const deleteFile = async (bucketName: string, filePath: string): Promise<
 };
 
 /**
- * Télécharge un fichier dans un bucket spécifié avec plusieurs tentatives et gestion d'erreurs améliorée
+ * Télécharge un fichier dans un bucket spécifié
  * @param bucketName Nom du bucket
  * @param file Fichier à télécharger
  * @param customPath Chemin personnalisé (optionnel)
@@ -260,150 +213,52 @@ export const uploadFile = async (
   customPath?: string
 ): Promise<string | null> => {
   try {
-    console.log(`Upload du fichier dans ${bucketName}/${customPath || 'auto-generated-path'}`);
-    
     // Vérifier la connexion au stockage
     const isConnected = await checkStorageConnection();
     if (!isConnected) {
       console.warn("Stockage Supabase non disponible, upload impossible");
-      toast.error("Stockage Supabase non disponible. Utilisation du mode local.");
+      toast.error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
       return null;
     }
     
     // S'assurer que le bucket existe
-    let bucketExists = false;
-    try {
-      bucketExists = await ensureBucket(bucketName);
-    } catch (bucketError) {
-      console.error(`Impossible de vérifier/créer le bucket ${bucketName}:`, bucketError);
-      toast.error(`Problème avec le bucket ${bucketName}. Utilisation du mode local.`);
+    const bucketExists = await ensureBucket(bucketName);
+    if (!bucketExists) {
+      console.error(`Le bucket ${bucketName} n'existe pas ou n'est pas accessible`);
+      toast.error(`Le bucket ${bucketName} n'existe pas dans Supabase Storage.`);
       return null;
     }
     
     // Générer un nom de fichier unique
-    const uniqueId = customPath || `${uuidv4()}-${file.name}`;
-    const filePath = uniqueId;
+    const uniqueId = uuidv4();
+    const filePath = customPath || `${uniqueId}-${file.name}`;
     
     const supabase = getSupabaseClient();
     
-    // Déterminer le type MIME
-    let contentType = file.type || 'application/octet-stream';
+    // Détecter le type MIME
+    const contentType = file.type || 'application/octet-stream';
     console.log(`Upload du fichier ${filePath} avec type: ${contentType}`);
     
-    // Première tentative: upload standard
-    try {
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          contentType,
-          upsert: true
-        });
-      
-      if (!error && data) {
-        // Récupérer l'URL publique
-        const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(data.path);
-        console.log("Fichier uploadé avec succès:", urlData.publicUrl);
-        return urlData.publicUrl;
-      }
-      
-      if (error) {
-        console.error("Erreur lors de l'upload:", error);
-        
-        // Si l'erreur est liée à un problème de type MIME, essayer avec un type générique
-        if (error.message && (error.message.includes("content type") || error.message.includes("type de contenu"))) {
-          console.log("Tentative avec un type de contenu générique...");
-          
-          const { data: retryData, error: retryError } = await supabase.storage
-            .from(bucketName)
-            .upload(filePath, file, {
-              contentType: 'image/jpeg', // Type générique pour les images
-              upsert: true
-            });
-            
-          if (!retryError && retryData) {
-            const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(retryData.path);
-            console.log("Fichier uploadé avec succès après correction du type:", urlData.publicUrl);
-            return urlData.publicUrl;
-          }
-          
-          console.error("Échec de la seconde tentative:", retryError);
-        }
-      }
-    } catch (uploadError) {
-      console.error("Exception lors de l'upload standard:", uploadError);
-    }
-    
-    // Deuxième tentative: upload avec ArrayBuffer + Blob
-    try {
-      console.log("Tentative avec ArrayBuffer + Blob...");
-      const arrayBuffer = await file.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: contentType });
-      
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, blob, {
-          contentType,
-          upsert: true
-        });
-        
-      if (!error && data) {
-        const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(data.path);
-        console.log("Fichier uploadé avec succès via Blob:", urlData.publicUrl);
-        return urlData.publicUrl;
-      }
-      
-      console.error("Échec de l'upload avec Blob:", error);
-    } catch (blobError) {
-      console.error("Exception lors de l'upload avec Blob:", blobError);
-    }
-    
-    // Troisième tentative avec Fetch et FormData
-    try {
-      console.log("Tentative avec Fetch et FormData...");
-      
-      // Obtenir l'URL signée pour l'upload
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from(bucketName)
-        .createSignedUploadUrl(filePath);
-        
-      if (signedUrlError || !signedUrlData?.signedUrl) {
-        console.error("Erreur lors de la création de l'URL signée:", signedUrlError);
-        throw new Error("Impossible d'obtenir une URL signée pour l'upload");
-      }
-      
-      // Créer un FormData et y ajouter le fichier
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Uploader via fetch
-      const response = await fetch(signedUrlData.signedUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': contentType,
-        },
-        body: file, // Utiliser directement le fichier comme body
+    // Uploader le fichier
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
+        contentType,
+        upsert: true
       });
-      
-      if (!response.ok) {
-        throw new Error(`Échec de l'upload via fetch: ${response.statusText}`);
-      }
-      
-      // Récupérer l'URL publique
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(signedUrlData.path);
-        
-      console.log("Fichier uploadé avec succès via fetch:", urlData.publicUrl);
-      return urlData.publicUrl;
-    } catch (fetchError) {
-      console.error("Exception lors de l'upload via fetch:", fetchError);
+    
+    if (error) {
+      console.error("Erreur lors de l'upload:", error);
+      toast.error(`Erreur lors de l'upload: ${error.message}`);
+      return null;
     }
     
-    // Toutes les tentatives ont échoué, revenir au mode local
-    console.log("Toutes les tentatives d'upload ont échoué, passage en mode local");
-    return null;
+    // Récupérer l'URL publique
+    const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(data.path);
+    console.log("Fichier uploadé avec succès:", urlData.publicUrl);
+    return urlData.publicUrl;
   } catch (error) {
-    console.error("Exception globale lors de l'upload:", error);
+    console.error("Exception lors de l'upload:", error);
     toast.error(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     return null;
   }
