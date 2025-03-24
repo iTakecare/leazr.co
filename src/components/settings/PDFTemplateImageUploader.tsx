@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
@@ -37,6 +37,7 @@ const PDFTemplateImageUploader = ({
     }))
   );
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Update internal state when templateImages changes from parent
@@ -149,6 +150,13 @@ const PDFTemplateImageUploader = ({
     toast.success("Image supprimée avec succès");
   };
 
+  // Function to trigger the hidden file input's click event
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
@@ -156,27 +164,31 @@ const PDFTemplateImageUploader = ({
         <div>
           <input
             id="image-upload"
+            ref={fileInputRef}
             type="file"
             accept="image/*"
             className="hidden"
             onChange={handleFileUpload}
             disabled={uploading}
           />
-          <Label htmlFor="image-upload" asChild>
-            <Button variant="outline" className="cursor-pointer" disabled={uploading}>
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Chargement...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Ajouter une image
-                </>
-              )}
-            </Button>
-          </Label>
+          <Button 
+            variant="outline" 
+            className="cursor-pointer" 
+            disabled={uploading}
+            onClick={triggerFileInput}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Chargement...
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 mr-2" />
+                Ajouter une image
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
