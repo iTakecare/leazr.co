@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -5,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { ArrowLeft, FileDown, RefreshCw, Loader2, Copy, Send } from "lucide-react";
+import { ArrowLeft, FileDown, RefreshCw, Loader2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
-import { generateAndDownloadOfferPdf } from "@/services/offerService";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -53,7 +53,6 @@ const PartnerOfferDetail = () => {
   const [loading, setLoading] = useState(true);
   const [shareUrl, setShareUrl] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false);
-  const [isSending, setIsSending] = useState(false);
 
   const fetchOfferDetails = async () => {
     try {
@@ -77,6 +76,7 @@ const PartnerOfferDetail = () => {
 
       setOffer(data);
       
+      // Create a shareable link for the client
       const baseUrl = window.location.origin;
       setShareUrl(`${baseUrl}/client/offers/${data.id}`);
     } catch (error) {
@@ -105,73 +105,13 @@ const PartnerOfferDetail = () => {
     );
   };
 
-  const sendLinkToClient = async () => {
-    if (!offer || !offer.client_email) {
-      toast.error("Adresse email du client manquante");
-      return;
-    }
-
-    try {
-      setIsSending(true);
-      toast.info("Envoi du lien de signature au client...");
-      
-      const { error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: offer.client_email,
-          subject: `Votre offre iTakecare est prête à être signée`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2>Bonjour ${offer.client_name},</h2>
-              <p>Votre offre iTakecare est prête à être consultée et signée.</p>
-              <p>Vous pouvez accéder à votre offre et la signer électroniquement en cliquant sur le lien ci-dessous :</p>
-              <p><a href="${shareUrl}" style="display: inline-block; background-color: #4F46E5; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin: 20px 0;">Consulter et signer mon offre</a></p>
-              <p>Cette offre est valable 30 jours à compter de la date d'émission.</p>
-              <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-              <p>Cordialement,<br>L'équipe iTakecare</p>
-            </div>
-          `
-        }
-      });
-
-      if (error) throw error;
-      
-      toast.success("Lien de signature envoyé au client avec succès");
-      
-      await supabase
-        .from('offers')
-        .update({ 
-          workflow_status: 'client_review',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-        
-    } catch (error) {
-      console.error("Erreur lors de l'envoi du lien:", error);
-      toast.error("Erreur lors de l'envoi du lien au client");
-    } finally {
-      setIsSending(false);
-    }
-  };
-
   const handleDownloadPdf = async () => {
     try {
-      toast.info("Génération du PDF en cours...");
-      
-      if (!id) {
-        toast.error("ID de l'offre manquant");
-        return;
-      }
-      
-      const filename = await generateAndDownloadOfferPdf(id);
-      
-      if (filename) {
-        toast.success(`PDF généré avec succès: ${filename}`);
-      } else {
-        toast.error("Erreur lors de la génération du PDF");
-      }
+      toast.info("Le PDF est en cours de génération...");
+      // In a real app, this would call a function to generate and download the PDF
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Erreur lors de la génération du PDF");
+      console.error("Error downloading PDF:", error);
+      toast.error("Erreur lors du téléchargement du PDF");
     }
   };
 
@@ -241,6 +181,7 @@ const PartnerOfferDetail = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
+              {/* Client Information */}
               <Card>
                 <CardHeader>
                   <CardTitle>Informations client</CardTitle>
@@ -265,6 +206,7 @@ const PartnerOfferDetail = () => {
                 </CardContent>
               </Card>
 
+              {/* Equipment Details */}
               <Card>
                 <CardHeader>
                   <CardTitle>Équipement</CardTitle>
@@ -274,58 +216,35 @@ const PartnerOfferDetail = () => {
                 </CardContent>
               </Card>
 
+              {/* Share Link */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Lien de signature électronique</CardTitle>
+                  <CardTitle>Lien de partage</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="mb-4 text-muted-foreground">
-                    Partagez ce lien avec votre client pour qu'il puisse consulter l'offre et la signer électroniquement.
+                    Partagez ce lien avec votre client pour qu'il puisse consulter et valider l'offre.
                   </p>
-                  <div className="flex flex-col gap-4">
-                    <div className="flex gap-2">
-                      <div className="flex-1 p-2 border rounded bg-muted truncate">
-                        {shareUrl}
-                      </div>
-                      <Button variant="outline" onClick={copyToClipboard}>
-                        {isCopied ? (
-                          <span className="text-green-600">Copié!</span>
-                        ) : (
-                          <>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copier
-                          </>
-                        )}
-                      </Button>
+                  <div className="flex gap-2">
+                    <div className="flex-1 p-2 border rounded bg-muted truncate">
+                      {shareUrl}
                     </div>
-                    
-                    <Button 
-                      variant="default"
-                      onClick={sendLinkToClient}
-                      disabled={isSending}
-                      className="w-full"
-                    >
-                      {isSending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Envoi en cours...
-                        </>
+                    <Button variant="outline" onClick={copyToClipboard}>
+                      {isCopied ? (
+                        <span className="text-green-600">Copié!</span>
                       ) : (
                         <>
-                          <Send className="h-4 w-4 mr-2" />
-                          Envoyer par email au client
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copier
                         </>
                       )}
                     </Button>
-                    
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Le client recevra un email avec un lien pour consulter et signer l'offre en ligne.
-                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
+            {/* Summary */}
             <div className="space-y-6">
               <Card>
                 <CardHeader>
