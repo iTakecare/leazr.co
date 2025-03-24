@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
@@ -96,118 +95,100 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
     const isConnected = await checkStorageConnection();
     if (!isConnected) {
       console.warn("Connexion à Supabase Storage non disponible, opération impossible");
-      toast.error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
-      return false;
+      throw new Error(`Connexion à Supabase Storage non disponible. Le bucket ${bucketName} ne peut pas être vérifié.`);
     }
     
     // Utiliser le client standard pour vérifier les buckets
     const supabase = getSupabaseClient();
     
-    // Vérifier si le bucket existe
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+    // Stratégie 1: Vérification directe dans la liste des buckets
+    const { data: bucketsList, error: listError } = await supabase.storage.listBuckets();
     
-    if (bucketError) {
-      console.error("Erreur lors de la vérification des buckets:", bucketError);
-      // Ne pas afficher de toast pour éviter de surcharger l'utilisateur
+    if (!listError && Array.isArray(bucketsList)) {
+      console.log("Liste des buckets récupérée:", bucketsList.map(b => b.name));
+      const bucketExists = bucketsList.some(b => b.name === bucketName || b.id === bucketName);
       
-      // Tenter une approche alternative pour éviter les problèmes de permissions
-      try {
-        const { data: testData, error: testError } = await supabase.storage.from(bucketName).list();
-        if (!testError) {
-          console.log(`Bucket ${bucketName} semble exister (vérifié via list())`);
-          bucketStatusCache[bucketName] = true;
-          return true;
-        }
-      } catch (testErr) {
-        console.error("Erreur lors du test alternatif du bucket:", testErr);
-      }
-      
-      // Si la méthode alternative échoue également, essayer de créer le bucket
-      try {
-        const { error: createError } = await supabase.storage.createBucket(bucketName, {
-          public: true
-        });
-        
-        if (!createError) {
-          console.log(`Bucket ${bucketName} créé avec succès`);
-          bucketStatusCache[bucketName] = true;
-          return true;
-        }
-        
-        console.error("Erreur lors de la création du bucket:", createError);
-      } catch (createErr) {
-        console.error("Exception lors de la création du bucket:", createErr);
-      }
-      
-      return false;
-    }
-    
-    const bucketExists = buckets?.some(bucket => bucket.name === bucketName || bucket.id === bucketName);
-    
-    if (!bucketExists) {
-      console.log(`Bucket ${bucketName} non trouvé, tentative de création...`);
-      
-      try {
-        const { error: createError } = await supabase.storage.createBucket(bucketName, {
-          public: true
-        });
-        
-        if (createError) {
-          console.error("Erreur lors de la création du bucket:", createError);
-          // Vérifier si le message d'erreur indique que le bucket existe déjà
-          if (createError.message && createError.message.includes("already exists")) {
-            console.log(`Le bucket ${bucketName} existe déjà malgré la vérification précédente`);
-            bucketStatusCache[bucketName] = true;
-            return true;
-          }
-          toast.error(`Impossible de créer le bucket ${bucketName}.`);
-          return false;
-        }
-        
-        console.log(`Bucket ${bucketName} créé avec succès`);
+      if (bucketExists) {
+        console.log(`Bucket ${bucketName} trouvé dans la liste des buckets`);
         bucketStatusCache[bucketName] = true;
         return true;
-      } catch (createErr) {
-        console.error("Exception lors de la création du bucket:", createErr);
-        
-        // Dernière tentative: vérifier si le bucket est accessible malgré l'erreur
-        try {
-          const { data: testAfterCreateData } = await supabase.storage.from(bucketName).list();
-          if (testAfterCreateData !== null) {
-            console.log(`Bucket ${bucketName} semble exister malgré les erreurs`);
-            bucketStatusCache[bucketName] = true;
-            return true;
-          }
-        } catch (finalErr) {
-          console.error("Erreur lors de la vérification finale:", finalErr);
-        }
-        
-        return false;
       }
+    } else {
+      console.warn("Erreur ou pas de liste de buckets:", listError);
     }
     
-    // Mettre en cache le résultat
-    bucketStatusCache[bucketName] = true;
-    console.log(`Bucket ${bucketName} existe`);
-    return true;
-  } catch (error) {
-    console.error("Exception lors de la vérification du bucket:", error);
-    
-    // Dernière tentative: présumer que le bucket existe et tester son accessibilité
+    // Stratégie 2: Essayer de lister les fichiers dans le bucket
     try {
-      const supabase = getSupabaseClient();
-      const { data: lastResortData } = await supabase.storage.from(bucketName).list();
-      if (lastResortData !== null) {
-        console.log(`Bucket ${bucketName} accessible malgré les erreurs`);
+      const { data: testListFiles, error: testListError } = await supabase.storage.from(bucketName).list();
+      
+      if (!testListError) {
+        console.log(`Bucket ${bucketName} vérifié avec succès via list()`);
         bucketStatusCache[bucketName] = true;
         return true;
+      } else {
+        // L'erreur peut être due à une absence du bucket ou à un problème d'autorisation
+        console.log(`Erreur lors du test du bucket via list():`, testListError);
+        
+        if (testListError.message && testListError.message.includes("does not exist")) {
+          console.log(`Le bucket ${bucketName} n'existe pas, création nécessaire`);
+        } else {
+          console.log(`Erreur d'accès au bucket ${bucketName}, peut-être un problème d'autorisation`);
+        }
       }
-    } catch (lastErr) {
-      console.error("Échec de la dernière tentative:", lastErr);
+    } catch (e) {
+      console.warn(`Erreur lors du test du bucket via list():`, e);
     }
     
-    toast.error("Erreur lors de la vérification du bucket de stockage.");
-    return false;
+    // Stratégie 3: Tenter de créer le bucket (peut échouer s'il existe déjà)
+    try {
+      console.log(`Tentative de création du bucket ${bucketName}...`);
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true
+      });
+      
+      if (createError) {
+        // Si l'erreur indique que le bucket existe déjà, c'est un succès
+        if (createError.message && (
+            createError.message.includes("already exists") || 
+            createError.message.includes("existe déjà")
+          )) {
+          console.log(`Le bucket ${bucketName} existe déjà, confirmation par erreur de création`);
+          bucketStatusCache[bucketName] = true;
+          return true;
+        }
+        
+        console.error(`Erreur lors de la création du bucket:`, createError);
+        throw new Error(`Le bucket ${bucketName} n'existe pas et ne peut pas être créé: ${createError.message}`);
+      }
+      
+      console.log(`Bucket ${bucketName} créé avec succès`);
+      bucketStatusCache[bucketName] = true;
+      return true;
+    } catch (createErr) {
+      console.error("Exception lors de la création du bucket:", createErr);
+      
+      // Dernière vérification pour les cas où la création échoue mais le bucket existe
+      try {
+        const { data: finalCheck } = await supabase.storage.from(bucketName).list();
+        if (finalCheck !== null) {
+          console.log(`Confirmation finale: le bucket ${bucketName} existe`);
+          bucketStatusCache[bucketName] = true;
+          return true;
+        }
+      } catch (finalErr) {
+        console.error("Échec de la vérification finale:", finalErr);
+      }
+      
+      throw createErr;
+    }
+  } catch (error) {
+    console.error("Exception lors de la vérification/création du bucket:", error);
+    
+    if (error instanceof Error) {
+      throw new Error(`Erreur avec le bucket ${bucketName}: ${error.message}`);
+    } else {
+      throw new Error(`Erreur inconnue avec le bucket ${bucketName}`);
+    }
   }
 };
 

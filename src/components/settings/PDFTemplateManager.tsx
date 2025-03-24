@@ -4,13 +4,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, RefreshCw } from "lucide-react";
 import { loadTemplate, saveTemplate, PDFTemplate, DEFAULT_TEMPLATE } from "@/utils/templateManager";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import PDFModelUploader from "./PDFModelUploader";
 import PDFTemplateImageUploader from "./PDFTemplateImageUploader";
 import { v4 as uuidv4 } from "uuid";
+import { resetStorageConnection } from "@/services/fileStorage";
 
 interface PDFTemplateManagerProps {
   templateId: string;
@@ -125,6 +126,29 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
     setSelectedPage(page);
   };
 
+  const handleRetryConnection = async () => {
+    try {
+      setStorageError("Vérification de la connexion...");
+      const reconnected = await resetStorageConnection();
+      
+      if (reconnected) {
+        setStorageError(null);
+        toast.success("Connexion au stockage rétablie");
+        
+        // Recharger le template
+        const templateData = await loadTemplate(templateId);
+        setTemplate(templateData);
+      } else {
+        setStorageError("Impossible de se connecter au stockage. Veuillez vérifier votre connexion réseau.");
+        toast.error("Erreur de connexion au stockage");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la tentative de reconnexion:", error);
+      setStorageError(error instanceof Error ? error.message : "Erreur inconnue");
+      toast.error("Échec de la reconnexion au stockage");
+    }
+  };
+
   if (loading) {
     return (
       <Card className="w-full mt-6">
@@ -180,9 +204,22 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
         </CardDescription>
         {storageError && (
           <div className="mt-2 p-3 text-sm bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
-            <strong>Attention:</strong> Un problème a été détecté avec le stockage Supabase. 
-            L'upload d'images pourrait ne pas fonctionner correctement.
-            Vous pouvez continuer à utiliser les autres fonctionnalités.
+            <div className="flex justify-between items-center">
+              <div>
+                <strong>Attention:</strong> Un problème a été détecté avec le stockage Supabase. 
+                L'upload d'images pourrait ne pas fonctionner correctement.
+                Vous pouvez continuer à utiliser les autres fonctionnalités.
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetryConnection}
+                className="ml-2"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Réessayer
+              </Button>
+            </div>
           </div>
         )}
       </CardHeader>
