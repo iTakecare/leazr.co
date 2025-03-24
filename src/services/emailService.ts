@@ -67,6 +67,7 @@ export const sendEmail = async (
     if (isGmail && !secureMode) {
       console.log("Gmail détecté: Forçage de TLS à true pour plus de sécurité");
       secureMode = true;
+      toast.info("Configuration Gmail: TLS automatiquement activé pour plus de sécurité");
     }
     
     // Appeler la fonction Supabase pour envoyer l'email
@@ -124,7 +125,15 @@ export const sendEmail = async (
         toast.info("Note: Pour Gmail, l'utilisation de TLS est recommandée pour plus de sécurité.");
       }
       
-      console.log("Email envoyé avec succès, réponse:", data);
+      // Afficher le nombre de tentatives si disponible
+      if (data && data.attempts > 1) {
+        console.log(`Email envoyé après ${data.attempts} tentative(s)`);
+        toast.success(`Email envoyé avec succès (après ${data.attempts} tentative(s))`);
+      } else {
+        console.log("Email envoyé avec succès au premier essai");
+        toast.success("Email envoyé avec succès");
+      }
+      
       return true;
     } catch (invocationError) {
       console.error("Exception lors de l'invocation de la fonction:", invocationError);
