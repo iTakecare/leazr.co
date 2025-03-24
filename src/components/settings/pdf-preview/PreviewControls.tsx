@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Save, FileDown, Loader2 } from "lucide-react";
@@ -95,7 +94,7 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
       }
       
       // Generate the PDF using the sample generator
-      const pdfFilename = await generateSamplePdf(dataToUse, localTemplate);
+      const pdfFilename = await generateSamplePdf(dataToUse);
       
       toast.success(`PDF généré avec succès : ${pdfFilename}`);
     } catch (error) {
@@ -141,7 +140,6 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
     }
   };
   
-  // Changer l'utilisation des données réelles ou d'exemple
   const handleRealDataChange = (useReal: boolean) => {
     setUseRealData(useReal);
     toast.info(useReal ? 
