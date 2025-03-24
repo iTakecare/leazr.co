@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Send, AlertTriangle, CheckCircle2, Info, Loader2, HelpCircle } from "lucide-react";
+import { Mail, Send, AlertTriangle, CheckCircle2, Info, Loader2, HelpCircle, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -234,7 +234,7 @@ const SmtpSettings = () => {
     }
   };
 
-  // Vérifier si les paramètres correspondent à OVH
+  // Vérifier si les paramètres correspondent à différents services
   const isOvhHost = settings.host?.includes('.mail.ovh.') || settings.host?.includes('.ovh.');
   const isGmailHost = settings.host === 'smtp.gmail.com';
   const isPort587 = settings.port === "587";
@@ -290,12 +290,22 @@ const SmtpSettings = () => {
             <Info className="h-4 w-4 text-blue-600" />
             <AlertTitle>Configuration Gmail</AlertTitle>
             <AlertDescription>
-              <p>Pour Gmail, vous devez:</p>
+              <p>Pour Gmail, vous devez <strong>impérativement</strong> :</p>
               <ol className="list-decimal ml-5 mt-2 space-y-1">
                 <li>Activer la validation en 2 étapes sur votre compte Google</li>
                 <li>Créer un mot de passe d'application spécifique pour cette application</li>
+                <li>Utiliser ce mot de passe d'application dans le champ mot de passe ci-dessous</li>
               </ol>
-              <div className="mt-2">
+              <div className="mt-3 space-y-2">
+                <a 
+                  href="https://myaccount.google.com/security" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  Activer la validation en 2 étapes 
+                  <ExternalLink className="h-3 w-3" />
+                </a>
                 <a 
                   href="https://myaccount.google.com/apppasswords" 
                   target="_blank" 
@@ -303,7 +313,7 @@ const SmtpSettings = () => {
                   className="text-blue-600 hover:underline flex items-center gap-1"
                 >
                   Créer un mot de passe d'application
-                  <HelpCircle className="h-3 w-3" />
+                  <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
             </AlertDescription>
@@ -424,6 +434,9 @@ const SmtpSettings = () => {
               value={settings.username}
               onChange={handleChange}
             />
+            {isGmailHost && (
+              <p className="text-xs text-gray-500 mt-1">Votre adresse Gmail complète</p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -436,6 +449,9 @@ const SmtpSettings = () => {
               value={settings.password}
               onChange={handleChange}
             />
+            {isGmailHost && (
+              <p className="text-xs text-gray-500 mt-1">Utilisez un mot de passe d'application, pas votre mot de passe Google</p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -447,6 +463,9 @@ const SmtpSettings = () => {
               value={settings.from_email}
               onChange={handleChange}
             />
+            {isGmailHost && (
+              <p className="text-xs text-gray-500 mt-1">Doit être identique à votre nom d'utilisateur pour Gmail</p>
+            )}
           </div>
           
           <div className="space-y-2">
