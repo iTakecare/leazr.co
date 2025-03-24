@@ -90,14 +90,33 @@ export const isOfferSigned = async (offerId: string): Promise<boolean> => {
  */
 export const getOfferForClient = async (offerId: string) => {
   try {
-    console.log("Récupération de l'offre pour le client:", offerId);
+    console.log("Début de récupération de l'offre pour le client:", offerId);
     
-    if (!offerId) {
-      console.error("ID d'offre non fourni");
-      throw new Error("ID d'offre non fourni");
+    if (!offerId || offerId.trim() === "") {
+      console.error("ID d'offre invalide:", offerId);
+      throw new Error("ID d'offre invalide ou manquant");
     }
     
-    // Utiliser maybeSingle au lieu de single pour éviter les erreurs quand aucun résultat n'est trouvé
+    // Vérifier d'abord si l'offre existe en faisant une requête simple
+    const checkResult = await supabase
+      .from('offers')
+      .select('id')
+      .eq('id', offerId)
+      .maybeSingle();
+    
+    if (checkResult.error) {
+      console.error("Erreur lors de la vérification de l'existence de l'offre:", checkResult.error);
+      throw checkResult.error;
+    }
+    
+    if (!checkResult.data) {
+      console.error("Aucune offre trouvée avec l'ID:", offerId);
+      throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
+    }
+    
+    console.log("Offre trouvée, récupération des détails...");
+    
+    // Récupérer tous les détails nécessaires
     const { data, error } = await supabase
       .from('offers')
       .select(`
@@ -112,25 +131,36 @@ export const getOfferForClient = async (offerId: string) => {
         signature_data,
         signer_name,
         signed_at,
-        remarks
+        remarks,
+        clients (
+          company
+        )
       `)
       .eq('id', offerId)
       .maybeSingle();
 
     if (error) {
-      console.error("Erreur Supabase lors de la récupération de l'offre:", error);
+      console.error("Erreur Supabase détaillée lors de la récupération de l'offre:", error);
       throw error;
     }
     
     if (!data) {
-      console.error("Aucune offre trouvée avec l'ID:", offerId);
-      throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
+      console.error("Données manquantes pour l'offre avec l'ID:", offerId);
+      throw new Error(`Aucune donnée disponible pour l'offre: ${offerId}`);
     }
     
-    console.log("Données récupérées pour l'offre:", offerId, "Statut:", data.workflow_status);
+    console.log("Données récupérées avec succès pour l'offre:", offerId);
+    console.log("Contenu de l'offre:", JSON.stringify({
+      id: data.id,
+      client_name: data.client_name,
+      workflow_status: data.workflow_status,
+      has_client_data: !!data.clients,
+      equipment_description_type: typeof data.equipment_description
+    }));
+    
     return data;
   } catch (error) {
-    console.error("Erreur détaillée lors de la récupération de l'offre:", error);
+    console.error("Erreur complète lors de la récupération de l'offre:", error);
     throw error;
   }
 };

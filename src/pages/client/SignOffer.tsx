@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ const SignOffer = () => {
   const [signed, setSigned] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
   const [isPrintingPdf, setIsPrintingPdf] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchOffer = async () => {
@@ -51,8 +53,7 @@ const SignOffer = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        console.log("Tentative de chargement de l'offre:", id);
+        setDebugInfo(`Tentative de chargement de l'offre: ${id}`);
         
         // Vérifie si l'offre est déjà signée
         let alreadySigned = false;
@@ -60,22 +61,27 @@ const SignOffer = () => {
           alreadySigned = await isOfferSigned(id);
           if (alreadySigned) {
             setSigned(true);
-            console.log("Offre déjà signée");
+            setDebugInfo(prev => `${prev}\nOffre déjà signée`);
           }
         } catch (signedErr) {
           console.error("Erreur lors de la vérification de signature:", signedErr);
-          // Continue même en cas d'erreur
+          setDebugInfo(prev => `${prev}\nErreur vérification signature: ${JSON.stringify(signedErr)}`);
         }
         
-        // Récupère les données de l'offre
+        // Récupère les données de l'offre avec gestion d'erreur améliorée
         try {
+          setDebugInfo(prev => `${prev}\nRécupération des données d'offre...`);
           const offerData = await getOfferForClient(id);
-          console.log("Données d'offre reçues:", offerData ? "OK" : "Aucune donnée");
           
           if (!offerData) {
             setError("Cette offre n'existe pas ou n'est plus disponible.");
+            setDebugInfo(prev => `${prev}\nAucune donnée d'offre reçue`);
+            setLoading(false);
             return;
           }
+          
+          setDebugInfo(prev => `${prev}\nDonnées d'offre reçues. ID: ${offerData.id}, Status: ${offerData.workflow_status}`);
+          console.log("Données d'offre complètes:", offerData);
           
           setOffer(offerData);
           
@@ -86,19 +92,24 @@ const SignOffer = () => {
           if (offerData.signature_data) {
             setSignature(offerData.signature_data);
             setSigned(true);
+            setDebugInfo(prev => `${prev}\nOffre contient déjà une signature`);
           }
           
           // S'il y a des données mais pas de signature_data, vérifions le workflow_status
           if (offerData.workflow_status === 'approved' && !offerData.signature_data) {
             setSigned(true);
+            setDebugInfo(prev => `${prev}\nOffre marquée comme approuvée sans signature`);
           }
-        } catch (dataErr) {
+          
+        } catch (dataErr: any) {
           console.error("Erreur détaillée lors de la récupération des données:", dataErr);
-          setError("Impossible de récupérer les détails de cette offre.");
+          setError(dataErr?.message || "Impossible de récupérer les détails de cette offre.");
+          setDebugInfo(prev => `${prev}\nErreur récupération données: ${JSON.stringify(dataErr)}`);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Erreur générale lors du chargement de l'offre:", err);
-        setError("Une erreur s'est produite lors du chargement de l'offre.");
+        setError(err?.message || "Une erreur s'est produite lors du chargement de l'offre.");
+        setDebugInfo(prev => `${prev}\nErreur générale: ${JSON.stringify(err)}`);
       } finally {
         setLoading(false);
       }
@@ -183,6 +194,14 @@ const SignOffer = () => {
                 {error || "Cette offre n'existe pas ou n'est plus disponible."}
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              {debugInfo && (
+                <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-700 whitespace-pre-wrap">
+                  <p className="font-bold mb-1">Informations de débogage:</p>
+                  {debugInfo}
+                </div>
+              )}
+            </CardContent>
             <CardFooter className="flex justify-center">
               <Button onClick={() => window.location.href = "/"}>
                 Retour à l'accueil
@@ -213,9 +232,13 @@ const SignOffer = () => {
           try {
             const parsed = JSON.parse(offer.equipment_description);
             if (Array.isArray(parsed)) {
-              equipmentDisplay = parsed.map(item => item.title || item.name || JSON.stringify(item)).join(", ");
+              equipmentDisplay = parsed.map(item => 
+                typeof item === 'object' 
+                  ? (item.title || item.name || item.model || JSON.stringify(item)) 
+                  : String(item)
+              ).join(", ");
             } else if (parsed && typeof parsed === 'object') {
-              equipmentDisplay = parsed.title || parsed.name || JSON.stringify(parsed);
+              equipmentDisplay = parsed.title || parsed.name || parsed.model || JSON.stringify(parsed);
             }
           } catch (e) {
             console.log("L'equipment_description n'est pas un JSON valide, utilisation en l'état");
@@ -226,15 +249,20 @@ const SignOffer = () => {
           equipmentDisplay = offer.equipment_description;
         }
       } else if (Array.isArray(offer.equipment_description)) {
-        equipmentDisplay = offer.equipment_description.map(item => 
-          typeof item === 'object' ? (item.title || item.name || JSON.stringify(item)) : item
+        equipmentDisplay = offer.equipment_description.map((item: any) => 
+          typeof item === 'object' 
+            ? (item.title || item.name || item.model || JSON.stringify(item)) 
+            : String(item)
         ).join(", ");
-      } else if (typeof offer.equipment_description === 'object') {
+      } else if (typeof offer.equipment_description === 'object' && offer.equipment_description !== null) {
         equipmentDisplay = JSON.stringify(offer.equipment_description);
       }
     }
   } catch (e) {
     console.error("Erreur lors du parsing de l'équipement:", e);
+    equipmentDisplay = typeof offer.equipment_description === 'string' 
+      ? offer.equipment_description 
+      : "Équipement non détaillé (erreur de format)";
   }
   
   console.log("Rendu de l'offre:", offer.id, "Statut:", offer.workflow_status);
@@ -304,6 +332,12 @@ const SignOffer = () => {
                 </div>
               )}
             </div>
+            {offer.clients?.company && (
+              <div className="mt-4">
+                <Label className="font-medium text-gray-500">Entreprise</Label>
+                <p className="mt-1">{offer.clients.company}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
         
