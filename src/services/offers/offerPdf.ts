@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { loadTemplate } from "@/utils/templateManager";
@@ -266,7 +265,7 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
     console.log("Nombre d'images:", template.templateImages?.length || 0);
     console.log("Nombre de champs:", template.fields?.length || 0);
     
-    // Créer des données d'exemple enrichies avec des valeurs par défaut
+    // Créer des données d'exemple enrichies avec des valeurs par défaut pour leasing
     const completeSampleData = {
       id: sampleData.id || `preview-${Date.now()}`,
       offer_id: sampleData.offer_id || `OFR-${Math.floor(Math.random() * 9000) + 1000}`,
@@ -307,6 +306,7 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
         city: sampleData.client_city || "Paris",
         phone: sampleData.client_phone || "0123456789"
       },
+      contract_type: "leasing",
       ...sampleData // Conserver toutes les autres propriétés
     };
     
@@ -346,7 +346,8 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
       client_name: completeSampleData.client_name,
       client_company: completeSampleData.client_company,
       client_first_name: completeSampleData.client_first_name,
-      client_email: completeSampleData.client_email
+      client_email: completeSampleData.client_email,
+      contract_type: completeSampleData.contract_type,
     });
     
     // S'assurer que les tableaux sont correctement initialisés
@@ -428,3 +429,4 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
     throw error;
   }
 };
+

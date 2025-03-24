@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -180,6 +181,7 @@ const PDFPreview = ({ template }) => {
     return (price * quantity) / 36;
   };
 
+  // Nouveau tableau d'équipement simplifié pour leasing uniquement
   const renderEquipmentTable = (jsonData) => {
     const equipment = parseEquipmentData(jsonData);
     
@@ -476,21 +478,9 @@ const PDFPreview = ({ template }) => {
                     </div>
                     
                     <div className="flex justify-end pt-4">
-                      <div className="w-1/3 space-y-2">
-                        <div className="flex justify-between border-b pb-1">
-                          <span className="font-medium">Total HT:</span>
-                          <span>3 596,00 €</span>
-                        </div>
-                        <div className="flex justify-between border-b pb-1">
-                          <span className="font-medium">TVA (20%):</span>
-                          <span>719,20 €</span>
-                        </div>
-                        <div className="flex justify-between font-bold pt-1">
-                          <span>Total TTC:</span>
-                          <span>4 315,20 €</span>
-                        </div>
-                        <div className="flex justify-between text-blue-600 font-semibold pt-2 border-t">
-                          <span>Mensualité:</span>
+                      <div className="w-full space-y-2">
+                        <div className="flex justify-between font-bold text-blue-600 pt-1">
+                          <span>Total mensualité:</span>
                           <span>99,89 € / mois</span>
                         </div>
                       </div>

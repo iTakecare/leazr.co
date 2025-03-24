@@ -16,7 +16,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   priceWithMargin,
   coefficient,
   displayMonthlyPayment,
-  hideFinancialDetails = false,
+  hideFinancialDetails = true, // Changed default to true to hide financial details
   calculatedMargin
 }) => {
   // Calculate the price without margin (base price)

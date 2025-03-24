@@ -85,7 +85,7 @@ const resolveFieldValue = (pattern: string, data: any): string => {
   }
 };
 
-// Fonction pour formater les données d'équipement de manière simplifiée
+// Fonction pour formater les données d'équipement - version simplifiée pour leasing uniquement
 const formatEquipmentData = (equipmentDescription: string | any[], equipmentData?: any[]): string => {
   try {
     let equipment;
@@ -102,7 +102,7 @@ const formatEquipmentData = (equipmentDescription: string | any[], equipmentData
     }
     
     if (Array.isArray(equipment) && equipment.length > 0) {
-      // Format simplifié pour le PDF - sans prix unitaires ni marges
+      // Format simplifié pour le PDF - uniquement nom, quantité et mensualité
       return equipment.map((item, index) => {
         const title = item.title || "Produit sans nom";
         const quantity = item.quantity || 1;

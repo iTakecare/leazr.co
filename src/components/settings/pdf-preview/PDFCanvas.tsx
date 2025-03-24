@@ -108,6 +108,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
     };
   }, [onDrag, onEndDrag]);
 
+  // Version simplifiée pour contrat de leasing
   const formatEquipmentDisplay = (equipmentData: any[] | string) => {
     try {
       let equipment;
