@@ -8,12 +8,14 @@ import {
   processInfoResponse,
   generateAndDownloadOfferPdf 
 } from "@/services/offerService";
+import { sendOfferSignatureEmail } from "@/services/offers/offerSignature";
 import { Offer } from "./useFetchOffers";
 
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isRequestingInfo, setIsRequestingInfo] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const handleDeleteOffer = async (id: string) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette offre ? Cette action est irréversible.")) {
@@ -67,11 +69,29 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   
   const handleResendOffer = async (id: string) => {
     try {
-      toast.success("L'offre a été renvoyée au client");
-      // Implémentation pour renvoyer l'offre par email à intégrer ici
+      setIsSendingEmail(true);
+      
+      const success = await sendOfferSignatureEmail(id);
+      
+      if (success) {
+        const offer = offers.find(o => o.id === id);
+        
+        // Si l'offre était en draft, elle sera passée à sent par la fonction sendOfferSignatureEmail
+        if (offer && offer.workflow_status === 'draft') {
+          setOffers(prevOffers => prevOffers.map(o => 
+            o.id === id ? { ...o, workflow_status: 'sent' } : o
+          ));
+        }
+        
+        toast.success("L'offre a été envoyée au client par email");
+      } else {
+        toast.error("Erreur lors de l'envoi de l'offre");
+      }
     } catch (error) {
       console.error("Error resending offer:", error);
       toast.error("Erreur lors du renvoi de l'offre");
+    } finally {
+      setIsSendingEmail(false);
     }
   };
   
@@ -166,6 +186,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     isUpdatingStatus,
     isRequestingInfo,
     isGeneratingPdf,
+    isSendingEmail,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     handleResendOffer,

@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { getOfferById, updateOffer } from "@/services/offers/offerDetail";
+import { sendOfferSignatureEmail } from "@/services/offers/offerSignature";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -54,7 +54,6 @@ const AmbassadorOfferDetail = () => {
         setLoading(true);
         const offerData = await getOfferById(id);
         
-        // Vérifier que l'offre appartient bien à l'ambassadeur connecté
         if (!offerData || offerData.user_id !== user.id) {
           setError("Vous n'avez pas accès à cette offre");
           toast.error("Vous n'avez pas accès à cette offre");
@@ -83,24 +82,13 @@ const AmbassadorOfferDetail = () => {
     try {
       setSendingEmail(true);
       
-      // Si l'offre est en brouillon, on la passe à "sent" avant l'envoi
-      if (offer.workflow_status === 'draft') {
-        const { error } = await supabase
-          .from('offers')
-          .update({ workflow_status: 'sent' })
-          .eq('id', offer.id)
-          .eq('user_id', user?.id);
-          
-        if (error) throw error;
-        
-        // Mettre à jour l'état local
-        setOffer({ ...offer, workflow_status: 'sent' });
+      const success = await sendOfferSignatureEmail(offer.id);
+      
+      if (success) {
+        if (offer.workflow_status === 'draft') {
+          setOffer({ ...offer, workflow_status: 'sent' });
+        }
       }
-      
-      // Simuler l'envoi d'un email (à remplacer par un vrai envoi d'email)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success("Email envoyé au client avec succès");
     } catch (err) {
       console.error("Erreur lors de l'envoi de l'email:", err);
       toast.error("Impossible d'envoyer l'email");
@@ -118,7 +106,6 @@ const AmbassadorOfferDetail = () => {
     }
   };
   
-  // Tableau des statuts dans l'ordre du workflow
   const workflowStatuses = [
     { 
       id: OFFER_STATUSES.DRAFT.id, 
@@ -223,7 +210,6 @@ const AmbassadorOfferDetail = () => {
     );
   }
   
-  // Extraire les données d'équipement si disponibles
   let equipmentData = [];
   try {
     if (offer.equipment_description) {
@@ -235,7 +221,6 @@ const AmbassadorOfferDetail = () => {
     console.log("Erreur de parsing des données d'équipement:", e);
   }
 
-  // Fonction pour déterminer si une étape est active, complétée ou en attente
   const getStepStatus = (stepId) => {
     const currentStatusIndex = workflowStatuses.findIndex(status => status.id === offer.workflow_status);
     const stepIndex = workflowStatuses.findIndex(status => status.id === stepId);
@@ -262,7 +247,6 @@ const AmbassadorOfferDetail = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Informations principales */}
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
@@ -284,10 +268,10 @@ const AmbassadorOfferDetail = () => {
                         variant="outline" 
                         size="sm"
                         onClick={handleSendEmail}
-                        disabled={sendingEmail || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent')}
+                        disabled={sendingEmail || !offer.client_email || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent' && offer.workflow_status !== 'approved')}
                       >
                         <Mail className="h-4 w-4 mr-2" />
-                        {sendingEmail ? 'Envoi...' : "Envoyer au client"}
+                        {sendingEmail ? 'Envoi...' : "Envoyer par email"}
                       </Button>
                     </div>
                   </div>
@@ -396,7 +380,6 @@ const AmbassadorOfferDetail = () => {
                         <div>
                           <h3 className="font-medium mb-3">Processus de validation</h3>
                           
-                          {/* Workflow Steps Visualization - Desktop */}
                           <div className="hidden md:flex justify-between mb-4">
                             {workflowStatuses.map((status, index) => {
                               const stepStatus = getStepStatus(status.id);
@@ -448,7 +431,6 @@ const AmbassadorOfferDetail = () => {
                             })}
                           </div>
                           
-                          {/* Workflow Steps Visualization - Mobile */}
                           <div className="md:hidden">
                             <ol className="relative border-l border-gray-200 ml-3">
                               {workflowStatuses.map((status, index) => {
@@ -478,7 +460,6 @@ const AmbassadorOfferDetail = () => {
                             </ol>
                           </div>
                           
-                          {/* Status Progress Bar */}
                           <div className="mt-4">
                             <Progress 
                               value={OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0} 
@@ -496,7 +477,6 @@ const AmbassadorOfferDetail = () => {
               </Card>
             </div>
             
-            {/* Sidebar */}
             <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
@@ -506,10 +486,12 @@ const AmbassadorOfferDetail = () => {
                   <Button 
                     className="w-full justify-start" 
                     onClick={handleSendEmail}
-                    disabled={sendingEmail || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent')}
+                    disabled={sendingEmail || !offer.client_email || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent')}
                   >
                     <Mail className="mr-2 h-4 w-4" />
-                    Envoyer au client
+                    {offer.workflow_status === 'approved' 
+                      ? "Renvoyer la confirmation" 
+                      : "Envoyer le lien de signature"}
                   </Button>
                   
                   <Separator />
