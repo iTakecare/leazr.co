@@ -93,14 +93,33 @@ export const isOfferSigned = async (offerId: string): Promise<boolean> => {
  */
 export const getOfferForClient = async (offerId: string) => {
   try {
-    // Vérification simple de l'ID
+    console.log("Début de récupération de l'offre pour le client:", offerId);
+    
     if (!offerId || offerId.trim() === "") {
-      throw new Error("ID d'offre manquant");
+      console.error("ID d'offre invalide:", offerId);
+      throw new Error("ID d'offre invalide ou manquant");
     }
     
-    console.log("Requête directe pour l'offre:", offerId);
+    // Vérifier d'abord si l'offre existe en faisant une requête simple
+    const checkResult = await supabase
+      .from('offers')
+      .select('id')
+      .eq('id', offerId)
+      .maybeSingle();
     
-    // Utilisation d'une requête Supabase simplifiée
+    if (checkResult.error) {
+      console.error("Erreur lors de la vérification de l'existence de l'offre:", checkResult.error);
+      throw checkResult.error;
+    }
+    
+    if (!checkResult.data) {
+      console.error("Aucune offre trouvée avec l'ID:", offerId);
+      throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
+    }
+    
+    console.log("Offre trouvée, récupération des détails...");
+    
+    // Récupérer tous les détails nécessaires
     const { data, error } = await supabase
       .from('offers')
       .select(`
@@ -122,21 +141,29 @@ export const getOfferForClient = async (offerId: string) => {
       `)
       .eq('id', offerId)
       .maybeSingle();
-    
+
     if (error) {
-      console.error("Erreur Supabase:", error);
-      throw new Error(`Erreur de base de données: ${error.message}`);
+      console.error("Erreur Supabase détaillée lors de la récupération de l'offre:", error);
+      throw error;
     }
     
     if (!data) {
-      console.error("Aucune offre trouvée avec l'ID:", offerId);
-      throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
+      console.error("Données manquantes pour l'offre avec l'ID:", offerId);
+      throw new Error(`Aucune donnée disponible pour l'offre: ${offerId}`);
     }
     
-    console.log("Offre trouvée:", data.id);
+    console.log("Données récupérées avec succès pour l'offre:", offerId);
+    console.log("Contenu de l'offre:", JSON.stringify({
+      id: data.id,
+      client_name: data.client_name,
+      workflow_status: data.workflow_status,
+      has_client_data: !!data.clients,
+      equipment_description_type: typeof data.equipment_description
+    }));
+    
     return data;
   } catch (error) {
-    console.error("Erreur complète:", error);
+    console.error("Erreur complète lors de la récupération de l'offre:", error);
     throw error;
   }
 };
@@ -160,12 +187,6 @@ export const generateSignatureLink = (offerId: string): string => {
  */
 export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean> => {
   try {
-    if (!offerId) {
-      console.error("ID d'offre manquant pour l'envoi de l'email");
-      toast.error("Impossible d'envoyer l'email : ID d'offre manquant");
-      return false;
-    }
-    
     console.log("Préparation de l'envoi de l'email de signature pour l'offre:", offerId);
     
     // 1. Récupérer les détails de l'offre
@@ -177,22 +198,13 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
       
     if (error) {
       console.error("Erreur lors de la récupération des détails de l'offre:", error);
-      toast.error("Impossible de récupérer les détails de l'offre");
-      return false;
+      throw error;
     }
     
     if (!offer.client_email) {
       console.error("Email du client manquant pour l'offre:", offerId);
-      toast.error("L'email du client est requis pour envoyer l'invitation de signature");
-      return false;
+      throw new Error("L'email du client est requis pour envoyer l'invitation de signature");
     }
-
-    console.log("Détails de l'offre récupérés:", {
-      id: offer.id,
-      client_name: offer.client_name,
-      client_email: offer.client_email,
-      workflow_status: offer.workflow_status
-    });
     
     // Vérifier si l'offre est déjà signée
     if (offer.workflow_status === 'approved') {
@@ -218,7 +230,6 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
     
     // 3. Générer le lien de signature
     const signatureLink = generateSignatureLink(offerId);
-    console.log("Lien de signature généré:", signatureLink);
     
     // 4. Formater la description de l'équipement pour l'affichage dans l'email
     let equipmentDescription = "Voir les détails dans le lien ci-dessous";
@@ -259,7 +270,7 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
           .header { background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 5px; margin-bottom: 20px; }
           .content { background-color: #ffffff; padding: 20px; border-radius: 5px; border: 1px solid #e9ecef; }
           .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #6c757d; }
-          .button { display: inline-block; background-color: #007bff; color: white !important; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin: 20px 0; }
           .highlight { font-weight: bold; color: #007bff; }
           table { width: 100%; border-collapse: collapse; margin: 20px 0; }
           table, th, td { border: 1px solid #e9ecef; }
@@ -272,7 +283,7 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
           <h1>iTakecare</h1>
         </div>
         <div class="content">
-          <h2>Bonjour ${offer.client_name || "Client"},</h2>
+          <h2>Bonjour ${offer.client_name},</h2>
           
           <p>Nous sommes ravis de vous annoncer que votre offre de financement est prête à être signée.</p>
           
@@ -280,7 +291,7 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
           <table>
             <tr>
               <th>Mensualité</th>
-              <td class="highlight">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(offer.monthly_payment || 0)}/mois</td>
+              <td class="highlight">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(offer.monthly_payment)}/mois</td>
             </tr>
             <tr>
               <th>Équipement</th>
@@ -296,7 +307,7 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
           
           <p>Le lien vous redirigera vers notre plateforme sécurisée où vous pourrez consulter tous les détails de l'offre avant de la signer.</p>
           
-          <p>En cas de questions, n'hésitez pas à nous contacter directement.</p>
+          <p>En cas de questions, n'hésitez pas à nous contacter directement en répondant à cet email.</p>
           
           <p>Cordialement,<br>L'équipe iTakecare</p>
         </div>
@@ -306,43 +317,23 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
       </body>
       </html>
     `;
-
-    console.log("Envoi de l'email à:", offer.client_email);
     
-    // Tentative d'envoi avec plusieurs essais si nécessaire
-    let attempts = 0;
-    const maxAttempts = 2;
-    let success = false;
+    const success = await sendEmail(
+      offer.client_email,
+      subject,
+      html
+    );
     
-    while (attempts < maxAttempts && !success) {
-      attempts++;
-      try {
-        console.log(`Tentative d'envoi #${attempts}...`);
-        success = await sendEmail(
-          offer.client_email,
-          subject,
-          html
-        );
-        
-        if (success) {
-          console.log("Email de signature envoyé avec succès à:", offer.client_email);
-          toast.success("Email de signature envoyé avec succès");
-          return true;
-        } else {
-          console.error(`Échec de l'envoi #${attempts}`);
-          // Si ce n'est pas la dernière tentative, on attend avant de réessayer
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-        }
-      } catch (emailErr) {
-        console.error(`Erreur lors de la tentative d'envoi #${attempts}:`, emailErr);
-      }
+    if (success) {
+      console.log("Email de signature envoyé avec succès à:", offer.client_email);
+      toast.success("Email de signature envoyé avec succès");
+      return true;
+    } else {
+      console.error("Échec de l'envoi de l'email de signature");
+      toast.error("Échec de l'envoi de l'email de signature");
+      return false;
     }
     
-    console.error(`Échec de l'envoi de l'email après ${attempts} tentatives`);
-    toast.error("Échec de l'envoi de l'email de signature");
-    return false;
   } catch (error) {
     console.error("Erreur lors de l'envoi de l'email de signature:", error);
     toast.error("Erreur lors de l'envoi de l'email de signature");

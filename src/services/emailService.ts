@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,14 +16,6 @@ export const sendEmail = async (
   textContent?: string
 ): Promise<boolean> => {
   try {
-    console.log("Début de la procédure d'envoi d'email à:", to);
-    
-    if (!to || !to.trim() || !subject || !htmlContent) {
-      console.error("Paramètres d'email manquants:", { to, subject, htmlContent_length: htmlContent?.length });
-      toast.error("Informations d'email incomplètes");
-      return false;
-    }
-    
     // Récupérer les paramètres SMTP
     const { data: smtpSettings, error: settingsError } = await supabase
       .from('smtp_settings')
@@ -34,115 +25,39 @@ export const sendEmail = async (
       
     if (settingsError || !smtpSettings || !smtpSettings.enabled) {
       console.error("Erreur ou paramètres SMTP non disponibles:", settingsError);
-      toast.error("Paramètres SMTP non configurés ou non activés");
       return false;
-    }
-    
-    console.log("Paramètres SMTP récupérés:", {
-      host: smtpSettings.host,
-      port: smtpSettings.port,
-      from_email: smtpSettings.from_email,
-      enabled: smtpSettings.enabled,
-      secure: smtpSettings.secure
-    });
-    
-    // Vérifier que tous les paramètres SMTP requis sont présents
-    if (!smtpSettings.host || !smtpSettings.port || !smtpSettings.username || 
-        !smtpSettings.password || !smtpSettings.from_email) {
-      console.error("Paramètres SMTP incomplets:", {
-        host_present: !!smtpSettings.host,
-        port_present: !!smtpSettings.port,
-        username_present: !!smtpSettings.username,
-        password_present: !!smtpSettings.password,
-        from_email_present: !!smtpSettings.from_email
-      });
-      toast.error("Configuration SMTP incomplète");
-      return false;
-    }
-    
-    // Pour Gmail, forcer TLS à true pour plus de sécurité
-    let secureMode = smtpSettings.secure;
-    const isGmail = smtpSettings.host.toLowerCase() === 'smtp.gmail.com';
-    
-    if (isGmail && !secureMode) {
-      console.log("Gmail détecté: Forçage de TLS à true pour plus de sécurité");
-      secureMode = true;
-      toast.info("Configuration Gmail: TLS automatiquement activé pour plus de sécurité");
     }
     
     // Appeler la fonction Supabase pour envoyer l'email
-    try {
-      console.log("Préparation de l'appel à la fonction send-email");
-      
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to,
-          subject,
-          html: htmlContent,
-          text: textContent || stripHtml(htmlContent),
-          from: {
-            email: smtpSettings.from_email,
-            name: smtpSettings.from_name || "iTakecare"
-          },
-          smtp: {
-            host: smtpSettings.host,
-            port: parseInt(smtpSettings.port),
-            username: smtpSettings.username,
-            password: smtpSettings.password,
-            secure: secureMode
-          }
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        to,
+        subject,
+        html: htmlContent,
+        text: textContent || stripHtml(htmlContent),
+        from: {
+          email: smtpSettings.from_email,
+          name: smtpSettings.from_name
+        },
+        smtp: {
+          host: smtpSettings.host,
+          port: parseInt(smtpSettings.port),
+          username: smtpSettings.username,
+          password: smtpSettings.password,
+          secure: smtpSettings.secure
         }
-      });
+      }
+    });
 
-      if (error) {
-        console.error("Erreur lors de l'appel de la fonction send-email:", error);
-        
-        const errorMessage = typeof error === 'object' && error !== null 
-          ? JSON.stringify(error) 
-          : String(error);
-          
-        toast.error(`Erreur d'envoi d'email: ${errorMessage}`);
-        return false;
-      }
-      
-      if (data && data.error) {
-        console.error("Erreur retournée par la fonction send-email:", data.error);
-        let errorMsg = "Erreur d'envoi d'email";
-        
-        if (data.suggestion) {
-          errorMsg += `: ${data.suggestion}`;
-        } else if (data.message) {
-          errorMsg += `: ${data.message}`;
-        }
-        
-        toast.error(errorMsg);
-        return false;
-      }
-      
-      // Si la fonction a renvoyé une recommandation de configuration
-      if (data && data.recommendedConfig) {
-        console.log("Configuration recommandée reçue:", data.recommendedConfig);
-        toast.info("Note: Pour Gmail, l'utilisation de TLS est recommandée pour plus de sécurité.");
-      }
-      
-      // Afficher le nombre de tentatives si disponible
-      if (data && data.attempts > 1) {
-        console.log(`Email envoyé après ${data.attempts} tentative(s)`);
-        toast.success(`Email envoyé avec succès (après ${data.attempts} tentative(s))`);
-      } else {
-        console.log("Email envoyé avec succès au premier essai");
-        toast.success("Email envoyé avec succès");
-      }
-      
-      return true;
-    } catch (invocationError) {
-      console.error("Exception lors de l'invocation de la fonction:", invocationError);
-      toast.error(`Erreur de communication avec le serveur d'email: ${invocationError instanceof Error ? invocationError.message : "Erreur inconnue"}`);
+    if (error) {
+      console.error("Erreur lors de l'envoi de l'email:", error);
       return false;
     }
+    
+    console.log("Email envoyé avec succès:", data);
+    return true;
   } catch (error) {
-    console.error("Exception lors de l'envoi de l'email:", error);
-    toast.error(`Exception lors de l'envoi d'email: ${error instanceof Error ? error.message : "Erreur inconnue"}`);
+    console.error("Erreur lors de l'envoi de l'email:", error);
     return false;
   }
 };

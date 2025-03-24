@@ -27,7 +27,6 @@ const AmbassadorOffersPage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [activeType, setActiveType] = useState('all');
   const [error, setError] = useState(null);
-  const [isResendingOffer, setIsResendingOffer] = useState<string | null>(null);
   
   // Chargement des offres
   useEffect(() => {
@@ -82,7 +81,7 @@ const AmbassadorOffersPage = () => {
   }, [searchTerm, activeTab, activeType, offers]);
   
   // Gestion de la suppression d'une offre
-  const handleDeleteOffer = async (id: string): Promise<void> => {
+  const handleDeleteOffer = async (id) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette offre ?")) {
       return;
     }
@@ -105,7 +104,7 @@ const AmbassadorOffersPage = () => {
   };
   
   // Gestion du changement de statut (limité pour les ambassadeurs)
-  const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string): Promise<void> => {
+  const handleUpdateWorkflowStatus = async (offerId, newStatus) => {
     // Pour les ambassadeurs, on ne permet que le passage de draft à sent
     if (newStatus !== 'sent') {
       toast.error("Vous n'avez pas les droits pour effectuer cette action");
@@ -141,56 +140,14 @@ const AmbassadorOffersPage = () => {
     }
   };
   
-  // Fonction pour télécharger le PDF (implémentation réelle)
-  const handleDownloadPdf = async (id: string): Promise<void> => {
-    try {
-      toast.info("Génération du PDF en cours...");
-      // Implémentation réelle appelant le service approprié
-      // À remplacer par l'appel réel quand disponible
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("PDF généré avec succès");
-    } catch (err) {
-      console.error("Erreur lors de la génération du PDF:", err);
-      toast.error("Erreur lors de la génération du PDF");
-    }
+  // Fonction factice pour le téléchargement du PDF (à implémenter)
+  const handleDownloadPdf = (id) => {
+    toast.info("Téléchargement du PDF en cours de développement");
   };
   
-  // Fonction pour renvoyer l'offre (implémentation réelle)
-  const handleResendOffer = async (id: string): Promise<boolean | void> => {
-    try {
-      setIsResendingOffer(id);
-      toast.info("Envoi de l'email en cours...");
-      
-      // Implémentation réelle
-      // À remplacer par l'appel réel quand disponible
-      const { data: offer, error: fetchError } = await supabase
-        .from('offers')
-        .select('client_email')
-        .eq('id', id)
-        .single();
-        
-      if (fetchError) {
-        throw fetchError;
-      }
-      
-      if (!offer.client_email) {
-        toast.error("Cette offre n'a pas d'email client associé");
-        return false;
-      }
-      
-      // Ici vous pourriez appeler un service pour envoyer l'email
-      // Par exemple: await sendOfferSignatureEmail(id);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success("Email envoyé avec succès");
-      return true;
-    } catch (err) {
-      console.error("Erreur lors de l'envoi de l'email:", err);
-      toast.error("Impossible d'envoyer l'email");
-      return false;
-    } finally {
-      setIsResendingOffer(null);
-    }
+  // Fonction factice pour renvoyer l'offre (à implémenter)
+  const handleResendOffer = (id) => {
+    toast.info("Renvoi de l'offre en cours de développement");
   };
 
   if (loading) {

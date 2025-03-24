@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -6,17 +7,12 @@ import {
   saveOfferSignature, 
   isOfferSigned 
 } from "@/services/offers/offerSignature";
-import { 
-  getBasicOfferById,
-  getRawOfferData
-} from "@/services/offers/offerCheck";
-import { getPublicOfferById } from "@/services/offers/offerPublicAccess";
 import { generateAndDownloadOfferPdf } from "@/services/offers/offerPdf";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import SignatureCanvas from "@/components/signature/SignaturePad";
-import { AlertCircle, Check, CheckCircle, FileText, Info, Printer, RefreshCcw } from "lucide-react";
+import { AlertCircle, Check, CheckCircle, FileText, Info, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
@@ -32,8 +28,6 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ClientOffersSidebar from "@/components/offers/ClientOffersSidebar";
-import { supabase, adminSupabase } from "@/integrations/supabase/client";
-import OffersError from "@/components/offers/OffersError";
 
 const SignOffer = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,136 +42,78 @@ const SignOffer = () => {
   const [signature, setSignature] = useState<string | null>(null);
   const [isPrintingPdf, setIsPrintingPdf] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [attempts, setAttempts] = useState(0);
-  
-  const fetchOffer = async () => {
-    if (!id) {
-      setError("Identifiant d'offre manquant");
-      setLoading(false);
-      return;
-    }
-    
-    const attemptNumber = attempts + 1;
-    setAttempts(attemptNumber);
-    
-    try {
-      setLoading(true);
-      setError(null);
-      setDebugInfo(`Tentative #${attemptNumber} - ID: ${id}`);
-      
-      // Nouvelle stratégie optimisée: utiliser directement adminSupabase
-      console.log(`Récupération directe de l'offre avec ID: ${id} (tentative #${attemptNumber})`);
-      let offerData = null;
-      
-      try {
-        // Première tentative: utiliser directement adminSupabase avec une requête complète
-        const { data: adminData, error: adminError } = await adminSupabase
-          .from('offers')
-          .select('*, clients(*)')
-          .eq('id', id)
-          .single();
-        
-        if (adminError) {
-          setDebugInfo(prev => `${prev}\nErreur requête admin directe: ${adminError.message}`);
-          console.error(`Erreur requête admin directe pour ID: ${id}:`, adminError);
-        } else if (adminData) {
-          offerData = adminData;
-          setDebugInfo(prev => `${prev}\nOffre récupérée directement via admin`);
-          console.log(`Offre ${id} récupérée directement via admin:`, adminData);
-        }
-      } catch (e) {
-        const errorMsg = e instanceof Error ? e.message : String(e);
-        setDebugInfo(prev => `${prev}\nException requête admin directe: ${errorMsg}`);
-        console.error(`Exception lors de la requête admin directe pour ID: ${id}:`, errorMsg);
-      }
-      
-      // Si la première tentative a échoué, essayons les méthodes précédentes
-      if (!offerData) {
-        offerData = await getPublicOfferById(id);
-        setDebugInfo(prev => `${prev}\nTentative via getPublicOfferById: ${offerData ? 'Succès' : 'Échec'}`);
-      }
-      
-      if (!offerData) {
-        offerData = await getOfferForClient(id);
-        setDebugInfo(prev => `${prev}\nTentative via getOfferForClient: ${offerData ? 'Succès' : 'Échec'}`);
-      }
-      
-      if (!offerData) {
-        offerData = await getBasicOfferById(id);
-        setDebugInfo(prev => `${prev}\nTentative via getBasicOfferById: ${offerData ? 'Succès' : 'Échec'}`);
-      }
-      
-      if (!offerData) {
-        offerData = await getRawOfferData(id);
-        setDebugInfo(prev => `${prev}\nTentative via getRawOfferData: ${offerData ? 'Succès' : 'Échec'}`);
-      }
-      
-      if (offerData) {
-        console.log(`Offre ${id} trouvée:`, offerData);
-        
-        // S'assurer que toutes les données essentielles sont présentes
-        if (!offerData.client_name && offerData.clients && offerData.clients.name) {
-          offerData.client_name = offerData.clients.name;
-        }
-        
-        if (!offerData.client_email && offerData.clients && offerData.clients.email) {
-          offerData.client_email = offerData.clients.email;
-        }
-        
-        // Si monthly_payment est 0 ou null/undefined, essayons d'obtenir ces données à nouveau directement
-        if (!offerData.monthly_payment || offerData.monthly_payment === 0) {
-          try {
-            setDebugInfo(prev => `${prev}\nMontant mensuel manquant, récupération direct.`);
-            const { data: paymentData } = await adminSupabase
-              .from('offers')
-              .select('monthly_payment, amount, coefficient')
-              .eq('id', id)
-              .single();
-              
-            if (paymentData && paymentData.monthly_payment) {
-              offerData.monthly_payment = paymentData.monthly_payment;
-              offerData.amount = paymentData.amount || offerData.amount;
-              offerData.coefficient = paymentData.coefficient || offerData.coefficient;
-              setDebugInfo(prev => `${prev}\nMontant mensuel récupéré: ${paymentData.monthly_payment}`);
-            }
-          } catch (e) {
-            setDebugInfo(prev => `${prev}\nÉchec récupération montant mensuel.`);
-          }
-        }
-        
-        setOffer(offerData);
-        if (offerData.client_name) {
-          setSignerName(offerData.client_name);
-        }
-        if (offerData.signature_data || offerData.workflow_status === 'approved') {
-          setSigned(true);
-          setSignature(offerData.signature_data);
-        }
-        setDebugInfo(prev => `${prev}\nOffre trouvée avec succès! Montant mensuel: ${offerData.monthly_payment || 'non défini'}`);
-      } else {
-        console.error(`Aucune offre trouvée avec l'ID: ${id} après toutes les tentatives`);
-        setError(`Aucune offre trouvée avec l'ID: ${id}`);
-        setDebugInfo(prev => `${prev}\nAucune offre trouvée après toutes les tentatives`);
-      }
-    } catch (err: any) {
-      console.error("Erreur lors du chargement de l'offre:", err);
-      setError(err?.message || "Une erreur s'est produite lors du chargement de l'offre");
-      setDebugInfo(prev => `${prev}\nErreur: ${err?.message || "Inconnue"}`);
-    } finally {
-      setLoading(false);
-    }
-  };
   
   useEffect(() => {
+    const fetchOffer = async () => {
+      if (!id) {
+        setError("Identifiant d'offre manquant");
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        setError(null);
+        setDebugInfo(`Tentative de chargement de l'offre: ${id}`);
+        
+        let alreadySigned = false;
+        try {
+          alreadySigned = await isOfferSigned(id);
+          if (alreadySigned) {
+            setSigned(true);
+            setDebugInfo(prev => `${prev}\nOffre déjà signée`);
+          }
+        } catch (signedErr) {
+          console.error("Erreur lors de la vérification de signature:", signedErr);
+          setDebugInfo(prev => `${prev}\nErreur vérification signature: ${JSON.stringify(signedErr)}`);
+        }
+        
+        try {
+          setDebugInfo(prev => `${prev}\nRécupération des données d'offre...`);
+          const offerData = await getOfferForClient(id);
+          
+          if (!offerData) {
+            setError("Cette offre n'existe pas ou n'est plus disponible.");
+            setDebugInfo(prev => `${prev}\nAucune donnée d'offre reçue`);
+            setLoading(false);
+            return;
+          }
+          
+          setDebugInfo(prev => `${prev}\nDonnées d'offre reçues. ID: ${offerData.id}, Status: ${offerData.workflow_status}`);
+          console.log("Données d'offre complètes:", offerData);
+          
+          setOffer(offerData);
+          
+          if (offerData.client_name) {
+            setSignerName(offerData.client_name);
+          }
+          
+          if (offerData.signature_data) {
+            setSignature(offerData.signature_data);
+            setSigned(true);
+            setDebugInfo(prev => `${prev}\nOffre contient déjà une signature`);
+          }
+          
+          if (offerData.workflow_status === 'approved' && !offerData.signature_data) {
+            setSigned(true);
+            setDebugInfo(prev => `${prev}\nOffre marquée comme approuvée sans signature`);
+          }
+        } catch (dataErr: any) {
+          console.error("Erreur détaillée lors de la récupération des données:", dataErr);
+          setError(dataErr?.message || "Impossible de récupérer les détails de cette offre.");
+          setDebugInfo(prev => `${prev}\nErreur récupération données: ${JSON.stringify(dataErr)}`);
+        }
+      } catch (err: any) {
+        console.error("Erreur générale lors du chargement de l'offre:", err);
+        setError(err?.message || "Une erreur s'est produite lors du chargement de l'offre.");
+        setDebugInfo(prev => `${prev}\nErreur générale: ${JSON.stringify(err)}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     fetchOffer();
   }, [id]);
-  
-  const handleRetry = () => {
-    setIsRetrying(true);
-    setDebugInfo(null);
-    fetchOffer().finally(() => setIsRetrying(false));
-  };
   
   const handleSignature = async (signatureData: string) => {
     if (!id || !signerName.trim()) {
@@ -298,18 +234,41 @@ const SignOffer = () => {
   
   if (error || !offer) {
     return (
-      <OffersError 
-        message={error || "Cette offre n'existe pas ou n'est plus disponible."}
-        onRetry={handleRetry}
-        debugInfo={debugInfo}
-      />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+        <div className="max-w-md w-full">
+          <Card>
+            <CardHeader className="text-center">
+              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-2" />
+              <CardTitle>Offre non disponible</CardTitle>
+              <CardDescription>
+                {error || "Cette offre n'existe pas ou n'est plus disponible."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {debugInfo && (
+                <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-700 whitespace-pre-wrap">
+                  <p className="font-bold mb-1">Informations de débogage:</p>
+                  {debugInfo}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <Button onClick={() => window.location.href = "/"}>
+                Retour à l'accueil
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
     );
   }
   
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Client Offers Sidebar */}
       <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
       
+      {/* Main Content */}
       <div className="flex-1 py-8 px-4 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">

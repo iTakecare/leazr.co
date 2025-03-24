@@ -1463,34 +1463,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      get_offer_by_id_public: {
-        Args: {
-          offer_id: string
-        }
-        Returns: {
-          amount: number
-          client_email: string | null
-          client_id: string | null
-          client_name: string
-          coefficient: number
-          commission: number | null
-          converted_to_contract: boolean | null
-          created_at: string | null
-          equipment_description: string | null
-          id: string
-          monthly_payment: number
-          previous_status: string | null
-          remarks: string | null
-          signature_data: string | null
-          signed_at: string | null
-          signer_name: string | null
-          status: string
-          type: string | null
-          updated_at: string | null
-          user_id: string
-          workflow_status: string | null
-        }[]
-      }
       get_pdf_templates: {
         Args: Record<PropertyKey, never>
         Returns: {

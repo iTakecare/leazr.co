@@ -71,17 +71,6 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     try {
       setIsSendingEmail(true);
       
-      // Afficher un toast pour indiquer que l'envoi est en cours
-      toast.info("Envoi de l'email en cours...");
-      
-      // Vérifie que l'ID est valide
-      if (!id) {
-        toast.error("ID d'offre invalide");
-        return false;
-      }
-      
-      console.log("Tentative d'envoi de l'email de signature pour l'offre:", id);
-      
       const success = await sendOfferSignatureEmail(id);
       
       if (success) {
@@ -95,15 +84,12 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         }
         
         toast.success("L'offre a été envoyée au client par email");
-        return true;
       } else {
         toast.error("Erreur lors de l'envoi de l'offre");
-        return false;
       }
     } catch (error) {
       console.error("Error resending offer:", error);
       toast.error("Erreur lors du renvoi de l'offre");
-      return false;
     } finally {
       setIsSendingEmail(false);
     }
