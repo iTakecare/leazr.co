@@ -190,7 +190,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           </DropdownMenuItem>
                         )}
                         
-                        {(offer.workflow_status === "sent" || offer.workflow_status === "approved") && !isAmbassador() && (
+                        {!isAmbassador() && (
                           <DropdownMenuItem onClick={() => openOnlineOffer(offer.id)}>
                             <ExternalLink className="mr-2 h-4 w-4" />
                             Voir offre en ligne

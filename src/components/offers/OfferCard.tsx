@@ -49,7 +49,6 @@ const OfferCard: React.FC<OfferCardProps> = ({
   };
   
   const isConverted = offer.converted_to_contract;
-  const canViewOnline = offer.workflow_status === "sent" || offer.workflow_status === "approved";
 
   return (
     <Card className={cn(
@@ -116,17 +115,15 @@ const OfferCard: React.FC<OfferCardProps> = ({
             <span className="text-xs">Éditer</span>
           </Button>
           
-          {canViewOnline && (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="h-7 px-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50"
-              onClick={openOnlineOffer}
-            >
-              <ExternalLink className="h-3.5 w-3.5 mr-1" />
-              <span className="text-xs">En ligne</span>
-            </Button>
-          )}
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="h-7 px-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+            onClick={openOnlineOffer}
+          >
+            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+            <span className="text-xs">En ligne</span>
+          </Button>
           
           <Button 
             variant="ghost" 
