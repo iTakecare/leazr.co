@@ -13,12 +13,10 @@ const PDFPreview = ({ template }) => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const previewRef = useRef(null);
 
-  // Reset pageLoaded when currentPage changes
   useEffect(() => {
     setPageLoaded(false);
   }, [currentPage]);
   
-  // Exemple d'offre pour l'aperçu
   const SAMPLE_OFFER = {
     id: "abcdef1234567890",
     client_name: "Entreprise Exemple",
@@ -70,7 +68,6 @@ const PDFPreview = ({ template }) => {
     try {
       setLoading(true);
       
-      // Générer le PDF en utilisant le template et l'offre d'exemple
       const offerWithTemplate = {
         ...SAMPLE_OFFER,
         __template: template
@@ -87,36 +84,28 @@ const PDFPreview = ({ template }) => {
     }
   };
 
-  // Détermine le nombre total de pages
   const totalPages = template?.templateImages?.length || 1;
   
-  // Aller à la page suivante
   const nextPage = () => {
     if (currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
     }
   };
   
-  // Aller à la page précédente
   const prevPage = () => {
     if (currentPage > 0) {
       setCurrentPage(currentPage - 1);
     }
   };
 
-  // Obtenir l'image de fond de la page actuelle
   const getCurrentPageBackground = () => {
     if (template?.templateImages && template.templateImages.length > 0) {
-      // Recherche de l'image correspondant à la page actuelle
       const pageImage = template.templateImages.find(img => img.page === currentPage);
       
       if (pageImage) {
-        // Si l'image a une URL, l'utiliser
         if (pageImage.url) {
-          // Ajouter un timestamp pour éviter les problèmes de cache
           return `${pageImage.url}?t=${new Date().getTime()}`;
         }
-        // Sinon, utiliser les données base64 si disponibles
         else if (pageImage.data) {
           return pageImage.data;
         }
@@ -125,7 +114,6 @@ const PDFPreview = ({ template }) => {
     return null;
   };
 
-  // Fonction pour résoudre les valeurs des champs
   const resolveFieldValue = (pattern) => {
     if (!pattern || typeof pattern !== 'string') return '';
     
@@ -140,12 +128,10 @@ const PDFPreview = ({ template }) => {
         value = value[part];
       }
       
-      // Format appropriately
       if (key === 'page_number') {
         return String(currentPage + 1);
       }
       
-      // For date fields
       if (key === 'created_at' && typeof value === 'string') {
         try {
           return new Date(value).toLocaleDateString();
@@ -155,7 +141,6 @@ const PDFPreview = ({ template }) => {
         }
       }
       
-      // For currency fields
       if ((key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) && typeof value === 'number') {
         try {
           return formatCurrency(value);
@@ -165,29 +150,24 @@ const PDFPreview = ({ template }) => {
         }
       }
       
-      // Make sure we always return a string
       if (value === undefined || value === null) return '';
       return typeof value === 'object' ? JSON.stringify(value) : String(value);
     });
   };
-  
-  // Parse equipment data from JSON string to array of objects
+
   const parseEquipmentData = (jsonString) => {
     try {
       if (!jsonString) return [];
       
-      // If it's already an array, return it
       if (Array.isArray(jsonString)) return jsonString;
       
-      // Try to parse the JSON string
       return JSON.parse(jsonString);
     } catch (error) {
       console.error("Error parsing equipment data:", error);
       return [];
     }
   };
-  
-  // Calculate the total price for an equipment item
+
   const calculateItemTotal = (item) => {
     const price = parseFloat(item.purchasePrice || 0);
     const quantity = parseInt(item.quantity || 1);
@@ -195,8 +175,18 @@ const PDFPreview = ({ template }) => {
     
     return price * quantity * (1 + margin);
   };
-  
-  // Render the equipment table
+
+  const calculateItemMonthlyPayment = (item) => {
+    if (item.monthlyPayment && parseFloat(item.monthlyPayment) > 0) {
+      return parseFloat(item.monthlyPayment);
+    }
+    
+    const price = parseFloat(item.purchasePrice || 0);
+    const quantity = parseInt(item.quantity || 1);
+    
+    return (price * quantity) / 36;
+  };
+
   const renderEquipmentTable = (jsonData) => {
     const equipment = parseEquipmentData(jsonData);
     
@@ -204,53 +194,55 @@ const PDFPreview = ({ template }) => {
       return <p className="text-sm italic">Aucun équipement disponible</p>;
     }
     
+    const totalMonthlyPayment = equipment.reduce((total, item) => {
+      return total + calculateItemMonthlyPayment(item) * (parseInt(item.quantity) || 1);
+    }, 0);
+    
     return (
       <table className="w-full border-collapse" style={{ fontSize: "9px" }}>
         <thead>
           <tr className="bg-gray-100">
             <th className="border px-1 py-0.5 text-left">Désignation</th>
-            <th className="border px-1 py-0.5 text-right">Prix</th>
             <th className="border px-1 py-0.5 text-center">Qté</th>
-            <th className="border px-1 py-0.5 text-center">Marge</th>
-            <th className="border px-1 py-0.5 text-right">Total</th>
+            <th className="border px-1 py-0.5 text-right">Mensualité</th>
           </tr>
         </thead>
         <tbody>
           {equipment.map((item, index) => {
-            const totalPrice = calculateItemTotal(item);
+            const monthlyPayment = calculateItemMonthlyPayment(item);
+            const totalItemMonthly = monthlyPayment * (parseInt(item.quantity) || 1);
+            
             return (
               <tr key={index}>
                 <td className="border px-1 py-0.5 text-left">{item.title}</td>
-                <td className="border px-1 py-0.5 text-right">{formatCurrency(item.purchasePrice)}</td>
                 <td className="border px-1 py-0.5 text-center">{item.quantity}</td>
-                <td className="border px-1 py-0.5 text-center">{item.margin}%</td>
-                <td className="border px-1 py-0.5 text-right">{formatCurrency(totalPrice)}</td>
+                <td className="border px-1 py-0.5 text-right">{formatCurrency(totalItemMonthly)}</td>
               </tr>
             );
           })}
+          <tr className="font-semibold bg-gray-50">
+            <td className="border px-1 py-0.5 text-right" colSpan={2}>Total mensualité:</td>
+            <td className="border px-1 py-0.5 text-right">{formatCurrency(totalMonthlyPayment)}</td>
+          </tr>
         </tbody>
       </table>
     );
   };
-  
-  // Obtenir les champs pour la page actuelle
+
   const getCurrentPageFields = () => {
     return template?.fields?.filter(f => 
       f.isVisible && (f.page === currentPage || (currentPage === 0 && f.page === undefined))
     ) || [];
   };
 
-  // Vérifier si des images de template sont disponibles
   const hasTemplateImages = template?.templateImages && 
                            Array.isArray(template.templateImages) && 
                            template.templateImages.length > 0;
-  
-  // Gérer les erreurs de chargement d'image
+
   const handleImageError = (e) => {
     console.error("Erreur de chargement de l'image:", e.target.src);
-    e.target.src = "/placeholder.svg"; // Image de fallback
+    e.target.src = "/placeholder.svg";
     
-    // Tenter de recharger l'image après un délai
     setTimeout(() => {
       if (e.target.src === "/placeholder.svg") {
         const currentSrc = e.target.src;
@@ -264,35 +256,25 @@ const PDFPreview = ({ template }) => {
       }
     }, 2000);
   };
-  
-  // Marquer l'image comme chargée
+
   const handleImageLoad = () => {
     console.log("Image chargée avec succès");
     setPageLoaded(true);
   };
 
-  // Convertir les millimètres en pixels pour le positionnement correct
   const mmToPx = (mm) => {
-    // A4 standard dimensions: 210 x 297 mm
-    
-    // Standard conversion: 1 mm = 3.7795275591 pixels at 96 DPI
-    // This is a constant conversion factor for screen display
     const pxPerMm = 3.7795275591;
-    
-    // We need to account for the zoom level
     return mm * pxPerMm * zoomLevel;
   };
-  
-  // Zoom in
+
   const zoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.1, 2));
   };
 
-  // Zoom out
   const zoomOut = () => {
     setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
   };
-  
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -342,7 +324,6 @@ const PDFPreview = ({ template }) => {
               height: `${297 * zoomLevel}mm`,
               maxWidth: "100%"
             }}>
-              {/* Navigation des pages */}
               {totalPages > 1 && (
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
                   <Button
@@ -369,7 +350,6 @@ const PDFPreview = ({ template }) => {
                 </div>
               )}
               
-              {/* Fond de page si un template a été uploadé */}
               {hasTemplateImages ? (
                 <div className="relative" style={{ height: "100%" }}>
                   {getCurrentPageBackground() ? (
@@ -383,18 +363,14 @@ const PDFPreview = ({ template }) => {
                         style={{ display: "block" }}
                       />
                       
-                      {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
                       {pageLoaded && getCurrentPageFields().map((field) => {
-                        // Définir la taille de police en fonction du style ou de la valeur par défaut
                         const fontSize = field.style?.fontSize 
                           ? field.style.fontSize * zoomLevel
                           : 9 * zoomLevel;
                         
-                        // Convertir en pixels pour l'affichage
                         const xPx = mmToPx(field.position?.x || 0);
                         const yPx = mmToPx(field.position?.y || 0);
                         
-                        // Définir le style de position avec les autres propriétés de style
                         const fieldStyle = {
                           position: "absolute",
                           left: `${xPx}px`,
@@ -408,7 +384,6 @@ const PDFPreview = ({ template }) => {
                           whiteSpace: "pre-wrap"
                         } as CSSProperties;
                         
-                        // Ajuster la largeur maximale en fonction du type de champ
                         if (field.id === 'equipment_table') {
                           fieldStyle.maxWidth = `${150 * zoomLevel}mm`;
                         } else {
@@ -437,9 +412,7 @@ const PDFPreview = ({ template }) => {
                   )}
                 </div>
               ) : (
-                /* Aperçu générique si pas de template uploadé */
                 <div className="min-h-[842px]">
-                  {/* En-tête */}
                   <div className="border-b p-6" style={{ backgroundColor: template?.primaryColor || '#2C3E50', color: "white" }}>
                     <div className="flex justify-between items-center">
                       {template?.logoURL && (
@@ -453,7 +426,6 @@ const PDFPreview = ({ template }) => {
                     </div>
                   </div>
                   
-                  {/* Corps du document */}
                   <div className="p-6 space-y-6">
                     <div className="flex justify-between">
                       <div>
@@ -537,7 +509,6 @@ const PDFPreview = ({ template }) => {
                     </div>
                   </div>
                   
-                  {/* Pied de page */}
                   <div className="p-6 text-xs text-gray-600 bg-gray-50 border-t">
                     <p>{template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
                     <hr className="my-2 border-gray-300" />

@@ -119,21 +119,38 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
       }
       
       if (Array.isArray(equipment) && equipment.length > 0) {
-        return equipment.map((item: any, idx: number) => (
-          <div key={idx} className="mb-4 p-3 border border-gray-200 rounded bg-white">
-            <h3 className="font-medium text-base">{item.title}</h3>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <p className="text-xs text-gray-500">Quantité</p>
-                <p className="font-medium">{item.quantity}</p>
+        // Calculer la mensualité totale
+        const totalMonthlyPayment = equipment.reduce((total, item) => {
+          const monthlyPayment = parseFloat(item.monthlyPayment || 0);
+          const quantity = parseInt(item.quantity || 1);
+          return total + (monthlyPayment * quantity);
+        }, 0);
+        
+        return (
+          <div>
+            {equipment.map((item: any, idx: number) => (
+              <div key={idx} className="mb-4 p-3 border border-gray-200 rounded bg-white">
+                <h3 className="font-medium text-base">{item.title}</h3>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <p className="text-xs text-gray-500">Quantité</p>
+                    <p className="font-medium">{item.quantity}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Mensualité</p>
+                    <p className="font-medium text-blue-600">{formatCurrency(item.monthlyPayment || 0)}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500">Mensualité unitaire</p>
-                <p className="font-medium text-blue-600">{formatCurrency(item.monthlyPayment || 0)}</p>
+            ))}
+            <div className="mt-2 p-2 border-t border-gray-300">
+              <div className="flex justify-between items-center">
+                <p className="font-medium">Total mensualité:</p>
+                <p className="font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</p>
               </div>
             </div>
           </div>
-        ));
+        );
       }
       
       return <div className="text-gray-500">Aucun équipement spécifié</div>;

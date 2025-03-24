@@ -287,13 +287,15 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
           title: "MacBook Pro 16\" M2",
           purchasePrice: 2699, 
           quantity: 1,
-          margin: 10
+          margin: 10,
+          monthlyPayment: 75.00
         },
         {
           title: "Écran Dell 27\" UltraHD",
           purchasePrice: 499, 
           quantity: 2,
-          margin: 15
+          margin: 15,
+          monthlyPayment: 28.00
         }
       ]),
       clients: sampleData.clients || {
@@ -307,6 +309,35 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
       },
       ...sampleData // Conserver toutes les autres propriétés
     };
+    
+    // Traiter les données d'équipement pour s'assurer que les mensualités sont définies
+    if (completeSampleData.equipment_description) {
+      try {
+        let equipment;
+        if (typeof completeSampleData.equipment_description === 'string') {
+          equipment = JSON.parse(completeSampleData.equipment_description);
+        } else {
+          equipment = completeSampleData.equipment_description;
+        }
+        
+        if (Array.isArray(equipment)) {
+          // S'assurer que chaque équipement a une mensualité
+          equipment.forEach(item => {
+            if (!item.monthlyPayment || parseFloat(item.monthlyPayment) === 0) {
+              // Calculer une mensualité approximative si non définie
+              const price = parseFloat(item.purchasePrice || 0);
+              item.monthlyPayment = (price / 36).toFixed(2); // Approximation sur 36 mois
+            }
+          });
+          
+          // Mettre à jour les données d'équipement
+          completeSampleData.equipment_description = JSON.stringify(equipment);
+          completeSampleData.equipment_data = equipment;
+        }
+      } catch (e) {
+        console.error("Erreur lors du traitement des données d'équipement:", e);
+      }
+    }
     
     // Afficher les données complètes pour déboguer
     console.log("Données d'exemple préparées:", {
