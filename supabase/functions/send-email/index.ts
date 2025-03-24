@@ -74,52 +74,61 @@ serve(async (req) => {
     
     console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, Port: ${smtp.port}, Sécurisé: ${smtp.secure}`);
     
-    // For debugging purposes, log more details about the connection attempt
-    console.log(`Envoi d'email à: ${to}, de: ${from.email} (${from.name})`);
+    // Initialize attempt configurations to test
+    const attempts = [];
     
-    // Initialize client with appropriate settings
-    // For OVH servers, we'll try different combinations if needed
-    let attempts = 0;
-    const maxAttempts = 3;
+    // OVH servers on port 587 are known to behave differently
+    if (isOvhServer && isPort587) {
+      // For OVH, we first try without TLS as it's more reliable on port 587
+      attempts.push({
+        tls: false,
+        description: "OVH Port 587 sans TLS"
+      });
+      attempts.push({
+        tls: true, 
+        description: "OVH Port 587 avec TLS"
+      });
+    } else {
+      // First attempt: use the settings as provided
+      attempts.push({
+        tls: smtp.secure,
+        description: "Configuration originale"
+      });
+      
+      // Second attempt: opposite TLS setting as fallback
+      attempts.push({
+        tls: !smtp.secure,
+        description: "TLS inversé"
+      });
+    }
+    
+    // Try sending with multiple configurations if needed
     let lastError = null;
+    let attempts_count = 0;
     
-    while (attempts < maxAttempts) {
-      attempts++;
-      
-      // Determine TLS settings based on attempt number and server type
-      let useTLS = smtp.secure;
-      
-      // On subsequent attempts, toggle TLS setting if we have an OVH server
-      if (attempts > 1 && isOvhServer) {
-        useTLS = !useTLS;
-        console.log(`Tentative #${attempts}: Changement du mode TLS à ${useTLS}`);
-      }
-      
-      // Configure SMTP client with current attempt settings
-      const clientConfig = {
-        connection: {
-          hostname: smtp.host,
-          port: smtp.port,
-          tls: useTLS,
-          auth: {
-            username: smtp.username,
-            password: smtp.password,
-          },
-        },
-        debug: true // Enable SMTP debugging
-      };
-      
-      console.log(`Tentative #${attempts} - Configuration SMTP:`, {
-        host: smtp.host,
-        port: smtp.port,
-        tls: clientConfig.connection.tls
+    for (const attempt of attempts) {
+      attempts_count++;
+      console.log(`Tentative #${attempts_count} - Configuration:`, {
+        tls: attempt.tls,
+        description: attempt.description
       });
       
       try {
-        // Create SMTP client
-        const client = new SMTPClient(clientConfig);
+        // Create SMTP client with current configuration
+        const client = new SMTPClient({
+          connection: {
+            hostname: smtp.host,
+            port: smtp.port,
+            tls: attempt.tls,
+            auth: {
+              username: smtp.username,
+              password: smtp.password,
+            },
+          },
+          debug: true // For detailed logs
+        });
         
-        // Set a timeout for the entire operation
+        // Set a timeout for the operation
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error("Délai de connexion SMTP dépassé (15s)")), 15000);
         });
@@ -127,9 +136,9 @@ serve(async (req) => {
         // Format email address according to RFC
         const fromField = from.name ? `"${from.name}" <${from.email}>` : from.email;
         
-        // Try to send the email with a timeout
-        console.log(`Tentative d'envoi d'email #${attempts}...`);
+        console.log(`Tentative #${attempts_count} d'envoi d'email en cours...`);
         
+        // Try to send the email with a timeout
         const emailResult = await Promise.race([
           client.send({
             from: fromField,
@@ -141,8 +150,8 @@ serve(async (req) => {
           timeoutPromise
         ]);
         
-        // If we reach here, the email was sent successfully
-        console.log(`Email envoyé avec succès à la tentative #${attempts}:`, emailResult);
+        // Email sent successfully
+        console.log(`Email envoyé avec succès à la tentative #${attempts_count}:`, emailResult);
         
         try {
           await client.close();
@@ -154,46 +163,45 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             message: "Email envoyé avec succès",
-            attempts: attempts
+            attempts: attempts_count,
+            config: attempt.description
           }),
           {
             status: 200,
             headers: { "Content-Type": "application/json", ...corsHeaders },
           }
         );
-      } catch (smtpError) {
-        lastError = smtpError;
-        console.error(`Échec de la tentative #${attempts}:`, smtpError);
         
-        // If this is not the last attempt, we'll try again with different settings
-        if (attempts < maxAttempts) {
-          console.log(`Attente avant la tentative #${attempts + 1}...`);
-          // Add a small delay before the next attempt
+      } catch (error) {
+        lastError = error;
+        console.error(`Échec de la tentative #${attempts_count}:`, error);
+        
+        // If this is not the last attempt, we'll try again with the next configuration
+        if (attempts_count < attempts.length) {
+          console.log(`Erreur détectée (${error.name}), essai avec la configuration suivante...`);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
     }
     
-    // If we're here, all attempts failed
-    console.error(`Échec de toutes les tentatives (${maxAttempts}). Dernière erreur:`, lastError);
+    // If we reach here, all attempts failed
+    console.error(`Toutes les tentatives (${attempts_count}) ont échoué. Dernière erreur:`, lastError);
     
-    // Prepare specific suggestions based on the error
+    // Provide specific advice based on the error
     let suggestion = "";
-    const errorStr = lastError.toString();
+    const errorStr = lastError ? lastError.toString() : "";
     
     if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
-      if (smtp.secure) {
+      if (isOvhServer && isPort587) {
+        suggestion = "Pour les serveurs OVH sur le port 587, essayez de désactiver l'option TLS dans les paramètres SMTP.";
+      } else if (smtp.secure) {
         suggestion = "Essayez de désactiver l'option TLS (secure: false) dans les paramètres SMTP.";
       } else {
         suggestion = "Essayez d'activer l'option TLS (secure: true) dans les paramètres SMTP.";
       }
     } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
       if (isOvhServer && isPort587) {
-        if (smtp.secure) {
-          suggestion = "Pour les serveurs OVH sur le port 587, essayez de désactiver l'option TLS.";
-        } else {
-          suggestion = "Pour les serveurs OVH sur le port 587, essayez d'activer l'option TLS.";
-        }
+        suggestion = "Pour les serveurs OVH sur le port 587, essayez de désactiver l'option TLS.";
       }
     }
     
@@ -201,7 +209,7 @@ serve(async (req) => {
       JSON.stringify({ 
         error: "Erreur de connexion SMTP après plusieurs tentatives",
         details: errorStr,
-        message: lastError.message || "Erreur de connexion au serveur SMTP",
+        message: lastError ? (lastError.message || "Erreur de connexion au serveur SMTP") : "Erreur inconnue",
         suggestion: suggestion
       }),
       {
@@ -209,6 +217,7 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
+    
   } catch (error) {
     console.error("Erreur générale:", error);
     
