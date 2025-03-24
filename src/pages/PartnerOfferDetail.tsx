@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -6,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { ArrowLeft, FileDown, RefreshCw, Loader2, Copy } from "lucide-react";
+import { ArrowLeft, FileDown, RefreshCw, Loader2, Copy, Pen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
+import { generateSignatureLink } from "@/services/offers/offerSignature";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -52,7 +52,9 @@ const PartnerOfferDetail = () => {
   const [offer, setOffer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [shareUrl, setShareUrl] = useState<string>("");
+  const [signatureUrl, setSignatureUrl] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false);
+  const [isCopiedSignature, setIsCopiedSignature] = useState(false);
 
   const fetchOfferDetails = async () => {
     try {
@@ -76,9 +78,10 @@ const PartnerOfferDetail = () => {
 
       setOffer(data);
       
-      // Create a shareable link for the client
       const baseUrl = window.location.origin;
       setShareUrl(`${baseUrl}/client/offers/${data.id}`);
+      
+      setSignatureUrl(generateSignatureLink(data.id));
     } catch (error) {
       console.error("Error fetching offer details:", error);
       toast.error("Erreur lors du chargement des détails de l'offre");
@@ -92,12 +95,12 @@ const PartnerOfferDetail = () => {
     fetchOfferDetails();
   }, [id, user]);
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shareUrl).then(
+  const copyToClipboard = (text: string, setStateFn: React.Dispatch<React.SetStateAction<boolean>>) => {
+    navigator.clipboard.writeText(text).then(
       () => {
-        setIsCopied(true);
+        setStateFn(true);
         toast.success("Lien copié dans le presse-papier");
-        setTimeout(() => setIsCopied(false), 2000);
+        setTimeout(() => setStateFn(false), 2000);
       },
       () => {
         toast.error("Impossible de copier le lien");
@@ -113,6 +116,31 @@ const PartnerOfferDetail = () => {
       console.error("Error downloading PDF:", error);
       toast.error("Erreur lors du téléchargement du PDF");
     }
+  };
+
+  const shareSignatureLink = () => {
+    if (offer.workflow_status !== 'sent' && offer.workflow_status !== 'draft') {
+      toast.info("Cette offre a déjà été " + (offer.workflow_status === 'approved' ? "signée" : "traitée"));
+      return;
+    }
+    
+    if (offer.workflow_status === 'draft') {
+      supabase
+        .from('offers')
+        .update({ workflow_status: 'sent' })
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) {
+            console.error("Error updating offer status:", error);
+            toast.error("Erreur lors de la mise à jour du statut de l'offre");
+          } else {
+            setOffer({ ...offer, workflow_status: 'sent' });
+            toast.success("Statut de l'offre mis à jour à 'Envoyée'");
+          }
+        });
+    }
+    
+    toast.success("Lien de signature envoyé au client");
   };
 
   if (loading) {
@@ -181,7 +209,6 @@ const PartnerOfferDetail = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              {/* Client Information */}
               <Card>
                 <CardHeader>
                   <CardTitle>Informations client</CardTitle>
@@ -206,7 +233,6 @@ const PartnerOfferDetail = () => {
                 </CardContent>
               </Card>
 
-              {/* Equipment Details */}
               <Card>
                 <CardHeader>
                   <CardTitle>Équipement</CardTitle>
@@ -216,35 +242,82 @@ const PartnerOfferDetail = () => {
                 </CardContent>
               </Card>
 
-              {/* Share Link */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Lien de partage</CardTitle>
+                  <CardTitle>Liens de partage</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="mb-4 text-muted-foreground">
-                    Partagez ce lien avec votre client pour qu'il puisse consulter et valider l'offre.
-                  </p>
-                  <div className="flex gap-2">
-                    <div className="flex-1 p-2 border rounded bg-muted truncate">
-                      {shareUrl}
+                <CardContent className="space-y-6">
+                  <div>
+                    <p className="mb-4 text-muted-foreground">
+                      Partagez ce lien avec votre client pour qu'il puisse consulter l'offre.
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="flex-1 p-2 border rounded bg-muted truncate">
+                        {shareUrl}
+                      </div>
+                      <Button variant="outline" onClick={() => copyToClipboard(shareUrl, setIsCopied)}>
+                        {isCopied ? (
+                          <span className="text-green-600">Copié!</span>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copier
+                          </>
+                        )}
+                      </Button>
                     </div>
-                    <Button variant="outline" onClick={copyToClipboard}>
-                      {isCopied ? (
-                        <span className="text-green-600">Copié!</span>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copier
-                        </>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <p className="mb-4 text-muted-foreground">
+                      <strong>Lien de signature électronique :</strong> Envoyez ce lien pour permettre à votre client de signer l'offre en ligne.
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="flex-1 p-2 border rounded bg-muted truncate">
+                        {signatureUrl}
+                      </div>
+                      <Button variant="outline" onClick={() => copyToClipboard(signatureUrl, setIsCopiedSignature)}>
+                        {isCopiedSignature ? (
+                          <span className="text-green-600">Copié!</span>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copier
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <Button 
+                        variant="default" 
+                        className="w-full"
+                        onClick={shareSignatureLink}
+                        disabled={offer.workflow_status === 'approved'}
+                      >
+                        <Pen className="h-4 w-4 mr-2" />
+                        {offer.workflow_status === 'approved' 
+                          ? "Offre déjà signée" 
+                          : "Envoyer le lien de signature au client"}
+                      </Button>
+                      
+                      {offer.workflow_status === 'approved' && (
+                        <Alert className="mt-4 bg-green-50 border-green-200">
+                          <AlertTitle className="text-green-800">Offre signée</AlertTitle>
+                          <AlertDescription className="text-green-700">
+                            Cette offre a déjà été signée électroniquement
+                            {offer.signer_name ? ` par ${offer.signer_name}` : ""}.
+                          </AlertDescription>
+                        </Alert>
                       )}
-                    </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Summary */}
             <div className="space-y-6">
               <Card>
                 <CardHeader>

@@ -48,6 +48,7 @@ import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage
 import AmbassadorLayout from "./components/layout/AmbassadorLayout";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
+import SignOffer from "./pages/client/SignOffer";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +70,9 @@ function App() {
             <Routes location={location} key={location.pathname}>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              
+              {/* Page de signature d'offre - accessible sans authentification */}
+              <Route path="/client/sign-offer/:id" element={<SignOffer />} />
               
               {/* Routes Admin */}
               <Route path="/" element={<Layout />}>
