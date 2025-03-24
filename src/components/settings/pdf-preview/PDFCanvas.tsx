@@ -292,10 +292,10 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
               </div>
             )}
             
-            {/* Ajout d'un cadre pour la signature et la date */}
+            {/* Cadre pour la signature du client - ajouté sous le total mensualité */}
             <div style={{
               position: "absolute",
-              bottom: `${40 * zoomLevel}mm`,
+              top: `${180 * zoomLevel}mm`,
               right: `${20 * zoomLevel}mm`,
               width: `${80 * zoomLevel}mm`,
               border: "1px solid #ced4da",
@@ -360,7 +360,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
             left: 0, 
             right: 0,
             padding: `${5 * zoomLevel}px`,
-            paddingBottom: `${25 * zoomLevel}px`
+            paddingBottom: `${10 * zoomLevel}px`
           }}>
             <div className="text-center" style={{ 
               borderTop: "1px solid #e5e7eb", 
