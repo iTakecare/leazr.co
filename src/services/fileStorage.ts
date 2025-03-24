@@ -89,6 +89,75 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
 };
 
 /**
+ * Liste les fichiers dans un bucket
+ * @param bucketName Nom du bucket
+ * @param path Chemin optionnel dans le bucket
+ * @returns Liste des fichiers ou null en cas d'erreur
+ */
+export const listFiles = async (bucketName: string, path: string = ''): Promise<any[] | null> => {
+  try {
+    console.log(`Listage des fichiers dans ${bucketName}/${path}`);
+    
+    // Vérifier la connexion au stockage
+    const isConnected = await checkStorageConnection();
+    if (!isConnected) {
+      console.warn("Stockage Supabase non disponible, impossible de lister les fichiers");
+      return null;
+    }
+    
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .list(path);
+    
+    if (error) {
+      console.error("Erreur lors du listage des fichiers:", error);
+      return null;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Exception lors du listage des fichiers:", error);
+    return null;
+  }
+};
+
+/**
+ * Supprime un fichier dans un bucket
+ * @param bucketName Nom du bucket
+ * @param filePath Chemin du fichier à supprimer
+ * @returns true si la suppression a réussi, false sinon
+ */
+export const deleteFile = async (bucketName: string, filePath: string): Promise<boolean> => {
+  try {
+    console.log(`Suppression du fichier ${bucketName}/${filePath}`);
+    
+    // Vérifier la connexion au stockage
+    const isConnected = await checkStorageConnection();
+    if (!isConnected) {
+      console.warn("Stockage Supabase non disponible, impossible de supprimer le fichier");
+      return false;
+    }
+    
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .remove([filePath]);
+    
+    if (error) {
+      console.error("Erreur lors de la suppression du fichier:", error);
+      return false;
+    }
+    
+    console.log(`Fichier ${filePath} supprimé avec succès`);
+    return true;
+  } catch (error) {
+    console.error("Exception lors de la suppression du fichier:", error);
+    return false;
+  }
+};
+
+/**
  * Télécharge un fichier dans un bucket spécifié
  * Cette fonction vérifie d'abord si le bucket existe avant de tenter l'upload
  */
@@ -162,5 +231,7 @@ export const uploadFile = async (
 export default {
   checkStorageConnection,
   ensureBucket,
-  uploadFile
+  uploadFile,
+  listFiles,
+  deleteFile
 };
