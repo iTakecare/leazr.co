@@ -152,3 +152,18 @@ export const formatDistanceToNow = (date: Date): string => {
   const diffInYears = Math.floor(diffInMonths / 12);
   return `${diffInYears} an${diffInYears > 1 ? 's' : ''}`;
 };
+
+// Format spécifique pour mensualité
+export const formatMonthlyPayment = (value: number | string): string => {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(numValue)) return '0,00 € / mois';
+  
+  const formatted = new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(numValue);
+  
+  return `${formatted} / mois`;
+};

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -6,11 +7,12 @@ import {
   saveOfferSignature, 
   isOfferSigned 
 } from "@/services/offers/offerSignature";
+import { generateAndDownloadOfferPdf } from "@/services/offers/offerPdf";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import SignaturePad from "@/components/signature/SignaturePad";
-import { AlertCircle, Check, CheckCircle, FileText, Info } from "lucide-react";
+import { AlertCircle, Check, CheckCircle, FileText, Info, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
@@ -37,6 +39,7 @@ const SignOffer = () => {
   const [isSigning, setIsSigning] = useState(false);
   const [signed, setSigned] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
+  const [isPrintingPdf, setIsPrintingPdf] = useState(false);
   
   useEffect(() => {
     const fetchOffer = async () => {
@@ -111,6 +114,20 @@ const SignOffer = () => {
     }
   };
   
+  const handlePrintPdf = async () => {
+    if (!id) return;
+    
+    try {
+      setIsPrintingPdf(true);
+      await generateAndDownloadOfferPdf(id);
+    } catch (err) {
+      console.error("Erreur lors de la génération du PDF:", err);
+      toast.error("Une erreur s'est produite lors de la génération du PDF.");
+    } finally {
+      setIsPrintingPdf(false);
+    }
+  };
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -162,13 +179,32 @@ const SignOffer = () => {
             <h1 className="text-2xl font-bold">Offre de leasing</h1>
             <p className="text-gray-500">Référence: {id?.substring(0, 8).toUpperCase()}</p>
           </div>
-          <div>
+          <div className="flex gap-2 items-center">
             <Badge 
               variant={signed ? "secondary" : "outline"} 
               className={signed ? "bg-green-50 text-green-700 border-green-200" : ""}
             >
               {signed ? "Signée" : "En attente de signature"}
             </Badge>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handlePrintPdf}
+              disabled={isPrintingPdf}
+            >
+              {isPrintingPdf ? (
+                <span className="flex items-center">
+                  <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></span>
+                  Génération...
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <Printer className="mr-2 h-4 w-4" />
+                  Imprimer PDF
+                </span>
+              )}
+            </Button>
           </div>
         </div>
         
@@ -327,8 +363,18 @@ const SignOffer = () => {
                 <FileText className="inline h-4 w-4 mr-1" />
                 Une confirmation a été envoyée par email
               </div>
-              <Button variant="outline" onClick={() => window.print()}>
-                Imprimer
+              <Button variant="outline" onClick={handlePrintPdf} disabled={isPrintingPdf}>
+                {isPrintingPdf ? (
+                  <span className="flex items-center">
+                    <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></span>
+                    Génération...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <Printer className="mr-2 h-4 w-4" />
+                    Imprimer
+                  </span>
+                )}
               </Button>
             </CardFooter>
           )}
