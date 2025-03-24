@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { PDFTemplate } from "./PDFTemplateManager";
+import { PDFTemplate } from "@/utils/templateManager";
 
 interface PDFCompanyInfoProps {
   template: PDFTemplate;
