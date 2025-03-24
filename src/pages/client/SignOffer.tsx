@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -11,7 +10,7 @@ import { generateAndDownloadOfferPdf } from "@/services/offers/offerPdf";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import SignaturePad from "@/components/signature/SignaturePad";
+import SignatureCanvas from "@/components/signature/SignaturePad";
 import { AlertCircle, Check, CheckCircle, FileText, Info, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -55,7 +54,6 @@ const SignOffer = () => {
         setError(null);
         setDebugInfo(`Tentative de chargement de l'offre: ${id}`);
         
-        // Vérifie si l'offre est déjà signée
         let alreadySigned = false;
         try {
           alreadySigned = await isOfferSigned(id);
@@ -68,7 +66,6 @@ const SignOffer = () => {
           setDebugInfo(prev => `${prev}\nErreur vérification signature: ${JSON.stringify(signedErr)}`);
         }
         
-        // Récupère les données de l'offre avec gestion d'erreur améliorée
         try {
           setDebugInfo(prev => `${prev}\nRécupération des données d'offre...`);
           const offerData = await getOfferForClient(id);
@@ -95,12 +92,10 @@ const SignOffer = () => {
             setDebugInfo(prev => `${prev}\nOffre contient déjà une signature`);
           }
           
-          // S'il y a des données mais pas de signature_data, vérifions le workflow_status
           if (offerData.workflow_status === 'approved' && !offerData.signature_data) {
             setSigned(true);
             setDebugInfo(prev => `${prev}\nOffre marquée comme approuvée sans signature`);
           }
-          
         } catch (dataErr: any) {
           console.error("Erreur détaillée lors de la récupération des données:", dataErr);
           setError(dataErr?.message || "Impossible de récupérer les détails de cette offre.");
@@ -143,6 +138,10 @@ const SignOffer = () => {
           workflow_status: 'approved'
         });
         
+        setTimeout(() => {
+          handlePrintPdf();
+        }, 1500);
+        
         console.log("Signature enregistrée avec succès");
       } else {
         console.error("Échec de l'enregistrement de la signature");
@@ -170,48 +169,6 @@ const SignOffer = () => {
       setIsPrintingPdf(false);
     }
   };
-  
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement de votre offre...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (error || !offer) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-        <div className="max-w-md w-full">
-          <Card>
-            <CardHeader className="text-center">
-              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-2" />
-              <CardTitle>Offre non disponible</CardTitle>
-              <CardDescription>
-                {error || "Cette offre n'existe pas ou n'est plus disponible."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {debugInfo && (
-                <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-700 whitespace-pre-wrap">
-                  <p className="font-bold mb-1">Informations de débogage:</p>
-                  {debugInfo}
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button onClick={() => window.location.href = "/"}>
-                Retour à l'accueil
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      </div>
-    );
-  }
   
   const formatDate = (dateString: string) => {
     if (!dateString) return "Date inconnue";
@@ -470,7 +427,7 @@ const SignOffer = () => {
                   </p>
                 </div>
                 
-                <SignaturePad 
+                <SignatureCanvas 
                   onSave={handleSignature}
                   disabled={isSigning}
                   height={200}
