@@ -16,6 +16,8 @@ export const sendEmail = async (
   textContent?: string
 ): Promise<boolean> => {
   try {
+    console.log("Début de la procédure d'envoi d'email à:", to);
+    
     // Récupérer les paramètres SMTP
     const { data: smtpSettings, error: settingsError } = await supabase
       .from('smtp_settings')
@@ -25,8 +27,16 @@ export const sendEmail = async (
       
     if (settingsError || !smtpSettings || !smtpSettings.enabled) {
       console.error("Erreur ou paramètres SMTP non disponibles:", settingsError);
+      toast.error("Paramètres SMTP non configurés ou non activés");
       return false;
     }
+    
+    console.log("Paramètres SMTP récupérés:", {
+      host: smtpSettings.host,
+      port: smtpSettings.port,
+      from_email: smtpSettings.from_email,
+      enabled: smtpSettings.enabled
+    });
     
     // Appeler la fonction Supabase pour envoyer l'email
     const { data, error } = await supabase.functions.invoke('send-email', {
@@ -50,14 +60,16 @@ export const sendEmail = async (
     });
 
     if (error) {
-      console.error("Erreur lors de l'envoi de l'email:", error);
+      console.error("Erreur lors de l'appel de la fonction send-email:", error);
+      toast.error(`Erreur d'envoi d'email: ${error.message || "Erreur inconnue"}`);
       return false;
     }
     
-    console.log("Email envoyé avec succès:", data);
+    console.log("Email envoyé avec succès, réponse:", data);
     return true;
   } catch (error) {
-    console.error("Erreur lors de l'envoi de l'email:", error);
+    console.error("Exception lors de l'envoi de l'email:", error);
+    toast.error(`Exception lors de l'envoi d'email: ${error instanceof Error ? error.message : "Erreur inconnue"}`);
     return false;
   }
 };

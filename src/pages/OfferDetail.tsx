@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import { contractStatuses, updateContractStatus, getContractWorkflowLogs, addTra
 import { Progress } from "@/components/ui/progress";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
+import { sendOfferSignatureEmail } from "@/services/offers/offerSignature";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +38,8 @@ const OfferDetail = () => {
   const [carrier, setCarrier] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [infoRequestDialogOpen, setInfoRequestDialogOpen] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(false);
+
   const fetchOfferDetails = async () => {
     if (!id) return;
     
@@ -232,7 +233,31 @@ const OfferDetail = () => {
     // Email sending functionality to be implemented here
   };
   
-  // Fixed missing function - This handles sending information requests
+  const handleSendSignatureEmail = async () => {
+    if (!offer?.id) return;
+    
+    setIsLoading(true);
+    try {
+      toast.info("Envoi de l'email de signature en cours...");
+      const success = await sendOfferSignatureEmail(offer.id);
+      
+      if (success) {
+        toast.success("Email de signature envoyé avec succès");
+        // Mettre à jour le statut de l'offre si nécessaire
+        if (offer.workflow_status === 'draft') {
+          setOffer(prev => prev ? { ...prev, workflow_status: 'sent' } : prev);
+        }
+      } else {
+        toast.error("Échec de l'envoi de l'email de signature");
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'envoi de l'email de signature:", error);
+      toast.error("Erreur lors de l'envoi de l'email de signature");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const handleRequestInfo = async (requestedDocs: string[], customMessage: string) => {
     if (!offer) return;
     
@@ -420,7 +445,6 @@ const OfferDetail = () => {
             onClick: () => openStatusChangeDialog(OFFER_STATUSES.FINANCED.id),
           });
           
-          // Add request info option in leaser_review stage
           actions.push({
             label: "Demander des infos",
             icon: HelpCircle,
@@ -989,6 +1013,16 @@ const OfferDetail = () => {
         onSendRequest={handleRequestInfo}
         offerId={offer?.id || ''}
       />
+      
+      <Button 
+        variant="outline" 
+        onClick={handleSendSignatureEmail}
+        disabled={isLoading || !offer.client_email || offer.workflow_status === 'approved'}
+        className="flex items-center"
+      >
+        <Send className="mr-2 h-4 w-4" />
+        Envoyer l'email de signature
+      </Button>
     </PageTransition>
   );
 };

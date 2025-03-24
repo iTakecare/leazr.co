@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
@@ -46,8 +45,8 @@ interface OffersTableProps {
   offers: any[];
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   onDeleteOffer: (offerId: string) => Promise<void>;
-  onResendOffer?: (offerId: string) => void;
-  onDownloadPdf?: (offerId: string) => void;
+  onResendOffer?: (offerId: string) => Promise<boolean | void>;
+  onDownloadPdf?: (offerId: string) => Promise<void>;
   isUpdatingStatus: boolean;
 }
 
@@ -62,6 +61,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   const navigate = useNavigate();
   const { isAdmin, isAmbassador } = useAuth();
   const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
+  const [sendingEmailId, setSendingEmailId] = React.useState<string | null>(null);
 
   if (!offers.length) {
     return (
@@ -89,6 +89,17 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   const handleSendToClient = async (offerId: string) => {
     await onStatusChange(offerId, "sent");
+  };
+
+  const handleResendToClient = async (offerId: string) => {
+    if (onResendOffer) {
+      setSendingEmailId(offerId);
+      try {
+        await onResendOffer(offerId);
+      } finally {
+        setSendingEmailId(null);
+      }
+    }
   };
 
   const handleCopyOnlineOfferLink = (offerId: string) => {
@@ -197,10 +208,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           </DropdownMenuItem>
                         )}
                         
-                        {onResendOffer && offer.workflow_status === "sent" && !isAmbassador() && (
-                          <DropdownMenuItem onClick={() => onResendOffer(offer.id)}>
+                        {onResendOffer && !isAmbassador() && (
+                          <DropdownMenuItem 
+                            onClick={() => handleResendToClient(offer.id)}
+                            disabled={sendingEmailId === offer.id}
+                          >
                             <Send className="mr-2 h-4 w-4" />
-                            Renvoyer
+                            {sendingEmailId === offer.id ? "Envoi en cours..." : "Envoyer email de signature"}
                           </DropdownMenuItem>
                         )}
                         

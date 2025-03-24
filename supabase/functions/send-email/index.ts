@@ -37,10 +37,28 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject, html, text, from, smtp } = await req.json() as EmailRequest;
+    // Récupération et validation des données
+    const requestData = await req.json();
+    console.log("Données de la requête reçues:", {
+      to: requestData.to,
+      subject: requestData.subject,
+      from: requestData.from?.email,
+      smtp_host: requestData.smtp?.host
+    });
+    
+    const { to, subject, html, text, from, smtp } = requestData as EmailRequest;
 
     // Validation des entrées
-    if (!to || !subject || !html || !from.email || !smtp.host || !smtp.username) {
+    if (!to || !subject || !html || !from?.email || !smtp?.host || !smtp?.username) {
+      console.error("Paramètres d'email incomplets:", {
+        to_present: !!to,
+        subject_present: !!subject,
+        html_present: !!html,
+        from_email_present: !!from?.email,
+        smtp_host_present: !!smtp?.host,
+        smtp_username_present: !!smtp?.username
+      });
+      
       return new Response(
         JSON.stringify({ error: "Paramètres d'email incomplets" }),
         {
@@ -67,13 +85,15 @@ serve(async (req) => {
     });
 
     // Envoyer l'email
-    await client.send({
+    const sendResult = await client.send({
       from: `${from.name} <${from.email}>`,
       to: to,
       subject: subject,
       content: text,
       html: html,
     });
+    
+    console.log("Résultat de l'envoi:", sendResult);
 
     // Fermer la connexion
     await client.close();
@@ -91,7 +111,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message || "Erreur lors de l'envoi de l'email",
-        details: error.toString() 
+        details: error.toString(),
+        stack: error.stack 
       }),
       {
         status: 500,

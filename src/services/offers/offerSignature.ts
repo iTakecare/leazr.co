@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { sendEmail } from "@/services/emailService";
@@ -205,6 +206,13 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
       console.error("Email du client manquant pour l'offre:", offerId);
       throw new Error("L'email du client est requis pour envoyer l'invitation de signature");
     }
+
+    console.log("Détails de l'offre récupérés:", {
+      id: offer.id,
+      client_name: offer.client_name,
+      client_email: offer.client_email,
+      workflow_status: offer.workflow_status
+    });
     
     // Vérifier si l'offre est déjà signée
     if (offer.workflow_status === 'approved') {
@@ -230,6 +238,7 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
     
     // 3. Générer le lien de signature
     const signatureLink = generateSignatureLink(offerId);
+    console.log("Lien de signature généré:", signatureLink);
     
     // 4. Formater la description de l'équipement pour l'affichage dans l'email
     let equipmentDescription = "Voir les détails dans le lien ci-dessous";
@@ -317,6 +326,8 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
       </body>
       </html>
     `;
+
+    console.log("Envoi de l'email à:", offer.client_email);
     
     const success = await sendEmail(
       offer.client_email,
@@ -326,17 +337,14 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
     
     if (success) {
       console.log("Email de signature envoyé avec succès à:", offer.client_email);
-      toast.success("Email de signature envoyé avec succès");
       return true;
     } else {
       console.error("Échec de l'envoi de l'email de signature");
-      toast.error("Échec de l'envoi de l'email de signature");
       return false;
     }
     
   } catch (error) {
     console.error("Erreur lors de l'envoi de l'email de signature:", error);
-    toast.error("Erreur lors de l'envoi de l'email de signature");
     return false;
   }
 };
