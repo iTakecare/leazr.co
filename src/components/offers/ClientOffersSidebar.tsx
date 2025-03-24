@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
@@ -12,8 +12,6 @@ import {
   FileText 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type ClientOffer = {
@@ -42,7 +40,10 @@ const ClientOffersSidebar: React.FC<ClientOffersSidebarProps> = ({
 
   useEffect(() => {
     const fetchClientOffers = async () => {
-      if (!clientEmail) return;
+      if (!clientEmail) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -116,7 +117,7 @@ const ClientOffersSidebar: React.FC<ClientOffersSidebarProps> = ({
     );
   }
 
-  if (!offers.length) {
+  if (!offers || offers.length === 0) {
     return (
       <div className="w-64 h-full border-r bg-gray-50 p-4 flex flex-col">
         <h3 className="font-medium mb-4">Vos offres</h3>

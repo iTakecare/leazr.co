@@ -182,8 +182,8 @@ const SignOffer = () => {
   };
   
   let equipmentDisplay = "Équipement non détaillé";
-  try {
-    if (offer.equipment_description) {
+  if (offer && offer.equipment_description) {
+    try {
       if (typeof offer.equipment_description === 'string') {
         if (offer.equipment_description.startsWith('[') || offer.equipment_description.startsWith('{')) {
           try {
@@ -213,15 +213,13 @@ const SignOffer = () => {
       } else if (typeof offer.equipment_description === 'object' && offer.equipment_description !== null) {
         equipmentDisplay = JSON.stringify(offer.equipment_description);
       }
+    } catch (e) {
+      console.error("Erreur lors du parsing de l'équipement:", e);
+      equipmentDisplay = typeof offer.equipment_description === 'string' 
+        ? offer.equipment_description 
+        : "Équipement non détaillé (erreur de format)";
     }
-  } catch (e) {
-    console.error("Erreur lors du parsing de l'équipement:", e);
-    equipmentDisplay = typeof offer.equipment_description === 'string' 
-      ? offer.equipment_description 
-      : "Équipement non détaillé (erreur de format)";
   }
-  
-  console.log("Rendu de l'offre:", offer?.id, "Statut:", offer?.workflow_status);
   
   if (loading) {
     return (

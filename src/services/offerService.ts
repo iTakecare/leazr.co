@@ -4,3 +4,4 @@
 export * from './offers';
 export * from './offers/offerDetail';
 export * from './offers/offerPdf';
+export * from './offers/offerSignature';
