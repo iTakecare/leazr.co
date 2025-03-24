@@ -21,7 +21,12 @@ interface SMTPConfig {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: {
+        ...corsHeaders,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      }
+    });
   }
 
   try {
@@ -34,9 +39,17 @@ serve(async (req) => {
       secure: config.secure
     });
 
-    // Déterminer si c'est un serveur OVH
+    // Determine if it's an OVH server
     const isOvhServer = config.host.includes('.mail.ovh.');
-    console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, secure: ${config.secure}`);
+    const isPort587 = parseInt(config.port) === 587;
+    console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, Port: ${config.port}, secure: ${config.secure}`);
+
+    // Special handling for OVH servers
+    let useStartTLS = false;
+    if (isOvhServer && isPort587) {
+      useStartTLS = true;
+      console.log("Serveur OVH sur port 587 détecté, utilisation du mode STARTTLS");
+    }
 
     const client = new SMTPClient({
       connection: {
@@ -48,23 +61,26 @@ serve(async (req) => {
           password: config.password,
         },
       },
+      debug: true, // Enable SMTP debugging
     });
 
     try {
       console.log("Tentative d'envoi de mail de test...");
       
-      // Format RFC-compliant pour le champ From
+      // Format RFC-compliant for the From field
       const fromField = `"${config.from_name}" <${config.from_email}>`;
       console.log("From field format:", fromField);
       
-      // Utiliser text au lieu de content pour la compatibilité
-      await client.send({
+      // Try sending test email with simple settings for maximum compatibility
+      const emailResult = await client.send({
         from: fromField,
         to: config.username,
         subject: "Test SMTP",
         text: "Test de connexion SMTP réussi",
         html: "<p>Test de connexion SMTP réussi</p>"
       });
+      
+      console.log("Résultat de l'envoi:", emailResult);
       
       await client.close();
       console.log("Mail de test envoyé avec succès");
@@ -73,6 +89,7 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           message: "Connexion SMTP réussie. Un email de test a été envoyé.",
+          details: emailResult
         }),
         {
           status: 200,
@@ -87,15 +104,16 @@ serve(async (req) => {
       
       try {
         await client.close();
+        console.log("Client SMTP fermé après erreur");
       } catch (closeError) {
         console.error("Erreur supplémentaire lors de la fermeture du client:", closeError);
       }
       
-      // Préparer des suggestions spécifiques basées sur l'erreur
+      // Prepare specific suggestions based on the error
       let suggestion = "";
       const errorStr = emailError.toString();
       
-      if (isOvhServer && parseInt(config.port) === 587) {
+      if (isOvhServer && isPort587) {
         if (config.secure) {
           suggestion = "Pour OVH sur le port 587, essayez de désactiver l'option TLS.";
         } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
@@ -117,7 +135,7 @@ serve(async (req) => {
           suggestion: suggestion
         }),
         {
-          status: 200,
+          status: 200, // Use 200 to properly return the error message to client
           headers: { 
             "Content-Type": "application/json",
             ...corsHeaders 

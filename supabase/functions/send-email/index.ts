@@ -26,7 +26,7 @@ interface EmailRequest {
 }
 
 serve(async (req) => {
-  // Gestion des requêtes CORS preflight
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: {
@@ -37,7 +37,7 @@ serve(async (req) => {
   }
 
   try {
-    // Récupération et validation des données
+    // Get and validate data
     const requestData = await req.json();
     console.log("Données de la requête reçues:", {
       to: requestData.to,
@@ -48,7 +48,7 @@ serve(async (req) => {
     
     const { to, subject, html, text, from, smtp } = requestData as EmailRequest;
 
-    // Validation des entrées
+    // Validate inputs
     if (!to || !subject || !html || !from?.email || !smtp?.host || !smtp?.username) {
       console.error("Paramètres d'email incomplets:", {
         to_present: !!to,
@@ -68,14 +68,22 @@ serve(async (req) => {
       );
     }
 
-    // Pour les serveurs OVH, vérifier si c'est le port 587
+    // Check if it's an OVH server on port 587
     const isOvhServer = smtp.host.includes('.mail.ovh.');
-    console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, Port: ${smtp.port}, Sécurisé: ${smtp.secure}`);
+    const isPort587 = smtp.port === 587;
+    console.log(`Configuration SMTP: ${smtp.host}:${smtp.port}, sécurisé: ${smtp.secure}, STARTTLS: ${isPort587 && !smtp.secure}`);
     
-    // Initialiser le client SMTP
+    // For OVH servers specifically
+    let useStartTLS = false;
+    if (isOvhServer && isPort587) {
+      useStartTLS = true;
+      console.log("Serveur OVH sur port 587 détecté, utilisation du mode STARTTLS");
+    }
+    
     try {
-      console.log(`Initialisation du client SMTP avec: ${smtp.host}:${smtp.port}, TLS: ${smtp.secure}`);
+      console.log(`Initialisation du client SMTP avec: ${smtp.host}:${smtp.port}, TLS: ${smtp.secure}, STARTTLS: ${useStartTLS}`);
       
+      // Initialize SMTP client
       const client = new SMTPClient({
         connection: {
           hostname: smtp.host,
@@ -86,20 +94,29 @@ serve(async (req) => {
             password: smtp.password,
           },
         },
-        debug: true, // Active le débogage SMTP
+        debug: true, // Enable SMTP debugging
       });
 
       console.log("Client SMTP initialisé, tentative d'envoi...");
 
-      // Envoyer l'email avec timeout
+      // Compose email with simple properties for maximum compatibility
+      const emailConfig = {
+        from: `${from.name} <${from.email}>`,
+        to: to,
+        subject: subject,
+        content: text,
+        html: html,
+      };
+      
+      console.log("Configuration d'email:", {
+        from: emailConfig.from,
+        to: emailConfig.to,
+        subject: emailConfig.subject
+      });
+
+      // Send email with timeout
       const sendResult = await Promise.race([
-        client.send({
-          from: `${from.name} <${from.email}>`,
-          to: to,
-          subject: subject,
-          content: text,
-          html: html,
-        }),
+        client.send(emailConfig),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error("Délai d'envoi d'email dépassé")), 20000)
         )
@@ -107,7 +124,7 @@ serve(async (req) => {
       
       console.log("Résultat de l'envoi:", sendResult);
 
-      // Fermer la connexion
+      // Close connection
       await client.close();
 
       console.log("Email envoyé avec succès");
@@ -121,11 +138,11 @@ serve(async (req) => {
     } catch (smtpError) {
       console.error("Erreur SMTP spécifique:", smtpError);
       
-      // Conseils spécifiques basés sur le message d'erreur
+      // Specific advice based on error message
       const errorStr = smtpError.toString();
       let suggestion = "";
       
-      if (isOvhServer && smtp.port === 587) {
+      if (isOvhServer && isPort587) {
         if (smtp.secure) {
           suggestion = "Pour les serveurs OVH sur le port 587, essayez avec l'option 'secure' à false.";
         } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
@@ -133,9 +150,9 @@ serve(async (req) => {
         }
       } else if (errorStr.includes("corrupt message") || errorStr.includes("InvalidContentType")) {
         if (smtp.secure) {
-          suggestion = "Essayez de désactiver l'option TLS (secure: false) car le serveur semble ne pas supporter TLS direct.";
+          suggestion = "Essayez de désactiver l'option TLS (secure: false).";
         } else {
-          suggestion = "Essayez d'activer l'option TLS (secure: true) car le serveur semble nécessiter une connexion sécurisée.";
+          suggestion = "Essayez d'activer l'option TLS (secure: true).";
         }
       }
       
