@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Send, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Mail, Send, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const SmtpSettings = () => {
@@ -116,6 +116,9 @@ const SmtpSettings = () => {
     }));
   };
 
+  // Vérifier si les paramètres correspondent à OVH
+  const isOvhHost = settings.host?.includes('.mail.ovh.');
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -144,6 +147,16 @@ const SmtpSettings = () => {
             notamment pour les demandes d'informations complémentaires.
           </AlertDescription>
         </Alert>
+
+        {isOvhHost && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertTitle>Paramètres OVH détectés</AlertTitle>
+            <AlertDescription>
+              Pour les serveurs OVH sur le port 587, il est recommandé d'activer l'option "Connexion sécurisée (TLS)".
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

@@ -42,7 +42,8 @@ export const sendEmail = async (
       host: smtpSettings.host,
       port: smtpSettings.port,
       from_email: smtpSettings.from_email,
-      enabled: smtpSettings.enabled
+      enabled: smtpSettings.enabled,
+      secure: smtpSettings.secure
     });
     
     // Vérifier que tous les paramètres SMTP requis sont présents
@@ -61,6 +62,8 @@ export const sendEmail = async (
     
     // Appeler la fonction Supabase pour envoyer l'email
     try {
+      console.log("Préparation de l'appel à la fonction send-email");
+      
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           to,
@@ -89,6 +92,20 @@ export const sendEmail = async (
           : String(error);
           
         toast.error(`Erreur d'envoi d'email: ${errorMessage}`);
+        return false;
+      }
+      
+      if (data && data.error) {
+        console.error("Erreur retournée par la fonction send-email:", data.error);
+        let errorMsg = "Erreur d'envoi d'email";
+        
+        if (data.suggestion) {
+          errorMsg += `: ${data.suggestion}`;
+        } else if (data.message) {
+          errorMsg += `: ${data.message}`;
+        }
+        
+        toast.error(errorMsg);
         return false;
       }
       

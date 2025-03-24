@@ -68,7 +68,11 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Configuration SMTP: ${smtp.host}:${smtp.port}, sécurisé: ${smtp.secure}`);
+    // Pour les serveurs OVH sur le port 587, il faut utiliser STARTTLS
+    // Modification importante: le port 587 nécessite généralement STARTTLS mais pas TLS direct
+    const isStartTLS = smtp.port === 587 && !smtp.secure;
+    
+    console.log(`Configuration SMTP: ${smtp.host}:${smtp.port}, sécurisé: ${smtp.secure}, STARTTLS: ${isStartTLS}`);
     console.log(`Envoi d'email à: ${to}, de: ${from.email} (${from.name})`);
 
     // Initialiser le client SMTP avec les paramètres détaillés et timeout
@@ -77,7 +81,10 @@ serve(async (req) => {
         connection: {
           hostname: smtp.host,
           port: smtp.port,
+          // Si on utilise le port 587, on utilise STARTTLS même si secure est false
           tls: smtp.secure,
+          // Important: ne pas forcer TLS directement sur le port 587
+          // On laisse STARTTLS se faire automatiquement
           auth: {
             username: smtp.username,
             password: smtp.password,
@@ -85,6 +92,8 @@ serve(async (req) => {
         },
         debug: true, // Active le débogage SMTP
       });
+
+      console.log("Client SMTP initialisé, tentative d'envoi...");
 
       // Envoyer l'email avec timeout
       const sendResult = await Promise.race([
@@ -96,7 +105,7 @@ serve(async (req) => {
           html: html,
         }),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Délai d'envoi d'email dépassé")), 15000)
+          setTimeout(() => reject(new Error("Délai d'envoi d'email dépassé")), 20000)
         )
       ]);
       
@@ -115,11 +124,23 @@ serve(async (req) => {
       );
     } catch (smtpError) {
       console.error("Erreur SMTP spécifique:", smtpError);
+      
+      // Vérifier si l'erreur est liée à TLS
+      const errorStr = smtpError.toString();
+      let suggestion = "";
+      
+      if (errorStr.includes("BadResource") && errorStr.includes("startTls")) {
+        suggestion = "Problème avec la connexion TLS. Pour OVH sur le port 587, essayez avec l'option 'secure' à true.";
+      } else if (errorStr.includes("invalid cmd")) {
+        suggestion = "Commande SMTP invalide. Vérifiez les paramètres de connexion et les credentials.";
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: "Erreur de connexion SMTP",
-          details: smtpError.toString(),
-          message: smtpError.message
+          details: errorStr,
+          message: smtpError.message,
+          suggestion: suggestion
         }),
         {
           status: 500,
