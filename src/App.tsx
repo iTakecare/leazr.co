@@ -1,7 +1,6 @@
 
 import React from "react";
 import {
-  BrowserRouter as Router,
   Route,
   Routes,
 } from "react-router-dom";
@@ -18,25 +17,18 @@ import PartnerOfferDetail from "./pages/PartnerOfferDetail";
 import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import ClientRequestsPage from "./pages/ClientRequestsPage";
 import ClientOfferSignPage from "./pages/ClientOfferSignPage";
-
-// Create placeholder components for missing pages
-const Home = () => <div>Home Page</div>;
-const Register = () => <div>Register Page</div>;
-const ForgotPassword = () => <div>Forgot Password Page</div>;
-const ResetPassword = () => <div>Reset Password Page</div>;
-const CRM = () => <div>CRM Page</div>;
-
-// Simple RequireAuth component
-const RequireAuth = ({ children }: { children: React.ReactNode }) => {
-  // In a real app, this would check authentication state
-  return <>{children}</>;
-};
+import Home from "./pages/Home";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import CRM from "./pages/CRM";
+import RequireAuth from "./components/auth/RequireAuth";
 
 function App() {
   return (
-    <Router>
-      <ThemeProvider defaultTheme="light" storageKey="itakecare-theme">
-        <TooltipProvider>
+    <ThemeProvider defaultTheme="light" storageKey="itakecare-theme">
+      <TooltipProvider>
+        <AuthProvider>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
@@ -58,9 +50,9 @@ function App() {
             <Route path="/client/offers/:id" element={<ClientOfferSignPage />} />
           </Routes>
           <Toaster />
-        </TooltipProvider>
-      </ThemeProvider>
-    </Router>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   );
 }
 
