@@ -63,10 +63,9 @@ export const getPublicOfferById = async (offerId: string) => {
   }
 };
 
-/**
- * Vérifie si une offre est signée.
- */
-export const isOfferSigned = async (offerId: string): Promise<boolean> => {
+// This function is no longer exported from this file to avoid duplicate exports
+// It's kept here for internal use only
+const _isOfferSigned = async (offerId: string): Promise<boolean> => {
   try {
     const offer = await getPublicOfferById(offerId);
     if (!offer) return false;

@@ -6,4 +6,5 @@ export * from './offers/offerDetail';
 export * from './offers/offerPdf';
 export * from './offers/offerSignature';
 export * from './offers/offerCheck';
-export * from './offers/offerPublicAccess';
+// Export all from offerPublicAccess except isOfferSigned which is already exported from offerSignature
+export { getPublicOfferById } from './offers/offerPublicAccess';

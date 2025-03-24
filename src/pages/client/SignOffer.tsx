@@ -67,10 +67,12 @@ const SignOffer = () => {
       setDebugInfo(`Tentative #${attemptNumber} - ID: ${id}`);
       
       // Nouvelle stratégie optimisée: utiliser la fonction dédiée
+      console.log(`Récupération de l'offre avec ID: ${id} (tentative #${attemptNumber})`);
       let offerData = await getPublicOfferById(id);
       
       if (!offerData) {
         setDebugInfo(prev => `${prev}\nÉchec de la récupération dédiée, essai des méthodes alternatives...`);
+        console.log(`Échec getPublicOfferById pour ID: ${id}, essai alternatives`);
         
         // Stratégie 1: Utiliser la fonction normale de récupération
         offerData = await getOfferForClient(id);
@@ -78,18 +80,21 @@ const SignOffer = () => {
         // Stratégie 2: Utiliser la fonction de récupération simplifiée si la 1ère échoue
         if (!offerData) {
           setDebugInfo(prev => `${prev}\nEssai méthode basique...`);
+          console.log(`Échec getOfferForClient pour ID: ${id}, essai getBasicOfferById`);
           offerData = await getBasicOfferById(id);
         }
         
         // Stratégie 3: Utiliser la récupération brute en dernier recours
         if (!offerData) {
           setDebugInfo(prev => `${prev}\nEssai méthode brute...`);
+          console.log(`Échec getBasicOfferById pour ID: ${id}, essai getRawOfferData`);
           offerData = await getRawOfferData(id);
         }
         
         // Stratégie 4: Requête Supabase directe, sans intermédiaire
         if (!offerData) {
           setDebugInfo(prev => `${prev}\nEssai requête Supabase directe...`);
+          console.log(`Échec getRawOfferData pour ID: ${id}, essai requête directe`);
           
           try {
             const { data: directData, error: directError } = await supabase.rpc(
@@ -99,17 +104,49 @@ const SignOffer = () => {
             
             if (directError) {
               setDebugInfo(prev => `${prev}\nErreur RPC: ${directError.message}`);
+              console.error(`Erreur RPC pour ID: ${id}:`, directError.message);
             } else if (directData) {
               offerData = directData;
               setDebugInfo(prev => `${prev}\nOffre récupérée via RPC`);
+              console.log(`Offre ${id} récupérée via RPC directe`);
             }
           } catch (e) {
-            setDebugInfo(prev => `${prev}\nException RPC: ${e.message}`);
+            const errorMsg = e instanceof Error ? e.message : String(e);
+            setDebugInfo(prev => `${prev}\nException RPC: ${errorMsg}`);
+            console.error(`Exception lors de la RPC directe pour ID: ${id}:`, errorMsg);
+          }
+        }
+
+        // Stratégie 5: Requête Supabase directe avec client admin, dernier recours
+        if (!offerData) {
+          setDebugInfo(prev => `${prev}\nEssai requête Supabase admin directe...`);
+          console.log(`Aucune méthode n'a fonctionné pour ID: ${id}, essai admin direct`);
+          
+          try {
+            const { data: adminData, error: adminError } = await adminSupabase
+              .from('offers')
+              .select('*')
+              .eq('id', id)
+              .maybeSingle();
+            
+            if (adminError) {
+              setDebugInfo(prev => `${prev}\nErreur requête admin: ${adminError.message}`);
+              console.error(`Erreur requête admin pour ID: ${id}:`, adminError.message);
+            } else if (adminData) {
+              offerData = adminData;
+              setDebugInfo(prev => `${prev}\nOffre récupérée via requête admin directe`);
+              console.log(`Offre ${id} récupérée via requête admin directe`);
+            }
+          } catch (e) {
+            const errorMsg = e instanceof Error ? e.message : String(e);
+            setDebugInfo(prev => `${prev}\nException requête admin: ${errorMsg}`);
+            console.error(`Exception lors de la requête admin pour ID: ${id}:`, errorMsg);
           }
         }
       }
       
       if (offerData) {
+        console.log(`Offre ${id} trouvée:`, offerData);
         setOffer(offerData);
         if (offerData.client_name) {
           setSignerName(offerData.client_name);
@@ -120,6 +157,7 @@ const SignOffer = () => {
         }
         setDebugInfo(prev => `${prev}\nOffre trouvée avec succès!`);
       } else {
+        console.error(`Aucune offre trouvée avec l'ID: ${id} après toutes les tentatives`);
         setError(`Aucune offre trouvée avec l'ID: ${id}`);
         setDebugInfo(prev => `${prev}\nAucune offre trouvée après toutes les tentatives`);
       }
