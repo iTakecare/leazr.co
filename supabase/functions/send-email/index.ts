@@ -68,23 +68,19 @@ serve(async (req) => {
       );
     }
 
-    // Pour les serveurs OVH sur le port 587, il faut utiliser STARTTLS
-    // Modification importante: le port 587 nécessite généralement STARTTLS mais pas TLS direct
-    const isStartTLS = smtp.port === 587 && !smtp.secure;
+    // Pour les serveurs OVH, vérifier si c'est le port 587
+    const isOvhServer = smtp.host.includes('.mail.ovh.');
+    console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, Port: ${smtp.port}, Sécurisé: ${smtp.secure}`);
     
-    console.log(`Configuration SMTP: ${smtp.host}:${smtp.port}, sécurisé: ${smtp.secure}, STARTTLS: ${isStartTLS}`);
-    console.log(`Envoi d'email à: ${to}, de: ${from.email} (${from.name})`);
-
-    // Initialiser le client SMTP avec les paramètres détaillés et timeout
+    // Initialiser le client SMTP
     try {
+      console.log(`Initialisation du client SMTP avec: ${smtp.host}:${smtp.port}, TLS: ${smtp.secure}`);
+      
       const client = new SMTPClient({
         connection: {
           hostname: smtp.host,
           port: smtp.port,
-          // Si on utilise le port 587, on utilise STARTTLS même si secure est false
           tls: smtp.secure,
-          // Important: ne pas forcer TLS directement sur le port 587
-          // On laisse STARTTLS se faire automatiquement
           auth: {
             username: smtp.username,
             password: smtp.password,
@@ -125,14 +121,22 @@ serve(async (req) => {
     } catch (smtpError) {
       console.error("Erreur SMTP spécifique:", smtpError);
       
-      // Vérifier si l'erreur est liée à TLS
+      // Conseils spécifiques basés sur le message d'erreur
       const errorStr = smtpError.toString();
       let suggestion = "";
       
-      if (errorStr.includes("BadResource") && errorStr.includes("startTls")) {
-        suggestion = "Problème avec la connexion TLS. Pour OVH sur le port 587, essayez avec l'option 'secure' à true.";
-      } else if (errorStr.includes("invalid cmd")) {
-        suggestion = "Commande SMTP invalide. Vérifiez les paramètres de connexion et les credentials.";
+      if (isOvhServer && smtp.port === 587) {
+        if (smtp.secure) {
+          suggestion = "Pour les serveurs OVH sur le port 587, essayez avec l'option 'secure' à false.";
+        } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
+          suggestion = "Pour les serveurs OVH sur le port 587, essayez avec l'option 'secure' à true.";
+        }
+      } else if (errorStr.includes("corrupt message") || errorStr.includes("InvalidContentType")) {
+        if (smtp.secure) {
+          suggestion = "Essayez de désactiver l'option TLS (secure: false) car le serveur semble ne pas supporter TLS direct.";
+        } else {
+          suggestion = "Essayez d'activer l'option TLS (secure: true) car le serveur semble nécessiter une connexion sécurisée.";
+        }
       }
       
       return new Response(

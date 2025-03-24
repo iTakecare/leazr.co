@@ -99,6 +99,9 @@ const SmtpSettings = () => {
         toast.success(data.message);
       } else {
         toast.error(data.message);
+        if (data.suggestion) {
+          toast.info(data.suggestion);
+        }
       }
     } catch (error) {
       console.error("Erreur lors du test SMTP:", error);
@@ -118,6 +121,7 @@ const SmtpSettings = () => {
 
   // Vérifier si les paramètres correspondent à OVH
   const isOvhHost = settings.host?.includes('.mail.ovh.');
+  const isPort587 = settings.port === "587";
 
   if (loading) {
     return (
@@ -148,12 +152,13 @@ const SmtpSettings = () => {
           </AlertDescription>
         </Alert>
 
-        {isOvhHost && (
+        {isOvhHost && isPort587 && (
           <Alert className="bg-blue-50 border-blue-200">
             <Info className="h-4 w-4 text-blue-600" />
-            <AlertTitle>Paramètres OVH détectés</AlertTitle>
+            <AlertTitle>Configuration OVH</AlertTitle>
             <AlertDescription>
-              Pour les serveurs OVH sur le port 587, il est recommandé d'activer l'option "Connexion sécurisée (TLS)".
+              Pour les serveurs OVH sur le port 587, l'option "Connexion sécurisée (TLS)" peut devoir être {settings.secure ? "désactivée" : "activée"} 
+              selon la configuration de votre serveur. Si l'envoi de mail échoue, essayez de {settings.secure ? "désactiver" : "activer"} cette option.
             </AlertDescription>
           </Alert>
         )}

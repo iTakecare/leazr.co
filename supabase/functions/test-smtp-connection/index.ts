@@ -34,6 +34,10 @@ serve(async (req) => {
       secure: config.secure
     });
 
+    // Déterminer si c'est un serveur OVH
+    const isOvhServer = config.host.includes('.mail.ovh.');
+    console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, secure: ${config.secure}`);
+
     const client = new SMTPClient({
       connection: {
         hostname: config.host,
@@ -87,11 +91,30 @@ serve(async (req) => {
         console.error("Erreur supplémentaire lors de la fermeture du client:", closeError);
       }
       
+      // Préparer des suggestions spécifiques basées sur l'erreur
+      let suggestion = "";
+      const errorStr = emailError.toString();
+      
+      if (isOvhServer && parseInt(config.port) === 587) {
+        if (config.secure) {
+          suggestion = "Pour OVH sur le port 587, essayez de désactiver l'option TLS.";
+        } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
+          suggestion = "Pour OVH sur le port 587, essayez d'activer l'option TLS.";
+        }
+      } else if (errorStr.includes("corrupt message") || errorStr.includes("InvalidContentType")) {
+        if (config.secure) {
+          suggestion = "Essayez de désactiver l'option TLS car le serveur semble ne pas la supporter.";
+        } else {
+          suggestion = "Essayez d'activer l'option TLS car le serveur semble la requérir.";
+        }
+      }
+      
       return new Response(
         JSON.stringify({
           success: false,
           message: `Erreur lors de l'envoi de l'email: ${emailError.message}`,
-          details: JSON.stringify(emailError)
+          details: errorStr,
+          suggestion: suggestion
         }),
         {
           status: 200,
