@@ -4,14 +4,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, Plus, RefreshCw } from "lucide-react";
+import { Loader2, Plus, RefreshCw, AlertTriangle } from "lucide-react";
 import { loadTemplate, saveTemplate, PDFTemplate, DEFAULT_TEMPLATE } from "@/utils/templateManager";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import PDFModelUploader from "./PDFModelUploader";
 import PDFTemplateImageUploader from "./PDFTemplateImageUploader";
 import { v4 as uuidv4 } from "uuid";
-import { resetStorageConnection } from "@/services/fileStorage";
+import { resetStorageConnection, checkStorageConnection } from "@/services/fileStorage";
 
 interface PDFTemplateManagerProps {
   templateId: string;
@@ -24,6 +24,7 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
   const [activeTab, setActiveTab] = useState("company");
   const [selectedPage, setSelectedPage] = useState(0);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [checkingStorage, setCheckingStorage] = useState(false);
 
   useEffect(() => {
     const loadTemplateData = async () => {
@@ -34,8 +35,8 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
         setTemplate(templateData);
         console.log("Template chargé:", templateData);
         
-        // Réinitialiser l'erreur de stockage si le chargement réussit
-        setStorageError(null);
+        // Check storage connection once template is loaded
+        await verifyStorageConnection();
       } catch (error) {
         console.error("Erreur lors du chargement du template:", error);
         
@@ -53,6 +54,23 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
 
     loadTemplateData();
   }, [templateId]);
+
+  const verifyStorageConnection = async () => {
+    try {
+      setCheckingStorage(true);
+      const isConnected = await checkStorageConnection();
+      if (!isConnected) {
+        setStorageError("Problème de connexion au stockage Supabase. L'upload d'images pourrait ne pas fonctionner.");
+      } else {
+        setStorageError(null);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification de la connexion au stockage:", error);
+      setStorageError("Erreur lors de la vérification de la connexion au stockage");
+    } finally {
+      setCheckingStorage(false);
+    }
+  };
 
   const handleSaveTemplate = async (updatedTemplate: PDFTemplate) => {
     setSaving(true);
@@ -205,18 +223,26 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
         {storageError && (
           <div className="mt-2 p-3 text-sm bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
             <div className="flex justify-between items-center">
-              <div>
-                <strong>Attention:</strong> Un problème a été détecté avec le stockage Supabase. 
-                L'upload d'images pourrait ne pas fonctionner correctement.
-                Vous pouvez continuer à utiliser les autres fonctionnalités.
+              <div className="flex items-center">
+                <AlertTriangle className="h-4 w-4 mr-2 text-yellow-500" />
+                <div>
+                  <strong>Attention:</strong> Un problème a été détecté avec le stockage Supabase. 
+                  L'upload d'images pourrait ne pas fonctionner correctement.
+                  Vous pouvez continuer à utiliser les autres fonctionnalités.
+                </div>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleRetryConnection}
                 className="ml-2"
+                disabled={checkingStorage}
               >
-                <RefreshCw className="h-3 w-3 mr-1" />
+                {checkingStorage ? (
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                ) : (
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                )}
                 Réessayer
               </Button>
             </div>

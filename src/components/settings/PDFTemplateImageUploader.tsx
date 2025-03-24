@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { TemplateImage as ManagerTemplateImage } from "@/utils/templateManager";
+import { uploadFile, ensureBucket } from "@/services/fileStorage";
+import { v4 as uuidv4 } from "uuid";
 
 // Local TemplateImage type with the url property
 interface TemplateImage extends Omit<ManagerTemplateImage, 'data'> {
@@ -34,6 +36,7 @@ const PDFTemplateImageUploader = ({
       data: img.data
     }))
   );
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     // Update internal state when templateImages changes from parent
@@ -44,7 +47,7 @@ const PDFTemplateImageUploader = ({
     })));
   }, [templateImages]);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -60,25 +63,68 @@ const PDFTemplateImageUploader = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const newImageUrl = e.target?.result as string;
-      const newImage: TemplateImage = {
-        id: crypto.randomUUID(),
-        name: file.name,
-        data: newImageUrl,
-        url: newImageUrl,
-        page: images.length
-      };
+    setUploading(true);
+    toast.info("Chargement de l'image en cours...");
 
-      const updatedImages = [...images, newImage];
-      setImages(updatedImages);
-      onChange(updatedImages);
-      onPageSelect(updatedImages.length - 1);
-      toast.success("Image ajoutée avec succès");
-    };
+    try {
+      // First, try to upload to Supabase Storage
+      const bucketName = 'lovable-uploads';
+      const uniqueId = uuidv4();
+      const filePath = `${uniqueId}.${file.name.split('.').pop()}`;
 
-    reader.readAsDataURL(file);
+      // Ensure bucket exists
+      await ensureBucket(bucketName);
+
+      // Upload file to Supabase
+      const fileUrl = await uploadFile(bucketName, file, filePath);
+      
+      if (fileUrl) {
+        // If Supabase upload succeeds, use the returned URL
+        const newImage: TemplateImage = {
+          id: uniqueId,
+          name: file.name,
+          data: fileUrl,
+          url: fileUrl,
+          page: images.length
+        };
+
+        const updatedImages = [...images, newImage];
+        setImages(updatedImages);
+        onChange(updatedImages);
+        onPageSelect(updatedImages.length - 1);
+        toast.success("Image ajoutée avec succès");
+      } else {
+        // Fall back to FileReader for local handling if Supabase upload fails
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const newImageUrl = e.target?.result as string;
+          const newImage: TemplateImage = {
+            id: uuidv4(),
+            name: file.name,
+            data: newImageUrl,
+            url: newImageUrl,
+            page: images.length
+          };
+
+          const updatedImages = [...images, newImage];
+          setImages(updatedImages);
+          onChange(updatedImages);
+          onPageSelect(updatedImages.length - 1);
+          toast.success("Image ajoutée en mode local");
+        };
+
+        reader.readAsDataURL(file);
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'upload de l'image:", error);
+      toast.error("Erreur lors de l'ajout de l'image. Essayez à nouveau.");
+    } finally {
+      setUploading(false);
+      // Reset the file input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   const handleDeleteImage = (index: number) => {
@@ -114,11 +160,21 @@ const PDFTemplateImageUploader = ({
             accept="image/*"
             className="hidden"
             onChange={handleFileUpload}
+            disabled={uploading}
           />
           <Label htmlFor="image-upload" asChild>
-            <Button variant="outline" className="cursor-pointer">
-              <Upload className="h-4 w-4 mr-2" />
-              Ajouter une image
+            <Button variant="outline" className="cursor-pointer" disabled={uploading}>
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Chargement...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Ajouter une image
+                </>
+              )}
             </Button>
           </Label>
         </div>
