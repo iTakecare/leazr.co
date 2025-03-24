@@ -43,6 +43,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
   const [storageMode, setStorageMode] = useState<'cloud' | 'local'>('cloud');
+  const [reconnecting, setReconnecting] = useState(false);
   
   // Initialisation au montage ou lorsque templateId change
   useEffect(() => {
@@ -62,6 +63,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
         if (bucketReady) {
           console.log("Bucket pdf-templates vérifié avec succès");
           setStorageMode('cloud');
+          toast.success("Connexion au stockage Supabase établie");
         } else {
           console.error("Problème lors de la création/vérification du bucket pdf-templates");
           toast.warning("Stockage en mode local uniquement");
@@ -79,6 +81,37 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       console.error("Erreur lors de l'initialisation:", err);
       setError("Erreur lors de l'initialisation du gestionnaire");
       setLoading(false);
+    }
+  };
+
+  // Fonction pour réessayer la connexion
+  const handleRetryConnection = async () => {
+    try {
+      setReconnecting(true);
+      setError(null);
+      
+      toast.info("Tentative de reconnexion au stockage Supabase...");
+      
+      // Vider le cache de connexion en réinitialisant le statut
+      // @ts-ignore - accès à une variable interne du module
+      window.storageConnectionStatus = 'checking';
+      
+      const bucketReady = await ensureBucket('pdf-templates');
+      
+      if (bucketReady) {
+        console.log("Reconnexion au bucket pdf-templates réussie");
+        setStorageMode('cloud');
+        toast.success("Connexion au stockage Supabase rétablie");
+      } else {
+        console.error("Échec de la reconnexion au bucket");
+        setStorageMode('local');
+        toast.error("Échec de la reconnexion au stockage Supabase");
+      }
+    } catch (err) {
+      console.error("Erreur lors de la tentative de reconnexion:", err);
+      toast.error("Erreur lors de la tentative de reconnexion");
+    } finally {
+      setReconnecting(false);
     }
   };
 
@@ -230,11 +263,20 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
           <Button 
             variant="outline"
             size="sm"
-            onClick={() => initializeStorage()}
-            disabled={loading}
+            onClick={handleRetryConnection}
+            disabled={loading || reconnecting}
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Réessayer la connexion
+            {reconnecting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Reconnexion...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Réessayer la connexion
+              </>
+            )}
           </Button>
           <Button 
             variant="default" 

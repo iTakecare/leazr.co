@@ -56,51 +56,44 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
       return false;
     }
     
-    const supabase = getSupabaseClient();
+    // Utiliser directement le client administrateur pour vérifier les buckets
+    const adminClient = getAdminSupabaseClient();
     
     // Vérifier si le bucket existe
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+    const { data: buckets, error: bucketError } = await adminClient.storage.listBuckets();
     
     if (bucketError) {
-      console.error("Erreur lors de la vérification des buckets:", bucketError);
+      console.error("Erreur lors de la vérification des buckets (admin):", bucketError);
       return false;
     }
     
     const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
     
     if (!bucketExists) {
-      console.log(`Bucket ${bucketName} non trouvé, tentative de création...`);
+      console.log(`Bucket ${bucketName} non trouvé, tentative de création avec client administrateur...`);
       
-      // Première tentative avec le client standard
-      try {
-        const { error: createError } = await supabase.storage.createBucket(bucketName, {
-          public: true
-        });
+      // Utiliser directement le client administrateur pour créer le bucket
+      const { error: adminCreateError } = await adminClient.storage.createBucket(bucketName, {
+        public: true
+      });
+      
+      if (adminCreateError) {
+        console.error(`Erreur lors de la création du bucket ${bucketName} avec le client admin:`, adminCreateError);
         
-        if (createError) {
-          console.warn(`Erreur lors de la création du bucket ${bucketName} avec le client standard:`, createError);
-          
-          // Si la première tentative échoue, essayer avec le client administrateur
-          console.log("Tentative avec le client administrateur...");
-          const adminClient = getAdminSupabaseClient();
-          const { error: adminCreateError } = await adminClient.storage.createBucket(bucketName, {
-            public: true
-          });
-          
-          if (adminCreateError) {
-            console.warn(`Erreur lors de la création du bucket ${bucketName} avec le client administrateur:`, adminCreateError);
-            
-            // Si le client administrateur échoue également, essayer avec l'API REST
-            return await createBucketWithDirectAPI(bucketName);
-          }
-        }
-        
-        console.log(`Bucket ${bucketName} créé avec succès`);
-        return true;
-      } catch (createError) {
-        console.error("Exception lors de la création du bucket:", createError);
-        return false;
+        // Si le client administrateur échoue, essayer avec l'API REST
+        return await createBucketWithDirectAPI(bucketName);
       }
+      
+      // Créer les politiques d'accès
+      try {
+        const result = await createDefaultPolicies(bucketName);
+        console.log(`Politiques pour ${bucketName} créées:`, result);
+      } catch (policyError) {
+        console.warn(`Erreur lors de la création des politiques pour ${bucketName}, mais le bucket est créé:`, policyError);
+      }
+      
+      console.log(`Bucket ${bucketName} créé avec succès`);
+      return true;
     }
     
     console.log(`Bucket ${bucketName} existe déjà`);
@@ -108,6 +101,58 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   } catch (error) {
     console.error("Exception lors de la vérification/création du bucket:", error);
     toast.error(`Problème avec le stockage: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    return false;
+  }
+};
+
+// Créer les politiques par défaut pour un bucket
+const createDefaultPolicies = async (bucketName: string): Promise<boolean> => {
+  try {
+    const adminClient = getAdminSupabaseClient();
+    
+    // Créer politique de lecture (SELECT)
+    const { error: selectError } = await adminClient.rpc('create_storage_policy', {
+      bucket_name: bucketName,
+      policy_name: `${bucketName}_public_select`,
+      definition: 'TRUE',
+      policy_type: 'SELECT'
+    });
+    
+    if (selectError) console.warn("Erreur création politique SELECT:", selectError);
+    
+    // Créer politique d'écriture (INSERT)
+    const { error: insertError } = await adminClient.rpc('create_storage_policy', {
+      bucket_name: bucketName,
+      policy_name: `${bucketName}_public_insert`,
+      definition: 'TRUE',
+      policy_type: 'INSERT'
+    });
+    
+    if (insertError) console.warn("Erreur création politique INSERT:", insertError);
+    
+    // Créer politique de mise à jour (UPDATE)
+    const { error: updateError } = await adminClient.rpc('create_storage_policy', {
+      bucket_name: bucketName,
+      policy_name: `${bucketName}_public_update`,
+      definition: 'TRUE',
+      policy_type: 'UPDATE'
+    });
+    
+    if (updateError) console.warn("Erreur création politique UPDATE:", updateError);
+    
+    // Créer politique de suppression (DELETE)
+    const { error: deleteError } = await adminClient.rpc('create_storage_policy', {
+      bucket_name: bucketName,
+      policy_name: `${bucketName}_public_delete`,
+      definition: 'TRUE',
+      policy_type: 'DELETE'
+    });
+    
+    if (deleteError) console.warn("Erreur création politique DELETE:", deleteError);
+    
+    return true;
+  } catch (error) {
+    console.error("Exception lors de la création des politiques:", error);
     return false;
   }
 };
