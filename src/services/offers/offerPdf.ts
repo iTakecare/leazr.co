@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { loadTemplate } from "@/utils/templateManager";
@@ -14,15 +13,14 @@ export const getOfferDataForPdf = async (offerId: string) => {
     console.log("Récupération des données de l'offre:", offerId);
     
     // Récupérer l'offre avec les données client associées
+    // Modification de la requête pour ne sélectionner que les champs qui existent
     const { data, error } = await supabase
       .from('offers')
       .select(`
         *,
         clients:client_id (
           id, 
-          name, 
-          first_name,
-          last_name,
+          name,
           email, 
           company,
           phone,

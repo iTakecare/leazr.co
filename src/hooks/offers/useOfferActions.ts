@@ -78,11 +78,18 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   const handleDownloadPdf = async (id: string) => {
     try {
       setIsGeneratingPdf(true);
+      toast.info("Génération du PDF en cours...");
       
       const offer = offers.find(o => o.id === id);
       if (!offer) throw new Error("Offre non trouvée");
       
-      await generateAndDownloadOfferPdf(id);
+      const filename = await generateAndDownloadOfferPdf(id);
+      
+      if (filename) {
+        toast.success(`PDF généré avec succès: ${filename}`);
+      } else {
+        throw new Error("Erreur lors de la génération du PDF");
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Erreur lors de la génération du PDF");
