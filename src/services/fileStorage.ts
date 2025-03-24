@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 
 /**
- * Service amélioré de gestion des fichiers avec Supabase Storage
- * avec mode local amélioré
+ * Service de gestion des fichiers avec Supabase Storage uniquement
+ * Sans fallback en mode local
  */
 
 // Variable pour suivre l'état de connexion à Supabase Storage
@@ -14,7 +14,6 @@ let bucketStatusCache: Record<string, boolean> = {};
 
 /**
  * Vérifie la connexion à Supabase Storage
- * Cette fonction est simplifiée pour éviter les erreurs de permission
  */
 export const checkStorageConnection = async (): Promise<boolean> => {
   try {
@@ -32,13 +31,14 @@ export const checkStorageConnection = async (): Promise<boolean> => {
     
     const supabase = getSupabaseClient();
     
-    // Essayer une approche simple: obtenir la liste des buckets
+    // Essayer d'obtenir la liste des buckets
     try {
       const { data, error } = await supabase.storage.listBuckets();
       
       if (error) {
         console.error("Erreur lors de la vérification des buckets:", error);
         storageConnectionStatus = 'disconnected';
+        toast.error("Erreur de connexion au stockage Supabase. Veuillez réessayer.");
         return false;
       }
       
@@ -56,11 +56,13 @@ export const checkStorageConnection = async (): Promise<boolean> => {
     } catch (listError) {
       console.error("Erreur lors de la vérification des buckets:", listError);
       storageConnectionStatus = 'disconnected';
+      toast.error("Erreur de connexion au stockage Supabase. Veuillez réessayer.");
       return false;
     }
   } catch (error) {
     console.error("Exception lors de la vérification de la connexion à Supabase Storage:", error);
     storageConnectionStatus = 'disconnected';
+    toast.error("Erreur de connexion au stockage Supabase. Veuillez réessayer.");
     return false;
   }
 };
@@ -79,7 +81,6 @@ export const resetStorageConnection = async (): Promise<boolean> => {
 
 /**
  * Vérifie si un bucket existe - cette fonction n'essaie plus de créer des buckets
- * car cela nécessite des permissions que l'utilisateur pourrait ne pas avoir
  */
 export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   try {
@@ -95,6 +96,7 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
     const isConnected = await checkStorageConnection();
     if (!isConnected) {
       console.warn("Connexion à Supabase Storage non disponible, opération impossible");
+      toast.error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
       return false;
     }
     
@@ -106,6 +108,7 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
     
     if (bucketError) {
       console.error("Erreur lors de la vérification des buckets:", bucketError);
+      toast.error("Erreur lors de la vérification des buckets de stockage.");
       return false;
     }
     
@@ -113,6 +116,7 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
     
     if (!bucketExists) {
       console.log(`Bucket ${bucketName} non trouvé`);
+      toast.error(`Le bucket ${bucketName} n'existe pas dans Supabase Storage.`);
       return false;
     }
     
@@ -122,15 +126,13 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Exception lors de la vérification du bucket:", error);
+    toast.error("Erreur lors de la vérification du bucket de stockage.");
     return false;
   }
 };
 
 /**
  * Liste les fichiers dans un bucket
- * @param bucketName Nom du bucket
- * @param path Chemin optionnel dans le bucket
- * @returns Liste des fichiers ou null en cas d'erreur
  */
 export const listFiles = async (bucketName: string, path: string = ''): Promise<any[] | null> => {
   try {
@@ -140,6 +142,7 @@ export const listFiles = async (bucketName: string, path: string = ''): Promise<
     const isConnected = await checkStorageConnection();
     if (!isConnected) {
       console.warn("Stockage Supabase non disponible, impossible de lister les fichiers");
+      toast.error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
       return null;
     }
     
@@ -150,21 +153,20 @@ export const listFiles = async (bucketName: string, path: string = ''): Promise<
     
     if (error) {
       console.error("Erreur lors du listage des fichiers:", error);
+      toast.error("Erreur lors du listage des fichiers.");
       return null;
     }
     
     return data || [];
   } catch (error) {
     console.error("Exception lors du listage des fichiers:", error);
+    toast.error("Erreur lors du listage des fichiers.");
     return null;
   }
 };
 
 /**
  * Supprime un fichier dans un bucket
- * @param bucketName Nom du bucket
- * @param filePath Chemin du fichier à supprimer
- * @returns true si la suppression a réussi, false sinon
  */
 export const deleteFile = async (bucketName: string, filePath: string): Promise<boolean> => {
   try {
@@ -174,6 +176,7 @@ export const deleteFile = async (bucketName: string, filePath: string): Promise<
     const isConnected = await checkStorageConnection();
     if (!isConnected) {
       console.warn("Stockage Supabase non disponible, impossible de supprimer le fichier");
+      toast.error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
       return false;
     }
     
@@ -184,6 +187,7 @@ export const deleteFile = async (bucketName: string, filePath: string): Promise<
     
     if (error) {
       console.error("Erreur lors de la suppression du fichier:", error);
+      toast.error("Erreur lors de la suppression du fichier.");
       return false;
     }
     
@@ -191,28 +195,17 @@ export const deleteFile = async (bucketName: string, filePath: string): Promise<
     return true;
   } catch (error) {
     console.error("Exception lors de la suppression du fichier:", error);
+    toast.error("Erreur lors de la suppression du fichier.");
     return false;
   }
 };
 
 /**
- * Génère une URL pour un fichier local (data URL)
- * @param file Fichier à convertir en data URL
- */
-export const createLocalFileUrl = async (file: File): Promise<string> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.readAsDataURL(file);
-  });
-};
-
-/**
- * Télécharge un fichier dans un bucket spécifié ou crée un data URL en mode local
+ * Télécharge un fichier dans un bucket spécifié
  * @param bucketName Nom du bucket
  * @param file Fichier à télécharger
  * @param customPath Chemin personnalisé (optionnel)
- * @returns URL du fichier téléchargé ou data URL en mode local
+ * @returns URL du fichier téléchargé ou null si erreur
  */
 export const uploadFile = async (
   bucketName: string,
@@ -223,17 +216,17 @@ export const uploadFile = async (
     // Vérifier la connexion au stockage
     const isConnected = await checkStorageConnection();
     if (!isConnected) {
-      console.log("Mode local activé: création d'une data URL pour le fichier");
-      toast.info("Stockage en mode local: l'image sera disponible uniquement localement");
-      return createLocalFileUrl(file);
+      console.warn("Stockage Supabase non disponible, upload impossible");
+      toast.error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
+      return null;
     }
     
     // S'assurer que le bucket existe
     const bucketExists = await ensureBucket(bucketName);
     if (!bucketExists) {
       console.error(`Le bucket ${bucketName} n'existe pas ou n'est pas accessible`);
-      toast.warning("Stockage en ligne non disponible, l'image sera sauvegardée localement uniquement");
-      return createLocalFileUrl(file);
+      toast.error(`Le bucket ${bucketName} n'existe pas dans Supabase Storage.`);
+      return null;
     }
     
     // Générer un nom de fichier unique
@@ -257,9 +250,7 @@ export const uploadFile = async (
     if (error) {
       console.error("Erreur lors de l'upload:", error);
       toast.error(`Erreur lors de l'upload: ${error.message}`);
-      
-      // Fallback en mode local
-      return createLocalFileUrl(file);
+      return null;
     }
     
     // Récupérer l'URL publique
@@ -269,9 +260,7 @@ export const uploadFile = async (
   } catch (error) {
     console.error("Exception lors de l'upload:", error);
     toast.error(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-    
-    // Fallback en mode local
-    return createLocalFileUrl(file);
+    return null;
   }
 };
 
@@ -282,6 +271,5 @@ export default {
   ensureBucket,
   uploadFile,
   listFiles,
-  deleteFile,
-  createLocalFileUrl
+  deleteFile
 };

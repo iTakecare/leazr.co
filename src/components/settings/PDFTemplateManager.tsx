@@ -42,7 +42,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
-  const [storageMode, setStorageMode] = useState<'cloud' | 'local'>('local'); // Default to local mode
   const [reconnecting, setReconnecting] = useState(false);
   const [templateExists, setTemplateExists] = useState(false);
   const [templateName, setTemplateName] = useState<string | undefined>(undefined);
@@ -64,17 +63,20 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
         const isConnected = await checkStorageConnection();
         if (isConnected) {
           console.log("Connexion au stockage Supabase établie");
-          setStorageMode('cloud');
           toast.success("Connexion au stockage Supabase établie");
         } else {
           console.log("Stockage Supabase non disponible");
-          setStorageMode('local');
-          toast.info("Mode stockage local activé");
+          setError("Connexion au stockage Supabase impossible. Veuillez réessayer.");
+          toast.error("Connexion au stockage Supabase impossible.");
+          setLoading(false);
+          return;
         }
       } catch (storageError) {
         console.error("Erreur avec le stockage:", storageError);
-        setStorageMode('local');
-        toast.info("Mode stockage local activé");
+        setError("Erreur lors de la connexion au stockage Supabase.");
+        toast.error("Erreur lors de la connexion au stockage Supabase.");
+        setLoading(false);
+        return;
       }
       
       // Charger le modèle spécifié
@@ -99,17 +101,19 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       
       if (isConnected) {
         console.log("Connexion au stockage Supabase établie");
-        setStorageMode('cloud');
         toast.success("Connexion au stockage Supabase établie");
+        
+        // Recharger le modèle
+        await loadTemplate(templateId);
       } else {
         console.log("Stockage Supabase non disponible");
-        setStorageMode('local');
-        toast.info("Mode stockage local activé");
+        setError("Connexion au stockage Supabase impossible. Veuillez réessayer.");
+        toast.error("Connexion au stockage Supabase impossible.");
       }
     } catch (err) {
       console.error("Erreur lors de la tentative de connexion:", err);
-      setStorageMode('local');
-      toast.error("Échec de la connexion au stockage Supabase");
+      setError("Erreur lors de la tentative de connexion au stockage Supabase.");
+      toast.error("Erreur lors de la tentative de connexion au stockage Supabase.");
     } finally {
       setReconnecting(false);
     }
@@ -180,6 +184,12 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     try {
       console.log(`Sauvegarde du modèle: ${updatedTemplate.id}`, updatedTemplate);
       
+      // Vérifier la connexion au stockage
+      const isConnected = await checkStorageConnection();
+      if (!isConnected) {
+        throw new Error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
+      }
+      
       // S'assurer que les tableaux sont initialisés
       const sanitizedTemplate: PDFTemplate = {
         ...updatedTemplate,
@@ -200,7 +210,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       toast.success("Modèle sauvegardé avec succès");
     } catch (err) {
       console.error("Erreur lors de la sauvegarde du modèle:", err);
-      setError("Erreur lors de la sauvegarde du modèle");
+      setError("Erreur lors de la sauvegarde du modèle: " + (err instanceof Error ? err.message : "Erreur inconnue"));
       toast.error("Erreur lors de la sauvegarde du modèle");
     } finally {
       setSaving(false);
@@ -237,7 +247,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   
   // Fonction pour réessayer en cas d'erreur
   const handleRetry = () => {
-    loadTemplate(templateId);
+    initializeStorage();
   };
 
   return (
@@ -249,11 +259,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
               ? "Chargement du modèle..." 
               : `Modèle: ${templateName || 'Non défini'}`}
           </CardTitle>
-          {storageMode === 'local' && (
-            <p className="text-sm text-amber-500 mt-1">
-              Mode stockage local - Les images ne seront pas sauvegardées en ligne
-            </p>
-          )}
         </div>
         <div className="flex gap-2">
           <Button 
@@ -313,17 +318,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
           </Alert>
         )}
         
-        {storageMode === 'local' && (
-          <Alert variant="warning" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Stockage local uniquement</AlertTitle>
-            <AlertDescription>
-              Le stockage en ligne n'est pas disponible. Les modèles seront sauvegardés localement et 
-              les images ne seront pas persistantes. Vous pouvez cliquer sur "Vérifier le stockage" pour réessayer.
-            </AlertDescription>
-          </Alert>
-        )}
-        
         {loading ? (
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
@@ -331,7 +325,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
               Chargement du modèle...
             </p>
           </div>
-        ) : (
+        ) : template ? (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="company">Informations de l'entreprise</TabsTrigger>
@@ -340,32 +334,34 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
             </TabsList>
             
             <TabsContent value="company" className="mt-6">
-              {template && (
-                <PDFCompanyInfo 
-                  template={template} 
-                  onSave={handleCompanyInfoUpdate} 
-                  loading={saving}
-                />
-              )}
+              <PDFCompanyInfo 
+                template={template} 
+                onSave={handleCompanyInfoUpdate} 
+                loading={saving}
+              />
             </TabsContent>
             
             <TabsContent value="design" className="mt-6">
-              {template && (
-                <PDFTemplateWithFields 
-                  template={template}
-                  onSave={handleTemplateUpdate}
-                />
-              )}
+              <PDFTemplateWithFields 
+                template={template}
+                onSave={handleTemplateUpdate}
+              />
             </TabsContent>
             
             <TabsContent value="preview" className="mt-6">
-              {template && (
-                <PDFPreview 
-                  template={template}
-                />
-              )}
+              <PDFPreview 
+                template={template}
+              />
             </TabsContent>
           </Tabs>
+        ) : (
+          <Alert variant="warning" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Aucun modèle disponible</AlertTitle>
+            <AlertDescription>
+              Impossible de charger le modèle. Veuillez vérifier la connexion au stockage Supabase.
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
     </Card>
