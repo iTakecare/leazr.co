@@ -24,7 +24,10 @@ export const generateOfferPdf = async (offerData) => {
       html2canvas: { 
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        windowWidth: 1024,
+        scrollY: 0,
+        scrollX: 0
       },
       jsPDF: { 
         unit: 'mm', 
@@ -33,12 +36,15 @@ export const generateOfferPdf = async (offerData) => {
         compress: true,
         putOnlyUsedFonts: true
       },
-      pagebreak: { mode: 'avoid-all' } // Éviter les sauts de page automatiques
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Éviter les sauts de page automatiques
     };
     
-    // Créer un div temporaire pour le rendu
+    // Créer un div temporaire pour le rendu avec une hauteur fixe
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
+    tempDiv.style.height = '297mm'; // Hauteur A4
+    tempDiv.style.width = '210mm';  // Largeur A4
+    tempDiv.style.position = 'relative';
     document.body.appendChild(tempDiv);
     
     // Générer le PDF

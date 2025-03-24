@@ -60,19 +60,26 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   }, 0);
   
   return (
-    <div className="bg-white" style={{ width: '100%', height: '100%', maxWidth: '210mm', margin: '0 auto', position: 'relative' }}>
+    <div className="bg-white" style={{ width: '100%', minHeight: '100vh', maxWidth: '210mm', margin: '0 auto', position: 'relative' }}>
       {/* Header - Utilisation de la couleur #2C3E50 comme demandé */}
       <header style={{ backgroundColor: '#2C3E50', color: 'white', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/lovable-uploads/ab61c43e-1329-4395-90e1-e2180961eb89.png" alt="iTakecare Logo" style={{ height: '40px' }} />
+          <img src="/lovable-uploads/7e711eae-90de-40ce-806c-21ffa5c9d7b6.png" alt="iTakecare Logo" style={{ height: '40px' }} />
         </div>
         <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
-          OFFRE N° {offerId}
+          VOTRE OFFRE PERSONNALISÉE
         </div>
       </header>
       
       {/* Main Content */}
       <main style={{ padding: '20px' }}>
+        {/* Reference Information */}
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+            OFFRE N° {offerId}
+          </h1>
+        </div>
+      
         {/* Client Information and Reference */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px' }}>
           <div>
@@ -137,8 +144,8 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         </div>
       </main>
       
-      {/* Footer - Maintenant positionné en bas absolu de la page */}
-      <footer style={{ position: 'absolute', bottom: '0', left: '0', right: '0', textAlign: 'center', padding: '20px 0' }}>
+      {/* Footer - Positionnement absolu en bas de la page */}
+      <footer style={{ position: 'absolute', bottom: '0', left: '0', right: '0', width: '100%', textAlign: 'center', padding: '20px 0', backgroundColor: 'white' }}>
         <p style={{ fontWeight: '500', marginBottom: '16px' }}>
           Cette offre est valable 30 jours à compter de sa date d'émission.
         </p>
