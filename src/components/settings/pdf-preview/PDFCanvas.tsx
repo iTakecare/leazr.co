@@ -293,17 +293,18 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
             )}
           </div>
           
-          {/* Footer section - always at bottom of page */}
+          {/* Footer section - positioned at the very bottom of page */}
           <div className="w-full" style={{ 
             position: "absolute", 
             bottom: 0, 
             left: 0, 
             right: 0,
-            padding: `${10 * zoomLevel}px`
+            padding: `${5 * zoomLevel}px`,
+            paddingBottom: `${15 * zoomLevel}px`
           }}>
             <div className="text-center" style={{ 
               borderTop: "1px solid #e5e7eb", 
-              paddingTop: `${10 * zoomLevel}px`
+              paddingTop: `${8 * zoomLevel}px`
             }}>
               <p className="text-center font-bold" style={{ fontSize: `${10 * zoomLevel}px` }}>
                 {localTemplate?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}
