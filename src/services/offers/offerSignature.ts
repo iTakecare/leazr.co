@@ -39,7 +39,7 @@ export const saveOfferSignature = async (
         reason: `Offre signée électroniquement par ${signerName}`
       });
 
-    if (logError) throw logError;
+    if (logError) console.error("Erreur log:", logError);
 
     return true;
   } catch (error) {
@@ -76,6 +76,8 @@ export const isOfferSigned = async (offerId: string): Promise<boolean> => {
  */
 export const getOfferForClient = async (offerId: string) => {
   try {
+    console.log("Récupération de l'offre pour le client:", offerId);
+    
     const { data, error } = await supabase
       .from('offers')
       .select(`
@@ -95,11 +97,16 @@ export const getOfferForClient = async (offerId: string) => {
       .eq('id', offerId)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erreur Supabase:", error);
+      throw error;
+    }
+    
+    console.log("Données récupérées pour l'offre:", data ? "Offre trouvée" : "Aucune offre trouvée");
     return data;
   } catch (error) {
-    console.error("Erreur lors de la récupération de l'offre:", error);
-    return null;
+    console.error("Erreur détaillée lors de la récupération de l'offre:", error);
+    throw error;
   }
 };
 

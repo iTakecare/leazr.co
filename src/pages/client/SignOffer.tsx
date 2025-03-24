@@ -47,30 +47,47 @@ const SignOffer = () => {
       
       try {
         setLoading(true);
+        setError(null);
         
-        const alreadySigned = await isOfferSigned(id);
-        if (alreadySigned) {
-          setSigned(true);
+        console.log("Tentative de chargement de l'offre:", id);
+        
+        // Vérifie si l'offre est déjà signée
+        try {
+          const alreadySigned = await isOfferSigned(id);
+          if (alreadySigned) {
+            setSigned(true);
+            console.log("Offre déjà signée");
+          }
+        } catch (signedErr) {
+          console.error("Erreur lors de la vérification de signature:", signedErr);
         }
         
-        const offerData = await getOfferForClient(id);
-        if (!offerData) {
-          setError("Cette offre n'existe pas ou n'est plus disponible.");
-          return;
-        }
-        
-        setOffer(offerData);
-        
-        if (offerData.client_name) {
-          setSignerName(offerData.client_name);
-        }
-        
-        if (offerData.signature_data) {
-          setSignature(offerData.signature_data);
-          setSigned(true);
+        // Récupère les données de l'offre
+        try {
+          const offerData = await getOfferForClient(id);
+          console.log("Données d'offre reçues:", offerData ? "OK" : "Aucune donnée");
+          
+          if (!offerData) {
+            setError("Cette offre n'existe pas ou n'est plus disponible.");
+            return;
+          }
+          
+          setOffer(offerData);
+          
+          if (offerData.client_name) {
+            setSignerName(offerData.client_name);
+          }
+          
+          if (offerData.signature_data) {
+            setSignature(offerData.signature_data);
+            setSigned(true);
+          }
+        } catch (dataErr) {
+          console.error("Erreur lors de la récupération des données:", dataErr);
+          setError("Impossible de récupérer les détails de cette offre.");
         }
       } catch (err) {
-        console.error("Erreur lors du chargement de l'offre:", err);
+        console.error("Erreur générale lors du chargement de l'offre:", err);
         setError("Une erreur s'est produite lors du chargement de l'offre.");
       } finally {
         setLoading(false);
@@ -171,6 +188,23 @@ const SignOffer = () => {
     }
   };
   
+  // Analyse de l'equipment_description pour l'affichage
+  let equipmentDisplay = offer.equipment_description;
+  try {
+    if (typeof offer.equipment_description === 'string' && 
+        (offer.equipment_description.startsWith('[') || 
+         offer.equipment_description.startsWith('{'))) {
+      const parsed = JSON.parse(offer.equipment_description);
+      if (Array.isArray(parsed)) {
+        equipmentDisplay = parsed.map(item => item.title).join(", ");
+      } else if (parsed && typeof parsed === 'object') {
+        equipmentDisplay = parsed.title || "Équipement";
+      }
+    }
+  } catch (e) {
+    console.error("Erreur lors du parsing de l'équipement:", e);
+  }
+  
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -247,7 +281,7 @@ const SignOffer = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <Label className="font-medium text-gray-500">Équipement</Label>
-                <p className="mt-1 whitespace-pre-line">{offer.equipment_description}</p>
+                <p className="mt-1 whitespace-pre-line">{equipmentDisplay}</p>
               </div>
               
               <div className="space-y-4">
