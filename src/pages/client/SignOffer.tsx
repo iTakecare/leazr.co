@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import ClientOffersSidebar from "@/components/offers/ClientOffersSidebar";
 
 const SignOffer = () => {
   const { id } = useParams<{ id: string }>();
@@ -264,194 +266,32 @@ const SignOffer = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">Offre de leasing</h1>
-            <p className="text-gray-500">Référence: {id?.substring(0, 8).toUpperCase()}</p>
-          </div>
-          <div className="flex gap-2 items-center">
-            <Badge 
-              variant={signed ? "secondary" : "outline"} 
-              className={signed ? "bg-green-50 text-green-700 border-green-200" : ""}
-            >
-              {signed ? "Signée" : "En attente de signature"}
-            </Badge>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handlePrintPdf}
-              disabled={isPrintingPdf}
-            >
-              {isPrintingPdf ? (
-                <span className="flex items-center">
-                  <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></span>
-                  Génération...
-                </span>
-              ) : (
-                <span className="flex items-center">
-                  <Printer className="mr-2 h-4 w-4" />
-                  Imprimer PDF
-                </span>
-              )}
-            </Button>
-          </div>
-        </div>
-        
-        {signed && (
-          <Alert className="mb-6 bg-green-50 border-green-200">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <AlertTitle>Offre signée</AlertTitle>
-            <AlertDescription>
-              {offer.signer_name ? `Cette offre a été signée par ${offer.signer_name}` : "Cette offre a été signée"} 
-              {offer.signed_at ? ` le ${formatDate(offer.signed_at)}` : "."}
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <Card className="mb-6 overflow-hidden">
-          <CardHeader className="bg-primary/5">
-            <CardTitle>Informations client</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <Label className="font-medium text-gray-500">Nom</Label>
-                <p className="mt-1">{offer.client_name}</p>
-              </div>
-              {offer.client_email && (
-                <div>
-                  <Label className="font-medium text-gray-500">Email</Label>
-                  <p className="mt-1">{offer.client_email}</p>
-                </div>
-              )}
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Client Offers Sidebar */}
+      <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
+      
+      {/* Main Content */}
+      <div className="flex-1 py-8 px-4 overflow-auto">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-2xl font-bold">Offre de leasing</h1>
+              <p className="text-gray-500">Référence: {id?.substring(0, 8).toUpperCase()}</p>
             </div>
-            {offer.clients?.company && (
-              <div className="mt-4">
-                <Label className="font-medium text-gray-500">Entreprise</Label>
-                <p className="mt-1">{offer.clients.company}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card className="mb-6">
-          <CardHeader className="bg-primary/5">
-            <CardTitle>Équipement et financement</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <Label className="font-medium text-gray-500">Équipement</Label>
-                <p className="mt-1 whitespace-pre-line">{equipmentDisplay}</p>
-              </div>
+            <div className="flex gap-2 items-center">
+              <Badge 
+                variant={signed ? "secondary" : "outline"} 
+                className={signed ? "bg-green-50 text-green-700 border-green-200" : ""}
+              >
+                {signed ? "Signée" : "En attente de signature"}
+              </Badge>
               
-              <div className="space-y-4">
-                <div className="bg-blue-50 p-4 rounded-md">
-                  <div className="text-sm text-blue-700 mb-1">Mensualité</div>
-                  <div className="text-2xl font-bold text-blue-700">
-                    {formatCurrency(offer.monthly_payment)}
-                    <span className="text-sm font-normal text-blue-500">/mois</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {offer.remarks && (
-              <>
-                <Separator className="my-6" />
-                <div>
-                  <Label className="font-medium text-gray-500">Remarques</Label>
-                  <p className="mt-1 whitespace-pre-line">{offer.remarks}</p>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card className="mb-6">
-          <CardHeader className="bg-primary/5">
-            <CardTitle>{signed ? "Signature" : "Signer l'offre"}</CardTitle>
-            <CardDescription>
-              {signed 
-                ? "Cette offre a déjà été signée électroniquement."
-                : "Veuillez signer ci-dessous pour accepter l'offre."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            {signed ? (
-              <div className="space-y-4">
-                <div className="border rounded-md overflow-hidden">
-                  <div className="bg-gray-50 p-2 border-b">
-                    <p className="text-sm text-gray-500">Signature</p>
-                  </div>
-                  <div className="p-4 bg-white flex justify-center">
-                    {signature ? (
-                      <img 
-                        src={signature} 
-                        alt="Signature" 
-                        className="max-h-40 object-contain border" 
-                      />
-                    ) : (
-                      <div className="text-gray-400 italic">
-                        Signature électronique vérifiée
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Check className="text-green-500 h-5 w-5" />
-                  <span className="text-sm text-gray-600">
-                    Signé par {offer.signer_name || "le client"} 
-                    {offer.signed_at ? ` le ${formatDate(offer.signed_at)}` : ""}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="signer-name">Votre nom complet</Label>
-                  <Input 
-                    id="signer-name"
-                    value={signerName}
-                    onChange={(e) => setSignerName(e.target.value)}
-                    placeholder="Entrez votre nom complet"
-                    disabled={isSigning}
-                    required
-                  />
-                  <p className="text-xs text-gray-500">
-                    Votre nom sera utilisé comme identification légale pour cette signature électronique.
-                  </p>
-                </div>
-                
-                <SignatureCanvas 
-                  onSave={handleSignature}
-                  disabled={isSigning}
-                  height={200}
-                  className="mt-4"
-                />
-                
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertDescription>
-                    En signant cette offre, vous acceptez les conditions générales de leasing et confirmez
-                    que les informations fournies sont exactes.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-          </CardContent>
-          
-          {signed && (
-            <CardFooter className="border-t bg-gray-50 flex justify-between">
-              <div className="text-sm text-gray-500">
-                <FileText className="inline h-4 w-4 mr-1" />
-                Une confirmation a été envoyée par email
-              </div>
-              <Button variant="outline" onClick={handlePrintPdf} disabled={isPrintingPdf}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handlePrintPdf}
+                disabled={isPrintingPdf}
+              >
                 {isPrintingPdf ? (
                   <span className="flex items-center">
                     <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></span>
@@ -460,13 +300,181 @@ const SignOffer = () => {
                 ) : (
                   <span className="flex items-center">
                     <Printer className="mr-2 h-4 w-4" />
-                    Imprimer
+                    Imprimer PDF
                   </span>
                 )}
               </Button>
-            </CardFooter>
+            </div>
+          </div>
+          
+          {signed && (
+            <Alert className="mb-6 bg-green-50 border-green-200">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <AlertTitle>Offre signée</AlertTitle>
+              <AlertDescription>
+                {offer.signer_name ? `Cette offre a été signée par ${offer.signer_name}` : "Cette offre a été signée"} 
+                {offer.signed_at ? ` le ${formatDate(offer.signed_at)}` : "."}
+              </AlertDescription>
+            </Alert>
           )}
-        </Card>
+          
+          <Card className="mb-6 overflow-hidden">
+            <CardHeader className="bg-primary/5">
+              <CardTitle>Informations client</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <Label className="font-medium text-gray-500">Nom</Label>
+                  <p className="mt-1">{offer.client_name}</p>
+                </div>
+                {offer.client_email && (
+                  <div>
+                    <Label className="font-medium text-gray-500">Email</Label>
+                    <p className="mt-1">{offer.client_email}</p>
+                  </div>
+                )}
+              </div>
+              {offer.clients?.company && (
+                <div className="mt-4">
+                  <Label className="font-medium text-gray-500">Entreprise</Label>
+                  <p className="mt-1">{offer.clients.company}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          <Card className="mb-6">
+            <CardHeader className="bg-primary/5">
+              <CardTitle>Équipement et financement</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <Label className="font-medium text-gray-500">Équipement</Label>
+                  <p className="mt-1 whitespace-pre-line">{equipmentDisplay}</p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-blue-50 p-4 rounded-md">
+                    <div className="text-sm text-blue-700 mb-1">Mensualité</div>
+                    <div className="text-2xl font-bold text-blue-700">
+                      {formatCurrency(offer.monthly_payment)}
+                      <span className="text-sm font-normal text-blue-500">/mois</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {offer.remarks && (
+                <>
+                  <Separator className="my-6" />
+                  <div>
+                    <Label className="font-medium text-gray-500">Remarques</Label>
+                    <p className="mt-1 whitespace-pre-line">{offer.remarks}</p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+          
+          <Card className="mb-6">
+            <CardHeader className="bg-primary/5">
+              <CardTitle>{signed ? "Signature" : "Signer l'offre"}</CardTitle>
+              <CardDescription>
+                {signed 
+                  ? "Cette offre a déjà été signée électroniquement."
+                  : "Veuillez signer ci-dessous pour accepter l'offre."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {signed ? (
+                <div className="space-y-4">
+                  <div className="border rounded-md overflow-hidden">
+                    <div className="bg-gray-50 p-2 border-b">
+                      <p className="text-sm text-gray-500">Signature</p>
+                    </div>
+                    <div className="p-4 bg-white flex justify-center">
+                      {signature ? (
+                        <img 
+                          src={signature} 
+                          alt="Signature" 
+                          className="max-h-40 object-contain border" 
+                        />
+                      ) : (
+                        <div className="text-gray-400 italic">
+                          Signature électronique vérifiée
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Check className="text-green-500 h-5 w-5" />
+                    <span className="text-sm text-gray-600">
+                      Signé par {offer.signer_name || "le client"} 
+                      {offer.signed_at ? ` le ${formatDate(offer.signed_at)}` : ""}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="signer-name">Votre nom complet</Label>
+                    <Input 
+                      id="signer-name"
+                      value={signerName}
+                      onChange={(e) => setSignerName(e.target.value)}
+                      placeholder="Entrez votre nom complet"
+                      disabled={isSigning}
+                      required
+                    />
+                    <p className="text-xs text-gray-500">
+                      Votre nom sera utilisé comme identification légale pour cette signature électronique.
+                    </p>
+                  </div>
+                  
+                  <SignatureCanvas 
+                    onSave={handleSignature}
+                    disabled={isSigning}
+                    height={200}
+                    className="mt-4"
+                  />
+                  
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      En signant cette offre, vous acceptez les conditions générales de leasing et confirmez
+                      que les informations fournies sont exactes.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+            </CardContent>
+            
+            {signed && (
+              <CardFooter className="border-t bg-gray-50 flex justify-between">
+                <div className="text-sm text-gray-500">
+                  <FileText className="inline h-4 w-4 mr-1" />
+                  Une confirmation a été envoyée par email
+                </div>
+                <Button variant="outline" onClick={handlePrintPdf} disabled={isPrintingPdf}>
+                  {isPrintingPdf ? (
+                    <span className="flex items-center">
+                      <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></span>
+                      Génération...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      <Printer className="mr-2 h-4 w-4" />
+                      Imprimer
+                    </span>
+                  )}
+                </Button>
+              </CardFooter>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );
