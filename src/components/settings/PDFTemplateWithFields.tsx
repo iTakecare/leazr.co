@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PDFTemplate } from "./PDFTemplateManager";
+import { PDFTemplate } from "@/utils/templateManager";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,11 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import PDFFieldsEditor from "./PDFFieldsEditor";
 
-interface PDFTemplateWithFieldsProps {
+export interface PDFTemplateWithFieldsProps {
   template: PDFTemplate;
   onSave: (template: PDFTemplate) => void;
+  selectedPage: number;
+  onPageSelect: (page: number) => void;
 }
 
 // Interface pour les images du template
@@ -41,8 +43,7 @@ interface PDFField {
   };
 }
 
-const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps) => {
-  const [selectedPage, setSelectedPage] = useState(0);
+const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }: PDFTemplateWithFieldsProps) => {
   const [activeTab, setActiveTab] = useState("images");
   const [localTemplate, setLocalTemplate] = useState<PDFTemplate>({
     ...template,

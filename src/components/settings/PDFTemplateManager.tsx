@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 import { loadTemplate, saveTemplate, PDFTemplate, DEFAULT_TEMPLATE } from "@/utils/templateManager";
-import PDFModelCompanyInfo from "./PDFCompanyInfo";
+import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import PDFModelUploader from "./PDFModelUploader";
 import PDFTemplateImageUploader from "./PDFTemplateImageUploader";
@@ -173,9 +173,10 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
           </TabsList>
           
           <TabsContent value="company" className="mt-6">
-            <PDFModelCompanyInfo 
-              model={template} 
+            <PDFCompanyInfo 
+              template={template} 
               onSave={handleCompanyInfoUpdate}
+              loading={saving}
             />
           </TabsContent>
           
