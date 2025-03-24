@@ -29,3 +29,50 @@ export function formatCurrency(amount: number | string): string {
     minimumFractionDigits: 2,
   }).format(numericAmount);
 }
+
+// Format de l'équipement pour le PDF
+export function formatEquipmentForPdf(equipmentData: any[] | string): string {
+  try {
+    let equipment;
+    
+    if (typeof equipmentData === 'string') {
+      equipment = JSON.parse(equipmentData);
+    } else {
+      equipment = equipmentData;
+    }
+    
+    if (Array.isArray(equipment) && equipment.length > 0) {
+      // Format spécifique pour le PDF
+      return equipment.map((item: any) => {
+        const title = item.title || 'Produit sans nom';
+        const quantity = item.quantity || 1;
+        const monthlyPayment = parseFloat(item.monthlyPayment) || 0;
+        
+        return `${title}\nQuantité : ${quantity}\nMensualité unitaire : ${formatCurrency(monthlyPayment)}`;
+      }).join('\n\n');
+    }
+    
+    return "Aucun équipement spécifié";
+  } catch (e) {
+    console.error("Erreur lors du formatage de l'équipement pour PDF:", e);
+    return "Erreur de formatage des données d'équipement";
+  }
+}
+
+// Vérifie si une donnée d'équipement est valide
+export function hasValidEquipmentData(data: any): boolean {
+  if (!data) return false;
+  
+  try {
+    let equipment;
+    if (typeof data === 'string') {
+      equipment = JSON.parse(data);
+    } else {
+      equipment = data;
+    }
+    
+    return Array.isArray(equipment) && equipment.length > 0;
+  } catch (e) {
+    return false;
+  }
+}

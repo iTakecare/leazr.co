@@ -3,6 +3,7 @@ import React, { useRef, useEffect, memo } from "react";
 import PageNavigation from "./PageNavigation";
 import PageImage from "./PageImage";
 import PDFFieldDisplay from "../PDFFieldDisplay";
+import { formatCurrency } from "@/lib/utils";
 
 interface PDFCanvasProps {
   localTemplate: any;
@@ -42,6 +43,39 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
                            Array.isArray(localTemplate.templateImages) && 
                            localTemplate.templateImages.length > 0;
 
+  // Prétraitement des données d'équipement pour un meilleur affichage
+  useEffect(() => {
+    if (sampleData?.equipment_description) {
+      try {
+        let equipmentData;
+        
+        if (typeof sampleData.equipment_description === 'string') {
+          equipmentData = JSON.parse(sampleData.equipment_description);
+        } else if (Array.isArray(sampleData.equipment_description)) {
+          equipmentData = sampleData.equipment_description;
+        }
+        
+        if (Array.isArray(equipmentData)) {
+          // Ajouter les prix mensuels calculés si nécessaire
+          sampleData.equipment_data = equipmentData.map(item => ({
+            ...item,
+            purchasePrice: parseFloat(item.purchasePrice) || 0,
+            quantity: parseInt(item.quantity, 10) || 1,
+            margin: parseFloat(item.margin) || 0,
+            // S'assurer que monthlyPayment est défini
+            monthlyPayment: parseFloat(item.monthlyPayment) || 
+                          (sampleData.monthly_payment && equipmentData.length === 1 ? 
+                            parseFloat(sampleData.monthly_payment) : 0)
+          }));
+          
+          console.log("Données d'équipement prétraitées:", sampleData.equipment_data);
+        }
+      } catch (e) {
+        console.error("Erreur lors du prétraitement des données d'équipement:", e);
+      }
+    }
+  }, [sampleData]);
+
   useEffect(() => {
     if (localTemplate?.fields?.length > 0) {
       // Compter les champs avec des positions valides pour cette page
@@ -74,28 +108,38 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
     };
   }, [onDrag, onEndDrag]);
 
-  const formatEquipmentDisplay = (equipmentDescription: string | any[]) => {
+  const formatEquipmentDisplay = (equipmentData: any[] | string) => {
     try {
       let equipment;
       
-      if (typeof equipmentDescription === 'string') {
-        equipment = JSON.parse(equipmentDescription);
+      if (typeof equipmentData === 'string') {
+        equipment = JSON.parse(equipmentData);
       } else {
-        equipment = equipmentDescription;
+        equipment = equipmentData;
       }
       
       if (Array.isArray(equipment) && equipment.length > 0) {
         return equipment.map((item: any, idx: number) => (
-          <div key={idx} className="mb-1">
-            • {item.title}: {item.purchasePrice}€ × {item.quantity} (Marge: {item.margin}%)
+          <div key={idx} className="mb-4 p-3 border border-gray-200 rounded bg-white">
+            <h3 className="font-medium text-base">{item.title}</h3>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <p className="text-xs text-gray-500">Quantité</p>
+                <p className="font-medium">{item.quantity}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Mensualité unitaire</p>
+                <p className="font-medium text-blue-600">{formatCurrency(item.monthlyPayment || 0)}</p>
+              </div>
+            </div>
           </div>
         ));
       }
       
-      return "Aucun équipement spécifié";
+      return <div className="text-gray-500">Aucun équipement spécifié</div>;
     } catch (e) {
       console.error("Erreur lors du formatage de l'équipement:", e);
-      return "Erreur de formatage des données d'équipement";
+      return <div className="text-red-500">Erreur de formatage des données d'équipement</div>;
     }
   };
 
@@ -141,22 +185,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
       
       // Afficher la résolution des valeurs pour le débogage
       if (f.value && typeof f.value === 'string' && f.value.includes('{')) {
-        let resolvedValue = f.value;
-        
-        // Traitement spécial pour l'affichage de l'équipement
-        if (f.value === '{equipment_description}') {
-          resolvedValue = useRealData ? 
-            "Formatage des données d'équipement en temps réel" : 
-            "Données d'équipement d'exemple (formatées pour l'affichage)";
-        } else {
-          // Résoudre les autres variables
-          resolvedValue = f.value.replace(/\{([^}]+)\}/g, (match: string, key: string) => {
-            const value = sampleData[key];
-            return value !== undefined ? String(value) : `[${key} non trouvé]`;
-          });
-        }
-        
-        console.log(`   Valeur résolue: "${resolvedValue}"`);
+        console.log(`   Valeur brute: "${f.value}"`);
       }
     });
     
@@ -253,9 +282,17 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
               {fields.map((field: any) => (
                 <div key={field.id} className="p-1 border-b">
                   <span className="font-bold">{field.label}</span>: {field.value} à ({field.position.x.toFixed(1)}, {field.position.y.toFixed(1)})
-                  {field.id === "equipment_table" && sampleData.equipment_description && (
+                  {field.id === "equipment_table" && (
                     <div className="pl-2 mt-1 text-xs text-gray-600">
-                      {formatEquipmentDisplay(sampleData.equipment_description)}
+                      {sampleData.equipment_data ? (
+                        <div className="my-2">
+                          {formatEquipmentDisplay(sampleData.equipment_data)}
+                        </div>
+                      ) : (
+                        <div>
+                          {formatEquipmentDisplay(sampleData.equipment_description || '[]')}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -270,11 +307,19 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
             <p className="mt-1">Exemple de donnée client: {sampleData.client_name || "Non défini"}</p>
             <p>Page actuelle: {currentPage + 1}</p>
             <p>Champs totaux: {localTemplate?.fields?.length || 0}</p>
-            {sampleData.equipment_description && (
+            {(sampleData.equipment_description || sampleData.equipment_data) && (
               <div className="mt-2">
                 <p className="font-medium">Équipement:</p>
                 <div className="pl-2 mt-1">
-                  {formatEquipmentDisplay(sampleData.equipment_description)}
+                  {sampleData.equipment_data ? (
+                    <div className="my-2">
+                      {formatEquipmentDisplay(sampleData.equipment_data)}
+                    </div>
+                  ) : (
+                    <div>
+                      {formatEquipmentDisplay(sampleData.equipment_description || '[]')}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

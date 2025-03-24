@@ -1,6 +1,7 @@
 
 import React, { useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 interface PDFFieldDisplayProps {
   field: any;
@@ -21,6 +22,11 @@ const resolveFieldValue = (pattern: string, data: any): string => {
     if (!data) {
       console.log("Données invalides lors de la résolution de la valeur du champ", pattern);
       return '[Données manquantes]';
+    }
+    
+    // Cas spécial pour l'équipement
+    if (pattern === '{equipment_description}') {
+      return formatEquipmentData(data.equipment_description, data.equipment_data);
     }
     
     return pattern.replace(/\{([^}]+)\}/g, (match, key) => {
@@ -57,11 +63,57 @@ const resolveFieldValue = (pattern: string, data: any): string => {
         }
       }
       
+      // Si c'est un montant, le formater
+      if (key === 'monthly_payment' || key === 'amount' || key.includes('price')) {
+        try {
+          const num = parseFloat(value);
+          if (!isNaN(num)) {
+            return formatCurrency(num);
+          }
+        } catch (e) {
+          // En cas d'erreur, continuer
+        }
+      }
+      
       return value?.toString() || '[Non disponible]';
     });
   } catch (error) {
     console.error("Erreur lors de la résolution de la valeur:", error);
     return '[Erreur de format]';
+  }
+};
+
+// Fonction pour formater les données d'équipement de manière structurée
+const formatEquipmentData = (equipmentDescription: string | any[], equipmentData?: any[]): string => {
+  try {
+    let equipment;
+    
+    // Utiliser les données traitées si disponibles
+    if (Array.isArray(equipmentData) && equipmentData.length > 0) {
+      equipment = equipmentData;
+    } else if (typeof equipmentDescription === 'string') {
+      equipment = JSON.parse(equipmentDescription);
+    } else if (Array.isArray(equipmentDescription)) {
+      equipment = equipmentDescription;
+    } else {
+      return "Aucun équipement spécifié";
+    }
+    
+    if (Array.isArray(equipment) && equipment.length > 0) {
+      // Format plus structuré pour le PDF
+      return equipment.map((item, index) => {
+        const title = item.title || "Produit sans nom";
+        const quantity = item.quantity || 1;
+        const monthlyPayment = item.monthlyPayment || 0;
+        
+        return `${title}\nQuantité : ${quantity}\nMensualité unitaire : ${formatCurrency(monthlyPayment)}`;
+      }).join('\n\n');
+    }
+    
+    return "Aucun équipement spécifié";
+  } catch (e) {
+    console.error("Erreur lors du formatage de l'équipement:", e);
+    return "Erreur de formatage des données d'équipement";
   }
 };
 
@@ -81,8 +133,9 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
       let displayValue = resolveFieldValue(field.value || '', sampleData);
       console.log(`Valeur résolue: "${displayValue}"`);
       
-      // Limiter la longueur pour l'affichage
-      if (displayValue.length > 50) {
+      // Pour l'aperçu, on peut choisir de limiter ou non la longueur
+      const isEquipmentField = field.value === '{equipment_description}';
+      if (!isEquipmentField && displayValue.length > 50) {
         displayValue = displayValue.substring(0, 47) + '...';
       }
       
@@ -111,7 +164,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
       padding: '1px 3px',
       maxWidth: '200px',
       overflow: 'hidden',
-      whiteSpace: 'nowrap',
+      whiteSpace: field.value === '{equipment_description}' ? 'pre-wrap' : 'nowrap',
       textOverflow: 'ellipsis',
       zIndex: 10
     };
