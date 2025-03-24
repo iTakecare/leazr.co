@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Loader2 } from "lucide-react";
-import { loadPDFTemplate, savePDFTemplate, DEFAULT_TEMPLATE } from "@/utils/pdfTemplateUtils";
+import { loadPDFTemplate, savePDFTemplate, DEFAULT_MODEL } from "@/utils/pdfTemplateUtils";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { AlertCircle } from "lucide-react";
@@ -84,9 +84,9 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       
       if (!data) {
         console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
-        console.log("Modèle par défaut:", DEFAULT_TEMPLATE);
+        console.log("Modèle par défaut:", DEFAULT_MODEL);
         setTemplate({
-          ...DEFAULT_TEMPLATE,
+          ...DEFAULT_MODEL,
           templateImages: [],
           fields: []
         });
@@ -124,7 +124,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       
       // En cas d'erreur, définir quand même un modèle par défaut
       setTemplate({
-        ...DEFAULT_TEMPLATE,
+        ...DEFAULT_MODEL,
         templateImages: [],
         fields: []
       });

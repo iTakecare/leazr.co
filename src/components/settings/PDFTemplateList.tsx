@@ -35,7 +35,8 @@ import {
   getAllPDFTemplates, 
   savePDFTemplate, 
   loadPDFTemplate,
-  DEFAULT_TEMPLATE 
+  DEFAULT_MODEL,
+  deletePDFTemplate
 } from "@/utils/pdfTemplateUtils";
 import { generateTemplateId } from "@/lib/utils";
 
@@ -143,12 +144,9 @@ const PDFTemplateList: React.FC<PDFTemplateListProps> = ({
     }
     
     try {
-      // La suppression complète nécessiterait une fonction backend, pour l'instant nous simulons
-      // en ne rafraîchissant que les templates locaux
-      setTemplates(templates.filter(t => t.id !== templateId));
+      await deletePDFTemplate(templateId);
       toast.success("Modèle supprimé avec succès");
-      
-      // Note: Une vraie implémentation devrait appeler une fonction comme deleteTemplate(templateId)
+      await loadTemplates();
     } catch (error) {
       console.error("Erreur lors de la suppression du template:", error);
       toast.error("Erreur lors de la suppression du modèle");
