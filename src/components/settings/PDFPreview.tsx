@@ -33,27 +33,28 @@ const PDFPreview = ({ template }) => {
         title: "MacBook Pro 16\" M2 Pro",
         purchasePrice: 2399,
         quantity: 1,
-        margin: 15
+        margin: 15,
+        monthlyPayment: 75.0
       },
       {
         title: "Écran Dell 27\" UltraSharp",
         purchasePrice: 399,
         quantity: 2,
-        margin: 20
+        margin: 20,
+        monthlyPayment: 25.0
       },
       {
         title: "Dock USB-C Thunderbolt",
         purchasePrice: 199,
         quantity: 1,
-        margin: 25
+        margin: 25,
+        monthlyPayment: 7.0
       }
     ]),
     amount: 3596,
     monthly_payment: 99.89,
-    coefficient: 1.08,
     created_at: new Date().toISOString(),
     workflow_status: "draft",
-    commission: 250,
     equipment_total: 3350,
     type: "Leasing Matériel IT",
     remarks: "Offre spéciale pour renouvellement parc informatique",
@@ -166,14 +167,6 @@ const PDFPreview = ({ template }) => {
       console.error("Error parsing equipment data:", error);
       return [];
     }
-  };
-
-  const calculateItemTotal = (item) => {
-    const price = parseFloat(item.purchasePrice || 0);
-    const quantity = parseInt(item.quantity || 1);
-    const margin = parseFloat(item.margin || 0) / 100;
-    
-    return price * quantity * (1 + margin);
   };
 
   const calculateItemMonthlyPayment = (item) => {
@@ -445,7 +438,6 @@ const PDFPreview = ({ template }) => {
                       <div className="space-y-1">
                         <p>Montant total: 3 596,00 €</p>
                         <p>Paiement mensuel: 99,89 €</p>
-                        <p>Coefficient: 1.08</p>
                       </div>
                     </div>
                     
@@ -455,33 +447,29 @@ const PDFPreview = ({ template }) => {
                         <thead>
                           <tr className="bg-gray-100">
                             <th className="border p-2 text-left">Désignation</th>
-                            <th className="border p-2 text-right">Prix unitaire</th>
                             <th className="border p-2 text-center">Qté</th>
-                            <th className="border p-2 text-center">Marge</th>
-                            <th className="border p-2 text-right">Total</th>
+                            <th className="border p-2 text-right">Mensualité</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr>
                             <td className="border p-2">MacBook Pro 16" M2 Pro</td>
-                            <td className="border p-2 text-right">2 399,00 €</td>
                             <td className="border p-2 text-center">1</td>
-                            <td className="border p-2 text-center">15%</td>
-                            <td className="border p-2 text-right">2 758,85 €</td>
+                            <td className="border p-2 text-right">75,00 €</td>
                           </tr>
                           <tr>
                             <td className="border p-2">Écran Dell 27" UltraSharp</td>
-                            <td className="border p-2 text-right">399,00 €</td>
                             <td className="border p-2 text-center">2</td>
-                            <td className="border p-2 text-center">20%</td>
-                            <td className="border p-2 text-right">957,60 €</td>
+                            <td className="border p-2 text-right">50,00 €</td>
                           </tr>
                           <tr>
                             <td className="border p-2">Dock USB-C Thunderbolt</td>
-                            <td className="border p-2 text-right">199,00 €</td>
                             <td className="border p-2 text-center">1</td>
-                            <td className="border p-2 text-center">25%</td>
-                            <td className="border p-2 text-right">248,75 €</td>
+                            <td className="border p-2 text-right">7,00 €</td>
+                          </tr>
+                          <tr className="font-bold">
+                            <td className="border p-2 text-right" colSpan={2}>Total mensualité:</td>
+                            <td className="border p-2 text-right">132,00 €</td>
                           </tr>
                         </tbody>
                       </table>

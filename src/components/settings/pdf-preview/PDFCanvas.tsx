@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, memo } from "react";
 import PageNavigation from "./PageNavigation";
 import PageImage from "./PageImage";
@@ -277,6 +276,8 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
               isDraggable={isDraggable}
               onStartDrag={onStartDrag}
               useRealData={useRealData}
+              onDrag={onDrag}
+              onEndDrag={onEndDrag}
             />
           ))}
           

@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -518,22 +517,37 @@ export const generateOfferPdf = async (offer: any) => {
                 }
                 
                 if (equipmentItems && equipmentItems.length > 0) {
-                  const tableHeaders = [['Désignation', 'Prix unitaire', 'Quantité', 'Marge', 'Total']];
+                  const tableHeaders = [['Désignation', 'Quantité', 'Mensualité']];
                   
                   const tableData = equipmentItems.map((item: any) => {
-                    const unitPrice = item.purchasePrice || 0;
                     const quantity = item.quantity || 1;
-                    const margin = item.margin || 0;
-                    const totalPrice = unitPrice * quantity * (1 + margin / 100);
+                    let monthlyPayment = 0;
+                    
+                    if (item.monthlyPayment) {
+                      monthlyPayment = parseFloat(item.monthlyPayment) * quantity;
+                    } else {
+                      // Calculer une mensualité approximative
+                      const unitPrice = parseFloat(item.purchasePrice || 0);
+                      monthlyPayment = (unitPrice * quantity) / 36; // Diviser par 36 mois
+                    }
                     
                     return [
                       item.title,
-                      formatCurrency(unitPrice),
                       quantity.toString(),
-                      `${margin}%`,
-                      formatCurrency(totalPrice)
+                      formatCurrency(monthlyPayment)
                     ];
                   });
+                  
+                  // Calculer le total des mensualités
+                  const totalMonthlyPayment = equipmentItems.reduce((total, item) => {
+                    const quantity = parseInt(item.quantity || 1);
+                    if (item.monthlyPayment) {
+                      return total + (parseFloat(item.monthlyPayment) * quantity);
+                    } else {
+                      const unitPrice = parseFloat(item.purchasePrice || 0);
+                      return total + ((unitPrice * quantity) / 36);
+                    }
+                  }, 0);
                   
                   // Use field style for the table if available
                   const tableStyle = field.style || { fontSize: 9 };
@@ -547,12 +561,12 @@ export const generateOfferPdf = async (offer: any) => {
                     headStyles: { fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b], textColor: [255, 255, 255] },
                     columnStyles: {
                       0: { cellWidth: 'auto' },
-                      1: { cellWidth: 25, halign: 'right' },
-                      2: { cellWidth: 15, halign: 'center' },
-                      3: { cellWidth: 15, halign: 'center' },
-                      4: { cellWidth: 25, halign: 'right' }
+                      1: { cellWidth: 20, halign: 'center' },
+                      2: { cellWidth: 25, halign: 'right' }
                     },
-                    margin: { left: x }
+                    margin: { left: x },
+                    foot: [['Total mensualité', '', formatCurrency(totalMonthlyPayment)]],
+                    footStyles: { fontStyle: 'bold', fillColor: [240, 240, 240] }
                   });
                   
                   console.log(`Tableau d'équipements ajouté à (${x}, ${y}) avec ${equipmentItems.length} items`);
@@ -688,7 +702,7 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
     doc.text(`Email: ${offer.client_email || 'Non spécifié'}`, 20, 60);
     doc.text(`Téléphone: ${offer.client_phone || 'Non spécifié'}`, 20, 70);
     
-    // Ajouter les détails de l'offre
+    // Ajouter les détails de l'offre (simplifié, sans coefficient)
     doc.setFontSize(12);
     doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
     doc.text("Détails de l'offre", 20, 90);
@@ -717,22 +731,40 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
       doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
       doc.text('ÉQUIPEMENTS', 20, 140);
       
-      const tableHeaders = [['Désignation', 'Prix unitaire', 'Quantité', 'Marge', 'Total']];
+      const tableHeaders = [['Désignation', 'Qté', 'Mensualité']];
       
       const tableData = equipmentItems.map((item: any) => {
-        const unitPrice = item.purchasePrice || 0;
         const quantity = item.quantity || 1;
-        const margin = item.margin || 0;
-        const totalPrice = unitPrice * quantity * (1 + margin / 100);
+        let monthlyPayment = 0;
+        
+        if (item.monthlyPayment) {
+          monthlyPayment = parseFloat(item.monthlyPayment) * quantity;
+        } else {
+          // Calculer une mensualité approximative
+          const unitPrice = parseFloat(item.purchasePrice || 0);
+          monthlyPayment = (unitPrice * quantity) / 36; // Diviser par 36 mois
+        }
         
         return [
           item.title,
-          formatCurrency(unitPrice),
           quantity.toString(),
-          `${margin}%`,
-          formatCurrency(totalPrice)
+          formatCurrency(monthlyPayment)
         ];
       });
+      
+      // Calculer le total des mensualités
+      const totalMonthlyPayment = equipmentItems.reduce((total, item) => {
+        const quantity = parseInt(item.quantity || 1);
+        if (item.monthlyPayment) {
+          return total + (parseFloat(item.monthlyPayment) * quantity);
+        } else {
+          const unitPrice = parseFloat(item.purchasePrice || 0);
+          return total + ((unitPrice * quantity) / 36);
+        }
+      }, 0);
+      
+      // Ajouter une ligne de total
+      tableData.push(['Total mensualité', '', formatCurrency(totalMonthlyPayment)]);
       
       autoTable(doc, {
         head: tableHeaders,
@@ -743,11 +775,11 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
         headStyles: { fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b], textColor: [255, 255, 255] },
         columnStyles: {
           0: { cellWidth: 'auto' },
-          1: { cellWidth: 30, halign: 'right' },
-          2: { cellWidth: 20, halign: 'center' },
-          3: { cellWidth: 20, halign: 'center' },
-          4: { cellWidth: 30, halign: 'right' }
+          1: { cellWidth: 20, halign: 'center' },
+          2: { cellWidth: 30, halign: 'right' }
         },
+        foot: [['Total mensualité', '', formatCurrency(totalMonthlyPayment)]],
+        footStyles: { fontStyle: 'bold', fillColor: [240, 240, 240] }
       });
     }
     
