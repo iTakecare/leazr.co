@@ -17,6 +17,12 @@ declare module 'html2pdf.js' {
       unit?: string;
       format?: string;
       orientation?: 'portrait' | 'landscape';
+      compress?: boolean;
+      putOnlyUsedFonts?: boolean;
+      [key: string]: any;
+    };
+    pagebreak?: {
+      mode?: string;
       [key: string]: any;
     };
     [key: string]: any;
@@ -27,6 +33,8 @@ declare module 'html2pdf.js' {
     set(options: Html2PdfOptions): Html2PdfInstance;
     save(): Promise<any>;
     output(type: string, options?: any): Promise<any>;
+    toPdf(): Html2PdfInstance;
+    get(prop: string): any;
     then(callback: Function): Html2PdfInstance;
     catch(callback: Function): Html2PdfInstance;
   }

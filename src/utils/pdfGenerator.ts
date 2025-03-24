@@ -46,7 +46,7 @@ export const generateOfferPdf = async (offerData) => {
     const pdf = await html2pdf()
       .from(tempDiv)
       .set(options)
-      .toPdf() // Créer le PDF mais ne pas le télécharger immédiatement
+      .toPdf() // This line had the error
       .get('pdf')
       .then(pdf => {
         // S'assurer qu'il n'y a qu'une seule page
