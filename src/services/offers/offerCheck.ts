@@ -12,7 +12,7 @@ export const checkOfferExists = async (offerId: string): Promise<boolean> => {
   try {
     console.log("Vérification d'existence de l'offre:", offerId);
     
-    // Essai avec le client standard
+    // 1. Essai avec le client standard
     let { data, error } = await supabase
       .from('offers')
       .select('id')
@@ -20,16 +20,29 @@ export const checkOfferExists = async (offerId: string): Promise<boolean> => {
       .maybeSingle();
     
     if (error || !data) {
-      console.log("Tentative avec adminSupabase suite à l'échec standard");
-      // Tentative avec le client admin si le client standard échoue
-      const result = await adminSupabase
-        .from('offers')
-        .select('id')
-        .eq('id', offerId)
-        .maybeSingle();
+      console.log("Tentative directe (sans RLS) via rpc");
       
-      data = result.data;
-      error = result.error;
+      // 2. Tentative avec RPC pour contourner RLS
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
+        'get_offer_by_id_public',
+        { offer_id: offerId }
+      );
+      
+      if (rpcError || !rpcData) {
+        console.log("Tentative avec adminSupabase");
+        
+        // 3. Tentative avec le client admin
+        const result = await adminSupabase
+          .from('offers')
+          .select('id')
+          .eq('id', offerId)
+          .maybeSingle();
+        
+        data = result.data;
+        error = result.error;
+      } else {
+        data = rpcData;
+      }
     }
     
     if (error) {
@@ -56,24 +69,38 @@ export const getBasicOfferById = async (offerId: string) => {
   try {
     console.log("Récupération basique de l'offre:", offerId);
     
-    // Tentative 1: Requête standard
-    let { data, error } = await supabase
-      .from('offers')
-      .select('*')
-      .eq('id', offerId)
-      .maybeSingle();
+    // 1. Tentative avec la fonction RPC spéciale
+    let { data, error } = await supabase.rpc(
+      'get_offer_by_id_public',
+      { offer_id: offerId }
+    );
     
     if (error || !data) {
-      console.log("Tentative avec adminSupabase suite à l'échec standard");
-      // Tentative 2: Avec client admin
-      const adminResult = await adminSupabase
+      console.log("Échec de la fonction RPC, tentative directe");
+      
+      // 2. Tentative directe avec le client standard
+      const result = await supabase
         .from('offers')
         .select('*')
         .eq('id', offerId)
         .maybeSingle();
       
-      data = adminResult.data;
-      error = adminResult.error;
+      if (result.error || !result.data) {
+        console.log("Échec du client standard, tentative avec client admin");
+        
+        // 3. Tentative avec le client admin (contourne RLS)
+        const adminResult = await adminSupabase
+          .from('offers')
+          .select('*')
+          .eq('id', offerId)
+          .maybeSingle();
+        
+        data = adminResult.data;
+        error = adminResult.error;
+      } else {
+        data = result.data;
+        error = result.error;
+      }
     }
     
     if (error) {
@@ -83,20 +110,28 @@ export const getBasicOfferById = async (offerId: string) => {
     
     if (!data) {
       console.log("Aucune offre trouvée avec l'ID:", offerId);
-      // Tentative 3: Requête SQL brute (dernier recours)
-      const { data: rawData, error: rawError } = await supabase.rpc(
-        'execute_sql',
-        { sql: `SELECT * FROM public.offers WHERE id = '${offerId}' LIMIT 1` }
-      );
-      
-      if (rawError || !rawData || rawData.length === 0) {
-        console.error("Échec de la récupération via SQL brute:", rawError);
+      // 4. Dernier recours: SQL brut via la fonction execute_sql
+      try {
+        console.log("Tentative avec SQL brut");
+        const { data: rawData, error: rawError } = await adminSupabase.rpc(
+          'execute_sql',
+          { sql: `SELECT * FROM public.offers WHERE id = '${offerId}' LIMIT 1` }
+        );
+        
+        if (rawError || !rawData || rawData.length === 0) {
+          console.error("Échec de la récupération via SQL brute:", rawError);
+          return null;
+        }
+        
+        console.log("Offre récupérée via SQL brut:", rawData[0].id);
+        return rawData[0];
+      } catch (sqlError) {
+        console.error("Erreur SQL brute:", sqlError);
         return null;
       }
-      
-      return rawData[0];
     }
     
+    console.log("Offre récupérée avec succès:", data?.id);
     return data;
   } catch (error) {
     console.error("Exception lors de la récupération basique:", error);
@@ -114,7 +149,7 @@ export const getRawOfferData = async (offerId: string) => {
   try {
     console.log("Récupération brute de l'offre:", offerId);
     
-    // Utilisation d'une requête SQL brute pour contourner toute restriction RLS
+    // Utilisation directe du client admin
     const { data, error } = await adminSupabase
       .from('offers')
       .select('*')
@@ -123,7 +158,24 @@ export const getRawOfferData = async (offerId: string) => {
     
     if (error) {
       console.error("Erreur lors de la récupération brute:", error);
-      return null;
+      
+      // Tentative avec SQL brut en dernier recours
+      try {
+        const { data: sqlData, error: sqlError } = await adminSupabase.rpc(
+          'execute_sql',
+          { sql: `SELECT * FROM offers WHERE id = '${offerId}'` }
+        );
+        
+        if (sqlError || !sqlData || sqlData.length === 0) {
+          console.error("Échec SQL brut:", sqlError);
+          return null;
+        }
+        
+        return sqlData[0];
+      } catch (e) {
+        console.error("Exception SQL brut:", e);
+        return null;
+      }
     }
     
     console.log("Offre récupérée en mode brut:", data?.id);
