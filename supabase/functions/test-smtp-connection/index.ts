@@ -46,6 +46,15 @@ serve(async (req) => {
     
     console.log(`Serveur détecté: ${isGmailServer ? 'Gmail' : isOvhServer ? 'OVH' : 'Autre'}, Port: ${config.port}, secure: ${config.secure}`);
 
+    // Vérifier si l'utilisation d'un mot de passe d'application est probable pour Gmail
+    let isAppPasswordLikely = false;
+    if (isGmailServer && config.password) {
+      // Les mots de passe d'application Gmail sont généralement 16 caractères sans espaces
+      // ou 4 groupes de 4 caractères avec ou sans espaces
+      isAppPasswordLikely = config.password.replace(/\s/g, '').length === 16;
+      console.log(`Détection mot de passe d'application: ${isAppPasswordLikely ? "Probable" : "Improbable"}`);
+    }
+
     // Initialize attempt configurations to test
     const attempts = [];
     
@@ -155,29 +164,59 @@ serve(async (req) => {
           break;
         } catch (sendError) {
           console.error(`Tentative #${i+1}: Erreur d'envoi:`, sendError);
+          const errorString = sendError.toString();
           
           // Gmail specific error handling
-          if (isGmailServer && sendError.toString().includes("5.7.9")) {
-            // This is a Gmail authentication issue related to security settings
-            lastResult = {
-              message: "Erreur d'authentification Gmail: Vous devez configurer un mot de passe d'application",
-              details: sendError.toString()
-            };
-            
-            try {
-              await client.close();
-            } catch (e) {
-              // Ignore close errors in case of failure
+          if (isGmailServer) {
+            // Check for common Gmail error codes
+            if (errorString.includes("5.7.9") && errorString.includes("log in with your web browser")) {
+              // This error happens when Google detects an unusual sign-in or security issue
+              lastResult = {
+                message: "Google a bloqué la connexion - Authentification nécessaire via navigateur",
+                details: errorString,
+                isGmailWebLoginRequired: true
+              };
+              
+              console.log("Détection d'une erreur de sécurité Gmail nécessitant une connexion web");
+              
+              try {
+                await client.close();
+              } catch (e) {
+                // Ignore close errors in case of failure
+              }
+              
+              // No need to continue trying with Gmail - it's a security issue
+              break;
             }
-            
-            // No need to continue trying with Gmail - it's a configuration issue
-            break;
+            else if (errorString.includes("535") || errorString.includes("5.7.8") || errorString.includes("credentials")) {
+              // Authentication error
+              const appPasswordMessage = isAppPasswordLikely 
+                ? "Le mot de passe fourni semble être un mot de passe d'application, mais Google refuse la connexion. Assurez-vous que ce mot de passe d'application est récent et valide."
+                : "Le mot de passe fourni ne semble pas être un mot de passe d'application. Pour Gmail, vous devez utiliser un mot de passe d'application généré spécifiquement pour cette application.";
+              
+              lastResult = {
+                message: "Erreur d'authentification Gmail",
+                details: errorString,
+                appPasswordMessage
+              };
+              
+              console.log("Détection d'une erreur d'authentification Gmail");
+              
+              try {
+                await client.close();
+              } catch (e) {
+                // Ignore close errors in case of failure
+              }
+              
+              // No need to continue trying with Gmail - it's a credentials issue
+              break;
+            }
           }
           
           // Check for specific InvalidContentType or BadResource error which is common with OVH
           if (sendError.name === "InvalidData" || sendError.name === "BadResource" || 
-              sendError.toString().includes("InvalidContentType") || 
-              sendError.toString().includes("BadResource")) {
+              errorString.includes("InvalidContentType") || 
+              errorString.includes("BadResource")) {
             
             console.log(`Tentative #${i+1}: Erreur de protocole SSL/TLS détectée, essai suivant avec configuration différente`);
             lastResult = sendError;
@@ -236,9 +275,33 @@ serve(async (req) => {
       let suggestion = "";
       let errorMessage = "";
       
-      if (isGmailServer && lastResult && lastResult.details && lastResult.details.includes("5.7.9")) {
-        errorMessage = "Erreur d'authentification Gmail";
-        suggestion = "Pour utiliser Gmail comme serveur SMTP, vous devez:\n1. Activer la validation en 2 étapes sur votre compte Google\n2. Créer un mot de passe d'application pour cette application\n3. Utiliser ce mot de passe d'application au lieu de votre mot de passe Google habituel";
+      if (isGmailServer) {
+        if (lastResult?.isGmailWebLoginRequired) {
+          errorMessage = "Connexion refusée par Google - Action supplémentaire requise";
+          suggestion = "Google a détecté une activité inhabituelle et nécessite une vérification supplémentaire:\n\n" +
+                      "1. Connectez-vous à votre compte Gmail dans un navigateur\n" +
+                      "2. Allez à https://accounts.google.com/DisplayUnlockCaptcha pour autoriser l'accès\n" +
+                      "3. Vérifiez si vous avez reçu un email de Google concernant une tentative de connexion bloquée\n" +
+                      "4. Assurez-vous d'utiliser un mot de passe d'application récent créé spécifiquement pour cette application";
+        } 
+        else if (lastResult?.appPasswordMessage) {
+          errorMessage = "Erreur d'authentification Gmail";
+          suggestion = lastResult.appPasswordMessage + "\n\n" +
+                      "Instructions pour créer un mot de passe d'application:\n" +
+                      "1. Allez sur https://myaccount.google.com/security\n" +
+                      "2. Assurez-vous que l'authentification à 2 facteurs est activée\n" +
+                      "3. Allez sur https://myaccount.google.com/apppasswords\n" +
+                      "4. Sélectionnez 'Autre (nom personnalisé)' et donnez un nom à cette application\n" +
+                      "5. Copiez le mot de passe généré (16 caractères sans espaces) et utilisez-le ici";
+        }
+        else {
+          const errorStr = lastResult ? (lastResult.toString ? lastResult.toString() : String(lastResult)) : "";
+          errorMessage = `Échec de connexion Gmail: ${errorStr}`;
+          suggestion = "Pour utiliser Gmail comme serveur SMTP, assurez-vous que:\n" +
+                      "1. L'authentification à 2 facteurs est activée sur votre compte Google\n" +
+                      "2. Vous utilisez un mot de passe d'application créé spécifiquement pour cette application\n" +
+                      "3. Vous avez vérifié que votre adresse email dans le champ 'De' correspond exactement à votre compte Gmail";
+        }
       } else {
         const errorStr = lastResult ? (lastResult.toString ? lastResult.toString() : String(lastResult)) : "";
         errorMessage = `Échec de connexion SMTP après plusieurs tentatives: ${errorStr}`;
@@ -257,9 +320,6 @@ serve(async (req) => {
           }
         } else if (errorStr.includes("Auth") || errorStr.includes("535") || errorStr.includes("credentials")) {
           suggestion = "Vérifiez que votre nom d'utilisateur et mot de passe sont corrects.";
-          if (isGmailServer) {
-            suggestion += " Pour Gmail, vous devez utiliser un mot de passe d'application et non votre mot de passe habituel.";
-          }
         }
       }
       
