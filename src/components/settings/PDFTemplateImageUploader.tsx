@@ -50,7 +50,10 @@ const PDFTemplateImageUploader = ({
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log("No file selected");
+      return;
+    }
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
@@ -66,6 +69,7 @@ const PDFTemplateImageUploader = ({
 
     setUploading(true);
     toast.info("Chargement de l'image en cours...");
+    console.log("Starting upload for file:", file.name);
 
     try {
       // First, try to upload to Supabase Storage
@@ -73,11 +77,14 @@ const PDFTemplateImageUploader = ({
       const uniqueId = uuidv4();
       const filePath = `${uniqueId}.${file.name.split('.').pop()}`;
 
+      console.log("Attempting to upload to bucket:", bucketName, "path:", filePath);
+      
       // Ensure bucket exists
       await ensureBucket(bucketName);
 
       // Upload file to Supabase
       const fileUrl = await uploadFile(bucketName, file, filePath);
+      console.log("Upload result:", fileUrl);
       
       if (fileUrl) {
         // If Supabase upload succeeds, use the returned URL
@@ -96,6 +103,7 @@ const PDFTemplateImageUploader = ({
         toast.success("Image ajoutée avec succès");
       } else {
         // Fall back to FileReader for local handling if Supabase upload fails
+        console.log("Supabase upload failed, falling back to local FileReader");
         const reader = new FileReader();
         reader.onload = (e) => {
           const newImageUrl = e.target?.result as string;
@@ -118,7 +126,33 @@ const PDFTemplateImageUploader = ({
       }
     } catch (error) {
       console.error("Erreur lors de l'upload de l'image:", error);
-      toast.error("Erreur lors de l'ajout de l'image. Essayez à nouveau.");
+      
+      // Fallback to local FileReader if any error occurs during upload
+      try {
+        console.log("Error occurred, falling back to local FileReader");
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const newImageUrl = e.target?.result as string;
+          const newImage: TemplateImage = {
+            id: uuidv4(),
+            name: file.name,
+            data: newImageUrl,
+            url: newImageUrl,
+            page: images.length
+          };
+
+          const updatedImages = [...images, newImage];
+          setImages(updatedImages);
+          onChange(updatedImages);
+          onPageSelect(updatedImages.length - 1);
+          toast.success("Image ajoutée en mode local (après échec du serveur)");
+        };
+
+        reader.readAsDataURL(file);
+      } catch (fallbackError) {
+        console.error("Échec également du mode local:", fallbackError);
+        toast.error("Erreur lors de l'ajout de l'image. Essayez à nouveau.");
+      }
     } finally {
       setUploading(false);
       // Reset the file input
@@ -152,6 +186,7 @@ const PDFTemplateImageUploader = ({
 
   // Function to trigger the hidden file input's click event
   const triggerFileInput = () => {
+    console.log("Trigger file input clicked");
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }

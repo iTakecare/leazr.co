@@ -1,3 +1,4 @@
+
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
@@ -259,11 +260,13 @@ export const uploadFile = async (
   customPath?: string
 ): Promise<string | null> => {
   try {
+    console.log(`Upload du fichier dans ${bucketName}/${customPath || 'auto-generated-path'}`);
+    
     // Vérifier la connexion au stockage
     const isConnected = await checkStorageConnection();
     if (!isConnected) {
       console.warn("Stockage Supabase non disponible, upload impossible");
-      toast.error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
+      toast.error("Stockage Supabase non disponible. Utilisation du mode local.");
       return null;
     }
     
@@ -273,8 +276,8 @@ export const uploadFile = async (
       bucketExists = await ensureBucket(bucketName);
     } catch (bucketError) {
       console.error(`Impossible de vérifier/créer le bucket ${bucketName}:`, bucketError);
-      toast.error(`Problème avec le bucket ${bucketName}. Essai de l'upload quand même.`);
-      // On continue malgré l'erreur, peut-être que ça fonctionnera
+      toast.error(`Problème avec le bucket ${bucketName}. Utilisation du mode local.`);
+      return null;
     }
     
     // Générer un nom de fichier unique
@@ -396,8 +399,8 @@ export const uploadFile = async (
       console.error("Exception lors de l'upload via fetch:", fetchError);
     }
     
-    // Toutes les tentatives ont échoué
-    toast.error("Toutes les tentatives d'upload ont échoué. Veuillez réessayer ultérieurement.");
+    // Toutes les tentatives ont échoué, revenir au mode local
+    console.log("Toutes les tentatives d'upload ont échoué, passage en mode local");
     return null;
   } catch (error) {
     console.error("Exception globale lors de l'upload:", error);
