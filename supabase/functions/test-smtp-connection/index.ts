@@ -41,7 +41,7 @@ serve(async (req) => {
 
     // Determine if it's a Gmail server
     const isGmailServer = config.host.toLowerCase() === 'smtp.gmail.com';
-    const isOvhServer = config.host.includes('.mail.ovh.');
+    const isOvhServer = config.host.includes('.mail.ovh.') || config.host.includes('.ovh.');
     const isPort587 = parseInt(config.port) === 587;
     
     console.log(`Serveur détecté: ${isGmailServer ? 'Gmail' : isOvhServer ? 'OVH' : 'Autre'}, Port: ${config.port}, secure: ${config.secure}`);
@@ -58,50 +58,77 @@ serve(async (req) => {
     // Initialize attempt configurations to test
     const attempts = [];
     
-    // Gmail servers should always use TLS on port 587
-    if (isGmailServer) {
+    // OVH servers on port 587 need special handling
+    if (isOvhServer && isPort587) {
+      // For OVH on port 587, first try without TLS as it's often the working configuration
+      attempts.push({
+        tls: false,
+        description: "OVH Port 587 sans TLS (recommandé)",
+        clientOptions: { connectionTimeout: 15000 },
+        waitBeforeAttempt: 0
+      });
+      
+      // Then try with TLS and explicit version
+      attempts.push({
+        tls: true,
+        description: "OVH Port 587 avec TLS",
+        clientOptions: { 
+          connectionTimeout: 15000,
+          tlsOptions: { 
+            minVersion: "TLSv1.2",
+            maxVersion: "TLSv1.2"
+          }
+        },
+        waitBeforeAttempt: 1000
+      });
+      
+      // Then standard TLS
+      attempts.push({
+        tls: true,
+        description: "OVH Port 587 avec TLS standard",
+        clientOptions: { connectionTimeout: 15000 },
+        waitBeforeAttempt: 1000
+      });
+    }
+    // Gmail servers should always use TLS
+    else if (isGmailServer) {
       // For Gmail, force TLS to true and try that first
       attempts.push({
         tls: true,
         description: "Gmail avec TLS (recommandé)",
-        clientOptions: { connectionTimeout: 15000 }
+        clientOptions: { connectionTimeout: 15000 },
+        waitBeforeAttempt: 0
+      });
+      // Try with explicit TLS version
+      attempts.push({
+        tls: true,
+        description: "Gmail avec TLS version explicite",
+        clientOptions: { 
+          connectionTimeout: 15000, 
+          tlsOptions: { 
+            minVersion: "TLSv1.2",
+            maxVersion: "TLSv1.2"
+          }
+        },
+        waitBeforeAttempt: 1000
       });
       // Try without TLS only as a last resort, though it will likely fail
       attempts.push({
         tls: false,
         description: "Gmail sans TLS (non recommandé)",
-        clientOptions: { connectionTimeout: 15000 }
-      });
-    }
-    // OVH servers on port 587 are known to behave differently
-    else if (isOvhServer && isPort587) {
-      // For OVH on port 587, we'll try both TLS settings, but prioritize based on best practices
-      attempts.push({
-        tls: false,
-        description: "OVH Port 587 sans TLS",
-        clientOptions: { connectionTimeout: 15000 }
-      });
-      attempts.push({
-        tls: true,
-        description: "OVH Port 587 avec TLS",
-        clientOptions: { connectionTimeout: 15000 }
+        clientOptions: { connectionTimeout: 15000 },
+        waitBeforeAttempt: 1000
       });
     } else {
       // First attempt: use the settings as provided
       attempts.push({
         tls: config.secure,
         description: "Configuration originale",
-        clientOptions: { connectionTimeout: 15000 }
+        clientOptions: { connectionTimeout: 15000 },
+        waitBeforeAttempt: 0
       });
       
-      // Second attempt: opposite TLS setting
-      attempts.push({
-        tls: !config.secure,
-        description: "TLS inversé",
-        clientOptions: { connectionTimeout: 15000 }
-      });
-      
-      // Third attempt: Explicit TLS version with secure mode
+      // Second attempt: explicit TLS version with same security setting
       attempts.push({
         tls: config.secure,
         description: "TLS version explicite (v1.2)",
@@ -111,7 +138,16 @@ serve(async (req) => {
             minVersion: "TLSv1.2",
             maxVersion: "TLSv1.2"
           }
-        }
+        },
+        waitBeforeAttempt: 1000
+      });
+      
+      // Third attempt: opposite TLS setting
+      attempts.push({
+        tls: !config.secure,
+        description: "TLS inversé",
+        clientOptions: { connectionTimeout: 15000 },
+        waitBeforeAttempt: 1000
       });
     }
     
@@ -121,6 +157,12 @@ serve(async (req) => {
     
     for (let i = 0; i < attempts.length && !success; i++) {
       const attempt = attempts[i];
+      
+      // Wait before attempt if needed
+      if (attempt.waitBeforeAttempt > 0) {
+        await new Promise(resolve => setTimeout(resolve, attempt.waitBeforeAttempt));
+      }
+      
       console.log(`Tentative #${i+1}: ${attempt.description}, TLS=${attempt.tls}`, 
                  attempt.clientOptions ? `Options: ${JSON.stringify(attempt.clientOptions)}` : "");
       
@@ -185,6 +227,21 @@ serve(async (req) => {
           console.error(`Tentative #${i+1}: Erreur d'envoi:`, sendError);
           const errorString = sendError.toString();
           
+          // Log specific error types in more detail
+          if (sendError.name === "BadResource") {
+            console.error(`Tentative #${i+1}: Erreur BadResource détectée. Détails:`, {
+              stack: sendError.stack,
+              message: sendError.message
+            });
+          }
+          
+          if (errorString.includes("invalid cmd")) {
+            console.error(`Tentative #${i+1}: Erreur de commande SMTP invalide détectée. Détails:`, {
+              stack: sendError.stack,
+              message: sendError.message
+            });
+          }
+          
           // Gmail specific error handling
           if (isGmailServer) {
             // Check for common Gmail error codes
@@ -232,7 +289,28 @@ serve(async (req) => {
             }
           }
           
-          // Check for specific InvalidContentType or BadResource error which is common with OVH
+          // OVH specific error handling
+          if (isOvhServer) {
+            if (sendError.name === "BadResource" || errorString.includes("BadResource")) {
+              console.log(`Tentative #${i+1}: Erreur BadResource détectée avec OVH, essai avec configuration alternative`);
+              lastResult = {
+                message: "Erreur de connexion OVH",
+                details: errorString,
+                suggestion: "Pour OVH sur le port 587, essayez de désactiver l'option TLS dans les paramètres SMTP."
+              };
+            }
+            
+            if (errorString.includes("invalid cmd")) {
+              console.log(`Tentative #${i+1}: Erreur de commande invalide détectée avec OVH, essai avec configuration alternative`);
+              lastResult = {
+                message: "Erreur de protocole OVH",
+                details: errorString,
+                suggestion: "Pour OVH, essayez de désactiver l'option TLS dans les paramètres SMTP."
+              };
+            }
+          }
+          
+          // Check for specific InvalidContentType or BadResource error which is common with TLS issues
           if (sendError.name === "InvalidData" || sendError.name === "BadResource" || 
               errorString.includes("InvalidContentType") || 
               errorString.includes("BadResource")) {
@@ -281,11 +359,6 @@ serve(async (req) => {
       } catch (error) {
         console.error(`Tentative #${i+1}: Échec -`, error);
         lastResult = error;
-        
-        // Wait a bit before trying the next configuration
-        if (i < attempts.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
       }
     }
     
@@ -312,6 +385,7 @@ serve(async (req) => {
       // Prepare specific suggestions based on the error
       let suggestion = "";
       let errorMessage = "";
+      const errorStr = lastResult ? (lastResult.toString ? lastResult.toString() : String(lastResult)) : "";
       
       if (isGmailServer) {
         if (lastResult?.isGmailWebLoginRequired) {
@@ -335,15 +409,35 @@ serve(async (req) => {
                       "5. Copiez le mot de passe généré (16 caractères sans espaces) et utilisez-le ici";
         }
         else {
-          const errorStr = lastResult ? (lastResult.toString ? lastResult.toString() : String(lastResult)) : "";
           errorMessage = `Échec de connexion Gmail: ${errorStr}`;
           suggestion = "Pour utiliser Gmail comme serveur SMTP, assurez-vous que:\n" +
                       "1. L'authentification à 2 facteurs est activée sur votre compte Google\n" +
                       "2. Vous utilisez un mot de passe d'application créé spécifiquement pour cette application\n" +
                       "3. Vous avez vérifié que votre adresse email dans le champ 'De' correspond exactement à votre compte Gmail";
         }
-      } else {
-        const errorStr = lastResult ? (lastResult.toString ? lastResult.toString() : String(lastResult)) : "";
+      } 
+      else if (isOvhServer) {
+        errorMessage = `Échec de connexion OVH après plusieurs tentatives: ${errorStr}`;
+        
+        if (errorStr.includes("BadResource") || errorStr.includes("invalid cmd")) {
+          suggestion = "Pour les serveurs OVH sur le port 587:\n" +
+                      "1. Essayez de désactiver complètement l'option TLS (secure: false)\n" +
+                      "2. Vérifiez que votre nom d'utilisateur et votre mot de passe sont corrects\n" +
+                      "3. Vérifiez si OVH a des exigences spécifiques pour votre compte email";
+        } 
+        else if (lastResult?.protocolVersionError) {
+          suggestion = "Erreur de version du protocole SSL/TLS détectée avec OVH. Recommandations:\n" +
+                      "1. Désactivez l'option TLS (secure: false) pour OVH sur le port 587\n" +
+                      "2. Contactez OVH si le problème persiste pour connaître les paramètres SMTP exacts à utiliser";
+        }
+        else {
+          suggestion = "Pour les serveurs OVH, nous recommandons:\n" +
+                      "1. Utiliser le port 587 avec l'option TLS désactivée\n" +
+                      "2. Vérifier que le nom d'utilisateur et le mot de passe sont corrects\n" +
+                      "3. Contacter OVH si le problème persiste";
+        }
+      }
+      else {
         errorMessage = `Échec de connexion SMTP après plusieurs tentatives: ${errorStr}`;
         
         if (lastResult?.protocolVersionError) {
@@ -353,19 +447,21 @@ serve(async (req) => {
                       "3. Contactez votre fournisseur d'email pour connaître les paramètres SMTP exacts à utiliser";
         }
         else if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
-          if (isOvhServer && isPort587) {
-            suggestion = "Pour les serveurs OVH sur le port 587, nous recommandons de désactiver l'option TLS/SSL dans les paramètres SMTP. Les serveurs OVH gèrent généralement le chiffrement automatiquement sur ce port.";
-          } else if (config.secure) {
-            suggestion = "Essayez de désactiver l'option TLS (secure: false) dans les paramètres SMTP.";
-          } else {
-            suggestion = "Essayez d'activer l'option TLS (secure: true) dans les paramètres SMTP.";
-          }
-        } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
-          if (isOvhServer && isPort587) {
-            suggestion = "Ce problème est courant avec les serveurs OVH sur le port 587. Essayez de désactiver l'option TLS et vérifiez que votre nom d'utilisateur et mot de passe sont corrects.";
-          }
-        } else if (errorStr.includes("Auth") || errorStr.includes("535") || errorStr.includes("credentials")) {
+          suggestion = "Erreur de protocole TLS détectée. Essayez de modifier l'option TLS (secure) dans les paramètres SMTP.";
+        } 
+        else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
+          suggestion = "Erreur de ressource TLS détectée. Recommandations:\n" +
+                      "1. Essayez d'inverser le paramètre TLS (secure)\n" +
+                      "2. Vérifiez que votre réseau n'empêche pas les connexions SMTP sécurisées";
+        } 
+        else if (errorStr.includes("Auth") || errorStr.includes("535") || errorStr.includes("credentials")) {
           suggestion = "Vérifiez que votre nom d'utilisateur et mot de passe sont corrects.";
+        }
+        else if (errorStr.includes("invalid cmd")) {
+          suggestion = "Erreur de commande SMTP invalide détectée. Recommandations:\n" +
+                      "1. Vérifiez que les informations de connexion SMTP sont correctes\n" +
+                      "2. Essayez d'inverser le paramètre TLS (secure)\n" +
+                      "3. Contactez votre fournisseur d'email pour confirmer les paramètres SMTP exacts";
         }
       }
       

@@ -69,7 +69,7 @@ serve(async (req) => {
     }
 
     // Check if it's an OVH server
-    const isOvhServer = smtp.host.includes('.mail.ovh.');
+    const isOvhServer = smtp.host.includes('.mail.ovh.') || smtp.host.includes('.ovh.');
     const isPort587 = smtp.port === 587;
     
     console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, Port: ${smtp.port}, Sécurisé: ${smtp.secure}`);
@@ -79,24 +79,37 @@ serve(async (req) => {
     
     // OVH servers on port 587 are known to behave differently
     if (isOvhServer && isPort587) {
-      // Pour OVH, première tentative sans TLS
+      // First try with TLS disabled for OVH
       attempts.push({
         tls: false,
         description: "OVH Port 587 sans TLS",
-        tlsOptions: null
+        tlsOptions: null,
+        waitBeforeAttempt: 0
       });
-      // Seconde tentative avec TLS
+      // Second attempt with TLS
       attempts.push({
         tls: true, 
         description: "OVH Port 587 avec TLS",
-        tlsOptions: null
+        tlsOptions: null,
+        waitBeforeAttempt: 1000
+      });
+      // Third attempt with explicit TLS version
+      attempts.push({
+        tls: true,
+        description: "OVH avec TLS version explicite",
+        tlsOptions: { 
+          minVersion: "TLSv1.2",
+          maxVersion: "TLSv1.2"
+        },
+        waitBeforeAttempt: 1000
       });
     } else {
       // First attempt: use the settings as provided
       attempts.push({
         tls: smtp.secure,
         description: "Configuration originale",
-        tlsOptions: null
+        tlsOptions: null,
+        waitBeforeAttempt: 0
       });
       
       // Second attempt: Explicit TLS version with secure mode
@@ -106,14 +119,16 @@ serve(async (req) => {
         tlsOptions: { 
           minVersion: "TLSv1.2",
           maxVersion: "TLSv1.2"
-        }
+        },
+        waitBeforeAttempt: 1000
       });
       
       // Third attempt: opposite TLS setting as fallback
       attempts.push({
         tls: !smtp.secure,
         description: "TLS inversé",
-        tlsOptions: null
+        tlsOptions: null,
+        waitBeforeAttempt: 1000
       });
     }
     
@@ -123,6 +138,12 @@ serve(async (req) => {
     
     for (const attempt of attempts) {
       attempts_count++;
+      
+      // Wait before retry if specified
+      if (attempt.waitBeforeAttempt > 0) {
+        await new Promise(resolve => setTimeout(resolve, attempt.waitBeforeAttempt));
+      }
+      
       console.log(`Tentative #${attempts_count} - Configuration:`, {
         tls: attempt.tls,
         description: attempt.description,
@@ -202,8 +223,16 @@ serve(async (req) => {
         console.error(`Échec de la tentative #${attempts_count}:`, errorString);
         console.error("Détails de l'erreur:", error);
         
-        // Enregistrer l'erreur avec plus de détails si possible
-        if (error.message && error.message.includes("invalid cmd")) {
+        // Log more details about specific errors
+        if (error.name === "BadResource") {
+          console.error("Erreur BadResource détectée. Détails:", {
+            errorName: error.name,
+            stack: error.stack,
+            message: error.message
+          });
+        }
+        
+        if (errorString.includes("invalid cmd")) {
           console.error("Erreur de commande SMTP invalide détectée. Détails:", {
             errorName: error.name,
             stack: error.stack,
@@ -211,14 +240,13 @@ serve(async (req) => {
           });
         }
         
-        // Si c'est la dernière tentative, on continue au traitement d'erreur final
+        // If it's the last attempt, continue to the final error handling
         if (attempts_count >= attempts.length) {
           break;
         }
         
-        // Si ce n'est pas la dernière tentative, attendre avant d'essayer la configuration suivante
+        // If not the last attempt, wait before trying next configuration
         console.log(`Erreur détectée (${error.name}), essai avec la configuration suivante...`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
     
@@ -232,13 +260,22 @@ serve(async (req) => {
     if (errorStr.includes("invalid cmd")) {
       suggestion = "Erreur de commande SMTP invalide. Recommandations:\n" +
                   "1. Vérifiez que les informations de connexion SMTP sont correctes\n" + 
-                  "2. Essayez avec SSL/TLS désactivé\n" +
+                  "2. Si vous utilisez OVH, essayez de désactiver l'option TLS\n" +
                   "3. Vérifiez que votre serveur SMTP autorise l'authentification avec ce compte";
     }
     else if (errorStr.includes("ProtocolVersion") || errorStr.includes("protocol version")) {
       suggestion = "Erreur de version du protocole SSL/TLS. Recommandations:\n" +
                   "1. Essayez de modifier les paramètres de sécurité (activer/désactiver SSL/TLS)\n" +
                   "2. Utilisez le port 587 avec TLS désactivé si possible";
+    }
+    else if (errorStr.includes("BadResource")) {
+      if (isOvhServer && isPort587) {
+        suggestion = "Pour les serveurs OVH sur le port 587, essayez de désactiver l'option TLS dans les paramètres SMTP.";
+      } else {
+        suggestion = "Erreur de ressource TLS. Recommandations:\n" +
+                    "1. Essayez de modifier l'option TLS (activée ou désactivée)\n" +
+                    "2. Vérifiez que les ports nécessaires sont ouverts sur votre réseau";
+      }
     }
     else if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
       if (isOvhServer && isPort587) {
@@ -247,10 +284,6 @@ serve(async (req) => {
         suggestion = "Essayez de désactiver l'option TLS (secure: false) dans les paramètres SMTP.";
       } else {
         suggestion = "Essayez d'activer l'option TLS (secure: true) dans les paramètres SMTP.";
-      }
-    } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
-      if (isOvhServer && isPort587) {
-        suggestion = "Pour les serveurs OVH sur le port 587, essayez de désactiver l'option TLS.";
       }
     } else if (errorStr.includes("Auth") || errorStr.includes("535") || errorStr.includes("credentials")) {
       suggestion = "Erreur d'authentification. Vérifiez que votre nom d'utilisateur et mot de passe sont corrects.";
