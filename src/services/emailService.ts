@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,6 +18,12 @@ export const sendEmail = async (
 ): Promise<boolean> => {
   try {
     console.log("Début de la procédure d'envoi d'email à:", to);
+    
+    if (!to || !to.trim() || !subject || !htmlContent) {
+      console.error("Paramètres d'email manquants:", { to, subject, htmlContent_length: htmlContent?.length });
+      toast.error("Informations d'email incomplètes");
+      return false;
+    }
     
     // Récupérer les paramètres SMTP
     const { data: smtpSettings, error: settingsError } = await supabase
@@ -38,35 +45,60 @@ export const sendEmail = async (
       enabled: smtpSettings.enabled
     });
     
-    // Appeler la fonction Supabase pour envoyer l'email
-    const { data, error } = await supabase.functions.invoke('send-email', {
-      body: {
-        to,
-        subject,
-        html: htmlContent,
-        text: textContent || stripHtml(htmlContent),
-        from: {
-          email: smtpSettings.from_email,
-          name: smtpSettings.from_name
-        },
-        smtp: {
-          host: smtpSettings.host,
-          port: parseInt(smtpSettings.port),
-          username: smtpSettings.username,
-          password: smtpSettings.password,
-          secure: smtpSettings.secure
-        }
-      }
-    });
-
-    if (error) {
-      console.error("Erreur lors de l'appel de la fonction send-email:", error);
-      toast.error(`Erreur d'envoi d'email: ${error.message || "Erreur inconnue"}`);
+    // Vérifier que tous les paramètres SMTP requis sont présents
+    if (!smtpSettings.host || !smtpSettings.port || !smtpSettings.username || 
+        !smtpSettings.password || !smtpSettings.from_email) {
+      console.error("Paramètres SMTP incomplets:", {
+        host_present: !!smtpSettings.host,
+        port_present: !!smtpSettings.port,
+        username_present: !!smtpSettings.username,
+        password_present: !!smtpSettings.password,
+        from_email_present: !!smtpSettings.from_email
+      });
+      toast.error("Configuration SMTP incomplète");
       return false;
     }
     
-    console.log("Email envoyé avec succès, réponse:", data);
-    return true;
+    // Appeler la fonction Supabase pour envoyer l'email
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to,
+          subject,
+          html: htmlContent,
+          text: textContent || stripHtml(htmlContent),
+          from: {
+            email: smtpSettings.from_email,
+            name: smtpSettings.from_name || "iTakecare"
+          },
+          smtp: {
+            host: smtpSettings.host,
+            port: parseInt(smtpSettings.port),
+            username: smtpSettings.username,
+            password: smtpSettings.password,
+            secure: smtpSettings.secure
+          }
+        }
+      });
+
+      if (error) {
+        console.error("Erreur lors de l'appel de la fonction send-email:", error);
+        
+        const errorMessage = typeof error === 'object' && error !== null 
+          ? JSON.stringify(error) 
+          : String(error);
+          
+        toast.error(`Erreur d'envoi d'email: ${errorMessage}`);
+        return false;
+      }
+      
+      console.log("Email envoyé avec succès, réponse:", data);
+      return true;
+    } catch (invocationError) {
+      console.error("Exception lors de l'invocation de la fonction:", invocationError);
+      toast.error(`Erreur de communication avec le serveur d'email: ${invocationError instanceof Error ? invocationError.message : "Erreur inconnue"}`);
+      return false;
+    }
   } catch (error) {
     console.error("Exception lors de l'envoi de l'email:", error);
     toast.error(`Exception lors de l'envoi d'email: ${error instanceof Error ? error.message : "Erreur inconnue"}`);

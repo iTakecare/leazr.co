@@ -71,41 +71,62 @@ serve(async (req) => {
     console.log(`Configuration SMTP: ${smtp.host}:${smtp.port}, sécurisé: ${smtp.secure}`);
     console.log(`Envoi d'email à: ${to}, de: ${from.email} (${from.name})`);
 
-    // Initialiser le client SMTP
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtp.host,
-        port: smtp.port,
-        tls: smtp.secure,
-        auth: {
-          username: smtp.username,
-          password: smtp.password,
+    // Initialiser le client SMTP avec les paramètres détaillés et timeout
+    try {
+      const client = new SMTPClient({
+        connection: {
+          hostname: smtp.host,
+          port: smtp.port,
+          tls: smtp.secure,
+          auth: {
+            username: smtp.username,
+            password: smtp.password,
+          },
         },
-      },
-    });
+        debug: true, // Active le débogage SMTP
+      });
 
-    // Envoyer l'email
-    const sendResult = await client.send({
-      from: `${from.name} <${from.email}>`,
-      to: to,
-      subject: subject,
-      content: text,
-      html: html,
-    });
-    
-    console.log("Résultat de l'envoi:", sendResult);
+      // Envoyer l'email avec timeout
+      const sendResult = await Promise.race([
+        client.send({
+          from: `${from.name} <${from.email}>`,
+          to: to,
+          subject: subject,
+          content: text,
+          html: html,
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Délai d'envoi d'email dépassé")), 15000)
+        )
+      ]);
+      
+      console.log("Résultat de l'envoi:", sendResult);
 
-    // Fermer la connexion
-    await client.close();
+      // Fermer la connexion
+      await client.close();
 
-    console.log("Email envoyé avec succès");
-    return new Response(
-      JSON.stringify({ success: true, message: "Email envoyé avec succès" }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+      console.log("Email envoyé avec succès");
+      return new Response(
+        JSON.stringify({ success: true, message: "Email envoyé avec succès" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    } catch (smtpError) {
+      console.error("Erreur SMTP spécifique:", smtpError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Erreur de connexion SMTP",
+          details: smtpError.toString(),
+          message: smtpError.message
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
   } catch (error) {
     console.error("Erreur lors de l'envoi de l'email:", error);
     return new Response(

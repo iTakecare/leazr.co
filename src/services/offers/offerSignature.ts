@@ -188,6 +188,12 @@ export const generateSignatureLink = (offerId: string): string => {
  */
 export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean> => {
   try {
+    if (!offerId) {
+      console.error("ID d'offre manquant pour l'envoi de l'email");
+      toast.error("Impossible d'envoyer l'email : ID d'offre manquant");
+      return false;
+    }
+    
     console.log("Préparation de l'envoi de l'email de signature pour l'offre:", offerId);
     
     // 1. Récupérer les détails de l'offre
@@ -199,12 +205,14 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
       
     if (error) {
       console.error("Erreur lors de la récupération des détails de l'offre:", error);
-      throw error;
+      toast.error("Impossible de récupérer les détails de l'offre");
+      return false;
     }
     
     if (!offer.client_email) {
       console.error("Email du client manquant pour l'offre:", offerId);
-      throw new Error("L'email du client est requis pour envoyer l'invitation de signature");
+      toast.error("L'email du client est requis pour envoyer l'invitation de signature");
+      return false;
     }
 
     console.log("Détails de l'offre récupérés:", {
@@ -279,7 +287,7 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
           .header { background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 5px; margin-bottom: 20px; }
           .content { background-color: #ffffff; padding: 20px; border-radius: 5px; border: 1px solid #e9ecef; }
           .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #6c757d; }
-          .button { display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; background-color: #007bff; color: white !important; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin: 20px 0; }
           .highlight { font-weight: bold; color: #007bff; }
           table { width: 100%; border-collapse: collapse; margin: 20px 0; }
           table, th, td { border: 1px solid #e9ecef; }
@@ -292,7 +300,7 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
           <h1>iTakecare</h1>
         </div>
         <div class="content">
-          <h2>Bonjour ${offer.client_name},</h2>
+          <h2>Bonjour ${offer.client_name || "Client"},</h2>
           
           <p>Nous sommes ravis de vous annoncer que votre offre de financement est prête à être signée.</p>
           
@@ -300,7 +308,7 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
           <table>
             <tr>
               <th>Mensualité</th>
-              <td class="highlight">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(offer.monthly_payment)}/mois</td>
+              <td class="highlight">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(offer.monthly_payment || 0)}/mois</td>
             </tr>
             <tr>
               <th>Équipement</th>
@@ -316,7 +324,7 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
           
           <p>Le lien vous redirigera vers notre plateforme sécurisée où vous pourrez consulter tous les détails de l'offre avant de la signer.</p>
           
-          <p>En cas de questions, n'hésitez pas à nous contacter directement en répondant à cet email.</p>
+          <p>En cas de questions, n'hésitez pas à nous contacter directement.</p>
           
           <p>Cordialement,<br>L'équipe iTakecare</p>
         </div>
@@ -329,22 +337,43 @@ export const sendOfferSignatureEmail = async (offerId: string): Promise<boolean>
 
     console.log("Envoi de l'email à:", offer.client_email);
     
-    const success = await sendEmail(
-      offer.client_email,
-      subject,
-      html
-    );
+    // Tentative d'envoi avec plusieurs essais si nécessaire
+    let attempts = 0;
+    const maxAttempts = 2;
+    let success = false;
     
-    if (success) {
-      console.log("Email de signature envoyé avec succès à:", offer.client_email);
-      return true;
-    } else {
-      console.error("Échec de l'envoi de l'email de signature");
-      return false;
+    while (attempts < maxAttempts && !success) {
+      attempts++;
+      try {
+        console.log(`Tentative d'envoi #${attempts}...`);
+        success = await sendEmail(
+          offer.client_email,
+          subject,
+          html
+        );
+        
+        if (success) {
+          console.log("Email de signature envoyé avec succès à:", offer.client_email);
+          toast.success("Email de signature envoyé avec succès");
+          return true;
+        } else {
+          console.error(`Échec de l'envoi #${attempts}`);
+          // Si ce n'est pas la dernière tentative, on attend avant de réessayer
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+      } catch (emailErr) {
+        console.error(`Erreur lors de la tentative d'envoi #${attempts}:`, emailErr);
+      }
     }
     
+    console.error(`Échec de l'envoi de l'email après ${attempts} tentatives`);
+    toast.error("Échec de l'envoi de l'email de signature");
+    return false;
   } catch (error) {
     console.error("Erreur lors de l'envoi de l'email de signature:", error);
+    toast.error("Erreur lors de l'envoi de l'email de signature");
     return false;
   }
 };
