@@ -279,10 +279,12 @@ serve(async (req) => {
         if (lastResult?.isGmailWebLoginRequired) {
           errorMessage = "Connexion refusée par Google - Action supplémentaire requise";
           suggestion = "Google a détecté une activité inhabituelle et nécessite une vérification supplémentaire:\n\n" +
-                      "1. Connectez-vous à votre compte Gmail dans un navigateur\n" +
-                      "2. Allez à https://accounts.google.com/DisplayUnlockCaptcha pour autoriser l'accès\n" +
-                      "3. Vérifiez si vous avez reçu un email de Google concernant une tentative de connexion bloquée\n" +
-                      "4. Assurez-vous d'utiliser un mot de passe d'application récent créé spécifiquement pour cette application";
+                      "1. Connectez-vous à votre compte Gmail dans un navigateur web\n" +
+                      "2. Allez à https://accounts.google.com/DisplayUnlockCaptcha et cliquez sur 'Continuer'\n" +
+                      "3. Allez ensuite à https://myaccount.google.com/lesssecureapps et activez l'accès\n" +
+                      "4. Vérifiez si vous avez reçu un email de Google concernant une tentative de connexion bloquée et suivez les instructions\n" +
+                      "5. Attendez environ 5-10 minutes avant de réessayer\n" +
+                      "6. Assurez-vous d'utiliser un mot de passe d'application récent créé spécifiquement pour cette application";
         } 
         else if (lastResult?.appPasswordMessage) {
           errorMessage = "Erreur d'authentification Gmail";
