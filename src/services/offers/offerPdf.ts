@@ -152,34 +152,20 @@ export const generateSamplePdf = async (sampleData: any) => {
     // Créer des données d'exemple enrichies avec des valeurs par défaut pour leasing
     const completeSampleData = {
       id: sampleData.id || `preview-${Date.now()}`,
-      offer_id: sampleData.offer_id || `OFF-EXEMPLE`,
-      client_name: sampleData.client_name || "Jean Dupont",
-      client_company: sampleData.client_company || "Entreprise Exemple SA",
-      client_email: sampleData.client_email || "contact@exemple.fr", 
+      offer_id: sampleData.offer_id || `EXEMPLE`,
+      client_name: sampleData.client_name || "Guy Tarre",
+      client_company: sampleData.client_company || "ACME BELGIUM SA",
+      client_email: sampleData.client_email || "client@example.com", 
       amount: sampleData.amount || 10000,
-      monthly_payment: sampleData.monthly_payment || 132,
+      monthly_payment: sampleData.monthly_payment || 90,
       created_at: sampleData.created_at || new Date().toISOString(),
       equipment_description: sampleData.equipment_description || JSON.stringify([
         {
-          title: "MacBook Pro 16\" M2 Pro",
-          purchasePrice: 2699, 
+          title: "Produit Test",
+          purchasePrice: 2000, 
           quantity: 1,
           margin: 10,
-          monthlyPayment: 75.00
-        },
-        {
-          title: "Écran Dell 27\" UltraSharp",
-          purchasePrice: 499, 
-          quantity: 2,
-          margin: 15,
-          monthlyPayment: 25.00
-        },
-        {
-          title: "Dock USB-C Thunderbolt",
-          purchasePrice: 199, 
-          quantity: 1,
-          margin: 15,
-          monthlyPayment: 7.00
+          monthlyPayment: 90.00
         }
       ]),
       ...sampleData // Conserver toutes les autres propriétés

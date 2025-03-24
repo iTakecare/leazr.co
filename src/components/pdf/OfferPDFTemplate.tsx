@@ -60,30 +60,30 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   }, 0);
   
   return (
-    <div className="bg-white min-h-[297mm] w-full flex flex-col">
+    <div className="bg-white w-full" style={{ minHeight: '297mm', maxHeight: '297mm', overflow: 'hidden' }}>
       {/* Header */}
       <header className="bg-[#1A1F2C] text-white p-6 flex justify-between items-center">
         <div className="flex items-center">
-          <img src="/public/lovable-uploads/160cd577-8857-4349-a871-cd898da7f954.png" alt="iTakeCare Logo" className="h-10 mr-2" />
+          <img src="/lovable-uploads/cfcad882-24c1-45af-9bef-f2f1f38a8bcd.png" alt="Logo" className="h-10 mr-2" />
         </div>
         <div className="text-xl font-bold">
-          OFFRE N° EXEMPLE
+          OFFRE N° {offerId}
         </div>
       </header>
       
       {/* Main Content */}
-      <main className="flex-grow p-8 flex flex-col">
+      <main className="p-8 flex flex-col">
         {/* Client Information and Reference */}
         <div className="flex justify-between mb-10">
           <div>
             <h2 className="text-lg font-bold mb-4">CLIENT</h2>
-            <p className="font-semibold">{offer.client_company || "Entreprise Exemple SA"}</p>
-            <p>{offer.client_name || "Jean Dupont"}</p>
-            <p>{offer.client_email || "contact@exemple.fr"}</p>
+            <p className="font-semibold">{offer.client_company || "ACME BELGIUM SA"}</p>
+            <p>{offer.client_name || "Guy Tarre"}</p>
+            <p>{offer.client_email || "client@example.com"}</p>
           </div>
           <div className="text-right">
-            <p>Date: {formatDate(offer.created_at) || "24/03/2025"}</p>
-            <p>Référence: {offerId || "OFF-EXEMPLE"}</p>
+            <p>Date: {formatDate(offer.created_at) || "21/03/2025"}</p>
+            <p>Référence: {offerId}</p>
           </div>
         </div>
         
@@ -108,24 +108,11 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                   </tr>
                 ))
               ) : (
-                // Exemple par défaut si pas d'équipement
-                <>
-                  <tr>
-                    <td className="border border-gray-300 p-2">MacBook Pro 16" M2 Pro</td>
-                    <td className="border border-gray-300 p-2 text-center">1</td>
-                    <td className="border border-gray-300 p-2 text-right">75,00 €</td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-300 p-2">Écran Dell 27" UltraSharp</td>
-                    <td className="border border-gray-300 p-2 text-center">2</td>
-                    <td className="border border-gray-300 p-2 text-right">50,00 €</td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-300 p-2">Dock USB-C Thunderbolt</td>
-                    <td className="border border-gray-300 p-2 text-center">1</td>
-                    <td className="border border-gray-300 p-2 text-right">7,00 €</td>
-                  </tr>
-                </>
+                <tr>
+                  <td className="border border-gray-300 p-2">Produit Test</td>
+                  <td className="border border-gray-300 p-2 text-center">1</td>
+                  <td className="border border-gray-300 p-2 text-right">90,00 €</td>
+                </tr>
               )}
               <tr>
                 <td colSpan={2} className="border border-gray-300 p-2 text-right font-semibold">
@@ -134,7 +121,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                 <td className="border border-gray-300 p-2 text-right font-semibold">
                   {equipment.length > 0 
                     ? formatCurrency(totalMonthly) 
-                    : "132,00 €"}
+                    : "90,00 €"}
                 </td>
               </tr>
             </tbody>
@@ -146,17 +133,20 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           <p>Total mensualité:</p>
           <p>{equipment.length > 0 
             ? `${formatCurrency(totalMonthly)} HTVA / mois` 
-            : "132,00 € HTVA / mois"}</p>
+            : "90,00 € HTVA / mois"}</p>
         </div>
+        
+        {/* Blank space to ensure footer stays at bottom */}
+        <div className="flex-grow" style={{ minHeight: '80px' }}></div>
       </main>
       
       {/* Footer */}
-      <footer className="mt-auto">
+      <footer style={{ position: 'relative', paddingTop: '20px', maxWidth: '100%' }}>
         <p className="text-center font-medium mb-4">
           Cette offre est valable 30 jours à compter de sa date d'émission.
         </p>
         <hr className="border-gray-300 mb-4" />
-        <div className="text-center text-sm text-gray-600">
+        <div className="text-center text-sm text-gray-600" style={{ paddingBottom: '20px' }}>
           <p>
             iTakecare - Avenue du Général Michel 1E, 6000 Charleroi, Belgique
           </p>
