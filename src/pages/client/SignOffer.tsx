@@ -10,6 +10,7 @@ import {
   getBasicOfferById,
   getRawOfferData
 } from "@/services/offers/offerCheck";
+import { getPublicOfferById } from "@/services/offers/offerPublicAccess";
 import { generateAndDownloadOfferPdf } from "@/services/offers/offerPdf";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
@@ -65,56 +66,46 @@ const SignOffer = () => {
       setError(null);
       setDebugInfo(`Tentative #${attemptNumber} - ID: ${id}`);
       
-      // Stratégie 1: Utiliser la fonction normale de récupération
-      let offerData = await getOfferForClient(id);
+      // Nouvelle stratégie optimisée: utiliser la fonction dédiée
+      let offerData = await getPublicOfferById(id);
       
-      // Stratégie 2: Utiliser la fonction de récupération simplifiée si la 1ère échoue
       if (!offerData) {
-        setDebugInfo(prev => `${prev}\nEssai méthode alternative...`);
-        offerData = await getBasicOfferById(id);
-      }
-      
-      // Stratégie 3: Utiliser la récupération brute en dernier recours
-      if (!offerData) {
-        setDebugInfo(prev => `${prev}\nEssai méthode brute...`);
-        offerData = await getRawOfferData(id);
-      }
-      
-      // Stratégie 4: Requête Supabase directe, sans intermédiaire
-      if (!offerData) {
-        setDebugInfo(prev => `${prev}\nEssai requête Supabase directe...`);
-        const { data: directData, error: directError } = await supabase
-          .from('offers')
-          .select(`
-            *,
-            clients (
-              name,
-              email,
-              company
-            )
-          `)
-          .eq('id', id)
-          .single();
+        setDebugInfo(prev => `${prev}\nÉchec de la récupération dédiée, essai des méthodes alternatives...`);
         
-        if (directError) {
-          setDebugInfo(prev => `${prev}\nErreur requête directe: ${directError.message}`);
+        // Stratégie 1: Utiliser la fonction normale de récupération
+        offerData = await getOfferForClient(id);
+        
+        // Stratégie 2: Utiliser la fonction de récupération simplifiée si la 1ère échoue
+        if (!offerData) {
+          setDebugInfo(prev => `${prev}\nEssai méthode basique...`);
+          offerData = await getBasicOfferById(id);
+        }
+        
+        // Stratégie 3: Utiliser la récupération brute en dernier recours
+        if (!offerData) {
+          setDebugInfo(prev => `${prev}\nEssai méthode brute...`);
+          offerData = await getRawOfferData(id);
+        }
+        
+        // Stratégie 4: Requête Supabase directe, sans intermédiaire
+        if (!offerData) {
+          setDebugInfo(prev => `${prev}\nEssai requête Supabase directe...`);
           
-          // Dernier essai avec le client admin
-          const { data: adminData, error: adminError } = await adminSupabase
-            .from('offers')
-            .select('*')
-            .eq('id', id)
-            .single();
-          
-          if (adminError) {
-            setDebugInfo(prev => `${prev}\nErreur requête admin: ${adminError.message}`);
-          } else if (adminData) {
-            offerData = adminData;
-            setDebugInfo(prev => `${prev}\nOffre récupérée via admin`);
+          try {
+            const { data: directData, error: directError } = await supabase.rpc(
+              'get_offer_by_id_public',
+              { offer_id: id }
+            );
+            
+            if (directError) {
+              setDebugInfo(prev => `${prev}\nErreur RPC: ${directError.message}`);
+            } else if (directData) {
+              offerData = directData;
+              setDebugInfo(prev => `${prev}\nOffre récupérée via RPC`);
+            }
+          } catch (e) {
+            setDebugInfo(prev => `${prev}\nException RPC: ${e.message}`);
           }
-        } else if (directData) {
-          offerData = directData;
-          setDebugInfo(prev => `${prev}\nOffre récupérée via requête directe`);
         }
       }
       
@@ -273,6 +264,7 @@ const SignOffer = () => {
       <OffersError 
         message={error || "Cette offre n'existe pas ou n'est plus disponible."}
         onRetry={handleRetry}
+        debugInfo={debugInfo}
       />
     );
   }
@@ -491,3 +483,4 @@ const SignOffer = () => {
 };
 
 export default SignOffer;
+

@@ -12,41 +12,42 @@ export const checkOfferExists = async (offerId: string): Promise<boolean> => {
   try {
     console.log("Vérification d'existence de l'offre:", offerId);
     
-    // 1. Essai avec le client standard
-    let { data, error } = await supabase
-      .from('offers')
-      .select('id')
-      .eq('id', offerId)
-      .maybeSingle();
+    // 1. Première tentative: via la fonction RPC spéciale qui contourne RLS
+    let { data, error } = await supabase.rpc(
+      'get_offer_by_id_public',
+      { offer_id: offerId }
+    );
     
-    if (error || !data) {
-      console.log("Tentative directe (sans RLS) via rpc");
+    if (error) {
+      console.error("Erreur lors de l'appel RPC:", error);
       
-      // 2. Tentative avec RPC pour contourner RLS
-      const { data: rpcData, error: rpcError } = await supabase.rpc(
-        'get_offer_by_id_public',
-        { offer_id: offerId }
-      );
+      // 2. Deuxième tentative: directe via le client standard
+      const result = await supabase
+        .from('offers')
+        .select('id')
+        .eq('id', offerId)
+        .maybeSingle();
       
-      if (rpcError || !rpcData) {
+      if (result.error || !result.data) {
         console.log("Tentative avec adminSupabase");
         
-        // 3. Tentative avec le client admin
-        const result = await adminSupabase
+        // 3. Troisième tentative: avec le client admin
+        const adminResult = await adminSupabase
           .from('offers')
           .select('id')
           .eq('id', offerId)
           .maybeSingle();
         
+        data = adminResult.data;
+        error = adminResult.error;
+      } else {
         data = result.data;
         error = result.error;
-      } else {
-        data = rpcData;
       }
     }
     
     if (error) {
-      console.error("Erreur lors de la vérification d'existence:", error);
+      console.error("Erreur finale lors de la vérification d'existence:", error);
       return false;
     }
     
@@ -62,6 +63,7 @@ export const checkOfferExists = async (offerId: string): Promise<boolean> => {
 /**
  * Récupère une offre de manière très basique, sans filtrage ni jointures.
  * Tente plusieurs approches pour garantir la récupération de l'offre.
+ * Utilise la fonction RPC `get_offer_by_id_public` qui contourne les restrictions RLS.
  */
 export const getBasicOfferById = async (offerId: string) => {
   if (!offerId) return null;
@@ -110,25 +112,7 @@ export const getBasicOfferById = async (offerId: string) => {
     
     if (!data) {
       console.log("Aucune offre trouvée avec l'ID:", offerId);
-      // 4. Dernier recours: SQL brut via la fonction execute_sql
-      try {
-        console.log("Tentative avec SQL brut");
-        const { data: rawData, error: rawError } = await adminSupabase.rpc(
-          'execute_sql',
-          { sql: `SELECT * FROM public.offers WHERE id = '${offerId}' LIMIT 1` }
-        );
-        
-        if (rawError || !rawData || rawData.length === 0) {
-          console.error("Échec de la récupération via SQL brute:", rawError);
-          return null;
-        }
-        
-        console.log("Offre récupérée via SQL brut:", rawData[0].id);
-        return rawData[0];
-      } catch (sqlError) {
-        console.error("Erreur SQL brute:", sqlError);
-        return null;
-      }
+      return null;
     }
     
     console.log("Offre récupérée avec succès:", data?.id);
@@ -158,24 +142,7 @@ export const getRawOfferData = async (offerId: string) => {
     
     if (error) {
       console.error("Erreur lors de la récupération brute:", error);
-      
-      // Tentative avec SQL brut en dernier recours
-      try {
-        const { data: sqlData, error: sqlError } = await adminSupabase.rpc(
-          'execute_sql',
-          { sql: `SELECT * FROM offers WHERE id = '${offerId}'` }
-        );
-        
-        if (sqlError || !sqlData || sqlData.length === 0) {
-          console.error("Échec SQL brut:", sqlError);
-          return null;
-        }
-        
-        return sqlData[0];
-      } catch (e) {
-        console.error("Exception SQL brut:", e);
-        return null;
-      }
+      return null;
     }
     
     console.log("Offre récupérée en mode brut:", data?.id);

@@ -6,3 +6,4 @@ export * from './offers/offerDetail';
 export * from './offers/offerPdf';
 export * from './offers/offerSignature';
 export * from './offers/offerCheck';
+export * from './offers/offerPublicAccess';
