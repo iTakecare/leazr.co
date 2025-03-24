@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { ArrowLeft, FileDown, RefreshCw, Loader2, Copy, Pen, Mail } from "lucide-react";
+import { ArrowLeft, FileDown, RefreshCw, Loader2, Copy, Pen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
-import { generateSignatureLink, sendOfferSignatureEmail } from "@/services/offers/offerSignature";
+import { generateSignatureLink } from "@/services/offers/offerSignature";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -55,7 +55,6 @@ const PartnerOfferDetail = () => {
   const [signatureUrl, setSignatureUrl] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false);
   const [isCopiedSignature, setIsCopiedSignature] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
 
   const fetchOfferDetails = async () => {
     try {
@@ -142,25 +141,6 @@ const PartnerOfferDetail = () => {
     }
     
     toast.success("Lien de signature envoyé au client");
-  };
-
-  const handleSendSignatureEmail = async () => {
-    if (!id) return;
-    
-    try {
-      setSendingEmail(true);
-      const success = await sendOfferSignatureEmail(id);
-      
-      if (success) {
-        // Rafraîchir les détails de l'offre
-        fetchOfferDetails();
-      }
-    } catch (error) {
-      console.error("Erreur lors de l'envoi de l'email de signature:", error);
-      toast.error("Échec de l'envoi de l'email");
-    } finally {
-      setSendingEmail(false);
-    }
   };
 
   if (loading) {
@@ -310,7 +290,7 @@ const PartnerOfferDetail = () => {
                       </Button>
                     </div>
                     
-                    <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                    <div className="mt-4">
                       <Button 
                         variant="default" 
                         className="w-full"
@@ -320,38 +300,19 @@ const PartnerOfferDetail = () => {
                         <Pen className="h-4 w-4 mr-2" />
                         {offer.workflow_status === 'approved' 
                           ? "Offre déjà signée" 
-                          : "Partager le lien de signature"}
+                          : "Envoyer le lien de signature au client"}
                       </Button>
                       
-                      <Button 
-                        variant="secondary" 
-                        className="w-full"
-                        onClick={handleSendSignatureEmail}
-                        disabled={!offer.client_email || offer.workflow_status === 'approved' || sendingEmail}
-                      >
-                        {sendingEmail ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Envoi en cours...
-                          </>
-                        ) : (
-                          <>
-                            <Mail className="h-4 w-4 mr-2" />
-                            Envoyer par email
-                          </>
-                        )}
-                      </Button>
+                      {offer.workflow_status === 'approved' && (
+                        <Alert className="mt-4 bg-green-50 border-green-200">
+                          <AlertTitle className="text-green-800">Offre signée</AlertTitle>
+                          <AlertDescription className="text-green-700">
+                            Cette offre a déjà été signée électroniquement
+                            {offer.signer_name ? ` par ${offer.signer_name}` : ""}.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
-                      
-                    {offer.workflow_status === 'approved' && (
-                      <Alert className="mt-4 bg-green-50 border-green-200">
-                        <AlertTitle className="text-green-800">Offre signée</AlertTitle>
-                        <AlertDescription className="text-green-700">
-                          Cette offre a déjà été signée électroniquement
-                          {offer.signer_name ? ` par ${offer.signer_name}` : ""}.
-                        </AlertDescription>
-                      </Alert>
-                    )}
                   </div>
                 </CardContent>
               </Card>
