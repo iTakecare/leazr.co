@@ -1,3 +1,4 @@
+
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { loadTemplate } from "@/utils/templateManager";
@@ -163,7 +164,7 @@ export const generateAndDownloadOfferPdf = async (offerId: string) => {
     
     // Vérifier que les champs ont des positions valides
     if (template.fields && template.fields.length > 0) {
-      const fieldsWithValidPositions = template.fields.filter(f => 
+      const fieldsWithValidPositions = template.fields.filter((f: any) => 
         f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
       );
       
@@ -171,7 +172,7 @@ export const generateAndDownloadOfferPdf = async (offerId: string) => {
       
       // Vérifier quelques champs pour le débogage
       if (fieldsWithValidPositions.length > 0) {
-        console.log("Exemples de champs:", fieldsWithValidPositions.slice(0, 3).map(f => ({
+        console.log("Exemples de champs:", fieldsWithValidPositions.slice(0, 3).map((f: any) => ({
           id: f.id,
           label: f.label,
           value: f.value,
@@ -197,9 +198,38 @@ export const generateAndDownloadOfferPdf = async (offerId: string) => {
     
     // Vérifier que les images du template ont des données valides
     if (offerWithTemplate.__template.templateImages.length > 0) {
-      offerWithTemplate.__template.templateImages.forEach((img, idx) => {
+      offerWithTemplate.__template.templateImages.forEach((img: any, idx: number) => {
         console.log(`Image ${idx+1}: page ${img.page}, data: ${img.data ? 'présente' : 'absente'}, url: ${img.url ? 'présente' : 'absente'}`);
       });
+    }
+    
+    // Vérifier les champs disponibles
+    if (offerWithTemplate.__template.fields && offerWithTemplate.__template.fields.length > 0) {
+      console.log(`Total de ${offerWithTemplate.__template.fields.length} champs disponibles pour le PDF`);
+      
+      // Journaliser les champs pour le débogage
+      const validFields = offerWithTemplate.__template.fields.filter((f: any) => 
+        f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
+      );
+      
+      console.log(`${validFields.length} champs ont des positions valides`);
+      
+      if (validFields.length > 0) {
+        console.log("Exemples de champs pour le PDF:");
+        validFields.slice(0, 5).forEach((f: any) => {
+          console.log(`- Champ "${f.label}" (${f.id}) à la position (${f.position.x}, ${f.position.y}), valeur: "${f.value}"`);
+          
+          // Vérifier si la valeur contient des variables
+          if (typeof f.value === 'string' && f.value.includes('{')) {
+            // Tenter de résoudre les variables pour le débogage
+            const resolved = f.value.replace(/\{([^}]+)\}/g, (match: string, key: string) => {
+              const value = offerData[key];
+              return value !== undefined ? String(value) : `[${key} non trouvé]`;
+            });
+            console.log(`  Valeur résolue: "${resolved}"`);
+          }
+        });
+      }
     }
     
     // Générer le PDF
@@ -300,14 +330,14 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
       console.log("=== VÉRIFICATION DES CHAMPS AVANT GÉNÉRATION PDF ===");
       console.log(`Total de ${completeTemplate.fields.length} champs disponibles`);
       
-      const fieldsWithPositions = completeTemplate.fields.filter(f => 
+      const fieldsWithPositions = completeTemplate.fields.filter((f: any) => 
         f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
       );
       
       console.log(`${fieldsWithPositions.length} champs ont des positions valides`);
       
       // Vérifier les valeurs des champs pour le débogage
-      fieldsWithPositions.forEach(field => {
+      fieldsWithPositions.forEach((field: any) => {
         try {
           console.log(`Champ "${field.label}" (${field.id}):`);
           console.log(` - Position: (${field.position.x}, ${field.position.y})`);
@@ -315,7 +345,7 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
           
           // Résoudre les variables dans les valeurs
           if (typeof field.value === 'string' && field.value.includes('{')) {
-            const resolvedValue = field.value.replace(/\{([^}]+)\}/g, (match, key) => {
+            const resolvedValue = field.value.replace(/\{([^}]+)\}/g, (match: string, key: string) => {
               const value = completeSampleData[key];
               console.log(`   - Résolution de {${key}} => ${value !== undefined ? value : 'NON TROUVÉ'}`);
               return value !== undefined ? String(value) : `[${key} non trouvé]`;
@@ -333,7 +363,7 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
     // Vérifier les images du template
     if (completeTemplate.templateImages.length > 0) {
       console.log("=== VÉRIFICATION DES IMAGES DU TEMPLATE ===");
-      completeTemplate.templateImages.forEach((img, idx) => {
+      completeTemplate.templateImages.forEach((img: any, idx: number) => {
         console.log(`Image ${idx+1}:`);
         console.log(` - Page: ${img.page}`);
         console.log(` - Données base64: ${img.data ? 'présentes' : 'absentes'}`);

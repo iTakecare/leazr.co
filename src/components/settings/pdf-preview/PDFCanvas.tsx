@@ -111,7 +111,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
     });
     
     console.log(`Champs pour la page ${currentPage + 1}:`, fields.length);
-    fields.forEach(f => console.log(` - ${f.id}: "${f.label}" à (${f.position.x}, ${f.position.y})`));
+    fields.forEach((f: any) => console.log(` - ${f.id}: "${f.label}" à (${f.position.x}, ${f.position.y})`));
     
     return fields;
   };
