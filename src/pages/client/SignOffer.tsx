@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -261,7 +262,49 @@ const SignOffer = () => {
       : "Équipement non détaillé (erreur de format)";
   }
   
-  console.log("Rendu de l'offre:", offer.id, "Statut:", offer.workflow_status);
+  console.log("Rendu de l'offre:", offer?.id, "Statut:", offer?.workflow_status);
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement de votre offre...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error || !offer) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+        <div className="max-w-md w-full">
+          <Card>
+            <CardHeader className="text-center">
+              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-2" />
+              <CardTitle>Offre non disponible</CardTitle>
+              <CardDescription>
+                {error || "Cette offre n'existe pas ou n'est plus disponible."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {debugInfo && (
+                <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-700 whitespace-pre-wrap">
+                  <p className="font-bold mb-1">Informations de débogage:</p>
+                  {debugInfo}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <Button onClick={() => window.location.href = "/"}>
+                Retour à l'accueil
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -349,22 +392,12 @@ const SignOffer = () => {
               </div>
               
               <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <div className="text-sm text-gray-500 mb-1">Montant total</div>
-                  <div className="text-2xl font-bold">{formatCurrency(offer.amount)}</div>
-                </div>
-                
                 <div className="bg-blue-50 p-4 rounded-md">
                   <div className="text-sm text-blue-700 mb-1">Mensualité</div>
                   <div className="text-2xl font-bold text-blue-700">
                     {formatCurrency(offer.monthly_payment)}
                     <span className="text-sm font-normal text-blue-500">/mois</span>
                   </div>
-                </div>
-                
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <div className="text-sm text-gray-500 mb-1">Coefficient</div>
-                  <div className="text-xl">{offer.coefficient}</div>
                 </div>
               </div>
             </div>
