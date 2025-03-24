@@ -33,16 +33,20 @@ export interface PDFTemplate {
   [key: string]: any;
 }
 
-const PDFTemplateManager = () => {
+interface PDFTemplateManagerProps {
+  templateId?: string;
+}
+
+const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'default' }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
   
-  // Initialisation au montage
+  // Initialisation au montage ou lorsque templateId change
   useEffect(() => {
-    console.log("Initialisation du gestionnaire de modèles PDF");
+    console.log(`Initialisation du gestionnaire pour le modèle: ${templateId}`);
     const initialize = async () => {
       try {
         // S'assurer que le bucket de stockage existe
@@ -57,8 +61,8 @@ const PDFTemplateManager = () => {
           toast.warning("Attention: Stockage en mode local uniquement");
         }
         
-        // Charger le modèle
-        await loadTemplate();
+        // Charger le modèle spécifié
+        await loadTemplate(templateId);
       } catch (err) {
         console.error("Erreur lors de l'initialisation:", err);
         setError("Erreur lors de l'initialisation");
@@ -67,16 +71,16 @@ const PDFTemplateManager = () => {
     };
     
     initialize();
-  }, []);
+  }, [templateId]);
 
   // Fonction pour charger le modèle
-  const loadTemplate = async () => {
+  const loadTemplate = async (id: string = 'default') => {
     setLoading(true);
     setError(null);
     
     try {
-      console.log("Chargement du modèle PDF...");
-      const data = await loadPDFTemplate();
+      console.log(`Chargement du modèle PDF: ${id}`);
+      const data = await loadPDFTemplate(id);
       
       if (!data) {
         console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
@@ -111,7 +115,7 @@ const PDFTemplateManager = () => {
         }
         
         setTemplate(sanitizedTemplate);
-        toast.success("Modèle chargé avec succès");
+        toast.success(`Modèle "${sanitizedTemplate.name}" chargé avec succès`);
       }
     } catch (err) {
       console.error("Erreur lors du chargement du modèle:", err);
@@ -135,13 +139,14 @@ const PDFTemplateManager = () => {
     setError(null);
     
     try {
-      console.log("Sauvegarde du modèle:", updatedTemplate);
+      console.log(`Sauvegarde du modèle: ${updatedTemplate.id}`, updatedTemplate);
       
       // S'assurer que les tableaux sont initialisés
       const sanitizedTemplate: PDFTemplate = {
         ...updatedTemplate,
         templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
-        fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : []
+        fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : [],
+        updated_at: new Date().toISOString()
       };
       
       console.log("Modèle à sauvegarder (sanitisé):", sanitizedTemplate);
@@ -192,22 +197,28 @@ const PDFTemplateManager = () => {
   
   // Fonction pour réessayer en cas d'erreur
   const handleRetry = () => {
-    loadTemplate();
+    loadTemplate(templateId);
   };
 
   // Ajouter un log pour vérifier que le composant se rend correctement
   console.log("Rendu de PDFTemplateManager", {
     loading,
     saving,
+    templateId,
     templateExists: !!template,
+    templateName: template?.name,
     templateImagesCount: template?.templateImages?.length || 0,
     fieldsCount: template?.fields?.length || 0
   });
 
   return (
-    <Card className="w-full mt-6">
+    <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Gestionnaire de modèles PDF</CardTitle>
+        <CardTitle>
+          {loading 
+            ? "Chargement du modèle..." 
+            : `Modèle: ${template?.name || 'Non défini'}`}
+        </CardTitle>
         <Button 
           variant="default" 
           size="sm" 

@@ -76,3 +76,22 @@ export function hasValidEquipmentData(data: any): boolean {
     return false;
   }
 }
+
+// Génère un identifiant unique pour un modèle PDF
+export function generateTemplateId(prefix: string = 'template'): string {
+  const timestamp = Date.now().toString(36);
+  const randomStr = Math.random().toString(36).substring(2, 8);
+  return `${prefix}-${timestamp}-${randomStr}`;
+}
+
+// Récupère tous les modèles disponibles avec leur nom pour les listes de sélection
+export function formatTemplatesForSelection(templates: any[]): { label: string, value: string }[] {
+  if (!Array.isArray(templates) || templates.length === 0) {
+    return [{ label: "Modèle par défaut", value: "default" }];
+  }
+  
+  return templates.map(template => ({
+    label: template.name || `Modèle ${template.id}`,
+    value: template.id
+  }));
+}

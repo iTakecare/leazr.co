@@ -1,102 +1,27 @@
 
-import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { ensureBucket } from "@/services/fileStorage";
+import { getSupabaseClient } from "@/integrations/supabase/client";
+import { ensureStorageBucket } from "@/services/storageService";
 
-/**
- * Vérifie si la table pdf_templates existe et la crée si nécessaire
- */
-export const ensurePDFTemplateTableExists = async (): Promise<boolean> => {
-  try {
-    console.log("Vérification/création de la table pdf_templates...");
-    const supabase = getSupabaseClient();
-    const adminClient = getAdminSupabaseClient();
-    
-    // Essai direct de création de la table avec le client admin
-    try {
-      const { error } = await adminClient.rpc('execute_sql', {
-        sql: `
-          CREATE TABLE IF NOT EXISTS public.pdf_templates (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            "companyName" TEXT NOT NULL,
-            "companyAddress" TEXT NOT NULL,
-            "companyContact" TEXT NOT NULL,
-            "companySiret" TEXT NOT NULL,
-            "logoURL" TEXT,
-            "primaryColor" TEXT NOT NULL,
-            "secondaryColor" TEXT NOT NULL,
-            "headerText" TEXT NOT NULL,
-            "footerText" TEXT NOT NULL,
-            "templateImages" JSONB DEFAULT '[]'::jsonb,
-            fields JSONB NOT NULL DEFAULT '[]'::jsonb,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-          );
-        `
-      });
-      
-      if (error) {
-        console.error("Erreur lors de la création de la table avec admin:", error);
-        throw error;
-      }
-      
-      console.log("Table pdf_templates créée/vérifiée avec succès via admin");
-    } catch (adminError) {
-      console.error("Erreur avec client admin:", adminError);
-      
-      // Si l'approche admin échoue, essayer l'approche standard
-      try {
-        const { error } = await supabase.rpc('execute_sql', {
-          sql: `
-            CREATE TABLE IF NOT EXISTS public.pdf_templates (
-              id TEXT PRIMARY KEY,
-              name TEXT NOT NULL,
-              "companyName" TEXT NOT NULL,
-              "companyAddress" TEXT NOT NULL,
-              "companyContact" TEXT NOT NULL,
-              "companySiret" TEXT NOT NULL,
-              "logoURL" TEXT,
-              "primaryColor" TEXT NOT NULL,
-              "secondaryColor" TEXT NOT NULL,
-              "headerText" TEXT NOT NULL,
-              "footerText" TEXT NOT NULL,
-              "templateImages" JSONB DEFAULT '[]'::jsonb,
-              fields JSONB NOT NULL DEFAULT '[]'::jsonb,
-              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-            );
-          `
-        });
-        
-        if (error) {
-          console.error("Erreur lors de la création de la table:", error);
-          throw error;
-        }
-        
-        console.log("Table pdf_templates créée/vérifiée avec succès");
-      } catch (directError) {
-        console.error("Échec complet lors de la création de la table:", directError);
-        return false;
-      }
-    }
-    
-    // S'assurer que le bucket de stockage existe aussi
-    try {
-      await ensureBucket('pdf-templates');
-    } catch (bucketError) {
-      console.warn("Impossible de créer le bucket, mais on continue car on utilise le stockage base64:", bucketError);
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Exception lors de la vérification/création de la table:", error);
-    return false;
-  }
-};
+export interface PDFModel {
+  id: string;
+  name: string;
+  companyName: string;
+  companyAddress: string;
+  companyContact: string;
+  companySiret: string;
+  logoURL: string;
+  primaryColor: string;
+  secondaryColor: string;
+  headerText: string;
+  footerText: string;
+  templateImages: any[];
+  fields: any[];
+  created_at?: string;
+  updated_at?: string;
+}
 
 // Modèle par défaut
-export const DEFAULT_TEMPLATE = {
+export const DEFAULT_MODEL: PDFModel = {
   id: 'default',
   name: 'Modèle par défaut',
   companyName: 'iTakeCare',
@@ -113,111 +38,195 @@ export const DEFAULT_TEMPLATE = {
 };
 
 /**
- * Charge un modèle PDF depuis la base de données ou retourne le modèle par défaut
+ * Vérifie et crée la table pdf_models et le bucket de stockage si nécessaire
+ */
+export const ensurePDFModelTableExists = async (): Promise<boolean> => {
+  const supabase = getSupabaseClient();
+  
+  try {
+    console.log("Vérification de l'existence de la table pdf_models...");
+    
+    // 1. Vérifier si la table existe déjà via la fonction RPC
+    const { data: tableExists, error: checkError } = await supabase.rpc(
+      'check_table_exists',
+      { table_name: 'pdf_models' }
+    );
+    
+    if (checkError) {
+      console.error("Erreur lors de la vérification de l'existence de la table:", checkError);
+      
+      // Fallback: création directe de la table via SQL
+      const { error: createError } = await supabase.rpc('execute_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.pdf_models (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            "companyName" TEXT NOT NULL,
+            "companyAddress" TEXT NOT NULL,
+            "companyContact" TEXT NOT NULL,
+            "companySiret" TEXT NOT NULL,
+            "logoURL" TEXT DEFAULT '',
+            "primaryColor" TEXT NOT NULL,
+            "secondaryColor" TEXT NOT NULL,
+            "headerText" TEXT NOT NULL,
+            "footerText" TEXT NOT NULL,
+            "templateImages" JSONB DEFAULT '[]'::jsonb,
+            fields JSONB DEFAULT '[]'::jsonb,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+          );
+        `
+      });
+      
+      if (createError) {
+        console.error("Erreur lors de la création directe de la table:", createError);
+        throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
+      }
+      
+      console.log("Table pdf_models créée avec succès via SQL direct");
+    } else if (!tableExists) {
+      console.log("La table pdf_models n'existe pas, création...");
+      
+      const { error: createError } = await supabase.rpc('execute_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.pdf_models (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            "companyName" TEXT NOT NULL,
+            "companyAddress" TEXT NOT NULL,
+            "companyContact" TEXT NOT NULL,
+            "companySiret" TEXT NOT NULL,
+            "logoURL" TEXT DEFAULT '',
+            "primaryColor" TEXT NOT NULL,
+            "secondaryColor" TEXT NOT NULL,
+            "headerText" TEXT NOT NULL,
+            "footerText" TEXT NOT NULL,
+            "templateImages" JSONB DEFAULT '[]'::jsonb,
+            fields JSONB DEFAULT '[]'::jsonb,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+          );
+        `
+      });
+      
+      if (createError) {
+        console.error("Erreur lors de la création de la table:", createError);
+        throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
+      }
+      
+      console.log("Table pdf_models créée avec succès");
+    } else {
+      console.log("La table pdf_models existe déjà");
+    }
+    
+    // Vérifier s'il y a au moins un enregistrement, sinon insérer le modèle par défaut
+    try {
+      const { count, error: countError } = await supabase
+        .from('pdf_models')
+        .select('*', { count: 'exact', head: true });
+      
+      if (countError) {
+        console.error("Erreur lors du comptage des modèles:", countError);
+        throw new Error(`Erreur lors du comptage des modèles: ${countError.message}`);
+      }
+      
+      if (count === 0) {
+        console.log("Aucun modèle trouvé, insertion du modèle par défaut...");
+        
+        const { error: insertError } = await supabase
+          .from('pdf_models')
+          .insert(DEFAULT_MODEL);
+        
+        if (insertError) {
+          console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
+          throw new Error(`Erreur lors de l'insertion du modèle par défaut: ${insertError.message}`);
+        }
+        
+        console.log("Modèle par défaut inséré avec succès");
+      }
+    } catch (countError) {
+      // Si on ne peut pas compter, on essaie d'insérer directement (en mode upsert)
+      console.log("Erreur de comptage, tentative d'insertion du modèle par défaut...");
+      
+      const { error: insertError } = await supabase
+        .from('pdf_models')
+        .upsert(DEFAULT_MODEL, { onConflict: 'id' });
+      
+      if (insertError) {
+        console.error("Erreur lors de l'insertion/mise à jour du modèle par défaut:", insertError);
+      } else {
+        console.log("Modèle par défaut inséré/mis à jour avec succès");
+      }
+    }
+    
+    return true;
+  } catch (error: any) {
+    console.error("Exception lors de la vérification/création de la table:", error);
+    throw error;
+  }
+};
+
+/**
+ * Charge un modèle PDF depuis la base de données
  */
 export const loadPDFTemplate = async (id: string = 'default') => {
   try {
     console.log("Début du chargement du modèle PDF:", id);
-    
-    // S'assurer que la table existe
-    const tableExists = await ensurePDFTemplateTableExists();
-    if (!tableExists) {
-      console.error("La table pdf_templates n'a pas pu être créée/vérifiée");
-      toast.error("Erreur lors de la préparation de la base de données");
-      return { ...DEFAULT_TEMPLATE, templateImages: [], fields: [] };
-    }
-    
-    // Récupérer les données du template
     const supabase = getSupabaseClient();
+    
+    // Assurez-vous que la table existe et contient au moins un modèle
+    await ensurePDFModelTableExists();
+    
+    // Récupérer le modèle
     const { data, error } = await supabase
-      .from('pdf_templates')
+      .from('pdf_models')
       .select('*')
       .eq('id', id)
       .maybeSingle();
     
     if (error) {
       console.error("Erreur lors du chargement du modèle:", error);
-      toast.error("Erreur lors du chargement du modèle");
-      return { ...DEFAULT_TEMPLATE, templateImages: [], fields: [] };
+      throw new Error(`Erreur lors du chargement du modèle: ${error.message}`);
     }
     
+    console.log("Réponse de la requête de chargement:", data ? "Modèle trouvé" : "Aucun modèle trouvé");
+    
+    // Si aucun modèle n'est trouvé, retourner le modèle par défaut
     if (!data) {
-      console.log("Aucun modèle trouvé, insertion du modèle par défaut");
-      await savePDFTemplate({ ...DEFAULT_TEMPLATE, templateImages: [], fields: [] });
-      return { ...DEFAULT_TEMPLATE, templateImages: [], fields: [] };
+      return DEFAULT_MODEL;
     }
     
-    // S'assurer que les champs sont des tableaux valides
-    const sanitizedTemplate = {
-      ...data,
-      templateImages: Array.isArray(data.templateImages) ? data.templateImages : [],
-      fields: Array.isArray(data.fields) ? data.fields : []
-    };
-    
-    // Log détaillé des données chargées
-    console.log("Modèle chargé avec succès:", sanitizedTemplate);
-    console.log("Type de templateImages:", typeof sanitizedTemplate.templateImages);
-    console.log("Type de fields:", typeof sanitizedTemplate.fields);
-    console.log("Nombre d'images:", sanitizedTemplate.templateImages.length);
-    console.log("Nombre de champs:", sanitizedTemplate.fields.length);
-    
-    if (sanitizedTemplate.templateImages.length > 0) {
-      console.log("Premier élément de templateImages:", JSON.stringify(sanitizedTemplate.templateImages[0]));
-    }
-    
-    if (sanitizedTemplate.fields.length > 0) {
-      console.log("Premier élément de fields:", JSON.stringify(sanitizedTemplate.fields[0]));
-    }
-    
-    return sanitizedTemplate;
-  } catch (error) {
+    return data;
+  } catch (error: any) {
     console.error("Exception lors du chargement du modèle:", error);
-    toast.error("Erreur lors du chargement du modèle");
-    return { ...DEFAULT_TEMPLATE, templateImages: [], fields: [] };
+    throw error;
   }
 };
+
+// Alias pour la compatibilité avec les anciennes implémentations
+export const loadPDFModel = loadPDFTemplate;
 
 /**
  * Sauvegarde un modèle PDF dans la base de données
  */
-export const savePDFTemplate = async (template) => {
+export const savePDFTemplate = async (model: PDFModel) => {
   try {
-    console.log("Début de la sauvegarde du modèle PDF:", template.id);
+    console.log("Début de la sauvegarde du modèle PDF:", model.id);
+    const supabase = getSupabaseClient();
     
-    // Vérifier que les tableaux sont correctement initialisés
-    const sanitizedTemplate = {
-      ...template,
-      templateImages: Array.isArray(template.templateImages) ? template.templateImages : [],
-      fields: Array.isArray(template.fields) ? template.fields : [],
+    // Assurez-vous que la table existe
+    await ensurePDFModelTableExists();
+    
+    // Préparer le modèle à sauvegarder
+    const modelToSave = {
+      ...model,
       updated_at: new Date().toISOString()
     };
     
-    console.log("Modèle à sauvegarder (sanitisé):", sanitizedTemplate);
-    console.log("Type de templateImages:", typeof sanitizedTemplate.templateImages);
-    console.log("Type de fields:", typeof sanitizedTemplate.fields);
-    console.log("Nombre d'images à sauvegarder:", sanitizedTemplate.templateImages.length);
-    console.log("Nombre de champs à sauvegarder:", sanitizedTemplate.fields.length);
-    
-    if (sanitizedTemplate.templateImages.length > 0) {
-      console.log("Premier élément de templateImages à sauvegarder:", JSON.stringify(sanitizedTemplate.templateImages[0]));
-    }
-    
-    if (sanitizedTemplate.fields.length > 0) {
-      console.log("Premier élément de fields à sauvegarder:", JSON.stringify(sanitizedTemplate.fields[0]));
-    }
-    
-    // S'assurer que la table existe
-    const tableExists = await ensurePDFTemplateTableExists();
-    if (!tableExists) {
-      console.error("La table pdf_templates n'a pas pu être créée/vérifiée");
-      throw new Error("Erreur lors de la préparation de la base de données");
-    }
-    
-    // Sauvegarder le template
-    const supabase = getSupabaseClient();
+    // Sauvegarder le modèle
     const { error } = await supabase
-      .from('pdf_templates')
-      .upsert(sanitizedTemplate, { 
+      .from('pdf_models')
+      .upsert(modelToSave, { 
         onConflict: 'id',
         ignoreDuplicates: false 
       });
@@ -227,13 +236,16 @@ export const savePDFTemplate = async (template) => {
       throw new Error(`Erreur lors de la sauvegarde du modèle: ${error.message}`);
     }
     
-    console.log("Modèle sauvegardé avec succès:", template.id);
+    console.log("Modèle sauvegardé avec succès:", model.id);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Exception lors de la sauvegarde du modèle:", error);
     throw error;
   }
 };
+
+// Alias pour la compatibilité avec les anciennes implémentations
+export const savePDFModel = savePDFTemplate;
 
 /**
  * Récupère tous les modèles PDF
@@ -241,37 +253,60 @@ export const savePDFTemplate = async (template) => {
 export const getAllPDFTemplates = async () => {
   try {
     console.log("Récupération de tous les modèles PDF");
+    const supabase = getSupabaseClient();
     
-    // S'assurer que la table existe
-    const tableExists = await ensurePDFTemplateTableExists();
-    if (!tableExists) {
-      console.error("La table pdf_templates n'a pas pu être créée/vérifiée");
-      return [];
-    }
+    // Assurez-vous que la table existe et contient au moins un modèle
+    await ensurePDFModelTableExists();
     
     // Récupérer tous les modèles
-    const supabase = getSupabaseClient();
     const { data, error } = await supabase
-      .from('pdf_templates')
+      .from('pdf_models')
       .select('*')
       .order('name');
     
     if (error) {
       console.error("Erreur lors de la récupération des modèles:", error);
-      return [];
+      throw new Error(`Erreur lors de la récupération des modèles: ${error.message}`);
     }
     
-    // S'assurer que les tableaux sont initialisés pour chaque modèle
-    const templates = (data || []).map(template => ({
-      ...template,
-      templateImages: Array.isArray(template.templateImages) ? template.templateImages : [],
-      fields: Array.isArray(template.fields) ? template.fields : []
-    }));
-    
-    console.log(`${templates.length} modèles récupérés`);
-    return templates;
-  } catch (error) {
+    console.log(`${data?.length || 0} modèles récupérés`);
+    return data || [];
+  } catch (error: any) {
     console.error("Exception lors de la récupération des modèles:", error);
-    return [];
+    throw error;
+  }
+};
+
+// Alias pour la compatibilité avec les anciennes implémentations
+export const getAllPDFModels = getAllPDFTemplates;
+
+/**
+ * Supprime un modèle PDF
+ * Note: Ne pas supprimer le modèle par défaut
+ */
+export const deletePDFTemplate = async (id: string) => {
+  try {
+    if (id === 'default') {
+      throw new Error("Le modèle par défaut ne peut pas être supprimé");
+    }
+    
+    console.log("Suppression du modèle PDF:", id);
+    const supabase = getSupabaseClient();
+    
+    const { error } = await supabase
+      .from('pdf_models')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error("Erreur lors de la suppression du modèle:", error);
+      throw new Error(`Erreur lors de la suppression du modèle: ${error.message}`);
+    }
+    
+    console.log("Modèle supprimé avec succès:", id);
+    return true;
+  } catch (error: any) {
+    console.error("Exception lors de la suppression du modèle:", error);
+    throw error;
   }
 };

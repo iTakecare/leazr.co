@@ -1,15 +1,36 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import LeaserManager from "@/components/settings/LeaserManager";
 import CommissionManager from "@/components/settings/CommissionManager";
 import SmtpSettings from "@/components/settings/SmtpSettings";
 import WooCommerceImporter from "@/components/settings/WooCommerceImporter";
-import NewPDFTemplateManager from "@/components/settings/NewPDFTemplateManager";
+import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
+import PDFTemplateList from "@/components/settings/PDFTemplateList";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("leasers");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Récupère l'onglet à partir des paramètres d'URL
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // Met à jour l'URL quand l'onglet change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
+
+  // Récupère le template ID s'il est spécifié dans l'URL
+  const selectedTemplateId = searchParams.get("template") || "default";
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -18,7 +39,7 @@ const Settings = () => {
         <p className="text-gray-500">Gérez les paramètres de votre application</p>
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
@@ -56,7 +77,17 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="pdf">
-          <NewPDFTemplateManager />
+          <div className="space-y-6">
+            <PDFTemplateList 
+              onSelectTemplate={(templateId) => {
+                // Mettre à jour l'URL avec le template sélectionné
+                setSearchParams({ tab: 'pdf', template: templateId });
+              }}
+            />
+            
+            {/* Afficher le PDFTemplateManager avec le template sélectionné */}
+            <PDFTemplateManager templateId={selectedTemplateId} />
+          </div>
         </TabsContent>
 
         <TabsContent value="email">
