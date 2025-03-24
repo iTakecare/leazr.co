@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -43,7 +42,11 @@ const SignOffer = () => {
   
   useEffect(() => {
     const fetchOffer = async () => {
-      if (!id) return;
+      if (!id) {
+        setError("Identifiant d'offre manquant");
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
@@ -52,14 +55,16 @@ const SignOffer = () => {
         console.log("Tentative de chargement de l'offre:", id);
         
         // Vérifie si l'offre est déjà signée
+        let alreadySigned = false;
         try {
-          const alreadySigned = await isOfferSigned(id);
+          alreadySigned = await isOfferSigned(id);
           if (alreadySigned) {
             setSigned(true);
             console.log("Offre déjà signée");
           }
         } catch (signedErr) {
           console.error("Erreur lors de la vérification de signature:", signedErr);
+          // Continue même en cas d'erreur
         }
         
         // Récupère les données de l'offre
@@ -82,8 +87,13 @@ const SignOffer = () => {
             setSignature(offerData.signature_data);
             setSigned(true);
           }
+          
+          // S'il y a des données mais pas de signature_data, vérifions le workflow_status
+          if (offerData.workflow_status === 'approved' && !offerData.signature_data) {
+            setSigned(true);
+          }
         } catch (dataErr) {
-          console.error("Erreur lors de la récupération des données:", dataErr);
+          console.error("Erreur détaillée lors de la récupération des données:", dataErr);
           setError("Impossible de récupérer les détails de cette offre.");
         }
       } catch (err) {
@@ -107,6 +117,7 @@ const SignOffer = () => {
       setIsSigning(true);
       setSignature(signatureData);
       
+      console.log("Tentative d'enregistrement de la signature pour l'offre:", id);
       const success = await saveOfferSignature(id, signatureData, signerName);
       
       if (success) {
@@ -120,7 +131,10 @@ const SignOffer = () => {
           signed_at: new Date().toISOString(),
           workflow_status: 'approved'
         });
+        
+        console.log("Signature enregistrée avec succès");
       } else {
+        console.error("Échec de l'enregistrement de la signature");
         toast.error("Erreur lors de l'enregistrement de la signature.");
       }
     } catch (err) {
@@ -136,6 +150,7 @@ const SignOffer = () => {
     
     try {
       setIsPrintingPdf(true);
+      console.log("Génération du PDF pour l'offre:", id);
       await generateAndDownloadOfferPdf(id);
     } catch (err) {
       console.error("Erreur lors de la génération du PDF:", err);
@@ -189,21 +204,40 @@ const SignOffer = () => {
   };
   
   // Analyse de l'equipment_description pour l'affichage
-  let equipmentDisplay = offer.equipment_description;
+  let equipmentDisplay = "Équipement non détaillé";
   try {
-    if (typeof offer.equipment_description === 'string' && 
-        (offer.equipment_description.startsWith('[') || 
-         offer.equipment_description.startsWith('{'))) {
-      const parsed = JSON.parse(offer.equipment_description);
-      if (Array.isArray(parsed)) {
-        equipmentDisplay = parsed.map(item => item.title).join(", ");
-      } else if (parsed && typeof parsed === 'object') {
-        equipmentDisplay = parsed.title || "Équipement";
+    if (offer.equipment_description) {
+      if (typeof offer.equipment_description === 'string') {
+        // Tentative de parsing JSON
+        if (offer.equipment_description.startsWith('[') || offer.equipment_description.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(offer.equipment_description);
+            if (Array.isArray(parsed)) {
+              equipmentDisplay = parsed.map(item => item.title || item.name || JSON.stringify(item)).join(", ");
+            } else if (parsed && typeof parsed === 'object') {
+              equipmentDisplay = parsed.title || parsed.name || JSON.stringify(parsed);
+            }
+          } catch (e) {
+            console.log("L'equipment_description n'est pas un JSON valide, utilisation en l'état");
+            equipmentDisplay = offer.equipment_description;
+          }
+        } else {
+          // Utiliser tel quel si ce n'est pas du JSON
+          equipmentDisplay = offer.equipment_description;
+        }
+      } else if (Array.isArray(offer.equipment_description)) {
+        equipmentDisplay = offer.equipment_description.map(item => 
+          typeof item === 'object' ? (item.title || item.name || JSON.stringify(item)) : item
+        ).join(", ");
+      } else if (typeof offer.equipment_description === 'object') {
+        equipmentDisplay = JSON.stringify(offer.equipment_description);
       }
     }
   } catch (e) {
     console.error("Erreur lors du parsing de l'équipement:", e);
   }
+  
+  console.log("Rendu de l'offre:", offer.id, "Statut:", offer.workflow_status);
   
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">

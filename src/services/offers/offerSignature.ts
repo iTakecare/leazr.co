@@ -15,6 +15,8 @@ export const saveOfferSignature = async (
   signerName: string
 ): Promise<boolean> => {
   try {
+    console.log("Début de l'enregistrement de la signature pour l'offre:", offerId);
+    
     // 1. Mettre à jour le statut de l'offre en "approved"
     const { error: updateError } = await supabase
       .from('offers')
@@ -26,7 +28,10 @@ export const saveOfferSignature = async (
       })
       .eq('id', offerId);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("Erreur lors de la mise à jour de l'offre:", updateError);
+      throw updateError;
+    }
 
     // 2. Ajouter une entrée dans les logs du workflow
     const { error: logError } = await supabase
@@ -41,6 +46,7 @@ export const saveOfferSignature = async (
 
     if (logError) console.error("Erreur log:", logError);
 
+    console.log("Signature enregistrée avec succès pour l'offre:", offerId);
     return true;
   } catch (error) {
     console.error("Erreur lors de l'enregistrement de la signature:", error);
@@ -55,15 +61,23 @@ export const saveOfferSignature = async (
  */
 export const isOfferSigned = async (offerId: string): Promise<boolean> => {
   try {
+    console.log("Vérification si l'offre est déjà signée:", offerId);
+    
     const { data, error } = await supabase
       .from('offers')
       .select('signature_data, workflow_status')
       .eq('id', offerId)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erreur lors de la vérification de signature:", error);
+      throw error;
+    }
     
-    return !!data.signature_data || data.workflow_status === 'approved';
+    const isSigned = !!data?.signature_data || data?.workflow_status === 'approved';
+    console.log("Résultat de la vérification de signature:", isSigned);
+    
+    return isSigned;
   } catch (error) {
     console.error("Erreur lors de la vérification de la signature:", error);
     return false;
@@ -78,6 +92,12 @@ export const getOfferForClient = async (offerId: string) => {
   try {
     console.log("Récupération de l'offre pour le client:", offerId);
     
+    if (!offerId) {
+      console.error("ID d'offre non fourni");
+      throw new Error("ID d'offre non fourni");
+    }
+    
+    // Utiliser maybeSingle au lieu de single pour éviter les erreurs quand aucun résultat n'est trouvé
     const { data, error } = await supabase
       .from('offers')
       .select(`
@@ -95,14 +115,19 @@ export const getOfferForClient = async (offerId: string) => {
         remarks
       `)
       .eq('id', offerId)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      console.error("Erreur Supabase:", error);
+      console.error("Erreur Supabase lors de la récupération de l'offre:", error);
       throw error;
     }
     
-    console.log("Données récupérées pour l'offre:", data ? "Offre trouvée" : "Aucune offre trouvée");
+    if (!data) {
+      console.error("Aucune offre trouvée avec l'ID:", offerId);
+      throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
+    }
+    
+    console.log("Données récupérées pour l'offre:", offerId, "Statut:", data.workflow_status);
     return data;
   } catch (error) {
     console.error("Erreur détaillée lors de la récupération de l'offre:", error);
@@ -114,6 +139,8 @@ export const getOfferForClient = async (offerId: string) => {
  * Génère un lien de signature pour une offre
  */
 export const generateSignatureLink = (offerId: string): string => {
+  if (!offerId) return "";
+  
   // Base URL de l'application
   const baseUrl = window.location.origin;
   // URL de signature
