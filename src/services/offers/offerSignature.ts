@@ -108,26 +108,27 @@ export const getOfferForClient = async (offerId: string) => {
       throw new Error(`Format d'ID invalide: ${offerId}`);
     }
     
-    // Test d'existence avec une requête simple
-    const { data: existenceCheck, error: existenceError } = await supabase
+    // Vérifier d'abord l'existence avec une requête simple
+    console.log("Vérification de l'existence de l'offre:", offerId);
+    const { data: existsCheck, error: existsError } = await supabase
       .from('offers')
       .select('id')
       .eq('id', offerId)
       .maybeSingle();
     
-    if (existenceError) {
-      console.error("Erreur lors de la vérification d'existence:", existenceError);
-      throw new Error(`Erreur de base de données: ${existenceError.message}`);
+    if (existsError) {
+      console.error("Erreur lors de la vérification d'existence:", existsError);
+      throw new Error(`Erreur de base de données: ${existsError.message}`);
     }
     
-    if (!existenceCheck) {
+    if (!existsCheck) {
       console.error(`Aucune offre trouvée avec l'ID: ${offerId}`);
       throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
     }
     
-    console.log("Offre trouvée, récupération des détails...");
+    console.log("Offre trouvée, récupération des détails complets...");
     
-    // Récupérer tous les détails nécessaires avec maybeSingle() au lieu de single()
+    // Récupérer tous les détails nécessaires
     const { data, error } = await supabase
       .from('offers')
       .select(`
@@ -148,10 +149,10 @@ export const getOfferForClient = async (offerId: string) => {
         )
       `)
       .eq('id', offerId)
-      .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
+      .maybeSingle();  // Utiliser maybeSingle au lieu de single pour éviter les erreurs
 
     if (error) {
-      console.error("Erreur Supabase détaillée lors de la récupération de l'offre:", error);
+      console.error("Erreur Supabase lors de la récupération des détails:", error);
       throw new Error(`Erreur de récupération: ${error.message}`);
     }
     

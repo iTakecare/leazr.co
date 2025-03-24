@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -63,7 +62,7 @@ const SignOffer = () => {
         try {
           const { data: offerCheck, error: checkError } = await supabase
             .from('offers')
-            .select('id, client_name, status')
+            .select('id, client_name, workflow_status')
             .eq('id', id)
             .maybeSingle();
           
@@ -78,27 +77,22 @@ const SignOffer = () => {
           }
           
           setDebugInfo(prev => `${prev}\nOffre trouvée dans la vérification initiale: ${offerCheck.id}`);
+          
+          // Si on a trouvé l'offre, enregistrer quelques informations de base
+          if (offerCheck.client_name) {
+            setSignerName(offerCheck.client_name);
+          }
+          
+          if (offerCheck.workflow_status === 'approved') {
+            setSigned(true);
+          }
         } catch (checkErr) {
           console.error("Erreur lors de la vérification initiale:", checkErr);
           setDebugInfo(prev => `${prev}\nErreur lors de la vérification initiale: ${JSON.stringify(checkErr)}`);
           throw checkErr;
         }
         
-        // 2. Vérifier si l'offre est déjà signée
-        let alreadySigned = false;
-        try {
-          alreadySigned = await isOfferSigned(id);
-          if (alreadySigned) {
-            setSigned(true);
-            setDebugInfo(prev => `${prev}\nOffre déjà signée`);
-          }
-        } catch (signedErr) {
-          console.error("Erreur lors de la vérification de signature:", signedErr);
-          setDebugInfo(prev => `${prev}\nErreur vérification signature: ${JSON.stringify(signedErr)}`);
-          // Ne pas bloquer ici, continuer avec la récupération des données
-        }
-        
-        // 3. Récupérer les données complètes de l'offre
+        // 2. Récupérer les données complètes de l'offre
         try {
           setDebugInfo(prev => `${prev}\nRécupération des données complètes...`);
           const offerData = await getOfferForClient(id);
@@ -115,10 +109,7 @@ const SignOffer = () => {
           
           setOffer(offerData);
           
-          if (offerData.client_name) {
-            setSignerName(offerData.client_name);
-          }
-          
+          // Vérifier si l'offre contient une signature
           if (offerData.signature_data) {
             setSignature(offerData.signature_data);
             setSigned(true);
