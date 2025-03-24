@@ -5,10 +5,12 @@ import { toast } from "sonner";
 
 /**
  * Service amélioré de gestion des fichiers avec Supabase Storage
+ * avec mode local amélioré
  */
 
 // Variable pour suivre l'état de connexion à Supabase Storage
 let storageConnectionStatus: 'connected' | 'disconnected' | 'checking' = 'checking';
+let bucketStatusCache: Record<string, boolean> = {};
 
 /**
  * Vérifie la connexion à Supabase Storage
@@ -17,34 +19,62 @@ let storageConnectionStatus: 'connected' | 'disconnected' | 'checking' = 'checki
 export const checkStorageConnection = async (): Promise<boolean> => {
   try {
     console.log("Vérification de la connexion à Supabase Storage...");
+    
+    // Si déjà vérifié et connecté, retourner directement
+    if (storageConnectionStatus === 'connected') {
+      return true;
+    }
+    
+    // Si déjà vérifié et déconnecté, retourner directement
+    if (storageConnectionStatus === 'disconnected') {
+      return false;
+    }
+    
     const supabase = getSupabaseClient();
     
-    // Essayer de lister les buckets pour vérifier la connexion
-    const { data, error } = await supabase.storage.listBuckets();
-    
-    if (error) {
-      console.error("Erreur de connexion à Supabase Storage:", error);
+    // Essayer une approche simple: obtenir la liste des buckets
+    try {
+      const { data, error } = await supabase.storage.listBuckets();
+      
+      if (error) {
+        console.error("Erreur lors de la vérification des buckets:", error);
+        storageConnectionStatus = 'disconnected';
+        return false;
+      }
+      
+      console.log("Connexion à Supabase Storage établie avec succès. Buckets:", data);
+      storageConnectionStatus = 'connected';
+      
+      // Mettre à jour le cache de statut des buckets
+      if (Array.isArray(data)) {
+        data.forEach(bucket => {
+          bucketStatusCache[bucket.name] = true;
+        });
+      }
+      
+      return true;
+    } catch (listError) {
+      console.error("Erreur lors de la vérification des buckets:", listError);
       storageConnectionStatus = 'disconnected';
       return false;
     }
-    
-    console.log("Connexion à Supabase Storage établie avec succès. Buckets:", data);
-    
-    // Si pdf-templates n'existe pas dans la liste des buckets, on est en mode local
-    const hasPdfTemplatesBucket = data.some(bucket => bucket.name === 'pdf-templates');
-    if (!hasPdfTemplatesBucket) {
-      console.log("Le bucket pdf-templates n'existe pas");
-      storageConnectionStatus = 'disconnected';
-      return false;
-    }
-    
-    storageConnectionStatus = 'connected';
-    return true;
   } catch (error) {
     console.error("Exception lors de la vérification de la connexion à Supabase Storage:", error);
     storageConnectionStatus = 'disconnected';
     return false;
   }
+};
+
+/**
+ * Force la mise à jour du statut de connexion
+ */
+export const resetStorageConnection = async (): Promise<boolean> => {
+  // Réinitialiser le statut
+  storageConnectionStatus = 'checking';
+  bucketStatusCache = {};
+  
+  // Revérifier la connexion
+  return await checkStorageConnection();
 };
 
 /**
@@ -54,6 +84,12 @@ export const checkStorageConnection = async (): Promise<boolean> => {
 export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   try {
     console.log(`Vérification du bucket: ${bucketName}`);
+    
+    // Vérifier dans le cache d'abord
+    if (bucketStatusCache[bucketName] === true) {
+      console.log(`Le bucket ${bucketName} existe (info en cache)`);
+      return true;
+    }
     
     // Vérifier d'abord si la connexion à Supabase Storage est établie
     const isConnected = await checkStorageConnection();
@@ -73,13 +109,15 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
       return false;
     }
     
-    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+    const bucketExists = buckets?.some(bucket => bucket.name === bucketName || bucket.id === bucketName);
     
     if (!bucketExists) {
       console.log(`Bucket ${bucketName} non trouvé`);
       return false;
     }
     
+    // Mettre en cache le résultat
+    bucketStatusCache[bucketName] = true;
     console.log(`Bucket ${bucketName} existe`);
     return true;
   } catch (error) {
@@ -158,8 +196,23 @@ export const deleteFile = async (bucketName: string, filePath: string): Promise<
 };
 
 /**
- * Télécharge un fichier dans un bucket spécifié
- * Cette fonction vérifie d'abord si le bucket existe avant de tenter l'upload
+ * Génère une URL pour un fichier local (data URL)
+ * @param file Fichier à convertir en data URL
+ */
+export const createLocalFileUrl = async (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(file);
+  });
+};
+
+/**
+ * Télécharge un fichier dans un bucket spécifié ou crée un data URL en mode local
+ * @param bucketName Nom du bucket
+ * @param file Fichier à télécharger
+ * @param customPath Chemin personnalisé (optionnel)
+ * @returns URL du fichier téléchargé ou data URL en mode local
  */
 export const uploadFile = async (
   bucketName: string,
@@ -167,18 +220,20 @@ export const uploadFile = async (
   customPath?: string
 ): Promise<string | null> => {
   try {
+    // Vérifier la connexion au stockage
+    const isConnected = await checkStorageConnection();
+    if (!isConnected) {
+      console.log("Mode local activé: création d'une data URL pour le fichier");
+      toast.info("Stockage en mode local: l'image sera disponible uniquement localement");
+      return createLocalFileUrl(file);
+    }
+    
     // S'assurer que le bucket existe
     const bucketExists = await ensureBucket(bucketName);
     if (!bucketExists) {
       console.error(`Le bucket ${bucketName} n'existe pas ou n'est pas accessible`);
       toast.warning("Stockage en ligne non disponible, l'image sera sauvegardée localement uniquement");
-      
-      // Retourner un data URL pour le mode local
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
+      return createLocalFileUrl(file);
     }
     
     // Générer un nom de fichier unique
@@ -204,34 +259,29 @@ export const uploadFile = async (
       toast.error(`Erreur lors de l'upload: ${error.message}`);
       
       // Fallback en mode local
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
+      return createLocalFileUrl(file);
     }
     
     // Récupérer l'URL publique
     const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(data.path);
+    console.log("Fichier uploadé avec succès:", urlData.publicUrl);
     return urlData.publicUrl;
   } catch (error) {
     console.error("Exception lors de l'upload:", error);
     toast.error(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     
     // Fallback en mode local
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(file);
-    });
+    return createLocalFileUrl(file);
   }
 };
 
 // Exporter les fonctions principales
 export default {
   checkStorageConnection,
+  resetStorageConnection,
   ensureBucket,
   uploadFile,
   listFiles,
-  deleteFile
+  deleteFile,
+  createLocalFileUrl
 };

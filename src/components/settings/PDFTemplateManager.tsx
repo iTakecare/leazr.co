@@ -9,7 +9,7 @@ import { loadPDFTemplate, savePDFTemplate, DEFAULT_MODEL } from "@/utils/pdfTemp
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { checkStorageConnection } from "@/services/fileStorage";
+import { checkStorageConnection, resetStorageConnection } from "@/services/fileStorage";
 import PDFPreview from "./PDFPreview";
 
 // Interface pour le modèle PDF
@@ -44,6 +44,8 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   const [error, setError] = useState<string | null>(null);
   const [storageMode, setStorageMode] = useState<'cloud' | 'local'>('local'); // Default to local mode
   const [reconnecting, setReconnecting] = useState(false);
+  const [templateExists, setTemplateExists] = useState(false);
+  const [templateName, setTemplateName] = useState<string | undefined>(undefined);
   
   // Initialisation au montage ou lorsque templateId change
   useEffect(() => {
@@ -92,8 +94,8 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       
       toast.info("Tentative de connexion au stockage Supabase...");
       
-      // Vérifier la connexion au stockage
-      const isConnected = await checkStorageConnection();
+      // Réinitialiser et vérifier la connexion au stockage
+      const isConnected = await resetStorageConnection();
       
       if (isConnected) {
         console.log("Connexion au stockage Supabase établie");
@@ -130,6 +132,8 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
           templateImages: [],
           fields: []
         });
+        setTemplateExists(false);
+        setTemplateName("Modèle par défaut");
         toast.info("Modèle par défaut chargé");
       } else {
         console.log("Modèle chargé avec succès:", data);
@@ -146,6 +150,8 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
         console.log("Nombre de champs:", sanitizedTemplate.fields ? sanitizedTemplate.fields.length : 0);
         
         setTemplate(sanitizedTemplate);
+        setTemplateExists(true);
+        setTemplateName(sanitizedTemplate.name);
         toast.success(`Modèle "${sanitizedTemplate.name}" chargé avec succès`);
       }
     } catch (err) {
@@ -159,6 +165,8 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
         templateImages: [],
         fields: []
       });
+      setTemplateExists(false);
+      setTemplateName("Modèle par défaut (fallback)");
     } finally {
       setLoading(false);
     }
@@ -187,6 +195,8 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       await savePDFTemplate(sanitizedTemplate);
       
       setTemplate(sanitizedTemplate);
+      setTemplateExists(true);
+      setTemplateName(sanitizedTemplate.name);
       toast.success("Modèle sauvegardé avec succès");
     } catch (err) {
       console.error("Erreur lors de la sauvegarde du modèle:", err);
@@ -237,7 +247,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
           <CardTitle>
             {loading 
               ? "Chargement du modèle..." 
-              : `Modèle: ${template?.name || 'Non défini'}`}
+              : `Modèle: ${templateName || 'Non défini'}`}
           </CardTitle>
           {storageMode === 'local' && (
             <p className="text-sm text-amber-500 mt-1">
