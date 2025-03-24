@@ -14,20 +14,11 @@ import PDFFieldsEditor from "./PDFFieldsEditor";
 export interface PDFTemplateWithFieldsProps {
   template: PDFTemplate;
   onSave: (template: PDFTemplate) => void;
-  selectedPage: number;
-  onPageSelect: (page: number) => void;
+  selectedPage?: number;
+  onPageSelect?: (page: number) => void;
 }
 
-// Interface pour les images du template
-export interface TemplateImage {
-  id: string;
-  name: string;
-  data: string; // URL de l'image ou base64
-  page: number;
-  fields?: PDFField[];
-}
-
-// Interface pour les champs de formulaire
+// Interface for PDF fields
 export interface PDFField {
   id: string;
   type: "text" | "signature" | "date" | "checkbox";
@@ -36,11 +27,11 @@ export interface PDFField {
   placeholder?: string;
   defaultValue?: string;
   required?: boolean;
-  x: number; // Position X en pourcentage
-  y: number; // Position Y en pourcentage
-  width: number; // Largeur en pourcentage
-  height: number; // Hauteur en pourcentage
-  page: number; // Numéro de la page
+  x: number; // Position X percentage
+  y: number; // Position Y percentage
+  width: number; // Width percentage
+  height: number; // Height percentage
+  page: number; // Page number
   fontSize?: number;
   fontWeight?: string;
   saveToDatabase?: {
@@ -50,7 +41,12 @@ export interface PDFField {
   };
 }
 
-const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }: PDFTemplateWithFieldsProps) => {
+const PDFTemplateWithFields = ({ 
+  template, 
+  onSave, 
+  selectedPage = 0, 
+  onPageSelect = () => {} 
+}: PDFTemplateWithFieldsProps) => {
   const [activeTab, setActiveTab] = useState("images");
   const [localTemplate, setLocalTemplate] = useState<PDFTemplate>({
     ...template,
@@ -65,7 +61,7 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
   const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
   const canvasRef = React.useRef<HTMLDivElement>(null);
 
-  // Charger les données locales du template
+  // Load local template data
   useEffect(() => {
     setLocalTemplate({
       ...template,
@@ -73,12 +69,12 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
     });
   }, [template]);
 
-  // Sauvegarder les modifications au template
+  // Save template changes
   const saveChanges = useCallback(() => {
     onSave(localTemplate);
   }, [localTemplate, onSave]);
 
-  // Ajuster la taille du canevas
+  // Adjust canvas size
   useEffect(() => {
     const updateCanvasSize = () => {
       if (canvasRef.current) {
@@ -94,19 +90,19 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
     return () => window.removeEventListener("resize", updateCanvasSize);
   }, [selectedPage]);
 
-  // Sélectionner une page
+  // Handle page selection
   const handlePageSelect = (pageIndex: number) => {
     onPageSelect(pageIndex);
     setCurrentField(null);
   };
 
-  // Ajouter un champ
+  // Add field
   const addField = (type: "text" | "signature" | "date" | "checkbox") => {
     setNewFieldType(type);
     setPlacingMode(true);
   };
 
-  // Placer un nouveau champ sur le canevas
+  // Place a new field on canvas
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!placingMode || !canvasRef.current) return;
 
@@ -114,7 +110,7 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    // Créer un nouveau champ
+    // Create new field
     const newField: PDFField = {
       id: uuidv4(),
       type: newFieldType,
@@ -128,31 +124,30 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
       required: false
     };
 
-    // Ajouter le champ à l'image courante
-    const updatedTemplateImages = [...localTemplate.templateImages];
-    const currentImage = updatedTemplateImages[selectedPage];
-    
-    if (currentImage) {
-      if (!currentImage.fields) {
-        currentImage.fields = [];
-      }
-      currentImage.fields.push(newField);
-      
-      setLocalTemplate({
-        ...localTemplate,
-        templateImages: updatedTemplateImages
-      });
-      
-      // Sélectionner le nouveau champ pour édition
-      setCurrentField(newField);
-      setShowFieldEditor(true);
+    // Store all fields at the template level
+    if (!localTemplate.fields) {
+      localTemplate.fields = [];
     }
-
-    // Désactiver le mode placement
+    
+    const updatedFields = [...localTemplate.fields, newField];
+    
+    setLocalTemplate({
+      ...localTemplate,
+      fields: updatedFields
+    });
+    
+    // Select the new field for editing
+    setCurrentField(newField);
+    setShowFieldEditor(true);
+    
+    // Disable placing mode
     setPlacingMode(false);
+    
+    // Save changes
+    saveChanges();
   };
 
-  // Obtenir le libellé par défaut pour chaque type de champ
+  // Get default label for each field type
   const getDefaultLabelForType = (type: string): string => {
     switch (type) {
       case "text":
@@ -168,14 +163,14 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
     }
   };
 
-  // Gérer la sélection d'un champ existant
+  // Handle existing field selection
   const handleFieldClick = (e: React.MouseEvent, field: PDFField) => {
     e.stopPropagation();
     setCurrentField(field);
     setShowFieldEditor(true);
   };
 
-  // Démarrer le déplacement d'un champ
+  // Start field drag
   const handleFieldMouseDown = (e: React.MouseEvent, field: PDFField) => {
     e.stopPropagation();
     e.preventDefault();
@@ -188,7 +183,7 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
     });
   };
 
-  // Déplacer un champ
+  // Move field
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !currentField || !canvasRef.current) return;
 
@@ -196,46 +191,45 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
     const deltaX = e.clientX - startPosition.x;
     const deltaY = e.clientY - startPosition.y;
     
-    // Convertir les déplacements en pourcentages
+    // Convert movements to percentages
     const deltaXPercent = (deltaX / rect.width) * 100;
     const deltaYPercent = (deltaY / rect.height) * 100;
     
-    // Mettre à jour les coordonnées du champ
+    // Update field coordinates
     const newX = Math.max(0, Math.min(100 - currentField.width, currentField.x + deltaXPercent));
     const newY = Math.max(0, Math.min(100 - currentField.height, currentField.y + deltaYPercent));
     
-    // Mettre à jour le template
-    const updatedTemplateImages = [...localTemplate.templateImages];
-    const currentImage = updatedTemplateImages[selectedPage];
-    
-    if (currentImage && currentImage.fields) {
-      const fieldIndex = currentImage.fields.findIndex(f => f.id === currentField.id);
+    // Update the template
+    if (localTemplate.fields) {
+      const updatedFields = [...localTemplate.fields];
+      const fieldIndex = updatedFields.findIndex(f => f.id === currentField.id);
+      
       if (fieldIndex !== -1) {
         const updatedField = {
-          ...currentImage.fields[fieldIndex],
+          ...updatedFields[fieldIndex],
           x: newX,
           y: newY
         };
         
-        currentImage.fields[fieldIndex] = updatedField;
+        updatedFields[fieldIndex] = updatedField;
         
         setLocalTemplate({
           ...localTemplate,
-          templateImages: updatedTemplateImages
+          fields: updatedFields
         });
         
         setCurrentField(updatedField);
       }
     }
     
-    // Réinitialiser la position de départ
+    // Reset start position
     setStartPosition({
       x: e.clientX,
       y: e.clientY
     });
   };
 
-  // Terminer le déplacement d'un champ
+  // End field drag
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false);
@@ -243,19 +237,18 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
     }
   };
 
-  // Mettre à jour les propriétés d'un champ
+  // Update field properties
   const updateFieldProperties = (updatedField: PDFField) => {
-    const updatedTemplateImages = [...localTemplate.templateImages];
-    const currentImage = updatedTemplateImages[selectedPage];
-    
-    if (currentImage && currentImage.fields) {
-      const fieldIndex = currentImage.fields.findIndex(f => f.id === updatedField.id);
+    if (localTemplate.fields) {
+      const updatedFields = [...localTemplate.fields];
+      const fieldIndex = updatedFields.findIndex(f => f.id === updatedField.id);
+      
       if (fieldIndex !== -1) {
-        currentImage.fields[fieldIndex] = updatedField;
+        updatedFields[fieldIndex] = updatedField;
         
         setLocalTemplate({
           ...localTemplate,
-          templateImages: updatedTemplateImages
+          fields: updatedFields
         });
         
         setCurrentField(updatedField);
@@ -264,17 +257,14 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
     }
   };
 
-  // Supprimer un champ
+  // Delete field
   const deleteField = (fieldId: string) => {
-    const updatedTemplateImages = [...localTemplate.templateImages];
-    const currentImage = updatedTemplateImages[selectedPage];
-    
-    if (currentImage && currentImage.fields) {
-      currentImage.fields = currentImage.fields.filter(f => f.id !== fieldId);
+    if (localTemplate.fields) {
+      const updatedFields = localTemplate.fields.filter(f => f.id !== fieldId);
       
       setLocalTemplate({
         ...localTemplate,
-        templateImages: updatedTemplateImages
+        fields: updatedFields
       });
       
       setCurrentField(null);
@@ -283,10 +273,10 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
     }
   };
 
-  // Obtenir les champs de la page courante
+  // Get fields for current page
   const getCurrentPageFields = (): PDFField[] => {
-    const currentImage = localTemplate.templateImages[selectedPage];
-    return currentImage && currentImage.fields ? currentImage.fields : [];
+    if (!localTemplate.fields) return [];
+    return localTemplate.fields.filter(field => field.page === selectedPage);
   };
 
   return (
@@ -303,7 +293,7 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          {/* Affichage de l'image de la page courante */}
+          {/* Display page image */}
           {localTemplate.templateImages[selectedPage] && (
             <img
               src={localTemplate.templateImages[selectedPage].data}
@@ -312,7 +302,7 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
             />
           )}
 
-          {/* Affichage des champs sur le canevas */}
+          {/* Display fields on canvas */}
           {getCurrentPageFields().map((field) => (
             <div
               key={field.id}
@@ -337,7 +327,7 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
             </div>
           ))}
 
-          {/* Instructions en mode placement */}
+          {/* Placing mode instructions */}
           {placingMode && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10">
               <div className="bg-white p-4 rounded-md shadow-md">
@@ -354,12 +344,12 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
           )}
         </div>
 
-        {/* Navigation entre les pages */}
+        {/* Page navigation */}
         <div className="flex justify-between items-center mt-4">
           <Button
             variant="outline"
             disabled={selectedPage === 0}
-            onClick={() => onPageSelect(selectedPage - 1)}
+            onClick={() => handlePageSelect(selectedPage - 1)}
           >
             Page précédente
           </Button>
@@ -369,7 +359,7 @@ const PDFTemplateWithFields = ({ template, onSave, selectedPage, onPageSelect }:
           <Button
             variant="outline"
             disabled={selectedPage === localTemplate.templateImages.length - 1}
-            onClick={() => onPageSelect(selectedPage + 1)}
+            onClick={() => handlePageSelect(selectedPage + 1)}
           >
             Page suivante
           </Button>

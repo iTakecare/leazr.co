@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -59,11 +58,10 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
   const handleAddOfferPage = () => {
     if (!template) return;
     
-    // Créer une copie de l'offre exemple et l'ajouter comme image template
     const offerImageData = {
       id: uuidv4(),
       name: "Page d'offre",
-      data: "/lovable-uploads/849a0eeb-fc21-4e26-81bf-c5353df2f650.png", // URL de l'image téléchargée
+      data: "/lovable-uploads/849a0eeb-fc21-4e26-81bf-c5353df2f650.png",
       page: template.templateImages.length
     };
     
@@ -76,19 +74,25 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
     handleSaveTemplate(updatedTemplate);
     toast.success("Page d'offre ajoutée au modèle");
     
-    // Sélectionner la nouvelle page
     setSelectedPage(updatedTemplate.templateImages.length - 1);
-    
-    // Passer à l'onglet de conception
     setActiveTab("design");
   };
 
   const handleImagesChange = (images: any[]) => {
     if (!template) return;
     
+    const formattedImages = images.map(img => {
+      return {
+        id: img.id,
+        name: img.name,
+        data: img.url || img.data,
+        page: img.page
+      };
+    });
+    
     const updatedTemplate = {
       ...template,
-      templateImages: images
+      templateImages: formattedImages
     };
     
     setTemplate(updatedTemplate);
@@ -104,6 +108,10 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
     };
     
     handleSaveTemplate(updatedTemplate);
+  };
+
+  const handlePageSelect = (page: number) => {
+    setSelectedPage(page);
   };
 
   if (loading) {
@@ -194,7 +202,7 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
               template={template}
               onSave={handleSaveTemplate}
               selectedPage={selectedPage}
-              onPageSelect={setSelectedPage}
+              onPageSelect={handlePageSelect}
             />
           </TabsContent>
         </Tabs>

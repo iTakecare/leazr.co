@@ -21,6 +21,7 @@ const PDFModelManager = () => {
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
   const [initComplete, setInitComplete] = useState(false);
+  const [selectedPage, setSelectedPage] = useState(0);
   
   // Initialisation au montage du composant
   useEffect(() => {
@@ -132,6 +133,11 @@ const PDFModelManager = () => {
     handleSaveModel(updatedModel);
   };
 
+  // Handle page selection
+  const handlePageSelect = (page: number) => {
+    setSelectedPage(page);
+  };
+
   // Fonction pour réessayer le chargement en cas d'erreur
   const handleRetry = () => {
     if (!initComplete) {
@@ -212,6 +218,8 @@ const PDFModelManager = () => {
                 <PDFTemplateWithFields 
                   template={model}
                   onSave={handleModelUpdate}
+                  selectedPage={selectedPage}
+                  onPageSelect={handlePageSelect}
                 />
               )}
             </TabsContent>
