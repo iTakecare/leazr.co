@@ -68,66 +68,74 @@ serve(async (req) => {
       );
     }
 
-    // Check if it's an OVH server on port 587
+    // Check if it's an OVH server
     const isOvhServer = smtp.host.includes('.mail.ovh.');
     const isPort587 = smtp.port === 587;
-    console.log(`Configuration SMTP: ${smtp.host}:${smtp.port}, sécurisé: ${smtp.secure}, STARTTLS: ${isPort587 && !smtp.secure}`);
+    console.log(`Configuration SMTP: ${smtp.host}:${smtp.port}, sécurisé: ${smtp.secure}`);
     
-    // For OVH servers specifically
-    let useStartTLS = false;
+    // For debugging purposes, log more details about the connection attempt
+    console.log(`Envoi d'email à: ${to}, de: ${from.email} (${from.name})`);
+    
+    // Initialize client with appropriate settings
+    let clientConfig = {
+      connection: {
+        hostname: smtp.host,
+        port: smtp.port,
+        tls: smtp.secure,
+        auth: {
+          username: smtp.username,
+          password: smtp.password,
+        },
+      },
+      debug: true // Enable SMTP debugging
+    };
+    
+    // Special case for OVH on port 587
     if (isOvhServer && isPort587) {
-      useStartTLS = true;
-      console.log("Serveur OVH sur port 587 détecté, utilisation du mode STARTTLS");
+      if (!smtp.secure) {
+        console.log("Serveur OVH sur port 587 détecté avec TLS désactivé, forçage du mode sécurisé à TRUE");
+        clientConfig.connection.tls = true;
+      }
     }
     
+    console.log("Configuration finale du client SMTP:", {
+      host: smtp.host,
+      port: smtp.port,
+      tls: clientConfig.connection.tls
+    });
+    
     try {
-      console.log(`Initialisation du client SMTP avec: ${smtp.host}:${smtp.port}, TLS: ${smtp.secure}, STARTTLS: ${useStartTLS}`);
+      // Create SMTP client with timeout handling
+      const client = new SMTPClient(clientConfig);
       
-      // Initialize SMTP client
-      const client = new SMTPClient({
-        connection: {
-          hostname: smtp.host,
-          port: smtp.port,
-          tls: smtp.secure,
-          auth: {
-            username: smtp.username,
-            password: smtp.password,
-          },
-        },
-        debug: true, // Enable SMTP debugging
+      // Set a timeout for the entire operation
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Délai de connexion SMTP dépassé (15s)")), 15000);
       });
-
-      console.log("Client SMTP initialisé, tentative d'envoi...");
-
-      // Compose email with simple properties for maximum compatibility
-      const emailConfig = {
-        from: `${from.name} <${from.email}>`,
-        to: to,
-        subject: subject,
-        content: text,
-        html: html,
-      };
       
-      console.log("Configuration d'email:", {
-        from: emailConfig.from,
-        to: emailConfig.to,
-        subject: emailConfig.subject
-      });
-
-      // Send email with timeout
-      const sendResult = await Promise.race([
-        client.send(emailConfig),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Délai d'envoi d'email dépassé")), 20000)
-        )
+      // Format email address according to RFC
+      const fromField = from.name ? `"${from.name}" <${from.email}>` : from.email;
+      
+      // Try to send the email with a timeout
+      const emailResult = await Promise.race([
+        client.send({
+          from: fromField,
+          to: to,
+          subject: subject,
+          content: text,
+          html: html
+        }),
+        timeoutPromise
       ]);
       
-      console.log("Résultat de l'envoi:", sendResult);
-
-      // Close connection
-      await client.close();
-
-      console.log("Email envoyé avec succès");
+      console.log("Email envoyé avec succès:", emailResult);
+      
+      try {
+        await client.close();
+      } catch (closeErr) {
+        console.warn("Erreur non critique lors de la fermeture du client:", closeErr);
+      }
+      
       return new Response(
         JSON.stringify({ success: true, message: "Email envoyé avec succès" }),
         {
@@ -138,21 +146,22 @@ serve(async (req) => {
     } catch (smtpError) {
       console.error("Erreur SMTP spécifique:", smtpError);
       
-      // Specific advice based on error message
-      const errorStr = smtpError.toString();
       let suggestion = "";
+      const errorStr = smtpError.toString();
       
-      if (isOvhServer && isPort587) {
+      if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
         if (smtp.secure) {
-          suggestion = "Pour les serveurs OVH sur le port 587, essayez avec l'option 'secure' à false.";
-        } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
-          suggestion = "Pour les serveurs OVH sur le port 587, essayez avec l'option 'secure' à true.";
-        }
-      } else if (errorStr.includes("corrupt message") || errorStr.includes("InvalidContentType")) {
-        if (smtp.secure) {
-          suggestion = "Essayez de désactiver l'option TLS (secure: false).";
+          suggestion = "Essayez de désactiver l'option TLS (secure: false) dans les paramètres SMTP.";
         } else {
-          suggestion = "Essayez d'activer l'option TLS (secure: true).";
+          suggestion = "Essayez d'activer l'option TLS (secure: true) dans les paramètres SMTP.";
+        }
+      } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
+        if (isOvhServer && isPort587) {
+          if (smtp.secure) {
+            suggestion = "Pour les serveurs OVH sur le port 587, essayez de désactiver l'option TLS.";
+          } else {
+            suggestion = "Pour les serveurs OVH sur le port 587, essayez d'activer l'option TLS.";
+          }
         }
       }
       
@@ -160,7 +169,7 @@ serve(async (req) => {
         JSON.stringify({ 
           error: "Erreur de connexion SMTP",
           details: errorStr,
-          message: smtpError.message,
+          message: smtpError.message || "Erreur de connexion au serveur SMTP",
           suggestion: suggestion
         }),
         {
@@ -170,12 +179,13 @@ serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error("Erreur lors de l'envoi de l'email:", error);
+    console.error("Erreur générale:", error);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Erreur lors de l'envoi de l'email",
+        error: "Erreur lors de l'envoi de l'email",
         details: error.toString(),
-        stack: error.stack 
+        message: error.message || "Erreur inconnue lors du traitement de la demande"
       }),
       {
         status: 500,

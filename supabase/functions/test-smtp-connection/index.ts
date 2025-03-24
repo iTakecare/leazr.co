@@ -44,18 +44,21 @@ serve(async (req) => {
     const isPort587 = parseInt(config.port) === 587;
     console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, Port: ${config.port}, secure: ${config.secure}`);
 
-    // Special handling for OVH servers
-    let useStartTLS = false;
+    // Adjust settings for OVH servers on port 587
+    let finalTlsSetting = config.secure;
     if (isOvhServer && isPort587) {
-      useStartTLS = true;
-      console.log("Serveur OVH sur port 587 détecté, utilisation du mode STARTTLS");
+      if (!config.secure) {
+        console.log("Serveur OVH sur port 587 avec TLS désactivé, test avec forçage TLS activé");
+        finalTlsSetting = true;
+      }
     }
 
+    console.log(`Configuration du client SMTP: TLS=${finalTlsSetting}`);
     const client = new SMTPClient({
       connection: {
         hostname: config.host,
         port: parseInt(config.port),
-        tls: config.secure,
+        tls: finalTlsSetting,
         auth: {
           username: config.username,
           password: config.password,
@@ -67,18 +70,26 @@ serve(async (req) => {
     try {
       console.log("Tentative d'envoi de mail de test...");
       
+      // Set a timeout for the entire operation
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Délai de connexion SMTP dépassé (10s)")), 10000);
+      });
+      
       // Format RFC-compliant for the From field
       const fromField = `"${config.from_name}" <${config.from_email}>`;
       console.log("From field format:", fromField);
       
       // Try sending test email with simple settings for maximum compatibility
-      const emailResult = await client.send({
-        from: fromField,
-        to: config.username,
-        subject: "Test SMTP",
-        text: "Test de connexion SMTP réussi",
-        html: "<p>Test de connexion SMTP réussi</p>"
-      });
+      const emailResult = await Promise.race([
+        client.send({
+          from: fromField,
+          to: config.username,
+          subject: "Test SMTP",
+          text: "Test de connexion SMTP réussi",
+          html: "<p>Test de connexion SMTP réussi</p>"
+        }),
+        timeoutPromise
+      ]);
       
       console.log("Résultat de l'envoi:", emailResult);
       
@@ -113,17 +124,19 @@ serve(async (req) => {
       let suggestion = "";
       const errorStr = emailError.toString();
       
-      if (isOvhServer && isPort587) {
+      if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
         if (config.secure) {
-          suggestion = "Pour OVH sur le port 587, essayez de désactiver l'option TLS.";
-        } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
-          suggestion = "Pour OVH sur le port 587, essayez d'activer l'option TLS.";
-        }
-      } else if (errorStr.includes("corrupt message") || errorStr.includes("InvalidContentType")) {
-        if (config.secure) {
-          suggestion = "Essayez de désactiver l'option TLS car le serveur semble ne pas la supporter.";
+          suggestion = "Essayez de désactiver l'option TLS (secure: false) dans les paramètres SMTP.";
         } else {
-          suggestion = "Essayez d'activer l'option TLS car le serveur semble la requérir.";
+          suggestion = "Essayez d'activer l'option TLS (secure: true) dans les paramètres SMTP.";
+        }
+      } else if (errorStr.includes("BadResource") || errorStr.includes("startTls")) {
+        if (isOvhServer && isPort587) {
+          if (config.secure) {
+            suggestion = "Pour les serveurs OVH sur le port 587, essayez de désactiver l'option TLS.";
+          } else {
+            suggestion = "Pour les serveurs OVH sur le port 587, essayez d'activer l'option TLS.";
+          }
         }
       }
       
@@ -150,7 +163,7 @@ serve(async (req) => {
       JSON.stringify({
         success: false,
         message: `Erreur lors du test SMTP: ${error.message}`,
-        details: JSON.stringify(error)
+        details: error.toString()
       }),
       {
         status: 500,
