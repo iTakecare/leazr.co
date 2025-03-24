@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -44,6 +43,7 @@ const SignOffer = () => {
   const [isPrintingPdf, setIsPrintingPdf] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [attempts, setAttempts] = useState(0);
   
   const fetchOffer = async () => {
     if (!id) {
@@ -52,125 +52,58 @@ const SignOffer = () => {
       return;
     }
     
+    setAttempts(prev => prev + 1);
     try {
       setLoading(true);
       setError(null);
+      setDebugInfo(`Tentative #${attempts + 1} - ID: ${id}`);
       
-      // Enregistrer l'ID pour le débogage
-      setDebugInfo(`ID de l'offre à charger: ${id}`);
+      // Requête directe simple
+      const directData = await getOfferForClient(id);
       
-      // Ajout d'une vérification directe avec Supabase
-      try {
-        console.log("Essai d'une requête directe avec Supabase pour l'offre:", id);
-        const { data: directCheck, error: directError } = await supabase
-          .from('offers')
-          .select('id, client_name, client_email, workflow_status')
-          .eq('id', id)
-          .maybeSingle();
-          
-        if (directError) {
-          console.error("Erreur lors de la requête directe:", directError);
-          setDebugInfo(prev => `${prev}\nErreur lors de la requête directe: ${JSON.stringify(directError)}`);
-        } else if (directCheck) {
-          console.log("Offre trouvée directement:", directCheck);
-          setDebugInfo(prev => `${prev}\nOffre trouvée directement: ${JSON.stringify(directCheck)}`);
-        } else {
-          console.error("Aucune offre trouvée directement pour l'ID:", id);
-          setDebugInfo(prev => `${prev}\nAucune offre trouvée directement pour l'ID: ${id}`);
-          
-          // Essayons avec un ID partiel
-          const partialId = id.substring(0, 8);
-          console.log(`Recherche d'offres commençant par: ${partialId}`);
-          
-          const { data: partialMatches } = await supabase
-            .from('offers')
-            .select('id')
-            .ilike('id', `${partialId}%`);
-            
-          if (partialMatches && partialMatches.length > 0) {
-            console.log("Offres similaires trouvées:", partialMatches.map(o => o.id));
-            setDebugInfo(prev => `${prev}\nOffres similaires trouvées: ${partialMatches.map(o => o.id).join(", ")}`);
-          } else {
-            console.log("Aucune offre similaire trouvée");
-            setDebugInfo(prev => `${prev}\nAucune offre similaire trouvée`);
-          }
+      if (directData) {
+        setOffer(directData);
+        if (directData.client_name) {
+          setSignerName(directData.client_name);
         }
-      } catch (directErr) {
-        console.error("Exception lors de la requête directe:", directErr);
-        setDebugInfo(prev => `${prev}\nException lors de la requête directe: ${JSON.stringify(directErr)}`);
-      }
-      
-      // 1. Vérifier si l'offre existe et récupérer des informations de base
-      try {
-        const { data: offerCheck, error: checkError } = await supabase
-          .from('offers')
-          .select('id, client_name, workflow_status')
-          .eq('id', id)
-          .maybeSingle();
-        
-        if (checkError) {
-          setDebugInfo(prev => `${prev}\nErreur de vérification initiale: ${JSON.stringify(checkError)}`);
-          throw new Error(`Erreur lors de la vérification de l'offre: ${checkError.message}`);
-        }
-        
-        if (!offerCheck) {
-          setDebugInfo(prev => `${prev}\nAucune offre trouvée dans la vérification initiale pour l'ID: ${id}`);
-          throw new Error(`Aucune offre trouvée avec l'ID: ${id}`);
-        }
-        
-        setDebugInfo(prev => `${prev}\nOffre trouvée dans la vérification initiale: ${offerCheck.id}`);
-        
-        // Si on a trouvé l'offre, enregistrer quelques informations de base
-        if (offerCheck.client_name) {
-          setSignerName(offerCheck.client_name);
-        }
-        
-        if (offerCheck.workflow_status === 'approved') {
+        if (directData.signature_data || directData.workflow_status === 'approved') {
           setSigned(true);
+          setSignature(directData.signature_data);
         }
-      } catch (checkErr) {
-        console.error("Erreur lors de la vérification initiale:", checkErr);
-        setDebugInfo(prev => `${prev}\nErreur lors de la vérification initiale: ${JSON.stringify(checkErr)}`);
-        throw checkErr;
-      }
-      
-      // 2. Récupérer les données complètes de l'offre
-      try {
-        setDebugInfo(prev => `${prev}\nRécupération des données complètes via getOfferForClient...`);
-        const offerData = await getOfferForClient(id);
-        
-        if (!offerData) {
-          setError("Cette offre n'existe pas ou n'est plus disponible.");
-          setDebugInfo(prev => `${prev}\nAucune donnée d'offre reçue`);
-          setLoading(false);
-          return;
-        }
-        
-        setDebugInfo(prev => `${prev}\nDonnées d'offre reçues. ID: ${offerData.id}, Status: ${offerData.workflow_status}`);
-        console.log("Données d'offre complètes:", offerData);
-        
-        setOffer(offerData);
-        
-        // Vérifier si l'offre contient une signature
-        if (offerData.signature_data) {
-          setSignature(offerData.signature_data);
-          setSigned(true);
-          setDebugInfo(prev => `${prev}\nOffre contient déjà une signature`);
-        }
-        
-        if (offerData.workflow_status === 'approved' && !offerData.signature_data) {
-          setSigned(true);
-          setDebugInfo(prev => `${prev}\nOffre marquée comme approuvée sans signature`);
-        }
-      } catch (dataErr: any) {
-        console.error("Erreur détaillée lors de la récupération des données:", dataErr);
-        setError(dataErr?.message || "Impossible de récupérer les détails de cette offre.");
-        setDebugInfo(prev => `${prev}\nErreur récupération données: ${JSON.stringify(dataErr)}`);
       }
     } catch (err: any) {
-      console.error("Erreur générale lors du chargement de l'offre:", err);
-      setError(err?.message || "Une erreur s'est produite lors du chargement de l'offre.");
-      setDebugInfo(prev => `${prev}\nErreur générale: ${JSON.stringify(err)}`);
+      console.error("Erreur lors du chargement de l'offre:", err);
+      setError(err?.message || "Une erreur s'est produite lors du chargement de l'offre");
+      setDebugInfo(prev => `${prev}\nErreur: ${err?.message || "Inconnue"}`);
+      
+      // Tenter une requête de secours ultra-simple
+      if (attempts < 2) {
+        try {
+          setDebugInfo(prev => `${prev}\nTentative de secours directe...`);
+          const { data: backupData } = await supabase
+            .from('offers')
+            .select('*')
+            .eq('id', id)
+            .single();
+            
+          if (backupData) {
+            setDebugInfo(prev => `${prev}\nOffre trouvée via méthode secours`);
+            setOffer(backupData);
+            setError(null);
+            if (backupData.client_name) {
+              setSignerName(backupData.client_name);
+            }
+            if (backupData.signature_data || backupData.workflow_status === 'approved') {
+              setSigned(true);
+              setSignature(backupData.signature_data);
+            }
+          }
+        } catch (backupErr) {
+          console.error("Échec de la requête de secours:", backupErr);
+          setDebugInfo(prev => `${prev}\nÉchec de la requête de secours`);
+        }
+      }
+      
     } finally {
       setLoading(false);
     }
