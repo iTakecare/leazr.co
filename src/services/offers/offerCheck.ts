@@ -12,48 +12,47 @@ export const checkOfferExists = async (offerId: string): Promise<boolean> => {
   try {
     console.log("Vérification d'existence de l'offre:", offerId);
     
-    // 1. Première tentative: via la fonction RPC spéciale qui contourne RLS
-    let { data, error } = await supabase.rpc(
-      'get_offer_by_id_public',
-      { offer_id: offerId }
-    );
-    
-    if (error) {
-      console.error("Erreur lors de l'appel RPC:", error);
+    // Tentative directe via le client admin pour garantir l'accès
+    const adminResult = await adminSupabase
+      .from('offers')
+      .select('id')
+      .eq('id', offerId)
+      .maybeSingle();
       
-      // 2. Deuxième tentative: directe via le client standard
+    if (adminResult.data) {
+      console.log("Offre existe (via admin):", offerId);
+      return true;
+    }
+    
+    if (adminResult.error) {
+      console.error("Erreur admin lors de la vérification d'existence:", adminResult.error);
+      
+      // Deuxième tentative: RPC
+      let { data, error } = await supabase.rpc(
+        'get_offer_by_id_public',
+        { offer_id: offerId }
+      );
+      
+      if (!error && data) {
+        console.log("Offre existe (via RPC):", offerId);
+        return true;
+      }
+      
+      // Troisième tentative: client standard
       const result = await supabase
         .from('offers')
         .select('id')
         .eq('id', offerId)
         .maybeSingle();
-      
-      if (result.error || !result.data) {
-        console.log("Tentative avec adminSupabase");
         
-        // 3. Troisième tentative: avec le client admin
-        const adminResult = await adminSupabase
-          .from('offers')
-          .select('id')
-          .eq('id', offerId)
-          .maybeSingle();
-        
-        data = adminResult.data;
-        error = adminResult.error;
-      } else {
-        data = result.data;
-        error = result.error;
+      if (result.data) {
+        console.log("Offre existe (via standard):", offerId);
+        return true;
       }
     }
     
-    if (error) {
-      console.error("Erreur finale lors de la vérification d'existence:", error);
-      return false;
-    }
-    
-    const exists = !!data;
-    console.log("Résultat vérification d'existence:", exists);
-    return exists;
+    console.log("Aucune offre trouvée avec l'ID:", offerId);
+    return false;
   } catch (error) {
     console.error("Exception lors de la vérification d'existence:", error);
     return false;
@@ -63,7 +62,6 @@ export const checkOfferExists = async (offerId: string): Promise<boolean> => {
 /**
  * Récupère une offre de manière très basique, sans filtrage ni jointures.
  * Tente plusieurs approches pour garantir la récupération de l'offre.
- * Utilise la fonction RPC `get_offer_by_id_public` qui contourne les restrictions RLS.
  */
 export const getBasicOfferById = async (offerId: string) => {
   if (!offerId) return null;
@@ -71,52 +69,48 @@ export const getBasicOfferById = async (offerId: string) => {
   try {
     console.log("Récupération basique de l'offre:", offerId);
     
-    // 1. Tentative avec la fonction RPC spéciale
-    let { data, error } = await supabase.rpc(
+    // 1. Récupération directe via le client admin (la méthode la plus fiable)
+    const { data: adminData, error: adminError } = await adminSupabase
+      .from('offers')
+      .select('*, clients(*)')
+      .eq('id', offerId)
+      .maybeSingle();
+    
+    if (!adminError && adminData) {
+      console.log("Offre récupérée avec succès via admin:", adminData.id);
+      console.log("Détails: client_name:", adminData.client_name, "monthly_payment:", adminData.monthly_payment);
+      return adminData;
+    }
+    
+    if (adminError) {
+      console.error("Erreur admin:", adminError);
+    }
+    
+    // 2. Tentative avec la fonction RPC spéciale
+    const { data, error } = await supabase.rpc(
       'get_offer_by_id_public',
       { offer_id: offerId }
     );
     
-    if (error || !data) {
-      console.log("Échec de la fonction RPC, tentative directe");
-      
-      // 2. Tentative directe avec le client standard
-      const result = await supabase
-        .from('offers')
-        .select('*')
-        .eq('id', offerId)
-        .maybeSingle();
-      
-      if (result.error || !result.data) {
-        console.log("Échec du client standard, tentative avec client admin");
-        
-        // 3. Tentative avec le client admin (contourne RLS)
-        const adminResult = await adminSupabase
-          .from('offers')
-          .select('*')
-          .eq('id', offerId)
-          .maybeSingle();
-        
-        data = adminResult.data;
-        error = adminResult.error;
-      } else {
-        data = result.data;
-        error = result.error;
-      }
+    if (!error && data) {
+      console.log("Offre récupérée avec succès via RPC:", data.id);
+      return data;
     }
     
-    if (error) {
-      console.error("Erreur lors de la récupération basique:", error);
-      return null;
+    // 3. Tentative directe avec le client standard
+    const result = await supabase
+      .from('offers')
+      .select('*')
+      .eq('id', offerId)
+      .maybeSingle();
+    
+    if (!result.error && result.data) {
+      console.log("Offre récupérée avec succès via client standard:", result.data.id);
+      return result.data;
     }
     
-    if (!data) {
-      console.log("Aucune offre trouvée avec l'ID:", offerId);
-      return null;
-    }
-    
-    console.log("Offre récupérée avec succès:", data?.id);
-    return data;
+    console.log("Aucune offre trouvée avec l'ID:", offerId);
+    return null;
   } catch (error) {
     console.error("Exception lors de la récupération basique:", error);
     return null;
@@ -133,19 +127,33 @@ export const getRawOfferData = async (offerId: string) => {
   try {
     console.log("Récupération brute de l'offre:", offerId);
     
-    // Utilisation directe du client admin
+    // Requête complète incluant les données client
     const { data, error } = await adminSupabase
       .from('offers')
-      .select('*')
+      .select('*, clients(*)')
       .eq('id', offerId)
       .single();
     
     if (error) {
       console.error("Erreur lors de la récupération brute:", error);
-      return null;
+      
+      // Tentative alternative sans jointure
+      const { data: simpleData, error: simpleError } = await adminSupabase
+        .from('offers')
+        .select('*')
+        .eq('id', offerId)
+        .single();
+        
+      if (simpleError) {
+        console.error("Échec de la récupération simple:", simpleError);
+        return null;
+      }
+      
+      return simpleData;
     }
     
     console.log("Offre récupérée en mode brut:", data?.id);
+    console.log("Détails: client_name:", data?.client_name, "monthly_payment:", data?.monthly_payment);
     return data;
   } catch (error) {
     console.error("Exception lors de la récupération brute:", error);

@@ -66,87 +66,86 @@ const SignOffer = () => {
       setError(null);
       setDebugInfo(`Tentative #${attemptNumber} - ID: ${id}`);
       
-      // Nouvelle stratégie optimisée: utiliser la fonction dédiée
-      console.log(`Récupération de l'offre avec ID: ${id} (tentative #${attemptNumber})`);
-      let offerData = await getPublicOfferById(id);
+      // Nouvelle stratégie optimisée: utiliser directement adminSupabase
+      console.log(`Récupération directe de l'offre avec ID: ${id} (tentative #${attemptNumber})`);
+      let offerData = null;
+      
+      try {
+        // Première tentative: utiliser directement adminSupabase avec une requête complète
+        const { data: adminData, error: adminError } = await adminSupabase
+          .from('offers')
+          .select('*, clients(*)')
+          .eq('id', id)
+          .single();
+        
+        if (adminError) {
+          setDebugInfo(prev => `${prev}\nErreur requête admin directe: ${adminError.message}`);
+          console.error(`Erreur requête admin directe pour ID: ${id}:`, adminError);
+        } else if (adminData) {
+          offerData = adminData;
+          setDebugInfo(prev => `${prev}\nOffre récupérée directement via admin`);
+          console.log(`Offre ${id} récupérée directement via admin:`, adminData);
+        }
+      } catch (e) {
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        setDebugInfo(prev => `${prev}\nException requête admin directe: ${errorMsg}`);
+        console.error(`Exception lors de la requête admin directe pour ID: ${id}:`, errorMsg);
+      }
+      
+      // Si la première tentative a échoué, essayons les méthodes précédentes
+      if (!offerData) {
+        offerData = await getPublicOfferById(id);
+        setDebugInfo(prev => `${prev}\nTentative via getPublicOfferById: ${offerData ? 'Succès' : 'Échec'}`);
+      }
       
       if (!offerData) {
-        setDebugInfo(prev => `${prev}\nÉchec de la récupération dédiée, essai des méthodes alternatives...`);
-        console.log(`Échec getPublicOfferById pour ID: ${id}, essai alternatives`);
-        
-        // Stratégie 1: Utiliser la fonction normale de récupération
         offerData = await getOfferForClient(id);
-        
-        // Stratégie 2: Utiliser la fonction de récupération simplifiée si la 1ère échoue
-        if (!offerData) {
-          setDebugInfo(prev => `${prev}\nEssai méthode basique...`);
-          console.log(`Échec getOfferForClient pour ID: ${id}, essai getBasicOfferById`);
-          offerData = await getBasicOfferById(id);
-        }
-        
-        // Stratégie 3: Utiliser la récupération brute en dernier recours
-        if (!offerData) {
-          setDebugInfo(prev => `${prev}\nEssai méthode brute...`);
-          console.log(`Échec getBasicOfferById pour ID: ${id}, essai getRawOfferData`);
-          offerData = await getRawOfferData(id);
-        }
-        
-        // Stratégie 4: Requête Supabase directe, sans intermédiaire
-        if (!offerData) {
-          setDebugInfo(prev => `${prev}\nEssai requête Supabase directe...`);
-          console.log(`Échec getRawOfferData pour ID: ${id}, essai requête directe`);
-          
-          try {
-            const { data: directData, error: directError } = await supabase.rpc(
-              'get_offer_by_id_public',
-              { offer_id: id }
-            );
-            
-            if (directError) {
-              setDebugInfo(prev => `${prev}\nErreur RPC: ${directError.message}`);
-              console.error(`Erreur RPC pour ID: ${id}:`, directError.message);
-            } else if (directData) {
-              offerData = directData;
-              setDebugInfo(prev => `${prev}\nOffre récupérée via RPC`);
-              console.log(`Offre ${id} récupérée via RPC directe`);
-            }
-          } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e);
-            setDebugInfo(prev => `${prev}\nException RPC: ${errorMsg}`);
-            console.error(`Exception lors de la RPC directe pour ID: ${id}:`, errorMsg);
-          }
-        }
-
-        // Stratégie 5: Requête Supabase directe avec client admin, dernier recours
-        if (!offerData) {
-          setDebugInfo(prev => `${prev}\nEssai requête Supabase admin directe...`);
-          console.log(`Aucune méthode n'a fonctionné pour ID: ${id}, essai admin direct`);
-          
-          try {
-            const { data: adminData, error: adminError } = await adminSupabase
-              .from('offers')
-              .select('*')
-              .eq('id', id)
-              .maybeSingle();
-            
-            if (adminError) {
-              setDebugInfo(prev => `${prev}\nErreur requête admin: ${adminError.message}`);
-              console.error(`Erreur requête admin pour ID: ${id}:`, adminError.message);
-            } else if (adminData) {
-              offerData = adminData;
-              setDebugInfo(prev => `${prev}\nOffre récupérée via requête admin directe`);
-              console.log(`Offre ${id} récupérée via requête admin directe`);
-            }
-          } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e);
-            setDebugInfo(prev => `${prev}\nException requête admin: ${errorMsg}`);
-            console.error(`Exception lors de la requête admin pour ID: ${id}:`, errorMsg);
-          }
-        }
+        setDebugInfo(prev => `${prev}\nTentative via getOfferForClient: ${offerData ? 'Succès' : 'Échec'}`);
+      }
+      
+      if (!offerData) {
+        offerData = await getBasicOfferById(id);
+        setDebugInfo(prev => `${prev}\nTentative via getBasicOfferById: ${offerData ? 'Succès' : 'Échec'}`);
+      }
+      
+      if (!offerData) {
+        offerData = await getRawOfferData(id);
+        setDebugInfo(prev => `${prev}\nTentative via getRawOfferData: ${offerData ? 'Succès' : 'Échec'}`);
       }
       
       if (offerData) {
         console.log(`Offre ${id} trouvée:`, offerData);
+        
+        // S'assurer que toutes les données essentielles sont présentes
+        if (!offerData.client_name && offerData.clients && offerData.clients.name) {
+          offerData.client_name = offerData.clients.name;
+        }
+        
+        if (!offerData.client_email && offerData.clients && offerData.clients.email) {
+          offerData.client_email = offerData.clients.email;
+        }
+        
+        // Si monthly_payment est 0 ou null/undefined, essayons d'obtenir ces données à nouveau directement
+        if (!offerData.monthly_payment || offerData.monthly_payment === 0) {
+          try {
+            setDebugInfo(prev => `${prev}\nMontant mensuel manquant, récupération direct.`);
+            const { data: paymentData } = await adminSupabase
+              .from('offers')
+              .select('monthly_payment, amount, coefficient')
+              .eq('id', id)
+              .single();
+              
+            if (paymentData && paymentData.monthly_payment) {
+              offerData.monthly_payment = paymentData.monthly_payment;
+              offerData.amount = paymentData.amount || offerData.amount;
+              offerData.coefficient = paymentData.coefficient || offerData.coefficient;
+              setDebugInfo(prev => `${prev}\nMontant mensuel récupéré: ${paymentData.monthly_payment}`);
+            }
+          } catch (e) {
+            setDebugInfo(prev => `${prev}\nÉchec récupération montant mensuel.`);
+          }
+        }
+        
         setOffer(offerData);
         if (offerData.client_name) {
           setSignerName(offerData.client_name);
@@ -155,7 +154,7 @@ const SignOffer = () => {
           setSigned(true);
           setSignature(offerData.signature_data);
         }
-        setDebugInfo(prev => `${prev}\nOffre trouvée avec succès!`);
+        setDebugInfo(prev => `${prev}\nOffre trouvée avec succès! Montant mensuel: ${offerData.monthly_payment || 'non défini'}`);
       } else {
         console.error(`Aucune offre trouvée avec l'ID: ${id} après toutes les tentatives`);
         setError(`Aucune offre trouvée avec l'ID: ${id}`);
@@ -521,4 +520,3 @@ const SignOffer = () => {
 };
 
 export default SignOffer;
-

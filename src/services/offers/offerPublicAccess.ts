@@ -19,6 +19,12 @@ export const getPublicOfferById = async (offerId: string) => {
     
     if (!error && data) {
       console.log("Offre récupérée via RPC:", data.id);
+      console.log("Détails de l'offre:", {
+        client_name: data.client_name,
+        client_email: data.client_email,
+        monthly_payment: data.monthly_payment,
+        equipment_description: typeof data.equipment_description === 'string' ? data.equipment_description.substring(0, 50) + '...' : 'Non-string'
+      });
       return data;
     }
     
@@ -27,12 +33,17 @@ export const getPublicOfferById = async (offerId: string) => {
     // Stratégie 2: Directe via le client standard
     const { data: directData, error: directError } = await supabase
       .from('offers')
-      .select('*')
+      .select('*, clients(*)')
       .eq('id', offerId)
       .maybeSingle();
     
     if (!directError && directData) {
       console.log("Offre récupérée via client standard:", directData.id);
+      console.log("Détails de l'offre (direct):", {
+        client_name: directData.client_name,
+        client_email: directData.client_email,
+        monthly_payment: directData.monthly_payment
+      });
       return directData;
     }
     
@@ -41,7 +52,7 @@ export const getPublicOfferById = async (offerId: string) => {
     // Stratégie 3: Via le client admin (dernier recours)
     const { data: adminData, error: adminError } = await adminSupabase
       .from('offers')
-      .select('*')
+      .select('*, clients(*)')
       .eq('id', offerId)
       .maybeSingle();
     
@@ -52,6 +63,11 @@ export const getPublicOfferById = async (offerId: string) => {
     
     if (adminData) {
       console.log("Offre récupérée via client admin:", adminData.id);
+      console.log("Détails de l'offre (admin):", {
+        client_name: adminData.client_name,
+        client_email: adminData.client_email,
+        monthly_payment: adminData.monthly_payment
+      });
       return adminData;
     }
     
