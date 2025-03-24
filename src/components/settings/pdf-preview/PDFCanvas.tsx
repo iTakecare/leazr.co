@@ -74,6 +74,31 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
     };
   }, [onDrag, onEndDrag]);
 
+  const formatEquipmentDisplay = (equipmentDescription: string | any[]) => {
+    try {
+      let equipment;
+      
+      if (typeof equipmentDescription === 'string') {
+        equipment = JSON.parse(equipmentDescription);
+      } else {
+        equipment = equipmentDescription;
+      }
+      
+      if (Array.isArray(equipment) && equipment.length > 0) {
+        return equipment.map((item: any, idx: number) => (
+          <div key={idx} className="mb-1">
+            • {item.title}: {item.purchasePrice}€ × {item.quantity} (Marge: {item.margin}%)
+          </div>
+        ));
+      }
+      
+      return "Aucun équipement spécifié";
+    } catch (e) {
+      console.error("Erreur lors du formatage de l'équipement:", e);
+      return "Erreur de formatage des données d'équipement";
+    }
+  };
+
   const getCurrentPageFields = () => {
     if (!localTemplate?.fields || !Array.isArray(localTemplate.fields)) {
       console.log("Pas de champs disponibles dans le template");
@@ -111,7 +136,29 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
     });
     
     console.log(`Champs pour la page ${currentPage + 1}:`, fields.length);
-    fields.forEach((f: any) => console.log(` - ${f.id}: "${f.label}" à (${f.position.x}, ${f.position.y})`));
+    fields.forEach((f: any) => {
+      console.log(` - ${f.id}: "${f.label}" à (${f.position.x}, ${f.position.y})`);
+      
+      // Afficher la résolution des valeurs pour le débogage
+      if (f.value && typeof f.value === 'string' && f.value.includes('{')) {
+        let resolvedValue = f.value;
+        
+        // Traitement spécial pour l'affichage de l'équipement
+        if (f.value === '{equipment_description}') {
+          resolvedValue = useRealData ? 
+            "Formatage des données d'équipement en temps réel" : 
+            "Données d'équipement d'exemple (formatées pour l'affichage)";
+        } else {
+          // Résoudre les autres variables
+          resolvedValue = f.value.replace(/\{([^}]+)\}/g, (match: string, key: string) => {
+            const value = sampleData[key];
+            return value !== undefined ? String(value) : `[${key} non trouvé]`;
+          });
+        }
+        
+        console.log(`   Valeur résolue: "${resolvedValue}"`);
+      }
+    });
     
     return fields;
   };
@@ -206,6 +253,11 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
               {fields.map((field: any) => (
                 <div key={field.id} className="p-1 border-b">
                   <span className="font-bold">{field.label}</span>: {field.value} à ({field.position.x.toFixed(1)}, {field.position.y.toFixed(1)})
+                  {field.id === "equipment_table" && sampleData.equipment_description && (
+                    <div className="pl-2 mt-1 text-xs text-gray-600">
+                      {formatEquipmentDisplay(sampleData.equipment_description)}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -218,6 +270,14 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
             <p className="mt-1">Exemple de donnée client: {sampleData.client_name || "Non défini"}</p>
             <p>Page actuelle: {currentPage + 1}</p>
             <p>Champs totaux: {localTemplate?.fields?.length || 0}</p>
+            {sampleData.equipment_description && (
+              <div className="mt-2">
+                <p className="font-medium">Équipement:</p>
+                <div className="pl-2 mt-1">
+                  {formatEquipmentDisplay(sampleData.equipment_description)}
+                </div>
+              </div>
+            )}
           </div>
         </details>
       </div>

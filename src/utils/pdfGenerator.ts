@@ -235,6 +235,47 @@ export const generateOfferPdf = async (offer: any) => {
     try {
       console.log(`Résolution du motif: "${pattern}"`);
       
+      // Traitement spécial pour les champs d'équipement
+      if (pattern === '{equipment_description}') {
+        try {
+          let equipmentData;
+          
+          // Essayer de récupérer les données d'équipement
+          if (offer.equipment_description) {
+            if (typeof offer.equipment_description === 'string') {
+              try {
+                equipmentData = JSON.parse(offer.equipment_description);
+              } catch (e) {
+                console.error("Erreur lors du parse des données d'équipement:", e);
+              }
+            } else {
+              equipmentData = offer.equipment_description;
+            }
+            
+            // Si nous avons des données d'équipement, formater la sortie
+            if (Array.isArray(equipmentData) && equipmentData.length > 0) {
+              const formattedItems = equipmentData.map(item => 
+                `• ${item.title || 'Produit'}: ${formatCurrency(item.purchasePrice || 0)} × ${item.quantity || 1} (Marge: ${item.margin || 0}%)`
+              ).join('\n');
+              
+              console.log("Équipement formaté pour affichage:", formattedItems);
+              return formattedItems;
+            }
+          }
+          
+          return "Aucun équipement spécifié";
+        } catch (error) {
+          console.error("Erreur lors du formatage des équipements:", error);
+          return "Erreur lors de l'affichage des équipements";
+        }
+      }
+      
+      // Traitement spécial pour monthly_payment
+      if (pattern === '{offer_monthly_payment}' || pattern === '{monthly_payment}') {
+        const payment = offer.monthly_payment || 0;
+        return formatCurrency(payment);
+      }
+      
       // Afficher toutes les données disponibles pour débogage
       console.log("Données disponibles pour la résolution:", {
         clientName: offer.client_name,
