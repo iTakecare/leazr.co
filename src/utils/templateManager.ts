@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ensureBucket } from "@/services/fileStorage";
@@ -44,6 +43,7 @@ export interface PDFTemplate {
   footerText: string;
   templateImages: TemplateImage[];
   fields: TemplateField[];
+  useOfferTemplate?: boolean; // Nouvelle propriété pour utiliser OfferTemplate
   created_at?: string;
   updated_at?: string;
 }
@@ -62,7 +62,8 @@ export const DEFAULT_TEMPLATE: PDFTemplate = {
   headerText: 'OFFRE N° {offer_id}',
   footerText: 'Cette offre est valable 30 jours à compter de sa date d\'émission.',
   templateImages: [], // Initialize as empty array
-  fields: []  // Initialize as empty array
+  fields: [],  // Initialize as empty array
+  useOfferTemplate: false // Par défaut, n'utilise pas OfferTemplate
 };
 
 /**
@@ -90,6 +91,7 @@ export const ensurePDFTemplateTable = async (): Promise<boolean> => {
           "footerText" TEXT NOT NULL,
           "templateImages" JSONB DEFAULT '[]'::jsonb,
           fields JSONB DEFAULT '[]'::jsonb,
+          useOfferTemplate BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
         );
@@ -256,8 +258,7 @@ export const listTemplates = async (): Promise<PDFTemplate[]> => {
     return templates;
   } catch (error) {
     console.error("Exception lors de la récupération des templates:", error);
-    toast.error("Erreur lors de la récupération des modèles");
+    toast.error("Erreur lors de la r��cupération des modèles");
     return [];
   }
 };
-
