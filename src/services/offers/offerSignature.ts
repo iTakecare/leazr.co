@@ -93,34 +93,15 @@ export const isOfferSigned = async (offerId: string): Promise<boolean> => {
  */
 export const getOfferForClient = async (offerId: string) => {
   try {
-    console.log("Début de récupération de l'offre pour le client:", offerId);
-    
     if (!offerId || offerId.trim() === "") {
-      console.error("ID d'offre invalide:", offerId);
+      console.error("ID d'offre invalide ou vide");
       throw new Error("ID d'offre invalide ou manquant");
     }
     
-    // Vérifier d'abord si l'offre existe en faisant une requête simple
-    const checkResult = await supabase
-      .from('offers')
-      .select('id')
-      .eq('id', offerId)
-      .maybeSingle();
+    console.log("Début de récupération de l'offre pour le client. ID:", offerId);
     
-    if (checkResult.error) {
-      console.error("Erreur lors de la vérification de l'existence de l'offre:", checkResult.error);
-      throw checkResult.error;
-    }
-    
-    if (!checkResult.data) {
-      console.error("Aucune offre trouvée avec l'ID:", offerId);
-      throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
-    }
-    
-    console.log("Offre trouvée, récupération des détails...");
-    
-    // Récupérer tous les détails nécessaires
-    const { data, error } = await supabase
+    // Essayer d'abord la méthode directe avec tous les champs nécessaires
+    const { data: directData, error: directError } = await supabase
       .from('offers')
       .select(`
         id,
@@ -136,32 +117,111 @@ export const getOfferForClient = async (offerId: string) => {
         signed_at,
         remarks,
         clients (
-          company
+          company,
+          id,
+          email
         )
       `)
       .eq('id', offerId)
       .maybeSingle();
+      
+    // Log des résultats détaillés pour débogage
+    console.log("Résultat de la requête directe:", {
+      success: !directError, 
+      hasData: !!directData,
+      dataDetails: directData ? {
+        id: directData.id,
+        clientName: directData.client_name,
+        hasMonthlyPayment: directData.monthly_payment !== undefined && directData.monthly_payment !== null,
+        monthlyPayment: directData.monthly_payment,
+        hasClientInfo: !!directData.clients
+      } : 'Pas de données'
+    });
 
-    if (error) {
-      console.error("Erreur Supabase détaillée lors de la récupération de l'offre:", error);
-      throw error;
+    // Si nous avons trouvé directement l'offre avec tous ses détails, retourner
+    if (directData && !directError) {
+      return directData;
     }
     
-    if (!data) {
+    // Si la première méthode a échoué, on log l'erreur mais on continue avec une méthode alternative
+    if (directError) {
+      console.error("Erreur lors de la récupération directe de l'offre:", directError);
+    }
+    
+    // Méthode alternative: récupérer juste l'ID pour confirmer l'existence puis faire une requête plus simple
+    console.log("Tentative alternative de récupération de l'offre...");
+    
+    // Vérifier d'abord si l'offre existe
+    const { data: checkData, error: checkError } = await supabase
+      .from('offers')
+      .select('id')
+      .eq('id', offerId)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error("Erreur lors de la vérification de l'existence de l'offre:", checkError);
+      throw new Error("Erreur lors de la vérification de l'offre");
+    }
+    
+    if (!checkData) {
+      console.error("Aucune offre trouvée avec l'ID:", offerId);
+      // Tentative avec la fonction RPC
+      console.log("Tentative avec la fonction RPC get_offer_by_id_public...");
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_offer_by_id_public', { offer_id: offerId });
+        
+      if (rpcError || !rpcData || rpcData.length === 0) {
+        console.error("Échec de la récupération via RPC:", rpcError || "Pas de données");
+        throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
+      }
+      
+      console.log("Offre récupérée via RPC:", rpcData);
+      return rpcData[0];
+    }
+    
+    // Récupérer les détails de l'offre avec une requête sans jointure
+    console.log("Offre trouvée, récupération des détails simplifiés...");
+    const { data: simpleData, error: simpleError } = await supabase
+      .from('offers')
+      .select('*')
+      .eq('id', offerId)
+      .maybeSingle();
+      
+    if (simpleError) {
+      console.error("Erreur lors de la récupération des détails simplifiés:", simpleError);
+      throw simpleError;
+    }
+    
+    if (!simpleData) {
       console.error("Données manquantes pour l'offre avec l'ID:", offerId);
       throw new Error(`Aucune donnée disponible pour l'offre: ${offerId}`);
     }
     
-    console.log("Données récupérées avec succès pour l'offre:", offerId);
-    console.log("Contenu de l'offre:", JSON.stringify({
-      id: data.id,
-      client_name: data.client_name,
-      workflow_status: data.workflow_status,
-      has_client_data: !!data.clients,
-      equipment_description_type: typeof data.equipment_description
-    }));
+    console.log("Détails de l'offre récupérés avec succès:", {
+      id: simpleData.id,
+      clientName: simpleData.client_name,
+      hasMonthlyPayment: simpleData.monthly_payment !== undefined && simpleData.monthly_payment !== null,
+      monthlyPayment: simpleData.monthly_payment,
+    });
     
-    return data;
+    // Si client_id est présent, récupérer les détails du client
+    if (simpleData.client_id) {
+      console.log("Récupération des détails du client associé...");
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('company, email')
+        .eq('id', simpleData.client_id)
+        .maybeSingle();
+        
+      if (!clientError && clientData) {
+        console.log("Données client récupérées:", clientData);
+        simpleData.clients = clientData;
+      } else {
+        console.log("Pas de données client supplémentaires:", clientError);
+      }
+    }
+    
+    return simpleData;
   } catch (error) {
     console.error("Erreur complète lors de la récupération de l'offre:", error);
     throw error;
