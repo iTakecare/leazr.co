@@ -7,12 +7,13 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Offer } from "@/hooks/offers/useFetchOffers";
 import { 
-  Building, Clock, PenLine, Trash2, User, CreditCard, Check, X
+  Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
+import { generateSignatureLink } from "@/services/offers/offerSignature";
 
 interface OfferCardProps {
   offer: Offer;
@@ -42,7 +43,13 @@ const OfferCard: React.FC<OfferCardProps> = ({
     navigate(`/create-offer?id=${offer.id}`);
   };
   
+  const openOnlineOffer = () => {
+    const link = generateSignatureLink(offer.id);
+    window.open(link, '_blank', 'noopener,noreferrer');
+  };
+  
   const isConverted = offer.converted_to_contract;
+  const canViewOnline = offer.workflow_status === "sent" || offer.workflow_status === "approved";
 
   return (
     <Card className={cn(
@@ -108,6 +115,18 @@ const OfferCard: React.FC<OfferCardProps> = ({
             <PenLine className="h-3.5 w-3.5 mr-1" />
             <span className="text-xs">Éditer</span>
           </Button>
+          
+          {canViewOnline && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-7 px-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+              onClick={openOnlineOffer}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">En ligne</span>
+            </Button>
+          )}
           
           <Button 
             variant="ghost" 

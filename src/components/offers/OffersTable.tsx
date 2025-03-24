@@ -29,9 +29,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Trash2, Send, Eye, FileDown } from "lucide-react";
+import {
+  MoreHorizontal, 
+  Trash2, 
+  Send, 
+  Eye, 
+  FileDown, 
+  ExternalLink
+} from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { useAuth } from "@/context/AuthContext";
+import { generateSignatureLink } from "@/services/offers/offerSignature";
+import { toast } from "sonner";
 
 interface OffersTableProps {
   offers: any[];
@@ -80,6 +89,17 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   const handleSendToClient = async (offerId: string) => {
     await onStatusChange(offerId, "sent");
+  };
+
+  const handleCopyOnlineOfferLink = (offerId: string) => {
+    const link = generateSignatureLink(offerId);
+    navigator.clipboard.writeText(link);
+    toast.success("Lien de l'offre en ligne copié dans le presse-papier");
+  };
+
+  const openOnlineOffer = (offerId: string) => {
+    const link = generateSignatureLink(offerId);
+    window.open(link, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -167,6 +187,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           <DropdownMenuItem onClick={() => onDownloadPdf(offer.id)}>
                             <FileDown className="mr-2 h-4 w-4" />
                             Télécharger PDF
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {(offer.workflow_status === "sent" || offer.workflow_status === "approved") && !isAmbassador() && (
+                          <DropdownMenuItem onClick={() => openOnlineOffer(offer.id)}>
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Voir offre en ligne
                           </DropdownMenuItem>
                         )}
                         
