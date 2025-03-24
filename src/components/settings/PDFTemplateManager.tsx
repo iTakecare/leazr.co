@@ -4,11 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { loadPDFTemplate, savePDFTemplate, DEFAULT_MODEL } from "@/utils/pdfTemplateUtils";
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
-import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ensureBucket } from "@/services/fileStorage";
 import PDFPreview from "./PDFPreview";
@@ -43,35 +42,45 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
+  const [storageMode, setStorageMode] = useState<'cloud' | 'local'>('cloud');
   
   // Initialisation au montage ou lorsque templateId change
   useEffect(() => {
     console.log(`Initialisation du gestionnaire pour le modèle: ${templateId}`);
-    const initialize = async () => {
-      try {
-        // S'assurer que le bucket de stockage existe
-        try {
-          const bucketReady = await ensureBucket('pdf-templates');
-          if (!bucketReady) {
-            console.error("Problème lors de la création/vérification du bucket pdf-templates");
-            toast.warning("Attention: Stockage en mode local uniquement");
-          }
-        } catch (storageError) {
-          console.error("Erreur avec le stockage:", storageError);
-          toast.warning("Attention: Stockage en mode local uniquement");
-        }
-        
-        // Charger le modèle spécifié
-        await loadTemplate(templateId);
-      } catch (err) {
-        console.error("Erreur lors de l'initialisation:", err);
-        setError("Erreur lors de l'initialisation");
-        setLoading(false);
-      }
-    };
-    
-    initialize();
+    initializeStorage();
   }, [templateId]);
+
+  // Fonction pour initialiser le stockage
+  const initializeStorage = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // S'assurer que le bucket de stockage existe
+      try {
+        const bucketReady = await ensureBucket('pdf-templates');
+        if (bucketReady) {
+          console.log("Bucket pdf-templates vérifié avec succès");
+          setStorageMode('cloud');
+        } else {
+          console.error("Problème lors de la création/vérification du bucket pdf-templates");
+          toast.warning("Stockage en mode local uniquement");
+          setStorageMode('local');
+        }
+      } catch (storageError) {
+        console.error("Erreur avec le stockage:", storageError);
+        toast.warning("Stockage en mode local uniquement");
+        setStorageMode('local');
+      }
+      
+      // Charger le modèle spécifié
+      await loadTemplate(templateId);
+    } catch (err) {
+      console.error("Erreur lors de l'initialisation:", err);
+      setError("Erreur lors de l'initialisation du gestionnaire");
+      setLoading(false);
+    }
+  };
 
   // Fonction pour charger le modèle
   const loadTemplate = async (id: string = 'default') => {
@@ -94,8 +103,8 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       } else {
         console.log("Modèle chargé avec succès:", data);
         
-        // S'assurer que les tableaux sont initialisés
-        const sanitizedTemplate: PDFTemplate = {
+        // S'assurer que les tableaux sont correctement initialisés
+        const sanitizedTemplate = {
           ...data,
           templateImages: Array.isArray(data.templateImages) ? data.templateImages : [],
           fields: Array.isArray(data.fields) ? data.fields : []
@@ -104,15 +113,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
         console.log("Modèle sanitisé:", sanitizedTemplate);
         console.log("Nombre d'images:", sanitizedTemplate.templateImages ? sanitizedTemplate.templateImages.length : 0);
         console.log("Nombre de champs:", sanitizedTemplate.fields ? sanitizedTemplate.fields.length : 0);
-        
-        // Log détaillé pour le débogage
-        if (sanitizedTemplate.templateImages && sanitizedTemplate.templateImages.length > 0) {
-          console.log("Premier élément templateImages:", sanitizedTemplate.templateImages[0]);
-        }
-        
-        if (sanitizedTemplate.fields && sanitizedTemplate.fields.length > 0) {
-          console.log("Premier élément fields:", sanitizedTemplate.fields[0]);
-        }
         
         setTemplate(sanitizedTemplate);
         toast.success(`Modèle "${sanitizedTemplate.name}" chargé avec succès`);
@@ -214,29 +214,47 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>
-          {loading 
-            ? "Chargement du modèle..." 
-            : `Modèle: ${template?.name || 'Non défini'}`}
-        </CardTitle>
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={() => template && handleSaveTemplate(template)}
-          disabled={saving || loading || !template}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sauvegarde...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Sauvegarder
-            </>
+        <div>
+          <CardTitle>
+            {loading 
+              ? "Chargement du modèle..." 
+              : `Modèle: ${template?.name || 'Non défini'}`}
+          </CardTitle>
+          {storageMode === 'local' && (
+            <p className="text-sm text-amber-500 mt-1">
+              Mode stockage local - Les images ne seront pas sauvegardées en ligne
+            </p>
           )}
-        </Button>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={() => initializeStorage()}
+            disabled={loading}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Réessayer la connexion
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => template && handleSaveTemplate(template)}
+            disabled={saving || loading || !template}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sauvegarde...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Sauvegarder
+              </>
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {error && (
@@ -253,6 +271,17 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
               >
                 Réessayer
               </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {storageMode === 'local' && (
+          <Alert variant="warning" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Stockage local uniquement</AlertTitle>
+            <AlertDescription>
+              Le stockage en ligne n'est pas disponible. Les modèles seront sauvegardés localement et 
+              les images ne seront pas persistantes. Vérifiez votre connexion à Supabase Storage.
             </AlertDescription>
           </Alert>
         )}

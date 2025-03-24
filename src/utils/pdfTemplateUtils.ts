@@ -1,27 +1,9 @@
 
 import { getSupabaseClient } from "@/integrations/supabase/client";
-import { ensureStorageBucket } from "@/services/storageService";
+import { generateTemplateId } from "@/lib/utils";
 
-export interface PDFModel {
-  id: string;
-  name: string;
-  companyName: string;
-  companyAddress: string;
-  companyContact: string;
-  companySiret: string;
-  logoURL: string;
-  primaryColor: string;
-  secondaryColor: string;
-  headerText: string;
-  footerText: string;
-  templateImages: any[];
-  fields: any[];
-  created_at?: string;
-  updated_at?: string;
-}
-
-// Modèle par défaut
-export const DEFAULT_MODEL: PDFModel = {
+// Modèle par défaut pour les PDF
+export const DEFAULT_MODEL = {
   id: 'default',
   name: 'Modèle par défaut',
   companyName: 'iTakeCare',
@@ -37,276 +19,280 @@ export const DEFAULT_MODEL: PDFModel = {
   fields: []
 };
 
-/**
- * Vérifie et crée la table pdf_models et le bucket de stockage si nécessaire
- */
-export const ensurePDFModelTableExists = async (): Promise<boolean> => {
-  const supabase = getSupabaseClient();
-  
+// Fonction utilitaire pour vérifier si le stockage local est disponible
+const isLocalStorageAvailable = () => {
   try {
-    console.log("Vérification de l'existence de la table pdf_models...");
+    const testKey = '__storage_test__';
+    localStorage.setItem(testKey, testKey);
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+// Fonction pour sauvegarder un modèle PDF
+export const savePDFTemplate = async (template: any): Promise<boolean> => {
+  try {
+    console.log("Sauvegarde du modèle PDF:", template.id);
     
-    // 1. Vérifier si la table existe déjà via la fonction RPC
-    const { data: tableExists, error: checkError } = await supabase.rpc(
-      'check_table_exists',
-      { table_name: 'pdf_models' }
-    );
-    
-    if (checkError) {
-      console.error("Erreur lors de la vérification de l'existence de la table:", checkError);
-      
-      // Fallback: création directe de la table via SQL
-      const { error: createError } = await supabase.rpc('execute_sql', {
-        sql: `
-          CREATE TABLE IF NOT EXISTS public.pdf_models (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            "companyName" TEXT NOT NULL,
-            "companyAddress" TEXT NOT NULL,
-            "companyContact" TEXT NOT NULL,
-            "companySiret" TEXT NOT NULL,
-            "logoURL" TEXT DEFAULT '',
-            "primaryColor" TEXT NOT NULL,
-            "secondaryColor" TEXT NOT NULL,
-            "headerText" TEXT NOT NULL,
-            "footerText" TEXT NOT NULL,
-            "templateImages" JSONB DEFAULT '[]'::jsonb,
-            fields JSONB DEFAULT '[]'::jsonb,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-          );
-        `
-      });
-      
-      if (createError) {
-        console.error("Erreur lors de la création directe de la table:", createError);
-        throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
-      }
-      
-      console.log("Table pdf_models créée avec succès via SQL direct");
-    } else if (!tableExists) {
-      console.log("La table pdf_models n'existe pas, création...");
-      
-      const { error: createError } = await supabase.rpc('execute_sql', {
-        sql: `
-          CREATE TABLE IF NOT EXISTS public.pdf_models (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            "companyName" TEXT NOT NULL,
-            "companyAddress" TEXT NOT NULL,
-            "companyContact" TEXT NOT NULL,
-            "companySiret" TEXT NOT NULL,
-            "logoURL" TEXT DEFAULT '',
-            "primaryColor" TEXT NOT NULL,
-            "secondaryColor" TEXT NOT NULL,
-            "headerText" TEXT NOT NULL,
-            "footerText" TEXT NOT NULL,
-            "templateImages" JSONB DEFAULT '[]'::jsonb,
-            fields JSONB DEFAULT '[]'::jsonb,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-          );
-        `
-      });
-      
-      if (createError) {
-        console.error("Erreur lors de la création de la table:", createError);
-        throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
-      }
-      
-      console.log("Table pdf_models créée avec succès");
-    } else {
-      console.log("La table pdf_models existe déjà");
-    }
-    
-    // Vérifier s'il y a au moins un enregistrement, sinon insérer le modèle par défaut
+    // Vérifier d'abord si Supabase est disponible
     try {
-      const { count, error: countError } = await supabase
-        .from('pdf_models')
-        .select('*', { count: 'exact', head: true });
+      const supabase = getSupabaseClient();
       
-      if (countError) {
-        console.error("Erreur lors du comptage des modèles:", countError);
-        throw new Error(`Erreur lors du comptage des modèles: ${countError.message}`);
+      // Vérifier si la table existe
+      const { data: existsData, error: existsError } = await supabase
+        .from('pdf_templates')
+        .select('id')
+        .eq('id', template.id)
+        .maybeSingle();
+      
+      if (existsError && existsError.code !== 'PGRST116') {
+        console.error("Erreur lors de la vérification de la table:", existsError);
+        throw new Error("Erreur de base de données");
       }
       
-      if (count === 0) {
-        console.log("Aucun modèle trouvé, insertion du modèle par défaut...");
+      // Si la table existe, essayer de sauvegarder dans Supabase
+      const exists = !!existsData;
+      
+      if (exists) {
+        // Mise à jour d'un modèle existant
+        const { error: updateError } = await supabase
+          .from('pdf_templates')
+          .update(template)
+          .eq('id', template.id);
         
+        if (updateError) {
+          console.error("Erreur lors de la mise à jour dans Supabase:", updateError);
+          throw new Error("Erreur de mise à jour");
+        }
+      } else {
+        // Insertion d'un nouveau modèle
         const { error: insertError } = await supabase
-          .from('pdf_models')
-          .insert(DEFAULT_MODEL);
+          .from('pdf_templates')
+          .insert([template]);
+        
+        if (insertError) {
+          console.error("Erreur lors de l'insertion dans Supabase:", insertError);
+          throw new Error("Erreur d'insertion");
+        }
+      }
+      
+      console.log("Modèle sauvegardé avec succès dans Supabase");
+      return true;
+    } catch (supabaseError) {
+      console.error("Erreur avec Supabase, utilisation du stockage local:", supabaseError);
+      
+      // Fallback vers le stockage local
+      if (isLocalStorageAvailable()) {
+        const templates = JSON.parse(localStorage.getItem('pdfTemplates') || '{}');
+        templates[template.id] = template;
+        localStorage.setItem('pdfTemplates', JSON.stringify(templates));
+        console.log("Modèle sauvegardé en local");
+        return true;
+      } else {
+        throw new Error("Aucun stockage disponible");
+      }
+    }
+  } catch (error) {
+    console.error("Erreur lors de la sauvegarde du modèle:", error);
+    throw error;
+  }
+};
+
+// Fonction pour charger un modèle PDF
+export const loadPDFTemplate = async (id: string = 'default'): Promise<any> => {
+  try {
+    console.log(`Chargement du modèle PDF: ${id}`);
+    
+    // Essayer d'abord de charger depuis Supabase
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { data, error } = await supabase
+        .from('pdf_templates')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error("Erreur lors du chargement depuis Supabase:", error);
+        throw new Error("Erreur de base de données");
+      }
+      
+      if (data) {
+        console.log("Modèle chargé depuis Supabase:", data);
+        return data;
+      }
+      
+      // Si le modèle n'existe pas dans Supabase et c'est le modèle par défaut
+      if (id === 'default') {
+        console.log("Création du modèle par défaut dans Supabase");
+        
+        // Insérer le modèle par défaut dans Supabase
+        const { error: insertError } = await supabase
+          .from('pdf_templates')
+          .insert([DEFAULT_MODEL]);
         
         if (insertError) {
           console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
-          throw new Error(`Erreur lors de l'insertion du modèle par défaut: ${insertError.message}`);
+          throw new Error("Erreur d'insertion");
         }
         
-        console.log("Modèle par défaut inséré avec succès");
+        return DEFAULT_MODEL;
       }
-    } catch (countError) {
-      // Si on ne peut pas compter, on essaie d'insérer directement (en mode upsert)
-      console.log("Erreur de comptage, tentative d'insertion du modèle par défaut...");
+    } catch (supabaseError) {
+      console.error("Erreur avec Supabase, utilisation du stockage local:", supabaseError);
       
-      const { error: insertError } = await supabase
-        .from('pdf_models')
-        .upsert(DEFAULT_MODEL, { onConflict: 'id' });
-      
-      if (insertError) {
-        console.error("Erreur lors de l'insertion/mise à jour du modèle par défaut:", insertError);
-      } else {
-        console.log("Modèle par défaut inséré/mis à jour avec succès");
+      // Fallback vers le stockage local
+      if (isLocalStorageAvailable()) {
+        const templates = JSON.parse(localStorage.getItem('pdfTemplates') || '{}');
+        
+        if (templates[id]) {
+          console.log("Modèle chargé depuis le stockage local");
+          return templates[id];
+        } else if (id === 'default') {
+          // Créer le modèle par défaut en local
+          templates['default'] = DEFAULT_MODEL;
+          localStorage.setItem('pdfTemplates', JSON.stringify(templates));
+          return DEFAULT_MODEL;
+        }
       }
     }
     
-    return true;
-  } catch (error: any) {
-    console.error("Exception lors de la vérification/création de la table:", error);
-    throw error;
-  }
-};
-
-/**
- * Charge un modèle PDF depuis la base de données
- */
-export const loadPDFTemplate = async (id: string = 'default') => {
-  try {
-    console.log("Début du chargement du modèle PDF:", id);
-    const supabase = getSupabaseClient();
-    
-    // Assurez-vous que la table existe et contient au moins un modèle
-    await ensurePDFModelTableExists();
-    
-    // Récupérer le modèle
-    const { data, error } = await supabase
-      .from('pdf_models')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    
-    if (error) {
-      console.error("Erreur lors du chargement du modèle:", error);
-      throw new Error(`Erreur lors du chargement du modèle: ${error.message}`);
-    }
-    
-    console.log("Réponse de la requête de chargement:", data ? "Modèle trouvé" : "Aucun modèle trouvé");
-    
-    // Si aucun modèle n'est trouvé, retourner le modèle par défaut
-    if (!data) {
+    // Si on arrive ici, le modèle n'a pas été trouvé et ce n'est pas le modèle par défaut
+    if (id === 'default') {
       return DEFAULT_MODEL;
     }
     
-    return data;
-  } catch (error: any) {
-    console.error("Exception lors du chargement du modèle:", error);
+    return null;
+  } catch (error) {
+    console.error("Erreur lors du chargement du modèle:", error);
     throw error;
   }
 };
 
-// Alias pour la compatibilité avec les anciennes implémentations
-export const loadPDFModel = loadPDFTemplate;
-
-/**
- * Sauvegarde un modèle PDF dans la base de données
- */
-export const savePDFTemplate = async (model: PDFModel) => {
+// Fonction pour récupérer tous les modèles PDF
+export const getAllPDFTemplates = async (): Promise<any[]> => {
   try {
-    console.log("Début de la sauvegarde du modèle PDF:", model.id);
-    const supabase = getSupabaseClient();
+    console.log("Chargement de tous les modèles PDF");
     
-    // Assurez-vous que la table existe
-    await ensurePDFModelTableExists();
-    
-    // Préparer le modèle à sauvegarder
-    const modelToSave = {
-      ...model,
-      updated_at: new Date().toISOString()
-    };
-    
-    // Sauvegarder le modèle
-    const { error } = await supabase
-      .from('pdf_models')
-      .upsert(modelToSave, { 
-        onConflict: 'id',
-        ignoreDuplicates: false 
-      });
-    
-    if (error) {
-      console.error("Erreur lors de la sauvegarde du modèle:", error);
-      throw new Error(`Erreur lors de la sauvegarde du modèle: ${error.message}`);
+    // Essayer d'abord de charger depuis Supabase
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { data, error } = await supabase
+        .from('pdf_templates')
+        .select('*')
+        .order('name');
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error("Erreur lors du chargement des modèles depuis Supabase:", error);
+        throw new Error("Erreur de base de données");
+      }
+      
+      if (data && data.length > 0) {
+        console.log(`${data.length} modèles chargés depuis Supabase`);
+        return data;
+      }
+      
+      // Si aucun modèle n'existe, créer le modèle par défaut
+      console.log("Aucun modèle trouvé, création du modèle par défaut dans Supabase");
+      
+      // Vérifier si le modèle par défaut existe déjà
+      const { data: defaultExists } = await supabase
+        .from('pdf_templates')
+        .select('id')
+        .eq('id', 'default')
+        .maybeSingle();
+      
+      if (!defaultExists) {
+        const { error: insertError } = await supabase
+          .from('pdf_templates')
+          .insert([DEFAULT_MODEL]);
+        
+        if (insertError) {
+          console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
+          throw new Error("Erreur d'insertion");
+        }
+        
+        return [DEFAULT_MODEL];
+      }
+    } catch (supabaseError) {
+      console.error("Erreur avec Supabase, utilisation du stockage local:", supabaseError);
+      
+      // Fallback vers le stockage local
+      if (isLocalStorageAvailable()) {
+        const templates = JSON.parse(localStorage.getItem('pdfTemplates') || '{}');
+        
+        // Convertir l'objet en tableau
+        const templatesList = Object.values(templates);
+        
+        if (templatesList.length === 0) {
+          // Ajouter le modèle par défaut si aucun modèle n'existe
+          templates['default'] = DEFAULT_MODEL;
+          localStorage.setItem('pdfTemplates', JSON.stringify(templates));
+          return [DEFAULT_MODEL];
+        }
+        
+        console.log(`${templatesList.length} modèles chargés depuis le stockage local`);
+        return templatesList;
+      }
     }
     
-    console.log("Modèle sauvegardé avec succès:", model.id);
-    return true;
-  } catch (error: any) {
-    console.error("Exception lors de la sauvegarde du modèle:", error);
-    throw error;
+    // Si on arrive ici et qu'aucun modèle n'a été trouvé, retourner le modèle par défaut
+    return [DEFAULT_MODEL];
+  } catch (error) {
+    console.error("Erreur lors du chargement des modèles:", error);
+    return [DEFAULT_MODEL]; // Fallback sécurisé
   }
 };
 
-// Alias pour la compatibilité avec les anciennes implémentations
-export const savePDFModel = savePDFTemplate;
-
-/**
- * Récupère tous les modèles PDF
- */
-export const getAllPDFTemplates = async () => {
-  try {
-    console.log("Récupération de tous les modèles PDF");
-    const supabase = getSupabaseClient();
-    
-    // Assurez-vous que la table existe et contient au moins un modèle
-    await ensurePDFModelTableExists();
-    
-    // Récupérer tous les modèles
-    const { data, error } = await supabase
-      .from('pdf_models')
-      .select('*')
-      .order('name');
-    
-    if (error) {
-      console.error("Erreur lors de la récupération des modèles:", error);
-      throw new Error(`Erreur lors de la récupération des modèles: ${error.message}`);
-    }
-    
-    console.log(`${data?.length || 0} modèles récupérés`);
-    return data || [];
-  } catch (error: any) {
-    console.error("Exception lors de la récupération des modèles:", error);
-    throw error;
+// Fonction pour supprimer un modèle PDF
+export const deletePDFTemplate = async (id: string): Promise<boolean> => {
+  // Ne pas permettre la suppression du modèle par défaut
+  if (id === 'default') {
+    throw new Error("Le modèle par défaut ne peut pas être supprimé");
   }
-};
-
-// Alias pour la compatibilité avec les anciennes implémentations
-export const getAllPDFModels = getAllPDFTemplates;
-
-/**
- * Supprime un modèle PDF
- * Note: Ne pas supprimer le modèle par défaut
- */
-export const deletePDFTemplate = async (id: string) => {
+  
   try {
-    if (id === 'default') {
-      throw new Error("Le modèle par défaut ne peut pas être supprimé");
+    console.log(`Suppression du modèle PDF: ${id}`);
+    
+    // Essayer d'abord de supprimer depuis Supabase
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { error } = await supabase
+        .from('pdf_templates')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error("Erreur lors de la suppression depuis Supabase:", error);
+        throw new Error("Erreur de suppression");
+      }
+      
+      console.log("Modèle supprimé avec succès de Supabase");
+      return true;
+    } catch (supabaseError) {
+      console.error("Erreur avec Supabase, utilisation du stockage local:", supabaseError);
+      
+      // Fallback vers le stockage local
+      if (isLocalStorageAvailable()) {
+        const templates = JSON.parse(localStorage.getItem('pdfTemplates') || '{}');
+        
+        if (templates[id]) {
+          delete templates[id];
+          localStorage.setItem('pdfTemplates', JSON.stringify(templates));
+          console.log("Modèle supprimé du stockage local");
+          return true;
+        }
+      }
     }
     
-    console.log("Suppression du modèle PDF:", id);
-    const supabase = getSupabaseClient();
-    
-    const { error } = await supabase
-      .from('pdf_models')
-      .delete()
-      .eq('id', id);
-    
-    if (error) {
-      console.error("Erreur lors de la suppression du modèle:", error);
-      throw new Error(`Erreur lors de la suppression du modèle: ${error.message}`);
-    }
-    
-    console.log("Modèle supprimé avec succès:", id);
-    return true;
-  } catch (error: any) {
-    console.error("Exception lors de la suppression du modèle:", error);
+    return false;
+  } catch (error) {
+    console.error("Erreur lors de la suppression du modèle:", error);
     throw error;
   }
 };
