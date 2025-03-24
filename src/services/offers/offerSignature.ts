@@ -44,7 +44,10 @@ export const saveOfferSignature = async (
         reason: `Offre signée électroniquement par ${signerName}`
       });
 
-    if (logError) console.error("Erreur log:", logError);
+    if (logError) {
+      console.error("Erreur lors de l'ajout du log de workflow:", logError);
+      // Ne pas bloquer le processus si l'ajout du log échoue
+    }
 
     console.log("Signature enregistrée avec succès pour l'offre:", offerId);
     return true;

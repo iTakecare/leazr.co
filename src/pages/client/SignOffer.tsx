@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -222,12 +221,10 @@ const SignOffer = () => {
     }
   };
   
-  // Analyse de l'equipment_description pour l'affichage
   let equipmentDisplay = "Équipement non détaillé";
   try {
     if (offer.equipment_description) {
       if (typeof offer.equipment_description === 'string') {
-        // Tentative de parsing JSON
         if (offer.equipment_description.startsWith('[') || offer.equipment_description.startsWith('{')) {
           try {
             const parsed = JSON.parse(offer.equipment_description);
@@ -245,7 +242,6 @@ const SignOffer = () => {
             equipmentDisplay = offer.equipment_description;
           }
         } else {
-          // Utiliser tel quel si ce n'est pas du JSON
           equipmentDisplay = offer.equipment_description;
         }
       } else if (Array.isArray(offer.equipment_description)) {

@@ -703,6 +703,9 @@ export type Database = {
           monthly_payment: number
           previous_status: string | null
           remarks: string | null
+          signature_data: string | null
+          signed_at: string | null
+          signer_name: string | null
           status: string
           type: string | null
           updated_at: string | null
@@ -723,6 +726,9 @@ export type Database = {
           monthly_payment?: number
           previous_status?: string | null
           remarks?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          signer_name?: string | null
           status?: string
           type?: string | null
           updated_at?: string | null
@@ -743,6 +749,9 @@ export type Database = {
           monthly_payment?: number
           previous_status?: string | null
           remarks?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          signer_name?: string | null
           status?: string
           type?: string | null
           updated_at?: string | null
