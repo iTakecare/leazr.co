@@ -100,6 +100,19 @@ serve(async (req) => {
         description: "TLS inversé",
         clientOptions: { connectionTimeout: 15000 }
       });
+      
+      // Third attempt: Explicit TLS version with secure mode
+      attempts.push({
+        tls: config.secure,
+        description: "TLS version explicite (v1.2)",
+        clientOptions: { 
+          connectionTimeout: 15000, 
+          tlsOptions: { 
+            minVersion: "TLSv1.2",
+            maxVersion: "TLSv1.2"
+          }
+        }
+      });
     }
     
     let success = false;
@@ -108,10 +121,11 @@ serve(async (req) => {
     
     for (let i = 0; i < attempts.length && !success; i++) {
       const attempt = attempts[i];
-      console.log(`Tentative #${i+1}: ${attempt.description}, TLS=${attempt.tls}`);
+      console.log(`Tentative #${i+1}: ${attempt.description}, TLS=${attempt.tls}`, 
+                 attempt.clientOptions ? `Options: ${JSON.stringify(attempt.clientOptions)}` : "");
       
       try {
-        const client = new SMTPClient({
+        const clientOptions = {
           connection: {
             hostname: config.host,
             port: parseInt(config.port),
@@ -120,9 +134,14 @@ serve(async (req) => {
               username: config.username,
               password: config.password,
             },
+            ...(attempt.clientOptions?.tlsOptions && { tlsOptions: attempt.clientOptions.tlsOptions })
           },
           debug: true,
-        });
+        };
+        
+        console.log(`Tentative #${i+1}: Options client:`, JSON.stringify(clientOptions, null, 2));
+        
+        const client = new SMTPClient(clientOptions);
         
         console.log(`Tentative #${i+1}: Client SMTP initialisé`);
         
@@ -231,6 +250,25 @@ serve(async (req) => {
             continue;
           }
           
+          // Check for protocol version error
+          if (errorString.includes("ProtocolVersion") || errorString.includes("protocol version")) {
+            console.log(`Tentative #${i+1}: Erreur de version de protocole SSL/TLS détectée`);
+            lastResult = {
+              message: "Erreur de version de protocole SSL/TLS",
+              details: errorString,
+              protocolVersionError: true
+            };
+            
+            try {
+              await client.close();
+            } catch (e) {
+              // Ignore close errors in case of failure
+            }
+            
+            // Continue to the next attempt if this wasn't the last one
+            continue;
+          }
+          
           // For other errors, also continue but log them properly
           lastResult = sendError;
           
@@ -308,7 +346,13 @@ serve(async (req) => {
         const errorStr = lastResult ? (lastResult.toString ? lastResult.toString() : String(lastResult)) : "";
         errorMessage = `Échec de connexion SMTP après plusieurs tentatives: ${errorStr}`;
         
-        if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
+        if (lastResult?.protocolVersionError) {
+          suggestion = "Erreur de version du protocole SSL/TLS détectée. Recommandations:\n" +
+                      "1. Vérifiez si votre fournisseur email a des exigences spécifiques concernant SSL/TLS\n" +
+                      "2. Si possible, utilisez le port 587 avec TLS désactivé (c'est souvent une solution pour les problèmes de protocole)\n" +
+                      "3. Contactez votre fournisseur d'email pour connaître les paramètres SMTP exacts à utiliser";
+        }
+        else if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
           if (isOvhServer && isPort587) {
             suggestion = "Pour les serveurs OVH sur le port 587, nous recommandons de désactiver l'option TLS/SSL dans les paramètres SMTP. Les serveurs OVH gèrent généralement le chiffrement automatiquement sur ce port.";
           } else if (config.secure) {
