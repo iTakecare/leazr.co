@@ -94,85 +94,134 @@ export const isOfferSigned = async (offerId: string): Promise<boolean> => {
  */
 export const getOfferForClient = async (offerId: string) => {
   try {
-    console.log("Début de récupération de l'offre pour le client:", offerId);
+    console.log("🔍 Début de récupération de l'offre pour le client:", offerId);
     
     if (!offerId || offerId.trim() === "") {
-      console.error("ID d'offre invalide:", offerId);
+      console.error("ID d'offre invalide (vide):", offerId);
       throw new Error("ID d'offre invalide ou manquant");
     }
     
-    // Vérification avancée de l'ID pour s'assurer que c'est un UUID valide
+    // Vérification de l'ID pour s'assurer que c'est un UUID valide
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidPattern.test(offerId)) {
       console.error("Format d'ID d'offre invalide:", offerId);
       throw new Error(`Format d'ID invalide: ${offerId}`);
     }
     
+    // DEBUG: Vérification directe avec une requête brute
+    console.log("📊 Tentative de requête brute sur la table offers");
+    try {
+      const { data: rawData, error: rawError } = await supabase
+        .from('offers')
+        .select('id, client_name')
+        .limit(10);
+        
+      if (rawError) {
+        console.error("❌ Erreur lors de la requête brute:", rawError);
+      } else {
+        console.log(`✅ La requête brute a retourné ${rawData?.length || 0} offres`);
+        if (rawData && rawData.length > 0) {
+          console.log("📋 Exemple d'offre:", rawData[0]);
+        }
+      }
+    } catch (rawErr) {
+      console.error("❌ Exception lors de la requête brute:", rawErr);
+    }
+    
     // Vérifier d'abord l'existence avec une requête simple
-    console.log("Vérification de l'existence de l'offre:", offerId);
-    const { data: existsCheck, error: existsError } = await supabase
-      .from('offers')
-      .select('id')
-      .eq('id', offerId)
-      .maybeSingle();
-    
-    if (existsError) {
-      console.error("Erreur lors de la vérification d'existence:", existsError);
-      throw new Error(`Erreur de base de données: ${existsError.message}`);
+    console.log("🔍 Vérification de l'existence de l'offre:", offerId);
+    try {
+      const { data: existsCheck, error: existsError } = await supabase
+        .from('offers')
+        .select('id, client_name, workflow_status')
+        .eq('id', offerId)
+        .maybeSingle();
+      
+      if (existsError) {
+        console.error("❌ Erreur lors de la vérification d'existence:", existsError);
+        throw new Error(`Erreur de base de données: ${existsError.message}`);
+      }
+      
+      if (!existsCheck) {
+        console.error(`❌ Aucune offre trouvée avec l'ID: ${offerId}`);
+        
+        // DEBUG: Vérification avec les 5 premiers caractères
+        const partialId = offerId.substring(0, 8);
+        console.log(`🔍 Recherche d'offres commençant par: ${partialId}`);
+        
+        const { data: partialMatches, error: partialError } = await supabase
+          .from('offers')
+          .select('id, client_name')
+          .ilike('id', `${partialId}%`);
+          
+        if (!partialError && partialMatches && partialMatches.length > 0) {
+          console.log(`✅ Offres similaires trouvées:`, partialMatches.map(o => o.id));
+        } else {
+          console.log(`❌ Aucune offre similaire trouvée`);
+        }
+        
+        throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
+      }
+      
+      console.log("✅ Offre trouvée dans la vérification initiale:", existsCheck);
+    } catch (checkErr) {
+      console.error("❌ Exception lors de la vérification d'existence:", checkErr);
+      throw checkErr;
     }
     
-    if (!existsCheck) {
-      console.error(`Aucune offre trouvée avec l'ID: ${offerId}`);
-      throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
-    }
-    
-    console.log("Offre trouvée, récupération des détails complets...");
+    console.log("📋 Récupération des détails complets...");
     
     // Récupérer tous les détails nécessaires
-    const { data, error } = await supabase
-      .from('offers')
-      .select(`
-        id,
-        client_name,
-        client_email,
-        equipment_description,
-        amount,
-        monthly_payment,
-        coefficient,
-        workflow_status,
-        signature_data,
-        signer_name,
-        signed_at,
-        remarks,
-        clients (
-          company
-        )
-      `)
-      .eq('id', offerId)
-      .maybeSingle();  // Utiliser maybeSingle au lieu de single pour éviter les erreurs
-
-    if (error) {
-      console.error("Erreur Supabase lors de la récupération des détails:", error);
-      throw new Error(`Erreur de récupération: ${error.message}`);
+    try {
+      const { data, error } = await supabase
+        .from('offers')
+        .select(`
+          id,
+          client_name,
+          client_email,
+          equipment_description,
+          amount,
+          monthly_payment,
+          coefficient,
+          workflow_status,
+          signature_data,
+          signer_name,
+          signed_at,
+          remarks,
+          clients (
+            company
+          )
+        `)
+        .eq('id', offerId)
+        .maybeSingle();
+  
+      if (error) {
+        console.error("❌ Erreur Supabase lors de la récupération des détails:", error);
+        throw new Error(`Erreur de récupération: ${error.message}`);
+      }
+      
+      if (!data) {
+        console.error("❌ Données manquantes pour l'offre avec l'ID:", offerId);
+        throw new Error(`Aucune donnée disponible pour l'offre: ${offerId}`);
+      }
+      
+      console.log("✅ Données récupérées avec succès pour l'offre:", offerId);
+      console.log("📋 Contenu de l'offre:", JSON.stringify({
+        id: data.id,
+        client_name: data.client_name,
+        workflow_status: data.workflow_status,
+        has_signature: !!data.signature_data,
+        has_client_data: !!data.clients,
+        equipment_description_type: typeof data.equipment_description
+      }));
+      
+      return data;
+    } catch (detailsErr) {
+      console.error("❌ Exception lors de la récupération des détails:", detailsErr);
+      throw detailsErr;
     }
-    
-    if (!data) {
-      console.error("Données manquantes pour l'offre avec l'ID:", offerId);
-      throw new Error(`Aucune donnée disponible pour l'offre: ${offerId}`);
-    }
-    
-    console.log("Données récupérées avec succès pour l'offre:", offerId);
-    console.log("Contenu de l'offre:", JSON.stringify({
-      id: data.id,
-      client_name: data.client_name,
-      workflow_status: data.workflow_status,
-      has_client_data: !!data.clients,
-      equipment_description_type: typeof data.equipment_description
-    }));
-    
-    return data;
   } catch (error) {
-    console.error("Erreur complète lors de la récupération de l'offre:", error);
+    console.error("❌ Erreur complète lors de la récupération de l'offre:", error);
     throw error;
   }
 };
