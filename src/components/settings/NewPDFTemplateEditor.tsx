@@ -25,7 +25,7 @@ interface NewPDFTemplateEditorProps {
   onSave: (template: PDFTemplate) => void;
 }
 
-// Available field categories with their fields
+// Available field categories with their fields - We'll use these as a reference for real field definitions
 const AVAILABLE_FIELDS = {
   client: [
     { label: "Nom du client", key: "client_name" },
@@ -57,6 +57,54 @@ const AVAILABLE_FIELDS = {
     { label: "Durée du contrat", key: "lease_duration" },
     { label: "Taux d'intérêt", key: "lease_interest_rate" },
   ],
+};
+
+// Fonction pour filtrer les champs en fonction des données réelles disponibles dans la base de données
+const getFilteredFields = (category: string) => {
+  // Catégorie client - Utiliser les champs de la table clients
+  if (category === 'client') {
+    return [
+      { label: "Nom du client", key: "client_name" },
+      { label: "Email", key: "client_email" },
+      { label: "Téléphone", key: "client_phone" },
+      { label: "Société", key: "client_company" },
+      { label: "TVA", key: "client_vat_number" },
+      { label: "Adresse", key: "client_address" },
+      { label: "Code postal", key: "client_postal_code" },
+      { label: "Ville", key: "client_city" },
+      { label: "Pays", key: "client_country" },
+    ];
+  }
+  
+  // Catégorie offre - Utiliser les champs de la table offers
+  else if (category === 'offer') {
+    return [
+      { label: "Numéro d'offre", key: "offer_id" },
+      { label: "Date de création", key: "offer_created_at" },
+      { label: "Montant total", key: "offer_amount" },
+      { label: "Coefficient", key: "offer_coefficient" },
+      { label: "Mensualité", key: "offer_monthly_payment" },
+      { label: "Commission", key: "offer_commission" },
+      { label: "Statut", key: "offer_status" },
+    ];
+  }
+  
+  // Catégorie équipement - Utiliser le champ equipment_description
+  else if (category === 'equipment') {
+    return [
+      { label: "Description de l'équipement", key: "equipment_description" },
+    ];
+  }
+  
+  // Catégorie leaser - Pour les champs de leaser
+  else if (category === 'leaser') {
+    return [
+      { label: "Nom du leaser", key: "leaser_name" },
+    ];
+  }
+  
+  // Fallback pour les autres catégories
+  return AVAILABLE_FIELDS[category as keyof typeof AVAILABLE_FIELDS] || [];
 };
 
 const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 56, 64, 72];
@@ -93,7 +141,28 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
     color: "#000000"
   });
   
+  // Etat pour stocker les champs filtrés par catégorie
+  const [availableFieldsByCategory, setAvailableFieldsByCategory] = useState<Record<string, {label: string, key: string}[]>>({
+    client: [],
+    offer: [],
+    equipment: [],
+    leaser: []
+  });
+  
   const editorAreaRef = useRef<HTMLDivElement>(null);
+  
+  // Initialiser les champs disponibles pour chaque catégorie
+  useEffect(() => {
+    const filteredFields = {
+      client: getFilteredFields('client'),
+      offer: getFilteredFields('offer'),
+      equipment: getFilteredFields('equipment'),
+      leaser: getFilteredFields('leaser')
+    };
+    
+    setAvailableFieldsByCategory(filteredFields);
+    console.log("Fields initialized:", filteredFields);
+  }, []);
   
   // Debug logs on mount
   useEffect(() => {
@@ -336,8 +405,6 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
     window.open(imageData, '_blank');
   };
   
-  
-  
   // Add field to template
   const addField = () => {
     if (!selectedField) {
@@ -351,7 +418,7 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
       : [];
     
     // Find the selected field definition
-    const fieldDefinition = AVAILABLE_FIELDS[selectedCategory as keyof typeof AVAILABLE_FIELDS]
+    const fieldDefinition = availableFieldsByCategory[selectedCategory]
       .find(field => field.key === selectedField);
     
     if (!fieldDefinition) {
@@ -779,6 +846,9 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
     // Get the selected field as TemplateField or undefined, not as string
     const selectedFieldObj = selectedFieldId ? fields.find(f => f.id === selectedFieldId) : undefined;
     
+    // Obtenir les champs disponibles pour la catégorie sélectionnée
+    const categoryFields = availableFieldsByCategory[selectedCategory] || [];
+    
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -829,7 +899,10 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
                   <Label htmlFor="field-category">Catégorie</Label>
                   <Select
                     value={selectedCategory}
-                    onValueChange={setSelectedCategory}
+                    onValueChange={(value) => {
+                      setSelectedCategory(value);
+                      setSelectedField("");
+                    }}
                   >
                     <SelectTrigger id="field-category">
                       <SelectValue placeholder="Sélectionner une catégorie" />
@@ -839,331 +912,3 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
                       <SelectItem value="offer">Offre</SelectItem>
                       <SelectItem value="equipment">Équipement</SelectItem>
                       <SelectItem value="leaser">Leaser</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="field-name">Champ</Label>
-                  <Select
-                    value={selectedField}
-                    onValueChange={setSelectedField}
-                  >
-                    <SelectTrigger id="field-name">
-                      <SelectValue placeholder="Sélectionner un champ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AVAILABLE_FIELDS[selectedCategory as keyof typeof AVAILABLE_FIELDS]?.map((field) => (
-                        <SelectItem key={field.key} value={field.key}>
-                          {field.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <Button onClick={addField} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter le champ
-                </Button>
-              </div>
-            </Card>
-            
-            {/* Style editor */}
-            {selectedFieldId && (
-              <Card className="p-4">
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Style du texte</h4>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="font-size">Taille de police</Label>
-                    <Select
-                      value={textStyle.fontSize.toString()}
-                      onValueChange={value => updateFieldStyle({ fontSize: parseInt(value) })}
-                    >
-                      <SelectTrigger id="font-size">
-                        <SelectValue placeholder="Taille de police" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FONT_SIZES.map(size => (
-                          <SelectItem key={size} value={size.toString()}>
-                            {size}px
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="font-family">Police</Label>
-                    <Select
-                      value={textStyle.fontFamily}
-                      onValueChange={value => updateFieldStyle({ fontFamily: value })}
-                    >
-                      <SelectTrigger id="font-family">
-                        <SelectValue placeholder="Police" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FONT_FAMILIES.map(font => (
-                          <SelectItem key={font} value={font}>
-                            <span style={{ fontFamily: font }}>{font}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Style</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={textStyle.fontWeight === 'bold' ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => toggleTextStyle('fontWeight')}
-                      >
-                        <Bold className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={textStyle.fontStyle === 'italic' ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => toggleTextStyle('fontStyle')}
-                      >
-                        <Italic className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={textStyle.textDecoration === 'underline' ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => toggleTextStyle('textDecoration')}
-                      >
-                        <Underline className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="text-color">Couleur</Label>
-                    <Select
-                      value={textStyle.color}
-                      onValueChange={value => updateFieldStyle({ color: value })}
-                    >
-                      <SelectTrigger id="text-color">
-                        <SelectValue placeholder="Couleur">
-                          <div className="flex items-center">
-                            <div 
-                              className="w-4 h-4 rounded-sm mr-2 border border-gray-200" 
-                              style={{ backgroundColor: textStyle.color }}
-                            />
-                            <span>{textStyle.color}</span>
-                          </div>
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TEXT_COLORS.map(color => (
-                          <SelectItem key={color} value={color}>
-                            <div className="flex items-center">
-                              <div 
-                                className="w-4 h-4 rounded-sm mr-2 border border-gray-200" 
-                                style={{ backgroundColor: color }}
-                              />
-                              <span>{color}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Position (mm)</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="position-x" className="text-xs">X (mm)</Label>
-                        <Input
-                          id="position-x"
-                          type="number"
-                          step="0.1"
-                          value={selectedFieldObj?.position.x.toFixed(1)}
-                          onChange={(e) => handlePositionChange('x', parseFloat(e.target.value))}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="position-y" className="text-xs">Y (mm)</Label>
-                        <Input
-                          id="position-y"
-                          type="number"
-                          step="0.1"
-                          value={selectedFieldObj?.position.y.toFixed(1)}
-                          onChange={(e) => handlePositionChange('y', parseFloat(e.target.value))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    variant="destructive" 
-                    className="w-full"
-                    onClick={() => selectedFieldId && deleteField(selectedFieldId)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Supprimer le champ
-                  </Button>
-                </div>
-              </Card>
-            )}
-          </div>
-          
-          {/* Editor area */}
-          <div className="col-span-1 lg:col-span-2 order-1 lg:order-2">
-            <div
-              ref={editorAreaRef}
-              className="border rounded-lg overflow-auto bg-gray-100 relative"
-              style={{ 
-                height: "60vh", 
-                padding: "20px",
-                cursor: isDragging ? "grabbing" : "default"
-              }}
-              onClick={handleEditorClick}
-              onMouseMove={handleMouseMove}
-              onMouseUp={stopDragging}
-              onMouseLeave={stopDragging}
-            >
-              <div 
-                style={{ 
-                  transform: `scale(${zoomLevel / 100})`,
-                  transformOrigin: "top left",
-                  position: "relative",
-                  width: "fit-content",
-                  height: "fit-content"
-                }}
-              >
-                {images[selectedPage] && (
-                  <div className="relative">
-                    <img
-                      src={images[selectedPage].data}
-                      alt={`Template page ${selectedPage + 1}`}
-                      className="max-w-full"
-                      style={{ 
-                        maxWidth: "100%", 
-                        height: "auto" 
-                      }}
-                    />
-                    
-                    {/* Field overlay */}
-                    {pageFields.map((field) => (
-                      <div
-                        key={field.id}
-                        className={`absolute cursor-move border-2 ${
-                          selectedFieldId === field.id ? 'border-primary' : 'border-transparent'
-                        } hover:border-primary rounded-md transition-colors p-1`}
-                        style={{
-                          left: `${field.position.x * MM_TO_PX}px`,
-                          top: `${field.position.y * MM_TO_PX}px`,
-                          fontFamily: field.style?.fontFamily || 'Arial',
-                          fontSize: `${field.style?.fontSize || 12}px`,
-                          fontWeight: field.style?.fontWeight || 'normal',
-                          fontStyle: field.style?.fontStyle || 'normal',
-                          textDecoration: field.style?.textDecoration || 'none',
-                          color: field.style?.color || '#000000',
-                          backgroundColor: selectedFieldId === field.id ? 'rgba(255, 255, 255, 0.3)' : 'transparent'
-                        }}
-                        onClick={(e) => handleFieldClick(e, field.id)}
-                        onMouseDown={(e) => startDragging(e, field.id)}
-                      >
-                        {field.label}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Field list */}
-            <div className="mt-4">
-              <h4 className="text-sm font-medium mb-2">Champs de la page ({pageFields.length})</h4>
-              <div className="border rounded-md divide-y">
-                {pageFields.length === 0 ? (
-                  <div className="p-3 text-sm text-gray-500">
-                    Aucun champ sur cette page. Utilisez le panneau de gauche pour ajouter des champs.
-                  </div>
-                ) : (
-                  pageFields.map((field) => (
-                    <div 
-                      key={field.id}
-                      className={`p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50 ${
-                        selectedFieldId === field.id ? 'bg-gray-50' : ''
-                      }`}
-                      onClick={() => setSelectedFieldId(field.id)}
-                    >
-                      <div>
-                        <div className="font-medium">{field.label}</div>
-                        <div className="text-xs text-gray-500">
-                          {field.value} - Position: {field.position.x.toFixed(1)}mm, {field.position.y.toFixed(1)}mm
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-gray-500"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedFieldId(field.id);
-                          }}
-                        >
-                          <Move className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-red-500 hover:text-red-700"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteField(field.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  return (
-    <Tabs 
-      defaultValue="images" 
-      value={activeTab}
-      onValueChange={setActiveTab}
-      className="space-y-4"
-    >
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="images">Pages du modèle</TabsTrigger>
-        <TabsTrigger 
-          value="fields" 
-          disabled={
-            !Array.isArray(localTemplate.templateImages) || 
-            localTemplate.templateImages.length === 0
-          }
-        >
-          Éditeur de champs
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="images">
-        {renderImagesTab()}
-      </TabsContent>
-      
-      <TabsContent value="fields">
-        {renderFieldsTab()}
-      </TabsContent>
-    </Tabs>
-  );
-};
-
-export default NewPDFTemplateEditor;
