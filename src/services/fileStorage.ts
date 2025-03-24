@@ -63,27 +63,44 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
     
     if (bucketError) {
       console.error("Erreur lors de la vérification des buckets:", bucketError);
-      
-      // Si l'erreur est liée aux permissions, essayer avec le client admin
-      if (bucketError.message.includes('permission') || bucketError.message.includes('not authorized')) {
-        try {
-          console.log("Tentative avec le client admin...");
-          const adminClient = getAdminSupabaseClient();
-          return await ensureBucketWithClient(bucketName, adminClient);
-        } catch (adminError) {
-          console.error("Échec avec le client admin:", adminError);
-          return false;
-        }
-      }
-      
       return false;
     }
     
     const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
     
     if (!bucketExists) {
-      console.log(`Bucket ${bucketName} non trouvé, création en cours...`);
-      return await createBucket(bucketName, supabase);
+      console.log(`Bucket ${bucketName} non trouvé, tentative de création...`);
+      
+      // Première tentative avec le client standard
+      try {
+        const { error: createError } = await supabase.storage.createBucket(bucketName, {
+          public: true
+        });
+        
+        if (createError) {
+          console.warn(`Erreur lors de la création du bucket ${bucketName} avec le client standard:`, createError);
+          
+          // Si la première tentative échoue, essayer avec le client administrateur
+          console.log("Tentative avec le client administrateur...");
+          const adminClient = getAdminSupabaseClient();
+          const { error: adminCreateError } = await adminClient.storage.createBucket(bucketName, {
+            public: true
+          });
+          
+          if (adminCreateError) {
+            console.warn(`Erreur lors de la création du bucket ${bucketName} avec le client administrateur:`, adminCreateError);
+            
+            // Si le client administrateur échoue également, essayer avec l'API REST
+            return await createBucketWithDirectAPI(bucketName);
+          }
+        }
+        
+        console.log(`Bucket ${bucketName} créé avec succès`);
+        return true;
+      } catch (createError) {
+        console.error("Exception lors de la création du bucket:", createError);
+        return false;
+      }
     }
     
     console.log(`Bucket ${bucketName} existe déjà`);
@@ -91,62 +108,6 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   } catch (error) {
     console.error("Exception lors de la vérification/création du bucket:", error);
     toast.error(`Problème avec le stockage: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-    return false;
-  }
-};
-
-// Fonction utilitaire pour créer un bucket avec un client spécifique
-const ensureBucketWithClient = async (bucketName: string, client: any): Promise<boolean> => {
-  try {
-    // Vérifier si le bucket existe
-    const { data: buckets, error: bucketError } = await client.storage.listBuckets();
-    
-    if (bucketError) {
-      console.error("Erreur lors de la vérification des buckets avec client spécifique:", bucketError);
-      return false;
-    }
-    
-    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
-    
-    if (!bucketExists) {
-      return await createBucket(bucketName, client);
-    }
-    
-    console.log(`Bucket ${bucketName} existe déjà (vérifié avec client spécifique)`);
-    return true;
-  } catch (error) {
-    console.error("Exception lors de la vérification avec client spécifique:", error);
-    return false;
-  }
-};
-
-// Fonction utilitaire pour créer un bucket
-const createBucket = async (bucketName: string, client: any): Promise<boolean> => {
-  try {
-    console.log(`Création du bucket ${bucketName}...`);
-    
-    // Créer le bucket
-    const { error: createError } = await client.storage.createBucket(bucketName, {
-      public: true
-    });
-    
-    if (createError) {
-      console.error("Erreur lors de la création du bucket:", createError);
-      
-      // Essayer avec l'API REST directe si la méthode normale échoue
-      if (createError.message.includes('permission') || createError.message.includes('not authorized')) {
-        return await createBucketWithDirectAPI(bucketName);
-      }
-      
-      return false;
-    }
-    
-    // Créer des politiques d'accès public
-    await createBucketPolicies(bucketName, client);
-    console.log(`Bucket ${bucketName} créé et configuré avec succès`);
-    return true;
-  } catch (error) {
-    console.error("Exception lors de la création du bucket:", error);
     return false;
   }
 };
@@ -170,19 +131,31 @@ const createBucketWithDirectAPI = async (bucketName: string): Promise<boolean> =
       })
     });
     
+    const responseData = await response.json();
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Erreur de l'API REST lors de la création du bucket:", errorData);
+      // Si l'erreur contient "already exists", considérer comme un succès
+      if (responseData.message && responseData.message.includes("already exists")) {
+        console.log(`Le bucket ${bucketName} existe déjà (via API REST)`);
+        return true;
+      }
+      
+      console.error(`Erreur de l'API REST lors de la création du bucket ${bucketName}:`, responseData);
       return false;
     }
     
     console.log(`Bucket ${bucketName} créé avec succès via l'API REST directe`);
     
-    // Créer les politiques
-    await createBucketPoliciesWithDirectAPI(bucketName);
+    // Tentative de création des politiques (peut échouer si elles existent déjà, mais ce n'est pas grave)
+    try {
+      await createBucketPoliciesWithDirectAPI(bucketName);
+    } catch (e) {
+      console.warn(`Erreur lors de la création des politiques pour ${bucketName}, mais le bucket est bien créé:`, e);
+    }
+    
     return true;
   } catch (error) {
-    console.error("Exception lors de la création du bucket via l'API REST:", error);
+    console.error(`Exception lors de la création du bucket ${bucketName} via l'API REST:`, error);
     return false;
   }
 };
@@ -199,78 +172,41 @@ const createBucketPoliciesWithDirectAPI = async (bucketName: string): Promise<vo
     ];
     
     for (const policy of policies) {
-      const response = await fetch(`${STORAGE_URL}/policies`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: policy.name,
-          bucket_id: bucketName,
-          definition: { role: 'authenticated', operations: [policy.operation] },
-          allow: true
-        })
-      });
-      
-      if (!response.ok) {
-        console.warn(`Erreur lors de la création de la politique ${policy.name} via l'API REST`);
-      } else {
-        console.log(`Politique ${policy.name} créée avec succès via l'API REST`);
+      try {
+        const response = await fetch(`${STORAGE_URL}/policies`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: policy.name,
+            bucket_id: bucketName,
+            definition: { role: 'authenticated', operations: [policy.operation] },
+            allow: true
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          // Ignorer les erreurs du type "already exists"
+          if (data.message && data.message.includes("already exists")) {
+            console.log(`Politique ${policy.name} existe déjà`);
+            continue;
+          }
+          
+          console.warn(`Erreur lors de la création de la politique ${policy.name} via l'API REST:`, data);
+        } else {
+          console.log(`Politique ${policy.name} créée avec succès via l'API REST`);
+        }
+      } catch (policyError) {
+        console.warn(`Exception lors de la création de la politique ${policy.name}:`, policyError);
+        // Continuer avec les autres politiques même si une échoue
       }
     }
   } catch (error) {
     console.error("Exception lors de la création des politiques via l'API REST:", error);
-  }
-};
-
-// Fonction utilitaire pour créer les politiques d'accès aux buckets
-const createBucketPolicies = async (bucketName: string, client: any) => {
-  try {
-    // Créer une politique pour SELECT (lire)
-    await client.storage.from(bucketName).createPolicy('read_policy', {
-      name: `${bucketName}_read_policy`,
-      definition: {
-        statements: ['SELECT'],
-        roles: ['anon', 'authenticated'],
-        condition: 'TRUE'
-      }
-    });
-    
-    // Créer une politique pour INSERT (écrire)
-    await client.storage.from(bucketName).createPolicy('write_policy', {
-      name: `${bucketName}_write_policy`,
-      definition: {
-        statements: ['INSERT'],
-        roles: ['anon', 'authenticated'],
-        condition: 'TRUE'
-      }
-    });
-    
-    // Créer une politique pour UPDATE (mettre à jour)
-    await client.storage.from(bucketName).createPolicy('update_policy', {
-      name: `${bucketName}_update_policy`,
-      definition: {
-        statements: ['UPDATE'],
-        roles: ['anon', 'authenticated'],
-        condition: 'TRUE'
-      }
-    });
-    
-    // Créer une politique pour DELETE (supprimer)
-    await client.storage.from(bucketName).createPolicy('delete_policy', {
-      name: `${bucketName}_delete_policy`,
-      definition: {
-        statements: ['DELETE'],
-        roles: ['anon', 'authenticated'],
-        condition: 'TRUE'
-      }
-    });
-    
-    console.log(`Politiques créées pour le bucket ${bucketName}`);
-  } catch (error) {
-    console.error("Erreur lors de la création des politiques:", error);
-    // Ne pas bloquer le processus si la création des politiques échoue
   }
 };
 
