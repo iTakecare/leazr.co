@@ -1,4 +1,3 @@
-
 import html2pdf from 'html2pdf.js';
 import OfferPDFTemplate from '@/components/pdf/OfferPDFTemplate';
 import React from 'react';
@@ -36,7 +35,7 @@ export const generateOfferPdf = async (offerData) => {
         compress: true,
         putOnlyUsedFonts: true
       },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Éviter les sauts de page automatiques
+      pagebreak: { mode: 'avoid-all' } // Correction du type pour éviter l'erreur TS
     };
     
     // Créer un div temporaire pour le rendu avec une hauteur fixe

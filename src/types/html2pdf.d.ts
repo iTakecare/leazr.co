@@ -22,7 +22,7 @@ declare module 'html2pdf.js' {
       [key: string]: any;
     };
     pagebreak?: {
-      mode?: string;
+      mode?: string | string[];
       [key: string]: any;
     };
     [key: string]: any;
