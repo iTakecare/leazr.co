@@ -261,35 +261,61 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
           />
         )}
         
-        <div className="relative" style={{ height: "100%" }}>
-          <PageImage 
-            pageImage={getCurrentPageImage()} 
-            currentPage={currentPage}
-            setPageLoaded={setPageLoaded}
-          />
-          
-          {pageLoaded && fields.map((field: any) => (
-            <PDFFieldDisplay 
-              key={field.id}
-              field={field}
-              zoomLevel={zoomLevel}
+        <div className="relative" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+          <div className="flex-grow relative">
+            <PageImage 
+              pageImage={getCurrentPageImage()} 
               currentPage={currentPage}
-              sampleData={sampleData}
-              isDraggable={isDraggable}
-              onStartDrag={onStartDrag}
-              useRealData={useRealData}
-              onDrag={onDrag}
-              onEndDrag={onEndDrag}
+              setPageLoaded={setPageLoaded}
             />
-          ))}
+            
+            {pageLoaded && fields.map((field: any) => (
+              <PDFFieldDisplay 
+                key={field.id}
+                field={field}
+                zoomLevel={zoomLevel}
+                currentPage={currentPage}
+                sampleData={sampleData}
+                isDraggable={isDraggable}
+                onStartDrag={onStartDrag}
+                useRealData={useRealData}
+                onDrag={onDrag}
+                onEndDrag={onEndDrag}
+              />
+            ))}
+            
+            {pageLoaded && fields.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+                {isDraggable ? 
+                  "Aucun champ sur cette page. Ajoutez des champs dans l'onglet 'Champs du document'." : 
+                  "Aucun champ sur cette page. Activez le mode 'Positionner les champs' pour les placer."}
+              </div>
+            )}
+          </div>
           
-          {pageLoaded && fields.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-              {isDraggable ? 
-                "Aucun champ sur cette page. Ajoutez des champs dans l'onglet 'Champs du document'." : 
-                "Aucun champ sur cette page. Activez le mode 'Positionner les champs' pour les placer."}
+          {/* Footer section - always at bottom of page */}
+          <div className="w-full" style={{ 
+            position: "absolute", 
+            bottom: 0, 
+            left: 0, 
+            right: 0,
+            padding: `${10 * zoomLevel}px`
+          }}>
+            <div className="text-center" style={{ 
+              borderTop: "1px solid #e5e7eb", 
+              paddingTop: `${10 * zoomLevel}px`
+            }}>
+              <p className="text-center font-bold" style={{ fontSize: `${10 * zoomLevel}px` }}>
+                {localTemplate?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}
+              </p>
+              <div className="flex justify-center items-center mt-2">
+                <p className="text-center" style={{ fontSize: `${8 * zoomLevel}px` }}>
+                  {localTemplate?.companyName || 'iTakeCare'} - {localTemplate?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}<br />
+                  {localTemplate?.companySiret || 'TVA: BE 0795.642.894'} - {localTemplate?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}
+                </p>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
       

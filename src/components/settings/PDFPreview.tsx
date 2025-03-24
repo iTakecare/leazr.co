@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -344,59 +345,85 @@ const PDFPreview = ({ template }) => {
               )}
               
               {hasTemplateImages ? (
-                <div className="relative" style={{ height: "100%" }}>
+                <div className="relative" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
                   {getCurrentPageBackground() ? (
-                    <div className="relative" style={{ height: "100%" }}>
-                      <img 
-                        src={getCurrentPageBackground()} 
-                        alt={`Template page ${currentPage + 1}`}
-                        className="w-full h-full object-contain"
-                        onError={handleImageError}
-                        onLoad={handleImageLoad}
-                        style={{ display: "block" }}
-                      />
+                    <div className="relative flex-grow" style={{ display: "flex", flexDirection: "column" }}>
+                      <div className="flex-grow relative">
+                        <img 
+                          src={getCurrentPageBackground()} 
+                          alt={`Template page ${currentPage + 1}`}
+                          className="w-full h-full object-contain"
+                          onError={handleImageError}
+                          onLoad={handleImageLoad}
+                          style={{ display: "block" }}
+                        />
+                        
+                        {pageLoaded && getCurrentPageFields().map((field) => {
+                          const fontSize = field.style?.fontSize 
+                            ? field.style.fontSize * zoomLevel
+                            : 9 * zoomLevel;
+                          
+                          const xPx = mmToPx(field.position?.x || 0);
+                          const yPx = mmToPx(field.position?.y || 0);
+                          
+                          const fieldStyle = {
+                            position: "absolute",
+                            left: `${xPx}px`,
+                            top: `${yPx}px`,
+                            zIndex: 5,
+                            fontSize: `${fontSize}px`,
+                            fontWeight: field.style?.fontWeight || 'normal',
+                            fontStyle: field.style?.fontStyle || 'normal',
+                            textDecoration: field.style?.textDecoration || 'none',
+                            color: field.style?.color || 'black',
+                            whiteSpace: "pre-wrap"
+                          } as CSSProperties;
+                          
+                          if (field.id === 'equipment_table') {
+                            fieldStyle.maxWidth = `${150 * zoomLevel}mm`;
+                          } else {
+                            fieldStyle.maxWidth = `${80 * zoomLevel}mm`;
+                          }
+                          
+                          return (
+                            <div 
+                              key={field.id}
+                              style={fieldStyle}
+                              className="pdf-field"
+                            >
+                              {field.id === 'equipment_table' ? (
+                                renderEquipmentTable(SAMPLE_OFFER.equipment_description)
+                              ) : (
+                                <span>{resolveFieldValue(field.value)}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                       
-                      {pageLoaded && getCurrentPageFields().map((field) => {
-                        const fontSize = field.style?.fontSize 
-                          ? field.style.fontSize * zoomLevel
-                          : 9 * zoomLevel;
-                        
-                        const xPx = mmToPx(field.position?.x || 0);
-                        const yPx = mmToPx(field.position?.y || 0);
-                        
-                        const fieldStyle = {
-                          position: "absolute",
-                          left: `${xPx}px`,
-                          top: `${yPx}px`,
-                          zIndex: 5,
-                          fontSize: `${fontSize}px`,
-                          fontWeight: field.style?.fontWeight || 'normal',
-                          fontStyle: field.style?.fontStyle || 'normal',
-                          textDecoration: field.style?.textDecoration || 'none',
-                          color: field.style?.color || 'black',
-                          whiteSpace: "pre-wrap"
-                        } as CSSProperties;
-                        
-                        if (field.id === 'equipment_table') {
-                          fieldStyle.maxWidth = `${150 * zoomLevel}mm`;
-                        } else {
-                          fieldStyle.maxWidth = `${80 * zoomLevel}mm`;
-                        }
-                        
-                        return (
-                          <div 
-                            key={field.id}
-                            style={fieldStyle}
-                            className="pdf-field"
-                          >
-                            {field.id === 'equipment_table' ? (
-                              renderEquipmentTable(SAMPLE_OFFER.equipment_description)
-                            ) : (
-                              <span>{resolveFieldValue(field.value)}</span>
-                            )}
+                      {/* Footer section - always at bottom of page */}
+                      <div className="w-full" style={{ 
+                        position: "absolute", 
+                        bottom: 0, 
+                        left: 0, 
+                        right: 0,
+                        padding: `${10 * zoomLevel}px`
+                      }}>
+                        <div className="text-center" style={{ 
+                          borderTop: "1px solid #e5e7eb", 
+                          paddingTop: `${10 * zoomLevel}px`
+                        }}>
+                          <p className="text-center font-bold" style={{ fontSize: `${10 * zoomLevel}px` }}>
+                            {template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}
+                          </p>
+                          <div className="flex justify-center items-center mt-2">
+                            <p className="text-center" style={{ fontSize: `${8 * zoomLevel}px` }}>
+                              {template?.companyName || 'iTakeCare'} - {template?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}<br />
+                              {template?.companySiret || 'TVA: BE 0795.642.894'} - {template?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}
+                            </p>
                           </div>
-                        );
-                      })}
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="w-full h-full bg-white flex items-center justify-center border">
@@ -406,7 +433,7 @@ const PDFPreview = ({ template }) => {
                 </div>
               ) : (
                 <div className="min-h-[842px] flex flex-col justify-between">
-                  <div>
+                  <div className="flex-grow">
                     <div className="border-b p-6" style={{ backgroundColor: template?.primaryColor || '#2C3E50', color: "white" }}>
                       <div className="flex justify-between items-center">
                         {template?.logoURL && (
@@ -480,12 +507,12 @@ const PDFPreview = ({ template }) => {
                   </div>
                   
                   <div className="mt-auto p-6 text-xs text-gray-600 bg-gray-50 border-t">
-                    <p className="text-center font-medium mb-2">{template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
+                    <p className="text-center font-bold mb-2">{template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
                     <hr className="my-2 border-gray-300" />
                     <div className="flex justify-center items-center">
                       <p className="text-center">
-                        {template?.companyName || 'Entreprise'} - {template?.companyAddress || 'Adresse'}<br />
-                        {template?.companySiret || 'SIRET'} - {template?.companyContact || 'Contact'}
+                        {template?.companyName || 'iTakeCare'} - {template?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}<br />
+                        {template?.companySiret || 'TVA: BE 0795.642.894'} - {template?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}
                       </p>
                     </div>
                   </div>
