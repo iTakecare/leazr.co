@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +26,7 @@ const SignOffer = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const signaturePadRef = useRef<any>(null);
 
+  // Template dynamique pour l'affichage de l'offre
   const [localTemplate, setLocalTemplate] = useState({
     name: "Default Template",
     companyName: "iTakeCare",
@@ -100,6 +102,16 @@ const SignOffer = () => {
         
         if (offerData.client_name) {
           setSignerName(offerData.client_name);
+        }
+        
+        // Si l'offre a un modèle de PDF associé, l'utiliser
+        if (offerData.__template) {
+          setLocalTemplate(prev => ({
+            ...prev,
+            ...offerData.__template,
+            templateImages: offerData.__template.templateImages || [],
+            fields: offerData.__template.fields || prev.fields
+          }));
         }
         
         setLoading(false);
