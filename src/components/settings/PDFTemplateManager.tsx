@@ -82,14 +82,13 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
   const handleImagesChange = (images: any[]) => {
     if (!template) return;
     
-    const formattedImages = images.map(img => {
-      return {
-        id: img.id,
-        name: img.name,
-        data: img.url || img.data,
-        page: img.page
-      };
-    });
+    // Convert the images from the ImageUploader format back to the template format
+    const formattedImages = images.map(img => ({
+      id: img.id,
+      name: img.name,
+      data: img.data,
+      page: img.page
+    }));
     
     const updatedTemplate = {
       ...template,
