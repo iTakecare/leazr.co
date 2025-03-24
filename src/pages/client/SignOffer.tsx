@@ -6,6 +6,10 @@ import {
   saveOfferSignature, 
   isOfferSigned 
 } from "@/services/offers/offerSignature";
+import { 
+  getBasicOfferById,
+  getRawOfferData
+} from "@/services/offers/offerCheck";
 import { generateAndDownloadOfferPdf } from "@/services/offers/offerPdf";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
@@ -27,7 +31,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ClientOffersSidebar from "@/components/offers/ClientOffersSidebar";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, adminSupabase } from "@/integrations/supabase/client";
+import OffersError from "@/components/offers/OffersError";
 
 const SignOffer = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,58 +57,85 @@ const SignOffer = () => {
       return;
     }
     
-    setAttempts(prev => prev + 1);
+    const attemptNumber = attempts + 1;
+    setAttempts(attemptNumber);
+    
     try {
       setLoading(true);
       setError(null);
-      setDebugInfo(`Tentative #${attempts + 1} - ID: ${id}`);
+      setDebugInfo(`Tentative #${attemptNumber} - ID: ${id}`);
       
-      // Requête directe simple
-      const directData = await getOfferForClient(id);
+      // Stratégie 1: Utiliser la fonction normale de récupération
+      let offerData = await getOfferForClient(id);
       
-      if (directData) {
-        setOffer(directData);
-        if (directData.client_name) {
-          setSignerName(directData.client_name);
+      // Stratégie 2: Utiliser la fonction de récupération simplifiée si la 1ère échoue
+      if (!offerData) {
+        setDebugInfo(prev => `${prev}\nEssai méthode alternative...`);
+        offerData = await getBasicOfferById(id);
+      }
+      
+      // Stratégie 3: Utiliser la récupération brute en dernier recours
+      if (!offerData) {
+        setDebugInfo(prev => `${prev}\nEssai méthode brute...`);
+        offerData = await getRawOfferData(id);
+      }
+      
+      // Stratégie 4: Requête Supabase directe, sans intermédiaire
+      if (!offerData) {
+        setDebugInfo(prev => `${prev}\nEssai requête Supabase directe...`);
+        const { data: directData, error: directError } = await supabase
+          .from('offers')
+          .select(`
+            *,
+            clients (
+              name,
+              email,
+              company
+            )
+          `)
+          .eq('id', id)
+          .single();
+        
+        if (directError) {
+          setDebugInfo(prev => `${prev}\nErreur requête directe: ${directError.message}`);
+          
+          // Dernier essai avec le client admin
+          const { data: adminData, error: adminError } = await adminSupabase
+            .from('offers')
+            .select('*')
+            .eq('id', id)
+            .single();
+          
+          if (adminError) {
+            setDebugInfo(prev => `${prev}\nErreur requête admin: ${adminError.message}`);
+          } else if (adminData) {
+            offerData = adminData;
+            setDebugInfo(prev => `${prev}\nOffre récupérée via admin`);
+          }
+        } else if (directData) {
+          offerData = directData;
+          setDebugInfo(prev => `${prev}\nOffre récupérée via requête directe`);
         }
-        if (directData.signature_data || directData.workflow_status === 'approved') {
+      }
+      
+      if (offerData) {
+        setOffer(offerData);
+        if (offerData.client_name) {
+          setSignerName(offerData.client_name);
+        }
+        if (offerData.signature_data || offerData.workflow_status === 'approved') {
           setSigned(true);
-          setSignature(directData.signature_data);
+          setSignature(offerData.signature_data);
         }
+        setDebugInfo(prev => `${prev}\nOffre trouvée avec succès!`);
+      } else {
+        setError(`Aucune offre trouvée avec l'ID: ${id}`);
+        setDebugInfo(prev => `${prev}\nAucune offre trouvée après toutes les tentatives`);
       }
     } catch (err: any) {
       console.error("Erreur lors du chargement de l'offre:", err);
       setError(err?.message || "Une erreur s'est produite lors du chargement de l'offre");
       setDebugInfo(prev => `${prev}\nErreur: ${err?.message || "Inconnue"}`);
-      
-      // Tenter une requête de secours ultra-simple
-      if (attempts < 2) {
-        try {
-          setDebugInfo(prev => `${prev}\nTentative de secours directe...`);
-          const { data: backupData } = await supabase
-            .from('offers')
-            .select('*')
-            .eq('id', id)
-            .single();
-            
-          if (backupData) {
-            setDebugInfo(prev => `${prev}\nOffre trouvée via méthode secours`);
-            setOffer(backupData);
-            setError(null);
-            if (backupData.client_name) {
-              setSignerName(backupData.client_name);
-            }
-            if (backupData.signature_data || backupData.workflow_status === 'approved') {
-              setSigned(true);
-              setSignature(backupData.signature_data);
-            }
-          }
-        } catch (backupErr) {
-          console.error("Échec de la requête de secours:", backupErr);
-          setDebugInfo(prev => `${prev}\nÉchec de la requête de secours`);
-        }
-      }
-      
     } finally {
       setLoading(false);
     }
@@ -238,66 +270,17 @@ const SignOffer = () => {
   
   if (error || !offer) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-        <div className="max-w-md w-full">
-          <Card>
-            <CardHeader className="text-center">
-              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-2" />
-              <CardTitle>Offre non disponible</CardTitle>
-              <CardDescription>
-                {error || "Cette offre n'existe pas ou n'est plus disponible."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {debugInfo && (
-                <div className="mt-4 p-4 bg-gray-100 rounded text-xs text-gray-700 whitespace-pre-wrap">
-                  <p className="font-bold mb-1">Informations de débogage:</p>
-                  {debugInfo}
-                </div>
-              )}
-              
-              {id && (
-                <div className="mt-4 p-4 bg-red-50 rounded-md border border-red-200">
-                  <h3 className="text-sm font-medium text-red-800">ID d'offre recherché:</h3>
-                  <p className="mt-1 text-xs break-all">{id}</p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-center space-x-2">
-              <Button onClick={() => window.location.href = "/"}>
-                Retour à l'accueil
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={handleRetry}
-                disabled={isRetrying}
-              >
-                {isRetrying ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-b-transparent border-white rounded-full"></div>
-                    Réessai...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCcw className="mr-2 h-4 w-4" />
-                    Réessayer
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      </div>
+      <OffersError 
+        message={error || "Cette offre n'existe pas ou n'est plus disponible."}
+        onRetry={handleRetry}
+      />
     );
   }
   
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Client Offers Sidebar */}
       <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
       
-      {/* Main Content */}
       <div className="flex-1 py-8 px-4 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
