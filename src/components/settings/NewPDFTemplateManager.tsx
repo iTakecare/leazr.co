@@ -1,387 +1,253 @@
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Save, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Edit, Plus, Save, Trash2 } from "lucide-react";
-import PDFTemplateWithFields from "@/components/settings/PDFTemplateWithFields";
-import { PDFTemplate, listTemplates, loadTemplate, saveTemplate, DEFAULT_TEMPLATE } from "@/utils/templateManager";
-import { v4 as uuidv4 } from "uuid";
-import { generateSamplePdf } from "@/services/offers/offerPdf";
+import { ensureBucket } from "@/services/fileStorage";
+import { loadTemplate, saveTemplate, PDFTemplate } from "@/utils/templateManager";
+import PDFCompanyInfo from "./PDFCompanyInfo";
+import NewPDFTemplateEditor from "./NewPDFTemplateEditor";
+import SimplePDFPreview from "./SimplePDFPreview";
 
 const NewPDFTemplateManager = () => {
-  const [templates, setTemplates] = useState<PDFTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<PDFTemplate | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("general");
-  const [newTemplateName, setNewTemplateName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-
-  // Charger la liste des modèles
-  const loadTemplates = async () => {
-    try {
-      setIsLoading(true);
-      const templatesList = await listTemplates();
-      setTemplates(templatesList);
-      
-      // Sélectionner le premier modèle par défaut
-      if (templatesList.length > 0 && !selectedTemplate) {
-        const template = await loadTemplate(templatesList[0].id);
-        setSelectedTemplate(template);
-      }
-    } catch (error) {
-      console.error("Erreur lors du chargement des modèles:", error);
-      toast.error("Erreur lors du chargement des modèles");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [template, setTemplate] = useState<PDFTemplate | null>(null);
+  const [activeTab, setActiveTab] = useState("company");
+  const [error, setError] = useState<string | null>(null);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // Initialisation du gestionnaire au montage du composant
   useEffect(() => {
-    loadTemplates();
+    console.log("Initialisation du gestionnaire de templates");
+    initializeManager();
+    
+    // Nettoyer le timeout lors du démontage
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
   }, []);
-
-  // Sélectionner un modèle
-  const handleSelectTemplate = async (templateId: string) => {
-    if (templateId === selectedTemplate?.id) return;
-    
+  
+  const initializeManager = async () => {
     try {
-      setIsLoading(true);
-      const template = await loadTemplate(templateId);
-      setSelectedTemplate(template);
-      setActiveTab("general");
-    } catch (error) {
-      console.error("Erreur lors du chargement du modèle:", error);
-      toast.error("Erreur lors du chargement du modèle");
+      setLoading(true);
+      setError(null);
+      
+      try {
+        await ensureBucket('pdf-templates');
+      } catch (e) {
+        console.warn("Problème avec le bucket de stockage:", e);
+        toast.warning("Stockage en mode local uniquement");
+      }
+      
+      const templateData = await loadTemplate();
+      
+      if (templateData) {
+        console.log("Template chargé avec succès");
+        console.log("Nombre d'images:", templateData.templateImages ? templateData.templateImages.length : 0);
+        console.log("Nombre de champs:", templateData.fields ? templateData.fields.length : 0);
+        
+        // S'assurer que les tableaux sont correctement initialisés
+        const sanitizedTemplate = {
+          ...templateData,
+          templateImages: Array.isArray(templateData.templateImages) ? templateData.templateImages : [],
+          fields: Array.isArray(templateData.fields) ? templateData.fields : []
+        };
+        
+        setTemplate(sanitizedTemplate);
+        toast.success("Modèle chargé avec succès");
+      } else {
+        console.error("Impossible de charger le template");
+        toast.error("Erreur lors du chargement du modèle");
+      }
+    } catch (err) {
+      console.error("Erreur d'initialisation:", err);
+      setError("Erreur lors de l'initialisation");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  // Créer un nouveau modèle
-  const handleCreateTemplate = async () => {
-    if (!newTemplateName.trim()) {
-      toast.error("Veuillez entrer un nom pour le modèle");
-      return;
-    }
-    
+  
+  // Fonction optimisée pour sauvegarder avec un debounce
+  const handleSaveTemplate = useCallback(async (updatedTemplate: PDFTemplate) => {
     try {
-      setIsCreating(true);
+      setSaving(true);
+      setError(null);
       
-      const newTemplate: PDFTemplate = {
-        ...DEFAULT_TEMPLATE,
-        id: uuidv4(),
-        name: newTemplateName,
-        templateImages: [],
-        fields: []
+      // Annuler tout timeout de sauvegarde en cours
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+        setSaveTimeout(null);
+      }
+      
+      console.log("Préparation sauvegarde du template:", updatedTemplate.name);
+      console.log("Nombre d'images:", updatedTemplate.templateImages ? updatedTemplate.templateImages.length : 0);
+      console.log("Nombre de champs:", updatedTemplate.fields ? updatedTemplate.fields.length : 0);
+      
+      // S'assurer que les champs ont des coordonnées valides
+      if (Array.isArray(updatedTemplate.fields)) {
+        updatedTemplate.fields = updatedTemplate.fields.map(field => {
+          if (!field.position || typeof field.position.x !== 'number' || typeof field.position.y !== 'number') {
+            return {
+              ...field,
+              position: { x: 10, y: 10 } // Valeurs par défaut
+            };
+          }
+          
+          // Arrondir les valeurs à 1 décimale
+          return {
+            ...field,
+            position: {
+              x: Math.round(field.position.x * 10) / 10,
+              y: Math.round(field.position.y * 10) / 10
+            }
+          };
+        });
+      }
+      
+      // Sauvegarder les modifications
+      const success = await saveTemplate(updatedTemplate);
+      
+      if (success) {
+        setTemplate(updatedTemplate);
+        // Toast déjà affiché dans SimplePDFPreview
+      } else {
+        setError("Erreur lors de la sauvegarde");
+        toast.error("Erreur lors de la sauvegarde du modèle");
+      }
+    } catch (err: any) {
+      console.error("Exception lors de la sauvegarde:", err);
+      const errorMessage = err.message || "Erreur lors de la sauvegarde";
+      setError(errorMessage);
+      toast.error(`Erreur: ${errorMessage}`);
+    } finally {
+      setSaving(false);
+    }
+  }, [saveTimeout]);
+  
+  const handleCompanyInfoUpdate = useCallback(async (companyInfo: Partial<PDFTemplate>) => {
+    if (template) {
+      const updatedTemplate = {
+        ...template,
+        ...companyInfo
       };
       
-      await saveTemplate(newTemplate);
-      await loadTemplates();
-      setSelectedTemplate(newTemplate);
-      setNewTemplateName("");
-      toast.success("Nouveau modèle créé avec succès");
-    } catch (error) {
-      console.error("Erreur lors de la création du modèle:", error);
-      toast.error("Erreur lors de la création du modèle");
-    } finally {
-      setIsCreating(false);
+      await handleSaveTemplate(updatedTemplate);
     }
+  }, [template, handleSaveTemplate]);
+  
+  const handleTemplateUpdate = useCallback(async (updatedTemplate: PDFTemplate) => {
+    await handleSaveTemplate(updatedTemplate);
+  }, [handleSaveTemplate]);
+  
+  const handleRetry = () => {
+    initializeManager();
   };
-
-  // Sauvegarder les modifications du modèle
-  const handleSaveTemplate = async (updatedTemplate: PDFTemplate) => {
-    if (!updatedTemplate) return;
-    
-    try {
-      setIsSaving(true);
-      
-      await saveTemplate(updatedTemplate);
-      setSelectedTemplate(updatedTemplate);
-      await loadTemplates();
-      
-      toast.success("Modèle sauvegardé avec succès");
-    } catch (error) {
-      console.error("Erreur lors de la sauvegarde du modèle:", error);
-      toast.error("Erreur lors de la sauvegarde du modèle");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Mettre à jour un champ du modèle
-  const handleTemplateChange = (field: keyof PDFTemplate, value: any) => {
-    if (!selectedTemplate) return;
-    
-    setSelectedTemplate({
-      ...selectedTemplate,
-      [field]: value
-    });
-  };
-
-  // Générer un aperçu PDF
-  const handlePreview = async () => {
-    if (!selectedTemplate) return;
-    
-    try {
-      setIsPreviewLoading(true);
-      
-      // Données d'exemple pour l'aperçu
-      const sampleData = {
-        client_name: "Client Exemple",
-        client_email: "exemple@email.com",
-        client_company: "Société Exemple",
-        client_phone: "01 23 45 67 89",
-        client_address: "15 rue Exemple",
-        client_postal_code: "75000",
-        client_city: "Paris",
-        client_vat_number: "FR12345678901",
-        offer_id: "OFR-1234",
-        amount: 10000,
-        monthly_payment: 300,
-        created_at: new Date().toISOString(),
-        equipment_list: "- MacBook Pro 16\" M2\n- Écran Dell 27\" UltraHD (x2)"
-      };
-      
-      // Générer le PDF
-      await generateSamplePdf(sampleData, selectedTemplate);
-      toast.success("Aperçu PDF généré avec succès");
-    } catch (error) {
-      console.error("Erreur lors de la génération de l'aperçu PDF:", error);
-      toast.error("Erreur lors de la génération de l'aperçu PDF");
-    } finally {
-      setIsPreviewLoading(false);
-    }
-  };
-
+  
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Gestion des modèles PDF</CardTitle>
-          <CardDescription>
-            Créez et modifiez les modèles PDF pour les offres et contrats
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Panneau de gauche: Liste des modèles */}
-            <div className="space-y-4">
-              <div className="flex flex-col space-y-2">
-                <Label htmlFor="new-template-name">Créer un nouveau modèle</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="new-template-name"
-                    placeholder="Nom du modèle"
-                    value={newTemplateName}
-                    onChange={(e) => setNewTemplateName(e.target.value)}
-                    disabled={isCreating}
-                  />
-                  <Button onClick={handleCreateTemplate} disabled={isCreating}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Créer
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="border rounded-md">
-                <div className="px-3 py-2 border-b bg-muted">
-                  <h3 className="font-medium">Modèles disponibles</h3>
-                </div>
-                <div className="p-2">
-                  {isLoading ? (
-                    <p className="p-2 text-sm text-muted-foreground">Chargement...</p>
-                  ) : templates.length > 0 ? (
-                    <div className="space-y-1">
-                      {templates.map((template) => (
-                        <Button
-                          key={template.id}
-                          variant={selectedTemplate?.id === template.id ? "secondary" : "ghost"}
-                          className="w-full justify-start"
-                          onClick={() => handleSelectTemplate(template.id)}
-                        >
-                          <Edit className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {template.name}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="p-2 text-sm text-muted-foreground">Aucun modèle disponible</p>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {/* Panneau de droite: Éditeur de modèle */}
-            <div className="md:col-span-2">
-              {selectedTemplate ? (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold">{selectedTemplate.name}</h2>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={handlePreview}
-                        disabled={isPreviewLoading}
-                      >
-                        {isPreviewLoading ? "Génération..." : "Aperçu PDF"}
-                      </Button>
-                      <Button 
-                        onClick={() => handleSaveTemplate(selectedTemplate)}
-                        disabled={isSaving}
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        {isSaving ? "Sauvegarde..." : "Sauvegarder"}
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid grid-cols-2 w-full">
-                      <TabsTrigger value="general">Informations générales</TabsTrigger>
-                      <TabsTrigger value="template">Pages et champs</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="general" className="space-y-4 mt-4">
-                      {/* Informations de l'entreprise */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="companyName">Nom de l'entreprise</Label>
-                          <Input
-                            id="companyName"
-                            value={selectedTemplate.companyName}
-                            onChange={(e) => handleTemplateChange("companyName", e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="companySiret">SIRET/TVA</Label>
-                          <Input
-                            id="companySiret"
-                            value={selectedTemplate.companySiret}
-                            onChange={(e) => handleTemplateChange("companySiret", e.target.value)}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label htmlFor="companyAddress">Adresse</Label>
-                          <Input
-                            id="companyAddress"
-                            value={selectedTemplate.companyAddress}
-                            onChange={(e) => handleTemplateChange("companyAddress", e.target.value)}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label htmlFor="companyContact">Coordonnées</Label>
-                          <Input
-                            id="companyContact"
-                            value={selectedTemplate.companyContact}
-                            onChange={(e) => handleTemplateChange("companyContact", e.target.value)}
-                            placeholder="Tél, Email, etc."
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="headerText">Texte d'en-tête</Label>
-                          <Input
-                            id="headerText"
-                            value={selectedTemplate.headerText}
-                            onChange={(e) => handleTemplateChange("headerText", e.target.value)}
-                            placeholder="Ex: OFFRE N° {offer_id}"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="footerText">Texte de pied de page</Label>
-                          <Input
-                            id="footerText"
-                            value={selectedTemplate.footerText}
-                            onChange={(e) => handleTemplateChange("footerText", e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Couleurs */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                        <div>
-                          <Label htmlFor="primaryColor">Couleur principale</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="primaryColor"
-                              value={selectedTemplate.primaryColor}
-                              onChange={(e) => handleTemplateChange("primaryColor", e.target.value)}
-                              placeholder="Ex: #2C3E50"
-                            />
-                            <div 
-                              className="w-10 h-10 rounded border"
-                              style={{ backgroundColor: selectedTemplate.primaryColor }}
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="secondaryColor">Couleur secondaire</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="secondaryColor"
-                              value={selectedTemplate.secondaryColor}
-                              onChange={(e) => handleTemplateChange("secondaryColor", e.target.value)}
-                              placeholder="Ex: #3498DB"
-                            />
-                            <div 
-                              className="w-10 h-10 rounded border"
-                              style={{ backgroundColor: selectedTemplate.secondaryColor }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Logo */}
-                      <div className="pt-4">
-                        <Label htmlFor="logoURL">URL du logo</Label>
-                        <Input
-                          id="logoURL"
-                          value={selectedTemplate.logoURL || ""}
-                          onChange={(e) => handleTemplateChange("logoURL", e.target.value)}
-                          placeholder="https://exemple.com/logo.png"
-                        />
-                        {selectedTemplate.logoURL && (
-                          <div className="mt-2 p-2 border rounded">
-                            <img 
-                              src={selectedTemplate.logoURL} 
-                              alt="Logo" 
-                              className="max-h-20 object-contain"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                toast.error("Impossible de charger l'image du logo");
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="template" className="mt-4">
-                      <PDFTemplateWithFields 
-                        template={selectedTemplate} 
-                        onSave={(updatedTemplate) => setSelectedTemplate(updatedTemplate)}
-                      />
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center p-10 border border-dashed rounded-md">
-                  <h3 className="text-lg font-medium mb-2">Aucun modèle sélectionné</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Sélectionnez un modèle existant ou créez-en un nouveau pour commencer.
-                  </p>
-                </div>
-              )}
-            </div>
+    <Card className="w-full mt-6">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Gestionnaire de modèles PDF</CardTitle>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRetry}
+            disabled={loading}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Rafraîchir
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => template && handleSaveTemplate(template)}
+            disabled={saving || loading || !template}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sauvegarde...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Sauvegarder
+              </>
+            )}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription className="flex flex-col gap-2">
+              <p>{error}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="self-start" 
+                onClick={handleRetry}
+              >
+                Réessayer
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {loading ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">
+              Chargement du modèle...
+            </p>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="company">Informations de l'entreprise</TabsTrigger>
+              <TabsTrigger value="design">Conception du modèle</TabsTrigger>
+              <TabsTrigger value="preview">Aperçu</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="company" className="mt-6">
+              {template && (
+                <PDFCompanyInfo 
+                  template={template} 
+                  onSave={handleCompanyInfoUpdate} 
+                  loading={saving}
+                />
+              )}
+            </TabsContent>
+            
+            <TabsContent value="design" className="mt-6">
+              {template && (
+                <NewPDFTemplateEditor
+                  template={template}
+                  onSave={handleTemplateUpdate}
+                />
+              )}
+            </TabsContent>
+            
+            <TabsContent value="preview" className="mt-6">
+              {template && (
+                <SimplePDFPreview 
+                  template={template}
+                  onSave={handleTemplateUpdate}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
