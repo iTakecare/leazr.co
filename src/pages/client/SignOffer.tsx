@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -46,13 +45,11 @@ const SignOffer = () => {
       try {
         setLoading(true);
         
-        // Vérifier si l'offre est déjà signée
         const alreadySigned = await isOfferSigned(id);
         if (alreadySigned) {
           setSigned(true);
         }
         
-        // Récupérer les détails de l'offre
         const offerData = await getOfferForClient(id);
         if (!offerData) {
           setError("Cette offre n'existe pas ou n'est plus disponible.");
@@ -61,17 +58,14 @@ const SignOffer = () => {
         
         setOffer(offerData);
         
-        // Pré-remplir le nom du signataire avec le nom du client
         if (offerData.client_name) {
           setSignerName(offerData.client_name);
         }
         
-        // Si l'offre a déjà une signature, l'afficher
         if (offerData.signature_data) {
           setSignature(offerData.signature_data);
           setSigned(true);
         }
-        
       } catch (err) {
         console.error("Erreur lors du chargement de l'offre:", err);
         setError("Une erreur s'est produite lors du chargement de l'offre.");
@@ -99,7 +93,6 @@ const SignOffer = () => {
         setSigned(true);
         toast.success("Offre signée avec succès !");
         
-        // Mettre à jour l'offre locale
         setOffer({
           ...offer,
           signature_data: signatureData,
@@ -152,7 +145,6 @@ const SignOffer = () => {
     );
   }
   
-  // Fonction pour formatter une date
   const formatDate = (dateString: string) => {
     if (!dateString) return "Date inconnue";
     try {
@@ -171,7 +163,10 @@ const SignOffer = () => {
             <p className="text-gray-500">Référence: {id?.substring(0, 8).toUpperCase()}</p>
           </div>
           <div>
-            <Badge variant={signed ? "success" : "outline"} className={signed ? "bg-green-50 text-green-700 border-green-200" : ""}>
+            <Badge 
+              variant={signed ? "secondary" : "outline"} 
+              className={signed ? "bg-green-50 text-green-700 border-green-200" : ""}
+            >
               {signed ? "Signée" : "En attente de signature"}
             </Badge>
           </div>
