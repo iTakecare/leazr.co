@@ -1,13 +1,10 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PDFTemplate } from "@/utils/templateManager";
+import { PDFTemplate, TemplateField } from "@/utils/templateManager";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import PDFFieldsEditor from "./PDFFieldsEditor";
 
@@ -41,16 +38,59 @@ export interface PDFField {
   };
 }
 
+// Convert PDFField to TemplateField
+const convertPDFFieldToTemplateField = (field: PDFField): TemplateField => {
+  return {
+    id: field.id,
+    label: field.label,
+    type: field.type,
+    category: "form",
+    isVisible: true,
+    value: field.defaultValue || "",
+    position: {
+      x: field.x,
+      y: field.y
+    },
+    page: field.page,
+    style: {
+      fontSize: field.fontSize || 14,
+      fontWeight: field.fontWeight || "normal",
+      fontStyle: "normal",
+      textDecoration: "none"
+    }
+  };
+};
+
+// Convert TemplateField to PDFField
+const convertTemplateFieldToPDFField = (field: TemplateField): PDFField => {
+  return {
+    id: field.id,
+    name: field.id.toLowerCase().replace(/\s+/g, '_'),
+    label: field.label,
+    type: field.type as "text" | "signature" | "date" | "checkbox",
+    x: field.position?.x || 0,
+    y: field.position?.y || 0,
+    width: 20, // Default width
+    height: 10, // Default height
+    page: field.page,
+    fontSize: field.style?.fontSize || 14,
+    fontWeight: field.style?.fontWeight || "normal",
+    defaultValue: field.value || "",
+    required: false
+  };
+};
+
 const PDFTemplateWithFields = ({ 
   template, 
   onSave, 
   selectedPage = 0, 
   onPageSelect = () => {} 
 }: PDFTemplateWithFieldsProps) => {
-  const [activeTab, setActiveTab] = useState("images");
+  const [activeTab, setActiveTab] = useState("fields");
   const [localTemplate, setLocalTemplate] = useState<PDFTemplate>({
     ...template,
-    templateImages: template.templateImages || []
+    templateImages: template.templateImages || [],
+    fields: template.fields || []
   });
   const [currentField, setCurrentField] = useState<PDFField | null>(null);
   const [showFieldEditor, setShowFieldEditor] = useState(false);
@@ -65,7 +105,8 @@ const PDFTemplateWithFields = ({
   useEffect(() => {
     setLocalTemplate({
       ...template,
-      templateImages: template.templateImages || []
+      templateImages: template.templateImages || [],
+      fields: template.fields || []
     });
   }, [template]);
 
@@ -124,12 +165,11 @@ const PDFTemplateWithFields = ({
       required: false
     };
 
-    // Store all fields at the template level
-    if (!localTemplate.fields) {
-      localTemplate.fields = [];
-    }
+    // Convert to TemplateField for storage
+    const templateField = convertPDFFieldToTemplateField(newField);
     
-    const updatedFields = [...localTemplate.fields, newField];
+    // Store all fields at the template level
+    const updatedFields = [...(localTemplate.fields || []), templateField];
     
     setLocalTemplate({
       ...localTemplate,
@@ -164,19 +204,19 @@ const PDFTemplateWithFields = ({
   };
 
   // Handle existing field selection
-  const handleFieldClick = (e: React.MouseEvent, field: PDFField) => {
+  const handleFieldClick = (e: React.MouseEvent, pdfField: PDFField) => {
     e.stopPropagation();
-    setCurrentField(field);
+    setCurrentField(pdfField);
     setShowFieldEditor(true);
   };
 
   // Start field drag
-  const handleFieldMouseDown = (e: React.MouseEvent, field: PDFField) => {
+  const handleFieldMouseDown = (e: React.MouseEvent, pdfField: PDFField) => {
     e.stopPropagation();
     e.preventDefault();
     
     setIsDragging(true);
-    setCurrentField(field);
+    setCurrentField(pdfField);
     setStartPosition({
       x: e.clientX,
       y: e.clientY
@@ -199,28 +239,14 @@ const PDFTemplateWithFields = ({
     const newX = Math.max(0, Math.min(100 - currentField.width, currentField.x + deltaXPercent));
     const newY = Math.max(0, Math.min(100 - currentField.height, currentField.y + deltaYPercent));
     
-    // Update the template
-    if (localTemplate.fields) {
-      const updatedFields = [...localTemplate.fields];
-      const fieldIndex = updatedFields.findIndex(f => f.id === currentField.id);
-      
-      if (fieldIndex !== -1) {
-        const updatedField = {
-          ...updatedFields[fieldIndex],
-          x: newX,
-          y: newY
-        };
-        
-        updatedFields[fieldIndex] = updatedField;
-        
-        setLocalTemplate({
-          ...localTemplate,
-          fields: updatedFields
-        });
-        
-        setCurrentField(updatedField);
-      }
-    }
+    // Update the currentField
+    const updatedPDFField = {
+      ...currentField,
+      x: newX,
+      y: newY
+    };
+    
+    setCurrentField(updatedPDFField);
     
     // Reset start position
     setStartPosition({
@@ -231,27 +257,30 @@ const PDFTemplateWithFields = ({
 
   // End field drag
   const handleMouseUp = () => {
-    if (isDragging) {
+    if (isDragging && currentField) {
+      // Update the field in the template
+      updateFieldProperties(currentField);
       setIsDragging(false);
-      saveChanges();
     }
   };
 
   // Update field properties
-  const updateFieldProperties = (updatedField: PDFField) => {
+  const updateFieldProperties = (updatedPDFField: PDFField) => {
     if (localTemplate.fields) {
+      // Convert to TemplateField
+      const updatedTemplateField = convertPDFFieldToTemplateField(updatedPDFField);
+      
       const updatedFields = [...localTemplate.fields];
-      const fieldIndex = updatedFields.findIndex(f => f.id === updatedField.id);
+      const fieldIndex = updatedFields.findIndex(f => f.id === updatedPDFField.id);
       
       if (fieldIndex !== -1) {
-        updatedFields[fieldIndex] = updatedField;
+        updatedFields[fieldIndex] = updatedTemplateField;
         
         setLocalTemplate({
           ...localTemplate,
           fields: updatedFields
         });
         
-        setCurrentField(updatedField);
         saveChanges();
       }
     }
@@ -276,7 +305,11 @@ const PDFTemplateWithFields = ({
   // Get fields for current page
   const getCurrentPageFields = (): PDFField[] => {
     if (!localTemplate.fields) return [];
-    return localTemplate.fields.filter(field => field.page === selectedPage);
+    
+    // Convert TemplateFields to PDFFields for display
+    return localTemplate.fields
+      .filter(field => field.page === selectedPage)
+      .map(convertTemplateFieldToPDFField);
   };
 
   return (
@@ -424,7 +457,12 @@ const PDFTemplateWithFields = ({
                                   deleteField(field.id);
                                 }}
                               >
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <svg className="h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="3 6 5 6 21 6" />
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                  <line x1="10" y1="11" x2="10" y2="17" />
+                                  <line x1="14" y1="11" x2="14" y2="17" />
+                                </svg>
                               </Button>
                             </div>
                             <div className="text-xs text-gray-500">
@@ -443,7 +481,7 @@ const PDFTemplateWithFields = ({
                   <PDFFieldsEditor
                     field={currentField}
                     onUpdate={updateFieldProperties}
-                    onDelete={() => deleteField(currentField.id)}
+                    onDelete={() => currentField && deleteField(currentField.id)}
                   />
                 ) : (
                   <div className="text-center py-6 text-gray-500">

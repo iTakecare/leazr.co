@@ -7,7 +7,7 @@ import { ensureBucket } from "@/services/fileStorage";
 export interface TemplateImage {
   id: string;
   name: string;
-  data: string; // Base64 data
+  data: string; // Base64 data or URL
   page: number;
 }
 
