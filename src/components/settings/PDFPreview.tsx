@@ -405,80 +405,82 @@ const PDFPreview = ({ template }) => {
                   )}
                 </div>
               ) : (
-                <div className="min-h-[842px]">
-                  <div className="border-b p-6" style={{ backgroundColor: template?.primaryColor || '#2C3E50', color: "white" }}>
-                    <div className="flex justify-between items-center">
-                      {template?.logoURL && (
-                        <img 
-                          src={template.logoURL} 
-                          alt="Logo" 
-                          className="h-10 object-contain"
-                        />
-                      )}
-                      <h1 className="text-xl font-bold">{template?.headerText?.replace('{offer_id}', 'EXEMPLE') || 'EXEMPLE'}</h1>
+                <div className="min-h-[842px] flex flex-col justify-between">
+                  <div>
+                    <div className="border-b p-6" style={{ backgroundColor: template?.primaryColor || '#2C3E50', color: "white" }}>
+                      <div className="flex justify-between items-center">
+                        {template?.logoURL && (
+                          <img 
+                            src={template.logoURL} 
+                            alt="Logo" 
+                            className="h-10 object-contain"
+                          />
+                        )}
+                        <h1 className="text-xl font-bold">{template?.headerText?.replace('{offer_id}', 'EXEMPLE') || 'EXEMPLE'}</h1>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="p-6 space-y-6">
-                    <div className="flex justify-between">
+                    
+                    <div className="p-6 space-y-6">
+                      <div className="flex justify-between">
+                        <div>
+                          <h2 className="text-lg font-semibold mb-2">CLIENT</h2>
+                          <p>Entreprise Exemple SA</p>
+                          <p>Jean Dupont</p>
+                          <p>contact@exemple.fr</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Date: {new Date().toLocaleDateString()}</p>
+                          <p className="text-sm text-gray-600">Référence: OFF-EXEMPLE</p>
+                        </div>
+                      </div>
+                      
                       <div>
-                        <h2 className="text-lg font-semibold mb-2">CLIENT</h2>
-                        <p>Entreprise Exemple SA</p>
-                        <p>Jean Dupont</p>
-                        <p>contact@exemple.fr</p>
+                        <h2 className="text-lg font-semibold mb-2">ÉQUIPEMENTS</h2>
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="border p-2 text-left">Désignation</th>
+                              <th className="border p-2 text-center">Qté</th>
+                              <th className="border p-2 text-right">Mensualité</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="border p-2">MacBook Pro 16" M2 Pro</td>
+                              <td className="border p-2 text-center">1</td>
+                              <td className="border p-2 text-right">75,00 €</td>
+                            </tr>
+                            <tr>
+                              <td className="border p-2">Écran Dell 27" UltraSharp</td>
+                              <td className="border p-2 text-center">2</td>
+                              <td className="border p-2 text-right">50,00 €</td>
+                            </tr>
+                            <tr>
+                              <td className="border p-2">Dock USB-C Thunderbolt</td>
+                              <td className="border p-2 text-center">1</td>
+                              <td className="border p-2 text-right">7,00 €</td>
+                            </tr>
+                            <tr className="font-bold">
+                              <td className="border p-2 text-right" colSpan={2}>Total mensualité:</td>
+                              <td className="border p-2 text-right">132,00 €</td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">Date: {new Date().toLocaleDateString()}</p>
-                        <p className="text-sm text-gray-600">Référence: OFF-EXEMPLE</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h2 className="text-lg font-semibold mb-2">ÉQUIPEMENTS</h2>
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="bg-gray-100">
-                            <th className="border p-2 text-left">Désignation</th>
-                            <th className="border p-2 text-center">Qté</th>
-                            <th className="border p-2 text-right">Mensualité</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="border p-2">MacBook Pro 16" M2 Pro</td>
-                            <td className="border p-2 text-center">1</td>
-                            <td className="border p-2 text-right">75,00 €</td>
-                          </tr>
-                          <tr>
-                            <td className="border p-2">Écran Dell 27" UltraSharp</td>
-                            <td className="border p-2 text-center">2</td>
-                            <td className="border p-2 text-right">50,00 €</td>
-                          </tr>
-                          <tr>
-                            <td className="border p-2">Dock USB-C Thunderbolt</td>
-                            <td className="border p-2 text-center">1</td>
-                            <td className="border p-2 text-right">7,00 €</td>
-                          </tr>
-                          <tr className="font-bold">
-                            <td className="border p-2 text-right" colSpan={2}>Total mensualité:</td>
-                            <td className="border p-2 text-right">132,00 €</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    
-                    <div className="flex justify-end pt-4">
-                      <div className="w-full space-y-2">
-                        <div className="flex justify-between font-bold text-blue-600 pt-1">
-                          <span>Total mensualité:</span>
-                          <span>132,00 € HTVA / mois</span>
+                      
+                      <div className="flex justify-end pt-4">
+                        <div className="w-full space-y-2">
+                          <div className="flex justify-between font-bold text-blue-600 pt-1">
+                            <span>Total mensualité:</span>
+                            <span>132,00 € HTVA / mois</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="p-6 text-xs text-gray-600 bg-gray-50 border-t">
-                    <p>{template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
+                  <div className="mt-auto p-6 text-xs text-gray-600 bg-gray-50 border-t">
+                    <p className="text-center font-medium mb-2">{template?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
                     <hr className="my-2 border-gray-300" />
                     <div className="flex justify-center items-center">
                       <p className="text-center">

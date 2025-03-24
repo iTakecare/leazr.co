@@ -8,21 +8,17 @@ import { formatCurrency } from "@/lib/utils";
 
 // Composant pour afficher un champ sur le PDF
 const PDFField = ({ field, zoomLevel, resolveValue, onDragStart, onDragEnd, onDrag, isDraggable }) => {
-  // Convertir les millimètres en pixels (standard: 1mm = 3.7795275591px à 96 DPI)
   const mmToPx = (mm) => mm * 3.7795275591 * zoomLevel;
   
-  // Position en pixels
   const xPx = mmToPx(field.position?.x || 0);
   const yPx = mmToPx(field.position?.y || 0);
   
-  // Taille de police avec zoom
   const fontSize = field.style?.fontSize 
     ? field.style.fontSize * zoomLevel
     : 9 * zoomLevel;
   
-  // Style du champ
   const style = {
-    position: "absolute" as const, // Using type assertion to fix the error
+    position: "absolute" as const,
     left: `${xPx}px`,
     top: `${yPx}px`,
     zIndex: 5,
@@ -38,7 +34,6 @@ const PDFField = ({ field, zoomLevel, resolveValue, onDragStart, onDragEnd, onDr
     cursor: isDraggable ? 'move' : 'default'
   };
   
-  // Handlers pour le drag and drop
   const handleDragStart = (e) => {
     if (!isDraggable) return;
     const rect = e.target.getBoundingClientRect();
@@ -48,7 +43,7 @@ const PDFField = ({ field, zoomLevel, resolveValue, onDragStart, onDragEnd, onDr
   };
 
   const handleDrag = (e) => {
-    if (!isDraggable || !e.clientX) return; // Ignorer les événements sans coordonnées
+    if (!isDraggable || !e.clientX) return;
     onDrag(e.clientX, e.clientY);
   };
 
@@ -57,7 +52,6 @@ const PDFField = ({ field, zoomLevel, resolveValue, onDragStart, onDragEnd, onDr
     onDragEnd();
   };
   
-  // Si c'est un tableau d'équipement, afficher le tableau
   if (field.id === 'equipment_table') {
     return (
       <div 
@@ -73,7 +67,6 @@ const PDFField = ({ field, zoomLevel, resolveValue, onDragStart, onDragEnd, onDr
     );
   }
   
-  // Pour tous les autres champs
   return (
     <div 
       style={style} 
@@ -88,7 +81,6 @@ const PDFField = ({ field, zoomLevel, resolveValue, onDragStart, onDragEnd, onDr
   );
 };
 
-// Composant pour afficher une page du PDF
 const PDFPage = ({ 
   currentPage, 
   template, 
@@ -105,7 +97,6 @@ const PDFPage = ({
   onDrag,
   isDraggable
 }) => {
-  // Si un arrière-plan est disponible
   if (getCurrentPageBackground()) {
     return (
       <div className="relative" style={{ height: "100%" }}>
@@ -118,7 +109,6 @@ const PDFPage = ({
           style={{ display: "block" }}
         />
         
-        {/* Champs positionnés - n'apparaissent que lorsque l'image est chargée */}
         {pageLoaded && getCurrentPageFields().map((field) => (
           <PDFField 
             key={field.id} 
@@ -139,7 +129,6 @@ const PDFPage = ({
     );
   }
   
-  // Si aucun arrière-plan n'est disponible
   return (
     <div className="w-full h-full bg-white flex items-center justify-center border">
       <p className="text-gray-400">Pas d'image pour la page {currentPage + 1}</p>
@@ -147,7 +136,6 @@ const PDFPage = ({
   );
 };
 
-// Composant principal d'aperçu PDF
 const NewPDFPreview = ({ template, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -162,17 +150,14 @@ const NewPDFPreview = ({ template, onSave }) => {
   const [isDraggable, setIsDraggable] = useState(false);
   const [modifiedTemplate, setModifiedTemplate] = useState(template);
 
-  // Mettre à jour le template local quand le template parent change
   useEffect(() => {
     setModifiedTemplate(template);
   }, [template]);
 
-  // Reset pageLoaded when currentPage changes
   useEffect(() => {
     setPageLoaded(false);
   }, [currentPage]);
   
-  // Exemple d'offre pour l'aperçu
   const SAMPLE_OFFER = {
     id: "abcdef1234567890",
     client_name: "Entreprise Exemple",
@@ -223,12 +208,10 @@ const NewPDFPreview = ({ template, onSave }) => {
     }
   };
   
-  // Générer un PDF
   const handleGeneratePreview = async () => {
     try {
       setLoading(true);
       
-      // Générer le PDF en utilisant le template et l'offre d'exemple
       const offerWithTemplate = {
         ...SAMPLE_OFFER,
         __template: modifiedTemplate
@@ -245,36 +228,28 @@ const NewPDFPreview = ({ template, onSave }) => {
     }
   };
 
-  // Détermine le nombre total de pages
   const totalPages = modifiedTemplate?.templateImages?.length || 1;
   
-  // Aller à la page suivante
   const nextPage = () => {
     if (currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
     }
   };
   
-  // Aller à la page précédente
   const prevPage = () => {
     if (currentPage > 0) {
       setCurrentPage(currentPage - 1);
     }
   };
 
-  // Obtenir l'image de fond de la page actuelle
   const getCurrentPageBackground = () => {
     if (modifiedTemplate?.templateImages && modifiedTemplate.templateImages.length > 0) {
-      // Recherche de l'image correspondant à la page actuelle
       const pageImage = modifiedTemplate.templateImages.find(img => img.page === currentPage);
       
       if (pageImage) {
-        // Si l'image a une URL, l'utiliser
         if (pageImage.url) {
-          // Ajouter un timestamp pour éviter les problèmes de cache
           return `${pageImage.url}?t=${new Date().getTime()}`;
         }
-        // Sinon, utiliser les données base64 si disponibles
         else if (pageImage.data) {
           return pageImage.data;
         }
@@ -283,7 +258,6 @@ const NewPDFPreview = ({ template, onSave }) => {
     return null;
   };
 
-  // Fonction pour résoudre les valeurs des champs
   const resolveFieldValue = (pattern) => {
     if (!pattern || typeof pattern !== 'string') return '';
     
@@ -298,12 +272,10 @@ const NewPDFPreview = ({ template, onSave }) => {
         value = value[part];
       }
       
-      // Format appropriately
       if (key === 'page_number') {
         return String(currentPage + 1);
       }
       
-      // For date fields
       if (key === 'created_at' && typeof value === 'string') {
         try {
           return new Date(value).toLocaleDateString();
@@ -313,7 +285,6 @@ const NewPDFPreview = ({ template, onSave }) => {
         }
       }
       
-      // For currency fields
       if ((key.includes('amount') || key.includes('payment') || key.includes('price') || key.includes('commission')) && typeof value === 'number') {
         try {
           return formatCurrency(value);
@@ -323,38 +294,32 @@ const NewPDFPreview = ({ template, onSave }) => {
         }
       }
       
-      // Make sure we always return a string
       if (value === undefined || value === null) return '';
       return typeof value === 'object' ? JSON.stringify(value) : String(value);
     });
   };
-  
-  // Parse equipment data from JSON string to array of objects
+
   const parseEquipmentData = (jsonString) => {
     try {
       if (!jsonString) return [];
       
-      // If it's already an array, return it
       if (Array.isArray(jsonString)) return jsonString;
       
-      // Try to parse the JSON string
       return JSON.parse(jsonString);
     } catch (error) {
       console.error("Error parsing equipment data:", error);
       return [];
     }
   };
-  
-  // Calculate the total price for an equipment item
+
   const calculateItemTotal = (item) => {
     const price = parseFloat(item.purchasePrice || 0);
-    const quantity = parseInt(item.quantity || 1);
+    const quantity = parseInt(item.quantity || 1, 10);
     const margin = parseFloat(item.margin || 0) / 100;
     
     return price * quantity * (1 + margin);
   };
-  
-  // Render the equipment table
+
   const renderEquipmentTable = () => {
     const equipment = parseEquipmentData(SAMPLE_OFFER.equipment_description);
     
@@ -399,25 +364,21 @@ const NewPDFPreview = ({ template, onSave }) => {
       </table>
     );
   };
-  
-  // Obtenir les champs pour la page actuelle
+
   const getCurrentPageFields = () => {
     return modifiedTemplate?.fields?.filter(f => 
       f.isVisible && (f.page === currentPage || (currentPage === 0 && f.page === undefined))
     ) || [];
   };
 
-  // Vérifier si des images de template sont disponibles
   const hasTemplateImages = modifiedTemplate?.templateImages && 
                            Array.isArray(modifiedTemplate.templateImages) && 
                            modifiedTemplate.templateImages.length > 0;
-  
-  // Gérer les erreurs de chargement d'image
+
   const handleImageError = (e) => {
     console.error("Erreur de chargement de l'image:", e.target.src);
-    e.target.src = "/placeholder.svg"; // Image de fallback
+    e.target.src = "/placeholder.svg";
     
-    // Tenter de recharger l'image après un délai
     setTimeout(() => {
       if (e.target.src === "/placeholder.svg") {
         const currentSrc = e.target.src;
@@ -431,24 +392,20 @@ const NewPDFPreview = ({ template, onSave }) => {
       }
     }, 2000);
   };
-  
-  // Marquer l'image comme chargée
+
   const handleImageLoad = () => {
     console.log("Image chargée avec succès");
     setPageLoaded(true);
   };
-  
-  // Zoom in
+
   const zoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.1, 2));
   };
 
-  // Zoom out
   const zoomOut = () => {
     setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
   };
 
-  // Gestion du début de drag d'un champ
   const handleDragStart = (fieldId, offsetX, offsetY) => {
     setIsDragging(true);
     setDraggedFieldId(fieldId);
@@ -456,7 +413,6 @@ const NewPDFPreview = ({ template, onSave }) => {
     setDragOffsetY(offsetY);
   };
 
-  // Gestion du drag d'un champ
   const handleDrag = (clientX, clientY) => {
     if (!isDragging || !draggedFieldId) return;
 
@@ -467,7 +423,6 @@ const NewPDFPreview = ({ template, onSave }) => {
     const x = (clientX - rect.left - dragOffsetX) / (3.7795275591 * zoomLevel);
     const y = (clientY - rect.top - dragOffsetY) / (3.7795275591 * zoomLevel);
 
-    // Mise à jour du champ dans un nouveau template
     const updatedFields = modifiedTemplate.fields.map(field => {
       if (field.id === draggedFieldId && field.page === currentPage) {
         return {
@@ -489,13 +444,11 @@ const NewPDFPreview = ({ template, onSave }) => {
     setHasUnsavedChanges(true);
   };
 
-  // Gestion de la fin de drag d'un champ
   const handleDragEnd = () => {
     setIsDragging(false);
     setDraggedFieldId(null);
   };
 
-  // Sauvegarder les modifications
   const handleSaveChanges = () => {
     if (onSave && hasUnsavedChanges) {
       onSave(modifiedTemplate);
@@ -504,11 +457,10 @@ const NewPDFPreview = ({ template, onSave }) => {
     }
   };
 
-  // Toggle le mode de positionnement des champs
   const toggleDragMode = () => {
     setIsDraggable(!isDraggable);
   };
-  
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -577,7 +529,6 @@ const NewPDFPreview = ({ template, onSave }) => {
               height: `${297 * zoomLevel}mm`,
               maxWidth: "100%"
             }}>
-              {/* Navigation des pages */}
               {totalPages > 1 && (
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
                   <Button
@@ -604,7 +555,6 @@ const NewPDFPreview = ({ template, onSave }) => {
                 </div>
               )}
               
-              {/* Contenu du PDF */}
               {hasTemplateImages ? (
                 <PDFPage 
                   currentPage={currentPage}
@@ -623,76 +573,53 @@ const NewPDFPreview = ({ template, onSave }) => {
                   isDraggable={isDraggable}
                 />
               ) : (
-                /* Aperçu générique si pas de template uploadé */
-                <div className="min-h-[842px]">
-                  {/* En-tête */}
-                  <div className="border-b p-6" style={{ backgroundColor: modifiedTemplate?.primaryColor || '#2C3E50', color: "white" }}>
-                    <div className="flex justify-between items-center">
-                      {modifiedTemplate?.logoURL && (
-                        <img 
-                          src={modifiedTemplate.logoURL} 
-                          alt="Logo" 
-                          className="h-10 object-contain"
-                        />
-                      )}
-                      <h1 className="text-xl font-bold">{modifiedTemplate?.headerText?.replace('{offer_id}', 'EXEMPLE') || 'EXEMPLE'}</h1>
+                <div className="min-h-[842px] flex flex-col justify-between">
+                  <div>
+                    <div className="border-b p-6" style={{ backgroundColor: modifiedTemplate?.primaryColor || '#2C3E50', color: "white" }}>
+                      <div className="flex justify-between items-center">
+                        {modifiedTemplate?.logoURL && (
+                          <img 
+                            src={modifiedTemplate.logoURL} 
+                            alt="Logo" 
+                            className="h-10 object-contain"
+                          />
+                        )}
+                        <h1 className="text-xl font-bold">{modifiedTemplate?.headerText?.replace('{offer_id}', 'EXEMPLE') || 'EXEMPLE'}</h1>
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Corps du document */}
-                  <div className="p-6 space-y-6">
-                    <div className="flex justify-between">
+                    
+                    <div className="p-6 space-y-6">
+                      <div className="flex justify-between">
+                        <div>
+                          <h2 className="text-lg font-semibold mb-2">CLIENT</h2>
+                          <p>Entreprise Exemple SA</p>
+                          <p>Jean Dupont</p>
+                          <p>contact@exemple.fr</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Date: {new Date().toLocaleDateString()}</p>
+                          <p className="text-sm text-gray-600">Référence: OFF-EXEMPLE</p>
+                        </div>
+                      </div>
+                      
                       <div>
-                        <h2 className="text-lg font-semibold mb-2">CLIENT</h2>
-                        <p>Entreprise Exemple SA</p>
-                        <p>Jean Dupont</p>
-                        <p>contact@exemple.fr</p>
+                        <h2 className="text-lg font-semibold mb-2">ÉQUIPEMENTS</h2>
+                        {renderEquipmentTable()}
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">Date: {new Date().toLocaleDateString()}</p>
-                        <p className="text-sm text-gray-600">Référence: OFF-EXEMPLE</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h2 className="text-lg font-semibold mb-2">DÉTAILS DE L'OFFRE</h2>
-                      <div className="space-y-1">
-                        <p>Montant total: 3 596,00 €</p>
-                        <p>Paiement mensuel: 99,89 €</p>
-                        <p>Coefficient: 1.08</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h2 className="text-lg font-semibold mb-2">ÉQUIPEMENTS</h2>
-                      {renderEquipmentTable()}
-                    </div>
-                    
-                    <div className="flex justify-end pt-4">
-                      <div className="w-1/3 space-y-2">
-                        <div className="flex justify-between border-b pb-1">
-                          <span className="font-medium">Total HT:</span>
-                          <span>3 596,00 €</span>
-                        </div>
-                        <div className="flex justify-between border-b pb-1">
-                          <span className="font-medium">TVA (20%):</span>
-                          <span>719,20 €</span>
-                        </div>
-                        <div className="flex justify-between font-bold pt-1">
-                          <span>Total TTC:</span>
-                          <span>4 315,20 €</span>
-                        </div>
-                        <div className="flex justify-between text-blue-600 font-semibold pt-2 border-t">
-                          <span>Mensualité:</span>
-                          <span>99,89 € / mois</span>
+                      
+                      <div className="flex justify-end pt-4">
+                        <div className="w-full space-y-2">
+                          <div className="flex justify-between font-bold text-blue-600 pt-1">
+                            <span>Total mensualité:</span>
+                            <span>99,89 € HTVA / mois</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Pied de page */}
-                  <div className="p-6 text-xs text-gray-600 bg-gray-50 border-t">
-                    <p>{modifiedTemplate?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
+                  <div className="mt-auto p-6 text-xs text-gray-600 bg-gray-50 border-t">
+                    <p className="text-center font-medium mb-2">{modifiedTemplate?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}</p>
                     <hr className="my-2 border-gray-300" />
                     <div className="flex justify-center items-center">
                       <p className="text-center">
