@@ -99,7 +99,11 @@ export const getOfferDataForPdf = async (offerId: string) => {
       data.client_email = data.client_email || "email@exemple.com";
       data.amount = data.amount || 0;
       data.monthly_payment = data.monthly_payment || 0;
-      data.created_at = data.created_at || new Date().toISOString();
+      
+      // S'assurer que la date est valide, sinon utiliser la date actuelle
+      if (!data.created_at || isNaN(new Date(data.created_at).getTime())) {
+        data.created_at = new Date().toISOString();
+      }
       
       // Vérifier si offer_id est disponible
       if (!data.offer_id) {
@@ -429,4 +433,3 @@ export const generateSamplePdf = async (sampleData: any, template: any) => {
     throw error;
   }
 };
-

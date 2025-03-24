@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/utils/formatters';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 
 // Fonction pour vérifier et créer la table pdf_templates si nécessaire
@@ -275,15 +275,17 @@ export const generateOfferPdf = async (offer: any) => {
         return formatCurrency(payment);
       }
       
-      // Afficher toutes les données disponibles pour débogage
-      console.log("Données disponibles pour la résolution:", {
-        clientName: offer.client_name,
-        amount: offer.amount,
-        monthlyPayment: offer.monthly_payment,
-        equipment: typeof offer.equipment_description === 'string' && offer.equipment_description.length > 20 
-          ? offer.equipment_description.substring(0, 20) + '...' 
-          : offer.equipment_description
-      });
+      // Traitement spécial pour la date
+      if (pattern === '{created_at}' || pattern.includes('created_at')) {
+        if (offer.created_at) {
+          const date = new Date(offer.created_at);
+          // S'assurer que la date est valide
+          if (!isNaN(date.getTime())) {
+            return formatDate(date);
+          }
+        }
+        return formatDate(new Date()); // Date actuelle comme fallback
+      }
       
       // Résoudre les placeholders avec une syntaxe {clé}
       const resolvedValue = pattern.replace(/\{([^}]+)\}/g, (match, key) => {
@@ -710,7 +712,21 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
     doc.setTextColor(0, 0, 0);
     doc.text(`Montant: ${offer.amount ? formatCurrency(offer.amount) : 'Non spécifié'}`, 20, 100);
     doc.text(`Mensualité: ${offer.monthly_payment ? formatCurrency(offer.monthly_payment) : 'Non spécifié'}`, 20, 110);
-    doc.text(`Date de création: ${offer.created_at ? formatDate(offer.created_at) : 'Non spécifié'}`, 20, 120);
+    
+    // Formater correctement la date
+    let dateText = 'Non spécifié';
+    if (offer.created_at) {
+      try {
+        const offerDate = new Date(offer.created_at);
+        if (!isNaN(offerDate.getTime())) {
+          dateText = formatDate(offerDate);
+        }
+      } catch (e) {
+        console.error("Erreur de formatage de date:", e);
+      }
+    }
+    
+    doc.text(`Date de création: ${dateText}`, 20, 120);
     
     // Ajouter la section équipement si disponible
     let equipmentItems = [];
@@ -733,7 +749,7 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
       
       const tableHeaders = [['Désignation', 'Qté', 'Mensualité']];
       
-      const tableData = equipmentItems.map((item: any) => {
+      const tableData = equipmentItems.map((item) => {
         const quantity = item.quantity || 1;
         let monthlyPayment = 0;
         
@@ -763,9 +779,7 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
         }
       }, 0);
       
-      // Ajouter une ligne de total
-      tableData.push(['Total mensualité', '', formatCurrency(totalMonthlyPayment)]);
-      
+      // Ne plus ajouter une ligne de total ici pour éviter la duplication      
       autoTable(doc, {
         head: tableHeaders,
         body: tableData,
@@ -830,8 +844,8 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
       });
     }
     
-    // Ajouter le résumé en bas
-    const finalY = (doc as any).lastAutoTable?.finalY + 20 || 200;
+    // Ajouter le résumé en bas - avec un formatage correct
+    const finalY = (doc.lastAutoTable?.finalY + 20) || 200;
     
     doc.setFontSize(11);
     doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
@@ -865,3 +879,4 @@ const generateStandardPdf = (doc, offer, template, primaryRgb, resolveFieldValue
     doc.text("Veuillez contacter l'administrateur système.", 105, 80, { align: 'center' });
   }
 };
+

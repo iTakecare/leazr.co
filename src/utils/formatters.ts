@@ -1,4 +1,3 @@
-
 // Formatage de prix/montants en euros
 export const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -38,13 +37,29 @@ export const formatPercentageWithComma = (value: number | string): string => {
 
 // Formatage de date
 export const formatDate = (date: string | Date): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (!date) return "Date inconnue";
   
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(dateObj);
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Vérifier si la date est valide
+    if (isNaN(dateObj.getTime())) {
+      return "Date invalide";
+    }
+    
+    // Utiliser des valeurs d'aujourd'hui si date future
+    const now = new Date();
+    const dateToUse = dateObj > now ? now : dateObj;
+    
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(dateToUse);
+  } catch (e) {
+    console.error("Erreur lors du formatage de la date:", e);
+    return "Erreur de date";
+  }
 };
 
 // Formatage de date à la française
@@ -70,15 +85,31 @@ export const formatTime = (date: string | Date): string => {
 
 // Formatage de date et heure
 export const formatDateTime = (date: string | Date): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (!date) return "Date inconnue";
   
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(dateObj);
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Vérifier si la date est valide
+    if (isNaN(dateObj.getTime())) {
+      return "Date invalide";
+    }
+    
+    // Utiliser des valeurs d'aujourd'hui si date future
+    const now = new Date();
+    const dateToUse = dateObj > now ? now : dateObj;
+    
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(dateToUse);
+  } catch (e) {
+    console.error("Erreur lors du formatage de la date/heure:", e);
+    return "Erreur de date";
+  }
 };
 
 // Formatage de temps relatif (il y a X minutes/heures/jours)
