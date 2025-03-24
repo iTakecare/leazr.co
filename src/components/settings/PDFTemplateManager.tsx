@@ -22,6 +22,7 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   const [selectedPage, setSelectedPage] = useState(0);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadTemplateData = async () => {
@@ -31,9 +32,19 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
         const templateData = await loadTemplate(templateId);
         setTemplate(templateData);
         console.log("Template chargé:", templateData);
+        
+        // Réinitialiser l'erreur de stockage si le chargement réussit
+        setStorageError(null);
       } catch (error) {
         console.error("Erreur lors du chargement du template:", error);
-        toast.error("Erreur lors du chargement du template");
+        
+        // Vérifier si l'erreur est liée au stockage
+        if (error instanceof Error && error.message.includes("bucket")) {
+          setStorageError(error.message);
+          toast.error("Erreur avec le bucket de stockage. Vous pouvez continuer à utiliser l'application, mais l'upload d'images pourrait ne pas fonctionner.");
+        } else {
+          toast.error("Erreur lors du chargement du template");
+        }
       } finally {
         setLoading(false);
       }
@@ -167,6 +178,13 @@ const PDFTemplateManager = ({ templateId }: PDFTemplateManagerProps) => {
         <CardDescription>
           Personnalisez les informations et l'apparence de votre modèle PDF
         </CardDescription>
+        {storageError && (
+          <div className="mt-2 p-3 text-sm bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
+            <strong>Attention:</strong> Un problème a été détecté avec le stockage Supabase. 
+            L'upload d'images pourrait ne pas fonctionner correctement.
+            Vous pouvez continuer à utiliser les autres fonctionnalités.
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <Tabs 
