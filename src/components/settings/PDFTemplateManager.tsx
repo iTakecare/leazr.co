@@ -9,7 +9,7 @@ import { loadPDFTemplate, savePDFTemplate, DEFAULT_MODEL } from "@/utils/pdfTemp
 import PDFCompanyInfo from "./PDFCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ensureBucket } from "@/services/fileStorage";
+import { checkStorageConnection } from "@/services/fileStorage";
 import PDFPreview from "./PDFPreview";
 
 // Interface pour le modèle PDF
@@ -42,7 +42,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
-  const [storageMode, setStorageMode] = useState<'cloud' | 'local'>('cloud');
+  const [storageMode, setStorageMode] = useState<'cloud' | 'local'>('local'); // Default to local mode
   const [reconnecting, setReconnecting] = useState(false);
   
   // Initialisation au montage ou lorsque templateId change
@@ -57,22 +57,22 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       setLoading(true);
       setError(null);
       
-      // S'assurer que le bucket de stockage existe
+      // Vérifier la connexion au stockage
       try {
-        const bucketReady = await ensureBucket('pdf-templates');
-        if (bucketReady) {
-          console.log("Bucket pdf-templates vérifié avec succès");
+        const isConnected = await checkStorageConnection();
+        if (isConnected) {
+          console.log("Connexion au stockage Supabase établie");
           setStorageMode('cloud');
           toast.success("Connexion au stockage Supabase établie");
         } else {
-          console.error("Problème lors de la création/vérification du bucket pdf-templates");
-          toast.warning("Stockage en mode local uniquement");
+          console.log("Stockage Supabase non disponible");
           setStorageMode('local');
+          toast.info("Mode stockage local activé");
         }
       } catch (storageError) {
         console.error("Erreur avec le stockage:", storageError);
-        toast.warning("Stockage en mode local uniquement");
         setStorageMode('local');
+        toast.info("Mode stockage local activé");
       }
       
       // Charger le modèle spécifié
@@ -90,26 +90,24 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       setReconnecting(true);
       setError(null);
       
-      toast.info("Tentative de reconnexion au stockage Supabase...");
+      toast.info("Tentative de connexion au stockage Supabase...");
       
-      // Vider le cache de connexion en réinitialisant le statut
-      // @ts-ignore - accès à une variable interne du module
-      window.storageConnectionStatus = 'checking';
+      // Vérifier la connexion au stockage
+      const isConnected = await checkStorageConnection();
       
-      const bucketReady = await ensureBucket('pdf-templates');
-      
-      if (bucketReady) {
-        console.log("Reconnexion au bucket pdf-templates réussie");
+      if (isConnected) {
+        console.log("Connexion au stockage Supabase établie");
         setStorageMode('cloud');
-        toast.success("Connexion au stockage Supabase rétablie");
+        toast.success("Connexion au stockage Supabase établie");
       } else {
-        console.error("Échec de la reconnexion au bucket");
+        console.log("Stockage Supabase non disponible");
         setStorageMode('local');
-        toast.error("Échec de la reconnexion au stockage Supabase");
+        toast.info("Mode stockage local activé");
       }
     } catch (err) {
-      console.error("Erreur lors de la tentative de reconnexion:", err);
-      toast.error("Erreur lors de la tentative de reconnexion");
+      console.error("Erreur lors de la tentative de connexion:", err);
+      setStorageMode('local');
+      toast.error("Échec de la connexion au stockage Supabase");
     } finally {
       setReconnecting(false);
     }
@@ -213,7 +211,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   
   // Gestion du modèle complet
   const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
-    // Debug de la mise à jour 
     console.log("handleTemplateUpdate appelé avec:", updatedTemplate);
     console.log("Nombre d'images dans updatedTemplate:", updatedTemplate.templateImages?.length || 0);
     console.log("Nombre de champs dans updatedTemplate:", updatedTemplate.fields?.length || 0);
@@ -232,17 +229,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   const handleRetry = () => {
     loadTemplate(templateId);
   };
-
-  // Ajouter un log pour vérifier que le composant se rend correctement
-  console.log("Rendu de PDFTemplateManager", {
-    loading,
-    saving,
-    templateId,
-    templateExists: !!template,
-    templateName: template?.name,
-    templateImagesCount: template?.templateImages?.length || 0,
-    fieldsCount: template?.fields?.length || 0
-  });
 
   return (
     <Card className="w-full">
@@ -274,7 +260,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Réessayer la connexion
+                Vérifier le stockage
               </>
             )}
           </Button>
@@ -323,7 +309,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
             <AlertTitle>Stockage local uniquement</AlertTitle>
             <AlertDescription>
               Le stockage en ligne n'est pas disponible. Les modèles seront sauvegardés localement et 
-              les images ne seront pas persistantes. Vérifiez votre connexion à Supabase Storage.
+              les images ne seront pas persistantes. Vous pouvez cliquer sur "Vérifier le stockage" pour réessayer.
             </AlertDescription>
           </Alert>
         )}

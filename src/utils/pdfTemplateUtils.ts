@@ -143,20 +143,20 @@ export const loadPDFTemplate = async (id: string = 'default'): Promise<any> => {
       }
     } catch (supabaseError) {
       console.error("Erreur avec Supabase, utilisation du stockage local:", supabaseError);
+    }
+    
+    // Fallback vers le stockage local
+    if (isLocalStorageAvailable()) {
+      const templates = JSON.parse(localStorage.getItem('pdfTemplates') || '{}');
       
-      // Fallback vers le stockage local
-      if (isLocalStorageAvailable()) {
-        const templates = JSON.parse(localStorage.getItem('pdfTemplates') || '{}');
-        
-        if (templates[id]) {
-          console.log("Modèle chargé depuis le stockage local");
-          return templates[id];
-        } else if (id === 'default') {
-          // Créer le modèle par défaut en local
-          templates['default'] = DEFAULT_MODEL;
-          localStorage.setItem('pdfTemplates', JSON.stringify(templates));
-          return DEFAULT_MODEL;
-        }
+      if (templates[id]) {
+        console.log("Modèle chargé depuis le stockage local");
+        return templates[id];
+      } else if (id === 'default') {
+        // Créer le modèle par défaut en local
+        templates['default'] = DEFAULT_MODEL;
+        localStorage.setItem('pdfTemplates', JSON.stringify(templates));
+        return DEFAULT_MODEL;
       }
     }
     
@@ -207,16 +207,22 @@ export const getAllPDFTemplates = async (): Promise<any[]> => {
         .maybeSingle();
       
       if (!defaultExists) {
-        const { error: insertError } = await supabase
-          .from('pdf_templates')
-          .insert([DEFAULT_MODEL]);
-        
-        if (insertError) {
-          console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
-          throw new Error("Erreur d'insertion");
+        // Tentative d'insertion du modèle par défaut
+        try {
+          const { error: insertError } = await supabase
+            .from('pdf_templates')
+            .insert([DEFAULT_MODEL]);
+          
+          if (insertError) {
+            console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
+            throw new Error("Erreur d'insertion");
+          }
+          
+          return [DEFAULT_MODEL];
+        } catch (insertError) {
+          console.error("Erreur lors de l'insertion, utilisation du stockage local:", insertError);
+          throw insertError;
         }
-        
-        return [DEFAULT_MODEL];
       }
     } catch (supabaseError) {
       console.error("Erreur avec Supabase, utilisation du stockage local:", supabaseError);
@@ -273,6 +279,16 @@ export const deletePDFTemplate = async (id: string): Promise<boolean> => {
       }
       
       console.log("Modèle supprimé avec succès de Supabase");
+      
+      // Supprimer aussi en local pour la cohérence
+      if (isLocalStorageAvailable()) {
+        const templates = JSON.parse(localStorage.getItem('pdfTemplates') || '{}');
+        if (templates[id]) {
+          delete templates[id];
+          localStorage.setItem('pdfTemplates', JSON.stringify(templates));
+        }
+      }
+      
       return true;
     } catch (supabaseError) {
       console.error("Erreur avec Supabase, utilisation du stockage local:", supabaseError);
