@@ -68,17 +68,47 @@ serve(async (req) => {
       );
     }
 
-    // Check if it's an OVH server
+    // Check if it's an OVH server or Gmail server
     const isOvhServer = smtp.host.includes('.mail.ovh.') || smtp.host.includes('.ovh.');
+    const isGmailServer = smtp.host.toLowerCase() === 'smtp.gmail.com';
     const isPort587 = smtp.port === 587;
     
-    console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, Port: ${smtp.port}, Sécurisé: ${smtp.secure}`);
+    console.log(`Serveur détecté: ${isGmailServer ? 'Gmail' : isOvhServer ? 'OVH' : 'Autre'}, Port: ${smtp.port}, Sécurisé: ${smtp.secure}`);
     
     // Initialize attempt configurations to test
     const attempts = [];
     
+    // Gmail servers should always use TLS
+    if (isGmailServer) {
+      // First try with TLS enabled (forced for Gmail)
+      attempts.push({
+        tls: true,
+        description: "Gmail avec TLS (recommandé)",
+        tlsOptions: null,
+        waitBeforeAttempt: 0
+      });
+      
+      // Second attempt with explicit TLS version
+      attempts.push({
+        tls: true,
+        description: "Gmail avec TLS version explicite",
+        tlsOptions: { 
+          minVersion: "TLSv1.2",
+          maxVersion: "TLSv1.2"
+        },
+        waitBeforeAttempt: 1000
+      });
+      
+      // Last resort - try without TLS (not recommended but kept for backward compatibility)
+      attempts.push({
+        tls: false, 
+        description: "Gmail sans TLS (non recommandé)",
+        tlsOptions: null,
+        waitBeforeAttempt: 1000
+      });
+    }
     // OVH servers on port 587 are known to behave differently
-    if (isOvhServer && isPort587) {
+    else if (isOvhServer && isPort587) {
       // First try with TLS disabled for OVH
       attempts.push({
         tls: false,
@@ -203,6 +233,27 @@ serve(async (req) => {
           console.warn("Erreur non critique lors de la fermeture du client:", closeErr);
         }
         
+        // Si c'est Gmail, on indique toujours que TLS est recommandé, même si l'envoi a réussi sans TLS
+        if (isGmailServer && !attempt.tls) {
+          console.log("Gmail: bien que l'email ait été envoyé sans TLS, nous recommandons TLS pour Gmail");
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: "Email envoyé avec succès - L'utilisation de TLS est recommandée pour Gmail",
+              attempts: attempts_count,
+              config: "Gmail avec TLS (recommandé)",
+              recommendedConfig: {
+                tls: true,
+                description: "Gmail avec TLS (recommandé)"
+              }
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            }
+          );
+        }
+        
         return new Response(
           JSON.stringify({ 
             success: true, 
@@ -257,7 +308,15 @@ serve(async (req) => {
     let suggestion = "";
     const errorStr = lastError ? lastError.toString() : "";
     
-    if (errorStr.includes("invalid cmd")) {
+    // Gmail specific suggestions
+    if (isGmailServer) {
+      suggestion = "Pour Gmail, nous recommandons:\n" +
+                  "1. Activer l'authentification à 2 facteurs sur votre compte Google\n" +
+                  "2. Utiliser un mot de passe d'application créé spécifiquement pour cette application\n" +
+                  "3. Vérifier que l'adresse email dans le champ 'De' correspond à votre compte Gmail\n" +
+                  "4. Essayer avec TLS activé (secure: true)";
+    }
+    else if (errorStr.includes("invalid cmd")) {
       suggestion = "Erreur de commande SMTP invalide. Recommandations:\n" +
                   "1. Vérifiez que les informations de connexion SMTP sont correctes\n" + 
                   "2. Si vous utilisez OVH, essayez de désactiver l'option TLS\n" +

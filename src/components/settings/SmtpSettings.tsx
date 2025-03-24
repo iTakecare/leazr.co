@@ -131,12 +131,37 @@ const SmtpSettings = () => {
       // utiliser cette configuration qui fonctionne
       if (lastTestResult?.success && lastTestResult.workingConfig && 
           lastTestResult.workingConfig.tls !== settings.secure) {
+        
+        // Pour Gmail, forcer TLS à true sauf si explicitement testé et confirmé que TLS=false fonctionne mieux
+        const isGmail = settings.host.toLowerCase() === 'smtp.gmail.com';
+        if (isGmail) {
+          // Recommander fortement d'utiliser TLS avec Gmail
+          if (!lastTestResult.workingConfig.tls) {
+            toast.info("Pour Gmail, il est fortement recommandé d'utiliser TLS. Configuration ajustée.");
+            setSettings(prev => ({
+              ...prev,
+              secure: true
+            }));
+          }
+        } else {
+          // Pour les autres serveurs, suivre la configuration du test réussi
+          setSettings(prev => ({
+            ...prev,
+            secure: lastTestResult.workingConfig.tls
+          }));
+          
+          toast.info(`Application automatique de la configuration TLS qui fonctionne (${lastTestResult.workingConfig.tls ? 'activé' : 'désactivé'})`);
+        }
+      }
+      
+      // Pour Gmail, forcer TLS à true lors de l'enregistrement si ce n'est pas déjà le cas
+      const isGmail = settings.host.toLowerCase() === 'smtp.gmail.com';
+      if (isGmail && !settings.secure) {
+        toast.info("Pour Gmail, il est fortement recommandé d'utiliser TLS. Configuration ajustée automatiquement.");
         setSettings(prev => ({
           ...prev,
-          secure: lastTestResult.workingConfig.tls
+          secure: true
         }));
-        
-        toast.info(`Application automatique de la configuration TLS qui fonctionne (${lastTestResult.workingConfig.tls ? 'activé' : 'désactivé'})`);
       }
       
       const { error } = await supabase
@@ -208,6 +233,15 @@ const SmtpSettings = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
+    
+    // Pour Gmail, si l'utilisateur essaie de désactiver TLS, afficher un avertissement
+    const isChangingSecure = name === 'secure' && type === 'checkbox' && !checked;
+    const isGmail = settings.host.toLowerCase() === 'smtp.gmail.com';
+    
+    if (isChangingSecure && isGmail) {
+      toast.warning("Pour Gmail, il est fortement recommandé de garder TLS activé pour la sécurité.");
+    }
+    
     setSettings((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -222,12 +256,23 @@ const SmtpSettings = () => {
     
     if (value !== "custom") {
       const preset = smtpPresets[value as keyof typeof smtpPresets];
-      setSettings(prev => ({
-        ...prev,
-        host: preset.host,
-        port: preset.port,
-        secure: preset.secure
-      }));
+      
+      // Pour Gmail, toujours mettre secure à true, quelle que soit la valeur du preset
+      if (value === "gmail") {
+        setSettings(prev => ({
+          ...prev,
+          host: preset.host,
+          port: preset.port,
+          secure: true // Forcer TLS à true pour Gmail
+        }));
+      } else {
+        setSettings(prev => ({
+          ...prev,
+          host: preset.host,
+          port: preset.port,
+          secure: preset.secure
+        }));
+      }
       
       // Réinitialiser les résultats de test lorsque les paramètres changent
       setLastTestResult(null);

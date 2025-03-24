@@ -60,6 +60,15 @@ export const sendEmail = async (
       return false;
     }
     
+    // Pour Gmail, forcer TLS à true pour plus de sécurité
+    let secureMode = smtpSettings.secure;
+    const isGmail = smtpSettings.host.toLowerCase() === 'smtp.gmail.com';
+    
+    if (isGmail && !secureMode) {
+      console.log("Gmail détecté: Forçage de TLS à true pour plus de sécurité");
+      secureMode = true;
+    }
+    
     // Appeler la fonction Supabase pour envoyer l'email
     try {
       console.log("Préparation de l'appel à la fonction send-email");
@@ -79,7 +88,7 @@ export const sendEmail = async (
             port: parseInt(smtpSettings.port),
             username: smtpSettings.username,
             password: smtpSettings.password,
-            secure: smtpSettings.secure
+            secure: secureMode
           }
         }
       });
@@ -107,6 +116,12 @@ export const sendEmail = async (
         
         toast.error(errorMsg);
         return false;
+      }
+      
+      // Si la fonction a renvoyé une recommandation de configuration
+      if (data && data.recommendedConfig) {
+        console.log("Configuration recommandée reçue:", data.recommendedConfig);
+        toast.info("Note: Pour Gmail, l'utilisation de TLS est recommandée pour plus de sécurité.");
       }
       
       console.log("Email envoyé avec succès, réponse:", data);

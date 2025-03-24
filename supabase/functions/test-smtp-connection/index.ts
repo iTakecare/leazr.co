@@ -90,9 +90,9 @@ serve(async (req) => {
         waitBeforeAttempt: 1000
       });
     }
-    // Gmail servers should always use TLS
+    // Gmail servers should always use TLS - MODIFICATION: Toujours mettre TLS en premier pour Gmail
     else if (isGmailServer) {
-      // For Gmail, force TLS to true and try that first
+      // For Gmail, force TLS to true and try that first, regardless of user settings
       attempts.push({
         tls: true,
         description: "Gmail avec TLS (recommandé)",
@@ -112,7 +112,7 @@ serve(async (req) => {
         },
         waitBeforeAttempt: 1000
       });
-      // Try without TLS only as a last resort, though it will likely fail
+      // Only as a last resort, try without TLS (kept for backwards compatibility)
       attempts.push({
         tls: false,
         description: "Gmail sans TLS (non recommandé)",
@@ -220,6 +220,16 @@ serve(async (req) => {
           success = true;
           lastResult = emailResult;
           workingConfig = attempt;
+          
+          // Pour Gmail, si on réussit avec TLS=true, on s'assure que c'est cette config qui est renvoyée
+          if (isGmailServer && attempt.tls === true) {
+            console.log("Connexion Gmail réussie avec TLS activé");
+            workingConfig = {
+              ...attempt,
+              description: "Gmail avec TLS (recommandé)"
+            };
+            break; // On arrête la boucle dès qu'on a une connexion réussie avec TLS pour Gmail
+          }
           
           // No need to try other configurations
           break;
@@ -363,6 +373,20 @@ serve(async (req) => {
     }
     
     if (success) {
+      // Pour Gmail, forcer le TLS à true si la connexion a réussi
+      if (isGmailServer) {
+        // Si la configuration qui a fonctionné utilisait TLS=false, mais que nous voulons forcer TLS=true
+        if (!workingConfig.tls) {
+          console.log("Gmail: bien que la connexion ait réussi sans TLS, nous recommandons d'utiliser TLS");
+          // On crée une nouvelle configuration de travail qui force TLS=true
+          workingConfig = {
+            tls: true,
+            description: "Gmail avec TLS (recommandé)",
+            clientOptions: { connectionTimeout: 15000 }
+          };
+        }
+      }
+      
       return new Response(
         JSON.stringify({
           success: true,
