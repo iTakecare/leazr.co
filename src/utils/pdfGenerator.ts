@@ -1,3 +1,4 @@
+
 import html2pdf from 'html2pdf.js';
 import OfferPDFTemplate from '@/components/pdf/OfferPDFTemplate';
 import React from 'react';
@@ -35,7 +36,7 @@ export const generateOfferPdf = async (offerData) => {
         compress: true,
         putOnlyUsedFonts: true
       },
-      pagebreak: { mode: 'avoid-all' } // Correction du type pour éviter l'erreur TS
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Options correctes pour les sauts de page
     };
     
     // Créer un div temporaire pour le rendu avec une hauteur fixe
@@ -51,7 +52,7 @@ export const generateOfferPdf = async (offerData) => {
     const pdf = await html2pdf()
       .from(tempDiv)
       .set(options)
-      .toPdf() // This line had the error
+      .toPdf() // This method is defined in our type definition
       .get('pdf')
       .then(pdf => {
         // S'assurer qu'il n'y a qu'une seule page
