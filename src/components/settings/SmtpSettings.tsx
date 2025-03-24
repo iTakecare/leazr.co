@@ -7,13 +7,22 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Send, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { Mail, Send, AlertTriangle, CheckCircle2, Info, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const SmtpSettings = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [testing, setTesting] = useState<boolean>(false);
+  const [lastTestResult, setLastTestResult] = useState<{
+    success: boolean;
+    message: string;
+    suggestion?: string;
+    workingConfig?: {
+      tls: boolean;
+      description: string;
+    };
+  } | null>(null);
   const [settings, setSettings] = useState({
     id: 1,
     host: "",
@@ -60,6 +69,18 @@ const SmtpSettings = () => {
     try {
       setSaving(true);
       
+      // Si un test précédent a réussi avec une configuration différente de celle actuelle,
+      // utiliser cette configuration qui fonctionne
+      if (lastTestResult?.success && lastTestResult.workingConfig && 
+          lastTestResult.workingConfig.tls !== settings.secure) {
+        setSettings(prev => ({
+          ...prev,
+          secure: lastTestResult.workingConfig.tls
+        }));
+        
+        toast.info(`Application automatique de la configuration TLS qui fonctionne (${lastTestResult.workingConfig.tls ? 'activé' : 'désactivé'})`);
+      }
+      
       const { error } = await supabase
         .from('smtp_settings')
         .upsert({
@@ -81,6 +102,7 @@ const SmtpSettings = () => {
   const handleTest = async () => {
     try {
       setTesting(true);
+      setLastTestResult(null);
       toast.info("Test de connexion SMTP en cours...");
       
       const { data, error } = await supabase.functions.invoke('test-smtp-connection', {
@@ -92,11 +114,22 @@ const SmtpSettings = () => {
       if (error) {
         console.error("Erreur lors du test SMTP:", error);
         toast.error(`Erreur de connexion: ${error.message}`);
+        setLastTestResult({
+          success: false,
+          message: `Erreur de connexion: ${error.message}`
+        });
         return;
       }
       
+      setLastTestResult(data);
+      
       if (data.success) {
         toast.success(data.message);
+        
+        // Si le test a réussi avec une configuration différente, proposer de l'appliquer
+        if (data.workingConfig && data.workingConfig.tls !== settings.secure) {
+          toast.info(`Le test a réussi avec TLS ${data.workingConfig.tls ? 'activé' : 'désactivé'}. Cette configuration sera appliquée lors de l'enregistrement.`);
+        }
       } else {
         toast.error(data.message);
         if (data.suggestion) {
@@ -106,6 +139,10 @@ const SmtpSettings = () => {
     } catch (error) {
       console.error("Erreur lors du test SMTP:", error);
       toast.error("Erreur lors du test de connexion SMTP");
+      setLastTestResult({
+        success: false,
+        message: "Erreur lors du test de connexion SMTP"
+      });
     } finally {
       setTesting(false);
     }
@@ -117,6 +154,9 @@ const SmtpSettings = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+    
+    // Réinitialiser les résultats de test lorsque les paramètres changent
+    setLastTestResult(null);
   };
 
   // Vérifier si les paramètres correspondent à OVH
@@ -152,14 +192,39 @@ const SmtpSettings = () => {
           </AlertDescription>
         </Alert>
 
-        {isOvhHost && isPort587 && (
+        {isOvhHost && (
           <Alert className="bg-blue-50 border-blue-200">
             <Info className="h-4 w-4 text-blue-600" />
             <AlertTitle>Configuration OVH</AlertTitle>
             <AlertDescription>
-              Pour les serveurs OVH sur le port 587, l'option "Connexion sécurisée (TLS)" peut devoir être {settings.secure ? "désactivée" : "activée"} 
-              selon la configuration de votre serveur. Si l'envoi de mail échoue, essayez de {settings.secure ? "désactiver" : "activer"} cette option.
+              Pour les serveurs OVH, l'option "Connexion sécurisée (TLS)" peut nécessiter plusieurs essais.
+              Utilisez le bouton "Tester la connexion" pour déterminer automatiquement les bons paramètres TLS.
             </AlertDescription>
+          </Alert>
+        )}
+        
+        {lastTestResult && (
+          <Alert className={lastTestResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}>
+            <div className="flex-1">
+              {lastTestResult.success ? 
+                <CheckCircle2 className="h-4 w-4 text-green-600" /> : 
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              }
+              <AlertTitle>{lastTestResult.success ? "Connexion réussie" : "Échec de connexion"}</AlertTitle>
+              <AlertDescription>
+                {lastTestResult.message}
+                {lastTestResult.suggestion && (
+                  <p className="mt-2 font-medium">{lastTestResult.suggestion}</p>
+                )}
+                {(lastTestResult.success && lastTestResult.workingConfig && 
+                 lastTestResult.workingConfig.tls !== settings.secure) && (
+                  <p className="mt-2 font-medium">
+                    Le test a réussi avec TLS {lastTestResult.workingConfig.tls ? 'activé' : 'désactivé'}.
+                    Cette configuration sera appliquée lors de l'enregistrement.
+                  </p>
+                )}
+              </AlertDescription>
+            </div>
           </Alert>
         )}
 
@@ -181,7 +246,10 @@ const SmtpSettings = () => {
               id="secure"
               name="secure"
               checked={settings.secure}
-              onCheckedChange={(checked) => setSettings({ ...settings, secure: checked })}
+              onCheckedChange={(checked) => {
+                setSettings({ ...settings, secure: checked });
+                setLastTestResult(null); // Réinitialiser les résultats de test
+              }}
             />
             <Label htmlFor="secure" className="font-medium">
               Connexion sécurisée (TLS)
@@ -268,14 +336,22 @@ const SmtpSettings = () => {
             onClick={handleTest} 
             disabled={testing || !settings.host || !settings.username || !settings.password}
           >
-            <Send className="mr-2 h-4 w-4" />
+            {testing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="mr-2 h-4 w-4" />
+            )}
             {testing ? "Test en cours..." : "Tester la connexion"}
           </Button>
           <Button 
             onClick={handleSave} 
             disabled={saving || !settings.host || !settings.username || !settings.password}
           >
-            <CheckCircle2 className="mr-2 h-4 w-4" />
+            {saving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+            )}
             {saving ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </div>

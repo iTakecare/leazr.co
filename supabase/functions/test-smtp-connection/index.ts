@@ -42,65 +42,109 @@ serve(async (req) => {
     // Determine if it's an OVH server
     const isOvhServer = config.host.includes('.mail.ovh.');
     const isPort587 = parseInt(config.port) === 587;
+    
     console.log(`Serveur détecté: ${isOvhServer ? 'OVH' : 'Autre'}, Port: ${config.port}, secure: ${config.secure}`);
 
-    // Adjust settings for OVH servers on port 587
-    let finalTlsSetting = config.secure;
+    // We'll try up to 3 different configurations to find one that works
+    const attempts = [];
+    let success = false;
+    let lastResult = null;
+    let workingConfig = null;
+    
+    // First attempt: use the settings as provided
+    attempts.push({
+      tls: config.secure,
+      description: "Configuration originale"
+    });
+    
+    // Second attempt: opposite TLS setting
+    attempts.push({
+      tls: !config.secure,
+      description: "TLS inversé"
+    });
+    
+    // Third attempt: Only for specific server types
     if (isOvhServer && isPort587) {
-      if (!config.secure) {
-        console.log("Serveur OVH sur port 587 avec TLS désactivé, test avec forçage TLS activé");
-        finalTlsSetting = true;
+      attempts.push({
+        tls: true,
+        description: "OVH Port 587 avec TLS forcé"
+      });
+    }
+    
+    for (let i = 0; i < attempts.length && !success; i++) {
+      const attempt = attempts[i];
+      console.log(`Tentative #${i+1}: ${attempt.description}, TLS=${attempt.tls}`);
+      
+      try {
+        const client = new SMTPClient({
+          connection: {
+            hostname: config.host,
+            port: parseInt(config.port),
+            tls: attempt.tls,
+            auth: {
+              username: config.username,
+              password: config.password,
+            },
+          },
+          debug: true,
+        });
+        
+        console.log(`Tentative #${i+1}: Client SMTP initialisé`);
+        
+        // Set a timeout for the operation
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Délai de connexion SMTP dépassé (10s)")), 10000);
+        });
+        
+        // Format RFC-compliant for the From field
+        const fromField = `"${config.from_name}" <${config.from_email}>`;
+        console.log(`Tentative #${i+1}: From field format: ${fromField}`);
+        
+        // Try sending test email
+        const emailResult = await Promise.race([
+          client.send({
+            from: fromField,
+            to: config.username,
+            subject: "Test SMTP",
+            text: "Test de connexion SMTP réussi",
+            html: "<p>Test de connexion SMTP réussi</p>"
+          }),
+          timeoutPromise
+        ]);
+        
+        console.log(`Tentative #${i+1}: Email envoyé avec succès:`, emailResult);
+        
+        try {
+          await client.close();
+        } catch (closeErr) {
+          console.warn(`Tentative #${i+1}: Erreur non critique lors de la fermeture du client:`, closeErr);
+        }
+        
+        // Record the success and working configuration
+        success = true;
+        lastResult = emailResult;
+        workingConfig = attempt;
+        
+        // No need to try other configurations
+        break;
+      } catch (error) {
+        console.error(`Tentative #${i+1}: Échec -`, error);
+        lastResult = error;
+        
+        // Wait a bit before trying the next configuration
+        if (i < attempts.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
     }
-
-    console.log(`Configuration du client SMTP: TLS=${finalTlsSetting}`);
-    const client = new SMTPClient({
-      connection: {
-        hostname: config.host,
-        port: parseInt(config.port),
-        tls: finalTlsSetting,
-        auth: {
-          username: config.username,
-          password: config.password,
-        },
-      },
-      debug: true, // Enable SMTP debugging
-    });
-
-    try {
-      console.log("Tentative d'envoi de mail de test...");
-      
-      // Set a timeout for the entire operation
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Délai de connexion SMTP dépassé (10s)")), 10000);
-      });
-      
-      // Format RFC-compliant for the From field
-      const fromField = `"${config.from_name}" <${config.from_email}>`;
-      console.log("From field format:", fromField);
-      
-      // Try sending test email with simple settings for maximum compatibility
-      const emailResult = await Promise.race([
-        client.send({
-          from: fromField,
-          to: config.username,
-          subject: "Test SMTP",
-          text: "Test de connexion SMTP réussi",
-          html: "<p>Test de connexion SMTP réussi</p>"
-        }),
-        timeoutPromise
-      ]);
-      
-      console.log("Résultat de l'envoi:", emailResult);
-      
-      await client.close();
-      console.log("Mail de test envoyé avec succès");
-      
+    
+    if (success) {
       return new Response(
         JSON.stringify({
           success: true,
-          message: "Connexion SMTP réussie. Un email de test a été envoyé.",
-          details: emailResult
+          message: `Connexion SMTP réussie avec ${workingConfig.description}. Un email de test a été envoyé.`,
+          details: lastResult,
+          workingConfig: workingConfig
         }),
         {
           status: 200,
@@ -110,19 +154,13 @@ serve(async (req) => {
           },
         }
       );
-    } catch (emailError) {
-      console.error("Erreur lors de l'envoi de l'email de test:", emailError);
-      
-      try {
-        await client.close();
-        console.log("Client SMTP fermé après erreur");
-      } catch (closeError) {
-        console.error("Erreur supplémentaire lors de la fermeture du client:", closeError);
-      }
+    } else {
+      // All attempts failed
+      console.error("Toutes les tentatives ont échoué. Dernière erreur:", lastResult);
       
       // Prepare specific suggestions based on the error
       let suggestion = "";
-      const errorStr = emailError.toString();
+      const errorStr = lastResult.toString();
       
       if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
         if (config.secure) {
@@ -143,7 +181,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          message: `Erreur lors de l'envoi de l'email: ${emailError.message}`,
+          message: `Échec de connexion SMTP après plusieurs tentatives: ${lastResult.message}`,
           details: errorStr,
           suggestion: suggestion
         }),
