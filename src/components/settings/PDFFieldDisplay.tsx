@@ -11,6 +11,8 @@ interface PDFFieldDisplayProps {
   isDraggable: boolean;
   onStartDrag: (fieldId: string, offsetX: number, offsetY: number) => void;
   useRealData?: boolean;
+  onDrag: (clientX: number, clientY: number) => void;
+  onEndDrag: () => void;
 }
 
 // Fonction pour résoudre la valeur d'un champ à partir d'un pattern et de données
@@ -83,7 +85,7 @@ const resolveFieldValue = (pattern: string, data: any): string => {
   }
 };
 
-// Fonction pour formater les données d'équipement de manière structurée
+// Fonction pour formater les données d'équipement de manière simplifiée
 const formatEquipmentData = (equipmentDescription: string | any[], equipmentData?: any[]): string => {
   try {
     let equipment;
@@ -100,13 +102,13 @@ const formatEquipmentData = (equipmentDescription: string | any[], equipmentData
     }
     
     if (Array.isArray(equipment) && equipment.length > 0) {
-      // Format plus structuré pour le PDF
+      // Format simplifié pour le PDF - sans prix unitaires ni marges
       return equipment.map((item, index) => {
         const title = item.title || "Produit sans nom";
         const quantity = item.quantity || 1;
         const monthlyPayment = item.monthlyPayment || 0;
         
-        return `${title}\nQuantité : ${quantity}\nMensualité unitaire : ${formatCurrency(monthlyPayment)}`;
+        return `${title}\nQuantité : ${quantity}\nMensualité : ${formatCurrency(monthlyPayment * quantity)}`;
       }).join('\n\n');
     }
     
@@ -124,7 +126,9 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
   sampleData,
   isDraggable,
   onStartDrag,
-  useRealData = false
+  useRealData = false,
+  onDrag,
+  onEndDrag
 }) => {
   // Calculer la valeur résolue une seule fois
   const resolvedValue = useMemo(() => {

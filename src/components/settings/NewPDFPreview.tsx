@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -190,19 +189,22 @@ const NewPDFPreview = ({ template, onSave }) => {
         title: "MacBook Pro 16\" M2 Pro",
         purchasePrice: 2399,
         quantity: 1,
-        margin: 15
+        margin: 15,
+        monthlyPayment: 50
       },
       {
         title: "Écran Dell 27\" UltraSharp",
         purchasePrice: 399,
         quantity: 2,
-        margin: 20
+        margin: 20,
+        monthlyPayment: 25
       },
       {
         title: "Dock USB-C Thunderbolt",
         purchasePrice: 199,
         quantity: 1,
-        margin: 25
+        margin: 25,
+        monthlyPayment: 10
       }
     ]),
     amount: 3596,
@@ -365,25 +367,34 @@ const NewPDFPreview = ({ template, onSave }) => {
         <thead>
           <tr className="bg-gray-100">
             <th className="border px-1 py-0.5 text-left">Désignation</th>
-            <th className="border px-1 py-0.5 text-right">Prix</th>
             <th className="border px-1 py-0.5 text-center">Qté</th>
-            <th className="border px-1 py-0.5 text-center">Marge</th>
-            <th className="border px-1 py-0.5 text-right">Total</th>
+            <th className="border px-1 py-0.5 text-right">Mensualité</th>
           </tr>
         </thead>
         <tbody>
           {equipment.map((item, index) => {
-            const totalPrice = calculateItemTotal(item);
+            const quantity = parseInt(item.quantity || 1, 10);
+            const monthlyPayment = parseFloat(item.monthlyPayment || 0);
+            const totalMonthlyPayment = monthlyPayment * quantity;
+            
             return (
               <tr key={index}>
                 <td className="border px-1 py-0.5 text-left">{item.title}</td>
-                <td className="border px-1 py-0.5 text-right">{formatCurrency(item.purchasePrice)}</td>
-                <td className="border px-1 py-0.5 text-center">{item.quantity}</td>
-                <td className="border px-1 py-0.5 text-center">{item.margin}%</td>
-                <td className="border px-1 py-0.5 text-right">{formatCurrency(totalPrice)}</td>
+                <td className="border px-1 py-0.5 text-center">{quantity}</td>
+                <td className="border px-1 py-0.5 text-right">{formatCurrency(totalMonthlyPayment)}</td>
               </tr>
             );
           })}
+          <tr className="font-bold bg-gray-50">
+            <td className="border px-1 py-0.5 text-right" colSpan={2}>Total mensualité :</td>
+            <td className="border px-1 py-0.5 text-right">
+              {formatCurrency(equipment.reduce((total, item) => {
+                const monthlyPayment = parseFloat(item.monthlyPayment || 0);
+                const quantity = parseInt(item.quantity || 1, 10);
+                return total + (monthlyPayment * quantity);
+              }, 0))}
+            </td>
+          </tr>
         </tbody>
       </table>
     );

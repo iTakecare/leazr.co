@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, memo } from "react";
 import PageNavigation from "./PageNavigation";
 import PageImage from "./PageImage";
@@ -137,7 +138,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Mensualité</p>
-                    <p className="font-medium text-blue-600">{formatCurrency(item.monthlyPayment || 0)}</p>
+                    <p className="font-medium text-blue-600">{formatCurrency(item.monthlyPayment * item.quantity)}</p>
                   </div>
                 </div>
               </div>
