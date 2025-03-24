@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
+import { generateAndDownloadOfferPdf } from "@/services/offerService";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -149,6 +150,28 @@ const PartnerOfferDetail = () => {
       toast.error("Erreur lors de l'envoi du lien au client");
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      toast.info("Génération du PDF en cours...");
+      
+      if (!id) {
+        toast.error("ID de l'offre manquant");
+        return;
+      }
+      
+      const filename = await generateAndDownloadOfferPdf(id);
+      
+      if (filename) {
+        toast.success(`PDF généré avec succès: ${filename}`);
+      } else {
+        toast.error("Erreur lors de la génération du PDF");
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
     }
   };
 
