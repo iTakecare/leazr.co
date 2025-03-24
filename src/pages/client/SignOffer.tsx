@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,7 +25,6 @@ const SignOffer = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const signaturePadRef = useRef<any>(null);
 
-  // Template mock data - in a real app, this would be fetched from the server
   const [localTemplate, setLocalTemplate] = useState({
     name: "Default Template",
     companyName: "iTakeCare",
@@ -75,7 +73,6 @@ const SignOffer = () => {
     ]
   });
 
-  // Fetch offer data
   useEffect(() => {
     const fetchOffer = async () => {
       if (!offerId) {
@@ -87,11 +84,9 @@ const SignOffer = () => {
       try {
         setLoading(true);
         
-        // Check if offer is already signed
         const alreadySigned = await isOfferSigned(offerId);
         setSigned(alreadySigned);
         
-        // Get offer details
         const offerData = await getOfferForClient(offerId);
         
         if (!offerData) {
@@ -103,7 +98,6 @@ const SignOffer = () => {
         console.log("Offer data:", offerData);
         setOffer(offerData);
         
-        // Pre-fill signer name if available from offer
         if (offerData.client_name) {
           setSignerName(offerData.client_name);
         }
@@ -119,7 +113,6 @@ const SignOffer = () => {
     fetchOffer();
   }, [offerId]);
 
-  // Function to handle signature submission
   const handleSubmit = async () => {
     if (!offerId || !signaturePadRef.current) {
       toast.error("Impossible de soumettre la signature");
@@ -139,11 +132,9 @@ const SignOffer = () => {
     try {
       setSubmitting(true);
       
-      // Get signature data as PNG base64 string
       const signatureImage = signaturePadRef.current.toDataURL("image/png");
       setSignatureData(signatureImage);
       
-      // Save signature to the server
       const success = await saveOfferSignature(offerId, signatureImage, signerName);
       
       if (success) {
@@ -160,7 +151,6 @@ const SignOffer = () => {
     }
   };
 
-  // Function to clear the signature
   const handleClear = () => {
     if (signaturePadRef.current) {
       signaturePadRef.current.clear();

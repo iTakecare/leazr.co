@@ -1,28 +1,44 @@
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { Button } from "@/components/ui/button";
-import { Eraser, Save, RotateCcw } from "lucide-react";
+import { Eraser, RotateCcw } from "lucide-react";
 
 interface SignaturePadProps {
-  onSave: (signature: string) => void;
+  onSave?: (signature: string) => void;
   width?: number | string;
   height?: number | string;
   className?: string;
   disabled?: boolean;
 }
 
-const SignaturePad: React.FC<SignaturePadProps> = ({
+const SignaturePad = forwardRef<SignatureCanvas, SignaturePadProps>(({
   onSave,
   width = "100%",
   height = 200,
   className = "",
   disabled = false
-}) => {
+}, ref) => {
   const sigCanvas = useRef<SignatureCanvas | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
 
-  // Vérifier si la signature est vide après chaque trait
+  // Forward the ref to parent components
+  useImperativeHandle(ref, () => ({
+    clear: () => {
+      if (sigCanvas.current) {
+        sigCanvas.current.clear();
+        setIsEmpty(true);
+      }
+    },
+    isEmpty: () => {
+      return sigCanvas.current ? sigCanvas.current.isEmpty() : true;
+    },
+    toDataURL: (type?: string, encoderOptions?: number) => {
+      return sigCanvas.current ? sigCanvas.current.toDataURL(type, encoderOptions) : '';
+    }
+  }));
+
+  // Check if signature is empty after each stroke
   useEffect(() => {
     const checkIfEmpty = () => {
       if (sigCanvas.current) {
@@ -50,7 +66,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({
   };
 
   const save = () => {
-    if (sigCanvas.current && !isEmpty) {
+    if (sigCanvas.current && !isEmpty && onSave) {
       const dataURL = sigCanvas.current.toDataURL("image/png");
       onSave(dataURL);
     }
@@ -78,32 +94,35 @@ const SignaturePad: React.FC<SignaturePadProps> = ({
           dotSize={2}
           velocityFilterWeight={0.4}
           clearOnResize={false}
-          disabled={disabled}
         />
       </div>
       
-      <div className="flex gap-2 p-2 bg-gray-50 border-t">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={clear}
-          disabled={isEmpty || disabled}
-        >
-          <Eraser className="h-4 w-4 mr-1" />
-          Effacer
-        </Button>
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={save}
-          disabled={isEmpty || disabled}
-        >
-          <Save className="h-4 w-4 mr-1" />
-          Enregistrer
-        </Button>
-      </div>
+      {onSave && (
+        <div className="flex gap-2 p-2 bg-gray-50 border-t">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={clear}
+            disabled={isEmpty || disabled}
+          >
+            <Eraser className="h-4 w-4 mr-1" />
+            Effacer
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={save}
+            disabled={isEmpty || disabled}
+          >
+            <RotateCcw className="h-4 w-4 mr-1" />
+            Enregistrer
+          </Button>
+        </div>
+      )}
     </div>
   );
-};
+});
+
+SignaturePad.displayName = "SignaturePad";
 
 export default SignaturePad;
