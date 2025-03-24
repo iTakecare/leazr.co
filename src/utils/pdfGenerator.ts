@@ -18,19 +18,22 @@ export const generateOfferPdf = async (offerData) => {
     
     // Configurer les options de génération du PDF
     const options = {
-      margin: [0, 0, 0, 0],
+      margin: [10, 10, 10, 10], // Marge légère pour éviter les coupures
       filename: `offre-${offerData.id.substring(0, 8)}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 2, 
+        scale: 2,
         useCORS: true,
         logging: false
       },
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
-        orientation: 'portrait' as 'portrait' | 'landscape'
-      }
+        orientation: 'portrait' as 'portrait' | 'landscape',
+        compress: true,
+        putOnlyUsedFonts: true
+      },
+      pagebreak: { mode: 'avoid-all' } // Éviter les sauts de page automatiques
     };
     
     // Créer un div temporaire pour le rendu
@@ -40,7 +43,22 @@ export const generateOfferPdf = async (offerData) => {
     
     // Générer le PDF
     console.log("Conversion en PDF...");
-    const pdf = await html2pdf().from(tempDiv).set(options).save();
+    const pdf = await html2pdf()
+      .from(tempDiv)
+      .set(options)
+      .toPdf() // Créer le PDF mais ne pas le télécharger immédiatement
+      .get('pdf')
+      .then(pdf => {
+        // S'assurer qu'il n'y a qu'une seule page
+        if (pdf.internal.getNumberOfPages() > 1) {
+          // Supprimer les pages supplémentaires si elles existent
+          while (pdf.internal.getNumberOfPages() > 1) {
+            pdf.deletePage(pdf.internal.getNumberOfPages());
+          }
+        }
+        return pdf;
+      })
+      .save();
     
     // Nettoyage
     document.body.removeChild(tempDiv);

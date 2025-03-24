@@ -1,3 +1,4 @@
+
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
@@ -152,13 +153,13 @@ export const generateSamplePdf = async (sampleData: any) => {
     // Créer des données d'exemple enrichies avec des valeurs par défaut pour leasing
     const completeSampleData = {
       id: sampleData.id || `preview-${Date.now()}`,
-      offer_id: sampleData.offer_id || `EXEMPLE`,
+      offer_id: sampleData.offer_id || `OFF-DB7229E1`,
       client_name: sampleData.client_name || "Guy Tarre",
       client_company: sampleData.client_company || "ACME BELGIUM SA",
-      client_email: sampleData.client_email || "client@example.com", 
+      client_email: sampleData.client_email || "mistergi118+client1@gmail.com", 
       amount: sampleData.amount || 10000,
       monthly_payment: sampleData.monthly_payment || 90,
-      created_at: sampleData.created_at || new Date().toISOString(),
+      created_at: sampleData.created_at || new Date("2025-03-21").toISOString(),
       equipment_description: sampleData.equipment_description || JSON.stringify([
         {
           title: "Produit Test",
