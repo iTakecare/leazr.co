@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,7 @@ const PDFPreview = ({ template }) => {
       }
     ]),
     amount: 3596,
-    monthly_payment: 99.89,
+    monthly_payment: 132.0,
     created_at: new Date().toISOString(),
     workflow_status: "draft",
     equipment_total: 3350,
@@ -181,7 +180,6 @@ const PDFPreview = ({ template }) => {
     return (price * quantity) / 36;
   };
 
-  // Nouveau tableau d'équipement simplifié pour leasing uniquement
   const renderEquipmentTable = (jsonData) => {
     const equipment = parseEquipmentData(jsonData);
     
@@ -436,14 +434,6 @@ const PDFPreview = ({ template }) => {
                     </div>
                     
                     <div>
-                      <h2 className="text-lg font-semibold mb-2">DÉTAILS DE L'OFFRE</h2>
-                      <div className="space-y-1">
-                        <p>Montant total: 3 596,00 €</p>
-                        <p>Paiement mensuel: 99,89 €</p>
-                      </div>
-                    </div>
-                    
-                    <div>
                       <h2 className="text-lg font-semibold mb-2">ÉQUIPEMENTS</h2>
                       <table className="w-full border-collapse">
                         <thead>
@@ -481,7 +471,7 @@ const PDFPreview = ({ template }) => {
                       <div className="w-full space-y-2">
                         <div className="flex justify-between font-bold text-blue-600 pt-1">
                           <span>Total mensualité:</span>
-                          <span>99,89 € / mois</span>
+                          <span>132,00 € HTVA / mois</span>
                         </div>
                       </div>
                     </div>

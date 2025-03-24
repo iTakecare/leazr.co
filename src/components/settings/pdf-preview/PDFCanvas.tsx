@@ -147,7 +147,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
             <div className="mt-2 p-2 border-t border-gray-300">
               <div className="flex justify-between items-center">
                 <p className="font-medium">Total mensualité:</p>
-                <p className="font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</p>
+                <p className="font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)} HTVA / mois</p>
               </div>
             </div>
           </div>
