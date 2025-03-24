@@ -79,26 +79,41 @@ serve(async (req) => {
     
     // OVH servers on port 587 are known to behave differently
     if (isOvhServer && isPort587) {
-      // For OVH, we first try without TLS as it's more reliable on port 587
+      // Pour OVH, première tentative sans TLS
       attempts.push({
         tls: false,
-        description: "OVH Port 587 sans TLS"
+        description: "OVH Port 587 sans TLS",
+        tlsOptions: null
       });
+      // Seconde tentative avec TLS
       attempts.push({
         tls: true, 
-        description: "OVH Port 587 avec TLS"
+        description: "OVH Port 587 avec TLS",
+        tlsOptions: null
       });
     } else {
       // First attempt: use the settings as provided
       attempts.push({
         tls: smtp.secure,
-        description: "Configuration originale"
+        description: "Configuration originale",
+        tlsOptions: null
       });
       
-      // Second attempt: opposite TLS setting as fallback
+      // Second attempt: Explicit TLS version with secure mode
+      attempts.push({
+        tls: smtp.secure,
+        description: "TLS version explicite (v1.2)",
+        tlsOptions: { 
+          minVersion: "TLSv1.2",
+          maxVersion: "TLSv1.2"
+        }
+      });
+      
+      // Third attempt: opposite TLS setting as fallback
       attempts.push({
         tls: !smtp.secure,
-        description: "TLS inversé"
+        description: "TLS inversé",
+        tlsOptions: null
       });
     }
     
@@ -110,12 +125,13 @@ serve(async (req) => {
       attempts_count++;
       console.log(`Tentative #${attempts_count} - Configuration:`, {
         tls: attempt.tls,
-        description: attempt.description
+        description: attempt.description,
+        tlsOptions: attempt.tlsOptions
       });
       
       try {
         // Create SMTP client with current configuration
-        const client = new SMTPClient({
+        const clientConfig = {
           connection: {
             hostname: smtp.host,
             port: smtp.port,
@@ -124,9 +140,14 @@ serve(async (req) => {
               username: smtp.username,
               password: smtp.password,
             },
+            ...(attempt.tlsOptions && { tlsOptions: attempt.tlsOptions })
           },
           debug: true // For detailed logs
-        });
+        };
+        
+        console.log(`Tentative #${attempts_count}: Configuration client:`, JSON.stringify(clientConfig, null, 2));
+        
+        const client = new SMTPClient(clientConfig);
         
         // Set a timeout for the operation
         const timeoutPromise = new Promise((_, reject) => {
@@ -139,14 +160,16 @@ serve(async (req) => {
         console.log(`Tentative #${attempts_count} d'envoi d'email en cours...`);
         
         // Try to send the email with a timeout
+        const sendEmailPromise = client.send({
+          from: fromField,
+          to: to,
+          subject: subject,
+          content: text,
+          html: html
+        });
+        
         const emailResult = await Promise.race([
-          client.send({
-            from: fromField,
-            to: to,
-            subject: subject,
-            content: text,
-            html: html
-          }),
+          sendEmailPromise,
           timeoutPromise
         ]);
         
@@ -173,14 +196,29 @@ serve(async (req) => {
         );
         
       } catch (error) {
+        const errorString = error.toString();
         lastError = error;
-        console.error(`Échec de la tentative #${attempts_count}:`, error);
         
-        // If this is not the last attempt, we'll try again with the next configuration
-        if (attempts_count < attempts.length) {
-          console.log(`Erreur détectée (${error.name}), essai avec la configuration suivante...`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        console.error(`Échec de la tentative #${attempts_count}:`, errorString);
+        console.error("Détails de l'erreur:", error);
+        
+        // Enregistrer l'erreur avec plus de détails si possible
+        if (error.message && error.message.includes("invalid cmd")) {
+          console.error("Erreur de commande SMTP invalide détectée. Détails:", {
+            errorName: error.name,
+            stack: error.stack,
+            message: error.message
+          });
         }
+        
+        // Si c'est la dernière tentative, on continue au traitement d'erreur final
+        if (attempts_count >= attempts.length) {
+          break;
+        }
+        
+        // Si ce n'est pas la dernière tentative, attendre avant d'essayer la configuration suivante
+        console.log(`Erreur détectée (${error.name}), essai avec la configuration suivante...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
     
@@ -191,7 +229,18 @@ serve(async (req) => {
     let suggestion = "";
     const errorStr = lastError ? lastError.toString() : "";
     
-    if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
+    if (errorStr.includes("invalid cmd")) {
+      suggestion = "Erreur de commande SMTP invalide. Recommandations:\n" +
+                  "1. Vérifiez que les informations de connexion SMTP sont correctes\n" + 
+                  "2. Essayez avec SSL/TLS désactivé\n" +
+                  "3. Vérifiez que votre serveur SMTP autorise l'authentification avec ce compte";
+    }
+    else if (errorStr.includes("ProtocolVersion") || errorStr.includes("protocol version")) {
+      suggestion = "Erreur de version du protocole SSL/TLS. Recommandations:\n" +
+                  "1. Essayez de modifier les paramètres de sécurité (activer/désactiver SSL/TLS)\n" +
+                  "2. Utilisez le port 587 avec TLS désactivé si possible";
+    }
+    else if (errorStr.includes("InvalidContentType") || errorStr.includes("corrupt message")) {
       if (isOvhServer && isPort587) {
         suggestion = "Pour les serveurs OVH sur le port 587, essayez de désactiver l'option TLS dans les paramètres SMTP.";
       } else if (smtp.secure) {
@@ -203,6 +252,8 @@ serve(async (req) => {
       if (isOvhServer && isPort587) {
         suggestion = "Pour les serveurs OVH sur le port 587, essayez de désactiver l'option TLS.";
       }
+    } else if (errorStr.includes("Auth") || errorStr.includes("535") || errorStr.includes("credentials")) {
+      suggestion = "Erreur d'authentification. Vérifiez que votre nom d'utilisateur et mot de passe sont corrects.";
     }
     
     return new Response(
