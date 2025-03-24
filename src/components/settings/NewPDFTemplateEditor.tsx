@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -912,3 +913,309 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
                       <SelectItem value="offer">Offre</SelectItem>
                       <SelectItem value="equipment">Équipement</SelectItem>
                       <SelectItem value="leaser">Leaser</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="field-name">Champ</Label>
+                  <Select
+                    value={selectedField}
+                    onValueChange={setSelectedField}
+                  >
+                    <SelectTrigger id="field-name">
+                      <SelectValue placeholder="Sélectionner un champ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoryFields.map((field) => (
+                        <SelectItem key={field.key} value={field.key}>
+                          {field.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Position (mm)</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="position-x" className="text-xs">X</Label>
+                      <Input
+                        id="position-x"
+                        type="number"
+                        value={fieldPosition.x}
+                        onChange={(e) => setFieldPosition({
+                          ...fieldPosition,
+                          x: parseFloat(e.target.value) || 0
+                        })}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="position-y" className="text-xs">Y</Label>
+                      <Input
+                        id="position-y"
+                        type="number"
+                        value={fieldPosition.y}
+                        onChange={(e) => setFieldPosition({
+                          ...fieldPosition,
+                          y: parseFloat(e.target.value) || 0
+                        })}
+                        className="h-8"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Style du texte</Label>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleTextStyle('fontWeight')}
+                      className={`p-2 h-8 w-8 ${textStyle.fontWeight === 'bold' ? 'bg-slate-200' : ''}`}
+                    >
+                      <Bold className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleTextStyle('fontStyle')}
+                      className={`p-2 h-8 w-8 ${textStyle.fontStyle === 'italic' ? 'bg-slate-200' : ''}`}
+                    >
+                      <Italic className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleTextStyle('textDecoration')}
+                      className={`p-2 h-8 w-8 ${textStyle.textDecoration === 'underline' ? 'bg-slate-200' : ''}`}
+                    >
+                      <Underline className="h-4 w-4" />
+                    </Button>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          {textStyle.fontSize}px
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-2">
+                        <div className="grid grid-cols-3 gap-1">
+                          {FONT_SIZES.map((size) => (
+                            <Button
+                              key={size}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateFieldStyle({ fontSize: size })}
+                              className={`text-xs ${textStyle.fontSize === size ? 'bg-slate-200' : ''}`}
+                            >
+                              {size}px
+                            </Button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs" 
+                          style={{ backgroundColor: textStyle.color }}
+                        >
+                          <Type className="h-4 w-4 mr-1" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-2">
+                        <div className="grid grid-cols-4 gap-1">
+                          {TEXT_COLORS.map((color) => (
+                            <Button
+                              key={color}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateFieldStyle({ color })}
+                              className="h-8 w-8 p-1 rounded-full"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <Select
+                      value={textStyle.fontFamily}
+                      onValueChange={(fontFamily) => updateFieldStyle({ fontFamily })}
+                    >
+                      <SelectTrigger id="font-family" className="h-8 text-xs">
+                        <SelectValue placeholder="Police" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FONT_FAMILIES.map((font) => (
+                          <SelectItem key={font} value={font} style={{ fontFamily: font }}>
+                            {font}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={addField} 
+                  className="w-full"
+                  disabled={!selectedField}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter le champ
+                </Button>
+              </div>
+            </Card>
+            
+            {/* Field properties */}
+            {selectedFieldObj && (
+              <Card className="p-4">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-sm font-medium">Propriétés du champ</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => deleteField(selectedFieldObj.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs">ID</Label>
+                    <div className="text-sm font-mono bg-gray-100 p-1 rounded">
+                      {selectedFieldObj.id}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs">Label</Label>
+                    <div className="text-sm font-medium">
+                      {selectedFieldObj.label}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs">Valeur</Label>
+                    <div className="text-sm font-mono bg-gray-100 p-1 rounded">
+                      {selectedFieldObj.value}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs">Position (mm)</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label htmlFor="selected-position-x" className="text-xs">X</Label>
+                        <Input
+                          id="selected-position-x"
+                          type="number"
+                          step="0.1"
+                          value={Math.round(selectedFieldObj.position.x * 10) / 10}
+                          onChange={(e) => handlePositionChange('x', parseFloat(e.target.value) || 0)}
+                          className="h-8"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="selected-position-y" className="text-xs">Y</Label>
+                        <Input
+                          id="selected-position-y"
+                          type="number"
+                          step="0.1"
+                          value={Math.round(selectedFieldObj.position.y * 10) / 10}
+                          onChange={(e) => handlePositionChange('y', parseFloat(e.target.value) || 0)}
+                          className="h-8"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
+          
+          {/* Editor area */}
+          <div className="col-span-2 order-1 lg:order-2 border rounded-md overflow-hidden" style={{ height: '70vh' }}>
+            <div
+              ref={editorAreaRef}
+              className="h-full w-full overflow-auto bg-gray-50 relative"
+              onClick={handleEditorClick}
+              onMouseMove={handleMouseMove}
+              onMouseUp={stopDragging}
+              onMouseLeave={stopDragging}
+            >
+              <div 
+                className="relative mx-auto"
+                style={{ 
+                  transform: `scale(${zoomLevel / 100})`,
+                  transformOrigin: 'top center'
+                }}
+              >
+                {/* Page background */}
+                {images[selectedPage] && (
+                  <div className="relative shadow-lg bg-white">
+                    <img 
+                      src={images[selectedPage].data} 
+                      alt={`Template page ${selectedPage + 1}`}
+                      className="max-w-full"
+                    />
+                    
+                    {/* Fields */}
+                    {pageFields.map((field) => (
+                      <div
+                        key={field.id}
+                        className={`absolute cursor-move p-1 ${selectedFieldId === field.id ? 'outline outline-2 outline-blue-500' : ''}`}
+                        style={{
+                          left: `${field.position.x * MM_TO_PX}px`,
+                          top: `${field.position.y * MM_TO_PX}px`,
+                          fontFamily: field.style?.fontFamily || 'Arial',
+                          fontSize: `${field.style?.fontSize || 12}px`,
+                          fontWeight: field.style?.fontWeight || 'normal',
+                          fontStyle: field.style?.fontStyle || 'normal',
+                          textDecoration: field.style?.textDecoration || 'none',
+                          color: field.style?.color || '#000000'
+                        }}
+                        onClick={(e) => handleFieldClick(e, field.id)}
+                        onMouseDown={(e) => startDragging(e, field.id)}
+                      >
+                        {field.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  return (
+    <div className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="images">Pages du modèle</TabsTrigger>
+          <TabsTrigger value="fields">Champs du document</TabsTrigger>
+        </TabsList>
+        <TabsContent value="images" className="pt-6">
+          {renderImagesTab()}
+        </TabsContent>
+        <TabsContent value="fields" className="pt-6">
+          {renderFieldsTab()}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default NewPDFTemplateEditor;
