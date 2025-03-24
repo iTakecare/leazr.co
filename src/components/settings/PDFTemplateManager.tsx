@@ -1,510 +1,370 @@
+
 import React, { useState, useEffect } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle,
-  CardDescription 
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ColorPicker } from "@/components/ui/color-picker";
-import { Switch } from "@/components/ui/switch";
-import PDFTemplateImageUploader from "./PDFTemplateImageUploader";
-import PDFTemplateFieldEditor from "./PDFTemplateFieldEditor";
-import PDFPreview from "./pdf-preview/PDFPreview";
 import { toast } from "sonner";
-import { loadTemplate, saveTemplate, PDFTemplate } from "@/utils/templateManager";
-import { generateSamplePdf } from "@/services/offers/offerPdf";
-import { FileDown, Loader2, Save } from "lucide-react";
-import OfferTemplate from "../offer/OfferTemplate";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Save, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { loadPDFTemplate, savePDFTemplate, DEFAULT_MODEL } from "@/utils/pdfTemplateUtils";
+import PDFCompanyInfo from "./PDFCompanyInfo";
+import PDFTemplateWithFields from "./PDFTemplateWithFields";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { checkStorageConnection, resetStorageConnection } from "@/services/fileStorage";
+import PDFPreview from "./PDFPreview";
+
+// Interface pour le modèle PDF
+export interface PDFTemplate {
+  id: string;
+  name: string;
+  companyName: string;
+  companyAddress: string;
+  companyContact: string;
+  companySiret: string;
+  logoURL: string;
+  primaryColor: string;
+  secondaryColor: string;
+  headerText: string;
+  footerText: string;
+  templateImages: any[];
+  fields: any[];
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: any;
+}
 
 interface PDFTemplateManagerProps {
   templateId?: string;
 }
 
-const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ 
-  templateId = 'default'
-}) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'default' }) => {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<PDFTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState("general");
-  const [selectedPage, setSelectedPage] = useState(0);
-  const [useOfferTemplate, setUseOfferTemplate] = useState(false);
+  const [activeTab, setActiveTab] = useState("company");
+  const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [templateExists, setTemplateExists] = useState(false);
+  const [templateName, setTemplateName] = useState<string | undefined>(undefined);
   
+  // Initialisation au montage ou lorsque templateId change
   useEffect(() => {
-    const fetchTemplate = async () => {
-      setIsLoading(true);
-      try {
-        console.log("Chargement du template:", templateId);
-        const loadedTemplate = await loadTemplate(templateId);
-        console.log("Template chargé:", loadedTemplate);
-        setTemplate(loadedTemplate);
-        
-        // Vérifier si le modèle utilise OfferTemplate
-        setUseOfferTemplate(loadedTemplate.useOfferTemplate || false);
-      } catch (error) {
-        console.error("Erreur lors du chargement du template:", error);
-        toast.error("Erreur lors du chargement du modèle");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchTemplate();
+    console.log(`Initialisation du gestionnaire pour le modèle: ${templateId}`);
+    initializeStorage();
   }, [templateId]);
-  
-  const handleSaveTemplate = async () => {
-    if (!template) return;
-    
-    setIsSaving(true);
+
+  // Fonction pour initialiser le stockage
+  const initializeStorage = async () => {
     try {
-      // Mettre à jour le template avec l'option useOfferTemplate
-      const updatedTemplate = {
-        ...template,
-        useOfferTemplate,
+      setLoading(true);
+      setError(null);
+      
+      // Vérifier la connexion au stockage
+      try {
+        const isConnected = await checkStorageConnection();
+        if (isConnected) {
+          console.log("Connexion au stockage Supabase établie");
+          toast.success("Connexion au stockage Supabase établie");
+        } else {
+          console.log("Stockage Supabase non disponible");
+          setError("Connexion au stockage Supabase impossible. Veuillez réessayer.");
+          toast.error("Connexion au stockage Supabase impossible.");
+          setLoading(false);
+          return;
+        }
+      } catch (storageError) {
+        console.error("Erreur avec le stockage:", storageError);
+        setError("Erreur lors de la connexion au stockage Supabase.");
+        toast.error("Erreur lors de la connexion au stockage Supabase.");
+        setLoading(false);
+        return;
+      }
+      
+      // Charger le modèle spécifié
+      await loadTemplate(templateId);
+    } catch (err) {
+      console.error("Erreur lors de l'initialisation:", err);
+      setError("Erreur lors de l'initialisation du gestionnaire");
+      setLoading(false);
+    }
+  };
+
+  // Fonction pour réessayer la connexion
+  const handleRetryConnection = async () => {
+    try {
+      setReconnecting(true);
+      setError(null);
+      
+      toast.info("Tentative de connexion au stockage Supabase...");
+      
+      // Réinitialiser et vérifier la connexion au stockage
+      const isConnected = await resetStorageConnection();
+      
+      if (isConnected) {
+        console.log("Connexion au stockage Supabase établie");
+        toast.success("Connexion au stockage Supabase établie");
+        
+        // Recharger le modèle
+        await loadTemplate(templateId);
+      } else {
+        console.log("Stockage Supabase non disponible");
+        setError("Connexion au stockage Supabase impossible. Veuillez réessayer.");
+        toast.error("Connexion au stockage Supabase impossible.");
+      }
+    } catch (err) {
+      console.error("Erreur lors de la tentative de connexion:", err);
+      setError("Erreur lors de la tentative de connexion au stockage Supabase.");
+      toast.error("Erreur lors de la tentative de connexion au stockage Supabase.");
+    } finally {
+      setReconnecting(false);
+    }
+  };
+
+  // Fonction pour charger le modèle
+  const loadTemplate = async (id: string = 'default') => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`Chargement du modèle PDF: ${id}`);
+      const data = await loadPDFTemplate(id);
+      
+      if (!data) {
+        console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
+        console.log("Modèle par défaut:", DEFAULT_MODEL);
+        setTemplate({
+          ...DEFAULT_MODEL,
+          templateImages: [],
+          fields: []
+        });
+        setTemplateExists(false);
+        setTemplateName("Modèle par défaut");
+        toast.info("Modèle par défaut chargé");
+      } else {
+        console.log("Modèle chargé avec succès:", data);
+        
+        // S'assurer que les tableaux sont correctement initialisés
+        const sanitizedTemplate = {
+          ...data,
+          templateImages: Array.isArray(data.templateImages) ? data.templateImages : [],
+          fields: Array.isArray(data.fields) ? data.fields : []
+        };
+        
+        console.log("Modèle sanitisé:", sanitizedTemplate);
+        console.log("Nombre d'images:", sanitizedTemplate.templateImages ? sanitizedTemplate.templateImages.length : 0);
+        console.log("Nombre de champs:", sanitizedTemplate.fields ? sanitizedTemplate.fields.length : 0);
+        
+        setTemplate(sanitizedTemplate);
+        setTemplateExists(true);
+        setTemplateName(sanitizedTemplate.name);
+        toast.success(`Modèle "${sanitizedTemplate.name}" chargé avec succès`);
+      }
+    } catch (err) {
+      console.error("Erreur lors du chargement du modèle:", err);
+      setError("Erreur lors du chargement du modèle");
+      toast.error("Erreur lors du chargement du modèle");
+      
+      // En cas d'erreur, définir quand même un modèle par défaut
+      setTemplate({
+        ...DEFAULT_MODEL,
+        templateImages: [],
+        fields: []
+      });
+      setTemplateExists(false);
+      setTemplateName("Modèle par défaut (fallback)");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Fonction pour sauvegarder le modèle
+  const handleSaveTemplate = async (updatedTemplate: PDFTemplate) => {
+    setSaving(true);
+    setError(null);
+    
+    try {
+      console.log(`Sauvegarde du modèle: ${updatedTemplate.id}`, updatedTemplate);
+      
+      // Vérifier la connexion au stockage
+      const isConnected = await checkStorageConnection();
+      if (!isConnected) {
+        throw new Error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
+      }
+      
+      // S'assurer que les tableaux sont initialisés
+      const sanitizedTemplate: PDFTemplate = {
+        ...updatedTemplate,
+        templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
+        fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : [],
         updated_at: new Date().toISOString()
       };
       
-      const success = await saveTemplate(updatedTemplate);
+      console.log("Modèle à sauvegarder (sanitisé):", sanitizedTemplate);
+      console.log("Nombre d'images à sauvegarder:", sanitizedTemplate.templateImages.length);
+      console.log("Nombre de champs à sauvegarder:", sanitizedTemplate.fields.length);
       
-      if (success) {
-        toast.success("Modèle enregistré avec succès");
-        setTemplate(updatedTemplate);
-      } else {
-        toast.error("Erreur lors de l'enregistrement du modèle");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la sauvegarde du template:", error);
-      toast.error("Erreur lors de l'enregistrement du modèle");
+      await savePDFTemplate(sanitizedTemplate);
+      
+      setTemplate(sanitizedTemplate);
+      setTemplateExists(true);
+      setTemplateName(sanitizedTemplate.name);
+      toast.success("Modèle sauvegardé avec succès");
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde du modèle:", err);
+      setError("Erreur lors de la sauvegarde du modèle: " + (err instanceof Error ? err.message : "Erreur inconnue"));
+      toast.error("Erreur lors de la sauvegarde du modèle");
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
   
-  const handleGeneratePDF = async () => {
-    if (!template) return;
-    
-    setIsGenerating(true);
-    try {
-      // Données d'exemple pour le PDF
-      const sampleData = {
-        id: `sample-${Date.now()}`,
-        offer_id: `OFR-${Math.floor(Math.random() * 9000) + 1000}`,
-        client_name: "Société Exemple",
-        client_email: "contact@exemple.com",
-        client_company: "Société Exemple S.A.",
-        equipment_description: JSON.stringify([
-          {
-            title: "MacBook Pro 16\" M2",
-            purchasePrice: 2699, 
-            quantity: 1,
-            margin: 10,
-            monthlyPayment: 75.00
-          },
-          {
-            title: "Écran Dell 27\" UltraHD",
-            purchasePrice: 499, 
-            quantity: 2,
-            margin: 15,
-            monthlyPayment: 28.00
-          }
-        ]),
-        amount: 3697,
-        monthly_payment: 131,
-        coefficient: 3.6,
-        created_at: new Date().toISOString(),
+  // Gestion des informations de l'entreprise
+  const handleCompanyInfoUpdate = (companyInfo: Partial<PDFTemplate>) => {
+    if (template) {
+      const updatedTemplate = {
+        ...template,
+        ...companyInfo
       };
       
-      const pdfFilename = await generateSamplePdf(sampleData, {
-        ...template,
-        useOfferTemplate
-      });
-      
-      if (pdfFilename) {
-        toast.success(`PDF d'exemple généré: ${pdfFilename}`);
-      } else {
-        toast.error("Erreur lors de la génération du PDF");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      toast.error(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-    } finally {
-      setIsGenerating(false);
+      handleSaveTemplate(updatedTemplate);
     }
   };
   
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Chargement du modèle...</span>
-      </div>
-    );
-  }
+  // Gestion du modèle complet
+  const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
+    console.log("handleTemplateUpdate appelé avec:", updatedTemplate);
+    console.log("Nombre d'images dans updatedTemplate:", updatedTemplate.templateImages?.length || 0);
+    console.log("Nombre de champs dans updatedTemplate:", updatedTemplate.fields?.length || 0);
+    
+    // S'assurer que les tableaux sont initialisés
+    const sanitizedTemplate: PDFTemplate = {
+      ...updatedTemplate,
+      templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
+      fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : []
+    };
+    
+    handleSaveTemplate(sanitizedTemplate);
+  };
   
-  if (!template) {
-    return (
-      <div className="text-center p-8 border rounded-md bg-red-50 text-red-600">
-        Impossible de charger le modèle
-      </div>
-    );
-  }
-  
+  // Fonction pour réessayer en cas d'erreur
+  const handleRetry = () => {
+    initializeStorage();
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">
-          Modèle: {template.name}
-        </h2>
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>
+            {loading 
+              ? "Chargement du modèle..." 
+              : `Modèle: ${templateName || 'Non défini'}`}
+          </CardTitle>
+        </div>
         <div className="flex gap-2">
           <Button 
-            variant="outline" 
-            onClick={handleGeneratePDF}
-            disabled={isGenerating}
+            variant="outline"
+            size="sm"
+            onClick={handleRetryConnection}
+            disabled={loading || reconnecting}
           >
-            {isGenerating ? (
+            {reconnecting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Génération...
+                Reconnexion...
               </>
             ) : (
               <>
-                <FileDown className="mr-2 h-4 w-4" />
-                Générer un PDF d'exemple
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Vérifier le stockage
               </>
             )}
           </Button>
           <Button 
-            onClick={handleSaveTemplate}
-            disabled={isSaving}
+            variant="default" 
+            size="sm" 
+            onClick={() => template && handleSaveTemplate(template)}
+            disabled={saving || loading || !template}
           >
-            {isSaving ? (
+            {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Enregistrement...
+                Sauvegarde...
               </>
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Enregistrer
+                Sauvegarder
               </>
             )}
           </Button>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full">
-              <TabsTrigger value="general">Général</TabsTrigger>
-              <TabsTrigger value="pages">Pages</TabsTrigger>
-              <TabsTrigger value="fields">Champs</TabsTrigger>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription className="flex flex-col gap-2">
+              <p>{error}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="self-start" 
+                onClick={handleRetry}
+              >
+                Réessayer
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {loading ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">
+              Chargement du modèle...
+            </p>
+          </div>
+        ) : template ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="company">Informations de l'entreprise</TabsTrigger>
+              <TabsTrigger value="design">Conception du modèle</TabsTrigger>
+              <TabsTrigger value="preview">Aperçu</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="general" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informations générales</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="template-name">Nom du modèle</Label>
-                      <Input
-                        type="text"
-                        id="template-name"
-                        value={template.name}
-                        onChange={(e) => setTemplate({ ...template, name: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="template-id">ID du modèle</Label>
-                      <Input
-                        type="text"
-                        id="template-id"
-                        value={template.id}
-                        disabled
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="border-t pt-4 mt-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <Label htmlFor="use-offer-template" className="font-medium">
-                          Utiliser le modèle d'offre
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Utiliser le composant OfferTemplate comme modèle au lieu des images
-                        </p>
-                      </div>
-                      <Switch 
-                        id="use-offer-template" 
-                        checked={useOfferTemplate} 
-                        onCheckedChange={setUseOfferTemplate}
-                      />
-                    </div>
-                    
-                    {useOfferTemplate && (
-                      <div className="rounded-md border p-4 bg-slate-50">
-                        <p className="text-sm">
-                          Lorsque cette option est activée, le modèle utilisera le composant OfferTemplate 
-                          au lieu des images de modèle. Les champs et positions configurés seront ignorés.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informations de l'entreprise</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="company-name">Nom de l'entreprise</Label>
-                      <Input
-                        type="text"
-                        id="company-name"
-                        value={template.companyName}
-                        onChange={(e) => setTemplate({ ...template, companyName: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="company-siret">Numéro de SIRET</Label>
-                      <Input
-                        type="text"
-                        id="company-siret"
-                        value={template.companySiret}
-                        onChange={(e) => setTemplate({ ...template, companySiret: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company-address">Adresse de l'entreprise</Label>
-                    <Input
-                      type="text"
-                      id="company-address"
-                      value={template.companyAddress}
-                      onChange={(e) => setTemplate({ ...template, companyAddress: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company-contact">Contact de l'entreprise</Label>
-                    <Input
-                      type="text"
-                      id="company-contact"
-                      value={template.companyContact}
-                      onChange={(e) => setTemplate({ ...template, companyContact: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="logo-url">URL du logo</Label>
-                    <Input
-                      type="text"
-                      id="logo-url"
-                      value={template.logoURL}
-                      onChange={(e) => setTemplate({ ...template, logoURL: e.target.value })}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Apparence du document</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="primary-color">Couleur primaire</Label>
-                      <ColorPicker
-                        id="primary-color"
-                        value={template.primaryColor}
-                        onColorChange={(color) => setTemplate({ ...template, primaryColor: color })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="secondary-color">Couleur secondaire</Label>
-                      <ColorPicker
-                        id="secondary-color"
-                        value={template.secondaryColor}
-                        onColorChange={(color) => setTemplate({ ...template, secondaryColor: color })}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="header-text">Texte d'en-tête</Label>
-                    <Input
-                      type="text"
-                      id="header-text"
-                      value={template.headerText}
-                      onChange={(e) => setTemplate({ ...template, headerText: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="footer-text">Texte de pied de page</Label>
-                    <Input
-                      type="text"
-                      id="footer-text"
-                      value={template.footerText}
-                      onChange={(e) => setTemplate({ ...template, footerText: e.target.value })}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="company" className="mt-6">
+              <PDFCompanyInfo 
+                template={template} 
+                onSave={handleCompanyInfoUpdate} 
+                loading={saving}
+              />
             </TabsContent>
             
-            <TabsContent value="pages">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pages du modèle</CardTitle>
-                  <CardDescription>
-                    {useOfferTemplate 
-                      ? "Le modèle utilisera le composant OfferTemplate. Les images ci-dessous seront ignorées."
-                      : "Ajoutez les pages de votre modèle. L'ordre des pages correspond à l'ordre dans lequel elles apparaîtront dans le document."}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {useOfferTemplate ? (
-                    <div className="rounded-md border p-6 bg-slate-50">
-                      <div className="text-center space-y-4">
-                        <p className="text-sm">
-                          Le modèle utilise actuellement le composant OfferTemplate comme modèle de document.
-                          Les images de modèle sont ignorées.
-                        </p>
-                        <div className="flex justify-center">
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setUseOfferTemplate(false)}
-                          >
-                            Utiliser les images de modèle à la place
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <PDFTemplateImageUploader
-                      templateImages={template.templateImages}
-                      onChange={(images) => {
-                        setTemplate({ ...template, templateImages: images });
-                      }}
-                      selectedPage={selectedPage}
-                      onPageSelect={setSelectedPage}
-                    />
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="design" className="mt-6">
+              <PDFTemplateWithFields 
+                template={template}
+                onSave={handleTemplateUpdate}
+              />
             </TabsContent>
             
-            <TabsContent value="fields">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Champs du document</CardTitle>
-                  <CardDescription>
-                    {useOfferTemplate 
-                      ? "Le modèle utilisera le composant OfferTemplate. Les champs ci-dessous seront ignorés."
-                      : "Configurez les champs qui apparaîtront dans votre document."}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {useOfferTemplate ? (
-                    <div className="rounded-md border p-6 bg-slate-50">
-                      <div className="text-center space-y-4">
-                        <p className="text-sm">
-                          Le modèle utilise actuellement le composant OfferTemplate comme modèle de document.
-                          Les champs et positions configurés sont ignorés.
-                        </p>
-                        <div className="flex justify-center">
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setUseOfferTemplate(false)}
-                          >
-                            Utiliser les champs configurés à la place
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <PDFTemplateFieldEditor
-                      templateFields={template.fields}
-                      onChange={(fields) => {
-                        setTemplate({ ...template, fields });
-                      }}
-                      selectedPage={selectedPage}
-                    />
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="preview" className="mt-6">
+              <PDFPreview 
+                template={template}
+              />
             </TabsContent>
           </Tabs>
-        </div>
-        
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Aperçu du modèle</CardTitle>
-              <CardDescription>
-                Prévisualisation de la page {selectedPage + 1}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {useOfferTemplate ? (
-                <div className="border rounded-md overflow-hidden bg-white">
-                  <div className="bg-slate-100 p-2 text-xs text-center text-slate-500 border-b">
-                    Aperçu du modèle d'offre (OfferTemplate)
-                  </div>
-                  <div className="p-4 max-h-[600px] overflow-auto">
-                    <OfferTemplate
-                      offerNumber="OFR-1234"
-                      referenceNumber="REF-ABCD"
-                      date={new Date().toISOString()}
-                      clientName="Société Exemple"
-                      clientCompany="Société Exemple S.A."
-                      clientContact="contact@exemple.com"
-                      equipment={[
-                        {
-                          designation: "MacBook Pro 16\" M2",
-                          quantity: 1,
-                          monthly_price: 75.00
-                        },
-                        {
-                          designation: "Écran Dell 27\" UltraHD",
-                          quantity: 2,
-                          monthly_price: 28.00
-                        }
-                      ]}
-                      totalMonthly={131}
-                      companyInfo={{
-                        name: template.companyName,
-                        address: template.companyAddress,
-                        taxId: template.companySiret,
-                        contact: template.companyContact
-                      }}
-                      footerText={template.footerText}
-                      logo={template.logoURL}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <PDFPreview
-                  template={template}
-                  pageIndex={selectedPage}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+        ) : (
+          <Alert variant="warning" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Aucun modèle disponible</AlertTitle>
+            <AlertDescription>
+              Impossible de charger le modèle. Veuillez vérifier la connexion au stockage Supabase.
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

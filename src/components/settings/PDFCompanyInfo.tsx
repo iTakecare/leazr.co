@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, Form } from "@/components/ui/form";
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { PDFTemplate } from "@/utils/templateManager";
+import { PDFTemplate } from "./PDFTemplateManager";
 
 interface PDFCompanyInfoProps {
   template: PDFTemplate;
@@ -18,6 +19,7 @@ interface PDFCompanyInfoProps {
 const PDFCompanyInfo = ({ template, onSave, loading }: PDFCompanyInfoProps) => {
   const [logoPreview, setLogoPreview] = useState<string | null>(template.logoURL || null);
   
+  // Configurer React Hook Form
   const form = useForm<PDFTemplate>({
     defaultValues: {
       name: template.name || "Modèle par défaut",
@@ -33,11 +35,13 @@ const PDFCompanyInfo = ({ template, onSave, loading }: PDFCompanyInfoProps) => {
     }
   });
 
+  // Gestionnaire de soumission du formulaire
   const handleSubmit = (data: PDFTemplate) => {
     console.log("Soumission des informations de l'entreprise:", data);
     onSave(data);
   };
 
+  // Gestionnaire d'upload de logo
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -52,12 +56,14 @@ const PDFCompanyInfo = ({ template, onSave, loading }: PDFCompanyInfoProps) => {
         form.setValue('logoURL', logoUrl);
         setLogoPreview(logoUrl);
         
+        // Notification visuelle mais pas de sauvegarde automatique
         toast.info("Logo chargé. Cliquez sur Sauvegarder pour appliquer les changements.");
       }
     };
     reader.readAsDataURL(file);
   };
   
+  // Suppression du logo
   const removeLogo = () => {
     console.log("Suppression du logo");
     form.setValue('logoURL', '');

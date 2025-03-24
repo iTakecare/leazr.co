@@ -26,8 +26,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import OfferTemplate from "@/components/offer/OfferTemplate";
-import type { EquipmentItem } from "@/components/offer/OfferTemplate";
 
 const SignOffer = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,7 +38,6 @@ const SignOffer = () => {
   const [isSigning, setIsSigning] = useState(false);
   const [signed, setSigned] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
-  const [useTemplateView, setUseTemplateView] = useState(false);
   
   useEffect(() => {
     const fetchOffer = async () => {
@@ -49,11 +46,13 @@ const SignOffer = () => {
       try {
         setLoading(true);
         
+        // Vérifier si l'offre est déjà signée
         const alreadySigned = await isOfferSigned(id);
         if (alreadySigned) {
           setSigned(true);
         }
         
+        // Récupérer les détails de l'offre
         const offerData = await getOfferForClient(id);
         if (!offerData) {
           setError("Cette offre n'existe pas ou n'est plus disponible.");
@@ -62,14 +61,17 @@ const SignOffer = () => {
         
         setOffer(offerData);
         
+        // Pré-remplir le nom du signataire avec le nom du client
         if (offerData.client_name) {
           setSignerName(offerData.client_name);
         }
         
+        // Si l'offre a déjà une signature, l'afficher
         if (offerData.signature_data) {
           setSignature(offerData.signature_data);
           setSigned(true);
         }
+        
       } catch (err) {
         console.error("Erreur lors du chargement de l'offre:", err);
         setError("Une erreur s'est produite lors du chargement de l'offre.");
@@ -97,6 +99,7 @@ const SignOffer = () => {
         setSigned(true);
         toast.success("Offre signée avec succès !");
         
+        // Mettre à jour l'offre locale
         setOffer({
           ...offer,
           signature_data: signatureData,
@@ -149,6 +152,7 @@ const SignOffer = () => {
     );
   }
   
+  // Fonction pour formatter une date
   const formatDate = (dateString: string) => {
     if (!dateString) return "Date inconnue";
     try {
@@ -157,123 +161,7 @@ const SignOffer = () => {
       return "Date incorrecte";
     }
   };
-
-  // Préparer les données d'équipement pour le modèle
-  const prepareEquipmentData = (): EquipmentItem[] => {
-    // Si l'offre contient déjà une liste d'équipements structurée
-    if (offer.equipment_items && Array.isArray(offer.equipment_items)) {
-      return offer.equipment_items;
-    }
-    
-    // Sinon, créer un seul élément à partir de la description
-    return [{
-      designation: offer.equipment_description || "Équipement",
-      quantity: 1,
-      monthly_price: offer.monthly_payment || 0
-    }];
-  };
-
-  // Composant de signature à injecter dans le modèle
-  const renderSignatureSection = () => {
-    if (signed) {
-      return (
-        <div className="border rounded-md overflow-hidden">
-          <div className="bg-gray-50 p-4 border-b flex justify-between items-center">
-            <h3 className="font-semibold">Offre signée</h3>
-            <Badge variant="default" className="bg-green-50 text-green-700 border-green-200">
-              Signée le {formatDate(offer.signed_at || new Date().toISOString())}
-            </Badge>
-          </div>
-          <div className="p-4 bg-white">
-            <div className="flex justify-center mb-2">
-              {signature && (
-                <img 
-                  src={signature} 
-                  alt="Signature" 
-                  className="max-h-40 object-contain border" 
-                />
-              )}
-            </div>
-            <div className="text-center text-sm text-gray-600">
-              Signé électroniquement par {offer.signer_name || signerName}
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    return (
-      <div>
-        <div className="mb-4 p-4 border rounded-md bg-gray-50">
-          <h3 className="font-semibold mb-4">Signature de l'offre</h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="signer-name">Votre nom complet</Label>
-              <Input 
-                id="signer-name"
-                value={signerName}
-                onChange={(e) => setSignerName(e.target.value)}
-                placeholder="Entrez votre nom complet"
-                disabled={isSigning}
-                required
-              />
-            </div>
-            
-            <SignaturePad 
-              onSave={handleSignature}
-              disabled={isSigning}
-              height={200}
-            />
-            
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                En signant cette offre, vous acceptez les conditions générales de leasing et confirmez
-                que les informations fournies sont exactes.
-              </AlertDescription>
-            </Alert>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Basculer entre la vue originale et la nouvelle vue modèle
-  const toggleView = () => {
-    setUseTemplateView(!useTemplateView);
-  };
-
-  // Vue modèle
-  if (useTemplateView) {
-    return (
-      <div className="bg-gray-100 min-h-screen py-6">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="mb-4 flex justify-between items-center">
-            <Button variant="outline" onClick={toggleView}>
-              Retour à la vue standard
-            </Button>
-            <Button variant="outline" onClick={() => window.print()}>
-              Imprimer
-            </Button>
-          </div>
-          
-          <OfferTemplate
-            offerNumber={offer.offer_number || id?.substring(0, 8).toUpperCase() || "EXEMPLE"}
-            referenceNumber={offer.reference_number || `REF-${id?.substring(0, 6).toUpperCase()}`}
-            date={offer.created_at}
-            clientName={offer.client_name || "Client"}
-            clientCompany={offer.client_company}
-            clientContact={offer.client_email}
-            equipment={prepareEquipmentData()}
-            totalMonthly={offer.monthly_payment || 0}
-            renderSignatureSection={renderSignatureSection}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Vue standard existante
+  
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -282,11 +170,8 @@ const SignOffer = () => {
             <h1 className="text-2xl font-bold">Offre de leasing</h1>
             <p className="text-gray-500">Référence: {id?.substring(0, 8).toUpperCase()}</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={toggleView}>
-              Voir en format document
-            </Button>
-            <Badge variant={signed ? "default" : "outline"} className={signed ? "bg-green-50 text-green-700 border-green-200" : ""}>
+          <div>
+            <Badge variant={signed ? "success" : "outline"} className={signed ? "bg-green-50 text-green-700 border-green-200" : ""}>
               {signed ? "Signée" : "En attente de signature"}
             </Badge>
           </div>
