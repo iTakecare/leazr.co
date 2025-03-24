@@ -101,26 +101,33 @@ export const getOfferForClient = async (offerId: string) => {
       throw new Error("ID d'offre invalide ou manquant");
     }
     
-    // Vérifier d'abord si l'offre existe en faisant une requête simple
-    const checkResult = await supabase
+    // Vérification avancée de l'ID pour s'assurer que c'est un UUID valide
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(offerId)) {
+      console.error("Format d'ID d'offre invalide:", offerId);
+      throw new Error(`Format d'ID invalide: ${offerId}`);
+    }
+    
+    // Test d'existence avec une requête simple
+    const { data: existenceCheck, error: existenceError } = await supabase
       .from('offers')
       .select('id')
       .eq('id', offerId)
       .maybeSingle();
     
-    if (checkResult.error) {
-      console.error("Erreur lors de la vérification de l'existence de l'offre:", checkResult.error);
-      throw checkResult.error;
+    if (existenceError) {
+      console.error("Erreur lors de la vérification d'existence:", existenceError);
+      throw new Error(`Erreur de base de données: ${existenceError.message}`);
     }
     
-    if (!checkResult.data) {
-      console.error("Aucune offre trouvée avec l'ID:", offerId);
+    if (!existenceCheck) {
+      console.error(`Aucune offre trouvée avec l'ID: ${offerId}`);
       throw new Error(`Aucune offre trouvée avec l'ID: ${offerId}`);
     }
     
     console.log("Offre trouvée, récupération des détails...");
     
-    // Récupérer tous les détails nécessaires
+    // Récupérer tous les détails nécessaires avec maybeSingle() au lieu de single()
     const { data, error } = await supabase
       .from('offers')
       .select(`
@@ -141,11 +148,11 @@ export const getOfferForClient = async (offerId: string) => {
         )
       `)
       .eq('id', offerId)
-      .maybeSingle();
+      .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
 
     if (error) {
       console.error("Erreur Supabase détaillée lors de la récupération de l'offre:", error);
-      throw error;
+      throw new Error(`Erreur de récupération: ${error.message}`);
     }
     
     if (!data) {

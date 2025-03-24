@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ClientOffersSidebar from "@/components/offers/ClientOffersSidebar";
+import { supabase } from "@/integrations/supabase/client";
 
 const SignOffer = () => {
   const { id } = useParams<{ id: string }>();
@@ -54,8 +55,36 @@ const SignOffer = () => {
       try {
         setLoading(true);
         setError(null);
+        
+        // Enregistrer l'ID pour le débogage
         setDebugInfo(`Tentative de chargement de l'offre: ${id}`);
         
+        // 1. Vérifier si l'offre existe et récupérer des informations de base
+        try {
+          const { data: offerCheck, error: checkError } = await supabase
+            .from('offers')
+            .select('id, client_name, status')
+            .eq('id', id)
+            .maybeSingle();
+          
+          if (checkError) {
+            setDebugInfo(prev => `${prev}\nErreur de vérification initiale: ${JSON.stringify(checkError)}`);
+            throw new Error(`Erreur lors de la vérification de l'offre: ${checkError.message}`);
+          }
+          
+          if (!offerCheck) {
+            setDebugInfo(prev => `${prev}\nAucune offre trouvée dans la vérification initiale`);
+            throw new Error(`Aucune offre trouvée avec l'ID: ${id}`);
+          }
+          
+          setDebugInfo(prev => `${prev}\nOffre trouvée dans la vérification initiale: ${offerCheck.id}`);
+        } catch (checkErr) {
+          console.error("Erreur lors de la vérification initiale:", checkErr);
+          setDebugInfo(prev => `${prev}\nErreur lors de la vérification initiale: ${JSON.stringify(checkErr)}`);
+          throw checkErr;
+        }
+        
+        // 2. Vérifier si l'offre est déjà signée
         let alreadySigned = false;
         try {
           alreadySigned = await isOfferSigned(id);
@@ -66,10 +95,12 @@ const SignOffer = () => {
         } catch (signedErr) {
           console.error("Erreur lors de la vérification de signature:", signedErr);
           setDebugInfo(prev => `${prev}\nErreur vérification signature: ${JSON.stringify(signedErr)}`);
+          // Ne pas bloquer ici, continuer avec la récupération des données
         }
         
+        // 3. Récupérer les données complètes de l'offre
         try {
-          setDebugInfo(prev => `${prev}\nRécupération des données d'offre...`);
+          setDebugInfo(prev => `${prev}\nRécupération des données complètes...`);
           const offerData = await getOfferForClient(id);
           
           if (!offerData) {
@@ -246,9 +277,16 @@ const SignOffer = () => {
             </CardHeader>
             <CardContent>
               {debugInfo && (
-                <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-700 whitespace-pre-wrap">
+                <div className="mt-4 p-4 bg-gray-100 rounded text-xs text-gray-700 whitespace-pre-wrap">
                   <p className="font-bold mb-1">Informations de débogage:</p>
                   {debugInfo}
+                </div>
+              )}
+              
+              {id && (
+                <div className="mt-4 p-4 bg-red-50 rounded-md border border-red-200">
+                  <h3 className="text-sm font-medium text-red-800">Aucune offre trouvée avec l'ID:</h3>
+                  <p className="mt-1 text-xs break-all">{id}</p>
                 </div>
               )}
             </CardContent>
