@@ -9,6 +9,7 @@ import WooCommerceImporter from "@/components/settings/WooCommerceImporter";
 import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
 import PDFTemplateList from "@/components/settings/PDFTemplateList";
 import DataImporter from "@/components/settings/DataImporter";
+import ContractSettings from "@/components/settings/ContractSettings";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 const Settings = () => {
@@ -41,10 +42,11 @@ const Settings = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="pdf">Modèles PDF</TabsTrigger>
+          <TabsTrigger value="contracts">Contrats</TabsTrigger>
           <TabsTrigger value="email">Configuration Email</TabsTrigger>
           <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
           <TabsTrigger value="import">Import Données</TabsTrigger>
@@ -90,6 +92,20 @@ const Settings = () => {
             {/* Afficher le PDFTemplateManager avec le template sélectionné */}
             <PDFTemplateManager templateId={selectedTemplateId} />
           </div>
+        </TabsContent>
+
+        <TabsContent value="contracts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Paramètres des contrats</CardTitle>
+              <CardDescription>
+                Configurez les paramètres liés à la génération et au suivi des contrats
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ContractSettings />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="email">
