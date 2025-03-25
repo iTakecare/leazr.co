@@ -1,275 +1,133 @@
 
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Vérifie si un bucket de stockage existe et le crée s'il n'existe pas
- * @param bucketName - Nom du bucket à vérifier/créer
- * @returns Promise<boolean> - true si le bucket existe ou a été créé avec succès
+ * S'assure qu'un bucket de stockage existe et est configuré correctement
+ * @param bucketName Le nom du bucket à vérifier/créer
+ * @returns Promise<boolean> Vrai si le bucket existe ou a été créé avec succès
  */
-export const ensureStorageBucket = async (bucketName: string): Promise<boolean> => {
+export async function ensureStorageBucket(bucketName: string): Promise<boolean> {
   try {
     console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
-    const supabase = getSupabaseClient();
     
-    // 1. Vérifier si le bucket existe déjà
-    const { data: exists, error: checkError } = await supabase.rpc(
-      'check_bucket_exists',
-      { bucket_name: bucketName }
-    );
+    // Vérifier si le bucket existe déjà
+    const { data: existingBucket, error: bucketError } = await supabase
+      .storage
+      .getBucket(bucketName);
     
-    if (checkError) {
-      console.error("Erreur lors de la vérification du bucket:", checkError);
-      
-      // Tenter une approche alternative en cas d'erreur
-      try {
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
-        
-        if (!bucketExists) {
-          console.log(`Le bucket ${bucketName} n'existe pas, tentative de création...`);
-          const { error: createError } = await supabase.storage.createBucket(bucketName, {
-            public: true
-          });
-          
-          if (createError) {
-            console.error("Erreur lors de la création directe du bucket:", createError);
-            throw createError;
-          }
-          
-          console.log(`Bucket ${bucketName} créé avec succès via l'API storage`);
-          return true;
-        }
-        
-        return true;
-      } catch (alternativeError) {
-        console.error("Échec de l'approche alternative:", alternativeError);
-        throw checkError;
-      }
+    if (existingBucket) {
+      console.log(`Le bucket ${bucketName} existe déjà`);
+      return true;
     }
     
-    if (!exists) {
-      console.log(`Le bucket ${bucketName} n'existe pas, création via RPC...`);
+    if (bucketError && bucketError.message !== 'Bucket not found') {
+      console.error(`Erreur lors de la vérification du bucket ${bucketName}:`, bucketError);
+      return false;
+    }
+    
+    // Le bucket n'existe pas, essayons de le créer
+    try {
+      // Essayons d'appeler la fonction RPC si elle existe
+      const { data: rpcData, error: rpcError } = await supabase.rpc('create_storage_bucket', {
+        bucket_name: bucketName
+      });
       
-      // 2. Créer le bucket s'il n'existe pas
-      const { error: createError } = await supabase.rpc(
-        'create_storage_bucket',
-        { bucket_name: bucketName }
-      );
-      
-      if (createError) {
-        console.error("Erreur lors de la création du bucket via RPC:", createError);
-        
-        // Tenter une création directe en cas d'échec de la RPC
-        try {
-          const { error: directCreateError } = await supabase.storage.createBucket(bucketName, {
-            public: true
+      if (rpcError) {
+        console.log(`La fonction RPC n'existe pas ou a échoué, création directe: ${rpcError.message}`);
+        // Échec de la fonction RPC, essayons de créer directement
+        const { data: createData, error: createError } = await supabase
+          .storage
+          .createBucket(bucketName, {
+            public: true,
+            fileSizeLimit: 52428800, // 50MB
           });
-          
-          if (directCreateError) {
-            console.error("Erreur lors de la création directe du bucket:", directCreateError);
-            throw directCreateError;
-          }
-          
-          console.log(`Bucket ${bucketName} créé avec succès via l'API storage`);
-          return true;
-        } catch (directError) {
-          console.error("Échec de la création directe:", directError);
-          throw createError;
+        
+        if (createError) {
+          console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+          return false;
         }
+        
+        console.log(`Bucket ${bucketName} créé avec succès`);
+        return true;
       }
       
       console.log(`Bucket ${bucketName} créé avec succès via RPC`);
-    } else {
-      console.log(`Le bucket ${bucketName} existe déjà`);
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de la création du bucket ${bucketName}:`, error);
+      return false;
     }
-    
-    return true;
   } catch (error) {
-    console.error("Exception lors de la vérification/création du bucket:", error);
-    throw error;
+    console.error(`Erreur lors de la vérification/création du bucket ${bucketName}:`, error);
+    return false;
   }
-};
+}
 
 /**
- * Télécharge un fichier dans un bucket de stockage
- * @param bucketName - Nom du bucket
- * @param filePath - Chemin du fichier dans le bucket
- * @param file - Fichier à télécharger
- * @param options - Options de téléchargement
- * @returns URL du fichier téléchargé
+ * Télécharge une image à partir d'une URL et la stocke dans un bucket Supabase
+ * @param imageUrl L'URL de l'image à télécharger
+ * @param bucketName Le nom du bucket où stocker l'image
+ * @param folder Dossier optionnel dans le bucket
+ * @returns La nouvelle URL de l'image stockée ou null en cas d'erreur
  */
-export const uploadFile = async (
-  bucketName: string,
-  filePath: string,
-  file: File | Blob | string,
-  options?: { contentType?: string; isPublic?: boolean }
-): Promise<string> => {
+export async function downloadAndStoreImage(imageUrl: string, bucketName: string, folder: string = ''): Promise<string | null> {
   try {
-    console.log(`Téléchargement du fichier dans ${bucketName}/${filePath}`);
+    if (!imageUrl) return null;
     
-    // S'assurer que le bucket existe
-    await ensureStorageBucket(bucketName);
-    
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, file, {
-        contentType: options?.contentType,
-        upsert: true
-      });
-    
-    if (error) {
-      console.error("Erreur lors du téléchargement du fichier:", error);
-      throw error;
+    // Vérifier que le bucket existe
+    const bucketExists = await ensureStorageBucket(bucketName);
+    if (!bucketExists) {
+      throw new Error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé`);
     }
     
-    if (!data?.path) {
-      throw new Error("Chemin du fichier non retourné après téléchargement");
-    }
+    // Extraire le nom du fichier et l'extension de l'URL
+    const urlParts = imageUrl.split('/');
+    let fileName = urlParts[urlParts.length - 1];
     
-    // Obtenir l'URL publique si demandé
-    if (options?.isPublic) {
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(data.path);
-      
-      return urlData.publicUrl;
-    }
+    // Nettoyer le nom de fichier
+    fileName = fileName.split('?')[0]; // Supprimer les paramètres de requête
     
-    return data.path;
-  } catch (error) {
-    console.error("Exception lors du téléchargement du fichier:", error);
-    throw error;
-  }
-};
-
-/**
- * Supprime un fichier dans un bucket de stockage
- * @param bucketName - Nom du bucket
- * @param filePath - Chemin du fichier dans le bucket
- */
-export const deleteFile = async (bucketName: string, filePath: string): Promise<void> => {
-  try {
-    console.log(`Suppression du fichier ${bucketName}/${filePath}`);
+    // Générer un nom unique pour éviter les collisions
+    const timestamp = Date.now();
+    const uniqueFileName = `${timestamp}-${fileName}`;
+    const filePath = folder ? `${folder}/${uniqueFileName}` : uniqueFileName;
     
-    const supabase = getSupabaseClient();
-    const { error } = await supabase.storage
-      .from(bucketName)
-      .remove([filePath]);
-    
-    if (error) {
-      console.error("Erreur lors de la suppression du fichier:", error);
-      throw error;
-    }
-    
-    console.log(`Fichier ${filePath} supprimé avec succès`);
-  } catch (error) {
-    console.error("Exception lors de la suppression du fichier:", error);
-    throw error;
-  }
-};
-
-/**
- * Liste les fichiers dans un bucket de stockage
- * @param bucketName - Nom du bucket
- * @param path - Chemin dans le bucket (optionnel)
- * @returns Liste des fichiers
- */
-export const listFiles = async (bucketName: string, path?: string): Promise<any[]> => {
-  try {
-    console.log(`Listage des fichiers dans ${bucketName}${path ? '/' + path : ''}`);
-    
-    // S'assurer que le bucket existe
-    await ensureStorageBucket(bucketName);
-    
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .list(path || '', {
-        sortBy: { column: 'name', order: 'asc' }
-      });
-    
-    if (error) {
-      console.error("Erreur lors du listage des fichiers:", error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error("Exception lors du listage des fichiers:", error);
-    throw error;
-  }
-};
-
-/**
- * Télécharge une image depuis une URL et la sauvegarde dans un bucket
- * @param sourceUrl - URL de l'image à télécharger
- * @param destinationPath - Chemin de destination dans le bucket
- * @param bucketName - Nom du bucket
- * @returns URL publique de l'image téléchargée
- */
-export const downloadAndUploadImage = async (
-  sourceUrl: string,
-  destinationPath: string,
-  bucketName: string = 'product-images'
-): Promise<string | null> => {
-  try {
-    console.log(`Téléchargement de l'image depuis ${sourceUrl} vers ${bucketName}/${destinationPath}`);
-    
-    // S'assurer que le bucket existe
-    await ensureStorageBucket(bucketName);
-    
-    // Télécharger l'image depuis l'URL
-    const response = await fetch(sourceUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    // Télécharger l'image
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Erreur lors du téléchargement de l'image: ${response.statusText}`);
       }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Échec du téléchargement de l'image: ${response.status} ${response.statusText}`);
-    }
-    
-    // Extraire le type de contenu
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    
-    // Convertir la réponse en blob
-    const imageBlob = await response.blob();
-    
-    // Uploadez l'image vers Supabase Storage
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(destinationPath, imageBlob, {
-        contentType,
-        upsert: true
-      });
-    
-    if (error) {
-      console.error("Erreur lors de l'upload de l'image téléchargée:", error);
+      
+      const blob = await response.blob();
+      
+      // Uploader l'image dans le bucket
+      const { data, error } = await supabase
+        .storage
+        .from(bucketName)
+        .upload(filePath, blob, {
+          contentType: blob.type,
+          upsert: true
+        });
+      
+      if (error) {
+        console.error(`Erreur lors de l'upload de l'image dans ${bucketName}/${filePath}:`, error);
+        return null;
+      }
+      
+      // Obtenir l'URL publique
+      const { data: publicUrlData } = supabase
+        .storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+      
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error(`Erreur lors du téléchargement et stockage de l'image ${imageUrl}:`, error);
       return null;
     }
-    
-    // Obtenir l'URL publique
-    const { data: urlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(data.path);
-    
-    console.log(`Image téléchargée et sauvegardée avec succès: ${urlData.publicUrl}`);
-    return urlData.publicUrl;
   } catch (error) {
-    console.error("Erreur lors du téléchargement et de l'upload de l'image:", error);
+    console.error(`Erreur dans downloadAndStoreImage:`, error);
     return null;
   }
-};
-
-// Export toutes les fonctions individuellement et aussi comme export par défaut
-const storageService = {
-  ensureStorageBucket,
-  uploadFile,
-  deleteFile,
-  listFiles,
-  downloadAndUploadImage
-};
-
-export default storageService;
+}

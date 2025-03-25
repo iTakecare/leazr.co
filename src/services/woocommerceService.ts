@@ -90,7 +90,7 @@ export const mapDbProductToProduct = (dbProduct: any): Product => {
     variation_attributes: dbProduct.variation_attributes || {},
     image_url: dbProduct.image_url || '',
     image_urls: dbProduct.image_urls || [],
-    imageUrls: dbProduct.imageUrls || []
+    imageUrls: dbProduct.image_urls || [] // Remap to use the existing column
   };
 };
 
@@ -213,12 +213,33 @@ export async function importWooCommerceProducts(
       errors: []
     };
     
+    // Vérifier les colonnes disponibles dans la table products
+    const columnsToCheck = ['image_urls', 'image_url', 'category', 'specifications'];
+    const columnStatus: Record<string, boolean> = {};
+    
+    for (const column of columnsToCheck) {
+      columnStatus[column] = await checkColumnExists('products', column);
+      console.log(`Column '${column}' exists: ${columnStatus[column]}`);
+    }
+    
     for (const product of products) {
       try {
         // Transformer les catégories en chaine unique pour le champ 'category' (au singulier)
         const categoryString = product.categories?.map(c => c.name).join(', ') || '';
         
-        const mappedProduct = {
+        // Extraire l'URL de l'image principale s'il y en a une
+        const mainImageUrl = product.images?.[0]?.src || '';
+        
+        // Préparer un tableau des URLs d'images
+        const imageUrls = product.images?.map(img => img.src) || [];
+        
+        // Préparer un objet de spécifications qui inclut les catégories
+        const specifications = {
+          categories: product.categories?.map(c => c.name) || [],
+          // Ajouter d'autres spécifications si nécessaire
+        };
+        
+        const mappedProduct: Record<string, any> = {
           id: product.id.toString(),
           name: product.name,
           description: product.description,
@@ -227,28 +248,33 @@ export async function importWooCommerceProducts(
           regular_price: product.regular_price || '0',
           sale_price: product.sale_price || '',
           sku: product.sku || '',
-          // Utilisez 'category' (singulier) qui existe dans le schéma de la base de données
-          category: product.categories?.[0]?.name || '',
-          // Stockons également les catégories multiples comme JSON dans les spécifications
-          specifications: JSON.stringify({
-            categories: product.categories?.map(c => c.name) || []
-          }),
           brand: 'Imported',
           status: product.status,
           active: product.status === 'publish',
           created_at: product.date_created,
           updated_at: product.date_modified,
           stock: product.stock_quantity || 0,
-          images: product.images?.map(img => img.src) || [],
-          image_url: product.images?.[0]?.src || '',
-          image_urls: product.images?.map(img => img.src) || [],
-          imageUrls: product.images?.map(img => img.src) || [],
-          image_alts: product.images?.map(img => img.alt || '') || [],
           is_parent: product.variations?.length > 0,
           parent_id: null,
-          variations: [],
-          is_variation: false
+          is_variation: false,
         };
+        
+        // N'ajouter les champs que s'ils existent dans le schéma
+        if (columnStatus['category']) {
+          mappedProduct.category = product.categories?.[0]?.name || '';
+        }
+        
+        if (columnStatus['specifications']) {
+          mappedProduct.specifications = JSON.stringify(specifications);
+        }
+        
+        if (columnStatus['image_url']) {
+          mappedProduct.image_url = mainImageUrl;
+        }
+        
+        if (columnStatus['image_urls']) {
+          mappedProduct.image_urls = imageUrls;
+        }
         
         const { data: existingProduct } = await supabase
           .from('products')
@@ -269,7 +295,9 @@ export async function importWooCommerceProducts(
           
           if (error) {
             console.error(`Error updating product ${product.id}:`, error);
-            throw error;
+            result.errors = result.errors || [];
+            result.errors.push(`Error updating product ${product.name || product.id}: ${error.message}`);
+            continue;
           }
         } else {
           const { error } = await supabase
@@ -278,7 +306,9 @@ export async function importWooCommerceProducts(
           
           if (error) {
             console.error(`Error inserting product ${product.id}:`, error);
-            throw error;
+            result.errors = result.errors || [];
+            result.errors.push(`Error inserting product ${product.name || product.id}: ${error.message}`);
+            continue;
           }
         }
         
@@ -300,7 +330,7 @@ export async function importWooCommerceProducts(
               
               const variation = await variationResponse.json();
               
-              const mappedVariation = {
+              const mappedVariation: Record<string, any> = {
                 id: `${product.id}-${variation.id}`,
                 name: `${product.name} - ${variation.attributes.map((a: any) => a.option).join(', ')}`,
                 description: product.description,
@@ -309,15 +339,12 @@ export async function importWooCommerceProducts(
                 regular_price: variation.regular_price || '0',
                 sale_price: variation.sale_price || '',
                 sku: variation.sku || '',
-                category: categoryString.split(',')[0] || '', // Utiliser la même catégorie que le parent
                 brand: 'Imported',
                 status: 'publish',
                 active: true,
                 created_at: variation.date_created,
                 updated_at: variation.date_modified,
                 stock: variation.stock_quantity || 0,
-                images: variation.image ? [variation.image.src] : (product.images?.map(img => img.src) || []),
-                image_url: variation.image?.src || product.images?.[0]?.src || '',
                 is_variation: true,
                 parent_id: product.id.toString(),
                 variation_attributes: variation.attributes.reduce((acc: any, attr: any) => {
@@ -326,12 +353,25 @@ export async function importWooCommerceProducts(
                 }, {})
               };
               
+              // N'ajouter les champs que s'ils existent dans le schéma
+              if (columnStatus['category']) {
+                mappedVariation.category = product.categories?.[0]?.name || '';
+              }
+              
+              if (columnStatus['image_url']) {
+                mappedVariation.image_url = variation.image?.src || mainImageUrl;
+              }
+              
+              if (columnStatus['image_urls']) {
+                mappedVariation.image_urls = variation.image ? [variation.image.src] : imageUrls;
+              }
+              
               const { data: existingVariation } = await supabase
                 .from('products')
                 .select('*')
                 .eq('sku', mappedVariation.sku)
                 .maybeSingle();
-                
+              
               if (existingVariation && !overwriteExisting) {
                 continue;
               }
@@ -342,13 +382,19 @@ export async function importWooCommerceProducts(
                   .update(mappedVariation)
                   .eq('id', existingVariation.id);
                 
-                if (error) throw error;
+                if (error) {
+                  console.error(`Error updating variation ${variationId}:`, error);
+                  continue;
+                }
               } else {
                 const { error } = await supabase
                   .from('products')
                   .insert(mappedVariation);
                 
-                if (error) throw error;
+                if (error) {
+                  console.error(`Error inserting variation ${variationId}:`, error);
+                  continue;
+                }
               }
             } catch (varError) {
               console.error(`Error importing variation ${variationId} for product ${product.id}:`, varError);
