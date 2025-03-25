@@ -1,4 +1,3 @@
-
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
@@ -257,11 +256,7 @@ function getBaseProductName(name: string): string {
 }
 
 export async function importWooCommerceProducts(
-  products: (WooCommerceProduct & {
-    siteUrl: string;
-    consumerKey: string;
-    consumerSecret: string;
-  })[],
+  products: WooCommerceProductWithCredentials[],
   includeVariations: boolean = true,
   overwriteExisting: boolean = false
 ): Promise<ImportResult> {
@@ -287,7 +282,7 @@ export async function importWooCommerceProducts(
     }
     
     // Regrouper les produits par leur nom de base (pour détecter les variants)
-    const productGroups: Record<string, WooCommerceProduct[]> = {};
+    const productGroups: Record<string, WooCommerceProductWithCredentials[]> = {};
     
     // Première passe : identifier les produits parents et grouper les variants potentiels
     for (const product of products) {
