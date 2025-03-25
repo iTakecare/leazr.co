@@ -8,6 +8,7 @@ import SmtpSettings from "@/components/settings/SmtpSettings";
 import WooCommerceImporter from "@/components/settings/WooCommerceImporter";
 import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
 import PDFTemplateList from "@/components/settings/PDFTemplateList";
+import DataImporter from "@/components/settings/DataImporter";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 const Settings = () => {
@@ -40,12 +41,13 @@ const Settings = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-6 w-full">
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="pdf">Modèles PDF</TabsTrigger>
           <TabsTrigger value="email">Configuration Email</TabsTrigger>
           <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
+          <TabsTrigger value="import">Import Données</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leasers">
@@ -116,6 +118,10 @@ const Settings = () => {
               <WooCommerceImporter />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="import">
+          <DataImporter />
         </TabsContent>
       </Tabs>
     </div>
