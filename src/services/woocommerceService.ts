@@ -196,12 +196,12 @@ async function checkColumnExists(tableName: string, columnName: string): Promise
 
 function generateUuidFromId(numericId: number | string): string {
   const idStr = String(numericId);
+  
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idStr)) {
     return idStr;
   }
   
-  const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
-  return `woo-${idStr}-${uuidv4().substring(8)}`;
+  return `woo-${idStr}-${uuidv4().substring(0, 8)}`;
 }
 
 export async function importWooCommerceProducts(
