@@ -1,772 +1,1011 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { toast } from "sonner";
+import { 
+  ShoppingBag, 
+  Server, 
+  Key, 
+  Loader2, 
+  Check, 
+  X, 
+  Download, 
+  AlertCircle,
+  PackageCheck,
+  Save,
+  RefreshCw,
+  ExternalLink,
+  LinkIcon,
+  Tag,
+  DownloadCloud,
+  Info
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Upload, AlertCircle, Check, RefreshCw } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
 import { Progress } from "@/components/ui/progress";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { useUser } from "@/hooks/use-user";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  testWooCommerceConnection,
-  saveWooCommerceConfig,
-  getWooCommerceConfig,
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  getWooCommerceProducts,
+  fetchAllWooCommerceProducts,
+  testWooCommerceConnection, 
   importWooCommerceProducts,
+  getWooCommerceConfig,
+  saveWooCommerceConfig
 } from "@/services/woocommerceService";
+import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
+import { useAuth } from "@/context/AuthContext";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { ensureStorageBucket } from "@/services/storageService";
 
-// Types pour l'état d'importation
-interface ImportState {
-  status: "idle" | "connecting" | "fetching" | "importing" | "completed" | "error";
-  message: string;
-  current: number;
-  total: number;
-  products: any[];
-  importedCount: number;
-  skippedCount: number;
-  errors: string[];
-}
+const formSchema = z.object({
+  siteUrl: z.string().url({ message: "Veuillez entrer une URL valide" }),
+  consumerKey: z.string().min(1, { message: "Clé client requise" }),
+  consumerSecret: z.string().min(1, { message: "Clé secrète requise" }),
+});
 
 const WooCommerceImporter = () => {
-  const { toast } = useToast();
-  const { user } = useUser();
-  const [siteUrl, setSiteUrl] = useState("");
-  const [consumerKey, setConsumerKey] = useState("");
-  const [consumerSecret, setConsumerSecret] = useState("");
-  const [includeVariations, setIncludeVariations] = useState(true);
-  const [overwriteExisting, setOverwriteExisting] = useState(false);
-  const [connectionTested, setConnectionTested] = useState(false);
-  const [configSaved, setConfigSaved] = useState(false);
-  const [importState, setImportState] = useState<ImportState>({
-    status: "idle",
-    message: "",
-    current: 0,
-    total: 0,
-    products: [],
-    importedCount: 0,
-    skippedCount: 0,
-    errors: [],
+  const { user } = useAuth();
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isFetchingAll, setIsFetchingAll] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [productsList, setProductsList] = useState<WooCommerceProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<WooCommerceProduct[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Record<number, boolean>>({});
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isFetchingProducts, setIsFetchingProducts] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [connectionError, setConnectionError] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
+  const [importStage, setImportStage] = useState("");
+  const [importOptions, setImportOptions] = useState({
+    includeImages: true,
+    includeDescriptions: true,
+    includeVariations: true,
+    overwriteExisting: false
+  });
+  const [selectAll, setSelectAll] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      siteUrl: "https://www.itakecare.be",
+      consumerKey: "ck_09a895603eb75cc364669e8e3317fe13e607ace0",
+      consumerSecret: "cs_52c6e6aa2332f0d7e1b395ab32c32f75a8ce4ccc",
+    },
   });
 
-  // Charger la configuration enregistrée
-  React.useEffect(() => {
-    const loadConfig = async () => {
-      if (user?.id) {
-        const config = await getWooCommerceConfig(user.id);
-        if (config) {
-          setSiteUrl(config.site_url || "");
-          setConsumerKey(config.consumer_key || "");
-          setConsumerSecret(config.consumer_secret || "");
-          setConfigSaved(true);
-        }
+  useEffect(() => {
+    // Nous n'utilisons plus getWooCommerceConfig car la fonction edge n'existe pas
+    // Au lieu de cela, utilisons localStorage pour stocker temporairement la configuration
+    try {
+      const savedConfig = localStorage.getItem('woocommerce_config');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        form.reset({
+          siteUrl: config.siteUrl,
+          consumerKey: config.consumerKey,
+          consumerSecret: config.consumerSecret,
+        });
+        
+        console.log("Configuration WooCommerce chargée depuis localStorage");
+        setConfigLoaded(true);
       }
-    };
-    loadConfig();
-  }, [user?.id]);
+    } catch (error) {
+      console.error("Error loading WooCommerce config:", error);
+    }
+  }, [form]);
 
-  // Tester la connexion à WooCommerce
-  const testConnection = async () => {
-    if (!siteUrl || !consumerKey || !consumerSecret) {
-      toast({
-        title: "Données manquantes",
-        description: "Veuillez remplir tous les champs de connexion",
-        variant: "destructive",
-      });
+  const handleSaveConfig = async (values: z.infer<typeof formSchema>) => {
+    if (!user) {
+      toast.error("Vous devez être connecté pour sauvegarder la configuration");
       return;
     }
-
+    
+    setIsSaving(true);
+    setConnectionError("");
+    
     try {
-      setImportState({
-        ...importState,
-        status: "connecting",
-        message: "Test de connexion en cours...",
+      console.log("Sauvegarde de la configuration WooCommerce:", {
+        siteUrl: values.siteUrl,
+        consumerKey: values.consumerKey.substring(0, 5) + "...",
       });
-
-      // Vérifier si la table products a les bonnes colonnes
-      const { data: columnInfo, error: columnError } = await supabase
-        .rpc('get_table_columns', { table_name: 'products' });
       
-      if (columnError) {
-        console.error('Erreur lors de la vérification des colonnes:', columnError);
-        
-        // Créer la fonction RPC si elle n'existe pas
-        try {
-          const { error: rpcError } = await supabase.rpc('create_table_columns_function');
-          console.log('Création de la fonction pour vérifier les colonnes:', rpcError ? 'échec' : 'succès');
-        } catch (e) {
-          console.error('Échec de la création de la fonction RPC:', e);
-        }
+      const success = await saveWooCommerceConfig(user.id, {
+        siteUrl: values.siteUrl,
+        consumerKey: values.consumerKey,
+        consumerSecret: values.consumerSecret,
+      });
+      
+      if (success) {
+        toast.success("Configuration WooCommerce sauvegardée");
+        setConfigLoaded(true);
       } else {
-        console.log('Colonnes de la table products:', columnInfo);
-      }
-
-      // Tester la connexion WooCommerce
-      const isConnected = await testWooCommerceConnection(siteUrl, consumerKey, consumerSecret);
-
-      if (isConnected) {
-        setConnectionTested(true);
-        setImportState({
-          ...importState,
-          status: "idle",
-          message: "Connexion réussie",
-        });
-        toast({
-          title: "Connexion réussie",
-          description: "La connexion à WooCommerce a été établie avec succès.",
-        });
-
-        // Sauvegarder les identifiants si connecté
-        if (user?.id) {
-          const saved = await saveWooCommerceConfig(user.id, {
-            siteUrl,
-            consumerKey,
-            consumerSecret,
-          });
-
-          if (saved) {
-            setConfigSaved(true);
-          }
-        }
-      } else {
-        setImportState({
-          ...importState,
-          status: "error",
-          message: "Échec de la connexion",
-        });
-        toast({
-          title: "Échec de la connexion",
-          description:
-            "Impossible de se connecter à l'API WooCommerce. Vérifiez vos identifiants.",
-          variant: "destructive",
-        });
+        toast.error("Échec de la sauvegarde de la configuration");
       }
     } catch (error) {
-      console.error("Erreur lors du test de connexion:", error);
-      setImportState({
-        ...importState,
-        status: "error",
-        message: "Erreur lors du test de connexion",
-      });
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors du test de connexion.",
-        variant: "destructive",
-      });
+      console.error("Error saving WooCommerce config:", error);
+      toast.error("Erreur lors de la sauvegarde de la configuration");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Récupérer les produits de WooCommerce
-  const fetchProducts = async () => {
+  const handleTestConnection = async (values: z.infer<typeof formSchema>) => {
+    setIsConnecting(true);
+    setIsConnected(false);
+    setConnectionError("");
+    
     try {
-      setImportState({
-        ...importState,
-        status: "fetching",
-        message: "Récupération des produits...",
-        current: 0,
-        total: 0,
-        products: [],
+      console.log("Test de connexion à WooCommerce:", {
+        siteUrl: values.siteUrl,
+        consumerKey: values.consumerKey.substring(0, 5) + "...",
       });
-
-      // Appel direct à la fonction edge de Supabase pour récupérer les produits
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/woocommerce-import`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            action: "getProducts",
-            url: siteUrl,
-            consumerKey: consumerKey,
-            consumerSecret: consumerSecret,
-            page: 1,
-            perPage: 100,
-          }),
-        }
+      
+      const success = await testWooCommerceConnection(
+        values.siteUrl,
+        values.consumerKey,
+        values.consumerSecret
       );
-
-      const result = await response.json();
-
-      if (result.error) {
-        console.error("Erreur lors de la récupération des produits:", result.error);
-        setImportState({
-          ...importState,
-          status: "error",
-          message: `Erreur: ${result.error}`,
-        });
-        return;
-      }
-
-      if (!result.products || !Array.isArray(result.products)) {
-        setImportState({
-          ...importState,
-          status: "error",
-          message: "Format de réponse invalide",
-        });
-        return;
-      }
-
-      console.log(`${result.products.length} produits récupérés`);
-
-      setImportState({
-        ...importState,
-        status: "idle",
-        message: `${result.products.length} produits récupérés`,
-        products: result.products,
-        total: result.products.length,
-      });
-
-      toast({
-        title: "Produits récupérés",
-        description: `${result.products.length} produits ont été récupérés avec succès.`,
-      });
-    } catch (error) {
-      console.error("Erreur lors de la récupération des produits:", error);
-      setImportState({
-        ...importState,
-        status: "error",
-        message: "Erreur lors de la récupération des produits",
-      });
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la récupération des produits.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Récupérer tous les produits WooCommerce
-  const fetchAllProducts = async () => {
-    try {
-      setImportState({
-        ...importState,
-        status: "fetching",
-        message: "Récupération de tous les produits...",
-        current: 0,
-        total: 0,
-        products: [],
-      });
-
-      let page = 1;
-      const perPage = 100;
-      let allProducts: any[] = [];
-      let hasMoreProducts = true;
-
-      while (hasMoreProducts) {
-        setImportState((prev) => ({
-          ...prev,
-          message: `Récupération de la page ${page}...`,
-        }));
-
-        // Appel direct à la fonction edge de Supabase
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/woocommerce-import`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              action: "getProducts",
-              url: siteUrl,
-              consumerKey: consumerKey,
-              consumerSecret: consumerSecret,
-              page,
-              perPage,
-            }),
-          }
-        );
-
-        const result = await response.json();
-
-        if (result.error) {
-          console.error("Erreur lors de la récupération des produits:", result.error);
-          break;
-        }
-
-        if (!result.products || !Array.isArray(result.products) || result.products.length === 0) {
-          hasMoreProducts = false;
-        } else {
-          allProducts = [...allProducts, ...result.products];
-          page++;
-        }
-      }
-
-      console.log(`${allProducts.length} produits récupérés au total`);
-
-      setImportState({
-        ...importState,
-        status: "idle",
-        message: `${allProducts.length} produits récupérés`,
-        products: allProducts,
-        total: allProducts.length,
-      });
-
-      toast({
-        title: "Produits récupérés",
-        description: `${allProducts.length} produits ont été récupérés au total.`,
-      });
-    } catch (error) {
-      console.error("Erreur lors de la récupération de tous les produits:", error);
-      setImportState({
-        ...importState,
-        status: "error",
-        message: "Erreur lors de la récupération des produits",
-      });
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la récupération des produits.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Importer les produits dans la base de données
-  const importProducts = async () => {
-    try {
-      if (importState.products.length === 0) {
-        toast({
-          title: "Aucun produit à importer",
-          description: "Veuillez d'abord récupérer les produits.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setImportState((prev) => ({
-        ...prev,
-        status: "importing",
-        message: "Importation des produits...",
-        current: 0,
-        importedCount: 0,
-        skippedCount: 0,
-        errors: [],
-      }));
-
-      console.log(`Starting import with overwriteExisting: ${overwriteExisting}`);
-
-      // Vérifier/créer le bucket de stockage pour les images de produits
-      await ensureStorageBucketExists("product-images");
-
-      const batchSize = 5;
-      const totalBatches = Math.ceil(importState.products.length / batchSize);
-      let totalImported = 0;
-      let totalSkipped = 0;
-      let allErrors: string[] = [];
-
-      for (let i = 0; i < totalBatches; i++) {
-        const start = i * batchSize;
-        const end = Math.min((i + 1) * batchSize, importState.products.length);
-        const batch = importState.products.slice(start, end);
-
-        setImportState((prev) => ({
-          ...prev,
-          message: `Importation du lot ${i + 1}/${totalBatches}...`,
-          current: start,
-        }));
-
-        const result = await importWooCommerceProducts(
-          batch,
-          includeVariations,
-          overwriteExisting
-        );
-
-        totalImported += result.totalImported;
-        totalSkipped += result.skipped;
-
-        if (result.errors && result.errors.length > 0) {
-          allErrors = [...allErrors, ...result.errors];
-        }
-
-        setImportState((prev) => ({
-          ...prev,
-          importedCount: totalImported,
-          skippedCount: totalSkipped,
-          errors: allErrors,
-        }));
-      }
-
-      setImportState((prev) => ({
-        ...prev,
-        status: allErrors.length > 0 ? "error" : "completed",
-        message: allErrors.length > 0
-          ? "Importation terminée avec des erreurs."
-          : "Importation terminée avec succès.",
-        current: importState.products.length,
-        importedCount: totalImported,
-        skippedCount: totalSkipped,
-        errors: allErrors,
-      }));
-
-      toast({
-        title: allErrors.length > 0 ? "Importation terminée avec des erreurs" : "Importation terminée",
-        description: `${totalImported} produits importés, ${totalSkipped} produits ignorés.`,
-        variant: allErrors.length > 0 ? "destructive" : "default",
-      });
-    } catch (error) {
-      console.error("Erreur lors de l'importation des produits:", error);
-      setImportState((prev) => ({
-        ...prev,
-        status: "error",
-        message: "Erreur lors de l'importation des produits",
-        errors: [...prev.errors, (error as Error).message],
-      }));
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'importation des produits.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // S'assurer que le bucket de stockage existe
-  const ensureStorageBucketExists = async (bucketName: string) => {
-    try {
-      console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
       
-      // Vérifier si le bucket existe
-      const { data: buckets, error } = await supabase.storage.listBuckets();
-      
-      if (error) {
-        console.error("Erreur lors de la vérification du bucket:", error);
-        throw error;
-      }
-      
-      const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-      
-      if (!bucketExists) {
-        console.log(`Le bucket ${bucketName} n'existe pas, tentative de création...`);
+      if (success) {
+        console.log("Connexion WooCommerce réussie");
+        toast.success("Connexion réussie à votre boutique WooCommerce");
+        setIsConnected(true);
+        fetchProducts(values, 1);
         
-        // Essayer de créer le bucket directement
-        try {
-          const { data, error: createError } = await supabase.storage.createBucket(bucketName, {
-            public: true
-          });
-          
-          if (createError) {
-            console.error("Erreur lors de la création directe du bucket:", createError);
-            
-            // Approche alternative - utiliser RPC
-            try {
-              const { error: rpcError } = await supabase.rpc('create_storage_bucket', {
-                bucket_name: bucketName
-              });
-              
-              if (rpcError) {
-                console.error("Échec de l'approche alternative:", rpcError);
-              }
-            } catch (e) {
-              console.error("Exception lors de l'appel RPC:", e);
-            }
-          }
-        } catch (e) {
-          console.error("Exception lors de la vérification/création du bucket:", e);
+        if (!configLoaded && user) {
+          await handleSaveConfig(values);
+          setConfigLoaded(true);
         }
+      } else {
+        console.error("Échec de la connexion WooCommerce");
+        setConnectionError("Échec de la connexion. Vérifiez vos identifiants et assurez-vous que votre boutique est accessible.");
+        toast.error("Échec de la connexion. Vérifiez vos identifiants.");
+        setIsConnected(false);
       }
     } catch (error) {
-      console.error("Error ensuring storage bucket exists, continuing anyway:", error);
+      console.error("Error testing connection:", error);
+      setConnectionError("Erreur technique lors du test de connexion. Veuillez réessayer plus tard.");
+      toast.error("Erreur lors du test de connexion");
+    } finally {
+      setIsConnecting(false);
     }
   };
 
-  // Afficher le pourcentage de progression
-  const getProgressPercentage = () => {
-    if (importState.total === 0) return 0;
-    return Math.round((importState.current / importState.total) * 100);
+  const fetchAllProducts = async (values: z.infer<typeof formSchema>) => {
+    if (!isConnected) {
+      toast.error("Veuillez d'abord tester la connexion");
+      return;
+    }
+    
+    setIsFetchingAll(true);
+    setImportStage("Récupération de tous les produits...");
+    
+    try {
+      console.log("Récupération de tous les produits WooCommerce");
+      const products = await fetchAllWooCommerceProducts(
+        values.siteUrl,
+        values.consumerKey,
+        values.consumerSecret
+      );
+      
+      console.log(`${products.length} produits récupérés au total`);
+      setAllProducts(products);
+      
+      setProductsList(products.slice(0, 10));
+      setCurrentPage(1);
+      setTotalPages(Math.max(1, Math.ceil(products.length / 10)));
+      
+      toast.success(`${products.length} produits récupérés`);
+    } catch (error) {
+      console.error("Error fetching all products:", error);
+      toast.error("Erreur lors de la récupération des produits");
+      setConnectionError("Erreur lors de la récupération des produits. Vérifiez vos identifiants et la connectivité de votre boutique.");
+    } finally {
+      setIsFetchingAll(false);
+      setImportStage("");
+    }
   };
 
-  // Désactiver les boutons pendant le chargement
-  const isLoading = ["connecting", "fetching", "importing"].includes(importState.status);
+  const fetchProducts = async (values: z.infer<typeof formSchema>, page: number) => {
+    setIsFetchingProducts(true);
+    
+    try {
+      console.log(`Récupération des produits WooCommerce, page ${page}`);
+      const products = await getWooCommerceProducts(
+        values.siteUrl,
+        values.consumerKey,
+        values.consumerSecret,
+        page,
+        10
+      );
+      
+      console.log(`${products.length} produits récupérés`);
+      setProductsList(products);
+      setCurrentPage(page);
+      
+      if (allProducts.length > 0) {
+        setTotalPages(Math.max(1, Math.ceil(allProducts.length / 10)));
+      } else {
+        setTotalPages(products.length === 10 ? page + 1 : page);
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      toast.error("Erreur lors de la récupération des produits");
+      setConnectionError("Erreur lors de la récupération des produits. Vérifiez vos identifiants et la connectivité de votre boutique.");
+    } finally {
+      setIsFetchingProducts(false);
+    }
+  };
+
+  useEffect(() => {
+    const productsToCheck = allProducts.length > 0 ? allProducts : productsList;
+    if (productsToCheck.length === 0) return;
+    
+    const allSelected = productsToCheck.every(product => selectedProducts[product.id]);
+    setSelectAll(allSelected);
+  }, [selectedProducts, productsList, allProducts]);
+
+  useEffect(() => {
+    const productsToSelect = allProducts.length > 0 ? allProducts : productsList;
+    if (productsToSelect.length === 0) return;
+    
+    const newSelectedProducts = { ...selectedProducts };
+    
+    productsToSelect.forEach(product => {
+      if (newSelectedProducts[product.id] === undefined) {
+        newSelectedProducts[product.id] = true;
+      }
+    });
+    
+    setSelectedProducts(newSelectedProducts);
+  }, [productsList, allProducts]);
+
+  const navigatePages = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    
+    if (allProducts.length > 0) {
+      const startIndex = (page - 1) * 10;
+      const endIndex = Math.min(startIndex + 10, allProducts.length);
+      setProductsList(allProducts.slice(startIndex, endIndex));
+      setCurrentPage(page);
+    } else {
+      fetchProducts(form.getValues(), page);
+    }
+  };
+
+  const handleImportProducts = async () => {
+    const productsToImportList = allProducts.length > 0 ? allProducts : productsList;
+    const selectedProductsToImport = productsToImportList.filter(p => selectedProducts[p.id]);
+    
+    if (selectedProductsToImport.length === 0) {
+      setErrors(["Aucun produit sélectionné pour l'importation"]);
+      return;
+    }
+    
+    setIsImporting(true);
+    setImportProgress(0);
+    setImportStage("Préparation de l'importation...");
+    setImportResult(null);
+    setErrors([]);
+    
+    try {
+      const startTime = Date.now();
+      
+      const totalExpectedTime = selectedProductsToImport.length * 500;
+      
+      const updateProgressInterval = setInterval(() => {
+        const elapsedTime = Date.now() - startTime;
+        const calculatedProgress = Math.min(90, (elapsedTime / totalExpectedTime) * 100);
+        setImportProgress(calculatedProgress);
+        
+        const stageSuffix = ".".repeat(Math.floor((elapsedTime / 1000) % 4) + 1);
+        setImportStage(`Importation de ${selectedProductsToImport.length} produits${stageSuffix}`);
+      }, 200);
+      
+      console.log(`Starting import with overwriteExisting: ${importOptions.overwriteExisting}`);
+      
+      // Assurez-vous que le bucket existe avant l'importation
+      try {
+        await ensureStorageBucket('product-images');
+      } catch (storageError) {
+        console.error("Error ensuring storage bucket exists, continuing anyway:", storageError);
+        // Continuer même en cas d'erreur car nous utilisons les URL d'origine
+      }
+      
+      // Ajoutons des propriétés nécessaires aux produits avant importation
+      const enhancedProducts = selectedProductsToImport.map(product => ({
+        ...product,
+        siteUrl: form.getValues().siteUrl,
+        consumerKey: form.getValues().consumerKey,
+        consumerSecret: form.getValues().consumerSecret
+      }));
+      
+      const result = await importWooCommerceProducts(
+        enhancedProducts,
+        importOptions.includeVariations,
+        importOptions.overwriteExisting
+      );
+      
+      clearInterval(updateProgressInterval);
+      setImportProgress(100);
+      setImportResult(result);
+      
+      if (result.success) {
+        setImportStage(`Importation terminée: ${result.totalImported} produits importés, ${result.skipped} ignorés`);
+        toast.success(`Importation réussie de ${result.totalImported} produits`);
+      } else {
+        setImportStage(`Importation terminée avec ${result.errors?.length || 0} erreurs`);
+        toast.error(`Importation terminée avec des erreurs (${result.errors?.length} erreurs)`);
+        if (result.errors && result.errors.length > 0) {
+          setErrors(result.errors);
+        }
+      }
+    } catch (error) {
+      console.error("Error importing products:", error);
+      toast.error("Erreur lors de l'importation des produits");
+      setImportProgress(0);
+      setImportStage("Erreur lors de l'importation");
+      setErrors([error instanceof Error ? error.message : "Erreur inconnue"]);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    navigatePages(newPage);
+  };
+
+  const resetConnection = () => {
+    setIsConnected(false);
+    setConnectionError("");
+    setProductsList([]);
+    setAllProducts([]);
+    setSelectedProducts({});
+  };
+
+  const handleSelectAllChange = (checked: boolean) => {
+    setSelectAll(checked);
+    
+    const productsToUpdate = allProducts.length > 0 ? allProducts : productsList;
+    const newSelectedProducts = { ...selectedProducts };
+    
+    productsToUpdate.forEach(product => {
+      newSelectedProducts[product.id] = checked;
+    });
+    
+    setSelectedProducts(newSelectedProducts);
+  };
+
+  const toggleProductSelection = (productId: number) => {
+    setSelectedProducts(prev => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
+  };
+
+  const getSelectedProductsCount = () => {
+    const productsToCount = allProducts.length > 0 ? allProducts : productsList;
+    return productsToCount.filter(p => selectedProducts[p.id]).length;
+  };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="site-url">URL du site WooCommerce</Label>
-                <Input
-                  id="site-url"
-                  placeholder="https://votre-site.com"
-                  value={siteUrl}
-                  onChange={(e) => setSiteUrl(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="consumer-key">Clé API (Consumer Key)</Label>
-                <Input
-                  id="consumer-key"
-                  placeholder="ck_xxxxxxxxxxxxxxxxxxxx"
-                  value={consumerKey}
-                  onChange={(e) => setConsumerKey(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="consumer-secret">Secret API (Consumer Secret)</Label>
-                <Input
-                  id="consumer-secret"
-                  type="password"
-                  placeholder="cs_xxxxxxxxxxxxxxxxxxxx"
-                  value={consumerSecret}
-                  onChange={(e) => setConsumerSecret(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <Button
-                onClick={testConnection}
-                disabled={isLoading || !siteUrl || !consumerKey || !consumerSecret}
-                variant="outline"
-                className="w-full"
-              >
-                {importState.status === "connecting" ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Test en cours...
-                  </>
-                ) : (
-                  "Tester la connexion"
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="include-variations">Inclure les variations</Label>
-                <Switch
-                  id="include-variations"
-                  checked={includeVariations}
-                  onCheckedChange={setIncludeVariations}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label htmlFor="overwrite-existing">Écraser les produits existants</Label>
-                <Switch
-                  id="overwrite-existing"
-                  checked={overwriteExisting}
-                  onCheckedChange={setOverwriteExisting}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Button
-                  onClick={fetchProducts}
-                  disabled={isLoading || !connectionTested}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {importState.status === "fetching" ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Récupération...
-                    </>
-                  ) : (
-                    "Récupérer les produits (page 1)"
-                  )}
-                </Button>
-
-                <Button
-                  onClick={fetchAllProducts}
-                  disabled={isLoading || !connectionTested}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {importState.status === "fetching" ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Récupération...
-                    </>
-                  ) : (
-                    "Récupérer tous les produits"
-                  )}
-                </Button>
-
-                <Button
-                  onClick={importProducts}
-                  disabled={isLoading || importState.products.length === 0}
-                  className="w-full"
-                >
-                  {importState.status === "importing" ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Importation en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Importer {importState.products.length} produits
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-medium flex items-center gap-2">
+          <ShoppingBag className="h-5 w-5 text-primary" />
+          Importation du catalogue WooCommerce
+        </h2>
+        
+        {isConnected ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <Check className="h-3 w-3 mr-1" />
+            Connecté
+          </span>
+        ) : connectionError ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <X className="h-3 w-3 mr-1" />
+            Erreur de connexion
+          </span>
+        ) : null}
+      </div>
+      
+      <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <Info className="h-5 w-5 text-blue-400" />
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-blue-700">
+              Cet outil permet d'importer les produits de votre boutique WooCommerce directement dans le catalogue iTakecare.
+              Les identifiants d'API sont préremplis pour faciliter l'importation.
+            </p>
+          </div>
+        </div>
       </div>
 
-      {importState.status !== "idle" && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                {importState.status === "connecting" && (
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                )}
-                {importState.status === "fetching" && (
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                )}
-                {importState.status === "importing" && (
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                )}
-                {importState.status === "completed" && (
-                  <Check className="h-5 w-5 text-green-500" />
-                )}
-                {importState.status === "error" && (
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                )}
-                <span className="text-base font-medium">{importState.message}</span>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleTestConnection)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="siteUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <LinkIcon className="h-4 w-4 text-primary" />
+                  URL de votre boutique WooCommerce
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Server className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input 
+                      placeholder="https://monsite.com" 
+                      {...field} 
+                      disabled={isConnected || isConnecting}
+                      className="pl-10"
+                    />
+                  </div>
+                </FormControl>
+                <FormDescription>
+                  Entrez l'URL complète de votre site WordPress avec WooCommerce
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="consumerKey"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-primary" />
+                    Clé client WooCommerce
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Key className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input 
+                        placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxx" 
+                        type="text" 
+                        {...field} 
+                        disabled={isConnected || isConnecting}
+                        className="pl-10"
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="consumerSecret"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-primary" />
+                    Clé secrète WooCommerce
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Key className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input 
+                        placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxx" 
+                        type={showSecret ? "text" : "password"}
+                        {...field} 
+                        disabled={isConnected || isConnecting}
+                        className="pl-10 pr-20"
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => setShowSecret(!showSecret)}
+                          className="text-gray-400 hover:text-gray-500 focus:outline-none text-xs font-medium"
+                        >
+                          {showSecret ? "Masquer" : "Afficher"}
+                        </button>
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          {connectionError && (
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div>{connectionError}</div>
+            </div>
+          )}
+          
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              type="submit" 
+              disabled={isConnecting || isSaving} 
+              className="mt-2"
+            >
+              {isConnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Test de connexion...
+                </>
+              ) : isConnected ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Connecté
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Tester la connexion
+                </>
+              )}
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => handleSaveConfig(form.getValues())}
+              disabled={isConnecting || isSaving || !user}
+              className="mt-2"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sauvegarde...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Sauvegarder la configuration
+                </>
+              )}
+            </Button>
+            
+            {isConnected && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={resetConnection}
+                className="mt-2"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Réinitialiser
+              </Button>
+            )}
+          </div>
+        </form>
+      </Form>
+      
+      {isConnected && (
+        <Card className="mt-8">
+          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-medium flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-primary" />
+              Produits disponibles
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => fetchProducts(form.getValues(), currentPage)}
+                disabled={isFetchingProducts || isFetchingAll}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isFetchingProducts ? 'animate-spin' : ''}`} />
+                Actualiser
+              </Button>
+              
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => fetchAllProducts(form.getValues())}
+                disabled={isFetchingProducts || isFetchingAll}
+              >
+                <DownloadCloud className={`h-4 w-4 mr-2 ${isFetchingAll ? 'animate-spin' : ''}`} />
+                {isFetchingAll ? 'Récupération...' : 'Tout récupérer'}
+              </Button>
+              
+              <Button 
+                onClick={() => setImportDialogOpen(true)}
+                disabled={productsList.length === 0 || isImporting || getSelectedProductsCount() === 0}
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Importer ({getSelectedProductsCount()})
+              </Button>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="pt-2">
+            {importStage && (
+              <div className="bg-blue-50 p-3 rounded-md mb-4 text-sm text-blue-800">
+                {importStage}
               </div>
-
-              {["importing", "fetching"].includes(importState.status) && (
-                <div className="space-y-2">
-                  <Progress value={getProgressPercentage()} />
-                  <p className="text-sm text-gray-500 text-right">
-                    {importState.current} / {importState.total} (
-                    {getProgressPercentage()}%)
-                  </p>
+            )}
+          
+            <div className="border-b pb-4 mb-4">
+              <h4 className="text-sm font-medium mb-3">Options d'importation</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="includeImages" 
+                    checked={importOptions.includeImages}
+                    onCheckedChange={(checked) => 
+                      setImportOptions({...importOptions, includeImages: checked === true})
+                    }
+                  />
+                  <label
+                    htmlFor="includeImages"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Importer les images
+                  </label>
                 </div>
-              )}
-
-              {importState.status === "completed" && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="rounded-lg bg-green-50 p-3 text-center">
-                    <p className="text-sm font-medium text-green-800">
-                      Produits importés
-                    </p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {importState.importedCount}
-                    </p>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="includeDescriptions" 
+                    checked={importOptions.includeDescriptions}
+                    onCheckedChange={(checked) => 
+                      setImportOptions({...importOptions, includeDescriptions: checked === true})
+                    }
+                  />
+                  <label
+                    htmlFor="includeDescriptions"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Importer les descriptions
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="includeVariations" 
+                    checked={importOptions.includeVariations}
+                    onCheckedChange={(checked) => 
+                      setImportOptions({...importOptions, includeVariations: checked === true})
+                    }
+                  />
+                  <label
+                    htmlFor="includeVariations"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Importer les variations
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="overwriteExisting" 
+                    checked={importOptions.overwriteExisting}
+                    onCheckedChange={(checked) => 
+                      setImportOptions({...importOptions, overwriteExisting: checked === true})
+                    }
+                  />
+                  <label
+                    htmlFor="overwriteExisting"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Écraser les produits existants
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            {isFetchingProducts || isFetchingAll ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : productsList.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <AlertCircle className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
+                <p>Aucun produit trouvé dans votre boutique WooCommerce</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                  onClick={() => fetchProducts(form.getValues(), 1)}
+                >
+                  Réessayer
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="selectAll" 
+                      checked={selectAll}
+                      onCheckedChange={(checked) => handleSelectAllChange(checked === true)}
+                    />
+                    <label
+                      htmlFor="selectAll"
+                      className="text-sm font-medium leading-none"
+                    >
+                      {selectAll ? "Tout désélectionner" : "Tout sélectionner"}
+                    </label>
                   </div>
-                  <div className="rounded-lg bg-yellow-50 p-3 text-center">
-                    <p className="text-sm font-medium text-yellow-800">
-                      Produits ignorés
-                    </p>
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {importState.skippedCount}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-red-50 p-3 text-center">
-                    <p className="text-sm font-medium text-red-800">Erreurs</p>
-                    <p className="text-2xl font-bold text-red-600">
-                      {importState.errors.length}
-                    </p>
+                  <div className="text-sm text-muted-foreground">
+                    {getSelectedProductsCount()} produits sélectionnés sur {(allProducts.length > 0 ? allProducts : productsList).length}
                   </div>
                 </div>
-              )}
-
-              {importState.status === "error" && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="rounded-lg bg-green-50 p-3 text-center">
-                    <p className="text-sm font-medium text-green-800">
-                      Produits importés
-                    </p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {importState.importedCount}
-                    </p>
+                
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-13 gap-2 p-3 bg-muted text-sm font-medium">
+                    <div className="col-span-1"></div>
+                    <div className="col-span-6">Nom</div>
+                    <div className="col-span-2">Prix</div>
+                    <div className="col-span-4">Catégorie</div>
                   </div>
-                  <div className="rounded-lg bg-yellow-50 p-3 text-center">
-                    <p className="text-sm font-medium text-yellow-800">
-                      Produits ignorés
-                    </p>
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {importState.skippedCount}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-red-50 p-3 text-center">
-                    <p className="text-sm font-medium text-red-800">Erreurs</p>
-                    <p className="text-2xl font-bold text-red-600">
-                      {importState.errors.length}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {importState.errors.length > 0 && (
-                <Accordion type="single" collapsible>
-                  <AccordionItem value="errors">
-                    <AccordionTrigger>
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-red-500" />
-                        <span>
-                          {importState.errors.length} erreur(s) détectée(s)
-                        </span>
+                  <div className="divide-y">
+                    {productsList.map((product) => (
+                      <div key={product.id} className="grid grid-cols-13 gap-2 p-3 text-sm items-center">
+                        <div className="col-span-1">
+                          <Checkbox 
+                            checked={!!selectedProducts[product.id]} 
+                            onCheckedChange={() => toggleProductSelection(product.id)}
+                            className="h-4 w-4"
+                          />
+                        </div>
+                        <div className="col-span-6 flex items-center gap-2">
+                          {product.images.length > 0 ? (
+                            <img 
+                              src={product.images[0].src} 
+                              alt={product.name} 
+                              className="w-8 h-8 object-contain rounded-md"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center">
+                              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span className="truncate">{product.name}</span>
+                        </div>
+                        <div className="col-span-2">
+                          {parseFloat(product.price || product.regular_price || "0").toFixed(2)} €
+                        </div>
+                        <div className="col-span-4 flex flex-wrap gap-1">
+                          {product.categories.length > 0 ? (
+                            product.categories.map((category, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                              >
+                                <Tag className="h-3 w-3 mr-1" />
+                                {category.name}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-500">Non catégorisé</span>
+                          )}
+                        </div>
                       </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-2 max-h-60 overflow-y-auto p-2 bg-red-50 rounded border border-red-200">
-                        <ul className="list-disc pl-5 space-y-1">
-                          {importState.errors.map((error, index) => (
-                            <li key={index} className="text-sm text-red-700">
-                              {error}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              )}
-
-              {importState.status === "importing" && (
-                <p className="text-sm text-gray-500">
-                  L'importation peut prendre plusieurs minutes en fonction du
-                  nombre de produits.
-                </p>
-              )}
-
-              {importState.status === "completed" && (
-                <div className="flex justify-end">
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mt-4">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      setImportState({
-                        ...importState,
-                        status: "idle",
-                      })
-                    }
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage <= 1 || isFetchingProducts || isFetchingAll}
                   >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Nouvelle importation
+                    Précédent
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} sur {totalPages}
+                    {allProducts.length > 0 && ` (${allProducts.length} produits au total)`}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages || isFetchingProducts || isFetchingAll}
+                  >
+                    Suivant
                   </Button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
+      
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5 text-primary" />
+              Importer les produits WooCommerce
+            </DialogTitle>
+            <DialogDescription>
+              {!importResult ? (
+                `Vous êtes sur le point d'importer ${getSelectedProductsCount()} produits sélectionnés dans votre catalogue.`
+              ) : (
+                importResult.success ? (
+                  `Importation terminée avec succès!`
+                ) : (
+                  `Importation terminée avec des erreurs.`
+                )
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {!importResult ? (
+            <>
+              {isImporting && (
+                <div className="py-4">
+                  <Progress value={importProgress} className="mb-2" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    {importStage || "Importation en cours..."} {Math.round(importProgress)}%
+                  </p>
+                </div>
+              )}
+              
+              {errors.length > 0 && (
+                <div className="mt-4 bg-red-50 border-l-4 border-red-400 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="h-5 w-5 text-red-400" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">
+                        {errors.length} erreur(s) détectée(s)
+                      </h3>
+                      <div className="mt-1 text-sm text-red-700">
+                        <ul className="list-disc pl-5 space-y-1">
+                          {errors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter className="mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setImportDialogOpen(false)}
+                  disabled={isImporting}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleImportProducts}
+                  disabled={isImporting || getSelectedProductsCount() === 0}
+                >
+                  {isImporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Importation...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Importer maintenant
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <div className="py-4">
+                {importResult.success ? (
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                      <Check className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-green-700">
+                        {importResult.totalImported} produits importés
+                      </p>
+                      {importResult.skipped > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {importResult.skipped} produits ignorés
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                      <AlertCircle className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-red-700">
+                        Erreur lors de l'importation
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {importResult.totalImported || 0} produits importés, {importResult.errors?.length || 0} erreurs
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {importResult.errors && importResult.errors.length > 0 && (
+                <div className="mt-4 bg-red-50 border-l-4 border-red-400 p-4 max-h-40 overflow-y-auto">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="h-5 w-5 text-red-400" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">
+                        {importResult.errors.length} erreur(s) détectée(s)
+                      </h3>
+                      <div className="mt-1 text-sm text-red-700">
+                        <ul className="list-disc pl-5 space-y-1">
+                          {importResult.errors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter className="mt-4">
+                <Button
+                  type="button"
+                  onClick={() => setImportDialogOpen(false)}
+                >
+                  Fermer
+                </Button>
+                {importResult.success && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setImportDialogOpen(false);
+                      // Rediriger vers le catalogue
+                      window.location.href = "/catalog";
+                    }}
+                  >
+                    <PackageCheck className="h-4 w-4 mr-2" />
+                    Voir le catalogue
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
