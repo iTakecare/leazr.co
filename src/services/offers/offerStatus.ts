@@ -78,10 +78,22 @@ export const updateOfferStatus = async (
     
     console.log("Offer status updated successfully:", updateData);
 
-    // If the status is approved by the leaser, convert it to a contract
-    if (newStatus === 'leaser_approved') {
+    // Si le statut est financed, créer automatiquement un contrat
+    if (newStatus === 'financed') {
       try {
-        const leaserName = "Grenke";
+        // Récupérer les infos nécessaires pour créer le contrat
+        const { data: offerData, error: offerDataError } = await supabase
+          .from('offers')
+          .select('*')
+          .eq('id', offerId)
+          .single();
+        
+        if (offerDataError || !offerData) {
+          throw new Error("Impossible de récupérer les détails de l'offre");
+        }
+        
+        // Récupérer le bailleur (ici, on utilise une valeur par défaut)
+        const leaserName = "Grenke"; // Par défaut, devrait idéalement être récupéré depuis l'offre
         const leaserLogo = "https://logo.clearbit.com/grenke.com";
         
         const contractId = await createContractFromOffer(offerId, leaserName, leaserLogo);
@@ -89,19 +101,21 @@ export const updateOfferStatus = async (
         if (contractId) {
           console.log("Contrat créé avec l'ID:", contractId);
           
-          // Mark the offer as converted to contract
-          const { error } = await supabase
+          // Marquer l'offre comme convertie en contrat
+          const { error: conversionError } = await supabase
             .from('offers')
             .update({ converted_to_contract: true })
             .eq('id', offerId);
             
-          if (error) {
-            console.error("Erreur lors de la mise à jour du statut de conversion:", error);
+          if (conversionError) {
+            console.error("Erreur lors de la mise à jour du statut de conversion:", conversionError);
+          } else {
+            toast.success("L'offre a été convertie en contrat");
           }
         }
       } catch (contractError) {
         console.error("Erreur lors de la création du contrat:", contractError);
-        toast.error("L'offre a été approuvée mais nous n'avons pas pu créer le contrat");
+        toast.error("L'offre a été marquée comme financée mais nous n'avons pas pu créer le contrat");
       }
     }
     

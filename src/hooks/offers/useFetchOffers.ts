@@ -1,95 +1,64 @@
 
 import { useState, useEffect } from "react";
-import { getOffers } from "@/services/offers";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 
 export interface Offer {
   id: string;
   client_name: string;
   client_id?: string;
-  clients?: {
-    name: string;
-    email: string;
-    company: string;
-  } | null;
   amount: number;
   monthly_payment: number;
-  commission: number;
-  status: string;
-  workflow_status?: string;
+  commission?: number;
+  workflow_status: string;
+  equipment_description?: string;
   created_at: string;
+  user_id: string;
   type: string;
-  converted_to_contract?: boolean;
+  converted_to_contract: boolean;
 }
 
 export const useFetchOffers = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [includeConverted, setIncludeConverted] = useState(true);
-
+  const [includeConverted, setIncludeConverted] = useState(false);
+  
   const fetchOffers = async () => {
-    setLoading(true);
-    setLoadingError(null);
-    
     try {
-      console.log("Fetching offers with includeConverted =", includeConverted);
-      const offersData = await getOffers(includeConverted);
+      setLoading(true);
+      setLoadingError(null);
       
-      if (Array.isArray(offersData)) {
-        const offersWithWorkflow = offersData.map(offer => {
-          if (!offer.workflow_status) {
-            let workflowStatus;
-            switch (offer.status) {
-              case "accepted":
-                workflowStatus = OFFER_STATUSES.APPROVED.id;
-                break;
-              case "rejected":
-                workflowStatus = OFFER_STATUSES.REJECTED.id;
-                break;
-              case "pending":
-                workflowStatus = OFFER_STATUSES.DRAFT.id;
-                break;
-              default:
-                workflowStatus = OFFER_STATUSES.DRAFT.id;
-            }
-            return { ...offer, workflow_status: workflowStatus };
-          }
-          return offer;
-        });
-        
-        const offersWithType = offersWithWorkflow.map(offer => {
-          if (!offer.type) {
-            return {
-              ...offer,
-              type: offer.client_id ? 'client_request' : 'admin_offer'
-            };
-          }
-          return offer;
-        });
-        
-        console.log(`Loaded ${offersWithType.length} offers. Includes converted: ${includeConverted}`);
-        console.log("Converted offers:", offersWithType.filter(o => o.converted_to_contract).length);
-        
-        setOffers(offersWithType);
-      } else {
-        console.error("Offers data is not an array:", offersData);
-        setLoadingError("Format de données incorrect");
+      let query = supabase
+        .from('offers')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      // Si on ne veut pas inclure les offres converties en contrat
+      if (!includeConverted) {
+        query = query.eq('converted_to_contract', false);
       }
-    } catch (error) {
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      setOffers(data || []);
+    } catch (error: any) {
       console.error("Error fetching offers:", error);
-      setLoadingError("Impossible de charger les offres");
+      setLoadingError(`Erreur lors du chargement des offres: ${error.message}`);
       toast.error("Erreur lors du chargement des offres");
     } finally {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     fetchOffers();
   }, [includeConverted]);
-
+  
   return {
     offers,
     loading,

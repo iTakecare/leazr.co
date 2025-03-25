@@ -2,141 +2,76 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Check, Clock, FileText, AlertCircle, 
-  Info, X, Pencil, User, Building, 
-  ArrowRight, CreditCard, CheckCircle,
-  Sparkle, Star, SendHorizontal, HelpCircle
+  Pencil, 
+  SendHorizontal, 
+  CheckCircle, 
+  X, 
+  Sparkle, 
+  Building, 
+  Star, 
+  HelpCircle 
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
 
-// Définition plus simple des statuts
 export const OFFER_STATUSES = {
-  DRAFT: {
-    id: 'draft',
-    label: 'Brouillon',
-    color: 'bg-gray-100',
-    textColor: 'text-gray-700',
-    progressValue: 10,
-    icon: Pencil,
-  },
-  SENT: {
-    id: 'sent',
-    label: 'Envoyée',
-    color: 'bg-orange-100',
-    textColor: 'text-orange-700',
-    progressValue: 20,
-    icon: SendHorizontal,
-  },
-  VALID_ITC: {
-    id: 'valid_itc',
-    label: 'Valid. ITC',
-    color: 'bg-purple-100',
-    textColor: 'text-purple-700',
-    progressValue: 40,
-    icon: Sparkle,
-  },
-  APPROVED: {
-    id: 'approved',
-    label: 'Approuvée',
-    color: 'bg-emerald-100',
-    textColor: 'text-emerald-700',
-    progressValue: 60,
-    icon: Check,
-  },
-  LEASER_REVIEW: {
-    id: 'leaser_review',
-    label: 'Valid. bailleur',
-    color: 'bg-blue-100',
-    textColor: 'text-blue-700',
-    progressValue: 80,
-    icon: Building,
-  },
-  FINANCED: {
-    id: 'financed',
-    label: 'Financée',
-    color: 'bg-green-100',
-    textColor: 'text-green-700',
-    progressValue: 100,
-    icon: Star,
-  },
-  REJECTED: {
-    id: 'rejected',
-    label: 'Rejetée',
-    color: 'bg-red-100',
-    textColor: 'text-red-700',
-    progressValue: 0,
-    icon: X,
-  },
-  INFO_REQUESTED: {
-    id: 'info_requested',
-    label: 'Infos demandées',
-    color: 'bg-amber-100',
-    textColor: 'text-amber-700',
-    progressValue: 30,
-    icon: HelpCircle,
-  }
+  DRAFT: { id: "draft", label: "Brouillon", icon: Pencil },
+  SENT: { id: "sent", label: "Envoyée", icon: SendHorizontal },
+  APPROVED: { id: "approved", label: "Approuvée", icon: CheckCircle },
+  REJECTED: { id: "rejected", label: "Rejetée", icon: X },
+  INFO_REQUESTED: { id: "info_requested", label: "Infos demandées", icon: HelpCircle },
+  VALID_ITC: { id: "valid_itc", label: "Validée ITC", icon: Sparkle },
+  LEASER_REVIEW: { id: "leaser_review", label: "Évaluation Bailleur", icon: Building },
+  FINANCED: { id: "financed", label: "Financée", icon: Star },
 };
 
-export interface OfferStatusBadgeProps {
-  status?: string;
-  isConverted?: boolean;
-  showProgress?: boolean;
+interface OfferStatusBadgeProps {
+  status: string;
+  showIcon?: boolean;
   className?: string;
 }
 
 const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({ 
-  status = 'draft', 
-  isConverted = false,
-  showProgress = false,
-  className
+  status, 
+  showIcon = true,
+  className = "" 
 }) => {
-  // Si l'offre est convertie en contrat, on affiche un badge spécial
-  if (isConverted) {
-    return (
-      <div className={cn("flex flex-col gap-1 w-full", className)}>
-        <Badge className="bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900">
-          <Check className="h-3 w-3 mr-1" />
-          Contrat actif
-        </Badge>
-        {showProgress && <Progress value={100} className="h-2 bg-green-100" />}
-      </div>
-    );
-  }
+  // Fonction pour déterminer le style du badge en fonction du statut
+  const getBadgeStyle = () => {
+    switch (status) {
+      case OFFER_STATUSES.DRAFT.id:
+        return "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100";
+      case OFFER_STATUSES.SENT.id:
+        return "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-50";
+      case OFFER_STATUSES.APPROVED.id:
+        return "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
+      case OFFER_STATUSES.REJECTED.id:
+        return "bg-red-50 text-red-700 border-red-200 hover:bg-red-50";
+      case OFFER_STATUSES.INFO_REQUESTED.id:
+        return "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50";
+      case OFFER_STATUSES.VALID_ITC.id:
+        return "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-50";
+      case OFFER_STATUSES.LEASER_REVIEW.id:
+        return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50";
+      case OFFER_STATUSES.FINANCED.id:
+        return "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100";
+    }
+  };
 
-  // Handle null or undefined status and default to 'draft'
-  const safeStatus = status || 'draft';
-  
-  // Récupérer les informations du statut (support uppercase or lowercase status ids)
-  const statusUpper = safeStatus.toUpperCase();
-  
-  // First try to get the status info by direct key access, then by searching through all values
-  const statusInfo = OFFER_STATUSES[statusUpper] || 
-                    Object.values(OFFER_STATUSES).find(s => s.id === safeStatus) || 
-                    OFFER_STATUSES.DRAFT;
-  
-  const Icon = statusInfo.icon;
+  // Obtenir le statut correspondant ou utiliser un statut par défaut
+  const statusObj = Object.values(OFFER_STATUSES).find(s => s.id === status) || {
+    id: status,
+    label: status,
+    icon: HelpCircle
+  };
+
+  const StatusIcon = statusObj.icon;
 
   return (
-    <div className={cn("flex flex-col gap-1 w-full", className)}>
-      <Badge className={cn(
-        statusInfo.color,
-        statusInfo.textColor,
-        "hover:bg-opacity-80"
-      )}>
-        <Icon className="h-3 w-3 mr-1" />
-        {statusInfo.label}
-      </Badge>
-      {showProgress && (
-        <Progress 
-          value={statusInfo.progressValue} 
-          className={cn("h-2", 
-            statusInfo.progressValue === 100 ? "bg-green-100" : 
-            statusInfo.progressValue === 0 ? "bg-red-100" : "bg-gray-100"
-          )} 
-        />
-      )}
-    </div>
+    <Badge variant="outline" className={`${getBadgeStyle()} ${className}`}>
+      {showIcon && <StatusIcon className="mr-1 h-3 w-3" />}
+      {statusObj.label}
+    </Badge>
   );
 };
 
