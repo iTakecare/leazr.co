@@ -201,7 +201,7 @@ function generateUuidFromId(numericId: number | string): string {
     return idStr;
   }
   
-  return `woo-${idStr}-${uuidv4().substring(0, 8)}`;
+  return uuidv4();
 }
 
 export async function importWooCommerceProducts(
@@ -242,10 +242,10 @@ export async function importWooCommerceProducts(
           categories: product.categories?.map(c => c.name) || []
         };
         
-        const generatedUuid = generateUuidFromId(product.id);
+        const productUuid = uuidv4();
         
         const mappedProduct: Record<string, any> = {
-          id: generatedUuid,
+          id: productUuid,
           name: product.name,
           description: product.description,
           price: product.price || '0',
@@ -253,7 +253,8 @@ export async function importWooCommerceProducts(
           active: product.status === 'publish',
           created_at: product.date_created,
           updated_at: product.date_modified,
-          stock: product.stock_quantity || 0
+          stock: product.stock_quantity || 0,
+          sku: `woo-${product.id}`
         };
         
         if (columnStatus['category']) {
@@ -292,22 +293,22 @@ export async function importWooCommerceProducts(
           mappedProduct.is_variation = false;
         }
         
-        const { data: existingProduct } = await supabase
+        const { data: existingProductBySku } = await supabase
           .from('products')
           .select('*')
-          .eq('id', generatedUuid)
+          .eq('sku', `woo-${product.id}`)
           .maybeSingle();
         
-        if (existingProduct && !overwriteExisting) {
+        if (existingProductBySku && !overwriteExisting) {
           result.skipped++;
           continue;
         }
         
-        if (existingProduct && overwriteExisting) {
+        if (existingProductBySku && overwriteExisting) {
           const { error } = await supabase
             .from('products')
             .update(mappedProduct)
-            .eq('id', existingProduct.id);
+            .eq('id', existingProductBySku.id);
           
           if (error) {
             console.error(`Error updating product ${product.id}:`, error);
@@ -346,7 +347,7 @@ export async function importWooCommerceProducts(
               
               const variation = await variationResponse.json();
               
-              const variationUuid = generateUuidFromId(`${product.id}-${variation.id}`);
+              const variationUuid = uuidv4();
               
               const mappedVariation: Record<string, any> = {
                 id: variationUuid,
@@ -357,7 +358,8 @@ export async function importWooCommerceProducts(
                 active: true,
                 created_at: variation.date_created,
                 updated_at: variation.date_modified,
-                stock: variation.stock_quantity || 0
+                stock: variation.stock_quantity || 0,
+                sku: `woo-${product.id}-var-${variation.id}`
               };
               
               if (columnStatus['image_url']) {
@@ -377,7 +379,7 @@ export async function importWooCommerceProducts(
               }
               
               if (columnStatus['parent_id']) {
-                mappedVariation.parent_id = generatedUuid;
+                mappedVariation.parent_id = productUuid;
               }
               
               if (columnStatus['variation_attributes']) {
@@ -390,7 +392,7 @@ export async function importWooCommerceProducts(
               const { data: existingVariation } = await supabase
                 .from('products')
                 .select('*')
-                .eq('id', variationUuid)
+                .eq('sku', `woo-${product.id}-var-${variation.id}`)
                 .maybeSingle();
               
               if (existingVariation && !overwriteExisting) {
