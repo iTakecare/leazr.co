@@ -2,6 +2,7 @@ import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
 import { ensureStorageBucket, downloadAndStoreImage } from "@/services/storageService";
+import { v4 as uuidv4 } from 'uuid';
 
 export const mapDbProductToProduct = (dbProduct: any): Product => {
   return {
@@ -68,7 +69,6 @@ export const mapDbProductToProduct = (dbProduct: any): Product => {
     menuOrder: dbProduct.menu_order || 0,
     metaData: dbProduct.meta_data || [],
     image_alts: dbProduct.image_alts || [],
-    // Add any custom fields needed
     price_number: parseFloat(dbProduct.price || '0'),
     stock: dbProduct.stock || 0,
     discount_per_quantity: dbProduct.discount_per_quantity || {},
@@ -90,7 +90,7 @@ export const mapDbProductToProduct = (dbProduct: any): Product => {
     variation_attributes: dbProduct.variation_attributes || {},
     image_url: dbProduct.image_url || '',
     image_urls: dbProduct.image_urls || [],
-    imageUrls: dbProduct.image_urls || [] // Remap to use the existing column
+    imageUrls: dbProduct.image_urls || []
   };
 };
 
@@ -176,10 +176,8 @@ export async function fetchAllWooCommerceProducts(
   }
 }
 
-// Fonction auxiliaire pour vérifier si une colonne existe dans une table
 async function checkColumnExists(tableName: string, columnName: string): Promise<boolean> {
   try {
-    // Utilisation de la fonction Edge pour vérifier l'existence de la colonne
     const { data, error } = await supabase.functions.invoke('check-column-exists', {
       body: { table_name: tableName, column_name: columnName }
     });
@@ -194,6 +192,16 @@ async function checkColumnExists(tableName: string, columnName: string): Promise
     console.error('Error in checkColumnExists:', error);
     return false;
   }
+}
+
+function generateUuidFromId(numericId: number | string): string {
+  const idStr = String(numericId);
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idStr)) {
+    return idStr;
+  }
+  
+  const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+  return `woo-${idStr}-${uuidv4().substring(8)}`;
 }
 
 export async function importWooCommerceProducts(
@@ -213,7 +221,6 @@ export async function importWooCommerceProducts(
       errors: []
     };
     
-    // Vérifier les colonnes disponibles dans la table products
     const columnsToCheck = [
       'image_urls', 'image_url', 'category', 'specifications', 
       'regular_price', 'sale_price', 'short_description', 'status',
@@ -228,23 +235,17 @@ export async function importWooCommerceProducts(
     
     for (const product of products) {
       try {
-        // Transformer les catégories en chaine unique pour le champ 'category' (au singulier)
         const categoryString = product.categories?.map(c => c.name).join(', ') || '';
-        
-        // Extraire l'URL de l'image principale s'il y en a une
         const mainImageUrl = product.images?.[0]?.src || '';
-        
-        // Préparer un tableau des URLs d'images
         const imageUrls = product.images?.map(img => img.src) || [];
-        
-        // Préparer un objet de spécifications qui inclut les catégories
         const specifications = {
-          categories: product.categories?.map(c => c.name) || [],
-          // Ajouter d'autres spécifications si nécessaire
+          categories: product.categories?.map(c => c.name) || []
         };
         
+        const generatedUuid = generateUuidFromId(product.id);
+        
         const mappedProduct: Record<string, any> = {
-          id: product.id.toString(),
+          id: generatedUuid,
           name: product.name,
           description: product.description,
           price: product.price || '0',
@@ -255,7 +256,6 @@ export async function importWooCommerceProducts(
           stock: product.stock_quantity || 0
         };
         
-        // N'ajouter les champs que s'ils existent dans le schéma
         if (columnStatus['category']) {
           mappedProduct.category = product.categories?.[0]?.name || '';
         }
@@ -295,7 +295,7 @@ export async function importWooCommerceProducts(
         const { data: existingProduct } = await supabase
           .from('products')
           .select('*')
-          .eq('id', product.id.toString())
+          .eq('id', generatedUuid)
           .maybeSingle();
         
         if (existingProduct && !overwriteExisting) {
@@ -346,8 +346,10 @@ export async function importWooCommerceProducts(
               
               const variation = await variationResponse.json();
               
+              const variationUuid = generateUuidFromId(`${product.id}-${variation.id}`);
+              
               const mappedVariation: Record<string, any> = {
-                id: `${product.id}-${variation.id}`,
+                id: variationUuid,
                 name: `${product.name} - ${variation.attributes.map((a: any) => a.option).join(', ')}`,
                 description: product.description,
                 price: variation.price || '0',
@@ -375,7 +377,7 @@ export async function importWooCommerceProducts(
               }
               
               if (columnStatus['parent_id']) {
-                mappedVariation.parent_id = product.id.toString();
+                mappedVariation.parent_id = generatedUuid;
               }
               
               if (columnStatus['variation_attributes']) {
@@ -388,7 +390,7 @@ export async function importWooCommerceProducts(
               const { data: existingVariation } = await supabase
                 .from('products')
                 .select('*')
-                .eq('id', mappedVariation.id)
+                .eq('id', variationUuid)
                 .maybeSingle();
               
               if (existingVariation && !overwriteExisting) {
