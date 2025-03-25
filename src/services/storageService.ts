@@ -28,8 +28,10 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
     // Le bucket n'existe pas, essayons de le créer
     try {
       // Essayons d'appeler la fonction RPC si elle existe
-      const { data: rpcData, error: rpcError } = await supabase.rpc('create_storage_bucket', {
-        bucket_name: bucketName
+      const { data: rpcData, error: rpcError } = await supabase.functions.invoke('create-storage-bucket', {
+        body: {
+          bucket_name: bucketName
+        }
       });
       
       if (rpcError) {

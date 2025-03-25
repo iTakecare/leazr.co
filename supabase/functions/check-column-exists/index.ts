@@ -28,20 +28,37 @@ serve(async (req) => {
       );
     }
     
-    // Interroger information_schema pour vérifier si la colonne existe
+    // Direct query to check if column exists in table
     const { data, error } = await supabaseClient
-      .from('information_schema.columns')
-      .select('column_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', table_name)
-      .eq('column_name', column_name);
+      .rpc('execute_sql', { 
+        sql: `
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_schema = 'public' 
+          AND table_name = '${table_name}' 
+          AND column_name = '${column_name}'
+        `
+      });
     
     if (error) {
       console.error("Error checking column:", error);
-      return new Response(
-        JSON.stringify({ error: error.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Fallback direct query if RPC is not available
+      const { data: directData, error: directError } = await supabaseClient
+        .from('products')
+        .select(`${column_name}`)
+        .limit(1);
+      
+      if (directError && directError.message.includes("column")) {
+        return new Response(
+          JSON.stringify({ exists: false }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } else {
+        return new Response(
+          JSON.stringify({ exists: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
     
     const columnExists = (data && data.length > 0);
@@ -53,7 +70,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message, exists: false }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

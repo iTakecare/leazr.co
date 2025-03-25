@@ -1,7 +1,7 @@
-
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
+import { ensureStorageBucket, downloadAndStoreImage } from "@/services/storageService";
 
 export const mapDbProductToProduct = (dbProduct: any): Product => {
   return {
@@ -179,9 +179,9 @@ export async function fetchAllWooCommerceProducts(
 // Fonction auxiliaire pour vérifier si une colonne existe dans une table
 async function checkColumnExists(tableName: string, columnName: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc('check_column_exists', {
-      table_name: tableName,
-      column_name: columnName
+    // Utilisation de la fonction Edge pour vérifier l'existence de la colonne
+    const { data, error } = await supabase.functions.invoke('check-column-exists', {
+      body: { table_name: tableName, column_name: columnName }
     });
     
     if (error) {
@@ -189,7 +189,7 @@ async function checkColumnExists(tableName: string, columnName: string): Promise
       return false;
     }
     
-    return data || false;
+    return data?.exists || false;
   } catch (error) {
     console.error('Error in checkColumnExists:', error);
     return false;
@@ -214,7 +214,11 @@ export async function importWooCommerceProducts(
     };
     
     // Vérifier les colonnes disponibles dans la table products
-    const columnsToCheck = ['image_urls', 'image_url', 'category', 'specifications'];
+    const columnsToCheck = [
+      'image_urls', 'image_url', 'category', 'specifications', 
+      'regular_price', 'sale_price', 'short_description', 'status',
+      'is_parent', 'parent_id', 'is_variation', 'variation_attributes'
+    ];
     const columnStatus: Record<string, boolean> = {};
     
     for (const column of columnsToCheck) {
@@ -243,20 +247,12 @@ export async function importWooCommerceProducts(
           id: product.id.toString(),
           name: product.name,
           description: product.description,
-          short_description: product.short_description,
-          price: product.price || product.regular_price || '0',
-          regular_price: product.regular_price || '0',
-          sale_price: product.sale_price || '',
-          sku: product.sku || '',
+          price: product.price || '0',
           brand: 'Imported',
-          status: product.status,
           active: product.status === 'publish',
           created_at: product.date_created,
           updated_at: product.date_modified,
-          stock: product.stock_quantity || 0,
-          is_parent: product.variations?.length > 0,
-          parent_id: null,
-          is_variation: false,
+          stock: product.stock_quantity || 0
         };
         
         // N'ajouter les champs que s'ils existent dans le schéma
@@ -276,10 +272,30 @@ export async function importWooCommerceProducts(
           mappedProduct.image_urls = imageUrls;
         }
         
+        if (columnStatus['short_description']) {
+          mappedProduct.short_description = product.short_description || '';
+        }
+        
+        if (columnStatus['status']) {
+          mappedProduct.status = product.status || 'publish';
+        }
+        
+        if (columnStatus['is_parent']) {
+          mappedProduct.is_parent = product.variations?.length > 0;
+        }
+        
+        if (columnStatus['parent_id']) {
+          mappedProduct.parent_id = null;
+        }
+        
+        if (columnStatus['is_variation']) {
+          mappedProduct.is_variation = false;
+        }
+        
         const { data: existingProduct } = await supabase
           .from('products')
           .select('*')
-          .eq('sku', mappedProduct.sku)
+          .eq('id', product.id.toString())
           .maybeSingle();
         
         if (existingProduct && !overwriteExisting) {
@@ -334,29 +350,13 @@ export async function importWooCommerceProducts(
                 id: `${product.id}-${variation.id}`,
                 name: `${product.name} - ${variation.attributes.map((a: any) => a.option).join(', ')}`,
                 description: product.description,
-                short_description: product.short_description,
-                price: variation.price || variation.regular_price || '0',
-                regular_price: variation.regular_price || '0',
-                sale_price: variation.sale_price || '',
-                sku: variation.sku || '',
+                price: variation.price || '0',
                 brand: 'Imported',
-                status: 'publish',
                 active: true,
                 created_at: variation.date_created,
                 updated_at: variation.date_modified,
-                stock: variation.stock_quantity || 0,
-                is_variation: true,
-                parent_id: product.id.toString(),
-                variation_attributes: variation.attributes.reduce((acc: any, attr: any) => {
-                  acc[attr.name] = attr.option;
-                  return acc;
-                }, {})
+                stock: variation.stock_quantity || 0
               };
-              
-              // N'ajouter les champs que s'ils existent dans le schéma
-              if (columnStatus['category']) {
-                mappedVariation.category = product.categories?.[0]?.name || '';
-              }
               
               if (columnStatus['image_url']) {
                 mappedVariation.image_url = variation.image?.src || mainImageUrl;
@@ -366,10 +366,29 @@ export async function importWooCommerceProducts(
                 mappedVariation.image_urls = variation.image ? [variation.image.src] : imageUrls;
               }
               
+              if (columnStatus['category']) {
+                mappedVariation.category = product.categories?.[0]?.name || '';
+              }
+              
+              if (columnStatus['is_variation']) {
+                mappedVariation.is_variation = true;
+              }
+              
+              if (columnStatus['parent_id']) {
+                mappedVariation.parent_id = product.id.toString();
+              }
+              
+              if (columnStatus['variation_attributes']) {
+                mappedVariation.variation_attributes = variation.attributes.reduce((acc: any, attr: any) => {
+                  acc[attr.name] = attr.option;
+                  return acc;
+                }, {});
+              }
+              
               const { data: existingVariation } = await supabase
                 .from('products')
                 .select('*')
-                .eq('sku', mappedVariation.sku)
+                .eq('id', mappedVariation.id)
                 .maybeSingle();
               
               if (existingVariation && !overwriteExisting) {
