@@ -1,15 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import Container from '@/components/layout/Container';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Mail, Key, EyeOff, Eye, LogIn } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -18,7 +16,6 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, session, user } = useAuth();
@@ -123,169 +120,118 @@ const Login = () => {
 
   if (isResetMode) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-secondary/30 p-4">
-        <Card className="w-full max-w-md overflow-hidden border-0 shadow-lg animate-fade-in">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/10 opacity-80 blur-xl -z-10"></div>
-          <CardHeader className="space-y-1 pb-6">
-            <div className="flex justify-center mb-2">
-              <User className="h-10 w-10 text-primary" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-center">Réinitialisation du mot de passe</CardTitle>
-            <CardDescription className="text-center">
-              Créez un nouveau mot de passe sécurisé pour votre compte
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handlePasswordReset}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-password">Nouveau mot de passe</Label>
-                <div className="relative">
+      <Container maxWidth="sm" className="px-4">
+        <div className="flex justify-center items-center min-h-[80vh]">
+          <Card className="w-full max-w-sm">
+            <CardHeader>
+              <CardTitle>Réinitialisation du mot de passe</CardTitle>
+              <CardDescription>Créez un nouveau mot de passe pour votre compte</CardDescription>
+            </CardHeader>
+            <form onSubmit={handlePasswordReset}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Nouveau mot de passe</Label>
                   <Input 
                     id="new-password" 
-                    type={showPassword ? "text" : "password"}
+                    type="password" 
                     placeholder="Entrez votre nouveau mot de passe" 
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="pr-10"
                     autoFocus
                   />
-                  <button 
-                    type="button" 
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
-                <div className="relative">
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
                   <Input 
                     id="confirm-password" 
-                    type={showPassword ? "text" : "password"}
+                    type="password" 
                     placeholder="Confirmez votre nouveau mot de passe" 
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pr-10"
                   />
-                  <button 
-                    type="button" 
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
                 </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
-                disabled={loading}
-              >
-                {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </div>
+      </Container>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-secondary/30 p-4">
-      <Card className="w-full max-w-md overflow-hidden border-0 shadow-lg animate-fade-in">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/10 opacity-80 blur-xl -z-10"></div>
-        <CardHeader className="space-y-1 pb-6">
-          <div className="flex justify-center mb-2">
-            <LogIn className="h-10 w-10 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-center">Bienvenue</CardTitle>
-          <CardDescription className="text-center">
-            Connectez-vous à votre compte pour continuer
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <Container maxWidth="sm" className="px-4">
+      <div className="flex justify-center items-center min-h-[80vh]">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>Connexion</CardTitle>
+            <CardDescription>Connectez-vous à votre compte</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleLogin}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input 
                   id="email" 
                   type="email" 
                   placeholder="nom@exemple.com" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Link 
-                  to="/login" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (email) {
-                      setLoading(true);
-                      supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: `${window.location.origin}/login`
-                      }).then(({ error }) => {
-                        setLoading(false);
-                        if (error) {
-                          toast.error('Erreur: ' + error.message);
-                        } else {
-                          toast.success('Email de réinitialisation envoyé');
-                        }
-                      });
-                    } else {
-                      toast.error('Veuillez entrer votre email');
-                    }
-                  }} 
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  Mot de passe oublié?
-                </Link>
-              </div>
-              <div className="relative">
-                <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label htmlFor="password">Mot de passe</Label>
+                  <Link 
+                    to="/login" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (email) {
+                        setLoading(true);
+                        supabase.auth.resetPasswordForEmail(email, {
+                          redirectTo: `${window.location.origin}/login`
+                        }).then(({ error }) => {
+                          setLoading(false);
+                          if (error) {
+                            toast.error('Erreur: ' + error.message);
+                          } else {
+                            toast.success('Email de réinitialisation envoyé');
+                          }
+                        });
+                      } else {
+                        toast.error('Veuillez entrer votre email');
+                      }
+                    }} 
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    Mot de passe oublié?
+                  </Link>
+                </div>
                 <Input 
                   id="password" 
-                  type={showPassword ? "text" : "password"} 
-                  placeholder="••••••••" 
+                  type="password" 
+                  placeholder="Entrez votre mot de passe" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
                 />
-                <button 
-                  type="button" 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
               </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4 pt-2">
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary transition-all duration-300"
-              disabled={loading}
-            >
-              {loading ? 'Connexion...' : 'Se connecter'}
-            </Button>
-            <div className="text-center text-sm">
-              Vous n'avez pas de compte? <Link to="/register" className="text-primary hover:underline font-medium">S'inscrire</Link>
-            </div>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4">
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Connexion...' : 'Se connecter'}
+              </Button>
+              <div className="text-center text-sm">
+                Vous n'avez pas de compte? <Link to="/signup" className="text-blue-600 hover:underline">S'inscrire</Link>
+              </div>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    </Container>
   );
 };
 
