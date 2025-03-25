@@ -1,3 +1,4 @@
+
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
@@ -175,6 +176,26 @@ export async function fetchAllWooCommerceProducts(
   }
 }
 
+// Fonction auxiliaire pour vérifier si une colonne existe dans une table
+async function checkColumnExists(tableName: string, columnName: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('check_column_exists', {
+      table_name: tableName,
+      column_name: columnName
+    });
+    
+    if (error) {
+      console.error('Error checking if column exists:', error);
+      return false;
+    }
+    
+    return data || false;
+  } catch (error) {
+    console.error('Error in checkColumnExists:', error);
+    return false;
+  }
+}
+
 export async function importWooCommerceProducts(
   products: (WooCommerceProduct & {
     siteUrl: string;
@@ -194,6 +215,9 @@ export async function importWooCommerceProducts(
     
     for (const product of products) {
       try {
+        // Transformer les catégories en chaine unique pour le champ 'category' (au singulier)
+        const categoryString = product.categories?.map(c => c.name).join(', ') || '';
+        
         const mappedProduct = {
           id: product.id.toString(),
           name: product.name,
@@ -203,8 +227,12 @@ export async function importWooCommerceProducts(
           regular_price: product.regular_price || '0',
           sale_price: product.sale_price || '',
           sku: product.sku || '',
-          categories: product.categories?.map(c => c.name).join(', ') || '',
+          // Utilisez 'category' (singulier) qui existe dans le schéma de la base de données
           category: product.categories?.[0]?.name || '',
+          // Stockons également les catégories multiples comme JSON dans les spécifications
+          specifications: JSON.stringify({
+            categories: product.categories?.map(c => c.name) || []
+          }),
           brand: 'Imported',
           status: product.status,
           active: product.status === 'publish',
@@ -239,13 +267,19 @@ export async function importWooCommerceProducts(
             .update(mappedProduct)
             .eq('id', existingProduct.id);
           
-          if (error) throw error;
+          if (error) {
+            console.error(`Error updating product ${product.id}:`, error);
+            throw error;
+          }
         } else {
           const { error } = await supabase
             .from('products')
             .insert(mappedProduct);
           
-          if (error) throw error;
+          if (error) {
+            console.error(`Error inserting product ${product.id}:`, error);
+            throw error;
+          }
         }
         
         result.totalImported++;
@@ -275,7 +309,7 @@ export async function importWooCommerceProducts(
                 regular_price: variation.regular_price || '0',
                 sale_price: variation.sale_price || '',
                 sku: variation.sku || '',
-                category: product.categories?.[0]?.name || '',
+                category: categoryString.split(',')[0] || '', // Utiliser la même catégorie que le parent
                 brand: 'Imported',
                 status: 'publish',
                 active: true,
