@@ -33,7 +33,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner";
-import { ImageIcon, Plus, Upload, X, Layers } from "lucide-react";
+import { ImageIcon, Plus, Upload, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useNavigate } from "react-router-dom";
+import { Layers } from "lucide-react";
 
 const CatalogManagement = () => {
   const navigate = useNavigate();
@@ -208,10 +209,11 @@ const CatalogManagement = () => {
         <h1 className="text-2xl font-semibold">Catalogue</h1>
         
         <div className="flex items-center gap-2">
+          {/* Add button to access the product grouping page */}
           <Button 
+            variant="outline"
             onClick={() => navigate("/catalogue/regroupement")}
             className="gap-2"
-            variant="default"
           >
             <Layers className="h-4 w-4" />
             Regrouper les variantes

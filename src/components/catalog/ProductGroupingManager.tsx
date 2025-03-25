@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -18,11 +18,6 @@ const ProductGroupingManager: React.FC = () => {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   
-  // Auto-analyze when component mounts
-  useEffect(() => {
-    handleAnalyzeProducts();
-  }, []);
-  
   // Fetch potential product groups
   const { data: productGroups = new Map(), isLoading: isLoadingGroups, refetch: refetchGroups } = useQuery({
     queryKey: ["product-groups"],
@@ -37,7 +32,6 @@ const ProductGroupingManager: React.FC = () => {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ["products"] });
         queryClient.invalidateQueries({ queryKey: ["product-groups"] });
-        toast.success(`${data.groupsCreated} groupes créés avec ${data.productsGrouped} produits organisés`);
       }
     }
   });
@@ -48,7 +42,6 @@ const ProductGroupingManager: React.FC = () => {
     onSuccess: (data) => {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ["products"] });
-        toast.success(`${data.pricesCreated} combinaisons de prix créées`);
       }
     }
   });
@@ -125,7 +118,7 @@ const ProductGroupingManager: React.FC = () => {
                 className="w-full"
                 onClick={handleAutoGroupProducts}
                 disabled={autoGroupMutation.isPending}
-                variant="default"
+                variant="outline"
               >
                 {autoGroupMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Regrouper automatiquement
