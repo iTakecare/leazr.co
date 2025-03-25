@@ -1,3 +1,4 @@
+
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
@@ -204,6 +205,57 @@ function generateUuidFromId(numericId: number | string): string {
   return uuidv4();
 }
 
+function extractVariantAttributesFromName(name: string): Record<string, string> {
+  // Par défaut, on commence sans attributs
+  const attributes: Record<string, string> = {};
+  
+  // Cherche un format comme "Nom de base - Attribut1, Attribut2"
+  const match = name.match(/^(.+?) - (.+)$/);
+  if (match) {
+    const attributesText = match[2];
+    
+    // Découpe les attributs séparés par des virgules
+    const attributeParts = attributesText.split(',').map(p => p.trim());
+    
+    // Essaie d'identifier les attributs connus
+    attributeParts.forEach(part => {
+      if (part.includes("Go") || part.includes("GB") || part.includes("TB") || part.includes("To")) {
+        // Stockage
+        attributes["Stockage"] = part;
+      } else if (part.match(/(\d+)Go\s*RAM/) || part.match(/(\d+)GB\s*RAM/) || 
+                 part.includes("18Go") || part.includes("36Go") || 
+                 part.match(/^(\d+)Go$/) || part.match(/^(\d+)GB$/)) {
+        // Mémoire RAM
+        attributes["RAM"] = part;
+      } else if (part.includes("pouces") || part.includes("inch")) {
+        // Taille d'écran
+        attributes["Écran"] = part;
+      } else if (part.includes("i5") || part.includes("i7") || part.includes("i9") || 
+                 part.includes("M1") || part.includes("M2") || part.includes("M3")) {
+        // Processeur
+        attributes["Processeur"] = part;
+      } else if (part.includes("Pro") || part.includes("Max") || part.includes("Ultra")) {
+        // Variante de processeur
+        attributes["Modèle"] = part;
+      } else {
+        // Attribut générique
+        attributes[`Attribut_${Object.keys(attributes).length + 1}`] = part;
+      }
+    });
+  }
+  
+  return attributes;
+}
+
+function getBaseProductName(name: string): string {
+  // Retirer la partie après le premier tiret
+  const match = name.match(/^(.+?) - (.+)$/);
+  if (match) {
+    return match[1].trim();
+  }
+  return name;
+}
+
 export async function importWooCommerceProducts(
   products: (WooCommerceProduct & {
     siteUrl: string;
@@ -224,7 +276,8 @@ export async function importWooCommerceProducts(
     const columnsToCheck = [
       'image_urls', 'image_url', 'category', 'specifications', 
       'regular_price', 'sale_price', 'short_description', 'status',
-      'is_parent', 'parent_id', 'is_variation', 'variation_attributes'
+      'is_parent', 'parent_id', 'is_variation', 'variation_attributes',
+      'monthly_price'
     ];
     const columnStatus: Record<string, boolean> = {};
     
@@ -233,70 +286,120 @@ export async function importWooCommerceProducts(
       console.log(`Column '${column}' exists: ${columnStatus[column]}`);
     }
     
+    // Regrouper les produits par leur nom de base (pour détecter les variants)
+    const productGroups: Record<string, WooCommerceProduct[]> = {};
+    
+    // Première passe : identifier les produits parents et grouper les variants potentiels
     for (const product of products) {
+      const baseName = getBaseProductName(product.name);
+      if (!productGroups[baseName]) {
+        productGroups[baseName] = [];
+      }
+      productGroups[baseName].push(product);
+    }
+    
+    // Maintenant, traiter chaque groupe de produits
+    for (const [baseName, groupProducts] of Object.entries(productGroups)) {
       try {
-        const categoryString = product.categories?.map(c => c.name).join(', ') || '';
-        const mainImageUrl = product.images?.[0]?.src || '';
-        const imageUrls = product.images?.map(img => img.src) || [];
+        // Si nous avons plus d'un produit dans le groupe, nous avons potentiellement un parent avec des variantes
+        const isParentWithVariants = groupProducts.length > 1;
+        
+        // Trouver le produit parent (soit celui sans attributs dans le nom, soit le premier)
+        const potentialParent = groupProducts.find(p => p.name === baseName) || groupProducts[0];
+        const parentUuid = uuidv4();
+        
+        // Identifiants des variants pour les lier au parent
+        const variantIds: string[] = [];
+        const variationAttributes: Record<string, string[]> = {};
+        
+        // Préparer le produit parent
+        const categoryString = potentialParent.categories?.map(c => c.name).join(', ') || '';
+        const mainImageUrl = potentialParent.images?.[0]?.src || '';
+        const imageUrls = potentialParent.images?.map(img => img.src) || [];
         const specifications = {
-          categories: product.categories?.map(c => c.name) || []
+          categories: potentialParent.categories?.map(c => c.name) || []
         };
         
-        const productUuid = uuidv4();
+        // Extraire les attributs de variation si c'est un produit avec variations
+        if (isParentWithVariants) {
+          // Collecter tous les attributs et valeurs possibles de tous les variants
+          groupProducts.forEach(product => {
+            if (product.name !== baseName) {
+              const productAttributes = extractVariantAttributesFromName(product.name);
+              
+              // Ajouter chaque attribut et valeur trouvés
+              Object.entries(productAttributes).forEach(([attrName, attrValue]) => {
+                if (!variationAttributes[attrName]) {
+                  variationAttributes[attrName] = [];
+                }
+                if (!variationAttributes[attrName].includes(attrValue)) {
+                  variationAttributes[attrName].push(attrValue);
+                }
+              });
+            }
+          });
+        }
         
-        const mappedProduct: Record<string, any> = {
-          id: productUuid,
-          name: product.name,
-          description: product.description,
-          price: product.price || '0',
-          brand: 'Imported',
-          active: product.status === 'publish',
-          created_at: product.date_created,
-          updated_at: product.date_modified,
-          stock: product.stock_quantity || 0,
-          sku: `woo-${product.id}`
+        // Mapper le produit parent
+        const mappedParent: Record<string, any> = {
+          id: parentUuid,
+          name: baseName,
+          description: potentialParent.description,
+          price: potentialParent.price || '0',
+          brand: 'Apple', // À adapter selon le produit
+          active: potentialParent.status === 'publish',
+          created_at: potentialParent.date_created,
+          updated_at: potentialParent.date_modified,
+          stock: potentialParent.stock_quantity || 0,
+          sku: `woo-${potentialParent.id}`
         };
         
+        // Définir les attributs spécifiques au produit parent
         if (columnStatus['category']) {
-          mappedProduct.category = product.categories?.[0]?.name || '';
+          mappedParent.category = potentialParent.categories?.[0]?.name || '';
         }
         
         if (columnStatus['specifications']) {
-          mappedProduct.specifications = JSON.stringify(specifications);
+          mappedParent.specifications = JSON.stringify(specifications);
         }
         
         if (columnStatus['image_url']) {
-          mappedProduct.image_url = mainImageUrl;
+          mappedParent.image_url = mainImageUrl;
         }
         
         if (columnStatus['image_urls']) {
-          mappedProduct.image_urls = imageUrls;
+          mappedParent.image_urls = imageUrls;
         }
         
         if (columnStatus['short_description']) {
-          mappedProduct.short_description = product.short_description || '';
+          mappedParent.short_description = potentialParent.short_description || '';
         }
         
         if (columnStatus['status']) {
-          mappedProduct.status = product.status || 'publish';
+          mappedParent.status = potentialParent.status || 'publish';
         }
         
         if (columnStatus['is_parent']) {
-          mappedProduct.is_parent = product.variations?.length > 0;
+          mappedParent.is_parent = isParentWithVariants;
         }
         
         if (columnStatus['parent_id']) {
-          mappedProduct.parent_id = null;
+          mappedParent.parent_id = null;
         }
         
         if (columnStatus['is_variation']) {
-          mappedProduct.is_variation = false;
+          mappedParent.is_variation = false;
         }
         
+        if (columnStatus['variation_attributes'] && isParentWithVariants) {
+          mappedParent.variation_attributes = variationAttributes;
+        }
+        
+        // Vérifier si le produit existe déjà
         const { data: existingProductBySku } = await supabase
           .from('products')
           .select('*')
-          .eq('sku', `woo-${product.id}`)
+          .eq('sku', `woo-${potentialParent.id}`)
           .maybeSingle();
         
         if (existingProductBySku && !overwriteExisting) {
@@ -307,38 +410,151 @@ export async function importWooCommerceProducts(
         if (existingProductBySku && overwriteExisting) {
           const { error } = await supabase
             .from('products')
-            .update(mappedProduct)
+            .update(mappedParent)
             .eq('id', existingProductBySku.id);
           
           if (error) {
-            console.error(`Error updating product ${product.id}:`, error);
+            console.error(`Error updating product ${potentialParent.id}:`, error);
             result.errors = result.errors || [];
-            result.errors.push(`Error updating product ${product.name || product.id}: ${error.message}`);
+            result.errors.push(`Error updating product ${potentialParent.name || potentialParent.id}: ${error.message}`);
             continue;
           }
         } else {
           const { error } = await supabase
             .from('products')
-            .insert(mappedProduct);
+            .insert(mappedParent);
           
           if (error) {
-            console.error(`Error inserting product ${product.id}:`, error);
+            console.error(`Error inserting product ${potentialParent.id}:`, error);
             result.errors = result.errors || [];
-            result.errors.push(`Error inserting product ${product.name || product.id}: ${error.message}`);
+            result.errors.push(`Error inserting product ${potentialParent.name || potentialParent.id}: ${error.message}`);
             continue;
           }
         }
         
         result.totalImported++;
         
-        if (includeVariations && product.variations && product.variations.length > 0) {
-          for (const variationId of product.variations) {
+        // Maintenant traiter tous les variants qui ne sont pas le parent
+        if (isParentWithVariants) {
+          for (const variantProduct of groupProducts) {
+            // Sauter le produit parent que nous avons déjà traité
+            if (variantProduct.name === baseName && variantProduct.id === potentialParent.id) {
+              continue;
+            }
+            
+            try {
+              const variantUuid = uuidv4();
+              variantIds.push(variantUuid);
+              
+              // Extraire les attributs du nom
+              const variantAttributes = extractVariantAttributesFromName(variantProduct.name);
+              
+              // Si le prix est numérique, utilisons-le comme prix mensuel
+              let monthlyPrice = 0;
+              if (!isNaN(parseFloat(variantProduct.price || '0'))) {
+                monthlyPrice = parseFloat(variantProduct.price || '0');
+              }
+              
+              const mappedVariation: Record<string, any> = {
+                id: variantUuid,
+                name: variantProduct.name,
+                description: potentialParent.description,
+                price: variantProduct.price || '0',
+                brand: mappedParent.brand,
+                active: true,
+                created_at: variantProduct.date_created,
+                updated_at: variantProduct.date_modified,
+                stock: variantProduct.stock_quantity || 0,
+                sku: `woo-${variantProduct.id}`
+              };
+              
+              if (columnStatus['monthly_price']) {
+                mappedVariation.monthly_price = monthlyPrice;
+              }
+              
+              if (columnStatus['image_url']) {
+                mappedVariation.image_url = variantProduct.images?.[0]?.src || mainImageUrl;
+              }
+              
+              if (columnStatus['image_urls']) {
+                mappedVariation.image_urls = variantProduct.images?.map(img => img.src) || imageUrls;
+              }
+              
+              if (columnStatus['category']) {
+                mappedVariation.category = potentialParent.categories?.[0]?.name || '';
+              }
+              
+              if (columnStatus['is_variation']) {
+                mappedVariation.is_variation = true;
+              }
+              
+              if (columnStatus['parent_id']) {
+                mappedVariation.parent_id = parentUuid;
+              }
+              
+              if (columnStatus['variation_attributes']) {
+                mappedVariation.variation_attributes = variantAttributes;
+              }
+              
+              const { data: existingVariation } = await supabase
+                .from('products')
+                .select('*')
+                .eq('sku', `woo-${variantProduct.id}`)
+                .maybeSingle();
+              
+              if (existingVariation && !overwriteExisting) {
+                continue;
+              }
+              
+              if (existingVariation && overwriteExisting) {
+                const { error } = await supabase
+                  .from('products')
+                  .update(mappedVariation)
+                  .eq('id', existingVariation.id);
+                
+                if (error) {
+                  console.error(`Error updating variation ${variantProduct.id}:`, error);
+                  continue;
+                }
+              } else {
+                const { error } = await supabase
+                  .from('products')
+                  .insert(mappedVariation);
+                
+                if (error) {
+                  console.error(`Error inserting variation ${variantProduct.id}:`, error);
+                  continue;
+                }
+              }
+              
+              result.totalImported++;
+            } catch (varError) {
+              console.error(`Error importing variant ${variantProduct.id}:`, varError);
+            }
+          }
+          
+          // Mettre à jour le produit parent avec les IDs des variants
+          if (variantIds.length > 0) {
+            const { error } = await supabase
+              .from('products')
+              .update({ variants_ids: variantIds })
+              .eq('id', parentUuid);
+            
+            if (error) {
+              console.error(`Error updating parent product with variant IDs:`, error);
+            }
+          }
+        }
+        
+        // Gérer également les variations d'origine WooCommerce si présentes
+        if (includeVariations && potentialParent.variations && potentialParent.variations.length > 0) {
+          for (const variationId of potentialParent.variations) {
             try {
               const variationResponse = await fetch(
-                `${product.siteUrl}/wp-json/wc/v3/products/${product.id}/variations/${variationId}`,
+                `${potentialParent.siteUrl}/wp-json/wc/v3/products/${potentialParent.id}/variations/${variationId}`,
                 {
                   headers: {
-                    'Authorization': 'Basic ' + btoa(`${product.consumerKey}:${product.consumerSecret}`)
+                    'Authorization': 'Basic ' + btoa(`${potentialParent.consumerKey}:${potentialParent.consumerSecret}`)
                   }
                 }
               );
@@ -348,19 +564,30 @@ export async function importWooCommerceProducts(
               const variation = await variationResponse.json();
               
               const variationUuid = uuidv4();
+              variantIds.push(variationUuid);
+              
+              // Si le prix est numérique, utilisons-le comme prix mensuel
+              let monthlyPrice = 0;
+              if (!isNaN(parseFloat(variation.price || '0'))) {
+                monthlyPrice = parseFloat(variation.price || '0');
+              }
               
               const mappedVariation: Record<string, any> = {
                 id: variationUuid,
-                name: `${product.name} - ${variation.attributes.map((a: any) => a.option).join(', ')}`,
-                description: product.description,
+                name: `${baseName} - ${variation.attributes.map((a: any) => a.option).join(', ')}`,
+                description: potentialParent.description,
                 price: variation.price || '0',
-                brand: 'Imported',
+                brand: mappedParent.brand,
                 active: true,
                 created_at: variation.date_created,
                 updated_at: variation.date_modified,
                 stock: variation.stock_quantity || 0,
-                sku: `woo-${product.id}-var-${variation.id}`
+                sku: `woo-${potentialParent.id}-var-${variation.id}`
               };
+              
+              if (columnStatus['monthly_price']) {
+                mappedVariation.monthly_price = monthlyPrice;
+              }
               
               if (columnStatus['image_url']) {
                 mappedVariation.image_url = variation.image?.src || mainImageUrl;
@@ -371,7 +598,7 @@ export async function importWooCommerceProducts(
               }
               
               if (columnStatus['category']) {
-                mappedVariation.category = product.categories?.[0]?.name || '';
+                mappedVariation.category = potentialParent.categories?.[0]?.name || '';
               }
               
               if (columnStatus['is_variation']) {
@@ -379,7 +606,7 @@ export async function importWooCommerceProducts(
               }
               
               if (columnStatus['parent_id']) {
-                mappedVariation.parent_id = productUuid;
+                mappedVariation.parent_id = parentUuid;
               }
               
               if (columnStatus['variation_attributes']) {
@@ -392,7 +619,7 @@ export async function importWooCommerceProducts(
               const { data: existingVariation } = await supabase
                 .from('products')
                 .select('*')
-                .eq('sku', `woo-${product.id}-var-${variation.id}`)
+                .eq('sku', `woo-${potentialParent.id}-var-${variation.id}`)
                 .maybeSingle();
               
               if (existingVariation && !overwriteExisting) {
@@ -419,15 +646,29 @@ export async function importWooCommerceProducts(
                   continue;
                 }
               }
+              
+              result.totalImported++;
             } catch (varError) {
-              console.error(`Error importing variation ${variationId} for product ${product.id}:`, varError);
+              console.error(`Error importing variation ${variationId} for product ${potentialParent.id}:`, varError);
+            }
+          }
+          
+          // Mettre à jour le produit parent avec les IDs des variants
+          if (variantIds.length > 0) {
+            const { error } = await supabase
+              .from('products')
+              .update({ variants_ids: variantIds })
+              .eq('id', parentUuid);
+            
+            if (error) {
+              console.error(`Error updating parent product with variant IDs:`, error);
             }
           }
         }
       } catch (productError) {
-        console.error(`Error importing product ${product.id}:`, productError);
+        console.error(`Error importing product group ${baseName}:`, productError);
         result.errors = result.errors || [];
-        result.errors.push(`Error importing product ${product.name || product.id}: ${(productError as Error).message}`);
+        result.errors.push(`Error importing product group ${baseName}: ${(productError as Error).message}`);
       }
     }
     
