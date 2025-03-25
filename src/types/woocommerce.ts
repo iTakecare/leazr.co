@@ -76,13 +76,6 @@ export interface WooCommerceProduct {
   };
 }
 
-// Add extended interface for products with credentials
-export interface WooCommerceProductWithCredentials extends WooCommerceProduct {
-  siteUrl: string;
-  consumerKey: string;
-  consumerSecret: string;
-}
-
 export interface WooCommerceCategory {
   id: number;
   name: string;

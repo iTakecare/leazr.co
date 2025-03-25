@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -116,7 +117,7 @@ serve(async (req) => {
         // Fetch products with pagination
         try {
           const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-          const apiUrl = `${baseUrl}/wp-json/wc/v3/products?page=${page || 1}&per_page=${perPage || 20}&status=any`;
+          const apiUrl = `${baseUrl}/wp-json/wc/v3/products?page=${page || 1}&per_page=${perPage || 10}`;
           
           // Add Basic authentication
           const credentials = btoa(`${consumerKey}:${consumerSecret}`);
