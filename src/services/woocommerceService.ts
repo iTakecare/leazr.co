@@ -1,6 +1,6 @@
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
-import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
+import { WooCommerceProduct, WooCommerceProductWithCredentials, ImportResult } from "@/types/woocommerce";
 import { ensureStorageBucket, downloadAndStoreImage } from "@/services/storageService";
 import { v4 as uuidv4 } from 'uuid';
 
