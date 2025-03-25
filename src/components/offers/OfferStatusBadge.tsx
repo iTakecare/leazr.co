@@ -23,19 +23,25 @@ export const OFFER_STATUSES = {
   FINANCED: { id: "financed", label: "Financée", icon: Star },
 };
 
-interface OfferStatusBadgeProps {
+export interface OfferStatusBadgeProps {
   status: string;
   showIcon?: boolean;
   className?: string;
+  isConverted?: boolean;
 }
 
 const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({ 
   status, 
   showIcon = true,
-  className = "" 
+  className = "",
+  isConverted = false
 }) => {
   // Fonction pour déterminer le style du badge en fonction du statut
   const getBadgeStyle = () => {
+    if (isConverted) {
+      return "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
+    }
+    
     switch (status) {
       case OFFER_STATUSES.DRAFT.id:
         return "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100";
@@ -70,7 +76,7 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
   return (
     <Badge variant="outline" className={`${getBadgeStyle()} ${className}`}>
       {showIcon && <StatusIcon className="mr-1 h-3 w-3" />}
-      {statusObj.label}
+      {isConverted ? "Convertie" : statusObj.label}
     </Badge>
   );
 };

@@ -16,6 +16,12 @@ export interface Offer {
   user_id: string;
   type: string;
   converted_to_contract: boolean;
+  clients?: {
+    id?: string;
+    name?: string;
+    email?: string;
+    company?: string;
+  };
 }
 
 export const useFetchOffers = () => {
@@ -31,7 +37,15 @@ export const useFetchOffers = () => {
       
       let query = supabase
         .from('offers')
-        .select('*')
+        .select(`
+          *,
+          clients:client_id (
+            id,
+            name,
+            email,
+            company
+          )
+        `)
         .order('created_at', { ascending: false });
       
       // Si on ne veut pas inclure les offres converties en contrat
