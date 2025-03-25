@@ -1,3 +1,4 @@
+
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
@@ -192,8 +193,26 @@ export async function importWooCommerceProducts(
       errors: []
     };
     
+    // Récupérer les colonnes existantes pour vérifier leur existence
+    const { data: columnInfo, error: columnError } = await supabase
+      .rpc('get_table_columns', { table_name: 'products' });
+    
+    if (columnError) {
+      console.error('Erreur lors de la récupération des colonnes:', columnError);
+      // Continuer quand même, on va gérer en fonction des erreurs
+    }
+    
+    // Vérifier si la colonne 'category' (au singulier) existe mais pas 'categories' (au pluriel)
+    const columns = columnInfo || [];
+    const hasCategory = columns.some(col => col.column_name === 'category');
+    const hasCategories = columns.some(col => col.column_name === 'categories');
+    
+    console.log(`Colonnes de la table 'products': ${hasCategory ? 'a category' : 'pas de category'}, ${hasCategories ? 'a categories' : 'pas de categories'}`);
+    
     for (const product of products) {
       try {
+        const categoryName = product.categories?.[0]?.name || '';
+        
         const mappedProduct = {
           id: product.id.toString(),
           name: product.name,
@@ -203,8 +222,8 @@ export async function importWooCommerceProducts(
           regular_price: product.regular_price || '0',
           sale_price: product.sale_price || '',
           sku: product.sku || '',
-          categories: product.categories?.map(c => c.name).join(', ') || '',
-          category: product.categories?.[0]?.name || '',
+          // Utiliser 'category' (au singulier) comme colonne existante au lieu de 'categories' (au pluriel)
+          category: categoryName,
           brand: 'Imported',
           status: product.status,
           active: product.status === 'publish',
@@ -275,7 +294,7 @@ export async function importWooCommerceProducts(
                 regular_price: variation.regular_price || '0',
                 sale_price: variation.sale_price || '',
                 sku: variation.sku || '',
-                category: product.categories?.[0]?.name || '',
+                category: categoryName, // Utiliser la même catégorie que le parent
                 brand: 'Imported',
                 status: 'publish',
                 active: true,

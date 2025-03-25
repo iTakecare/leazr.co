@@ -45,6 +45,31 @@ async function callWooCommerceAPI(url: string, endpoint: string, consumerKey: st
   }
 }
 
+// Ajouter cette fonction RPC pour récupérer les colonnes d'une table
+async function getTableColumns(url: string, apiKey: string, tableName: string) {
+  try {
+    const response = await fetch(`${url}/rest/v1/rpc/get_table_columns`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': apiKey,
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({ table_name: tableName })
+    });
+
+    if (!response.ok) {
+      console.error(`Error fetching table columns: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error in getTableColumns:", error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -219,6 +244,33 @@ serve(async (req) => {
           console.error("Error fetching variations:", error);
           result = {
             variations: [],
+            error: error.message || "Unknown error"
+          };
+        }
+        break;
+        
+      case "getTableColumns":
+        // Nouvelle action pour récupérer les colonnes de la table
+        try {
+          const { tableName } = requestData;
+          if (!tableName) {
+            return new Response(
+              JSON.stringify({ error: "Missing tableName parameter" }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          // Utiliser l'API REST de Supabase pour appeler get_table_columns
+          const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+          const columns = await getTableColumns(baseUrl, consumerKey, tableName);
+          
+          result = {
+            columns: columns || [],
+          };
+        } catch (error) {
+          console.error("Error fetching table columns:", error);
+          result = {
+            columns: [],
             error: error.message || "Unknown error"
           };
         }
