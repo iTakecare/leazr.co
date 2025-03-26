@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -112,19 +111,63 @@ const GeneralSettings = () => {
         console.log('Bucket site-settings vérifié ou créé avec succès');
       }
       
+      // Récupération des paramètres depuis la base de données
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
+        .eq('id', 1)
         .single();
       
       if (error) {
         if (error.code === 'PGRST116') {
           console.log("Aucun paramètre trouvé, utilisation des valeurs par défaut");
+          
+          // Si aucun paramètre n'existe, créons-en un par défaut
+          const { error: insertError } = await supabase
+            .from('site_settings')
+            .insert({
+              id: 1,
+              site_name: "iTakecare",
+              site_description: "Hub de gestion",
+              company_name: "",
+              company_address: "",
+              company_phone: "",
+              company_email: "",
+              logo_url: "",
+            });
+            
+          if (insertError) {
+            console.error("Erreur lors de la création des paramètres par défaut:", insertError);
+          } else {
+            // Récupérer à nouveau après l'insertion
+            const { data: newData } = await supabase
+              .from('site_settings')
+              .select('*')
+              .eq('id', 1)
+              .single();
+              
+            if (newData) {
+              form.reset({
+                siteName: newData.site_name || "iTakecare",
+                siteDescription: newData.site_description || "Hub de gestion",
+                companyName: newData.company_name || "",
+                companyAddress: newData.company_address || "",
+                companyPhone: newData.company_phone || "",
+                companyEmail: newData.company_email || "",
+                logoUrl: newData.logo_url || "",
+              });
+              
+              if (newData.logo_url) {
+                setLogoPreview(newData.logo_url);
+              }
+            }
+          }
         } else {
           console.error("Erreur lors du chargement des paramètres:", error);
           toast.error("Erreur lors du chargement des paramètres");
         }
       } else if (data) {
+        console.log("Paramètres chargés avec succès:", data);
         form.reset({
           siteName: data.site_name || "iTakecare",
           siteDescription: data.site_description || "Hub de gestion",
@@ -168,7 +211,8 @@ const GeneralSettings = () => {
       
       const { error } = await supabase
         .from('site_settings')
-        .upsert(settingsData);
+        .upsert(settingsData, { onConflict: 'id' })
+        .eq('id', 1);
       
       if (error) {
         console.error("Erreur lors de la sauvegarde des paramètres:", error);
