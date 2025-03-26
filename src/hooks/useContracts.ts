@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { 
   getContracts, 
@@ -21,11 +20,13 @@ export const useContracts = () => {
   const [includeCompleted, setIncludeCompleted] = useState(false);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
   const [deleteInProgress, setDeleteInProgress] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchContracts = async () => {
+  const fetchContracts = useCallback(async () => {
     try {
       setLoading(true);
       setLoadingError(null);
+      setIsRefreshing(true);
       console.log("Chargement des contrats, includeCompleted:", includeCompleted);
       const data = await getContracts(includeCompleted);
       console.log("Contrats chargés:", data);
@@ -35,12 +36,13 @@ export const useContracts = () => {
       setLoadingError("Erreur lors du chargement des contrats");
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  };
+  }, [includeCompleted]);
 
   useEffect(() => {
     fetchContracts();
-  }, [includeCompleted]);
+  }, [fetchContracts]);
 
   useEffect(() => {
     filterContracts();
@@ -178,11 +180,12 @@ export const useContracts = () => {
   };
 
   const handleDeleteContract = async (contractId: string) => {
+    if (isDeleting || deleteInProgress) {
+      console.log("Suppression déjà en cours, annulation de la demande");
+      return; // Empêcher les suppressions multiples simultanées
+    }
+    
     try {
-      if (isDeleting || deleteInProgress) {
-        return; // Empêcher les suppressions multiples simultanées
-      }
-      
       setIsDeleting(true);
       setDeleteInProgress(contractId);
       
@@ -196,21 +199,20 @@ export const useContracts = () => {
         
         // Mettre à jour l'état local en supprimant le contrat immédiatement
         setContracts(prevContracts => prevContracts.filter(c => c.id !== contractId));
-        
-        // Mettre également à jour les contrats filtrés
         setFilteredContracts(prevFiltered => prevFiltered.filter(c => c.id !== contractId));
         
         toast.success("Contrat supprimé avec succès");
         
-        // Recharger les contrats pour s'assurer que tout est à jour après un court délai
-        setTimeout(() => {
-          fetchContracts();
-        }, 500);
+        // Recharger complètement après un délai pour s'assurer de la synchronisation avec la BD
+        setTimeout(async () => {
+          console.log("Rechargement complet des contrats après suppression");
+          await fetchContracts();
+        }, 1000);
       } else {
         console.error("Échec de la suppression du contrat");
         toast.error("Erreur lors de la suppression du contrat");
         
-        // Recharger les contrats pour s'assurer que l'interface est à jour
+        // Forcer une actualisation complète pour rétablir l'état correct
         await fetchContracts();
       }
     } catch (error: any) {
@@ -220,8 +222,11 @@ export const useContracts = () => {
       // Recharger les contrats en cas d'erreur
       await fetchContracts();
     } finally {
-      setIsDeleting(false);
-      setDeleteInProgress(null);
+      // Attendre un court instant avant de réinitialiser les états pour éviter les problèmes d'UI
+      setTimeout(() => {
+        setIsDeleting(false);
+        setDeleteInProgress(null);
+      }, 500);
     }
   };
 
@@ -233,6 +238,7 @@ export const useContracts = () => {
     isUpdatingStatus,
     isDeleting,
     deleteInProgress,
+    isRefreshing,
     searchTerm,
     setSearchTerm,
     activeStatusFilter,

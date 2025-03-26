@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+
+import React from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { formatCurrency } from "@/utils/formatters";
 import { useContracts } from "@/hooks/useContracts";
 import { FileText, Search, Filter, Grid, List, Plus, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import ContractsKanban from "@/components/contracts/ContractsKanban";
-import { contractStatuses } from "@/services/contractService";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ContractsFilter from "@/components/contracts/ContractsFilter";
 import ContractsSearch from "@/components/contracts/ContractsSearch";
@@ -34,6 +33,7 @@ const Contracts = () => {
     isUpdatingStatus,
     isDeleting,
     deleteInProgress,
+    isRefreshing,
     fetchContracts,
     handleUpdateContractStatus,
     handleAddTrackingInfo,
@@ -78,7 +78,7 @@ const Contracts = () => {
     fetchContracts();
   };
 
-  if (loading) {
+  if (loading && !isRefreshing) {
     return (
       <PageTransition>
         <Container>
@@ -117,7 +117,7 @@ const Contracts = () => {
     );
   }
 
-  if (filteredContracts.length === 0) {
+  if (filteredContracts.length === 0 && !isRefreshing && !isDeleting) {
     return (
       <PageTransition>
         <Container>
@@ -169,18 +169,19 @@ const Contracts = () => {
                 variant="outline" 
                 size="sm" 
                 onClick={handleRefresh}
-                disabled={loading}
+                disabled={isRefreshing || loading}
+                className="relative"
               >
-                {loading ? (
+                {isRefreshing ? (
                   <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                     Actualisation...
                   </span>
                 ) : (
-                  "Actualiser"
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Actualiser
+                  </>
                 )}
               </Button>
             </div>
@@ -241,7 +242,7 @@ const Contracts = () => {
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants}>
+          <motion.div variants={itemVariants} className={isRefreshing ? "opacity-50 pointer-events-none" : ""}>
             {viewMode === 'kanban' ? (
               <>
                 <div className="flex justify-between items-center mb-2">
@@ -283,6 +284,17 @@ const Contracts = () => {
                 isDeleting={isDeleting}
                 deleteInProgress={deleteInProgress}
               />
+            )}
+            
+            {isRefreshing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                <div className="animate-spin h-8 w-8 text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              </div>
             )}
           </motion.div>
           

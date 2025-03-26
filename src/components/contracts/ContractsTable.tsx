@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -65,10 +66,6 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   };
 
   const handleDelete = async (contractId: string) => {
-    if (isDeleting || deleteInProgress) {
-      return; // Empêcher les suppressions multiples simultanées
-    }
-    
     try {
       await onDeleteContract(contractId);
     } finally {
@@ -149,7 +146,10 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
           </TableHeader>
           <TableBody>
             {contracts.map((contract) => (
-              <TableRow key={contract.id} className={deleteInProgress === contract.id ? "opacity-50 pointer-events-none" : ""}>
+              <TableRow 
+                key={contract.id} 
+                className={deleteInProgress === contract.id ? "opacity-50 pointer-events-none bg-red-50" : ""}
+              >
                 <TableCell className="font-medium cursor-pointer" onClick={() => handleRowClick(contract.id)}>
                   {contract.id ? `CON-${contract.id.slice(0, 8)}` : 'N/A'}
                 </TableCell>
@@ -211,10 +211,11 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (deleteInProgress === contract.id || isDeleting) return;
                           setConfirmDelete(contract.id);
                         }}
-                        disabled={isDeleting || deleteInProgress === contract.id}
-                        className="text-red-500 focus:text-red-500"
+                        disabled={isDeleting || deleteInProgress !== null}
+                        className={`text-red-500 focus:text-red-500 ${deleteInProgress === contract.id ? 'opacity-50' : ''}`}
                       >
                         {deleteInProgress === contract.id ? (
                           <>

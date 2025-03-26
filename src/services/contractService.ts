@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -328,15 +327,9 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       .eq('id', contractId)
       .single();
     
-    if (fetchError) {
+    if (fetchError || !contract) {
       console.error("Erreur lors de la récupération des informations du contrat:", fetchError);
       toast.error("Erreur: Le contrat n'a pas été trouvé");
-      return false;
-    }
-    
-    if (!contract) {
-      console.error("Contrat non trouvé pour l'id:", contractId);
-      toast.error("Erreur: Le contrat spécifié n'existe pas");
       return false;
     }
     
@@ -348,10 +341,10 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (logsError) {
       console.error("Erreur lors de la suppression des logs du contrat:", logsError);
-      // On continue la suppression même si l'effacement des logs échoue
+      // On continue malgré l'échec des logs
     }
     
-    // Supprimer le contrat lui-même - CORRECTION: ne pas utiliser .select()
+    // Supprimer le contrat lui-même - PAS de .select()
     const { error: deleteError } = await supabase
       .from('contracts')
       .delete()
@@ -359,11 +352,26 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (deleteError) {
       console.error("Erreur critique lors de la suppression du contrat:", deleteError);
-      toast.error("Erreur lors de la suppression du contrat: " + deleteError.message);
-      return false;
+      throw new Error("Échec de la suppression du contrat: " + deleteError.message);
     }
     
-    console.log("Contrat supprimé avec succès");
+    // Vérifier que le contrat a réellement été supprimé
+    const { data: checkContract, error: checkError } = await supabase
+      .from('contracts')
+      .select('id')
+      .eq('id', contractId)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error("Erreur lors de la vérification de suppression:", checkError);
+    }
+    
+    if (checkContract) {
+      console.error("Le contrat existe toujours après la suppression!");
+      throw new Error("La suppression a échoué: le contrat existe toujours");
+    }
+    
+    console.log("Contrat supprimé avec succès - vérification réussie");
     
     // Mettre à jour l'offre associée si elle existe
     if (contract?.offer_id) {
@@ -375,7 +383,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       
       if (offerError) {
         console.error("Erreur lors de la mise à jour de l'offre associée:", offerError);
-        // Nous considérons toujours la suppression comme réussie même si la mise à jour de l'offre échoue
+        // Nous considérons toujours la suppression comme réussie
       } else {
         console.log("Offre associée mise à jour avec succès");
       }
