@@ -14,7 +14,7 @@ const VariantIndicator: React.FC<VariantIndicatorProps> = ({ hasVariants, varian
   return (
     <Badge className="rounded-full text-xs bg-indigo-100 text-indigo-800 flex items-center gap-1">
       <Layers className="h-3 w-3" /> 
-      {variantsCount} configuration{variantsCount > 1 ? 's' : ''}
+      {variantsCount}
     </Badge>
   );
 };

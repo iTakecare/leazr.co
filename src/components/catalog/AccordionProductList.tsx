@@ -169,11 +169,11 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium">{product.name}</h3>
                             
-                            {/* Afficher l'indicateur de variante mais pas les variantes elles-mêmes */}
+                            {/* Simplified variant badge - just show the count */}
                             {hasVariants(product) && (
                               <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100 mr-2 flex items-center gap-1">
-                                <Layers className="h-3 w-3" /> 
-                                {getVariantsCount(product)} variante{getVariantsCount(product) > 1 ? 's' : ''}
+                                <Layers className="h-3.5 w-3.5" /> 
+                                {getVariantsCount(product)}
                               </Badge>
                             )}
                           </div>
@@ -225,7 +225,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     )}
                   </div>
                   
-                  {/* Empty accordion content - no details displayed */}
+                  {/* Empty accordion content */}
                   <AccordionContent className="px-4 pb-2">
                     {/* Intentionally left empty */}
                   </AccordionContent>

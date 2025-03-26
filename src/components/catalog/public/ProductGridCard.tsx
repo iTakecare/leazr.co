@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -81,14 +80,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     const hasCombPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
     const hasVariationAttrs = product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0;
     
-    // Log for debugging
-    console.log(`Checking variants for ${product.name} (${product.id}):`, {
-      isParent,
-      hasCombPrices,
-      hasVariationAttrs,
-      hasVariants: isParent || hasCombPrices || hasVariationAttrs
-    });
-    
     return isParent || hasCombPrices || hasVariationAttrs;
   };
 
@@ -151,11 +142,11 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             </Badge>
           )}
           
-          {/* Add variant badge - force display if we have variant information */}
+          {/* Simplified variant badge - just show the count */}
           {hasVariantsFlag && (
             <Badge variant="outline" className="rounded-full font-normal text-blue-600 bg-blue-50 flex items-center gap-1">
               <Layers className="h-3 w-3" />
-              {variantsCount} variante{variantsCount !== 1 ? 's' : ''}
+              {variantsCount}
             </Badge>
           )}
         </div>
@@ -166,16 +157,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           {hasPrice && <span>à partir de </span>}
           <span className="font-bold text-indigo-700">{monthlyPriceLabel}</span>
         </div>
-        
-        {hasVariantsFlag && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <span className="text-gray-600 text-sm">
-              {variantsCount > 0 
-                ? `${variantsCount} configuration${variantsCount > 1 ? 's' : ''} disponible${variantsCount > 1 ? 's' : ''}`
-                : "Configurations disponibles"}
-            </span>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
