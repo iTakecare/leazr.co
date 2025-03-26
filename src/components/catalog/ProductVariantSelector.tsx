@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -6,7 +7,7 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Product } from "@/types/catalog";
+import { Product, ProductAttributes } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Package } from "lucide-react";
 import { findVariantByAttributes } from "@/services/catalogService";
@@ -58,17 +59,21 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       }
 
       try {
+        // Convert selectedOptions to ProductAttributes type
+        const selectedAttrs: ProductAttributes = selectedOptions;
+
         if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-          const price = await findVariantCombinationPrice(product.id, selectedOptions);
+          const price = await findVariantCombinationPrice(product.id, selectedAttrs);
           if (price) {
             setCurrentPrice(price.monthly_price || price.price);
             
-            const variant = {
+            // Create a variant with the selected attributes
+            const variant: Product = {
               ...product,
               price: price.price,
               monthly_price: price.monthly_price || 0,
-              selected_attributes: selectedOptions,
-              variation_attributes: selectedOptions
+              selected_attributes: selectedAttrs,
+              // We don't set variation_attributes here as it would change the structure
             };
             
             setSelectedVariant(variant);
@@ -76,7 +81,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
           }
         }
         
-        const variant = await findVariantByAttributes(product.id, selectedOptions);
+        const variant = await findVariantByAttributes(product.id, selectedAttrs);
         if (variant) {
           setCurrentPrice(variant.monthly_price);
           setSelectedVariant(variant);
@@ -111,12 +116,13 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
     if (selectedVariant) {
       onSelectVariant(selectedVariant);
     } else if (Object.keys(selectedOptions).length > 0) {
-      const variant = {
+      // Create a modified product with selected attributes
+      // Without changing variation_attributes structure
+      const modifiedProduct: Product = {
         ...product,
-        selected_attributes: selectedOptions,
-        variation_attributes: selectedOptions
+        selected_attributes: selectedOptions
       };
-      onSelectVariant(variant);
+      onSelectVariant(modifiedProduct);
     } else {
       onSelectVariant(product);
     }

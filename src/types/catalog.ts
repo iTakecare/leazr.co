@@ -1,4 +1,3 @@
-
 // Product type definition
 export interface Product {
   id: string;
@@ -89,6 +88,9 @@ export interface Product {
   variants?: Product[]; // List of product variants
   variation_attributes?: ProductVariationAttributes; // Available attribute options for this product
   variant_combination_prices?: VariantCombinationPrice[]; // Prices for specific attribute combinations
+  
+  // Used to store the selected attributes for a specific variant
+  selected_attributes?: ProductAttributes;
   
   // Alternative property names used in Supabase
   image_url?: string; // Alternative to imageUrl for DB compatibility

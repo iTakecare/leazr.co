@@ -64,9 +64,9 @@ const ProductList: React.FC<ProductListProps> = ({
             </div>
             <h3 className="font-medium text-gray-900">{product.name}</h3>
             
-            {hasVariantSupport && product.parent_id && product.variation_attributes && Object.keys(product.variation_attributes).length > 0 && (
+            {hasVariantSupport && product.parent_id && product.selected_attributes && Object.keys(product.selected_attributes).length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
-                {Object.entries(product.variation_attributes).map(([key, value], idx) => (
+                {Object.entries(product.selected_attributes).map(([key, value], idx) => (
                   <span 
                     key={idx}
                     className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full"

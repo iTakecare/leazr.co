@@ -29,7 +29,10 @@ export const findVariantForAttributes = async (
           price: priceMatch.price,
           monthly_price: priceMatch.monthly_price || 0,
           stock: priceMatch.stock,
-          variation_attributes: selectedAttributes,
+          // Correctly cast selected attributes to match the expected type
+          // This is a special case where we're creating a product with specific attributes
+          // not variation options
+          selected_attributes: selectedAttributes,
           variant_id: priceMatch.id
         };
         
@@ -101,7 +104,7 @@ export const findVariantForAttributes = async (
   return { 
     variant: {
       ...product,
-      variation_attributes: selectedAttributes
+      selected_attributes: selectedAttributes
     }, 
     price: null 
   };
