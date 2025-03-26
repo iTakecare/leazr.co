@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { updateUserAvatar } from "@/services/userService";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, Mail } from "lucide-react";
 
 const AccountSettings = () => {
   const { user, updateUserData } = useAuth();
@@ -18,6 +20,19 @@ const AccountSettings = () => {
     title: user?.title || "",
     avatar_url: user?.avatar_url || ""
   });
+
+  // Mettre à jour les données du formulaire lorsque l'utilisateur change
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
+        company: user.company || "",
+        title: user.title || "",
+        avatar_url: user.avatar_url || ""
+      });
+    }
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -84,25 +99,39 @@ const AccountSettings = () => {
             </p>
           </div>
         </div>
+
+        <div className="bg-muted/50 p-4 rounded-lg flex items-center space-x-2">
+          <Mail className="h-5 w-5 text-muted-foreground" />
+          <div className="flex-1">
+            <h4 className="text-sm font-medium">Adresse email</h4>
+            <p className="text-sm text-muted-foreground">Vous êtes connecté avec: <strong>{user?.email}</strong></p>
+          </div>
+          <Badge variant="outline" className="ml-auto">
+            {user?.email_confirmed_at ? "Vérifiée" : "Non vérifiée"}
+          </Badge>
+        </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="first_name">Prénom</Label>
-          <Input 
-            id="first_name" 
-            placeholder="Votre prénom" 
-            value={formData.first_name}
-            onChange={handleChange}
-          />
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="first_name">Prénom</Label>
+            <Input 
+              id="first_name" 
+              placeholder="Votre prénom" 
+              value={formData.first_name}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="last_name">Nom</Label>
+            <Input 
+              id="last_name" 
+              placeholder="Votre nom" 
+              value={formData.last_name}
+              onChange={handleChange}
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="last_name">Nom</Label>
-          <Input 
-            id="last_name" 
-            placeholder="Votre nom" 
-            value={formData.last_name}
-            onChange={handleChange}
-          />
-        </div>
+        
         <div className="space-y-2">
           <Label htmlFor="company">Entreprise</Label>
           <Input 
@@ -121,14 +150,14 @@ const AccountSettings = () => {
             onChange={handleChange}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" value={user?.email} disabled />
-        </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex justify-between">
+        <p className="text-sm text-muted-foreground">
+          <AlertCircle className="h-4 w-4 inline-block mr-1" />
+          Les modifications seront appliquées après actualisation
+        </p>
         <Button onClick={handleSave}>
-          Enregistrer
+          Enregistrer les modifications
         </Button>
       </CardFooter>
     </Card>
