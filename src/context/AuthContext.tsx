@@ -1,3 +1,4 @@
+
 import { createContext, useState, useEffect, useContext } from 'react';
 import {
   AuthChangeEvent,
@@ -15,41 +16,65 @@ interface UserMetadata {
   last_name?: string;
   company?: string;
   role?: string;
+  ambassador_id?: string;
+  partner_id?: string;
 }
 
 // Définir le type pour le contexte utilisateur
 // Mettre à jour la structure UserContextType pour inclure le rôle
 export interface UserContextType {
   user: User | null;
+  session: Session | null;
   loading: boolean;
+  isLoading: boolean;
   error: Error | null;
+  userRoleChecked: boolean;
   login: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<User | null>;
+  signOut: () => Promise<void>;
   signup: (email: string, password: string, userData?: Partial<UserMetadata>) => Promise<User | null>;
+  signUp: (email: string, password: string, userData?: Partial<UserMetadata>) => Promise<User | null>;
   resetPassword: (email: string) => Promise<void>;
   updateUserData: (userData: Partial<UserMetadata>) => Promise<void>;
   checkSession: () => Promise<User | null>;
+  isAdmin: () => boolean;
+  isClient: () => boolean;
+  isPartner: () => boolean;
+  isAmbassador: () => boolean;
 }
 
 // Créer le contexte avec un type
 const AuthContext = createContext<UserContextType>({
   user: null,
+  session: null,
   loading: true,
+  isLoading: true,
   error: null,
+  userRoleChecked: false,
   login: async () => null,
   logout: async () => {},
+  signIn: async () => null,
+  signOut: async () => {},
   signup: async () => null,
+  signUp: async () => null,
   resetPassword: async () => {},
   updateUserData: async () => {},
   checkSession: async () => null,
+  isAdmin: () => false,
+  isClient: () => false,
+  isPartner: () => false,
+  isAmbassador: () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [userRoleChecked, setUserRoleChecked] = useState(false);
 
   useEffect(() => {
     checkSession();
@@ -58,8 +83,10 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
       console.log(`Auth event: ${event}`);
       if (session?.user) {
         setUser(session.user);
+        setSession(session);
       } else {
         setUser(null);
+        setSession(null);
       }
     });
   }, []);
@@ -141,6 +168,7 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
         }
         
         setUser(data.user);
+        setSession(data.session);
         return data.user;
       }
       
@@ -160,6 +188,7 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
 
       await supabase.auth.signOut();
       setUser(null);
+      setSession(null);
     } catch (error) {
       setError(error as Error);
     } finally {
@@ -251,33 +280,70 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
         }
         
         setUser(data.session.user);
+        setSession(data.session);
+        setUserRoleChecked(true);
         return data.session.user;
       } else {
         setUser(null);
+        setSession(null);
+        setUserRoleChecked(true);
         return null;
       }
     } catch (error) {
       setError(error as Error);
       setUser(null);
+      setUserRoleChecked(true);
       return null;
     } finally {
       setLoading(false);
     }
   };
 
+  // Helper functions for role checking
+  const isAdmin = () => {
+    return user?.user_metadata?.role === 'admin';
+  };
+
+  const isClient = () => {
+    return user?.user_metadata?.role === 'client';
+  };
+
+  const isPartner = () => {
+    return user?.user_metadata?.role === 'partner';
+  };
+
+  const isAmbassador = () => {
+    return user?.user_metadata?.role === 'ambassador';
+  };
+
+  // Alias functions for compatibility
+  const signIn = login;
+  const signOut = logout;
+  const signUp = signup;
+
   // S'assurer que login et checkSession sont passés au contexte
   return (
     <AuthContext.Provider
       value={{
         user,
+        session,
         loading,
+        isLoading: loading,
         error,
+        userRoleChecked,
         login,
         logout,
+        signIn,
+        signOut,
         signup,
+        signUp,
         resetPassword,
         updateUserData,
         checkSession,
+        isAdmin,
+        isClient,
+        isPartner,
+        isAmbassador,
       }}
     >
       {children}
