@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Settings, User, Globe, Database, CreditCard, MessageCircle, Wrench } from "lucide-react";
-import UserManagement from "@/components/settings/UserManagement";
+import { Settings, Globe, Database, CreditCard, MessageCircle, Wrench } from "lucide-react";
 import Container from "@/components/layout/Container";
 import { Separator } from "@/components/ui/separator";
 import SmtpSettings from "@/components/settings/SmtpSettings";
@@ -39,18 +38,11 @@ const SettingsPage = () => {
           onValueChange={setActiveTab}
           className="space-y-4"
         >
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6">
             <TabsTrigger value="account" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
+              <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Compte</span>
             </TabsTrigger>
-            
-            {isAdmin && (
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Utilisateurs</span>
-              </TabsTrigger>
-            )}
             
             {isAdmin && (
               <TabsTrigger value="pdf-models" className="flex items-center gap-2">
@@ -91,12 +83,6 @@ const SettingsPage = () => {
           <TabsContent value="account" className="space-y-4">
             <AccountSettings />
           </TabsContent>
-          
-          {isAdmin && (
-            <TabsContent value="users" className="space-y-4">
-              <UserManagement />
-            </TabsContent>
-          )}
           
           {isAdmin && (
             <TabsContent value="pdf-models" className="space-y-4">
