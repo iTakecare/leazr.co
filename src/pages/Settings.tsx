@@ -11,9 +11,10 @@ import PDFTemplateList from "@/components/settings/PDFTemplateList";
 import DataImporter from "@/components/settings/DataImporter";
 import UserManager from "@/components/settings/UserManager";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import GeneralSettings from "@/components/settings/GeneralSettings";
 
 const Settings = () => {
-  const [activeTab, setActiveTab] = useState("leasers");
+  const [activeTab, setActiveTab] = useState("general");
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
@@ -42,7 +43,8 @@ const Settings = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="grid grid-cols-8 w-full">
+          <TabsTrigger value="general">Général</TabsTrigger>
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="pdf">Modèles PDF</TabsTrigger>
@@ -51,6 +53,20 @@ const Settings = () => {
           <TabsTrigger value="import">Import Données</TabsTrigger>
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="general">
+          <Card>
+            <CardHeader>
+              <CardTitle>Paramètres généraux</CardTitle>
+              <CardDescription>
+                Configurez les paramètres globaux de l'application, comme le logo et les informations générales
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <GeneralSettings />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="leasers">
           <Card>
