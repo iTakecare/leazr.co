@@ -12,7 +12,8 @@ const AccountSettings = () => {
   const [formData, setFormData] = useState({
     first_name: user?.first_name || "",
     last_name: user?.last_name || "",
-    company: user?.company || ""
+    company: user?.company || "",
+    title: user?.title || ""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,7 +28,8 @@ const AccountSettings = () => {
       await updateUserData({
         first_name: formData.first_name,
         last_name: formData.last_name,
-        company: formData.company
+        company: formData.company,
+        title: formData.title
       });
       toast.success("Modifications enregistrées");
     } catch (error) {
@@ -69,6 +71,15 @@ const AccountSettings = () => {
             id="company" 
             placeholder="Votre entreprise" 
             value={formData.company}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="title">Titre (affiché sous votre avatar)</Label>
+          <Input 
+            id="title" 
+            placeholder="Votre titre" 
+            value={formData.title}
             onChange={handleChange}
           />
         </div>

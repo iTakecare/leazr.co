@@ -9,6 +9,7 @@ export interface UserExtended {
   last_name: string | null;
   role: string | null;
   company: string | null;
+  title: string | null;
   email_confirmed_at: string | null;
   last_sign_in_at: string | null;
   created_at: string;
