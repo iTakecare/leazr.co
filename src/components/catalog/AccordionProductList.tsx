@@ -50,23 +50,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return acc;
   }, {} as Record<string, Product[]>);
 
-  // Méthode améliorée pour détecter les variantes
-  const hasVariants = (product: Product): boolean => {
-    if (!product) return false;
-    
-    const isParent = product.is_parent || false;
-    const hasCombinationPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
-    const hasVariationAttrs = product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0;
-    const hasChildVariants = products.filter(p => p.parent_id === product.id).length > 0;
-    
-    return isParent || hasCombinationPrices || hasVariationAttrs || hasChildVariants;
-  };
-
-  // Méthode améliorée pour compter les variantes
+  // Méthode améliorée pour compter les variantes en suivant la logique de ProductSelector
   const getVariantsCount = (product: Product): number => {
-    if (!product) return 0;
-    
-    // 1. Si le produit a un nombre de variantes défini par le serveur, utiliser celui-ci
+    // 1. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
     if (product.variants_count !== undefined && product.variants_count > 0) {
       return product.variants_count;
     }
@@ -82,17 +68,36 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       return childVariants.length;
     }
     
-    // 4. Si le produit a des attributs de variation, calculer le nombre de combinaisons possibles
+    // 4. Si le produit a des variantes directes, utiliser leur nombre
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.length;
+    }
+    
+    // 5. Si le produit a des attributs de variation, calculer le nombre de combinaisons possibles
     if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
       const attributes = product.variation_attributes;
       
-      // Calculer le nombre de combinaisons possibles
+      // Calculer le nombre de combinaisons possibles en multipliant le nombre de valeurs de chaque attribut
       return Object.values(attributes).reduce((total, values) => {
         return total * (Array.isArray(values) ? values.length : 0);
       }, 1);
     }
     
     return 0;
+  };
+
+  // Méthode améliorée pour détecter les variantes
+  const hasVariants = (product: Product): boolean => {
+    if (!product) return false;
+    
+    // Les conditions pour qu'un produit ait des variantes
+    return (
+      (product.is_parent === true) || 
+      (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
+      (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) ||
+      (product.variants && product.variants.length > 0) ||
+      (products.filter(p => p.parent_id === product.id).length > 0)
+    );
   };
 
   const handleDelete = async (productId: string, event?: React.MouseEvent) => {
@@ -158,7 +163,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
               const variantsCount = productHasVariants ? getVariantsCount(product) : 0;
               
               // Logging pour déboguer
-              console.log(`Product ${product.name} has ${variantsCount} variants`);
+              console.log(`AccordionProductList: Product ${product.name} has ${variantsCount} variants`);
               
               return (
               <div key={product.id}>

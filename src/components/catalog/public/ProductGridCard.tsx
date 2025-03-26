@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -74,18 +73,9 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     return categoryMap[category] || "Autre";
   };
 
-  // Méthode améliorée pour détecter les variantes
-  const hasVariants = (): boolean => {
-    const isParent = product.is_parent || false;
-    const hasCombPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
-    const hasVariationAttrs = product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0;
-    
-    return isParent || hasCombPrices || hasVariationAttrs;
-  };
-
-  // Méthode améliorée pour compter les variantes
+  // Méthode améliorée pour compter les variantes en suivant la logique de ProductSelector
   const getVariantsCount = (): number => {
-    // 1. Si le produit a un nombre de variantes défini par le serveur, utiliser celui-ci
+    // 1. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
     if (product.variants_count !== undefined && product.variants_count > 0) {
       return product.variants_count;
     }
@@ -104,7 +94,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
       const attributes = product.variation_attributes;
       
-      // Calculer le nombre de combinaisons possibles
+      // Calculer le nombre de combinaisons possibles en multipliant le nombre de valeurs de chaque attribut
       return Object.values(attributes).reduce((total, values) => {
         return total * (Array.isArray(values) ? values.length : 0);
       }, 1);
@@ -112,9 +102,23 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     
     return 0;
   };
+
+  // Déterminer si le produit a des variantes
+  const hasVariants = (): boolean => {
+    // Les conditions pour qu'un produit ait des variantes
+    return (
+      (product.is_parent === true) || 
+      (product.variant_combination_prices && product.variant_combination_prices.length > 0) || 
+      (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) ||
+      (product.variants && product.variants.length > 0)
+    );
+  };
   
   const hasVariantsFlag = hasVariants();
   const variantsCount = hasVariantsFlag ? getVariantsCount() : 0;
+
+  // Ajouter du logging pour déboguer
+  console.log(`ProductGridCard: ${product.name} - Has variants: ${hasVariantsFlag}, Count: ${variantsCount}`);
 
   return (
     <Card 

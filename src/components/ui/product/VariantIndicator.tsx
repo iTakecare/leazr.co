@@ -14,6 +14,9 @@ const VariantIndicator: React.FC<VariantIndicatorProps> = ({ hasVariants, varian
     return null;
   }
   
+  // Ajouter du logging pour déboguer
+  console.log(`VariantIndicator: variantsCount=${variantsCount}`);
+  
   // Afficher le badge avec le nombre exact de variantes
   return (
     <Badge className="rounded-full text-xs bg-indigo-100 text-indigo-800 flex items-center gap-1">
