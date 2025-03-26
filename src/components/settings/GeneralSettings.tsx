@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -59,6 +60,7 @@ const GeneralSettings = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [error, setError] = useState<string | null>(null);
+  const [settingsId, setSettingsId] = useState<number>(1); // Pour stocker l'ID des paramètres
   
   const form = useForm<GeneralSettingsFormValues>({
     resolver: zodResolver(generalSettingsSchema),
@@ -73,6 +75,7 @@ const GeneralSettings = () => {
     },
   });
   
+  // Vérifier l'authentification de l'utilisateur
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -90,12 +93,14 @@ const GeneralSettings = () => {
     };
   }, []);
   
+  // Charger les paramètres lorsque l'utilisateur est authentifié
   useEffect(() => {
     if (authStatus !== 'loading') {
       loadSettings();
     }
   }, [authStatus]);
   
+  // Fonction pour charger ou créer les paramètres
   const loadSettings = async () => {
     setIsLoading(true);
     setError(null);
@@ -120,7 +125,7 @@ const GeneralSettings = () => {
       
       if (error) {
         if (error.code === 'PGRST116') {
-          console.log("Aucun paramètre trouvé, utilisation des valeurs par défaut");
+          console.log("Aucun paramètre trouvé, création avec les valeurs par défaut");
           
           // Si aucun paramètre n'existe, créons-en un par défaut
           const { error: insertError } = await supabase
@@ -138,15 +143,22 @@ const GeneralSettings = () => {
             
           if (insertError) {
             console.error("Erreur lors de la création des paramètres par défaut:", insertError);
+            setError("Impossible de créer les paramètres par défaut");
+            toast.error("Erreur lors de la création des paramètres par défaut");
           } else {
             // Récupérer à nouveau après l'insertion
-            const { data: newData } = await supabase
+            const { data: newData, error: fetchError } = await supabase
               .from('site_settings')
               .select('*')
               .eq('id', 1)
               .single();
               
-            if (newData) {
+            if (fetchError) {
+              console.error("Erreur lors de la récupération des paramètres après création:", fetchError);
+              setError("Impossible de récupérer les paramètres créés");
+            } else if (newData) {
+              console.log("Nouveaux paramètres créés et récupérés:", newData);
+              setSettingsId(newData.id);
               form.reset({
                 siteName: newData.site_name || "iTakecare",
                 siteDescription: newData.site_description || "Hub de gestion",
@@ -164,10 +176,12 @@ const GeneralSettings = () => {
           }
         } else {
           console.error("Erreur lors du chargement des paramètres:", error);
+          setError("Erreur lors du chargement des paramètres");
           toast.error("Erreur lors du chargement des paramètres");
         }
       } else if (data) {
         console.log("Paramètres chargés avec succès:", data);
+        setSettingsId(data.id);
         form.reset({
           siteName: data.site_name || "iTakecare",
           siteDescription: data.site_description || "Hub de gestion",
@@ -184,6 +198,7 @@ const GeneralSettings = () => {
       }
     } catch (error) {
       console.error("Erreur lors du chargement des paramètres:", error);
+      setError("Erreur lors du chargement des paramètres");
       toast.error("Erreur lors du chargement des paramètres");
     } finally {
       setIsLoading(false);
@@ -200,6 +215,7 @@ const GeneralSettings = () => {
     
     try {
       const settingsData = {
+        id: settingsId, // Utiliser l'ID stocké
         site_name: values.siteName,
         site_description: values.siteDescription,
         company_name: values.companyName,
@@ -211,8 +227,7 @@ const GeneralSettings = () => {
       
       const { error } = await supabase
         .from('site_settings')
-        .upsert(settingsData, { onConflict: 'id' })
-        .eq('id', 1);
+        .upsert(settingsData, { onConflict: 'id' });
       
       if (error) {
         console.error("Erreur lors de la sauvegarde des paramètres:", error);
