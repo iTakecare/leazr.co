@@ -1,7 +1,6 @@
 
 import { ProductAttributes, Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
-import { findVariantCombinationPrice } from "@/services/catalogService";
 
 /**
  * Recherche une variante compatible avec les attributs sélectionnés
@@ -13,7 +12,16 @@ export const findVariantForAttributes = async (
   // Vérifier si le produit a des combinaisons de prix de variantes
   if (product.id && product.variant_combination_prices && product.variant_combination_prices.length > 0) {
     try {
-      const priceMatch = await findVariantCombinationPrice(product.id, selectedAttributes);
+      // Try to find a price match in variant combinations
+      const priceMatch = product.variant_combination_prices.find(combination => {
+        // Check if all selected attributes match this combination
+        return Object.entries(selectedAttributes).every(([key, value]) => 
+          combination.attributes && 
+          combination.attributes[key] !== undefined &&
+          String(combination.attributes[key]).toLowerCase() === String(value).toLowerCase()
+        );
+      });
+      
       if (priceMatch) {
         // Créer un pseudo-variant avec les informations de prix
         const variant = {
@@ -21,7 +29,7 @@ export const findVariantForAttributes = async (
           price: priceMatch.price,
           monthly_price: priceMatch.monthly_price || 0,
           stock: priceMatch.stock,
-          variant_attributes: selectedAttributes,
+          variation_attributes: selectedAttributes,
           variant_id: priceMatch.id
         };
         
@@ -39,13 +47,13 @@ export const findVariantForAttributes = async (
   if (product.variants && product.variants.length > 0) {
     // Rechercher une variante qui correspond aux attributs sélectionnés
     const matchingVariant = product.variants.find(variant => {
-      if (!variant.variant_attributes) return false;
+      if (!variant.variation_attributes) return false;
       
       // Vérifier que tous les attributs sélectionnés correspondent à cette variante
       return Object.entries(selectedAttributes).every(([key, value]) => 
-        variant.variant_attributes && 
-        variant.variant_attributes[key] !== undefined &&
-        String(variant.variant_attributes[key]).toLowerCase() === String(value).toLowerCase()
+        variant.variation_attributes && 
+        variant.variation_attributes[key] !== undefined &&
+        String(variant.variation_attributes[key]).toLowerCase() === String(value).toLowerCase()
       );
     });
     
@@ -68,12 +76,12 @@ export const findVariantForAttributes = async (
       
       if (data && data.length > 0) {
         const matchingVariant = data.find(variant => {
-          if (!variant.variant_attributes) return false;
+          if (!variant.variation_attributes) return false;
           
           return Object.entries(selectedAttributes).every(([key, value]) => 
-            variant.variant_attributes && 
-            variant.variant_attributes[key] !== undefined &&
-            String(variant.variant_attributes[key]).toLowerCase() === String(value).toLowerCase()
+            variant.variation_attributes && 
+            variant.variation_attributes[key] !== undefined &&
+            String(variant.variation_attributes[key]).toLowerCase() === String(value).toLowerCase()
           );
         });
         
@@ -93,8 +101,41 @@ export const findVariantForAttributes = async (
   return { 
     variant: {
       ...product,
-      variant_attributes: selectedAttributes
+      variation_attributes: selectedAttributes
     }, 
     price: null 
   };
+};
+
+// Helper function to find variant price combinations
+export const findVariantCombinationPrice = async (
+  productId: string,
+  attributes: ProductAttributes
+) => {
+  try {
+    const { data, error } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', productId);
+    
+    if (error) throw error;
+    
+    if (!data || data.length === 0) return null;
+    
+    // Find a price combination that matches all selected attributes
+    return data.find(combination => {
+      const combinationAttrs = typeof combination.attributes === 'string'
+        ? JSON.parse(combination.attributes)
+        : combination.attributes;
+        
+      // Check if all selected attributes match this combination
+      return Object.entries(attributes).every(([key, value]) => 
+        combinationAttrs[key] !== undefined &&
+        String(combinationAttrs[key]).toLowerCase() === String(value).toLowerCase()
+      );
+    }) || null;
+  } catch (error) {
+    console.error("Error finding variant combination price:", error);
+    return null;
+  }
 };

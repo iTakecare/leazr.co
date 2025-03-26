@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -10,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Product } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Package } from "lucide-react";
-import { findVariantByAttributes, findVariantCombinationPrice } from "@/services/catalogService";
+import { findVariantByAttributes } from "@/services/catalogService";
+import { findVariantCombinationPrice } from "@/services/variantService";
 import VariantSelector from "@/components/product-detail/VariantSelector";
 import ProductPriceDisplay from "@/components/product-detail/ProductPriceDisplay";
 import ProductImageDisplay from "@/components/product-detail/ProductImageDisplay";
@@ -35,12 +35,10 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   const [hasVariants, setHasVariants] = useState(false);
 
   useEffect(() => {
-    // Reset state when product changes
     setSelectedOptions({});
     setCurrentPrice(null);
     setSelectedVariant(null);
 
-    // Check if the product has options
     const hasVariationAttributes = product.variation_attributes && 
       Object.keys(product.variation_attributes).length > 0;
     
@@ -51,7 +49,6 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
     setHasOptions(hasVariationAttributes);
   }, [product]);
 
-  // Update price and selected variant when options change
   useEffect(() => {
     const updateSelectedVariant = async () => {
       if (!product || !product.id || Object.keys(selectedOptions).length === 0) {
@@ -61,7 +58,6 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       }
 
       try {
-        // Try to find a matching variant price combination
         if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
           const price = await findVariantCombinationPrice(product.id, selectedOptions);
           if (price) {
@@ -72,7 +68,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
               price: price.price,
               monthly_price: price.monthly_price || 0,
               selected_attributes: selectedOptions,
-              variant_attributes: selectedOptions
+              variation_attributes: selectedOptions
             };
             
             setSelectedVariant(variant);
@@ -80,7 +76,6 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
           }
         }
         
-        // Try to find a matching product variant
         const variant = await findVariantByAttributes(product.id, selectedOptions);
         if (variant) {
           setCurrentPrice(variant.monthly_price);
@@ -109,8 +104,6 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   };
 
   const isOptionAvailable = (optionName: string, value: string): boolean => {
-    // For now, all options are considered available
-    // We could implement logic to determine if combinations are valid
     return true;
   };
 
@@ -118,15 +111,13 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
     if (selectedVariant) {
       onSelectVariant(selectedVariant);
     } else if (Object.keys(selectedOptions).length > 0) {
-      // Create a variant with the selected options if no matching variant was found
       const variant = {
         ...product,
         selected_attributes: selectedOptions,
-        variant_attributes: selectedOptions
+        variation_attributes: selectedOptions
       };
       onSelectVariant(variant);
     } else {
-      // If no options were selected, just return the parent product
       onSelectVariant(product);
     }
   };

@@ -1,11 +1,10 @@
 
 import React from "react";
 import { 
-  Layers, 
-  Edit, 
-  Plus, 
   ChevronDown, 
   ChevronUp, 
+  Layers, 
+  Edit, 
   Tag as TagIcon 
 } from "lucide-react";
 import { Product } from "@/types/catalog";
@@ -78,15 +77,15 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
         <h3 className="font-medium text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">{product.name}</h3>
         
-        {hasVariantSupport && product.parent_id && product.variant_attributes && Object.keys(product.variant_attributes).length > 0 && (
+        {hasVariantSupport && product.parent_id && product.variation_attributes && Object.keys(product.variation_attributes).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {Object.entries(product.variant_attributes).map(([key, value], idx) => (
+            {Object.entries(product.variation_attributes).map(([key, value], idx) => (
               <span 
                 key={idx}
                 className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full"
               >
                 <TagIcon className="h-3 w-3" />
-                {key}: {value}
+                {key}: {String(value)}
               </span>
             ))}
           </div>
@@ -101,7 +100,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             <span className="text-gray-600"> par mois</span>
           </div>
           <button className="p-1.5 rounded-full bg-blue-100 text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
-            {editMode ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {editMode ? <Edit className="h-4 w-4" /> : <span>+</span>}
           </button>
         </div>
       </div>
