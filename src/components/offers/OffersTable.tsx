@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
@@ -35,7 +34,8 @@ import {
   Send, 
   Eye, 
   FileDown, 
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { useAuth } from "@/context/AuthContext";
@@ -49,6 +49,7 @@ interface OffersTableProps {
   onResendOffer?: (offerId: string) => void;
   onDownloadPdf?: (offerId: string) => void;
   isUpdatingStatus: boolean;
+  isDeleting?: boolean;
 }
 
 const OffersTable: React.FC<OffersTableProps> = ({
@@ -58,6 +59,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   onResendOffer,
   onDownloadPdf,
   isUpdatingStatus,
+  isDeleting = false,
 }) => {
   const navigate = useNavigate();
   const { isAdmin, isAmbassador } = useAuth();
@@ -163,8 +165,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           variant="ghost"
                           className="h-8 w-8 p-0"
                           aria-label="Plus d'options"
+                          disabled={isDeleting}
                         >
-                          <MoreHorizontal className="h-4 w-4" />
+                          {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -204,7 +207,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           </DropdownMenuItem>
                         )}
                         
-                        <DropdownMenuItem onClick={() => setConfirmDelete(offer.id)}>
+                        <DropdownMenuItem 
+                          onClick={() => setConfirmDelete(offer.id)}
+                          disabled={isDeleting}
+                        >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Supprimer
                         </DropdownMenuItem>
@@ -225,6 +231,11 @@ const OffersTable: React.FC<OffersTableProps> = ({
             <AlertDialogDescription>
               Cette action ne peut pas être annulée. Cela supprimera
               définitivement cette offre.
+              {confirmDelete && offers.find(o => o.id === confirmDelete)?.workflow_status === 'financed' && (
+                <div className="mt-2 p-2 bg-red-50 border border-red-200 text-red-700 rounded-md">
+                  <strong>Attention :</strong> Cette offre a le statut "financée". Sa suppression pourrait affecter les contrats associés.
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -237,8 +248,16 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 }
               }}
               className="bg-red-500 hover:bg-red-600"
+              disabled={isDeleting}
             >
-              Supprimer
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                'Supprimer'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
