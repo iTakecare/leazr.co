@@ -1,265 +1,78 @@
-
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getSupabaseClient } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { PDFTemplate } from "@/utils/templateManager";
-import PDFCanvas from "./pdf-preview/PDFCanvas";
-import PreviewControls from "./pdf-preview/PreviewControls";
 import { Loader2, Save } from "lucide-react";
+import { PDFTemplate } from "@/utils/templateManager";
+import PreviewControls from "./pdf-preview/PreviewControls";
+import PDFPage from "./pdf-preview/PDFPage";
+import PageNavigation from "./pdf-preview/PageNavigation";
+import { usePDFPreview } from "./pdf-preview/usePDFPreview";
+import { PDFPreviewDragProvider, useDragState, useDragActions } from "./pdf-preview/PDFPreviewDragContext";
 
 interface SimplePDFPreviewProps {
   template: PDFTemplate;
   onSave: (template: PDFTemplate) => Promise<void>;
 }
 
-const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave }) => {
-  const [localTemplate, setLocalTemplate] = useState<PDFTemplate>({
-    ...template,
-    templateImages: Array.isArray(template.templateImages) ? [...template.templateImages] : [],
-    fields: Array.isArray(template.fields) ? [...template.fields] : []
-  });
+const PreviewContainer: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { isDragging, draggedFieldId } = useDragState();
+  const { updateFieldPosition, endDrag } = useDragActions();
   
-  const [zoomLevel, setZoomLevel] = useState(1.0);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [pageLoaded, setPageLoaded] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [isDraggable, setIsDraggable] = useState(false);
-  const [isFieldDragging, setIsFieldDragging] = useState(false);
-  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [sampleData, setSampleData] = useState({});
-  const [useRealData, setUseRealData] = useState(false);
-  const [realData, setRealData] = useState<any>(null);
-  
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  useEffect(() => {
-    // Charger des données d'exemple détaillées pour l'aperçu
-    setSampleData({
-      client_name: "Dupont",
-      client_first_name: "Jean",
-      client_email: "jean.dupont@exemple.fr",
-      client_phone: "+33 6 12 34 56 78",
-      client_company: "Entreprise Exemple",
-      client_vat_number: "FR12345678901",
-      client_address: "15 Rue de l'Exemple",
-      client_postal_code: "75000",
-      client_city: "Paris",
-      client_country: "France",
-      offer_id: "OFR-2023-001",
-      created_at: new Date().toISOString(),
-      amount: 15000,
-      monthly_payment: 450.50,
-      equipment_description: JSON.stringify([
-        {
-          title: "Ordinateur portable Dell XPS 13",
-          purchasePrice: 1500,
-          quantity: 2,
-          margin: 15
-        },
-        {
-          title: "Écran Dell 27 pouces",
-          purchasePrice: 350,
-          quantity: 2,
-          margin: 20
-        },
-        {
-          title: "Docking Station USB-C",
-          purchasePrice: 180,
-          quantity: 2,
-          margin: 25
-        }
-      ])
-    });
-    
-    // Charger une offre réelle pour les tests avec données réelles
-    fetchRealData();
-  }, []);
-  
-  // Charger une offre réelle depuis la base de données
-  const fetchRealData = async () => {
-    try {
-      const supabase = getSupabaseClient();
-      
-      // Récupérer l'offre la plus récente
-      const { data, error } = await supabase
-        .from('offers')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (error) throw error;
-      
-      if (data) {
-        console.log("Données réelles chargées:", data);
-        setRealData(data);
-      }
-    } catch (error) {
-      console.error("Erreur lors du chargement des données réelles:", error);
-    }
-  };
-  
-  // Mise à jour du template local quand le template parent change
-  useEffect(() => {
-    console.log("Mise à jour du template local depuis le template parent");
-    console.log("Fields:", template?.fields?.length || 0);
-    console.log("Images:", template?.templateImages?.length || 0);
-    
-    if (template?.fields) {
-      console.log("Champs pour la page 1:", template.fields.filter(f => f.page === 0 || !f.page).length);
-      
-      const fieldsPage1 = template.fields.filter(f => f.page === 0 || !f.page);
-      fieldsPage1.forEach((f, i) => {
-        console.log(` - ${f.id}: "${f.label}" à (${f.position?.x || '?'}, ${f.position?.y || '?'})`);
-      });
-    }
-    
-    if (template?.templateImages) {
-      console.log("Image trouvée pour la page 1:", template.templateImages.some(img => img.page === 0 || !img.page));
-    }
-    
-    setLocalTemplate({
-      ...template,
-      templateImages: Array.isArray(template.templateImages) ? [...template.templateImages] : [],
-      fields: Array.isArray(template.fields) ? [...template.fields] : []
-    });
-    
-    // Réinitialiser les états
-    setHasUnsavedChanges(false);
-  }, [template]);
-  
-  // Fonction utilisée pour démarrer le drag & drop d'un champ
-  const handleStartDrag = (fieldId: string, offsetX: number, offsetY: number) => {
-    if (!isDraggable) return;
-    
-    setDraggedFieldId(fieldId);
-    setDragOffset({ x: offsetX, y: offsetY });
-    setIsFieldDragging(true);
-  };
-  
-  // Fonction appelée lors du déplacement d'un champ
-  const handleDrag = (clientX: number, clientY: number) => {
-    if (!isFieldDragging || !draggedFieldId) return;
-    
-    // Trouver le champ en cours de déplacement
-    const fields = [...localTemplate.fields];
-    const fieldIndex = fields.findIndex(f => f.id === draggedFieldId);
-    
-    if (fieldIndex === -1) return;
-    
-    // Calculer les coordonnées mm à partir des coordonnées de l'écran
-    // La conversion tient compte du zoom et du fait que l'unité est en mm
-    const containerRect = document.querySelector(".bg-white.shadow-lg")?.getBoundingClientRect();
-    if (!containerRect) return;
-    
-    // Coordonnées du pointeur par rapport au conteneur
-    const relativeX = clientX - containerRect.left - dragOffset.x;
-    const relativeY = clientY - containerRect.top - dragOffset.y;
-    
-    // Conversion en mm (210mm = largeur A4, 297mm = hauteur A4)
-    const widthInMm = 210;
-    const heightInMm = 297;
-    
-    // Calcul des coordonnées en mm en tenant compte du zoom
-    const xInMm = (relativeX / (containerRect.width / widthInMm)) / zoomLevel;
-    const yInMm = (relativeY / (containerRect.height / heightInMm)) / zoomLevel;
-    
-    // Limiter les coordonnées à l'intérieur de la page
-    const newX = Math.max(0, Math.min(xInMm, widthInMm));
-    const newY = Math.max(0, Math.min(yInMm, heightInMm));
-    
-    // Mise à jour de la position du champ
-    fields[fieldIndex] = {
-      ...fields[fieldIndex],
-      position: {
-        x: Math.round(newX * 10) / 10, // Arrondir à 1 décimale
-        y: Math.round(newY * 10) / 10  // Arrondir à 1 décimale
-      }
-    };
-    
-    // Mettre à jour le template local et marquer comme ayant des changements non sauvegardés
-    setLocalTemplate({
-      ...localTemplate,
-      fields
-    });
-    
-    setHasUnsavedChanges(true);
-  };
-  
-  // Fonction appelée à la fin du déplacement d'un champ
-  const handleEndDrag = () => {
-    if (!isFieldDragging) return;
-    
-    setIsFieldDragging(false);
-    setDraggedFieldId(null);
-  };
-  
-  // Fonction pour sauvegarder les changements
-  const handleSave = async () => {
-    // Annuler tout timeout de sauvegarde en cours
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
-    }
-    
-    try {
-      setIsSaving(true);
-      
-      // Valider les données avant sauvegarde
-      const fieldsToSave = localTemplate.fields.map(field => {
-        // S'assurer que tous les champs ont des positions valides
-        if (!field.position || typeof field.position.x !== 'number' || typeof field.position.y !== 'number') {
-          return {
-            ...field,
-            position: { x: 10, y: 10 } // Valeurs par défaut
-          };
-        }
-        
-        // Arrondir les coordonnées à 1 décimale
-        return {
-          ...field,
-          position: {
-            x: Math.round(field.position.x * 10) / 10,
-            y: Math.round(field.position.y * 10) / 10
-          }
-        };
-      });
-      
-      // Créer une copie profonde du template avec les champs mis à jour
-      const templateToSave = {
-        ...localTemplate,
-        fields: fieldsToSave
-      };
-      
-      // Sauvegarder via la fonction fournie par le parent
-      await onSave(templateToSave);
-      
-      // Mettre à jour l'état local
-      setHasUnsavedChanges(false);
-      toast.success("Modifications sauvegardées avec succès");
-    } catch (error) {
-      console.error("Erreur lors de la sauvegarde:", error);
-      toast.error("Erreur lors de la sauvegarde");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  
-  // Détermine quelles données utiliser en fonction du paramètre useRealData
-  const getCurrentData = () => {
-    if (useRealData && realData) {
-      return realData;
-    }
-    return sampleData;
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !draggedFieldId || !containerRef.current) return;
+    updateFieldPosition(e.clientX, e.clientY, containerRef.current.getBoundingClientRect(), 1);
   };
   
   return (
-    <Card className="w-full">
+    <div 
+      ref={containerRef}
+      className="bg-white shadow-lg relative mx-auto" 
+      style={{ 
+        width: '210mm', 
+        height: '297mm',
+        maxWidth: "100%"
+      }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={endDrag}
+      onMouseUp={endDrag}
+    >
+      {children}
+    </div>
+  );
+};
+
+const PDFPreviewContent: React.FC<SimplePDFPreviewProps> = ({ template, onSave }) => {
+  const {
+    localTemplate,
+    zoomLevel,
+    setZoomLevel,
+    currentPage,
+    setCurrentPage,
+    pageLoaded,
+    setPageLoaded,
+    loading,
+    isSaving,
+    useRealData,
+    setUseRealData,
+    realData,
+    handleGeneratePreview,
+    handleSave,
+    getCurrentPageBackground,
+    getCurrentPageFields,
+    handleImageError,
+    handleImageLoad,
+    getCurrentData
+  } = usePDFPreview(template, onSave);
+  
+  const { hasUnsavedChanges } = useDragState();
+  
+  const fields = getCurrentPageFields();
+  const backgroundImage = getCurrentPageBackground();
+  const totalPages = localTemplate?.templateImages?.length || 1;
+  
+  return (
+    <>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">Aperçu du modèle</CardTitle>
         {hasUnsavedChanges && (
@@ -287,13 +100,10 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
         <PreviewControls 
           zoomLevel={zoomLevel}
           setZoomLevel={setZoomLevel}
-          isDraggable={isDraggable}
-          setIsDraggable={setIsDraggable}
-          hasUnsavedChanges={hasUnsavedChanges}
           onSave={handleSave}
+          onGeneratePreview={handleGeneratePreview}
           sampleData={getCurrentData()}
-          localTemplate={localTemplate}
-          setLoading={setLoading}
+          loading={loading}
           isSaving={isSaving}
           useRealData={useRealData}
           setUseRealData={setUseRealData}
@@ -306,22 +116,57 @@ const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = ({ template, onSave })
             <span className="ml-2">Chargement...</span>
           </div>
         ) : (
-          <PDFCanvas 
-            localTemplate={localTemplate}
-            zoomLevel={zoomLevel}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pageLoaded={pageLoaded}
-            setPageLoaded={setPageLoaded}
-            isDraggable={isDraggable}
-            sampleData={getCurrentData()}
-            onStartDrag={handleStartDrag}
-            onDrag={handleDrag}
-            onEndDrag={handleEndDrag}
-            useRealData={useRealData}
-          />
+          <div className="bg-gray-100 p-4 flex justify-center min-h-[800px] overflow-auto">
+            <PreviewContainer>
+              <PageNavigation 
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                totalPages={totalPages}
+              />
+              
+              <PDFPage 
+                currentPage={currentPage}
+                template={localTemplate}
+                backgroundImage={backgroundImage}
+                pageLoaded={pageLoaded}
+                fields={fields}
+                zoomLevel={zoomLevel}
+                sampleData={getCurrentData()}
+                onImageLoad={handleImageLoad}
+                onImageError={handleImageError}
+              />
+            </PreviewContainer>
+          </div>
         )}
+        
+        <div className="text-sm text-muted-foreground mt-4">
+          <p>Pour positionner les champs sur vos pages:</p>
+          <ol className="list-decimal list-inside ml-4 space-y-1 mt-2">
+            <li>Cliquez sur "Positionner les champs" pour activer le mode de positionnement</li>
+            <li>Déplacez les champs en les faisant glisser à l'emplacement souhaité</li>
+            <li>Cliquez sur "Sauvegarder" pour enregistrer les positions</li>
+            <li>Cliquez sur "Terminer le positionnement" pour désactiver le mode d'édition</li>
+          </ol>
+          <p className="mt-2 font-medium text-blue-600">Note: Les coordonnées X/Y représentent la position en millimètres depuis le coin supérieur gauche de la page.</p>
+          {totalPages > 1 && <p className="mt-2">Utilisez les boutons de navigation pour parcourir les différentes pages du document.</p>}
+        </div>
       </CardContent>
+    </>
+  );
+};
+
+const SimplePDFPreview: React.FC<SimplePDFPreviewProps> = (props) => {
+  return (
+    <Card className="w-full">
+      <PDFPreviewDragProvider 
+        template={props.template} 
+        onTemplateChange={(template) => {
+          // This doesn't immediately save to the server, it just updates the local state
+          // The save button will trigger the actual save operation
+        }}
+      >
+        <PDFPreviewContent {...props} />
+      </PDFPreviewDragProvider>
     </Card>
   );
 };

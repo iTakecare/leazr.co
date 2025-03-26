@@ -1,173 +1,53 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Save, FileDown, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { generateSamplePdf } from "@/services/offers/offerPdf";
+import { Save, Loader2, FileDown } from "lucide-react";
+import { useDragState, useDragActions } from "./PDFPreviewDragContext";
 
 interface PreviewControlsProps {
   zoomLevel: number;
   setZoomLevel: (zoom: number) => void;
-  isDraggable: boolean;
-  setIsDraggable: (draggable: boolean) => void;
-  hasUnsavedChanges: boolean;
   onSave: () => Promise<void>;
+  onGeneratePreview: () => Promise<void>;
   sampleData: any;
-  localTemplate: any;
-  setLoading: (loading: boolean) => void;
-  isSaving?: boolean;
+  loading: boolean;
+  isSaving: boolean;
   useRealData: boolean;
-  setUseRealData: (useReal: boolean) => void;
+  setUseRealData: (use: boolean) => void;
   realData: any;
 }
 
 const PreviewControls: React.FC<PreviewControlsProps> = ({
   zoomLevel,
   setZoomLevel,
-  isDraggable,
-  setIsDraggable,
-  hasUnsavedChanges,
   onSave,
+  onGeneratePreview,
   sampleData,
-  localTemplate,
-  setLoading,
-  isSaving = false,
+  loading,
+  isSaving,
   useRealData,
   setUseRealData,
   realData
 }) => {
-  const handleGeneratePreview = async () => {
-    try {
-      setLoading(true);
-      toast.info("Génération du PDF en cours...");
-      
-      // Ensure we have a valid template to work with
-      if (!localTemplate) {
-        toast.error("Aucun modèle disponible pour générer le PDF");
-        setLoading(false);
-        return;
-      }
-      
-      // Log template structure for debugging
-      console.log("Structure du modèle pour génération PDF:", {
-        nom: localTemplate.name,
-        images: localTemplate.templateImages?.length || 0,
-        champs: localTemplate.fields?.length || 0
-      });
-      
-      // Check fields and their positions
-      if (!Array.isArray(localTemplate.fields) || localTemplate.fields.length === 0) {
-        toast.info("Le modèle n'a pas de champs définis. Le PDF généré sera basique.");
-      } else {
-        console.log("Champs disponibles pour le PDF:", localTemplate.fields.length);
-        
-        // Check field positions
-        const fieldsWithPositions = localTemplate.fields.filter(f => 
-          f.position && typeof f.position.x === 'number' && typeof f.position.y === 'number'
-        );
-        
-        console.log("Champs avec positions valides:", fieldsWithPositions.length);
-        
-        // Show details of each field for debugging
-        for (const field of fieldsWithPositions) {
-          console.log(`Champ ${field.id}: "${field.value}" à (${field.position.x}, ${field.position.y})`);
-        }
-        
-        if (fieldsWithPositions.length === 0 && localTemplate.fields.length > 0) {
-          toast.info("Aucun champ n'a de position définie. Utilisez le mode de positionnement pour placer les champs.");
-        }
-      }
-      
-      // Select data to use (real or sample)
-      const dataToUse = useRealData && realData ? realData : sampleData;
-      console.log("Données utilisées pour la génération:", dataToUse);
-      
-      // Log template images
-      if (localTemplate.templateImages && localTemplate.templateImages.length > 0) {
-        console.log("Images du template pour le PDF:");
-        localTemplate.templateImages.forEach((img, idx) => {
-          console.log(`Image ${idx+1}: page ${img.page}, data présente: ${Boolean(img.data)}, url présente: ${Boolean(img.url)}`);
-        });
-      } else {
-        console.warn("ATTENTION: Aucune image de template n'est définie pour le PDF");
-      }
-      
-      // Generate the PDF using the sample generator
-      const pdfFilename = await generateSamplePdf(dataToUse);
-      
-      toast.success(`PDF généré avec succès : ${pdfFilename}`);
-    } catch (error) {
-      console.error("Erreur détaillée lors de la génération du PDF:", error);
-      toast.error(`Erreur lors de la génération du PDF: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-    } finally {
-      setLoading(false);
-    }
+  const { hasUnsavedChanges, isDraggable } = useDragState();
+  const { toggleDragMode } = useDragActions();
+
+  const zoomIn = () => {
+    setZoomLevel(Math.min(zoomLevel + 0.1, 2));
   };
 
-  const decreaseZoom = () => {
-    const newZoom = Math.max(zoomLevel - 0.1, 0.5);
-    setZoomLevel(newZoom);
-  };
-
-  const increaseZoom = () => {
-    const newZoom = Math.min(zoomLevel + 0.1, 2);
-    setZoomLevel(newZoom);
-  };
-
-  const handleSaveClick = async () => {
-    if (hasUnsavedChanges && !isSaving) {
-      try {
-        await onSave();
-        // Le toast de succès est géré dans la fonction onSave
-      } catch (error) {
-        console.error("Erreur lors de la sauvegarde:", error);
-        // Le toast d'erreur est géré dans la fonction onSave
-      }
-    }
-  };
-
-  const handleDraggableChange = (newDraggable: boolean) => {
-    setIsDraggable(newDraggable);
-    
-    if (!newDraggable && hasUnsavedChanges) {
-      toast.info("N'oubliez pas de sauvegarder vos modifications", {
-        action: {
-          label: "Sauvegarder",
-          onClick: handleSaveClick
-        }
-      });
-    }
-  };
-  
-  const handleRealDataChange = (useReal: boolean) => {
-    setUseRealData(useReal);
-    toast.info(useReal ? 
-      "Utilisation des données réelles activée" : 
-      "Utilisation des données d'exemple activée"
-    );
+  const zoomOut = () => {
+    setZoomLevel(Math.max(zoomLevel - 0.1, 0.5));
   };
 
   return (
-    <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2 mb-4">
-      <h3 className="text-sm font-medium">Aperçu du modèle de PDF</h3>
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 mr-4">
-          <Switch
-            id="use-real-data"
-            checked={useRealData}
-            onCheckedChange={handleRealDataChange}
-          />
-          <Label htmlFor="use-real-data" className="text-sm">
-            Utiliser des données réelles
-          </Label>
-        </div>
-        
+    <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
+      <div className="flex items-center space-x-2">
         <div className="flex items-center border rounded-md">
           <Button
             variant="ghost"
             size="sm"
-            onClick={decreaseZoom}
+            onClick={zoomOut}
             disabled={zoomLevel <= 0.5}
             className="h-8 px-2"
           >
@@ -177,50 +57,66 @@ const PreviewControls: React.FC<PreviewControlsProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={increaseZoom}
+            onClick={zoomIn}
             disabled={zoomLevel >= 2}
             className="h-8 px-2"
           >
             +
           </Button>
         </div>
+
         <Button
           variant={isDraggable ? "default" : "outline"}
           size="sm"
-          onClick={() => handleDraggableChange(!isDraggable)}
-          className="h-8"
+          onClick={toggleDragMode}
         >
           {isDraggable ? "Terminer le positionnement" : "Positionner les champs"}
         </Button>
+      </div>
+
+      <div className="flex space-x-2">
+        {realData && (
+          <div className="flex items-center space-x-2">
+            <label className="text-sm">
+              <input
+                type="checkbox"
+                checked={useRealData}
+                onChange={(e) => setUseRealData(e.target.checked)}
+                className="mr-1"
+              />
+              Utiliser des données réelles
+            </label>
+          </div>
+        )}
+
         {hasUnsavedChanges && (
           <Button
             variant="default"
             size="sm"
-            onClick={handleSaveClick}
+            onClick={onSave}
             disabled={isSaving}
-            className="h-8"
           >
             {isSaving ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Sauvegarde...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
-                Sauvegarder les positions
+                <Save className="mr-2 h-4 w-4" />
+                Sauvegarder
               </>
             )}
           </Button>
         )}
+
         <Button
           variant="outline"
           size="sm"
-          onClick={handleGeneratePreview}
-          className="h-8"
-          disabled={isSaving}
+          onClick={onGeneratePreview}
+          disabled={loading}
         >
-          <FileDown className="h-4 w-4 mr-2" />
+          <FileDown className="mr-2 h-4 w-4" />
           Générer un PDF d'exemple
         </Button>
       </div>

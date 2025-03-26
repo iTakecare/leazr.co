@@ -5,23 +5,35 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 interface PageNavigationProps {
   currentPage: number;
-  totalPages: number;
   setCurrentPage: (page: number) => void;
+  totalPages: number;
 }
 
 const PageNavigation: React.FC<PageNavigationProps> = ({
   currentPage,
-  totalPages,
-  setCurrentPage
+  setCurrentPage,
+  totalPages
 }) => {
   if (totalPages <= 1) return null;
+
+  const nextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  const prevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   return (
     <div className="absolute top-4 right-4 z-10 flex gap-2">
       <Button
         variant="outline"
         size="icon"
-        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+        onClick={prevPage}
         disabled={currentPage === 0}
         className="h-8 w-8 bg-white bg-opacity-75"
       >
@@ -33,7 +45,7 @@ const PageNavigation: React.FC<PageNavigationProps> = ({
       <Button
         variant="outline"
         size="icon"
-        onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+        onClick={nextPage}
         disabled={currentPage === totalPages - 1}
         className="h-8 w-8 bg-white bg-opacity-75"
       >
