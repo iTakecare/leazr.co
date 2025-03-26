@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -25,13 +26,14 @@ import {
   RefreshCw, 
   Building, 
   Info,
-  AlertTriangle,
-  Shield
+  AlertTriangle
 } from "lucide-react";
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { ensureStorageBucket } from "@/services/storageService";
+import { uploadImage, detectFileExtension, detectMimeTypeFromSignature } from "@/services/imageService";
 import Logo from "@/components/layout/Logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const generalSettingsSchema = z.object({
   siteName: z.string().min(2, {
@@ -205,102 +207,31 @@ const GeneralSettings = () => {
       setIsUploading(true);
       toast.info("Préparation de l'upload du logo...");
       
-      console.log("Tentative d'upload du logo...");
+      // Utiliser uploadImage du imageService qui gère correctement le type MIME
+      const extension = detectFileExtension(file);
+      const timestamp = Date.now();
+      const fileName = `site-logo-${timestamp}.${extension}`;
       
-      const bucketExists = await ensureStorageBucket('site-settings');
+      // Détecter le type MIME correct avec le service imageService
+      const detectedMimeType = await detectMimeTypeFromSignature(file);
+      console.log(`Type MIME détecté: ${detectedMimeType || 'non détecté, utilisation du type par défaut'}`);
       
-      if (!bucketExists) {
-        toast.error("Erreur lors de la configuration du stockage. Veuillez réessayer.");
-        return;
+      const result = await uploadImage(
+        file,
+        fileName,
+        'site-settings',
+        true
+      );
+      
+      if (!result || !result.url) {
+        throw new Error("Échec de l'upload de l'image");
       }
       
-      const fileExt = file.name.split('.').pop();
-      const fileName = `site-logo-${Date.now()}.${fileExt}`;
+      const logoUrl = result.url;
+      console.log("Logo uploadé avec succès:", logoUrl);
       
-      let uploadResult;
-      let useAdminClient = false;
-      
-      try {
-        uploadResult = await supabase
-          .storage
-          .from('site-settings')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: true
-          });
-          
-        if (uploadResult.error) {
-          console.warn("Erreur d'upload avec le client standard:", uploadResult.error);
-          
-          if (uploadResult.error.message.includes("row-level security") || 
-              uploadResult.error.message.includes("Unauthorized")) {
-            console.log("Problème d'autorisation, tentative avec le client admin...");
-            useAdminClient = true;
-            toast.info("Nouvelle tentative en cours...");
-          } else {
-            throw uploadResult.error;
-          }
-        }
-      } catch (error) {
-        console.error("Erreur lors de la première tentative d'upload:", error);
-        useAdminClient = true;
-      }
-      
-      if (useAdminClient) {
-        try {
-          uploadResult = await adminSupabase
-            .storage
-            .from('site-settings')
-            .upload(fileName, file, {
-              cacheControl: '3600',
-              upsert: true
-            });
-            
-          if (uploadResult.error) {
-            throw uploadResult.error;
-          }
-        } catch (adminError) {
-          console.error("Erreur avec le client admin:", adminError);
-          
-          toast.info("Tentative alternative en cours...");
-          try {
-            const { data: funcData, error: funcError } = await supabase.functions.invoke('create-storage-bucket', {
-              body: { bucket_name: 'site-settings' }
-            });
-            
-            if (funcError) throw funcError;
-            
-            uploadResult = await supabase
-              .storage
-              .from('site-settings')
-              .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: true
-              });
-              
-            if (uploadResult.error) throw uploadResult.error;
-          } catch (funcUploadError) {
-            throw new Error(`Toutes les tentatives d'upload ont échoué: ${funcUploadError.message}`);
-          }
-        }
-      }
-      
-      console.log("Upload réussi!");
-      
-      const publicUrlResult = useAdminClient ? 
-        adminSupabase
-          .storage
-          .from('site-settings')
-          .getPublicUrl(uploadResult.data.path) :
-        supabase
-          .storage
-          .from('site-settings')
-          .getPublicUrl(uploadResult.data.path);
-      
-      const publicUrl = publicUrlResult.data.publicUrl;
-      
-      form.setValue('logoUrl', publicUrl);
-      setLogoPreview(publicUrl);
+      form.setValue('logoUrl', logoUrl);
+      setLogoPreview(logoUrl);
       
       toast.success("Logo uploadé avec succès");
     } catch (error: any) {
@@ -360,58 +291,63 @@ const GeneralSettings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="overflow-hidden">
               <CardContent className="p-6">
-                <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="flex flex-col space-y-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <ImageIcon className="h-5 w-5 text-primary" />
                     Logo du site
                   </h3>
                   
-                  <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-6 w-full flex flex-col items-center space-y-4">
-                    <div className="relative w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden">
-                      {isUploading && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  <div className="flex flex-col space-y-4 bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                    <div className="flex items-center gap-4">
+                      {/* Zone de preview du logo plus compacte */}
+                      <div className="relative">
+                        <Avatar className="h-20 w-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                          {isUploading && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                              <Loader2 className="h-6 w-6 text-white animate-spin" />
+                            </div>
+                          )}
+                          {logoPreview ? (
+                            <AvatarImage 
+                              src={logoPreview} 
+                              alt="Logo du site"
+                              className="object-contain"
+                            />
+                          ) : (
+                            <AvatarFallback className="bg-transparent text-muted-foreground">
+                              <ImageIcon className="h-10 w-10 opacity-50" />
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                      </div>
+                      
+                      {/* Contrôles d'upload et aperçu */}
+                      <div className="flex-1 flex flex-col justify-between gap-2">
+                        <div>
+                          <FormLabel htmlFor="logo-upload" className="font-medium mb-1 block">Logo du site</FormLabel>
+                          <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border shadow-sm mb-2">
+                            <Logo />
+                          </div>
                         </div>
-                      )}
-                      {logoPreview ? (
-                        <img 
-                          src={logoPreview} 
-                          alt="Logo du site" 
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      ) : (
-                        <div className="text-center text-muted-foreground">
-                          <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p className="text-xs">Aucun logo</p>
+                        
+                        <div className="flex items-center gap-2">
+                          <FormLabel htmlFor="logo-upload" className="cursor-pointer py-2 px-3 bg-primary text-white rounded-lg flex items-center gap-1 hover:bg-primary/90 transition-colors text-sm">
+                            <Upload className="h-3 w-3" />
+                            <span>Choisir un fichier</span>
+                          </FormLabel>
+                          <input 
+                            id="logo-upload" 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            disabled={isSaving || isUploading || authStatus !== 'authenticated'}
+                          />
+                          {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
                         </div>
-                      )}
-                    </div>
-                    
-                    <div className="w-full">
-                      <FormLabel className="block mb-2">Aperçu du logo</FormLabel>
-                      <div className="bg-white p-4 rounded-lg border flex items-center justify-center">
-                        <Logo />
                       </div>
                     </div>
-                    
-                    <div className="flex flex-col gap-2 w-full">
-                      <div className="flex items-center gap-2 w-full">
-                        <FormLabel htmlFor="logo-upload" className="cursor-pointer py-2 px-4 bg-primary text-white rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors">
-                          <Upload className="h-4 w-4" />
-                          <span>Choisir un fichier</span>
-                        </FormLabel>
-                        <input 
-                          id="logo-upload" 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          disabled={isSaving || isUploading || authStatus !== 'authenticated'}
-                        />
-                        {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Format recommandé: PNG ou SVG, carré, fond transparent</p>
-                    </div>
+                    <p className="text-xs text-muted-foreground">Format recommandé: PNG ou SVG, carré, fond transparent</p>
                   </div>
                 </div>
               </CardContent>
