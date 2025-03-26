@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { useUsers } from "@/hooks/useUsers";
 import { UserExtended, updateUserPassword } from "@/services/userService";
-import { Loader2, Plus, Search, Pencil, Trash2, RefreshCw, Shield, Clock, CalendarDays, Upload } from "lucide-react";
+import { Loader2, Plus, Search, Pencil, Trash2, RefreshCw, Shield, Clock, CalendarDays, Upload, Copy } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
