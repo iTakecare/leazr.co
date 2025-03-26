@@ -72,14 +72,6 @@ export const useProductSelector = (isOpen: boolean) => {
         };
       });
       
-      // Explicitly log each product's variant status for debugging
-      productsWithVariants.forEach(product => {
-        console.log(`Product ${product.name} (${product.id}):`);
-        console.log(`- is_parent: ${product.is_parent}`);
-        console.log(`- has variation_attributes: ${product.variation_attributes ? Object.keys(product.variation_attributes).length > 0 : false}`);
-        console.log(`- variant_prices: ${product.variant_combination_prices?.length || 0}`);
-      });
-      
       // Find parent-child relationships
       const productsWithChildrenInfo = productsWithVariants.map(product => {
         // Find variants that have this product as parent
@@ -88,7 +80,20 @@ export const useProductSelector = (isOpen: boolean) => {
         // Count variant combination prices
         const variantCombinationCount = product.variant_combination_prices?.length || 0;
         
-        // Check if the product has variants (either as child products or price combinations)
+        // Calculate total number of possible combinations from variation attributes
+        let variationAttributesCombinationsCount = 0;
+        if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+          variationAttributesCombinationsCount = calculateCombinationsFromAttributes(product.variation_attributes);
+        }
+        
+        // Determine the final count of variants - take the highest number from different sources
+        const finalVariantsCount = Math.max(
+          variants.length, 
+          variantCombinationCount,
+          variationAttributesCombinationsCount
+        );
+        
+        // Check if the product has variants
         const hasVariants = variants.length > 0 || variantCombinationCount > 0 || 
                            (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0);
         
@@ -96,23 +101,20 @@ export const useProductSelector = (isOpen: boolean) => {
           ...product,
           variants: variants,
           has_variants: hasVariants,
-          variants_count: Math.max(variants.length, variantCombinationCount),
+          variants_count: finalVariantsCount,
           has_child_variants: variants.length > 0
         };
       });
       
-      console.log("Products with variants information:", productsWithChildrenInfo);
-      
-      // Detailed logging for debugging
+      // Log each product's variant information for debugging
       productsWithChildrenInfo.forEach(product => {
         if (product.has_variants || product.is_parent) {
-          console.log(`Product ${product.name} (${product.id}) has variants information:`);
-          console.log(`- has_variants flag: ${product.has_variants}`);
-          console.log(`- is_parent flag: ${product.is_parent}`);
-          console.log(`- variants_count: ${product.variants_count}`);
-          console.log(`- variant combinations: ${product.variant_combination_prices?.length || 0}`);
-          console.log(`- child variants: ${product.variants?.length || 0}`);
-          console.log(`- variation attributes:`, product.variation_attributes);
+          console.log(`Product ${product.name} (${product.id}) variants info:`, {
+            variants_count: product.variants_count,
+            combinations: product.variant_combination_prices?.length || 0,
+            childVariants: product.variants?.length || 0,
+            variationAttributes: product.variation_attributes ? Object.keys(product.variation_attributes).length : 0
+          });
         }
       });
       
@@ -143,6 +145,15 @@ export const useProductSelector = (isOpen: boolean) => {
     });
     
     return result;
+  };
+  
+  // Calculate total possible combinations from a set of variation attributes
+  const calculateCombinationsFromAttributes = (attributes: Record<string, string[]>): number => {
+    if (!attributes || Object.keys(attributes).length === 0) return 0;
+    
+    return Object.values(attributes).reduce((total, values) => {
+      return total * (Array.isArray(values) ? values.length : 0);
+    }, 1);
   };
 
   const { data: products = [], isLoading, error } = useQuery({

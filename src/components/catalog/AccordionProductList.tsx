@@ -50,10 +50,10 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return acc;
   }, {} as Record<string, Product[]>);
 
+  // Méthode améliorée pour détecter les variantes
   const hasVariants = (product: Product): boolean => {
     if (!product) return false;
     
-    // Un produit peut avoir des variantes de plusieurs façons
     const isParent = product.is_parent || false;
     const hasCombinationPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
     const hasVariationAttrs = product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0;
@@ -62,31 +62,34 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return isParent || hasCombinationPrices || hasVariationAttrs || hasChildVariants;
   };
 
+  // Méthode améliorée pour compter les variantes
   const getVariantsCount = (product: Product): number => {
     if (!product) return 0;
     
-    // 1. Si le produit a des combinaisons de prix de variantes, nous utilisons ce nombre
+    // 1. Si le produit a un nombre de variantes défini par le serveur, utiliser celui-ci
+    if (product.variants_count !== undefined && product.variants_count > 0) {
+      return product.variants_count;
+    }
+    
+    // 2. Si le produit a des combinaisons de prix de variantes, utiliser ce nombre
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    // 2. Si le produit a des variantes enfants, nous utilisons ce nombre
+    // 3. Si le produit a des variantes enfants, compter celles-ci
     const childVariants = products.filter(p => p.parent_id === product.id);
     if (childVariants.length > 0) {
       return childVariants.length;
     }
     
-    // 3. Si le produit a des attributs de variation, nous calculons le nombre de combinaisons possibles
+    // 4. Si le produit a des attributs de variation, calculer le nombre de combinaisons possibles
     if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
       const attributes = product.variation_attributes;
       
       // Calculer le nombre de combinaisons possibles
-      // Par exemple, pour CPU: [M3 Pro, M3 Max] et Disque: [512Go, 1To, 2To], nous avons 2×3=6 combinaisons
-      const numberOfCombinations = Object.values(attributes).reduce((total, values) => {
-        return total * values.length;
+      return Object.values(attributes).reduce((total, values) => {
+        return total * (Array.isArray(values) ? values.length : 0);
       }, 1);
-      
-      return numberOfCombinations;
     }
     
     return 0;
@@ -153,6 +156,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
             {groupProducts.map((product) => {
               const productHasVariants = hasVariants(product);
               const variantsCount = productHasVariants ? getVariantsCount(product) : 0;
+              
+              // Logging pour déboguer
+              console.log(`Product ${product.name} has ${variantsCount} variants`);
               
               return (
               <div key={product.id}>
