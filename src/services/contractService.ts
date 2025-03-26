@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -320,7 +321,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
   try {
     console.log("Début de la suppression du contrat:", contractId);
     
-    // First, get the contract to find the associated offer
+    // Vérifier que le contrat existe avant de le supprimer
     const { data: contract, error: fetchError } = await supabase
       .from('contracts')
       .select('id, offer_id')
@@ -329,10 +330,17 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (fetchError) {
       console.error("Erreur lors de la récupération des informations du contrat:", fetchError);
+      toast.error("Erreur: Le contrat n'a pas été trouvé");
       return false;
     }
     
-    // Delete workflow logs first (they have foreign key constraints)
+    if (!contract) {
+      console.error("Contrat non trouvé pour l'id:", contractId);
+      toast.error("Erreur: Le contrat spécifié n'existe pas");
+      return false;
+    }
+    
+    // Supprimer les logs du workflow en premier (contraintes de clé étrangère)
     const { error: logsError } = await supabase
       .from('contract_workflow_logs')
       .delete()
@@ -340,14 +348,15 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (logsError) {
       console.error("Erreur lors de la suppression des logs du contrat:", logsError);
-      // Continue with deletion even if log deletion fails
+      // On continue la suppression même si l'effacement des logs échoue
     }
     
-    // Delete the actual contract
-    const { error: deleteError } = await supabase
+    // Supprimer le contrat lui-même
+    const { error: deleteError, count } = await supabase
       .from('contracts')
       .delete()
-      .eq('id', contractId);
+      .eq('id', contractId)
+      .select('count');
     
     if (deleteError) {
       console.error("Erreur critique lors de la suppression du contrat:", deleteError);
@@ -355,7 +364,16 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       return false;
     }
     
-    // Update the associated offer if it exists
+    const deletedCount = count || 0;
+    console.log(`Nombre d'enregistrements supprimés: ${deletedCount}`);
+    
+    if (deletedCount === 0) {
+      console.error("Aucun contrat n'a été supprimé. Le contrat n'existe peut-être plus.");
+      toast.error("Aucun contrat n'a été supprimé. Il a peut-être déjà été supprimé.");
+      return false;
+    }
+    
+    // Mettre à jour l'offre associée si elle existe
     if (contract?.offer_id) {
       console.log("Mise à jour de l'offre associée:", contract.offer_id);
       const { error: offerError } = await supabase
@@ -365,7 +383,9 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       
       if (offerError) {
         console.error("Erreur lors de la mise à jour de l'offre associée:", offerError);
-        // We still consider the deletion successful even if the offer update fails
+        // Nous considérons toujours la suppression comme réussie même si la mise à jour de l'offre échoue
+      } else {
+        console.log("Offre associée mise à jour avec succès");
       }
     }
     

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -71,6 +72,10 @@ const Contracts = () => {
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+  };
+
+  const handleRefresh = () => {
+    fetchContracts();
   };
 
   if (loading) {
@@ -150,13 +155,35 @@ const Contracts = () => {
           animate="visible"
         >
           <motion.div variants={itemVariants} className="mb-6">
-            <div className="flex items-center">
-              <FileText className="h-6 w-6 mr-2" />
-              <h1 className="text-2xl font-bold">Gestion des contrats</h1>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center">
+                  <FileText className="h-6 w-6 mr-2" />
+                  <h1 className="text-2xl font-bold">Gestion des contrats</h1>
+                </div>
+                <p className="text-muted-foreground mt-1">
+                  Gérez vos contrats et suivez leur progression
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefresh}
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Actualisation...
+                  </span>
+                ) : (
+                  "Actualiser"
+                )}
+              </Button>
             </div>
-            <p className="text-muted-foreground mt-1">
-              Gérez vos contrats et suivez leur progression
-            </p>
           </motion.div>
 
           <motion.div variants={itemVariants} className="mb-6 flex flex-col sm:flex-row justify-between gap-4">

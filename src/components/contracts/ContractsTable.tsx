@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   const [selectedEquipment, setSelectedEquipment] = useState<any[]>([]);
   const [equipmentModalTitle, setEquipmentModalTitle] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState<string | null>(null);
   
   const handleRowClick = (contractId: string) => {
     navigate(`/contracts/${contractId}`);
@@ -59,6 +61,20 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
       return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
     } catch (e) {
       return dateString;
+    }
+  };
+
+  const handleDelete = async (contractId: string) => {
+    if (isDeleting || deleteInProgress) {
+      return; // Empêcher les suppressions multiples simultanées
+    }
+    
+    try {
+      setDeleteInProgress(contractId);
+      await onDeleteContract(contractId);
+    } finally {
+      setDeleteInProgress(null);
+      setConfirmDelete(null);
     }
   };
 
@@ -199,10 +215,20 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                           e.stopPropagation();
                           setConfirmDelete(contract.id);
                         }}
-                        disabled={isDeleting}
+                        disabled={isDeleting || deleteInProgress === contract.id}
+                        className="text-red-500 focus:text-red-500"
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Supprimer</span>
+                        {deleteInProgress === contract.id ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <span>Suppression...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Supprimer</span>
+                          </>
+                        )}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -221,7 +247,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         </Table>
       </div>
 
-      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
@@ -234,14 +260,13 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             <AlertDialogAction
               onClick={() => {
                 if (confirmDelete) {
-                  onDeleteContract(confirmDelete);
-                  setConfirmDelete(null);
+                  handleDelete(confirmDelete);
                 }
               }}
               className="bg-red-500 hover:bg-red-600"
-              disabled={isDeleting}
+              disabled={isDeleting || !!deleteInProgress}
             >
-              {isDeleting ? (
+              {isDeleting || deleteInProgress ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Suppression...

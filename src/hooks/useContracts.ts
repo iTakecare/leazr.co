@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { 
@@ -180,14 +181,22 @@ export const useContracts = () => {
       setIsDeleting(true);
       toast.info("Suppression du contrat en cours...");
       
+      console.log("Tentative de suppression du contrat:", contractId);
       const success = await deleteContract(contractId);
       
       if (success) {
-        // Mettre à jour l'état local
-        setContracts(prevContracts => 
-          prevContracts.filter(c => c.id !== contractId)
-        );
+        // Mettre à jour l'état local en supprimant le contrat
+        setContracts(prevContracts => prevContracts.filter(c => c.id !== contractId));
+        
+        // Lancer immédiatement la mise à jour des filteredContracts
+        setFilteredContracts(prevFiltered => prevFiltered.filter(c => c.id !== contractId));
+        
         toast.success("Contrat supprimé avec succès");
+        
+        // Recharger complètement les contrats après un court délai pour s'assurer de la synchronisation
+        setTimeout(() => {
+          fetchContracts();
+        }, 500);
       } else {
         toast.error("Erreur lors de la suppression du contrat");
       }
