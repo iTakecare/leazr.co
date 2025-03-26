@@ -24,8 +24,27 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onViewVaria
     (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
     (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
   
-  // Count variants for the badge
-  const variantsCount = product.variant_combination_prices?.length || product.variants?.length || 0;
+  // Count EXISTING variants for the badge - configurations that actually exist
+  const getExistingVariantsCount = (): number => {
+    // 1. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
+    if (product.variants_count !== undefined && product.variants_count > 0) {
+      return product.variants_count;
+    }
+    
+    // 2. Si le produit a des combinaisons de prix de variantes, compter celles-ci
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      return product.variant_combination_prices.length;
+    }
+    
+    // 3. Si le produit a des variantes directes, compter celles-ci
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.length;
+    }
+    
+    return 0;
+  };
+  
+  const variantsCount = hasVariants ? getExistingVariantsCount() : 0;
   
   return (
     <Card 

@@ -15,13 +15,13 @@ const VariantIndicator: React.FC<VariantIndicatorProps> = ({ hasVariants, varian
   }
   
   // Ajouter du logging pour déboguer
-  console.log(`VariantIndicator: variantsCount=${variantsCount}`);
+  console.log(`VariantIndicator: Showing ${variantsCount} existing variants`);
   
-  // Afficher le badge avec le nombre exact de variantes
+  // Afficher le badge avec le nombre exact de configurations de prix existantes
   return (
     <Badge className="rounded-full text-xs bg-indigo-100 text-indigo-800 flex items-center gap-1">
       <Layers className="h-3 w-3" />
-      {variantsCount} {variantsCount > 1 ? "variantes" : "variante"}
+      {variantsCount} {variantsCount > 1 ? "configurations" : "configuration"}
     </Badge>
   );
 };

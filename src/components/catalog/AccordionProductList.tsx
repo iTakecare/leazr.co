@@ -49,39 +49,25 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return acc;
   }, {} as Record<string, Product[]>);
 
-  // Méthode améliorée pour calculer le nombre TOTAL de combinaisons possibles
-  const calculateTotalPossibleVariants = (product: Product): number => {
+  // Méthode pour compter le nombre de variantes EXISTANTES (configurations réelles)
+  const countExistingVariants = (product: Product): number => {
     // 1. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
     if (product.variants_count !== undefined && product.variants_count > 0) {
       return product.variants_count;
     }
     
-    // 2. Si le produit a des attributs de variation, calculer le nombre TOTAL de combinaisons possibles
-    if (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) {
-      const attributes = product.variation_attributes;
-      
-      // Calculer le nombre de combinaisons possibles en multipliant le nombre de valeurs de chaque attribut
-      let totalCombinations = 1;
-      Object.values(attributes).forEach(values => {
-        if (Array.isArray(values) && values.length > 0) {
-          totalCombinations *= values.length;
-        }
-      });
-      
-      console.log(`calculateTotalPossibleVariants: Product ${product.name} - Total combinations:`, totalCombinations);
-      return totalCombinations;
-    }
-    
-    // 3. Si le produit a des combinaisons de prix de variantes, utiliser ce nombre
+    // 2. Si le produit a des combinaisons de prix de variantes, compter celles-ci
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    // 4. Si le produit a des variantes directes, compter celles-ci
+    // 3. Si le produit a des variantes directes, compter celles-ci
     if (product.variants && product.variants.length > 0) {
       return product.variants.length;
     }
     
+    // 4. Si le produit a des attributs de variation mais pas de variantes/combinaisons existantes,
+    // nous ne comptons pas les variantes théoriques, mais retournons 0 car aucune configuration n'existe
     return 0;
   };
 
@@ -101,11 +87,11 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   // Logging pour déboguer
   products.forEach(product => {
     const hasVariantsFlag = hasVariants(product);
-    const variantsCount = hasVariantsFlag ? calculateTotalPossibleVariants(product) : 0;
+    const variantsCount = hasVariantsFlag ? countExistingVariants(product) : 0;
     if (hasVariantsFlag) {
-      console.log(`AccordionProductList: Product ${product.name} has ${variantsCount} variants`);
-      if (product.variation_attributes) {
-        console.log(`AccordionProductList: Product ${product.name} variation attributes:`, product.variation_attributes);
+      console.log(`AccordionProductList: Product ${product.name} has ${variantsCount} existing variants`);
+      if (product.variant_combination_prices) {
+        console.log(`AccordionProductList: Product ${product.name} variant combinations: ${product.variant_combination_prices.length}`);
       }
     }
   });
@@ -170,7 +156,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           <Accordion type="multiple" className="px-0">
             {groupProducts.map((product) => {
               const productHasVariants = hasVariants(product);
-              const variantsCount = productHasVariants ? calculateTotalPossibleVariants(product) : 0;
+              const variantsCount = productHasVariants ? countExistingVariants(product) : 0;
               
               return (
                 <div key={product.id}>

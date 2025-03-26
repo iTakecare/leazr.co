@@ -74,38 +74,25 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     return categoryMap[category] || "Autre";
   };
 
-  // Méthode améliorée pour calculer le nombre TOTAL de combinaisons possibles
-  const calculateTotalPossibleVariants = (): number => {
+  // Méthode pour compter le nombre de variantes EXISTANTES (configurations réelles)
+  const countExistingVariants = (): number => {
     // 1. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
     if (product.variants_count !== undefined && product.variants_count > 0) {
       return product.variants_count;
     }
     
-    // 2. Si le produit a des attributs de variation, calculer le nombre TOTAL de combinaisons possibles
-    if (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) {
-      const attributes = product.variation_attributes;
-      
-      // Calculer le nombre de combinaisons possibles en multipliant le nombre de valeurs de chaque attribut
-      let totalCombinations = 1;
-      Object.values(attributes).forEach(values => {
-        if (Array.isArray(values) && values.length > 0) {
-          totalCombinations *= values.length;
-        }
-      });
-      
-      return totalCombinations;
-    }
-    
-    // 3. Si le produit a des combinaisons de prix de variantes, utiliser ce nombre
+    // 2. Si le produit a des combinaisons de prix de variantes, compter celles-ci
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    // 4. Si le produit a des variantes directes, compter celles-ci
+    // 3. Si le produit a des variantes directes, compter celles-ci
     if (product.variants && product.variants.length > 0) {
       return product.variants.length;
     }
     
+    // 4. Si le produit a des attributs de variation mais pas de variantes/combinaisons existantes,
+    // nous ne comptons pas les variantes théoriques, mais retournons 0 car aucune configuration n'existe
     return 0;
   };
 
@@ -121,12 +108,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   };
   
   const hasVariantsFlag = hasVariants();
-  const variantsCount = hasVariantsFlag ? calculateTotalPossibleVariants() : 0;
+  const variantsCount = hasVariantsFlag ? countExistingVariants() : 0;
 
   // Ajouter du logging pour déboguer
-  console.log(`ProductGridCard: ${product.name} - Has variants: ${hasVariantsFlag}, Count: ${variantsCount}`);
-  if (product.variation_attributes) {
-    console.log(`ProductGridCard: ${product.name} - Variation attributes:`, product.variation_attributes);
+  console.log(`ProductGridCard: ${product.name} - Has variants: ${hasVariantsFlag}, Existing count: ${variantsCount}`);
+  if (product.variant_combination_prices) {
+    console.log(`ProductGridCard: ${product.name} - Variant combinations: ${product.variant_combination_prices.length}`);
   }
 
   return (
@@ -158,7 +145,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             </Badge>
           )}
           
-          {/* Utiliser le composant VariantIndicator avec le comptage amélioré des variantes */}
+          {/* Utiliser le composant VariantIndicator avec le nombre de variantes existantes */}
           <VariantIndicator 
             hasVariants={hasVariantsFlag} 
             variantsCount={variantsCount} 
