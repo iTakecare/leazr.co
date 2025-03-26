@@ -58,8 +58,8 @@ const UserManager = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Get all users via RPC function (only admins can call this)
-      const { data, error } = await supabase.rpc('get_all_users_extended');
+      // Get all users via edge function instead of RPC
+      const { data, error } = await supabase.functions.invoke('get-all-users');
       
       if (error) {
         toast.error("Erreur lors de la récupération des utilisateurs : " + error.message);
@@ -69,7 +69,7 @@ const UserManager = () => {
       if (data) {
         // For each user, fetch their profile info
         const usersWithProfiles = await Promise.all(
-          data.map(async (user) => {
+          data.map(async (user: UserData) => {
             const { data: profileData } = await supabase
               .from('profiles')
               .select('first_name, last_name, role')
