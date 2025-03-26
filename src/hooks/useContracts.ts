@@ -83,12 +83,16 @@ export const useContracts = () => {
       );
       
       if (success) {
-        // Mettre à jour l'état local
+        // Mettre à jour l'état local immédiatement
         setContracts(prevContracts => 
           prevContracts.map(c => 
             c.id === contractId ? { ...c, status: newStatus } : c
           )
         );
+        
+        // Ensuite rafraîchir tous les contrats
+        await fetchContracts();
+        
         toast.success(`Statut du contrat mis à jour avec succès`);
       } else {
         toast.error("Erreur lors de la mise à jour du statut");

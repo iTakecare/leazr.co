@@ -209,8 +209,13 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
     const { data, error } = await supabase
       .from('contract_workflow_logs')
       .select(`
-        *,
-        profiles:user_id (first_name, last_name, email, avatar_url)
+        id,
+        contract_id,
+        user_id,
+        previous_status,
+        new_status,
+        reason,
+        created_at
       `)
       .eq('contract_id', contractId)
       .order('created_at', { ascending: false });

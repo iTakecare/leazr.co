@@ -41,7 +41,7 @@ const ContractDetail = () => {
       setLoadingError(null);
       
       const [contractsData, logsData] = await Promise.all([
-        getContracts(),
+        getContracts(true), // S'assurer qu'on récupère tous les contrats
         getContractWorkflowLogs(id)
       ]);
 
@@ -108,7 +108,18 @@ const ContractDetail = () => {
       
       if (success) {
         toast.success(`Statut du contrat mis à jour avec succès`);
-        fetchContractDetails();
+        
+        // Mettre à jour l'état local immédiatement
+        setContract(prevContract => {
+          if (!prevContract) return null;
+          return {
+            ...prevContract,
+            status: targetStatus
+          };
+        });
+        
+        // Rafraîchir les données complètes après la mise à jour
+        await fetchContractDetails();
         setStatusDialogOpen(false);
       } else {
         toast.error("Erreur lors de la mise à jour du statut du contrat");
