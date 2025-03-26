@@ -25,11 +25,13 @@ import {
   Loader2, 
   RefreshCw, 
   Building, 
-  Info 
+  Info,
+  AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureStorageBucket } from "@/services/storageService";
 import Logo from "@/components/layout/Logo";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Définition du schéma de validation
 const generalSettingsSchema = z.object({
@@ -53,7 +55,9 @@ type GeneralSettingsFormValues = z.infer<typeof generalSettingsSchema>;
 const GeneralSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   
   // Initialisation du formulaire
   const form = useForm<GeneralSettingsFormValues>({
@@ -69,10 +73,31 @@ const GeneralSettings = () => {
     },
   });
   
+  // Vérifier l'état d'authentification
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+    };
+    
+    checkAuth();
+    
+    // Écouter les changements d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+  
   // Chargement des paramètres actuels au montage du composant
   useEffect(() => {
-    loadSettings();
-  }, []);
+    if (authStatus !== 'loading') {
+      loadSettings();
+    }
+  }, [authStatus]);
   
   // Fonction pour charger les paramètres depuis la base de données
   const loadSettings = async () => {
@@ -123,6 +148,11 @@ const GeneralSettings = () => {
   
   // Fonction pour sauvegarder les paramètres
   const onSubmit = async (values: GeneralSettingsFormValues) => {
+    if (authStatus !== 'authenticated') {
+      toast.error("Vous devez être connecté pour sauvegarder les paramètres");
+      return;
+    }
+    
     setIsSaving(true);
     
     try {
@@ -161,6 +191,12 @@ const GeneralSettings = () => {
     const file = event.target.files?.[0];
     if (!file) return;
     
+    // Vérifier que l'utilisateur est connecté
+    if (authStatus !== 'authenticated') {
+      toast.error("Vous devez être connecté pour uploader un logo");
+      return;
+    }
+    
     // Vérifier le type de fichier
     if (!file.type.startsWith('image/')) {
       toast.error("Veuillez sélectionner une image");
@@ -174,10 +210,16 @@ const GeneralSettings = () => {
     }
     
     try {
-      setIsSaving(true);
+      setIsUploading(true);
+      
+      console.log("Tentative d'upload du logo...");
       
       // S'assurer que le bucket existe
-      await ensureStorageBucket('site-settings');
+      const bucketExists = await ensureStorageBucket('site-settings');
+      if (!bucketExists) {
+        toast.error("Erreur lors de la création du bucket de stockage");
+        return;
+      }
       
       // Générer un nom de fichier unique
       const fileExt = file.name.split('.').pop();
@@ -193,6 +235,7 @@ const GeneralSettings = () => {
         });
       
       if (error) {
+        console.error("Erreur lors de l'upload:", error);
         throw error;
       }
       
@@ -202,9 +245,11 @@ const GeneralSettings = () => {
         .from('site-settings')
         .getPublicUrl(fileName);
       
+      const publicUrl = urlData.publicUrl;
+      
       // Mettre à jour l'URL du logo dans le formulaire
-      form.setValue('logoUrl', urlData.publicUrl);
-      setLogoPreview(urlData.publicUrl);
+      form.setValue('logoUrl', publicUrl);
+      setLogoPreview(publicUrl);
       
       // Copier le logo vers le répertoire public pour l'utiliser comme favicon
       try {
@@ -232,14 +277,43 @@ const GeneralSettings = () => {
       toast.success("Logo uploadé avec succès");
     } catch (error: any) {
       console.error("Erreur lors de l'upload du logo:", error);
-      toast.error(`Erreur: ${error.message}`);
+      
+      let errorMessage = "Erreur lors de l'upload du logo";
+      
+      // Vérifier si l'erreur est liée à RLS
+      if (error.message && error.message.includes("violates row-level security policy")) {
+        errorMessage = "Erreur d'autorisation: Assurez-vous d'être connecté avec un compte autorisé";
+      } else if (error.message) {
+        errorMessage = `Erreur: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
-      setIsSaving(false);
+      setIsUploading(false);
     }
   };
   
+  if (authStatus === 'loading') {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Chargement...</span>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-6">
+      {authStatus === 'unauthenticated' && (
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Attention</AlertTitle>
+          <AlertDescription>
+            Vous n'êtes pas connecté(e). Veuillez vous connecter pour pouvoir modifier les paramètres du site.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -286,8 +360,9 @@ const GeneralSettings = () => {
                         className="hidden" 
                         accept="image/*"
                         onChange={handleLogoUpload}
-                        disabled={isSaving}
+                        disabled={isSaving || isUploading || authStatus !== 'authenticated'}
                       />
+                      {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
                       <p className="text-xs text-muted-foreground">Format recommandé: PNG ou SVG, carré, fond transparent</p>
                     </div>
                   </div>
@@ -421,7 +496,7 @@ const GeneralSettings = () => {
               type="button" 
               variant="outline" 
               onClick={loadSettings}
-              disabled={isLoading || isSaving}
+              disabled={isLoading || isSaving || authStatus !== 'authenticated'}
             >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -433,7 +508,7 @@ const GeneralSettings = () => {
             
             <Button 
               type="submit" 
-              disabled={isLoading || isSaving}
+              disabled={isLoading || isSaving || authStatus !== 'authenticated'}
             >
               {isSaving ? (
                 <>
