@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { updateUserAvatar, updateUserProfile } from "@/services/userService";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Mail, Upload, Copy } from "lucide-react";
+import { AlertCircle, Mail, Upload, Copy, User } from "lucide-react";
 
 const AccountSettings = () => {
   const { user, updateUserData } = useAuth();
@@ -99,6 +100,25 @@ const AccountSettings = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Section ID Utilisateur - Mise en évidence */}
+        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 flex items-center space-x-2">
+          <User className="h-5 w-5 text-primary" />
+          <div className="flex-1">
+            <h4 className="text-sm font-medium">Identifiant utilisateur (UID)</h4>
+            <p className="text-sm font-mono text-muted-foreground break-all">{user?.id || "Non disponible"}</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="ml-auto"
+            onClick={() => user?.id && copyToClipboard(user.id)}
+            disabled={!user?.id}
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            Copier
+          </Button>
+        </div>
+
         <div className="flex flex-col items-center space-y-4 sm:items-start sm:flex-row sm:space-y-0 sm:space-x-4 mb-4">
           <Avatar className="h-20 w-20">
             {formData.avatar_url ? (
@@ -136,23 +156,6 @@ const AccountSettings = () => {
           <Badge variant="outline" className="ml-auto">
             {user?.email_confirmed_at ? "Vérifiée" : "Non vérifiée"}
           </Badge>
-        </div>
-        
-        <div className="bg-muted/50 p-4 rounded-lg flex items-center space-x-2">
-          <div className="flex-1">
-            <h4 className="text-sm font-medium">Identifiant utilisateur (UID)</h4>
-            <p className="text-sm font-mono text-muted-foreground break-all">{user?.id || "Non disponible"}</p>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="ml-auto"
-            onClick={() => user?.id && copyToClipboard(user.id)}
-            disabled={!user?.id}
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            Copier
-          </Button>
         </div>
         
         <div className="grid gap-4 md:grid-cols-2">
