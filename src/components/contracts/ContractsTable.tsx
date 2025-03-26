@@ -51,9 +51,8 @@ import {
   Truck,
   Calendar,
   CheckCheck,
-  X,
   Clock,
-  Share2,
+  Search,
 } from "lucide-react";
 
 interface ContractsTableProps {
@@ -87,6 +86,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     carrier: "",
   });
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [showEquipmentDialog, setShowEquipmentDialog] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<any[]>([]);
+  const [equipmentDescription, setEquipmentDescription] = useState("");
 
   if (!contracts.length) {
     return (
@@ -200,6 +202,75 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     }
   };
 
+  const handleShowEquipment = (contract: Contract) => {
+    try {
+      if (contract.equipment_description) {
+        if (typeof contract.equipment_description === 'string') {
+          // Try to parse JSON string
+          try {
+            const equipmentData = JSON.parse(contract.equipment_description);
+            if (Array.isArray(equipmentData)) {
+              setSelectedEquipment(equipmentData);
+            } else {
+              setSelectedEquipment([equipmentData]);
+            }
+          } catch (e) {
+            // If parsing fails, just use the string as description
+            setSelectedEquipment([]);
+            setEquipmentDescription(contract.equipment_description);
+          }
+        } else {
+          // If it's already an object
+          setSelectedEquipment(Array.isArray(contract.equipment_description) 
+            ? contract.equipment_description 
+            : [contract.equipment_description]);
+        }
+      } else {
+        setSelectedEquipment([]);
+        setEquipmentDescription("Aucun détail disponible");
+      }
+      setShowEquipmentDialog(true);
+    } catch (error) {
+      console.error("Erreur lors de l'affichage des détails de l'équipement:", error);
+      setSelectedEquipment([]);
+      setEquipmentDescription("Erreur lors du chargement des détails");
+      setShowEquipmentDialog(true);
+    }
+  };
+
+  const getEquipmentSummary = (contract: Contract) => {
+    if (!contract.equipment_description) return "Non spécifié";
+    
+    try {
+      if (typeof contract.equipment_description === 'string') {
+        if (contract.equipment_description.startsWith('[') || contract.equipment_description.startsWith('{')) {
+          const equipmentData = JSON.parse(contract.equipment_description);
+          if (Array.isArray(equipmentData)) {
+            if (equipmentData.length === 1) {
+              return equipmentData[0].title || "Équipement";
+            } else {
+              return `${equipmentData.length} équipements`;
+            }
+          } else {
+            return equipmentData.title || "Équipement";
+          }
+        } else {
+          return contract.equipment_description.length > 30 
+            ? `${contract.equipment_description.substring(0, 30)}...` 
+            : contract.equipment_description;
+        }
+      } else {
+        if (Array.isArray(contract.equipment_description)) {
+          return `${contract.equipment_description.length} équipements`;
+        } else {
+          return contract.equipment_description.title || "Équipement";
+        }
+      }
+    } catch (e) {
+      return "Format inconnu";
+    }
+  };
+
   return (
     <>
       <div className="rounded-md border overflow-hidden">
@@ -212,7 +283,6 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
               <TableHead>Bailleur</TableHead>
               <TableHead className="text-right">Mensualité</TableHead>
               <TableHead>Statut</TableHead>
-              <TableHead>Suivi</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -227,7 +297,17 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 </TableCell>
                 <TableCell>{contract.client_name}</TableCell>
                 <TableCell className="max-w-[200px] truncate">
-                  {contract.equipment_description || "Non spécifié"}
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">{getEquipmentSummary(contract)}</span>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-6 w-6"
+                      onClick={() => handleShowEquipment(contract)}
+                    >
+                      <Search className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
@@ -246,19 +326,6 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(contract.status)}
-                </TableCell>
-                <TableCell>
-                  {contract.tracking_number ? (
-                    <div className="text-xs">
-                      <div className="font-medium">{contract.tracking_number}</div>
-                      <div className="text-muted-foreground">
-                        {contract.delivery_carrier && `${contract.delivery_carrier} - `}
-                        {contract.estimated_delivery && `Livraison: ${contract.estimated_delivery}`}
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Non suivi</span>
-                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -403,6 +470,55 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             </Button>
             <Button onClick={handleSubmitTracking} disabled={!trackingInfo.trackingNumber}>
               Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour afficher les détails d'équipement */}
+      <Dialog open={showEquipmentDialog} onOpenChange={setShowEquipmentDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Détails du matériel</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
+            {selectedEquipment.length > 0 ? (
+              <div className="space-y-4">
+                {selectedEquipment.map((item, index) => (
+                  <div key={item.id || index} className="border p-4 rounded-md">
+                    <div className="font-medium">{item.title}</div>
+                    <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                      {item.purchasePrice && (
+                        <div>
+                          <span className="text-gray-500">Prix d'achat:</span> {formatCurrency(item.purchasePrice)}
+                        </div>
+                      )}
+                      {item.quantity && (
+                        <div>
+                          <span className="text-gray-500">Quantité:</span> {item.quantity}
+                        </div>
+                      )}
+                      {item.margin && (
+                        <div>
+                          <span className="text-gray-500">Marge:</span> {item.margin}%
+                        </div>
+                      )}
+                      {item.description && (
+                        <div className="col-span-2 mt-2">
+                          <span className="text-gray-500">Description:</span> {item.description}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-500">{equipmentDescription || "Aucun détail disponible"}</div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowEquipmentDialog(false)}>
+              Fermer
             </Button>
           </DialogFooter>
         </DialogContent>
