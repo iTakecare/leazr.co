@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -13,11 +12,16 @@ export interface UserExtended {
   last_sign_in_at: string | null;
   created_at: string;
   avatar_url: string | null;
+  user_metadata?: {
+    ambassador_id?: string;
+    partner_id?: string;
+    role?: string;
+  };
 }
 
 export const fetchAllUsers = async (): Promise<UserExtended[]> => {
   try {
-    // Use a simpler approach by getting auth users via profiles table
+    // Récupérer les profils depuis la table profiles
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*');
@@ -41,22 +45,76 @@ export const fetchAllUsers = async (): Promise<UserExtended[]> => {
         email_confirmed_at: null,
         last_sign_in_at: null,
         created_at: profile.created_at,
-        avatar_url: profile.avatar_url
+        avatar_url: profile.avatar_url,
+        user_metadata: {} // Will be filled later
       });
     }
     
-    // For each profile, fetch the email address (this approach avoids the issue with the RPC function)
+    // Pour chaque profil, récupérer les métadonnées utilisateur
     for (const user of users) {
       try {
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(user.id);
+        // Récupérer les métadonnées utilisateur (email, etc.)
+        const { data: authUser, error: authError } = await supabase
+          .from('users_view')
+          .select('email, email_confirmed_at, last_sign_in_at, raw_user_meta_data')
+          .eq('id', user.id)
+          .single();
         
-        if (!userError && userData?.user) {
-          user.email = userData.user.email || '';
-          user.email_confirmed_at = userData.user.email_confirmed_at;
-          user.last_sign_in_at = userData.user.last_sign_in_at;
+        if (!authError && authUser) {
+          user.email = authUser.email || '';
+          user.email_confirmed_at = authUser.email_confirmed_at;
+          user.last_sign_in_at = authUser.last_sign_in_at;
+          
+          // Récupérer les métadonnées utilisateur
+          if (authUser.raw_user_meta_data) {
+            user.user_metadata = {
+              ambassador_id: authUser.raw_user_meta_data.ambassador_id,
+              partner_id: authUser.raw_user_meta_data.partner_id,
+              role: authUser.raw_user_meta_data.role
+            };
+          }
+        } else {
+          // Fallback pour récupérer au moins l'email
+          const { data: userEmail } = await supabase
+            .from('auth_users_email_view')
+            .select('email')
+            .eq('id', user.id)
+            .single();
+            
+          if (userEmail) {
+            user.email = userEmail.email;
+          }
+          
+          // Vérifier si l'utilisateur est un ambassadeur
+          const { data: ambassador } = await supabase
+            .from('ambassadors')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (ambassador) {
+            user.user_metadata = { 
+              ...user.user_metadata,
+              ambassador_id: ambassador.id 
+            };
+          }
+          
+          // Vérifier si l'utilisateur est un partenaire
+          const { data: partner } = await supabase
+            .from('partners')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (partner) {
+            user.user_metadata = { 
+              ...user.user_metadata,
+              partner_id: partner.id 
+            };
+          }
         }
       } catch (err) {
-        console.error(`Impossible de récupérer l'email pour l'utilisateur ${user.id}:`, err);
+        console.error(`Impossible de récupérer les données complètes pour l'utilisateur ${user.id}:`, err);
       }
     }
     

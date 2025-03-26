@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { useUsers } from "@/hooks/useUsers";
 import { UserExtended } from "@/services/userService";
-import { Loader2, Plus, Search, Pencil, Trash2, RefreshCw, UserCircle, Clock, CalendarDays } from "lucide-react";
+import { Loader2, Plus, Search, Pencil, Trash2, RefreshCw, UserCircle, Clock, CalendarDays, Shield } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -25,12 +25,17 @@ const UserManagement: React.FC = () => {
     password: "",
     first_name: "",
     last_name: "",
-    role: "client",
+    role: "admin", // Par défaut à admin car nous ne gérons que les admins ici
     company: ""
   });
 
-  // Filtrer les utilisateurs en fonction du terme de recherche
-  const filteredUsers = users.filter(user =>
+  // Filtrer uniquement les administrateurs
+  const adminUsers = users.filter(user => 
+    user.role === 'admin'
+  );
+
+  // Filtrer les administrateurs en fonction du terme de recherche
+  const filteredUsers = adminUsers.filter(user =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${user.first_name || ""} ${user.last_name || ""}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (user.company || "").toLowerCase().includes(searchTerm.toLowerCase())
@@ -61,7 +66,9 @@ const UserManagement: React.FC = () => {
       return;
     }
     
-    const success = await addUser(newUser);
+    // Force le rôle à admin
+    const userData = { ...newUser, role: "admin" };
+    const success = await addUser(userData);
     
     if (success) {
       setIsAdding(false);
@@ -70,32 +77,15 @@ const UserManagement: React.FC = () => {
         password: "",
         first_name: "",
         last_name: "",
-        role: "client",
+        role: "admin",
         company: ""
       });
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet administrateur ?")) {
       await removeUser(userId);
-    }
-  };
-
-  const getRoleBadge = (role: string | null) => {
-    if (!role) return <Badge variant="outline">Inconnu</Badge>;
-    
-    switch (role.toLowerCase()) {
-      case "admin":
-        return <Badge className="bg-red-500">Admin</Badge>;
-      case "manager":
-        return <Badge className="bg-blue-500">Manager</Badge>;
-      case "partner":
-        return <Badge className="bg-purple-500">Partenaire</Badge>;
-      case "ambassador":
-        return <Badge className="bg-green-500">Ambassadeur</Badge>;
-      default:
-        return <Badge className="bg-gray-500">Client</Badge>;
     }
   };
 
@@ -113,9 +103,9 @@ const UserManagement: React.FC = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Gestion des utilisateurs</CardTitle>
+            <CardTitle>Gestion des administrateurs</CardTitle>
             <CardDescription>
-              Consultez et gérez les utilisateurs du système
+              Consultez et gérez les administrateurs du système
             </CardDescription>
           </div>
           <div className="flex space-x-2">
@@ -137,14 +127,14 @@ const UserManagement: React.FC = () => {
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Nouvel utilisateur
+                  Nouvel administrateur
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Ajouter un nouvel utilisateur</DialogTitle>
+                  <DialogTitle>Ajouter un nouvel administrateur</DialogTitle>
                   <DialogDescription>
-                    Créez un compte utilisateur avec les informations de base.
+                    Créez un compte administrateur avec les informations de base.
                   </DialogDescription>
                 </DialogHeader>
                 
@@ -195,24 +185,6 @@ const UserManagement: React.FC = () => {
                       className="col-span-3"
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="new-role" className="text-right">Rôle</Label>
-                    <Select 
-                      value={newUser.role} 
-                      onValueChange={(value) => setNewUser({ ...newUser, role: value })}
-                    >
-                      <SelectTrigger id="new-role" className="col-span-3">
-                        <SelectValue placeholder="Sélectionner un rôle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="partner">Partenaire</SelectItem>
-                        <SelectItem value="ambassador">Ambassadeur</SelectItem>
-                        <SelectItem value="client">Client</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
                 
                 <DialogFooter>
@@ -232,7 +204,7 @@ const UserManagement: React.FC = () => {
             <div className="relative w-full max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher un utilisateur..."
+                placeholder="Rechercher un administrateur..."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -244,7 +216,7 @@ const UserManagement: React.FC = () => {
             <div className="flex flex-col items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="mt-2 text-sm text-muted-foreground">
-                Chargement des utilisateurs...
+                Chargement des administrateurs...
               </p>
             </div>
           ) : error ? (
@@ -257,7 +229,7 @@ const UserManagement: React.FC = () => {
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-destructive">
-                    Erreur lors du chargement des utilisateurs
+                    Erreur lors du chargement des administrateurs
                   </h3>
                   <div className="mt-2 text-sm text-destructive/80">
                     <p>{error}</p>
@@ -267,18 +239,18 @@ const UserManagement: React.FC = () => {
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Aucun utilisateur trouvé</p>
+              <p className="text-muted-foreground">Aucun administrateur trouvé</p>
             </div>
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Utilisateur</TableHead>
+                    <TableHead>Administrateur</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Rôle</TableHead>
                     <TableHead>Entreprise</TableHead>
                     <TableHead>Dernière connexion</TableHead>
+                    <TableHead>Compte associé</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -287,7 +259,9 @@ const UserManagement: React.FC = () => {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <UserCircle className="h-5 w-5 text-muted-foreground" />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                            <Shield className="h-4 w-4 text-primary" />
+                          </div>
                           <div>
                             <p className="font-medium">
                               {user.first_name} {user.last_name}
@@ -300,12 +274,28 @@ const UserManagement: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
-                      <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>{user.company || '-'}</TableCell>
                       <TableCell>
                         <div className="flex items-center">
                           <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
                           <span className="text-xs">{formatDate(user.last_sign_in_at)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {user.user_metadata?.ambassador_id && (
+                            <Badge variant="outline" className="bg-green-100 text-green-800">
+                              Ambassadeur
+                            </Badge>
+                          )}
+                          {user.user_metadata?.partner_id && (
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                              Partenaire
+                            </Badge>
+                          )}
+                          {!user.user_metadata?.ambassador_id && !user.user_metadata?.partner_id && (
+                            <span className="text-xs text-muted-foreground">Aucun compte associé</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -324,9 +314,9 @@ const UserManagement: React.FC = () => {
                               {editingUser && (
                                 <>
                                   <DialogHeader>
-                                    <DialogTitle>Modifier l'utilisateur</DialogTitle>
+                                    <DialogTitle>Modifier l'administrateur</DialogTitle>
                                     <DialogDescription>
-                                      Modifiez les informations de l'utilisateur {editingUser.email}
+                                      Modifiez les informations de l'administrateur {editingUser.email}
                                     </DialogDescription>
                                   </DialogHeader>
                                   
@@ -357,24 +347,6 @@ const UserManagement: React.FC = () => {
                                         onChange={(e) => setEditingUser({ ...editingUser, company: e.target.value })}
                                         className="col-span-3"
                                       />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                      <Label htmlFor="edit-role" className="text-right">Rôle</Label>
-                                      <Select 
-                                        value={editingUser.role || 'client'} 
-                                        onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}
-                                      >
-                                        <SelectTrigger id="edit-role" className="col-span-3">
-                                          <SelectValue placeholder="Sélectionner un rôle" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="admin">Admin</SelectItem>
-                                          <SelectItem value="manager">Manager</SelectItem>
-                                          <SelectItem value="partner">Partenaire</SelectItem>
-                                          <SelectItem value="ambassador">Ambassadeur</SelectItem>
-                                          <SelectItem value="client">Client</SelectItem>
-                                        </SelectContent>
-                                      </Select>
                                     </div>
                                   </div>
                                   
