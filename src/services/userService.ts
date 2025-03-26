@@ -1,3 +1,4 @@
+
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,7 +25,8 @@ export const fetchAllUsers = async (): Promise<UserExtended[]> => {
     // Récupérer les profils depuis la table profiles
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('*');
+      .select('*')
+      .eq('role', 'admin'); // Filtrer uniquement les administrateurs
     
     if (profilesError) {
       console.error("Erreur lors de la récupération des profils:", profilesError);
@@ -144,6 +146,49 @@ export const updateUserProfile = async (userId: string, profileData: Partial<Omi
   } catch (error) {
     console.error("Erreur lors de la mise à jour du profil:", error);
     toast.error("Impossible de mettre à jour le profil utilisateur");
+    return false;
+  }
+};
+
+export const updateUserAvatar = async (userId: string, avatarUrl: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: avatarUrl })
+      .eq('id', userId);
+      
+    if (error) {
+      console.error("Erreur lors de la mise à jour de l'avatar:", error);
+      toast.error("Impossible de mettre à jour l'avatar");
+      return false;
+    }
+    
+    toast.success("Avatar mis à jour avec succès");
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de l'avatar:", error);
+    toast.error("Impossible de mettre à jour l'avatar");
+    return false;
+  }
+};
+
+export const updateUserPassword = async (password: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: password
+    });
+    
+    if (error) {
+      console.error("Erreur lors de la mise à jour du mot de passe:", error);
+      toast.error(`Impossible de mettre à jour le mot de passe: ${error.message}`);
+      return false;
+    }
+    
+    toast.success("Mot de passe mis à jour avec succès");
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du mot de passe:", error);
+    toast.error("Impossible de mettre à jour le mot de passe");
     return false;
   }
 };

@@ -1,19 +1,22 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { useUsers } from "@/hooks/useUsers";
-import { UserExtended } from "@/services/userService";
-import { Loader2, Plus, Search, Pencil, Trash2, RefreshCw, UserCircle, Clock, CalendarDays, Shield } from "lucide-react";
+import { UserExtended, updateUserPassword } from "@/services/userService";
+import { Loader2, Plus, Search, Pencil, Trash2, RefreshCw, UserCircle, Clock, CalendarDays, Shield, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useAuth } from "@/context/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
 
 const UserManagement: React.FC = () => {
   const { users, loading, error, refreshUsers, updateUser, addUser, removeUser } = useUsers();
@@ -28,6 +31,11 @@ const UserManagement: React.FC = () => {
     role: "admin", // Par défaut à admin car nous ne gérons que les admins ici
     company: ""
   });
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const { user } = useAuth();
 
   // Filtrer uniquement les administrateurs
   const adminUsers = users.filter(user => 
@@ -57,6 +65,76 @@ const UserManagement: React.FC = () => {
     
     if (success) {
       setEditingUser(null);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword) {
+      toast.error("Veuillez entrer un mot de passe");
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+    
+    const success = await updateUserPassword(newPassword);
+    if (success) {
+      setNewPassword("");
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setAvatarFile(e.target.files[0]);
+    }
+  };
+
+  const uploadAvatar = async () => {
+    if (!avatarFile || !user) return;
+    
+    setUploading(true);
+    try {
+      // Vérifier si le bucket avatars existe, sinon le créer
+      const { data: buckets } = await supabase.storage.listBuckets();
+      if (!buckets?.find(bucket => bucket.name === 'avatars')) {
+        await supabase.storage.createBucket('avatars', { public: true });
+      }
+      
+      // Télécharger l'avatar
+      const fileName = `${user.id}-${Date.now()}`;
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, avatarFile, {
+          upsert: true,
+          contentType: avatarFile.type
+        });
+        
+      if (error) throw error;
+      
+      // Obtenir l'URL publique
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+        
+      // Mettre à jour le profil avec la nouvelle URL d'avatar
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: urlData.publicUrl })
+        .eq('id', user.id);
+        
+      if (updateError) throw updateError;
+      
+      toast.success("Avatar mis à jour avec succès");
+      refreshUsers();
+      setAvatarFile(null);
+    } catch (error: any) {
+      console.error("Erreur lors du téléchargement de l'avatar:", error);
+      toast.error(`Erreur: ${error.message || "Impossible de télécharger l'avatar"}`);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -97,6 +175,20 @@ const UserManagement: React.FC = () => {
       return "Date invalide";
     }
   };
+
+  // Trouver l'utilisateur actuel dans la liste
+  const currentUserDetails = user ? adminUsers.find(u => u.id === user.id) : null;
+
+  useEffect(() => {
+    // Au chargement, si l'utilisateur actuel est un admin, s'assurer qu'il est dans la liste
+    if (user && user.user_metadata?.role === 'admin' && !loading && users.length > 0) {
+      const userFound = users.some(u => u.id === user.id);
+      if (!userFound) {
+        // Forcer un rechargement si l'utilisateur actuel n'est pas dans la liste
+        refreshUsers();
+      }
+    }
+  }, [user, users, loading]);
 
   return (
     <Card className="w-full">
@@ -199,6 +291,142 @@ const UserManagement: React.FC = () => {
         </div>
       </CardHeader>
       <CardContent>
+        {/* Section de profil utilisateur connecté */}
+        {user && (
+          <div className="mb-8 p-5 border rounded-lg">
+            <h3 className="text-xl font-semibold mb-4">Mon profil</h3>
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="flex flex-col items-center space-y-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={currentUserDetails?.avatar_url || ''} />
+                  <AvatarFallback className="text-lg">
+                    {user.first_name?.[0] || ''}{user.last_name?.[0] || ''}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-center">
+                  <input
+                    type="file"
+                    id="avatar-upload"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                  />
+                  <label htmlFor="avatar-upload" className="flex items-center space-x-2 cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                    <Upload size={16} />
+                    <span>Changer d'avatar</span>
+                  </label>
+                  {avatarFile && (
+                    <Button 
+                      onClick={uploadAvatar} 
+                      disabled={uploading} 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                    >
+                      {uploading ? 'Téléchargement...' : 'Télécharger'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex-1 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="current-first-name">Prénom</Label>
+                    <Input
+                      id="current-first-name"
+                      value={currentUserDetails?.first_name || ''}
+                      onChange={(e) => currentUserDetails && setEditingUser({
+                        ...currentUserDetails,
+                        first_name: e.target.value
+                      })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="current-last-name">Nom</Label>
+                    <Input
+                      id="current-last-name"
+                      value={currentUserDetails?.last_name || ''}
+                      onChange={(e) => currentUserDetails && setEditingUser({
+                        ...currentUserDetails,
+                        last_name: e.target.value
+                      })}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="current-company">Entreprise</Label>
+                  <Input
+                    id="current-company"
+                    value={currentUserDetails?.company || ''}
+                    onChange={(e) => currentUserDetails && setEditingUser({
+                      ...currentUserDetails,
+                      company: e.target.value
+                    })}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="current-email">Email</Label>
+                  <Input
+                    id="current-email"
+                    value={currentUserDetails?.email || ''}
+                    disabled
+                    className="mt-1 bg-gray-100"
+                  />
+                </div>
+                
+                <div className="flex flex-col md:flex-row gap-4 pt-2">
+                  <Button 
+                    onClick={() => currentUserDetails && handleUpdateUser()} 
+                    disabled={!editingUser || editingUser.id !== user.id}
+                  >
+                    Mettre à jour le profil
+                  </Button>
+                  
+                  <Dialog open={isUpdatingPassword} onOpenChange={setIsUpdatingPassword}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">Changer le mot de passe</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Changer votre mot de passe</DialogTitle>
+                        <DialogDescription>
+                          Entrez votre nouveau mot de passe ci-dessous.
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="new-password-field" className="text-right">Nouveau mot de passe</Label>
+                          <Input
+                            id="new-password-field"
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="col-span-3"
+                          />
+                        </div>
+                      </div>
+                      
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Annuler</Button>
+                        </DialogClose>
+                        <Button onClick={handleUpdatePassword}>Mettre à jour</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           <div className="flex justify-between">
             <div className="relative w-full max-w-sm">
@@ -260,7 +488,16 @@ const UserManagement: React.FC = () => {
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                            <Shield className="h-4 w-4 text-primary" />
+                            {user.avatar_url ? (
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.avatar_url} />
+                                <AvatarFallback>
+                                  {user.first_name?.[0] || ''}{user.last_name?.[0] || ''}
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : (
+                              <Shield className="h-4 w-4 text-primary" />
+                            )}
                           </div>
                           <div>
                             <p className="font-medium">
@@ -300,7 +537,7 @@ const UserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
-                          <Dialog open={editingUser?.id === user.id} onOpenChange={(open) => !open && setEditingUser(null)}>
+                          <Dialog open={editingUser?.id === user.id && editingUser.id !== (currentUserDetails?.id || '')} onOpenChange={(open) => !open && setEditingUser(null)}>
                             <DialogTrigger asChild>
                               <Button
                                 variant="outline"
@@ -365,6 +602,7 @@ const UserManagement: React.FC = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleDeleteUser(user.id)}
+                            disabled={user.id === (currentUserDetails?.id || '')}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
