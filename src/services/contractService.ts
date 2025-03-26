@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -350,7 +351,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       // On continue la suppression même si l'effacement des logs échoue
     }
     
-    // Supprimer le contrat lui-même - CORRECTION: ne pas utiliser .select('count')
+    // Supprimer le contrat lui-même - CORRECTION: ne pas utiliser .select()
     const { error: deleteError } = await supabase
       .from('contracts')
       .delete()
@@ -380,7 +381,6 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       }
     }
     
-    console.log("Contrat supprimé avec succès");
     return true;
   } catch (error: any) {
     console.error("Exception non gérée lors de la suppression du contrat:", error);

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { 
@@ -200,6 +201,11 @@ export const useContracts = () => {
         setFilteredContracts(prevFiltered => prevFiltered.filter(c => c.id !== contractId));
         
         toast.success("Contrat supprimé avec succès");
+        
+        // Recharger les contrats pour s'assurer que tout est à jour après un court délai
+        setTimeout(() => {
+          fetchContracts();
+        }, 500);
       } else {
         console.error("Échec de la suppression du contrat");
         toast.error("Erreur lors de la suppression du contrat");
