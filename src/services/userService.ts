@@ -164,6 +164,12 @@ export const updateUserAvatar = async (userId: string, avatarUrl: string): Promi
       toast.error("Impossible de mettre à jour l'avatar");
       return false;
     }
+
+    // Mettre à jour les métadonnées utilisateur pour que l'avatar soit disponible
+    // dans la session utilisateur
+    await supabase.auth.updateUser({
+      data: { avatar_url: avatarUrl }
+    });
     
     toast.success("Avatar mis à jour avec succès");
     return true;

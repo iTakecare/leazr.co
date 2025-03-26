@@ -10,7 +10,7 @@ import {
   Menu,
   LayoutDashboard,
   Users,
-  Package, // Replacing ListProducts with Package which is available
+  Package,
   Percent,
   FileSignature,
   HeartHandshake,
@@ -46,7 +46,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const menuItems: MenuItem[] = [
     { href: "/", label: "Tableau de bord", icon: LayoutDashboard },
     { href: "/clients", label: "Clients", icon: Users },
-    { href: "/catalog", label: "Catalogue", icon: Package }, // Updated to use Package icon
+    { href: "/catalog", label: "Catalogue", icon: Package },
     { href: "/offers", label: "Offres", icon: Percent },
     { href: "/contracts", label: "Contrats", icon: FileSignature },
     { href: "/i-take-care", label: "iTakecare", icon: HeartHandshake },
@@ -151,15 +151,18 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         <div className="mt-auto border-t p-4">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.avatar_url || ''} />
-              <AvatarFallback>
-                {user?.first_name?.[0] || ''}{user?.last_name?.[0] || ''}
-              </AvatarFallback>
+              {user?.avatar_url ? (
+                <AvatarImage src={user.avatar_url} alt={`${user.first_name || ''} ${user.last_name || ''}`} />
+              ) : (
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {user?.first_name?.[0] || ''}{user?.last_name?.[0] || ''}
+                </AvatarFallback>
+              )}
             </Avatar>
             {!collapsed && (
               <div className="flex flex-col">
-                <span className="text-sm font-medium">{user?.first_name} {user?.last_name}</span>
-                <span className="text-xs text-muted-foreground">{user?.title || "Admin Portal"}</span>
+                <span className="text-sm font-medium">{user?.first_name || ''} {user?.last_name || ''}</span>
+                <span className="text-xs text-muted-foreground">{user?.title || "Utilisateur"}</span>
               </div>
             )}
             {!collapsed && (
