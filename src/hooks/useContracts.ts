@@ -121,6 +121,15 @@ export const useContracts = () => {
     try {
       setIsUpdatingStatus(true);
       
+      // Find the contract to get its current status
+      const contract = contracts.find(c => c.id === contractId);
+      if (!contract) {
+        toast.error("Contrat non trouvé");
+        return;
+      }
+      
+      console.log(`Ajout de numéro de suivi pour le contrat ${contractId} avec statut actuel: ${contract.status}`);
+      
       const success = await addTrackingNumber(
         contractId,
         trackingNumber,
@@ -129,7 +138,7 @@ export const useContracts = () => {
       );
       
       if (success) {
-        // Mettre à jour l'état local
+        // Update the local state while preserving the current status
         setContracts(prevContracts => 
           prevContracts.map(c => 
             c.id === contractId ? { 
@@ -138,6 +147,8 @@ export const useContracts = () => {
               estimated_delivery: estimatedDelivery,
               delivery_carrier: carrier,
               delivery_status: 'en_attente',
+              // Preserve the current status, don't change it
+              status: contract.status,
               updated_at: new Date().toISOString()
             } : c
           )
@@ -145,7 +156,7 @@ export const useContracts = () => {
         
         toast.success(`Informations de suivi ajoutées avec succès`);
         
-        // Forcer un rechargement complet
+        // Force a complete reload to ensure everything is in sync
         await fetchContracts();
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");

@@ -246,26 +246,29 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         if (contract.equipment_description.startsWith('[') || contract.equipment_description.startsWith('{')) {
           const equipmentData = JSON.parse(contract.equipment_description);
           if (Array.isArray(equipmentData)) {
-            if (equipmentData.length === 1) {
+            if (equipmentData.length === 1 && equipmentData[0]) {
               return equipmentData[0].title || "Équipement";
-            } else {
+            } else if (equipmentData.length > 0) {
               return `${equipmentData.length} équipements`;
             }
-          } else {
+            return "Équipement";
+          } else if (equipmentData) {
             return equipmentData.title || "Équipement";
           }
+          return "Équipement";
         } else {
           return contract.equipment_description.length > 30 
             ? `${contract.equipment_description.substring(0, 30)}...` 
             : contract.equipment_description;
         }
-      } else {
+      } else if (contract.equipment_description) {
         if (Array.isArray(contract.equipment_description)) {
           return `${contract.equipment_description.length} équipements`;
-        } else {
+        } else if (typeof contract.equipment_description === 'object' && contract.equipment_description !== null) {
           return contract.equipment_description.title || "Équipement";
         }
       }
+      return "Format inconnu";
     } catch (e) {
       return "Format inconnu";
     }
@@ -485,25 +488,25 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             {selectedEquipment.length > 0 ? (
               <div className="space-y-4">
                 {selectedEquipment.map((item, index) => (
-                  <div key={item.id || index} className="border p-4 rounded-md">
-                    <div className="font-medium">{item.title}</div>
+                  <div key={item?.id || index} className="border p-4 rounded-md">
+                    <div className="font-medium">{item?.title || "Sans titre"}</div>
                     <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                      {item.purchasePrice && (
+                      {item?.purchasePrice && (
                         <div>
                           <span className="text-gray-500">Prix d'achat:</span> {formatCurrency(item.purchasePrice)}
                         </div>
                       )}
-                      {item.quantity && (
+                      {item?.quantity && (
                         <div>
                           <span className="text-gray-500">Quantité:</span> {item.quantity}
                         </div>
                       )}
-                      {item.margin && (
+                      {item?.margin && (
                         <div>
                           <span className="text-gray-500">Marge:</span> {item.margin}%
                         </div>
                       )}
-                      {item.description && (
+                      {item?.description && (
                         <div className="col-span-2 mt-2">
                           <span className="text-gray-500">Description:</span> {item.description}
                         </div>
