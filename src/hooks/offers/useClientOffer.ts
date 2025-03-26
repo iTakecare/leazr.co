@@ -4,9 +4,9 @@ import { toast } from "sonner";
 import { 
   getOfferForClient, 
   isOfferSigned,
-  saveOfferSignature,
-  generateAndDownloadOfferPdf
+  saveOfferSignature
 } from "@/services/offers/offerSignature";
+import { generateAndDownloadOfferPdf } from "@/services/offers/offerPdf";
 
 export const useClientOffer = (offerId: string | undefined) => {
   const [offer, setOffer] = useState<any>(null);

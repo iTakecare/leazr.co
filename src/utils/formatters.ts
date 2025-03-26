@@ -36,7 +36,6 @@ export const formatDate = (dateString: string): string => {
   }
 };
 
-// Added missing formatters
 export const formatDateToFrench = (dateString: string | Date): string => {
   if (!dateString) return "Date inconnue";
   try {
