@@ -9,6 +9,7 @@ import WooCommerceImporter from "@/components/settings/WooCommerceImporter";
 import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
 import PDFTemplateList from "@/components/settings/PDFTemplateList";
 import DataImporter from "@/components/settings/DataImporter";
+import UserManager from "@/components/settings/UserManager";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 const Settings = () => {
@@ -41,13 +42,14 @@ const Settings = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="pdf">Modèles PDF</TabsTrigger>
           <TabsTrigger value="email">Configuration Email</TabsTrigger>
           <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
           <TabsTrigger value="import">Import Données</TabsTrigger>
+          <TabsTrigger value="users">Utilisateurs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leasers">
@@ -122,6 +124,20 @@ const Settings = () => {
 
         <TabsContent value="import">
           <DataImporter />
+        </TabsContent>
+        
+        <TabsContent value="users">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gestion des utilisateurs</CardTitle>
+              <CardDescription>
+                Ajoutez, modifiez et supprimez les utilisateurs administrateurs de l'application
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <UserManager />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
