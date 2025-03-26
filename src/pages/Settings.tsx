@@ -37,18 +37,6 @@ const Settings = () => {
     console.log("Tab changed to:", value); // Ajout de log pour débogage
   };
 
-  // Function to handle logout
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      toast.success("Déconnexion réussie");
-      navigate("/login");
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
-      toast.error("Erreur lors de la déconnexion");
-    }
-  };
-
   // Récupère le template ID s'il est spécifié dans l'URL
   const selectedTemplateId = searchParams.get("template") || "default";
 
@@ -61,14 +49,6 @@ const Settings = () => {
           <h1 className="text-3xl font-bold">Paramètres</h1>
           <p className="text-gray-500">Gérez les paramètres de votre application</p>
         </div>
-        <Button 
-          variant="destructive" 
-          onClick={handleLogout}
-          className="flex items-center gap-2"
-        >
-          <LogOut size={16} />
-          Déconnexion
-        </Button>
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
