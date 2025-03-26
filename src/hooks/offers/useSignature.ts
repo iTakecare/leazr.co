@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { saveOfferSignature } from "@/services/offers/offerSignature";
 
@@ -15,14 +15,14 @@ export const useSignature = (
   const [signature, setSignature] = useState<string | null>(null);
 
   // Initialiser le nom du signataire si disponible dans l'offre
-  useState(() => {
+  useEffect(() => {
     if (offer?.client_name) {
       setSignerName(offer.client_name);
     }
     if (offer?.signature_data) {
       setSignature(offer.signature_data);
     }
-  });
+  }, [offer]);
 
   const handleSignature = async (signatureData: string) => {
     if (!offerId || !signerName.trim()) {
