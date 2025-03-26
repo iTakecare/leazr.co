@@ -1,4 +1,3 @@
-
 import { createContext, useState, useEffect, useContext } from 'react';
 import {
   AuthChangeEvent,
@@ -18,6 +17,8 @@ export interface ExtendedUser extends User {
   company?: string;
   ambassador_id?: string;
   partner_id?: string;
+  title?: string;
+  avatar_url?: string;
   error?: any;
 }
 
@@ -28,6 +29,7 @@ interface UserMetadata {
   role?: string;
   ambassador_id?: string;
   partner_id?: string;
+  title?: string;
 }
 
 // Définir le type pour le contexte utilisateur
@@ -99,7 +101,9 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
           last_name: session.user.user_metadata?.last_name,
           company: session.user.user_metadata?.company,
           ambassador_id: session.user.user_metadata?.ambassador_id,
-          partner_id: session.user.user_metadata?.partner_id
+          partner_id: session.user.user_metadata?.partner_id,
+          title: session.user.user_metadata?.title,
+          avatar_url: session.user.user_metadata?.avatar_url
         };
         setUser(extendedUser);
         setSession(session);
@@ -135,7 +139,9 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
           last_name: data.user.user_metadata?.last_name,
           company: data.user.user_metadata?.company,
           ambassador_id: data.user.user_metadata?.ambassador_id,
-          partner_id: data.user.user_metadata?.partner_id
+          partner_id: data.user.user_metadata?.partner_id,
+          title: data.user.user_metadata?.title,
+          avatar_url: data.user.user_metadata?.avatar_url
         };
         setUser(extendedUser);
         return extendedUser;
@@ -150,7 +156,6 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
     }
   };
 
-  // S'assurer que les données métier sont correctement remplies lors du login
   const login = async (email: string, password: string): Promise<ExtendedUser | null> => {
     try {
       setError(null);
@@ -205,7 +210,9 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
           last_name: data.user.user_metadata?.last_name,
           company: data.user.user_metadata?.company,
           ambassador_id: data.user.user_metadata?.ambassador_id,
-          partner_id: data.user.user_metadata?.partner_id
+          partner_id: data.user.user_metadata?.partner_id,
+          title: data.user.user_metadata?.title,
+          avatar_url: data.user.user_metadata?.avatar_url
         };
         
         setUser(extendedUser);
@@ -275,7 +282,9 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
           last_name: data.user.user_metadata?.last_name,
           company: data.user.user_metadata?.company,
           ambassador_id: data.user.user_metadata?.ambassador_id,
-          partner_id: data.user.user_metadata?.partner_id
+          partner_id: data.user.user_metadata?.partner_id,
+          title: data.user.user_metadata?.title,
+          avatar_url: data.user.user_metadata?.avatar_url
         };
         setUser(extendedUser);
       }
@@ -286,7 +295,6 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
     }
   };
 
-  // Vérifier la session, récupérer les informations de profil si nécessaire
   const checkSession = async (): Promise<ExtendedUser | null> => {
     try {
       setLoading(true);
@@ -338,7 +346,9 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
           last_name: data.session.user.user_metadata?.last_name,
           company: data.session.user.user_metadata?.company,
           ambassador_id: data.session.user.user_metadata?.ambassador_id,
-          partner_id: data.session.user.user_metadata?.partner_id
+          partner_id: data.session.user.user_metadata?.partner_id,
+          title: data.session.user.user_metadata?.title,
+          avatar_url: data.session.user.user_metadata?.avatar_url
         };
         
         setUser(extendedUser);
@@ -361,7 +371,6 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
     }
   };
 
-  // Helper functions for role checking
   const isAdmin = () => {
     return user?.user_metadata?.role === 'admin';
   };
@@ -378,12 +387,10 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
     return user?.user_metadata?.role === 'ambassador';
   };
 
-  // Alias functions for compatibility
   const signIn = login;
   const signOut = logout;
   const signUp = signup;
 
-  // S'assurer que login et checkSession sont passés au contexte
   return (
     <AuthContext.Provider
       value={{
