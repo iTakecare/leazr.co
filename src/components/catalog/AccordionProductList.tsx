@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -27,7 +28,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   if (!products || products.length === 0) {
     return (
       <div className="text-center p-8 border rounded-lg bg-muted/10">
-        <p className="text-muted-foreground">Aucun produit disponible</p>
+        <p className="text-muted-foreground">Aucun produit trouvé</p>
       </div>
     );
   }

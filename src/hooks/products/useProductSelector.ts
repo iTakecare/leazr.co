@@ -64,9 +64,17 @@ export const useProductSelector = (isOpen: boolean) => {
         // Find variants that have this product as parent
         const variants = productsWithVariants.filter(p => p.parent_id === product.id);
         
+        // Count variant combination prices
+        const variantCombinationCount = product.variant_combination_prices?.length || 0;
+        
+        // Determine if this product has variants either as child products or price combinations
+        const hasVariants = variants.length > 0 || variantCombinationCount > 0;
+        
         return {
           ...product,
           variants: variants,
+          has_variants: hasVariants,
+          variants_count: Math.max(variants.length, variantCombinationCount),
           // Track if this has actual child products as variants
           has_child_variants: variants.length > 0
         };

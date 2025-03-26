@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
+import { Layers } from "lucide-react";
 
 interface ProductGridCardProps {
   product: Product;
@@ -35,6 +36,19 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       }
     }
     
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      const combinationPrices = product.variant_combination_prices
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (combinationPrices.length > 0) {
+        const minCombinationPrice = Math.min(...combinationPrices);
+        if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
+          minPrice = minCombinationPrice;
+        }
+      }
+    }
+    
     return minPrice;
   };
   
@@ -62,10 +76,22 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   // Check if product has variants
   const hasVariants = product.is_parent || 
-                     (product.variants && product.variants.length > 0);
+                     (product.variants && product.variants.length > 0) ||
+                     (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
+                     (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
 
   // Count available variants for the badge
-  const variantsCount = product.variants?.length || 0;
+  const getVariantsCount = (): number => {
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.length;
+    }
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      return product.variant_combination_prices.length;
+    }
+    return 0;
+  };
+  
+  const variantsCount = getVariantsCount();
 
   return (
     <Card 
@@ -93,6 +119,14 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           {brandLabel && (
             <Badge variant="outline" className="rounded-full font-normal text-gray-600 bg-gray-50">
               {brandLabel}
+            </Badge>
+          )}
+          
+          {/* Add variant badge */}
+          {hasVariants && (
+            <Badge variant="outline" className="rounded-full font-normal text-blue-600 bg-blue-50 flex items-center gap-1">
+              <Layers className="h-3 w-3" />
+              {variantsCount} variante{variantsCount !== 1 ? 's' : ''}
             </Badge>
           )}
         </div>

@@ -41,6 +41,26 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
       .join(", ");
   };
   
+  // Count available variants
+  const countVariants = () => {
+    let count = 0;
+    
+    // Count child product variants
+    if (product.variants && product.variants.length > 0) {
+      count += product.variants.length;
+    }
+    
+    // Count price combination variants
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      count += product.variant_combination_prices.length;
+    }
+    
+    return count;
+  };
+  
+  const variantsCount = countVariants();
+  const hasVariants = variantsCount > 0;
+  
   return (
     <div className="space-y-6">
       <Card>
@@ -52,6 +72,11 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
                 Gérez les attributs, prix et spécifications de ce produit
               </CardDescription>
             </div>
+            {hasVariants && (
+              <Badge className="bg-blue-100 text-blue-800">
+                {variantsCount} variante{variantsCount > 1 ? 's' : ''}
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
