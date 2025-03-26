@@ -17,7 +17,7 @@ import ITakecarePage from "./pages/ITakecarePage";
 import { ThemeProvider } from "./components/providers/theme-provider";
 import NotFound from "./pages/NotFound";
 import { Toaster } from "@/components/ui/sonner";
-import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
+import { ShadcnToaster } from "@/components/ui/toaster";
 import ClientRoutes from "./components/layout/ClientRoutes";
 import { AnimatePresence } from "framer-motion";
 import Settings from "./pages/Settings";
@@ -49,6 +49,7 @@ import AmbassadorLayout from "./components/layout/AmbassadorLayout";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
 import SignOffer from "./pages/client/SignOffer";
+import PublicCatalog from "./pages/PublicCatalog";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,6 +71,9 @@ function App() {
             <Routes location={location} key={location.pathname}>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              
+              {/* Catalogue public - accessible sans authentification */}
+              <Route path="/catalogue" element={<PublicCatalog />} />
               
               {/* Page de signature d'offre - accessible sans authentification */}
               <Route path="/client/sign-offer/:id" element={<SignOffer />} />
