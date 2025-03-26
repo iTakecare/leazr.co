@@ -138,7 +138,7 @@ export const useContracts = () => {
       );
       
       if (success) {
-        // Update the local state while preserving the current status
+        // Update the local state while explicitly preserving the current status
         setContracts(prevContracts => 
           prevContracts.map(c => 
             c.id === contractId ? { 
@@ -147,7 +147,7 @@ export const useContracts = () => {
               estimated_delivery: estimatedDelivery,
               delivery_carrier: carrier,
               delivery_status: 'en_attente',
-              // Preserve the current status, don't change it
+              // Important: Explicitly preserve the current status, don't change it
               status: contract.status,
               updated_at: new Date().toISOString()
             } : c
