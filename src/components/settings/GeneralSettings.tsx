@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -34,6 +33,7 @@ import { uploadImage, detectFileExtension, detectMimeTypeFromSignature } from "@
 import Logo from "@/components/layout/Logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import AvatarUploader from "@/components/settings/AvatarUploader";
 
 const generalSettingsSchema = z.object({
   siteName: z.string().min(2, {
@@ -365,73 +365,77 @@ const GeneralSettings = () => {
         </Alert>
       )}
       
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="overflow-hidden">
-              <CardContent className="p-6">
-                <div className="flex flex-col space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5 text-primary" />
-                    Logo du site
-                  </h3>
-                  
-                  <div className="flex flex-col space-y-4 bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
-                    <div className="flex items-center gap-4">
-                      {/* Zone de preview du logo plus compacte */}
-                      <div className="relative">
-                        <Avatar className="h-20 w-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-                          {isUploading && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-                              <Loader2 className="h-6 w-6 text-white animate-spin" />
-                            </div>
-                          )}
-                          {logoPreview ? (
-                            <AvatarImage 
-                              src={logoPreview} 
-                              alt="Logo du site"
-                              className="object-contain"
-                            />
-                          ) : (
-                            <AvatarFallback className="bg-transparent text-muted-foreground">
-                              <ImageIcon className="h-10 w-10 opacity-50" />
-                            </AvatarFallback>
-                          )}
-                        </Avatar>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <AvatarUploader />
+          
+          <Card className="overflow-hidden">
+            <CardContent className="p-6">
+              <div className="flex flex-col space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5 text-primary" />
+                  Logo du site
+                </h3>
+                
+                <div className="flex flex-col space-y-4 bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                  <div className="flex items-center gap-4">
+                    {/* Zone de preview du logo plus compacte */}
+                    <div className="relative">
+                      <Avatar className="h-20 w-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                            <Loader2 className="h-6 w-6 text-white animate-spin" />
+                          </div>
+                        )}
+                        {logoPreview ? (
+                          <AvatarImage 
+                            src={logoPreview} 
+                            alt="Logo du site"
+                            className="object-contain"
+                          />
+                        ) : (
+                          <AvatarFallback className="bg-transparent text-muted-foreground">
+                            <ImageIcon className="h-10 w-10 opacity-50" />
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                    </div>
+                    
+                    {/* Contrôles d'upload et aperçu */}
+                    <div className="flex-1 flex flex-col justify-between gap-2">
+                      <div>
+                        <FormLabel htmlFor="logo-upload" className="font-medium mb-1 block">Logo du site</FormLabel>
+                        <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border shadow-sm mb-2">
+                          <Logo />
+                        </div>
                       </div>
                       
-                      {/* Contrôles d'upload et aperçu */}
-                      <div className="flex-1 flex flex-col justify-between gap-2">
-                        <div>
-                          <FormLabel htmlFor="logo-upload" className="font-medium mb-1 block">Logo du site</FormLabel>
-                          <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border shadow-sm mb-2">
-                            <Logo />
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <FormLabel htmlFor="logo-upload" className="cursor-pointer py-2 px-3 bg-primary text-white rounded-lg flex items-center gap-1 hover:bg-primary/90 transition-colors text-sm">
-                            <Upload className="h-3 w-3" />
-                            <span>Choisir un fichier</span>
-                          </FormLabel>
-                          <input 
-                            id="logo-upload" 
-                            type="file" 
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={handleLogoUpload}
-                            disabled={isSaving || isUploading || authStatus !== 'authenticated'}
-                          />
-                          {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <FormLabel htmlFor="logo-upload" className="cursor-pointer py-2 px-3 bg-primary text-white rounded-lg flex items-center gap-1 hover:bg-primary/90 transition-colors text-sm">
+                          <Upload className="h-3 w-3" />
+                          <span>Choisir un fichier</span>
+                        </FormLabel>
+                        <input 
+                          id="logo-upload" 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={isSaving || isUploading || authStatus !== 'authenticated'}
+                        />
+                        {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">Format recommandé: PNG ou SVG, carré, fond transparent</p>
                   </div>
+                  <p className="text-xs text-muted-foreground">Format recommandé: PNG ou SVG, carré, fond transparent</p>
                 </div>
-              </CardContent>
-            </Card>
-            
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Card>
               <CardContent className="p-6">
                 <div className="space-y-4">
@@ -478,113 +482,113 @@ const GeneralSettings = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
-          
-          <Separator />
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Building className="h-5 w-5 text-primary" />
-              Informations de l'entreprise
-            </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="companyName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom de l'entreprise</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Votre entreprise" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <Separator />
+            
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Building className="h-5 w-5 text-primary" />
+                Informations de l'entreprise
+              </h3>
               
-              <FormField
-                control={form.control}
-                name="companyEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email de contact</FormLabel>
-                    <FormControl>
-                      <Input placeholder="contact@entreprise.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="companyPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Téléphone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="+33 1 23 45 67 89" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="companyAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Adresse</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Adresse complète" 
-                        {...field} 
-                        className="min-h-[80px] resize-none"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="companyName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nom de l'entreprise</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Votre entreprise" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="companyEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email de contact</FormLabel>
+                      <FormControl>
+                        <Input placeholder="contact@entreprise.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="companyPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Téléphone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+33 1 23 45 67 89" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="companyAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Adresse</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Adresse complète" 
+                          {...field} 
+                          className="min-h-[80px] resize-none"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-          </div>
-          
-          <div className="flex justify-end space-x-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={loadSettings}
-              disabled={isLoading || isSaving || authStatus !== 'authenticated'}
-            >
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Réinitialiser
-            </Button>
             
-            <Button 
-              type="submit" 
-              disabled={isLoading || isSaving || authStatus !== 'authenticated'}
-            >
-              {isSaving ? (
-                <>
+            <div className="flex justify-end space-x-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={loadSettings}
+                disabled={isLoading || isSaving || authStatus !== 'authenticated'}
+              >
+                {isLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Enregistrer
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </Form>
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Réinitialiser
+              </Button>
+              
+              <Button 
+                type="submit" 
+                disabled={isLoading || isSaving || authStatus !== 'authenticated'}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Enregistrer
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 };
