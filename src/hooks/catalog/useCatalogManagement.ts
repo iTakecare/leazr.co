@@ -1,92 +1,63 @@
 
-import { useState, useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getProducts, deleteProduct } from "@/services/catalogService";
 import { useNavigate } from "react-router-dom";
-import { deleteProduct, getProducts } from "@/services/catalogService";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
+import { Product } from "@/types/catalog";
 
 export const useCatalogManagement = () => {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
   const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
   const [groupingOption, setGroupingOption] = useState<"model" | "brand">("model");
   
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
   // Fetch products
-  const { data: products = [], refetch, isLoading, error } = useQuery({
+  const { data: productsData = [], isLoading, error, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
   });
-
-  // Delete product mutation
-  const deleteProductMutation = useMutation({
-    mutationFn: deleteProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({
-        title: "Succès",
-        description: "Le produit a été supprimé",
-        variant: "default",
-      });
-    },
-    onError: (err: Error) => {
-      console.error("Erreur lors de la suppression du produit:", err);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le produit",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Effect to log products
-  useEffect(() => {
-    console.log(`Loaded ${products.length} products:`, products);
-  }, [products]);
-
-  // Effect to check if no products found
-  useEffect(() => {
-    if (!isLoading && products.length === 0) {
-      console.log("No products found, loading sample data would go here");
-      // This is where you could load sample data if needed
-    }
-  }, [isLoading, products]);
-
-  // Product added callback
+  
+  // Process products data to add variants information
+  const products = React.useMemo(() => {
+    // Add debug logging
+    console.log("Processing products in useCatalogManagement:", productsData.length);
+    console.log("Products with variants:", productsData.filter(p => 
+      p.is_parent || 
+      (p.variant_combination_prices && p.variant_combination_prices.length > 0) ||
+      (p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0)
+    ).length);
+    
+    return productsData;
+  }, [productsData]);
+  
+  // Handle adding a new product
+  const handleAddNewProduct = () => {
+    setIsAddProductOpen(true);
+  };
+  
+  // Handle successful product addition
   const onProductAdded = () => {
-    setIsAddProductOpen(false);
     queryClient.invalidateQueries({ queryKey: ["products"] });
-    toast({
-      title: "Succès",
-      description: "Produit ajouté avec succès",
-      variant: "default",
-    });
+    toast.success("Produit ajouté avec succès");
   };
-
-  // Select product handler
-  const handleSelectProduct = (productId: string) => {
-    navigate(`/products/${productId}`);
-  };
-
-  // Delete product handler
+  
+  // Handle product deletion
   const handleProductDeleted = async (productId: string) => {
     try {
-      await deleteProductMutation.mutateAsync(productId);
-      return Promise.resolve();
+      await deleteProduct(productId);
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Produit supprimé avec succès");
     } catch (error) {
-      console.error("Erreur lors de la suppression:", error);
-      return Promise.reject(error);
+      console.error("Error deleting product:", error);
+      toast.error("Erreur lors de la suppression du produit");
     }
   };
-
-  // Add new product handler
-  const handleAddNewProduct = () => {
-    navigate("/catalog/create-product");
-  };
-
-  // View mode change handler
+  
+  // Handle view mode change
   const handleViewModeChange = (value: string) => {
     if (value === "grid" || value === "accordion") {
       setViewMode(value);
@@ -105,7 +76,6 @@ export const useCatalogManagement = () => {
     groupingOption,
     setGroupingOption,
     onProductAdded,
-    handleSelectProduct,
     handleProductDeleted,
     handleAddNewProduct,
     handleViewModeChange

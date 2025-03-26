@@ -75,10 +75,20 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   };
 
   // Check if product has variants
-  const hasVariants = product.is_parent || 
-                     (product.variants && product.variants.length > 0) ||
-                     (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
-                     (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
+  const hasVariants = () => {
+    // Log for debugging
+    console.log(`Checking variants for ${product.name}:`, {
+      isParent: product.is_parent,
+      hasCombPrices: product.variant_combination_prices?.length > 0,
+      hasVariationAttrs: product.variation_attributes && Object.keys(product.variation_attributes).length > 0,
+      hasVariants: product.variants?.length > 0
+    });
+    
+    return product.is_parent || 
+           (product.variants && product.variants.length > 0) ||
+           (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
+           (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0);
+  };
 
   // Count available variants for the badge
   const getVariantsCount = (): number => {
@@ -88,9 +98,14 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
+    // If it has variation_attributes but no combinations yet, count them as 0 but still show badge
+    if (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) {
+      return 0;
+    }
     return 0;
   };
   
+  const hasVariantsFlag = hasVariants();
   const variantsCount = getVariantsCount();
 
   return (
@@ -123,7 +138,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           )}
           
           {/* Add variant badge */}
-          {hasVariants && (
+          {hasVariantsFlag && (
             <Badge variant="outline" className="rounded-full font-normal text-blue-600 bg-blue-50 flex items-center gap-1">
               <Layers className="h-3 w-3" />
               {variantsCount} variante{variantsCount !== 1 ? 's' : ''}
@@ -138,7 +153,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           <span className="font-bold text-indigo-700">{monthlyPriceLabel}</span>
         </div>
         
-        {hasVariants && (
+        {hasVariantsFlag && (
           <div className="mt-3 pt-3 border-t border-gray-100">
             <span className="text-gray-600 text-sm">
               {variantsCount > 0 

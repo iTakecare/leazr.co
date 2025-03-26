@@ -57,22 +57,31 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
 
   // Check if a product has variants
   const hasVariants = (product: Product): boolean => {
+    console.log(`Checking variants for ${product.name}:`, product);
+    
+    // Check if product has variation_attributes defined
+    const hasVariationAttributes = product.variation_attributes && 
+      Object.keys(product.variation_attributes).length > 0;
+    console.log(`- Has variation attributes: ${hasVariationAttributes}`);
+      
     // Check for actual variants (child products)
     const childVariants = getVariantsForProduct(product.id);
-    if (childVariants.length > 0) return true;
+    const hasChildVariants = childVariants.length > 0;
+    console.log(`- Has child variants: ${hasChildVariants} (${childVariants.length})`);
     
     // Check for variant combination prices
     const hasCombinationPrices = product.variant_combination_prices && 
       product.variant_combination_prices.length > 0;
+    console.log(`- Has combination prices: ${hasCombinationPrices} (${product.variant_combination_prices?.length || 0})`);
     
     // Check if product is marked as parent
     const isMarkedAsParent = product.is_parent || false;
+    console.log(`- Is marked as parent: ${isMarkedAsParent}`);
     
-    // Check if it has variation attributes defined
-    const hasVariationAttributes = product.variation_attributes && 
-      Object.keys(product.variation_attributes).length > 0;
+    const result = hasCombinationPrices || isMarkedAsParent || hasVariationAttributes || hasChildVariants;
+    console.log(`Final result for ${product.name}: ${result}`);
     
-    return hasCombinationPrices || isMarkedAsParent || hasVariationAttributes;
+    return result;
   };
 
   // Get count of variants for a product

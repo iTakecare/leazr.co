@@ -35,7 +35,7 @@ export const useProductSelector = (isOpen: boolean) => {
       
       console.log(`Retrieved ${variantPricesData.length} variant prices`);
       
-      // Organiser les prix de variantes par ID de produit pour un accès plus facile
+      // Organize variant prices by product ID for easier access
       const variantPricesByProductId: Record<string, any[]> = {};
       variantPricesData.forEach(price => {
         if (!variantPricesByProductId[price.product_id]) {
@@ -44,40 +44,53 @@ export const useProductSelector = (isOpen: boolean) => {
         variantPricesByProductId[price.product_id].push(price);
       });
       
-      // Traiter tous les produits avec leurs variantes
+      // Process all products with their variants
       const productsWithVariants = productsData.map(product => {
-        // Obtenir les prix de variantes pour ce produit
+        // Get variant prices for this product
         const productVariantPrices = variantPricesByProductId[product.id] || [];
         
-        // Déterminer si c'est un produit parent
+        // Determine if this is a parent product
         const isParent = productVariantPrices.length > 0 || product.is_parent;
         
-        // Extraire les attributs de variation si nécessaire
+        // Extract variation attributes if needed
         let variationAttributes = product.variation_attributes;
-        if (isParent && (!variationAttributes || Object.keys(variationAttributes).length === 0)) {
+        if (isParent && (!variationAttributes || Object.keys(variationAttributes).length === 0) && productVariantPrices.length > 0) {
           variationAttributes = extractVariationAttributes(productVariantPrices);
         }
+        
+        // If the product has variation_attributes but no is_parent flag, set is_parent to true
+        const hasVariationAttrs = variationAttributes && Object.keys(variationAttributes).length > 0;
+        const shouldBeParent = isParent || hasVariationAttrs;
         
         return {
           ...product,
           variant_combination_prices: productVariantPrices,
-          is_parent: isParent,
+          is_parent: shouldBeParent,
           variation_attributes: variationAttributes,
           createdAt: product.created_at || new Date(),
           updatedAt: product.updated_at || new Date()
         };
       });
       
-      // Trouver les relations parent-enfant
+      // Explicitly log each product's variant status for debugging
+      productsWithVariants.forEach(product => {
+        console.log(`Product ${product.name} (${product.id}):`);
+        console.log(`- is_parent: ${product.is_parent}`);
+        console.log(`- has variation_attributes: ${product.variation_attributes ? Object.keys(product.variation_attributes).length > 0 : false}`);
+        console.log(`- variant_prices: ${product.variant_combination_prices?.length || 0}`);
+      });
+      
+      // Find parent-child relationships
       const productsWithChildrenInfo = productsWithVariants.map(product => {
-        // Trouver les variantes qui ont ce produit comme parent
+        // Find variants that have this product as parent
         const variants = productsWithVariants.filter(p => p.parent_id === product.id);
         
-        // Compter les combinaisons de prix de variantes
+        // Count variant combination prices
         const variantCombinationCount = product.variant_combination_prices?.length || 0;
         
-        // Vérifier si le produit a des variantes (comme produits enfants ou combinaisons de prix)
-        const hasVariants = variants.length > 0 || variantCombinationCount > 0;
+        // Check if the product has variants (either as child products or price combinations)
+        const hasVariants = variants.length > 0 || variantCombinationCount > 0 || 
+                           (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0);
         
         return {
           ...product,
@@ -88,15 +101,18 @@ export const useProductSelector = (isOpen: boolean) => {
         };
       });
       
-      console.log("Produits avec leurs variantes:", productsWithChildrenInfo);
+      console.log("Products with variants information:", productsWithChildrenInfo);
       
-      // Log détaillé pour le débogage
+      // Detailed logging for debugging
       productsWithChildrenInfo.forEach(product => {
-        if (product.has_variants) {
-          console.log(`Produit ${product.name} (${product.id}) a ${product.variants_count} variantes`);
-          console.log(`Variations combinées: ${product.variant_combination_prices?.length || 0}`);
-          console.log(`Variations enfants: ${product.variants?.length || 0}`);
-          console.log(`Attributs de variation:`, product.variation_attributes);
+        if (product.has_variants || product.is_parent) {
+          console.log(`Product ${product.name} (${product.id}) has variants information:`);
+          console.log(`- has_variants flag: ${product.has_variants}`);
+          console.log(`- is_parent flag: ${product.is_parent}`);
+          console.log(`- variants_count: ${product.variants_count}`);
+          console.log(`- variant combinations: ${product.variant_combination_prices?.length || 0}`);
+          console.log(`- child variants: ${product.variants?.length || 0}`);
+          console.log(`- variation attributes:`, product.variation_attributes);
         }
       });
       

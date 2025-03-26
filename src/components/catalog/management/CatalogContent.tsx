@@ -21,6 +21,17 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   groupingOption,
   onProductDeleted
 }) => {
+  // Debug log to check products data
+  console.log("CatalogContent: Products with variants:", products.map(p => ({
+    id: p.id,
+    name: p.name,
+    hasVariants: p.is_parent || 
+                (p.variant_combination_prices && p.variant_combination_prices.length > 0) ||
+                (p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0),
+    variantCount: p.variant_combination_prices?.length || 0,
+    variations: p.variation_attributes
+  })));
+
   if (error) {
     return (
       <div className="text-center p-4 bg-red-50 text-red-600 rounded-md border border-red-200">
