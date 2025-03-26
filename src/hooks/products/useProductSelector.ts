@@ -10,6 +10,7 @@ export const useProductSelector = (isOpen: boolean) => {
     console.log("Fetching products from Supabase");
     
     try {
+      // Récupérer tous les produits actifs
       const { data: productsData, error: productsError } = await supabase
         .from("products")
         .select("*")
@@ -34,16 +35,24 @@ export const useProductSelector = (isOpen: boolean) => {
       
       console.log(`Retrieved ${variantPricesData.length} variant prices`);
       
+      // Organiser les prix de variantes par ID de produit pour un accès plus facile
+      const variantPricesByProductId: Record<string, any[]> = {};
+      variantPricesData.forEach(price => {
+        if (!variantPricesByProductId[price.product_id]) {
+          variantPricesByProductId[price.product_id] = [];
+        }
+        variantPricesByProductId[price.product_id].push(price);
+      });
+      
+      // Traiter tous les produits avec leurs variantes
       const productsWithVariants = productsData.map(product => {
-        // Get all price variants for this product
-        const productVariantPrices = variantPricesData.filter(price => 
-          price.product_id === product.id
-        );
+        // Obtenir les prix de variantes pour ce produit
+        const productVariantPrices = variantPricesByProductId[product.id] || [];
         
-        // Determine if this is a parent product (has variants)
+        // Déterminer si c'est un produit parent
         const isParent = productVariantPrices.length > 0 || product.is_parent;
         
-        // Extract variation attributes if needed
+        // Extraire les attributs de variation si nécessaire
         let variationAttributes = product.variation_attributes;
         if (isParent && (!variationAttributes || Object.keys(variationAttributes).length === 0)) {
           variationAttributes = extractVariationAttributes(productVariantPrices);
@@ -59,15 +68,15 @@ export const useProductSelector = (isOpen: boolean) => {
         };
       });
       
-      // Find child-parent relationships and organize variants
+      // Trouver les relations parent-enfant
       const productsWithChildrenInfo = productsWithVariants.map(product => {
-        // Find variants that have this product as parent
+        // Trouver les variantes qui ont ce produit comme parent
         const variants = productsWithVariants.filter(p => p.parent_id === product.id);
         
-        // Count variant combination prices
+        // Compter les combinaisons de prix de variantes
         const variantCombinationCount = product.variant_combination_prices?.length || 0;
         
-        // Determine if this product has variants either as child products or price combinations
+        // Vérifier si le produit a des variantes (comme produits enfants ou combinaisons de prix)
         const hasVariants = variants.length > 0 || variantCombinationCount > 0;
         
         return {
@@ -75,12 +84,22 @@ export const useProductSelector = (isOpen: boolean) => {
           variants: variants,
           has_variants: hasVariants,
           variants_count: Math.max(variants.length, variantCombinationCount),
-          // Track if this has actual child products as variants
           has_child_variants: variants.length > 0
         };
       });
       
-      console.log("Processed products with variants:", productsWithChildrenInfo.length);
+      console.log("Produits avec leurs variantes:", productsWithChildrenInfo);
+      
+      // Log détaillé pour le débogage
+      productsWithChildrenInfo.forEach(product => {
+        if (product.has_variants) {
+          console.log(`Produit ${product.name} (${product.id}) a ${product.variants_count} variantes`);
+          console.log(`Variations combinées: ${product.variant_combination_prices?.length || 0}`);
+          console.log(`Variations enfants: ${product.variants?.length || 0}`);
+          console.log(`Attributs de variation:`, product.variation_attributes);
+        }
+      });
+      
       return productsWithChildrenInfo;
     } catch (error) {
       console.error("Failed to fetch products:", error);
