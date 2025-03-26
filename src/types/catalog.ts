@@ -1,3 +1,4 @@
+
 // Product type definition
 export interface Product {
   id: string;
@@ -88,6 +89,9 @@ export interface Product {
   variants?: Product[]; // List of product variants
   variation_attributes?: ProductVariationAttributes; // Available attribute options for this product
   variant_combination_prices?: VariantCombinationPrice[]; // Prices for specific attribute combinations
+  variants_count?: number; // Count of variants for this product
+  has_variants?: boolean; // Whether this product has variants
+  has_child_variants?: boolean; // Whether this product has child variants
   
   // Used to store the selected attributes for a specific variant
   selected_attributes?: ProductAttributes;
