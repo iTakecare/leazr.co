@@ -45,6 +45,7 @@ export const fetchAllUsers = async (): Promise<UserExtended[]> => {
         last_name: profile.last_name,
         role: profile.role,
         company: profile.company,
+        title: profile.title,
         email_confirmed_at: null,
         last_sign_in_at: null,
         created_at: profile.created_at,

@@ -1,8 +1,21 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { 
+  LogOut, 
+  ChevronLeft, 
+  ChevronRight, 
+  Menu,
+  LayoutDashboard,
+  Users,
+  ListProducts,
+  Percent,
+  FileSignature,
+  HeartHandshake,
+  Settings
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import {
@@ -11,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SidebarProps {
   className?: string;
@@ -20,22 +34,23 @@ interface SidebarProps {
 interface MenuItem {
   href: string;
   label: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  icon: React.ElementType;
 }
 
 const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
+  const isMobile = useIsMobile();
 
   const menuItems: MenuItem[] = [
-    { href: "/", label: "Tableau de bord", icon: require('lucide-react').LayoutDashboard },
-    { href: "/clients", label: "Clients", icon: require('lucide-react').Users },
-    { href: "/catalog", label: "Catalogue", icon: require('lucide-react').ListProducts },
-    { href: "/offers", label: "Offres", icon: require('lucide-react').Percent },
-    { href: "/contracts", label: "Contrats", icon: require('lucide-react').FileSignature },
-    { href: "/i-take-care", label: "iTakecare", icon: require('lucide-react').HeartHandshake },
-    { href: "/settings", label: "Paramètres", icon: require('lucide-react').Settings },
+    { href: "/", label: "Tableau de bord", icon: LayoutDashboard },
+    { href: "/clients", label: "Clients", icon: Users },
+    { href: "/catalog", label: "Catalogue", icon: ListProducts },
+    { href: "/offers", label: "Offres", icon: Percent },
+    { href: "/contracts", label: "Contrats", icon: FileSignature },
+    { href: "/i-take-care", label: "iTakecare", icon: HeartHandshake },
+    { href: "/settings", label: "Paramètres", icon: Settings },
   ];
 
   const handleLogout = async () => {
