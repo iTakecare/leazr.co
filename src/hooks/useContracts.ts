@@ -215,7 +215,7 @@ export const useContracts = () => {
         toast.success("Contrat supprimé avec succès", { id: toastId });
         
         // Make an extra delay before releasing UI locks
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         console.log("DELETE UI: Deletion successful, performing verification reload");
         
@@ -227,13 +227,25 @@ export const useContracts = () => {
         
         console.error("DELETE UI: Server reported deletion failure");
         
-        // Add back the contract to local state if available
-        if (contractToDelete) {
-          setContracts(prev => [...prev, contractToDelete]);
-        }
+        // Make a delay before retrying
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Force a full reload to ensure UI matches database state
-        await fetchContracts();
+        // Try a second deletion attempt
+        console.log("DELETE UI: Attempting second deletion");
+        const secondAttemptSuccess = await deleteContract(contractId);
+        
+        if (secondAttemptSuccess) {
+          toast.success("Contrat supprimé avec succès (seconde tentative)", { id: toastId });
+          await fetchContracts();
+        } else {
+          // Add back the contract to local state if available (rollback optimistic update)
+          if (contractToDelete) {
+            setContracts(prev => [...prev, contractToDelete]);
+          }
+          
+          // Force a full reload to ensure UI matches database state
+          await fetchContracts();
+        }
       }
     } catch (error: any) {
       console.error("DELETE UI ERROR: Unexpected error in handleDeleteContract:", error);
