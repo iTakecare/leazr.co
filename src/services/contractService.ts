@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -203,8 +204,8 @@ export const addTrackingNumber = async (
   try {
     console.log(`Adding tracking number ${trackingNumber} to contract ${contractId}`);
     
-    // Get current contract status to preserve it
-    const { data: currentContract, error: fetchError } = await supabase
+    // Fetch the current contract to get its current status
+    const { data: contract, error: fetchError } = await supabase
       .from('contracts')
       .select('status')
       .eq('id', contractId)
@@ -215,10 +216,15 @@ export const addTrackingNumber = async (
       return false;
     }
     
-    // Important: Preserve the current status
-    const currentStatus = currentContract?.status || 'contract_sent';
+    if (!contract) {
+      console.error("Contrat non trouvé");
+      return false;
+    }
     
-    console.log(`Current status before tracking update: ${currentStatus}, preserving this status`);
+    // Important: Always use the contract's current status from database
+    const currentStatus = contract.status;
+    
+    console.log(`Current status before tracking update: ${currentStatus}, maintaining this status`);
     
     // Update the contract with tracking info while preserving the current status
     const { error } = await supabase
@@ -228,7 +234,7 @@ export const addTrackingNumber = async (
         estimated_delivery: estimatedDelivery,
         delivery_carrier: carrier,
         delivery_status: 'en_attente',
-        status: currentStatus, // Explicit preservation of current status
+        status: currentStatus, // Keep the current status explicitly
         updated_at: new Date().toISOString()
       })
       .eq('id', contractId);

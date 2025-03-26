@@ -125,12 +125,12 @@ export const useContracts = () => {
       const contract = contracts.find(c => c.id === contractId);
       if (!contract) {
         toast.error("Contrat non trouvé");
-        return;
+        return false;
       }
       
-      // Important: Capture the current status explicitly before the operation
+      // CRITICAL: Explicitly store the current status before any operations
       const currentStatus = contract.status;
-      console.log(`Ajout de numéro de suivi pour le contrat ${contractId} avec statut actuel: ${currentStatus}`);
+      console.log(`Ajout de numéro de suivi pour le contrat ${contractId}, préservation du statut actuel: "${currentStatus}"`);
       
       const success = await addTrackingNumber(
         contractId,
@@ -140,7 +140,9 @@ export const useContracts = () => {
       );
       
       if (success) {
-        // Update the local state while explicitly preserving the current status
+        console.log(`Mise à jour locale du contrat, maintien du statut: "${currentStatus}"`);
+        
+        // Update local state while explicitly preserving the current status
         setContracts(prevContracts => 
           prevContracts.map(c => 
             c.id === contractId ? { 
@@ -149,7 +151,7 @@ export const useContracts = () => {
               estimated_delivery: estimatedDelivery,
               delivery_carrier: carrier,
               delivery_status: 'en_attente',
-              status: currentStatus, // Maintain current status explicitly
+              status: currentStatus, // Explicitly preserve the current status
               updated_at: new Date().toISOString()
             } : c
           )
@@ -157,14 +159,18 @@ export const useContracts = () => {
         
         toast.success(`Informations de suivi ajoutées avec succès`);
         
-        // Force a complete reload to ensure everything is in sync
+        // Force a complete reload to ensure everything is in sync with the database
         await fetchContracts();
+        
+        return true;
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
+        return false;
       }
     } catch (error) {
       console.error("Error adding tracking info:", error);
       toast.error("Erreur lors de l'ajout des informations de suivi");
+      return false;
     } finally {
       setIsUpdatingStatus(false);
     }
