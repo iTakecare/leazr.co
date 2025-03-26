@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -50,6 +50,11 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const { user, signOut } = useAuth();
   
+  // Ajouter console.log pour déboguer
+  useEffect(() => {
+    console.log("User dans Sidebar:", user);
+  }, [user]);
+  
   const menuItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/" },
     { label: "CRM", icon: Briefcase, href: "/clients" },
@@ -81,9 +86,11 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
 
   // Générer les initiales de l'utilisateur à partir de son nom ou email
   const getUserInitials = () => {
-    if (user?.first_name && user?.last_name) {
+    if (!user) return "IT";
+    
+    if (user.first_name && user.last_name) {
       return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
-    } else if (user?.email) {
+    } else if (user.email) {
       return user.email.substring(0, 2).toUpperCase();
     }
     return "IT";
@@ -91,12 +98,31 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
 
   // Obtenir le nom complet de l'utilisateur ou son email
   const getUserDisplayName = () => {
-    if (user?.first_name && user?.last_name) {
+    if (!user) return "Admin Portal";
+    
+    if (user.first_name && user.last_name) {
       return `${user.first_name} ${user.last_name}`;
-    } else if (user?.email) {
+    } else if (user.email) {
       return user.email;
     }
     return "Admin Portal";
+  };
+  
+  // Obtenir le rôle de l'utilisateur
+  const getUserRole = () => {
+    if (!user) return "Gestion complète";
+    
+    // Si l'utilisateur a un rôle défini
+    if (user.role) {
+      return user.role;
+    }
+    
+    // Sinon, déterminer le rôle en fonction des autres propriétés
+    if (user.partner_id) return "Partenaire";
+    if (user.ambassador_id) return "Ambassadeur";
+    if (user.client_id) return "Client";
+    
+    return "Gestion complète";
   };
 
   if (isMobile) {
@@ -168,7 +194,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                   </Avatar>
                   <div>
                     <p className="text-sm font-medium">{getUserDisplayName()}</p>
-                    <p className="text-xs text-muted-foreground">{user?.role || "Gestion complète"}</p>
+                    <p className="text-xs text-muted-foreground">{getUserRole()}</p>
                   </div>
                 </div>
                 
@@ -284,7 +310,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                 </Avatar>
                 <div className="flex-1">
                   <p className="text-sm font-medium">{getUserDisplayName()}</p>
-                  <p className="text-xs text-muted-foreground">{user?.role || "Gestion complète"}</p>
+                  <p className="text-xs text-muted-foreground">{getUserRole()}</p>
                 </div>
               </div>
               

@@ -25,9 +25,18 @@ serve(async (req) => {
     const { data, error } = await supabaseAdmin.auth.admin.listUsers();
     
     if (error) {
+      console.error("Error fetching users:", error.message);
       return new Response(
         JSON.stringify({ error: error.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    if (!data || !data.users || !Array.isArray(data.users)) {
+      console.error("Invalid users data format:", data);
+      return new Response(
+        JSON.stringify({ error: "Invalid users data format" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     
@@ -37,7 +46,9 @@ serve(async (req) => {
       email: user.email,
       email_confirmed_at: user.email_confirmed_at,
       last_sign_in_at: user.last_sign_in_at,
-      created_at: user.created_at
+      created_at: user.created_at,
+      user_metadata: user.user_metadata || {},
+      app_metadata: user.app_metadata || {}
     }));
     
     return new Response(
@@ -45,7 +56,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error) {
-    console.error("Error in get-all-users function:", error);
+    console.error("Error in get-all-users function:", error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
