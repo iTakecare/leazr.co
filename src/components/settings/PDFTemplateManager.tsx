@@ -1,16 +1,15 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { loadPDFTemplate, savePDFTemplate, DEFAULT_MODEL } from "@/utils/pdfTemplateUtils";
-import PDFCompanyInfo from "./PDFCompanyInfo";
-import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { checkStorageConnection, resetStorageConnection } from "@/services/fileStorage";
-import PDFPreview from "./PDFPreview";
+import PDFTemplateControls from "./pdf-template/PDFTemplateControls";
+import PDFTemplateError from "./pdf-template/PDFTemplateError";
+import PDFTemplateLoading from "./pdf-template/PDFTemplateLoading";
+import PDFTemplateTabs from "./pdf-template/PDFTemplateTabs";
 
 // Interface pour le modèle PDF
 export interface PDFTemplate {
@@ -250,6 +249,12 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     initializeStorage();
   };
 
+  const handleSaveAction = () => {
+    if (template) {
+      handleSaveTemplate(template);
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -260,100 +265,29 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
               : `Modèle: ${templateName || 'Non défini'}`}
           </CardTitle>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={handleRetryConnection}
-            disabled={loading || reconnecting}
-          >
-            {reconnecting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Reconnexion...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Vérifier le stockage
-              </>
-            )}
-          </Button>
-          <Button 
-            variant="default" 
-            size="sm" 
-            onClick={() => template && handleSaveTemplate(template)}
-            disabled={saving || loading || !template}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sauvegarde...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Sauvegarder
-              </>
-            )}
-          </Button>
-        </div>
+        <PDFTemplateControls
+          saving={saving || reconnecting}
+          loading={loading}
+          onSave={handleSaveAction}
+          onRefresh={handleRetryConnection}
+          hasTemplate={!!template}
+        />
       </CardHeader>
       <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription className="flex flex-col gap-2">
-              <p>{error}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="self-start" 
-                onClick={handleRetry}
-              >
-                Réessayer
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+        <PDFTemplateError error={error} onRetry={handleRetry} />
         
         {loading ? (
-          <div className="text-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">
-              Chargement du modèle...
-            </p>
-          </div>
+          <PDFTemplateLoading />
         ) : template ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="company">Informations de l'entreprise</TabsTrigger>
-              <TabsTrigger value="design">Conception du modèle</TabsTrigger>
-              <TabsTrigger value="preview">Aperçu</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="company" className="mt-6">
-              <PDFCompanyInfo 
-                template={template} 
-                onSave={handleCompanyInfoUpdate} 
-                loading={saving}
-              />
-            </TabsContent>
-            
-            <TabsContent value="design" className="mt-6">
-              <PDFTemplateWithFields 
-                template={template}
-                onSave={handleTemplateUpdate}
-              />
-            </TabsContent>
-            
-            <TabsContent value="preview" className="mt-6">
-              <PDFPreview 
-                template={template}
-              />
-            </TabsContent>
-          </Tabs>
+          <PDFTemplateTabs
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            template={template}
+            onCompanyInfoUpdate={handleCompanyInfoUpdate}
+            onTemplateUpdate={handleTemplateUpdate}
+            saving={saving}
+            isNewTemplate={false}
+          />
         ) : (
           <Alert variant="warning" className="mb-4">
             <AlertCircle className="h-4 w-4" />

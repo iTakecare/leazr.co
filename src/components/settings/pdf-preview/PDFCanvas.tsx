@@ -3,7 +3,9 @@ import React, { useRef, useEffect, memo } from "react";
 import PageNavigation from "./PageNavigation";
 import PageImage from "./PageImage";
 import PDFFieldDisplay from "../PDFFieldDisplay";
-import { formatCurrency } from "@/lib/utils";
+import SignatureSection from "./SignatureSection";
+import PDFFooter from "./PDFFooter";
+import DebugInfo from "./DebugInfo";
 
 interface PDFCanvasProps {
   localTemplate: any;
@@ -107,59 +109,6 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [onDrag, onEndDrag]);
-
-  // Version simplifiée pour contrat de leasing
-  const formatEquipmentDisplay = (equipmentData: any[] | string) => {
-    try {
-      let equipment;
-      
-      if (typeof equipmentData === 'string') {
-        equipment = JSON.parse(equipmentData);
-      } else {
-        equipment = equipmentData;
-      }
-      
-      if (Array.isArray(equipment) && equipment.length > 0) {
-        // Calculer la mensualité totale
-        const totalMonthlyPayment = equipment.reduce((total, item) => {
-          const monthlyPayment = parseFloat(item.monthlyPayment || 0);
-          const quantity = parseInt(item.quantity || 1);
-          return total + (monthlyPayment * quantity);
-        }, 0);
-        
-        return (
-          <div>
-            {equipment.map((item: any, idx: number) => (
-              <div key={idx} className="mb-4 p-3 border border-gray-200 rounded bg-white">
-                <h3 className="font-medium text-base">{item.title}</h3>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Quantité</p>
-                    <p className="font-medium">{item.quantity}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Mensualité</p>
-                    <p className="font-medium text-blue-600">{formatCurrency(item.monthlyPayment * item.quantity)}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-            <div className="mt-2 p-2 border-t border-gray-300">
-              <div className="flex justify-between items-center">
-                <p className="font-medium">Total mensualité:</p>
-                <p className="font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)} HTVA / mois</p>
-              </div>
-            </div>
-          </div>
-        );
-      }
-      
-      return <div className="text-gray-500">Aucun équipement spécifié</div>;
-    } catch (e) {
-      console.error("Erreur lors du formatage de l'équipement:", e);
-      return <div className="text-red-500">Erreur de formatage des données d'équipement</div>;
-    }
-  };
 
   const getCurrentPageFields = () => {
     if (!localTemplate?.fields || !Array.isArray(localTemplate.fields)) {
@@ -293,146 +242,28 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
             )}
             
             {/* Ajout d'un cadre pour la signature et la date */}
-            <div style={{
-              position: "absolute",
-              bottom: `${40 * zoomLevel}mm`,
-              right: `${20 * zoomLevel}mm`,
-              width: `${80 * zoomLevel}mm`,
-              border: "1px solid #ced4da",
-              borderRadius: `${3 * zoomLevel}px`,
-              padding: `${5 * zoomLevel}px`,
-              backgroundColor: "#f8f9fa"
-            }}>
-              <div style={{ 
-                fontSize: `${10 * zoomLevel}px`, 
-                marginBottom: `${5 * zoomLevel}px`, 
-                fontWeight: "bold",
-                textAlign: "center" 
-              }}>
-                Bon pour accord
-              </div>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: `${10 * zoomLevel}px` }}>
-                <div style={{ 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  gap: `${2 * zoomLevel}px`
-                }}>
-                  <span style={{ fontSize: `${8 * zoomLevel}px` }}>Date:</span>
-                  <div style={{
-                    border: "1px solid #dee2e6",
-                    borderRadius: `${2 * zoomLevel}px`,
-                    height: `${15 * zoomLevel}px`,
-                    backgroundColor: "white",
-                  }}></div>
-                </div>
-                
-                <div style={{ 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  gap: `${2 * zoomLevel}px`
-                }}>
-                  <span style={{ fontSize: `${8 * zoomLevel}px` }}>Signature:</span>
-                  <div style={{
-                    border: "1px solid #dee2e6",
-                    borderRadius: `${2 * zoomLevel}px`,
-                    height: `${40 * zoomLevel}px`,
-                    backgroundColor: "white",
-                  }}></div>
-                </div>
-                
-                <div style={{ 
-                  fontSize: `${6 * zoomLevel}px`, 
-                  marginTop: `${2 * zoomLevel}px`,
-                  fontStyle: "italic",
-                  textAlign: "center" 
-                }}>
-                  La signature de ce document vaut acceptation des conditions générales
-                </div>
-              </div>
-            </div>
+            <SignatureSection zoomLevel={zoomLevel} />
           </div>
           
-          {/* Footer section - positionné tout en bas de la page */}
-          <div className="w-full" style={{ 
-            position: "absolute", 
-            bottom: 0, 
-            left: 0, 
-            right: 0,
-            padding: `${5 * zoomLevel}px`,
-            paddingBottom: `${25 * zoomLevel}px`
-          }}>
-            <div className="text-center" style={{ 
-              borderTop: "1px solid #e5e7eb", 
-              paddingTop: `${8 * zoomLevel}px`
-            }}>
-              <p className="text-center font-bold" style={{ fontSize: `${10 * zoomLevel}px` }}>
-                {localTemplate?.footerText || "Cette offre est valable 30 jours à compter de sa date d'émission."}
-              </p>
-              <div className="flex justify-center items-center mt-2">
-                <p className="text-center" style={{ fontSize: `${8 * zoomLevel}px` }}>
-                  {localTemplate?.companyName || 'iTakeCare'} - {localTemplate?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}<br />
-                  {localTemplate?.companySiret || 'TVA: BE 0795.642.894'} - {localTemplate?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Footer section */}
+          <PDFFooter 
+            zoomLevel={zoomLevel} 
+            companyName={localTemplate?.companyName}
+            companyAddress={localTemplate?.companyAddress}
+            companySiret={localTemplate?.companySiret}
+            companyContact={localTemplate?.companyContact}
+            footerText={localTemplate?.footerText}
+          />
         </div>
       </div>
       
-      {/* Ajouter une section de débogage pour voir les champs disponibles */}
-      <div className="mt-4 p-3 border rounded bg-white text-xs">
-        <details>
-          <summary className="font-medium cursor-pointer">Informations de débogage ({fields.length} champs sur cette page)</summary>
-          {fields.length > 0 ? (
-            <div className="mt-2 space-y-1">
-              {fields.map((field: any) => (
-                <div key={field.id} className="p-1 border-b">
-                  <span className="font-bold">{field.label}</span>: {field.value} à ({field.position.x.toFixed(1)}, {field.position.y.toFixed(1)})
-                  {field.id === "equipment_table" && (
-                    <div className="pl-2 mt-1 text-xs text-gray-600">
-                      {sampleData.equipment_data ? (
-                        <div className="my-2">
-                          {formatEquipmentDisplay(sampleData.equipment_data)}
-                        </div>
-                      ) : (
-                        <div>
-                          {formatEquipmentDisplay(sampleData.equipment_description || '[]')}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-2 text-gray-500">Aucun champ à afficher sur cette page.</p>
-          )}
-          
-          <div className="mt-3 pt-2 border-t">
-            <div className="font-medium">Vérification des données:</div>
-            <p className="mt-1">Exemple de donnée client: {sampleData.client_name || "Non défini"}</p>
-            <p>Page actuelle: {currentPage + 1}</p>
-            <p>Champs totaux: {localTemplate?.fields?.length || 0}</p>
-            {(sampleData.equipment_description || sampleData.equipment_data) && (
-              <div className="mt-2">
-                <p className="font-medium">Équipement:</p>
-                <div className="pl-2 mt-1">
-                  {sampleData.equipment_data ? (
-                    <div className="my-2">
-                      {formatEquipmentDisplay(sampleData.equipment_data)}
-                    </div>
-                  ) : (
-                    <div>
-                      {formatEquipmentDisplay(sampleData.equipment_description || '[]')}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </details>
-      </div>
+      {/* Section de débogage pour voir les champs disponibles */}
+      <DebugInfo 
+        fields={fields} 
+        sampleData={sampleData} 
+        currentPage={currentPage} 
+        localTemplate={localTemplate} 
+      />
     </div>
   );
 };
