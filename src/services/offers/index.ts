@@ -6,6 +6,22 @@ export * from './offerDetail';
 export * from './offerStatus';
 export * from './offerWorkflow';
 export * from './clientRequests';
-export * from './offerPdf';
-export * from './offerSignature';
-export * from './types';
+
+// Exportations spécifiques pour éviter l'ambiguïté
+import { generateAndDownloadOfferPdf, getOfferDataForPdf, generateSamplePdf } from './offerPdf';
+import { isOfferSigned, saveOfferSignature, generateSignatureLink } from './offerSignature';
+import { OfferData, Equipment, OfferStatus, WorkflowStatus } from './types';
+
+// Ré-exporter explicitement pour résoudre l'ambiguïté
+export {
+  generateAndDownloadOfferPdf,
+  getOfferDataForPdf,
+  generateSamplePdf,
+  isOfferSigned,
+  saveOfferSignature,
+  generateSignatureLink,
+  OfferData,
+  Equipment,
+  OfferStatus,
+  WorkflowStatus
+};
