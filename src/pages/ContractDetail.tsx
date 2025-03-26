@@ -40,6 +40,8 @@ const ContractDetail = () => {
       setLoading(true);
       setLoadingError(null);
       
+      console.log("Chargement des détails du contrat:", id);
+      
       const [contractsData, logsData] = await Promise.all([
         getContracts(true), // S'assurer qu'on récupère tous les contrats
         getContractWorkflowLogs(id)
@@ -48,11 +50,15 @@ const ContractDetail = () => {
       const contractData = contractsData.find(c => c.id === id);
       
       if (!contractData) {
+        console.error("Contrat non trouvé dans les données récupérées");
         setLoadingError("Le contrat n'a pas été trouvé.");
         return;
       }
       
+      console.log("Contrat trouvé:", contractData);
       setContract(contractData);
+      
+      console.log("Logs récupérés:", logsData);
       setLogs(logsData);
       
       if (contractData.equipment_description) {
@@ -99,6 +105,8 @@ const ContractDetail = () => {
     try {
       setIsUpdatingStatus(true);
       
+      console.log(`Tentative de changement de statut: ${contract.status} -> ${targetStatus}`);
+      
       const success = await updateContractStatus(
         contract.id, 
         targetStatus, 
@@ -119,6 +127,7 @@ const ContractDetail = () => {
         });
         
         // Rafraîchir les données complètes après la mise à jour
+        console.log("Rafraîchissement des données après mise à jour de statut");
         await fetchContractDetails();
         setStatusDialogOpen(false);
       } else {
@@ -147,7 +156,21 @@ const ContractDetail = () => {
       
       if (success) {
         toast.success(`Informations de suivi ajoutées avec succès`);
-        fetchContractDetails();
+        
+        // Mettre à jour l'état local immédiatement
+        setContract(prevContract => {
+          if (!prevContract) return null;
+          return {
+            ...prevContract,
+            tracking_number: trackingNumber,
+            estimated_delivery: estimatedDelivery,
+            delivery_carrier: carrier,
+            delivery_status: 'en_attente'
+          };
+        });
+        
+        // Rafraîchir les données
+        await fetchContractDetails();
         setTrackingDialogOpen(false);
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
@@ -515,8 +538,8 @@ const ContractDetail = () => {
             <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={handleStatusChange}>
-              Confirmer
+            <Button onClick={handleStatusChange} disabled={isUpdatingStatus}>
+              {isUpdatingStatus ? "Mise à jour..." : "Confirmer"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -577,9 +600,9 @@ const ContractDetail = () => {
             </Button>
             <Button 
               onClick={handleAddTrackingInfo}
-              disabled={!trackingNumber.trim()}
+              disabled={!trackingNumber.trim() || isUpdatingStatus}
             >
-              Confirmer
+              {isUpdatingStatus ? "Ajout en cours..." : "Confirmer"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -25,7 +25,9 @@ export const useContracts = () => {
     try {
       setLoading(true);
       setLoadingError(null);
+      console.log("Chargement des contrats, includeCompleted:", includeCompleted);
       const data = await getContracts(includeCompleted);
+      console.log("Contrats chargés:", data);
       setContracts(data);
     } catch (error: any) {
       console.error("Error fetching contracts:", error);
@@ -75,6 +77,8 @@ export const useContracts = () => {
         return;
       }
       
+      console.log(`Tentative de mise à jour du contrat ${contractId} de ${contract.status} à ${newStatus}`);
+      
       const success = await updateContractStatus(
         contractId,
         newStatus,
@@ -83,6 +87,8 @@ export const useContracts = () => {
       );
       
       if (success) {
+        console.log(`Mise à jour réussie, application des changements locaux`);
+        
         // Mettre à jour l'état local immédiatement
         setContracts(prevContracts => 
           prevContracts.map(c => 
@@ -90,11 +96,12 @@ export const useContracts = () => {
           )
         );
         
-        // Ensuite rafraîchir tous les contrats
+        // Forcer un rechargement complet des contrats pour s'assurer que tout est synchronisé
         await fetchContracts();
         
         toast.success(`Statut du contrat mis à jour avec succès`);
       } else {
+        console.error("Échec de la mise à jour du statut");
         toast.error("Erreur lors de la mise à jour du statut");
       }
     } catch (error) {
@@ -134,6 +141,10 @@ export const useContracts = () => {
             } : c
           )
         );
+        
+        // Forcer un rechargement complet
+        await fetchContracts();
+        
         toast.success(`Informations de suivi ajoutées avec succès`);
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");

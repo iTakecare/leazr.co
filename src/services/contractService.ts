@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -108,6 +109,8 @@ export const createContractFromOffer = async (
 
 export const getContracts = async (includeCompleted = true): Promise<Contract[]> => {
   try {
+    console.log("Requête des contrats, includeCompleted:", includeCompleted);
+    
     let query = supabase
       .from('contracts')
       .select('*, clients(name, email, company)')
@@ -119,11 +122,15 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erreur supabase lors de la récupération des contrats:", error);
+      throw error;
+    }
 
+    console.log("Contrats récupérés:", data?.length || 0);
     return data || [];
   } catch (error) {
-    console.error("Erreur lors de la récupération des contrats:", error);
+    console.error("Exception lors de la récupération des contrats:", error);
     toast.error("Erreur lors du chargement des contrats");
     return [];
   }
@@ -141,9 +148,25 @@ export const updateContractStatus = async (
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
+      console.error("Utilisateur non authentifié");
       throw new Error("Utilisateur non authentifié");
     }
 
+    // D'abord mettre à jour le statut du contrat
+    const { error } = await supabase
+      .from('contracts')
+      .update({ 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', contractId);
+
+    if (error) {
+      console.error("Erreur lors de la mise à jour du contrat:", error);
+      return false;
+    }
+
+    // Ensuite, ajouter l'entrée de log
     const { error: logError } = await supabase
       .from('contract_workflow_logs')
       .insert({
@@ -156,16 +179,7 @@ export const updateContractStatus = async (
 
     if (logError) {
       console.error("Erreur lors de l'enregistrement du log :", logError);
-    }
-
-    const { error } = await supabase
-      .from('contracts')
-      .update({ status: newStatus })
-      .eq('id', contractId);
-
-    if (error) {
-      console.error("Erreur lors de la mise à jour du contrat:", error);
-      return false;
+      // On continue même si l'enregistrement du log échoue
     }
 
     return true;
@@ -188,7 +202,8 @@ export const addTrackingNumber = async (
         tracking_number: trackingNumber,
         estimated_delivery: estimatedDelivery,
         delivery_carrier: carrier,
-        delivery_status: 'en_attente'
+        delivery_status: 'en_attente',
+        updated_at: new Date().toISOString()
       })
       .eq('id', contractId);
 
@@ -206,6 +221,8 @@ export const addTrackingNumber = async (
 
 export const getContractWorkflowLogs = async (contractId: string): Promise<any[]> => {
   try {
+    console.log("Récupération des logs pour le contrat:", contractId);
+    
     const { data, error } = await supabase
       .from('contract_workflow_logs')
       .select(`
@@ -215,7 +232,8 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
         previous_status,
         new_status,
         reason,
-        created_at
+        created_at,
+        profiles:user_id (first_name, last_name)
       `)
       .eq('contract_id', contractId)
       .order('created_at', { ascending: false });
@@ -225,6 +243,7 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
       return [];
     }
 
+    console.log("Logs récupérés:", data);
     return data || [];
   } catch (error) {
     console.error("Erreur lors de la récupération des logs:", error);
