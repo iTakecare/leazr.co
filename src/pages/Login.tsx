@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -206,19 +205,15 @@ const Login = () => {
 
   return (
     <PageTransition className="min-h-screen flex overflow-hidden">
-      {/* Côté gauche - Formulaire de connexion */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
-        <div className="absolute top-8 left-8">
-          <Logo className="scale-125" />
-        </div>
-        
-        <div className="w-full max-w-md space-y-8 mt-16">
-          <div className="text-center">
+        <div className="w-full max-w-md space-y-8">
+          <div className="flex flex-col items-center justify-center mb-6">
+            <Logo className="scale-150 mb-4" showText={false} />
             <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">
               Bienvenue
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Connectez-vous pour accéder à votre espace personnel
+            <p className="mt-1 text-xl font-medium text-primary">
+              iTakecare
             </p>
           </div>
           
@@ -330,7 +325,6 @@ const Login = () => {
         </div>
       </div>
       
-      {/* Côté droit - Image */}
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-600/30 z-10"></div>
         <div 
@@ -342,7 +336,7 @@ const Login = () => {
         ></div>
         
         <div className="absolute bottom-12 left-12 right-12 p-6 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 z-20">
-          <h3 className="text-2xl font-bold text-white mb-2">iTakecare Hub</h3>
+          <h3 className="text-2xl font-bold text-white mb-2">iTakecare</h3>
           <p className="text-white/90">
             Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n'importe où, à tout moment.
           </p>

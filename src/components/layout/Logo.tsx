@@ -14,8 +14,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   const { user } = useAuth();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [siteInfo, setSiteInfo] = useState({
-    siteName: "iTakecare",
-    siteDescription: "Hub de gestion"
+    siteName: "iTakecare"
   });
   const [isLoading, setIsLoading] = useState(true);
   
@@ -39,8 +38,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
           console.log("Site settings loaded for logo:", data);
           setLogoUrl(data.logo_url || null);
           setSiteInfo({
-            siteName: data.site_name || "iTakecare",
-            siteDescription: data.site_description || "Hub de gestion"
+            siteName: data.site_name || "iTakecare"
           });
         }
       } catch (error) {
@@ -108,7 +106,6 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
       {showText && (
         <div className="overflow-hidden">
           <h1 className="text-lg font-bold">{siteInfo.siteName}</h1>
-          <p className="text-xs text-muted-foreground">{siteInfo.siteDescription}</p>
         </div>
       )}
     </div>
