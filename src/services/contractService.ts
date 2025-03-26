@@ -318,7 +318,7 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
 
 export const deleteContract = async (contractId: string): Promise<boolean> => {
   try {
-    console.log("DELETION: Starting improved contract deletion process for ID:", contractId);
+    console.log("DELETION: Starting contract deletion process for ID:", contractId);
     
     // 1. First verify the contract exists
     const { data: initialCheck, error: initialError } = await supabase
@@ -344,8 +344,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     // 3. Delete associated workflow logs first (foreign key constraint)
     try {
-      // Using adminSupabase to bypass RLS policies
-      const { error: logsError } = await adminSupabase
+      const { error: logsError } = await supabase
         .from('contract_workflow_logs')
         .delete()
         .eq('contract_id', contractId);
@@ -361,28 +360,29 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       // Continue despite error
     }
     
-    // 4. CRITICAL: Add a small delay to ensure the delete operation completes fully
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // 4. Add a small delay to ensure the delete operation for logs completes
+    await new Promise(resolve => setTimeout(resolve, 300));
     
-    // 5. Delete the contract with explicit return type - using adminSupabase
+    // 5. Now delete the contract - using regular supabase client with the new RLS policy
     try {
-      // First attempt with adminSupabase to bypass RLS
-      console.log("DELETION: Attempting deletion with admin rights");
-      const { error: adminDeleteError } = await adminSupabase
+      console.log("DELETION: Attempting standard deletion with RLS policy");
+      const { error: deleteError } = await supabase
         .from('contracts')
         .delete()
         .eq('id', contractId);
         
-      if (adminDeleteError) {
-        console.error("DELETION ERROR: Admin deletion failed:", adminDeleteError);
-        // Fall back to regular delete
-        const { error: regularDeleteError } = await supabase
+      if (deleteError) {
+        console.error("DELETION ERROR: Standard deletion failed:", deleteError);
+        
+        // Fallback to admin delete if needed
+        console.log("DELETION: Trying fallback with admin privileges");
+        const { error: adminDeleteError } = await adminSupabase
           .from('contracts')
           .delete()
           .eq('id', contractId);
           
-        if (regularDeleteError) {
-          console.error("DELETION ERROR: Regular deletion also failed:", regularDeleteError);
+        if (adminDeleteError) {
+          console.error("DELETION ERROR: Admin deletion also failed:", adminDeleteError);
           return false;
         }
       }
@@ -393,13 +393,12 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     console.log("DELETION: Delete operations completed, verifying...");
     
-    // 6. CRITICAL: Add another delay before verification to allow for database propagation
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // 6. Add a delay before verification
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // 7. CRITICAL: Triple-verify the contract is actually deleted with a separate query
+    // 7. Verify the contract is actually deleted
     try {
-      // Use adminSupabase for verification to bypass any RLS
-      const { data: verifyData, error: verifyError } = await adminSupabase
+      const { data: verifyData, error: verifyError } = await supabase
         .from('contracts')
         .select('id')
         .eq('id', contractId);
@@ -410,40 +409,8 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       }
       
       if (verifyData && verifyData.length > 0) {
-        console.error("DELETION CRITICAL FAILURE: Contract still exists after deletion despite admin access!", verifyData);
-        
-        // 8. Last resort: Try one more forceful deletion directly via SQL function
-        try {
-          // Attempt to use a direct SQL query to delete (requires a Supabase SQL function)
-          console.log("DELETION: Attempting final forced deletion");
-          
-          // Using a direct SQL delete statement with strong matching condition
-          const { error: forceDeleteError } = await adminSupabase.rpc(
-            'execute_sql',
-            { 
-              sql: `DELETE FROM public.contracts WHERE id = '${contractId}'` 
-            }
-          );
-          
-          if (forceDeleteError) {
-            console.error("DELETION FATAL: SQL function deletion failed:", forceDeleteError);
-            return false;
-          }
-          
-          // Final verification after SQL delete
-          const { data: finalCheck } = await adminSupabase
-            .from('contracts')
-            .select('id')
-            .eq('id', contractId);
-            
-          if (finalCheck && finalCheck.length > 0) {
-            console.error("DELETION FATAL: Contract could not be deleted after multiple attempts including SQL");
-            return false;
-          }
-        } catch (sqlException) {
-          console.error("DELETION EXCEPTION: SQL deletion exception:", sqlException);
-          return false;
-        }
+        console.error("DELETION FAILURE: Contract still exists after deletion!", verifyData);
+        return false;
       }
     } catch (verifyException) {
       console.error("DELETION EXCEPTION: Error during verification:", verifyException);
@@ -452,7 +419,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     console.log("DELETION: Contract successfully deleted and verified");
     
-    // 9. Update associated offer if exists
+    // 8. Update associated offer if exists
     if (offerId) {
       console.log("DELETION: Updating associated offer:", offerId);
       

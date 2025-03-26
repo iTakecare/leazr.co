@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { 
@@ -180,85 +179,73 @@ export const useContracts = () => {
     }
   };
 
-  const handleDeleteContract = async (contractId: string) => {
-    if (isDeleting || deleteInProgress) {
-      console.log("DELETE UI: Deletion already in progress");
+const handleDeleteContract = async (contractId: string) => {
+  if (isDeleting || deleteInProgress) {
+    console.log("DELETE UI: Deletion already in progress");
+    return;
+  }
+  
+  try {
+    // Set deletion states
+    setIsDeleting(true);
+    setDeleteInProgress(contractId);
+    
+    // Find contract to delete from local state
+    const contractToDelete = contracts.find(c => c.id === contractId);
+    if (!contractToDelete) {
+      toast.error("Contrat non trouvé");
       return;
     }
     
-    try {
-      // Set deletion states
-      setIsDeleting(true);
-      setDeleteInProgress(contractId);
+    // Start with a loading toast
+    const toastId = toast.loading("Suppression du contrat en cours...");
+    
+    // IMPORTANT: Immediately remove from UI (optimistic update)
+    setContracts(prevContracts => prevContracts.filter(c => c.id !== contractId));
+    setFilteredContracts(prevFiltered => prevFiltered.filter(c => c.id !== contractId));
+    
+    console.log("DELETE UI: Starting deletion of contract:", contractId);
+    
+    // Call API to delete the contract
+    const success = await deleteContract(contractId);
+    
+    if (success) {
+      // Update toast to success
+      toast.success("Contrat supprimé avec succès", { id: toastId });
       
-      // Find contract to delete from local state
-      const contractToDelete = contracts.find(c => c.id === contractId);
-      if (!contractToDelete) {
-        toast.error("Contrat non trouvé");
-        return;
-      }
+      // Small delay for UI feedback
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Start with a loading toast
-      const toastId = toast.loading("Suppression du contrat en cours...");
+      console.log("DELETE UI: Deletion successful, performing verification reload");
       
-      // IMPORTANT: Immediately remove from UI (optimistic update)
-      setContracts(prevContracts => prevContracts.filter(c => c.id !== contractId));
-      setFilteredContracts(prevFiltered => prevFiltered.filter(c => c.id !== contractId));
-      
-      console.log("DELETE UI: Starting deletion of contract:", contractId);
-      
-      // Call API to delete the contract
-      const success = await deleteContract(contractId);
-      
-      if (success) {
-        // Update toast to success and wait a moment before hiding
-        toast.success("Contrat supprimé avec succès", { id: toastId });
-        
-        // Make an extra delay before releasing UI locks
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        console.log("DELETE UI: Deletion successful, performing verification reload");
-        
-        // Force a full reload to update the UI with accurate data
-        await fetchContracts();
-      } else {
-        // Show error toast
-        toast.error("Échec de la suppression du contrat", { id: toastId });
-        
-        console.error("DELETE UI: Server reported deletion failure");
-        
-        // Make a delay before retrying
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Try a second deletion attempt
-        console.log("DELETE UI: Attempting second deletion");
-        const secondAttemptSuccess = await deleteContract(contractId);
-        
-        if (secondAttemptSuccess) {
-          toast.success("Contrat supprimé avec succès (seconde tentative)", { id: toastId });
-          await fetchContracts();
-        } else {
-          // Add back the contract to local state if available (rollback optimistic update)
-          if (contractToDelete) {
-            setContracts(prev => [...prev, contractToDelete]);
-          }
-          
-          // Force a full reload to ensure UI matches database state
-          await fetchContracts();
-        }
-      }
-    } catch (error: any) {
-      console.error("DELETE UI ERROR: Unexpected error in handleDeleteContract:", error);
-      toast.error(`Erreur de suppression: ${error.message || "Erreur inconnue"}`);
-      
-      // Safety reload
+      // Force a full reload to update the UI with accurate data
       await fetchContracts();
-    } finally {
-      // Reset all deletion states
-      setIsDeleting(false);
-      setDeleteInProgress(null);
+    } else {
+      // Show error toast
+      toast.error("Échec de la suppression du contrat", { id: toastId });
+      
+      console.error("DELETE UI: Server reported deletion failure");
+      
+      // Add back the contract to local state if available (rollback optimistic update)
+      if (contractToDelete) {
+        setContracts(prev => [...prev, contractToDelete]);
+      }
+      
+      // Force a full reload to ensure UI matches database state
+      await fetchContracts();
     }
-  };
+  } catch (error: any) {
+    console.error("DELETE UI ERROR: Unexpected error in handleDeleteContract:", error);
+    toast.error(`Erreur de suppression: ${error.message || "Erreur inconnue"}`);
+    
+    // Safety reload
+    await fetchContracts();
+  } finally {
+    // Reset all deletion states
+    setIsDeleting(false);
+    setDeleteInProgress(null);
+  }
+};
 
   return {
     contracts,
