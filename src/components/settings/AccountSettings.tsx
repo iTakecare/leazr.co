@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { updateUserAvatar, updateUserProfile } from "@/services/userService";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Mail, Upload, Copy, User } from "lucide-react";
+import { AlertCircle, Mail, Upload, Copy, User, Check } from "lucide-react";
 
 const AccountSettings = () => {
   const { user, updateUserData } = useAuth();
@@ -20,6 +20,7 @@ const AccountSettings = () => {
     title: user?.title || "",
     avatar_url: user?.avatar_url || ""
   });
+  const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -83,7 +84,12 @@ const AccountSettings = () => {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
       .then(() => {
+        setCopySuccess(true);
         toast.success("UID copié dans le presse-papier");
+        
+        setTimeout(() => {
+          setCopySuccess(false);
+        }, 2000);
       })
       .catch(err => {
         console.error("Erreur lors de la copie:", err);
@@ -100,23 +106,36 @@ const AccountSettings = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Section ID Utilisateur - Mise en évidence */}
-        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 flex items-center space-x-2">
-          <User className="h-5 w-5 text-primary" />
-          <div className="flex-1">
-            <h4 className="text-sm font-medium">Identifiant utilisateur (UID)</h4>
-            <p className="text-sm font-mono text-muted-foreground break-all">{user?.id || "Non disponible"}</p>
+        {/* Section ID Utilisateur - Bloc très visible en haut */}
+        <div className="bg-primary/10 p-4 rounded-lg border border-primary/30 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex items-center space-x-2">
+              <User className="h-5 w-5 text-primary shrink-0" />
+              <div>
+                <h3 className="text-sm font-semibold text-primary">Identifiant utilisateur (UID)</h3>
+                <p className="text-sm font-mono break-all">{user?.id || "Non disponible"}</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-auto min-w-24"
+              onClick={() => user?.id && copyToClipboard(user.id)}
+              disabled={!user?.id || copySuccess}
+            >
+              {copySuccess ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Copié
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copier
+                </>
+              )}
+            </Button>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="ml-auto"
-            onClick={() => user?.id && copyToClipboard(user.id)}
-            disabled={!user?.id}
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            Copier
-          </Button>
         </div>
 
         <div className="flex flex-col items-center space-y-4 sm:items-start sm:flex-row sm:space-y-0 sm:space-x-4 mb-4">
