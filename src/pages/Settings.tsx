@@ -29,11 +29,14 @@ const Settings = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setSearchParams({ tab: value });
+    console.log("Tab changed to:", value); // Ajout de log pour débogage
   };
 
   // Récupère le template ID s'il est spécifié dans l'URL
   const selectedTemplateId = searchParams.get("template") || "default";
 
+  console.log("Current activeTab:", activeTab); // Ajout de log pour débogage
+  
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
