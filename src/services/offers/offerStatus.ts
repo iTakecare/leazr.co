@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
@@ -33,25 +34,33 @@ export const deleteOffer = async (offerId: string): Promise<boolean> => {
         console.error("Erreur lors de la recherche du contrat associé:", contractError);
       }
       
-      // Si un contrat est trouvé, demander confirmation supplémentaire
+      // Si un contrat est trouvé, on doit le supprimer avant de supprimer l'offre
       if (contract) {
-        console.log(`Contrat associé trouvé: ${contract.id}`);
+        console.log(`Contrat associé trouvé: ${contract.id}. Suppression du contrat...`);
         
-        // Pour cette modification, nous allons simplement permettre la suppression
-        // sans supprimer le contrat associé, car cela pourrait être dangereux
-        
-        // Mettre à jour le contrat pour supprimer la référence à l'offre
-        const { error: updateError } = await supabase
-          .from('contracts')
-          .update({ offer_id: null })
-          .eq('id', contract.id);
-        
-        if (updateError) {
-          console.error("Erreur lors de la mise à jour du contrat:", updateError);
-          // On continue même en cas d'erreur, pour essayer de supprimer l'offre
-        } else {
-          console.log("Référence à l'offre supprimée du contrat");
+        // Supprimer d'abord les logs de workflow du contrat si nécessaire
+        const { error: contractLogError } = await supabase
+          .from('contract_workflow_logs')
+          .delete()
+          .eq('contract_id', contract.id);
+          
+        if (contractLogError) {
+          console.error("Erreur lors de la suppression des logs du contrat:", contractLogError);
+          // On continue même en cas d'erreur
         }
+        
+        // Supprimer le contrat
+        const { error: deleteContractError } = await supabase
+          .from('contracts')
+          .delete()
+          .eq('id', contract.id);
+          
+        if (deleteContractError) {
+          console.error("Erreur lors de la suppression du contrat:", deleteContractError);
+          throw new Error("Impossible de supprimer le contrat associé à cette offre");
+        }
+        
+        console.log("Contrat supprimé avec succès");
       }
     }
     

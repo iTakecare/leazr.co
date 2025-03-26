@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -25,7 +26,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     let confirmMessage = "Êtes-vous sûr de vouloir supprimer cette offre ? Cette action est irréversible.";
     
     if (offer.workflow_status === 'financed' || offer.converted_to_contract) {
-      confirmMessage = "ATTENTION: Cette offre a le statut 'financée' ou a été convertie en contrat. Sa suppression pourrait causer des problèmes de cohérence des données. Êtes-vous vraiment sûr de vouloir supprimer cette offre ?";
+      confirmMessage = "ATTENTION: Cette offre a le statut 'financée' ou a été convertie en contrat. Sa suppression entraînera également la suppression du contrat associé. Êtes-vous vraiment sûr de vouloir supprimer cette offre et son contrat ?";
     }
     
     if (!window.confirm(confirmMessage)) {
@@ -34,6 +35,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     
     try {
       setIsDeleting(true);
+      toast.info("Suppression en cours...", { duration: 3000 });
+      
       const success = await deleteOffer(id);
       
       if (success) {

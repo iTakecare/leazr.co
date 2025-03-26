@@ -167,7 +167,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           aria-label="Plus d'options"
                           disabled={isDeleting}
                         >
-                          {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                          {isDeleting && confirmDelete === offer.id ? 
+                            <Loader2 className="h-4 w-4 animate-spin" /> : 
+                            <MoreHorizontal className="h-4 w-4" />
+                          }
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -210,6 +213,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         <DropdownMenuItem 
                           onClick={() => setConfirmDelete(offer.id)}
                           disabled={isDeleting}
+                          className="text-red-600 focus:text-red-600"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Supprimer
@@ -233,7 +237,12 @@ const OffersTable: React.FC<OffersTableProps> = ({
               définitivement cette offre.
               {confirmDelete && offers.find(o => o.id === confirmDelete)?.workflow_status === 'financed' && (
                 <div className="mt-2 p-2 bg-red-50 border border-red-200 text-red-700 rounded-md">
-                  <strong>Attention :</strong> Cette offre a le statut "financée". Sa suppression pourrait affecter les contrats associés.
+                  <strong>Attention :</strong> Cette offre a le statut "financée". Sa suppression supprimera également le contrat associé.
+                </div>
+              )}
+              {confirmDelete && offers.find(o => o.id === confirmDelete)?.converted_to_contract && (
+                <div className="mt-2 p-2 bg-red-50 border border-red-200 text-red-700 rounded-md">
+                  <strong>Attention :</strong> Cette offre a été convertie en contrat. Sa suppression supprimera également le contrat associé.
                 </div>
               )}
             </AlertDialogDescription>
