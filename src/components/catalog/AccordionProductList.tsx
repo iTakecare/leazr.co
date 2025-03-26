@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, ChevronDown, ChevronUp, Layers, Copy } from "lucide-react";
+import { Edit, Trash2, Copy, Layers } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
@@ -224,21 +224,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     )}
                   </div>
                   
-                  <AccordionContent className="px-4 pb-3">
-                    <div className="grid gap-4">
-                      {/* Information simplifiée dans l'accordéon */}
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <h4 className="text-sm font-medium mb-1">Détails</h4>
-                          <ul className="text-sm space-y-1">
-                            <li><span className="text-muted-foreground">Marque:</span> {product.brand || "Non spécifiée"}</li>
-                            <li><span className="text-muted-foreground">Catégorie:</span> {product.category || "Non spécifiée"}</li>
-                            <li><span className="text-muted-foreground">Prix:</span> {formatCurrency(product.price || 0)}</li>
-                            <li><span className="text-muted-foreground">Mensualité:</span> {formatCurrency(product.monthly_price || 0)}/mois</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
+                  {/* Empty accordion content - no details displayed */}
+                  <AccordionContent className="px-4 pb-2">
+                    {/* Intentionally left empty */}
                   </AccordionContent>
                 </AccordionItem>
               </div>
