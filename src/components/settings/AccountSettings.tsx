@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { updateUserAvatar, updateUserProfile } from "@/services/userService";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Mail, Upload } from "lucide-react";
+import { AlertCircle, Mail, Upload, Copy } from "lucide-react";
 
 const AccountSettings = () => {
   const { user, updateUserData } = useAuth();
@@ -21,7 +20,6 @@ const AccountSettings = () => {
     avatar_url: user?.avatar_url || ""
   });
 
-  // Mettre à jour les données du formulaire lorsque l'utilisateur change
   useEffect(() => {
     if (user) {
       setFormData({
@@ -43,7 +41,6 @@ const AccountSettings = () => {
 
   const handleSave = async () => {
     try {
-      // Mettre à jour les données utilisateur via Auth
       await updateUserData({
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -51,7 +48,6 @@ const AccountSettings = () => {
         title: formData.title
       });
       
-      // Mettre à jour le profil dans la base de données
       if (user?.id) {
         await updateUserProfile(user.id, {
           first_name: formData.first_name,
@@ -61,14 +57,12 @@ const AccountSettings = () => {
         });
       }
       
-      // Mettre à jour l'avatar séparément si l'URL a changé
       if (formData.avatar_url !== user?.avatar_url && formData.avatar_url.trim() !== '' && user?.id) {
         await updateUserAvatar(user.id, formData.avatar_url);
       }
       
       toast.success("Modifications enregistrées avec succès");
       
-      // Actualiser la page pour que les changements soient visibles immédiatement
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -83,6 +77,17 @@ const AccountSettings = () => {
       ...formData,
       [fieldName]: ""
     });
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        toast.success("UID copié dans le presse-papier");
+      })
+      .catch(err => {
+        console.error("Erreur lors de la copie:", err);
+        toast.error("Impossible de copier l'UID");
+      });
   };
 
   return (
@@ -131,6 +136,23 @@ const AccountSettings = () => {
           <Badge variant="outline" className="ml-auto">
             {user?.email_confirmed_at ? "Vérifiée" : "Non vérifiée"}
           </Badge>
+        </div>
+        
+        <div className="bg-muted/50 p-4 rounded-lg flex items-center space-x-2">
+          <div className="flex-1">
+            <h4 className="text-sm font-medium">Identifiant utilisateur (UID)</h4>
+            <p className="text-sm font-mono text-muted-foreground break-all">{user?.id || "Non disponible"}</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="ml-auto"
+            onClick={() => user?.id && copyToClipboard(user.id)}
+            disabled={!user?.id}
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            Copier
+          </Button>
         </div>
         
         <div className="grid gap-4 md:grid-cols-2">
