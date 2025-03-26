@@ -10,7 +10,7 @@ import {
   Menu,
   LayoutDashboard,
   Users,
-  ListProducts,
+  Package, // Replacing ListProducts with Package which is available
   Percent,
   FileSignature,
   HeartHandshake,
@@ -46,7 +46,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const menuItems: MenuItem[] = [
     { href: "/", label: "Tableau de bord", icon: LayoutDashboard },
     { href: "/clients", label: "Clients", icon: Users },
-    { href: "/catalog", label: "Catalogue", icon: ListProducts },
+    { href: "/catalog", label: "Catalogue", icon: Package }, // Updated to use Package icon
     { href: "/offers", label: "Offres", icon: Percent },
     { href: "/contracts", label: "Contrats", icon: FileSignature },
     { href: "/i-take-care", label: "iTakecare", icon: HeartHandshake },
