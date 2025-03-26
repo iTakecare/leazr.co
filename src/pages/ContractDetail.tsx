@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -43,7 +42,6 @@ const ContractDetail = () => {
       
       console.log("Chargement des détails du contrat:", id);
       
-      // Charger le contrat
       const contractsData = await getContracts(true);
       const contractData = contractsData.find(c => c.id === id);
       
@@ -56,7 +54,6 @@ const ContractDetail = () => {
       console.log("Contrat trouvé:", contractData);
       setContract(contractData);
       
-      // Charger les logs séparément
       await fetchLogs();
       
       if (contractData.equipment_description) {
@@ -131,7 +128,6 @@ const ContractDetail = () => {
       );
       
       if (success) {
-        // Mettre à jour l'état local immédiatement - importante pour l'UX
         setContract(prevContract => {
           if (!prevContract) return null;
           return {
@@ -144,7 +140,6 @@ const ContractDetail = () => {
         toast.success(`Statut du contrat mis à jour avec succès`);
         setStatusDialogOpen(false);
         
-        // Rafraîchir les logs après la mise à jour
         await fetchLogs();
       } else {
         toast.error("Erreur lors de la mise à jour du statut du contrat");
@@ -171,7 +166,10 @@ const ContractDetail = () => {
       );
       
       if (success) {
-        // Mettre à jour l'état local immédiatement
+        const newStatus = contract.status === contractStatuses.CONTRACT_SIGNED 
+          ? contractStatuses.EQUIPMENT_ORDERED 
+          : contract.status;
+        
         setContract(prevContract => {
           if (!prevContract) return null;
           return {
@@ -180,13 +178,13 @@ const ContractDetail = () => {
             estimated_delivery: estimatedDelivery,
             delivery_carrier: carrier,
             delivery_status: 'en_attente',
+            status: newStatus,
             updated_at: new Date().toISOString()
           };
         });
         
         toast.success(`Informations de suivi ajoutées avec succès`);
         
-        // Rafraîchir les données complètes
         await fetchContractDetails();
         setTrackingDialogOpen(false);
       } else {

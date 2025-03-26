@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -202,6 +201,44 @@ export const addTrackingNumber = async (
   carrier?: string
 ): Promise<boolean> => {
   try {
+    // Get current contract to preserve the current status
+    const { data: currentContract, error: fetchError } = await supabase
+      .from('contracts')
+      .select('status')
+      .eq('id', contractId)
+      .single();
+    
+    if (fetchError) {
+      console.error("Erreur lors de la récupération du contrat:", fetchError);
+      return false;
+    }
+    
+    // Make sure we keep the current status, or set it to EQUIPMENT_ORDERED if we need to progress
+    const status = currentContract.status === contractStatuses.CONTRACT_SIGNED 
+      ? contractStatuses.EQUIPMENT_ORDERED 
+      : currentContract.status;
+    
+    // Log the status transition if it changes
+    if (currentContract.status !== status) {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const userName = `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email;
+        
+        await supabase
+          .from('contract_workflow_logs')
+          .insert({
+            contract_id: contractId,
+            user_id: user.id,
+            previous_status: currentContract.status,
+            new_status: status,
+            reason: "Numéro de suivi ajouté",
+            user_name: userName
+          });
+      }
+    }
+    
+    // Update the contract with tracking info and preserve/update status
     const { error } = await supabase
       .from('contracts')
       .update({
@@ -209,6 +246,7 @@ export const addTrackingNumber = async (
         estimated_delivery: estimatedDelivery,
         delivery_carrier: carrier,
         delivery_status: 'en_attente',
+        status: status, // Use the determined status
         updated_at: new Date().toISOString()
       })
       .eq('id', contractId);
@@ -218,6 +256,7 @@ export const addTrackingNumber = async (
       return false;
     }
 
+    console.log(`Numéro de suivi ajouté avec succès. Status maintenu à: ${status}`);
     return true;
   } catch (error) {
     console.error("Erreur lors de l'ajout du numéro de suivi:", error);
