@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 import { ProductVariationAttributes } from "@/types/catalog";
 
 interface VariantSelectorProps {
@@ -21,6 +21,29 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   hasVariants,
   hasOptions
 }) => {
+  // Fonction pour organiser les options par groupes
+  const getGroupedAttributes = () => {
+    // Trier les attributs par priorité (par exemple, taille, couleur, etc.)
+    const priorityOrder = ["size", "color", "capacity", "memory", "processor", "storage"];
+    
+    // Convertir les attributs en tableau pour le tri
+    const attributesArray = Object.entries(variationAttributes || {});
+    
+    // Trier les attributs selon l'ordre de priorité
+    attributesArray.sort(([keyA], [keyB]) => {
+      const indexA = priorityOrder.indexOf(keyA.toLowerCase());
+      const indexB = priorityOrder.indexOf(keyB.toLowerCase());
+      
+      // Si l'attribut n'est pas dans la liste de priorité, lui donner un indice élevé
+      const valueA = indexA === -1 ? 999 : indexA;
+      const valueB = indexB === -1 ? 999 : indexB;
+      
+      return valueA - valueB;
+    });
+    
+    return attributesArray;
+  };
+
   if (!hasVariants) {
     return (
       <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
@@ -38,9 +61,22 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
     );
   }
   
+  const groupedAttributes = getGroupedAttributes();
+  
+  if (groupedAttributes.length === 0) {
+    return (
+      <div className="text-blue-600 bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <p className="flex items-center">
+          <Info className="h-5 w-5 mr-2" />
+          Aucune option de variation n'est disponible actuellement.
+        </p>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-6">
-      {Object.entries(variationAttributes || {}).map(([option, values]) => (
+      {groupedAttributes.map(([option, values]) => (
         <div key={option} className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
           <label className="block text-sm font-medium text-gray-700 capitalize mb-3">
             {option}
