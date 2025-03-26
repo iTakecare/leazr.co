@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, FileText, Send, Package, Truck, Play, AlarmClock, MoreHorizontal, CheckCircle } from "lucide-react";
+import { ChevronLeft, FileText, Send, Package, Truck, Play, AlarmClock, MoreHorizontal, CheckCircle, Calendar, BoxIcon } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Contract, contractStatuses, getContracts, updateContractStatus, addTrackingNumber, getContractWorkflowLogs } from "@/services/contractService";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import PageTransition from "@/components/layout/PageTransition";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ContractDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +33,7 @@ const ContractDetail = () => {
   const [carrier, setCarrier] = useState('');
   const [equipmentItems, setEquipmentItems] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [activeTab, setActiveTab] = useState("details");
 
   const fetchContractDetails = async () => {
     if (!id) return;
@@ -106,9 +108,9 @@ const ContractDetail = () => {
   };
   
   const openTrackingDialog = () => {
-    setTrackingNumber('');
-    setEstimatedDelivery('');
-    setCarrier('');
+    setTrackingNumber(contract?.tracking_number || '');
+    setEstimatedDelivery(contract?.estimated_delivery || '');
+    setCarrier(contract?.delivery_carrier || '');
     setTrackingDialogOpen(true);
   };
   
@@ -184,9 +186,11 @@ const ContractDetail = () => {
         });
         
         toast.success(`Informations de suivi ajoutées avec succès`);
-        
-        await fetchContractDetails();
         setTrackingDialogOpen(false);
+        
+        if (contract.status !== newStatus) {
+          await fetchLogs();
+        }
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
       }
@@ -305,7 +309,7 @@ const ContractDetail = () => {
               Gestion du contrat - Étapes du workflow
             </h2>
             
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 mb-6">
               {availableActions.map((action, index) => (
                 <Button 
                   key={`${action.label}-${index}`}
@@ -325,7 +329,31 @@ const ContractDetail = () => {
               )}
             </div>
             
-            <div className="mt-6">
+            {contract.tracking_number && (
+              <div className="bg-blue-50 border border-blue-100 rounded-md p-3 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <BoxIcon className="h-5 w-5 text-blue-500" />
+                  <h3 className="font-medium text-blue-700">Informations de livraison</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                  <div className="flex items-center text-blue-700">
+                    <span className="font-medium mr-2">Numéro de suivi:</span> {contract.tracking_number}
+                  </div>
+                  {contract.delivery_carrier && (
+                    <div className="flex items-center text-blue-700">
+                      <span className="font-medium mr-2">Transporteur:</span> {contract.delivery_carrier}
+                    </div>
+                  )}
+                  {contract.estimated_delivery && (
+                    <div className="flex items-center text-blue-700">
+                      <span className="font-medium mr-2">Livraison estimée:</span> {contract.estimated_delivery}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <div className="mt-4">
               <div className="flex items-center justify-between">
                 <ProgressStep 
                   label="Contrat envoyé" 
@@ -399,141 +427,215 @@ const ContractDetail = () => {
           </div>
         )}
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>Détails du contrat</CardTitle>
-              <CardDescription>Informations concernant ce contrat</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm font-medium text-gray-500">Client</div>
-                  <div className="text-lg">{contract.client_name}</div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-500">Email</div>
-                  <div className="text-lg">{contract.client_email || contract.clients?.email || "Non spécifié"}</div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-500">Montant total</div>
-                  <div className="text-lg font-medium">{formatCurrency(contract.amount || 0)}</div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-500">Paiement mensuel</div>
-                  <div className="text-lg">{formatCurrency(contract.monthly_payment || 0)}</div>
-                </div>
-                {contract.lease_duration && (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="details">Détails du contrat</TabsTrigger>
+            <TabsTrigger value="delivery" className={contract?.tracking_number ? "relative" : ""}>
+              Livraison
+              {contract?.tracking_number && (
+                <span className="absolute top-0 right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="history">Historique</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Détails du contrat</CardTitle>
+                <CardDescription>Informations concernant ce contrat</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm font-medium text-gray-500">Durée</div>
-                    <div className="text-lg">{contract.lease_duration} mois</div>
+                    <div className="text-sm font-medium text-gray-500">Client</div>
+                    <div className="text-lg">{contract.client_name}</div>
                   </div>
-                )}
-                <div>
-                  <div className="text-sm font-medium text-gray-500">Bailleur</div>
-                  <div className="text-lg">{contract.leaser_name}</div>
-                </div>
-              </div>
-              
-              {contract.tracking_number && (
-                <>
-                  <Separator className="my-6" />
                   <div>
-                    <h3 className="text-lg font-medium mb-4">Informations de livraison</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-500">Numéro de suivi</div>
-                        <div className="text-lg">{contract.tracking_number}</div>
+                    <div className="text-sm font-medium text-gray-500">Email</div>
+                    <div className="text-lg">{contract.client_email || contract.clients?.email || "Non spécifié"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-500">Montant total</div>
+                    <div className="text-lg font-medium">{formatCurrency(contract.amount || 0)}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-500">Paiement mensuel</div>
+                    <div className="text-lg">{formatCurrency(contract.monthly_payment || 0)}</div>
+                  </div>
+                  {contract.lease_duration && (
+                    <div>
+                      <div className="text-sm font-medium text-gray-500">Durée</div>
+                      <div className="text-lg">{contract.lease_duration} mois</div>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-sm font-medium text-gray-500">Bailleur</div>
+                    <div className="text-lg">{contract.leaser_name}</div>
+                  </div>
+                </div>
+                
+                <Separator className="my-6" />
+                
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Équipements</h3>
+                  {equipmentItems.length > 0 ? (
+                    <div className="space-y-4">
+                      {equipmentItems.map((item, index) => (
+                        <div key={item.id || index} className="border p-4 rounded-md">
+                          <div className="font-medium">{item.title}</div>
+                          <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
+                            <div>
+                              <span className="text-gray-500">Prix d'achat:</span> {formatCurrency(item.purchasePrice || 0)}
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Quantité:</span> {item.quantity || 1}
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Marge:</span> {item.margin || 0}%
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500">{contract.equipment_description || "Aucun équipement trouvé"}</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="delivery">
+            <Card>
+              <CardHeader>
+                <CardTitle>Informations de livraison</CardTitle>
+                <CardDescription>Détails de suivi et de livraison</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {contract.tracking_number ? (
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-5">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="bg-blue-100 p-2 rounded-full">
+                          <BoxIcon className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <h3 className="text-xl font-semibold">Suivi de la commande</h3>
                       </div>
-                      {contract.estimated_delivery && (
-                        <div>
-                          <div className="text-sm font-medium text-gray-500">Livraison estimée</div>
-                          <div className="text-lg">{contract.estimated_delivery}</div>
+                      
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="border bg-white rounded-md p-4">
+                          <div className="text-sm font-medium text-gray-500 mb-1">Numéro de suivi</div>
+                          <div className="text-lg font-medium">{contract.tracking_number}</div>
                         </div>
-                      )}
-                      {contract.delivery_carrier && (
-                        <div>
-                          <div className="text-sm font-medium text-gray-500">Transporteur</div>
-                          <div className="text-lg">{contract.delivery_carrier}</div>
+                        
+                        {contract.delivery_carrier && (
+                          <div className="border bg-white rounded-md p-4">
+                            <div className="text-sm font-medium text-gray-500 mb-1">Transporteur</div>
+                            <div className="text-lg font-medium">{contract.delivery_carrier}</div>
+                          </div>
+                        )}
+                        
+                        {contract.estimated_delivery && (
+                          <div className="border bg-white rounded-md p-4">
+                            <div className="text-sm font-medium text-gray-500 mb-1">Livraison estimée</div>
+                            <div className="text-lg font-medium flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-blue-500" />
+                              {contract.estimated_delivery}
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="border bg-white rounded-md p-4">
+                          <div className="text-sm font-medium text-gray-500 mb-1">Statut</div>
+                          <div className="text-lg font-medium">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
+                              En attente de livraison
+                            </Badge>
+                          </div>
                         </div>
-                      )}
+                      </div>
+                      
+                      <div className="mt-6 flex justify-end">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-blue-600"
+                          onClick={openTrackingDialog}
+                        >
+                          Modifier les informations de suivi
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </>
-              )}
-              
-              <Separator className="my-6" />
-              
-              <div>
-                <h3 className="text-lg font-medium mb-4">Équipements</h3>
-                {equipmentItems.length > 0 ? (
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
+                    <div className="bg-gray-100 p-4 rounded-full">
+                      <Truck className="h-12 w-12 text-gray-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium">Aucune information de livraison</h3>
+                      <p className="text-gray-500 mt-1">
+                        Ajoutez un numéro de suivi pour commencer à suivre cette commande
+                      </p>
+                    </div>
+                    <Button onClick={openTrackingDialog}>
+                      <Send className="mr-2 h-4 w-4" />
+                      Ajouter un numéro de suivi
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Historique</CardTitle>
+                <CardDescription>Modifications de statut</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingLogs ? (
+                  <div className="flex justify-center py-6">
+                    <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
+                  </div>
+                ) : logs.length > 0 ? (
                   <div className="space-y-4">
-                    {equipmentItems.map((item, index) => (
-                      <div key={item.id || index} className="border p-4 rounded-md">
-                        <div className="font-medium">{item.title}</div>
-                        <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
-                          <div>
-                            <span className="text-gray-500">Prix d'achat:</span> {formatCurrency(item.purchasePrice || 0)}
+                    {logs.map((log) => (
+                      <div key={log.id} className="border-l-2 border-blue-200 pl-4 py-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-medium">
+                            {log.user_name || "Utilisateur"}
                           </div>
-                          <div>
-                            <span className="text-gray-500">Quantité:</span> {item.quantity || 1}
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Marge:</span> {item.margin || 0}%
+                          <div className="text-xs text-gray-500">
+                            {formatDate(log.created_at)}
                           </div>
                         </div>
+                        <div className="flex items-center gap-2 text-sm flex-wrap">
+                          <span>Statut changé de</span>
+                          <ContractStatusBadge status={log.previous_status} />
+                          <span>à</span>
+                          <ContractStatusBadge status={log.new_status} />
+                        </div>
+                        {log.reason && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            {log.reason}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-gray-500">{contract.equipment_description || "Aucun équipement trouvé"}</div>
+                  <div className="text-gray-500">Aucun historique disponible pour le contrat</div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Historique</CardTitle>
-              <CardDescription>Modifications de statut</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingLogs ? (
-                <div className="flex justify-center py-6">
-                  <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
-                </div>
-              ) : logs.length > 0 ? (
-                <div className="space-y-4">
-                  {logs.map((log) => (
-                    <div key={log.id} className="border-l-2 border-blue-200 pl-4 py-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="font-medium">
-                          {log.user_name || "Utilisateur"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {formatDate(log.created_at)}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm flex-wrap">
-                        <span>Statut changé de</span>
-                        <ContractStatusBadge status={log.previous_status} />
-                        <span>à</span>
-                        <ContractStatusBadge status={log.new_status} />
-                      </div>
-                      {log.reason && (
-                        <div className="mt-2 text-sm text-gray-600">
-                          {log.reason}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-gray-500">Aucun historique disponible pour le contrat</div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
       
       {/* Status Change Dialog */}
@@ -578,7 +680,9 @@ const ContractDetail = () => {
       <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ajouter un numéro de suivi</DialogTitle>
+            <DialogTitle>
+              {contract?.tracking_number ? "Modifier les informations de suivi" : "Ajouter un numéro de suivi"}
+            </DialogTitle>
             <DialogDescription>
               Renseignez les informations de livraison pour ce contrat.
             </DialogDescription>
@@ -634,7 +738,7 @@ const ContractDetail = () => {
               {isUpdatingStatus ? (
                 <>
                   <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
-                  Ajout en cours...
+                  {contract?.tracking_number ? "Mise à jour..." : "Ajout en cours..."}
                 </>
               ) : "Confirmer"}
             </Button>

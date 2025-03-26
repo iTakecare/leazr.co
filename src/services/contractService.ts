@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -201,6 +202,8 @@ export const addTrackingNumber = async (
   carrier?: string
 ): Promise<boolean> => {
   try {
+    console.log(`Adding tracking number ${trackingNumber} to contract ${contractId}`);
+    
     // Get current contract to preserve the current status
     const { data: currentContract, error: fetchError } = await supabase
       .from('contracts')
@@ -217,6 +220,8 @@ export const addTrackingNumber = async (
     const status = currentContract.status === contractStatuses.CONTRACT_SIGNED 
       ? contractStatuses.EQUIPMENT_ORDERED 
       : currentContract.status;
+    
+    console.log(`Current status: ${currentContract.status}, new status: ${status}`);
     
     // Log the status transition if it changes
     if (currentContract.status !== status) {
