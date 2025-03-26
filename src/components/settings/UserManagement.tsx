@@ -8,7 +8,6 @@ import { useUsers } from "@/hooks/useUsers";
 import { UserExtended, updateUserPassword } from "@/services/userService";
 import { Loader2, Plus, Search, Pencil, Trash2, RefreshCw, Shield, Clock, CalendarDays, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -16,7 +15,6 @@ import { fr } from "date-fns/locale";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 const UserManagement: React.FC = () => {
   const { users, loading, error, refreshUsers, updateUser, addUser, removeUser } = useUsers();
@@ -191,112 +189,113 @@ const UserManagement: React.FC = () => {
   }, [user, users, loading]);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Gestion des administrateurs</h2>
-          <p className="text-sm text-muted-foreground">
-            Consultez et gérez les administrateurs du système
-          </p>
+          <h2 className="text-2xl font-bold">Gestion des utilisateurs</h2>
+          <p className="text-muted-foreground">Gérez les utilisateurs, leurs rôles et leurs permissions</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={refreshUsers}
             disabled={loading}
+            className="h-9"
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             <span className="ml-2 hidden sm:inline">Actualiser</span>
           </Button>
-          
-          <Dialog open={isAdding} onOpenChange={setIsAdding}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvel administrateur
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Ajouter un nouvel administrateur</DialogTitle>
-                <DialogDescription>
-                  Créez un compte administrateur avec les informations de base.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="new-email" className="text-right">Email</Label>
-                  <Input
-                    id="new-email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="new-password" className="text-right">Mot de passe</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="new-first-name" className="text-right">Prénom</Label>
-                  <Input
-                    id="new-first-name"
-                    value={newUser.first_name}
-                    onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="new-last-name" className="text-right">Nom</Label>
-                  <Input
-                    id="new-last-name"
-                    value={newUser.last_name}
-                    onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="new-company" className="text-right">Entreprise</Label>
-                  <Input
-                    id="new-company"
-                    value={newUser.company}
-                    onChange={(e) => setNewUser({ ...newUser, company: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-              </div>
-              
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Annuler</Button>
-                </DialogClose>
-                <Button onClick={handleCreateUser}>Créer</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
-      {/* Section de profil utilisateur connecté */}
-      {user && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Mon profil administrateur</CardTitle>
-            <CardDescription>Gérez votre profil administrateur</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <div className="bg-card border rounded-lg p-6 space-y-6">
+        <div>
+          <h3 className="text-xl font-semibold mb-1">Gestion des administrateurs</h3>
+          <p className="text-sm text-muted-foreground mb-4">Consultez et gérez les administrateurs du système</p>
+          
+          <div className="flex items-center justify-between mb-6">
+            <Dialog open={isAdding} onOpenChange={setIsAdding}>
+              <DialogTrigger asChild>
+                <Button className="ml-auto" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouvel administrateur
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Ajouter un nouvel administrateur</DialogTitle>
+                  <DialogDescription>
+                    Créez un compte administrateur avec les informations de base.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="new-email" className="text-right">Email</Label>
+                    <Input
+                      id="new-email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="new-password" className="text-right">Mot de passe</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="new-first-name" className="text-right">Prénom</Label>
+                    <Input
+                      id="new-first-name"
+                      value={newUser.first_name}
+                      onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="new-last-name" className="text-right">Nom</Label>
+                    <Input
+                      id="new-last-name"
+                      value={newUser.last_name}
+                      onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="new-company" className="text-right">Entreprise</Label>
+                    <Input
+                      id="new-company"
+                      value={newUser.company}
+                      onChange={(e) => setNewUser({ ...newUser, company: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Annuler</Button>
+                  </DialogClose>
+                  <Button onClick={handleCreateUser}>Créer</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Section de profil utilisateur connecté */}
+        {user && (
+          <div className="border rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-2">Mon profil administrateur</h3>
+            <p className="text-sm text-muted-foreground mb-4">Gérez votre profil administrateur</p>
+            
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex flex-col items-center space-y-4">
                 <Avatar className="h-24 w-24">
@@ -332,6 +331,28 @@ const UserManagement: React.FC = () => {
               </div>
               
               <div className="flex-1 space-y-4">
+                <div className="bg-primary/10 p-4 rounded-lg border border-primary/30 mb-4">
+                  <div className="flex flex-col space-y-1">
+                    <h4 className="text-sm font-semibold text-primary">Identifiant utilisateur (UID)</h4>
+                    <p className="text-sm font-mono break-all">{user?.id || "Non disponible"}</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 w-auto self-start"
+                      onClick={() => {
+                        if (user?.id) {
+                          navigator.clipboard.writeText(user.id);
+                          toast.success("UID copié dans le presse-papier");
+                        }
+                      }}
+                      disabled={!user?.id}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copier l'UID
+                    </Button>
+                  </div>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="current-first-name">Prénom</Label>
@@ -426,16 +447,13 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Liste des administrateurs</CardTitle>
-          <CardDescription>Tous les administrateurs du système</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <div className="border rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-2">Liste des administrateurs</h3>
+          <p className="text-sm text-muted-foreground mb-4">Tous les administrateurs du système</p>
+          
           <div className="space-y-4">
             <div className="flex justify-between">
               <div className="relative w-full max-w-sm">
@@ -624,8 +642,8 @@ const UserManagement: React.FC = () => {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
