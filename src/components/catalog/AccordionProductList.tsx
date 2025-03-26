@@ -1,8 +1,9 @@
+
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, ChevronDown, ChevronUp, Layers } from "lucide-react";
+import { Edit, Trash2, ChevronDown, ChevronUp, Layers, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
@@ -129,6 +130,30 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     }
   };
 
+  const handleDuplicate = (product: Product, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
+    // Création d'une copie du produit avec un nouvel ID
+    const duplicatedProduct = {
+      ...product,
+      name: `${product.name} (copie)`,
+      // L'ID sera généré côté backend
+    };
+    
+    // Ici on pourrait appeler une fonction pour dupliquer le produit dans la BDD
+    // Mais pour l'instant, on va juste afficher un toast
+    toast({
+      title: "Fonctionnalité en développement",
+      description: "La duplication de produits sera bientôt disponible",
+      variant: "default",
+    });
+    
+    console.log("Produit à dupliquer:", duplicatedProduct);
+  };
+
   return (
     <div className="space-y-4">
       {Object.entries(groupedProducts).map(([group, groupProducts]) => (
@@ -197,6 +222,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                             <Edit className="h-4 w-4" />
                           </Button>
                         </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={(e) => handleDuplicate(product, e as React.MouseEvent)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
                         {onProductDeleted && (
                           <Button
                             variant="ghost"
@@ -282,6 +315,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                                               <Edit className="h-4 w-4" />
                                             </Button>
                                           </Link>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            onClick={(e) => handleDuplicate(variant, e as React.MouseEvent)}
+                                          >
+                                            <Copy className="h-4 w-4" />
+                                          </Button>
                                           {onProductDeleted && (
                                             <Button
                                               variant="ghost"
