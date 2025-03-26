@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Loader2, Upload, Camera, User } from "lucide-react";
+import { ensureStorageBucket } from "@/services/storageService";
+import { uploadImage, detectFileExtension, detectMimeTypeFromSignature } from "@/services/imageService";
 
 const AvatarUploader = () => {
   const { user } = useAuth();
@@ -72,36 +74,41 @@ const AvatarUploader = () => {
         return;
       }
       
-      // Générer un nom de fichier unique
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
-      
-      // Uploader l'image
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, {
-          upsert: true,
-          contentType: file.type
-        });
-      
-      if (error) {
-        console.error("Erreur lors de l'upload:", error);
-        toast.error("Erreur lors de l'upload de l'avatar");
+      // S'assurer que le bucket existe
+      const bucketExists = await ensureStorageBucket('avatars');
+      if (!bucketExists) {
+        toast.error("Erreur lors de la création du bucket de stockage");
         return;
       }
       
-      // Obtenir l'URL publique
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
+      // Utiliser uploadImage du imageService comme pour le logo du site
+      const extension = detectFileExtension(file);
+      const timestamp = Date.now();
+      const fileName = `${user.id}/avatar-${timestamp}.${extension}`;
       
-      const avatarUrl = urlData.publicUrl;
+      // Détecter le type MIME correct avec le service imageService
+      const detectedMimeType = await detectMimeTypeFromSignature(file);
+      console.log(`Type MIME détecté pour l'avatar: ${detectedMimeType || 'non détecté, utilisation du type par défaut'}`);
+      
+      const result = await uploadImage(
+        file,
+        fileName,
+        'avatars',
+        true
+      );
+      
+      if (!result || !result.url) {
+        throw new Error("Échec de l'upload de l'image");
+      }
+      
+      const newAvatarUrl = result.url;
+      console.log("Avatar uploadé avec succès:", newAvatarUrl);
       
       // Mettre à jour le profil avec la nouvelle URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          avatar_url: avatarUrl,
+          avatar_url: newAvatarUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -112,7 +119,7 @@ const AvatarUploader = () => {
         return;
       }
       
-      setAvatarUrl(avatarUrl);
+      setAvatarUrl(newAvatarUrl);
       toast.success("Avatar mis à jour avec succès");
       
     } catch (error) {
@@ -129,18 +136,6 @@ const AvatarUploader = () => {
     try {
       setUploading(true);
       
-      // Extraire le chemin du fichier depuis l'URL
-      const path = avatarUrl.split('/').slice(-2).join('/');
-      
-      // Supprimer l'image du stockage
-      const { error: storageError } = await supabase.storage
-        .from('avatars')
-        .remove([path]);
-      
-      if (storageError) {
-        console.error("Erreur lors de la suppression de l'image:", storageError);
-      }
-      
       // Mettre à jour le profil
       const { error: updateError } = await supabase
         .from('profiles')
@@ -154,6 +149,34 @@ const AvatarUploader = () => {
         console.error("Erreur lors de la mise à jour du profil:", updateError);
         toast.error("Erreur lors de la suppression de l'avatar");
         return;
+      }
+      
+      // Suppression optionnelle du fichier de stockage
+      if (avatarUrl) {
+        try {
+          // Extraire le chemin du fichier depuis l'URL
+          const urlObj = new URL(avatarUrl);
+          const pathParts = urlObj.pathname.split('/');
+          const bucketPart = pathParts.findIndex(part => part === 'object');
+          
+          if (bucketPart !== -1 && pathParts.length > bucketPart + 2) {
+            const bucketName = pathParts[bucketPart + 1];
+            const filePath = pathParts.slice(bucketPart + 2).join('/');
+            
+            if (bucketName && filePath) {
+              console.log(`Tentative de suppression du fichier ${filePath} dans le bucket ${bucketName}`);
+              const { error: storageError } = await supabase.storage
+                .from(bucketName)
+                .remove([filePath]);
+                
+              if (storageError) {
+                console.error("Erreur lors de la suppression du fichier:", storageError);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Erreur lors de l'analyse de l'URL pour la suppression:", e);
+        }
       }
       
       setAvatarUrl(null);
