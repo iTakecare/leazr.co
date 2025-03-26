@@ -39,7 +39,7 @@ export const fetchAllUsers = async (): Promise<UserExtended[]> => {
     for (const profile of profiles) {
       users.push({
         id: profile.id,
-        email: '',  // Will be filled from auth metadata query
+        email: profile.email || '', // If email is in profiles table
         first_name: profile.first_name,
         last_name: profile.last_name,
         role: profile.role,
@@ -53,42 +53,31 @@ export const fetchAllUsers = async (): Promise<UserExtended[]> => {
       });
     }
     
-    // Pour chaque profil, récupérer les métadonnées utilisateur
+    // Try to fetch additional user data directly using the auth API
+    // This is more reliable than using views that might not exist
     for (const user of users) {
       try {
-        // Récupérer les métadonnées utilisateur (email, etc.)
-        const { data: authUser, error: authError } = await supabase
-          .from('users_view')
-          .select('email, email_confirmed_at, last_sign_in_at, raw_user_meta_data')
-          .eq('id', user.id)
-          .single();
+        // Try to get the user's email from auth.users using the admin client
+        const { data: authUser, error: authError } = await adminSupabase.auth.admin
+          .getUserById(user.id);
         
-        if (!authError && authUser) {
-          user.email = authUser.email || '';
-          user.email_confirmed_at = authUser.email_confirmed_at;
-          user.last_sign_in_at = authUser.last_sign_in_at;
+        if (!authError && authUser?.user) {
+          user.email = authUser.user.email || '';
+          user.email_confirmed_at = authUser.user.email_confirmed_at;
+          user.last_sign_in_at = authUser.user.last_sign_in_at;
           
-          // Récupérer les métadonnées utilisateur
-          if (authUser.raw_user_meta_data) {
+          // Get user metadata
+          if (authUser.user.user_metadata) {
             user.user_metadata = {
-              ambassador_id: authUser.raw_user_meta_data.ambassador_id,
-              partner_id: authUser.raw_user_meta_data.partner_id,
-              role: authUser.raw_user_meta_data.role
+              ambassador_id: authUser.user.user_metadata.ambassador_id,
+              partner_id: authUser.user.user_metadata.partner_id,
+              role: authUser.user.user_metadata.role
             };
           }
         } else {
-          // Fallback pour récupérer au moins l'email
-          const { data: userEmail } = await supabase
-            .from('auth_users_email_view')
-            .select('email')
-            .eq('id', user.id)
-            .single();
-            
-          if (userEmail) {
-            user.email = userEmail.email;
-          }
+          console.log("Utilisateur non trouvé dans auth.users, recherche d'associations alternatives");
           
-          // Vérifier si l'utilisateur est un ambassadeur
+          // Try to find if the user is an ambassador
           const { data: ambassador } = await supabase
             .from('ambassadors')
             .select('id')
@@ -102,7 +91,7 @@ export const fetchAllUsers = async (): Promise<UserExtended[]> => {
             };
           }
           
-          // Vérifier si l'utilisateur est un partenaire
+          // Try to find if the user is a partner
           const { data: partner } = await supabase
             .from('partners')
             .select('id')
@@ -248,9 +237,8 @@ export const createUser = async (userData: { email: string, password: string, ro
 
 export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
-    const { error } = await adminSupabase.auth.admin.deleteUser(
-      userId
-    );
+    // Try with admin API for better reliability
+    const { error } = await adminSupabase.auth.admin.deleteUser(userId);
     
     if (error) {
       console.error("Erreur lors de la suppression de l'utilisateur:", error);
