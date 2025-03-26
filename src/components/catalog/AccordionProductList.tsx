@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -145,7 +146,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
               <div key={product.id}>
                 <AccordionItem value={product.id} className="border-b">
                   <div className="flex items-center pr-4">
-                    <AccordionTrigger className="px-4 hover:no-underline flex-1">
+                    <AccordionTrigger className="px-4 hover:no-underline flex-1 [&>svg]:hidden">
                       <div className="flex-1 flex items-center">
                         <div className="w-14 h-14 flex-shrink-0 rounded overflow-hidden mr-4 bg-muted">
                           {product.image_url ? (
