@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -26,10 +26,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import Logo from "./Logo";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SidebarProps {
   className?: string;
@@ -49,10 +50,33 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const { user, signOut } = useAuth();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   
-  // Ajouter console.log pour déboguer
   useEffect(() => {
-    console.log("User dans Sidebar:", user);
+    const fetchAvatar = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Erreur lors de la récupération de l'avatar:", error);
+          return;
+        }
+        
+        if (data?.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
+      } catch (err) {
+        console.error("Erreur lors du chargement de l'avatar:", err);
+      }
+    };
+    
+    fetchAvatar();
   }, [user]);
   
   const menuItems: MenuItem[] = [
@@ -173,6 +197,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
               <div className="p-4 mt-auto border-t">
                 <div className="flex items-center gap-3 mb-4">
                   <Avatar>
+                    <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
                     <AvatarFallback className="bg-primary/20 text-primary">{getUserInitials()}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -274,6 +299,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Avatar>
+                  <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
                   <AvatarFallback className="bg-primary/20 text-primary">{getUserInitials()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">

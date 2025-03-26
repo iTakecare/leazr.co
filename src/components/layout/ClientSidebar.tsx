@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -28,8 +27,10 @@ import {
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import Logo from "./Logo";
 
 interface SidebarProps {
   className?: string;
@@ -51,6 +52,34 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Erreur lors de la récupération de l'avatar:", error);
+          return;
+        }
+        
+        if (data?.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
+      } catch (err) {
+        console.error("Erreur lors du chargement de l'avatar:", err);
+      }
+    };
+    
+    fetchAvatar();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -95,19 +124,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
           <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-4 border-b">
-                <div className="flex items-center gap-2">
-                  <div className="relative w-10 h-10">
-                    <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
-                    <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
-                    <div className="absolute inset-0 flex items-center justify-center bg-background rounded-xl shadow-md">
-                      <span className="font-bold text-primary text-lg">IT</span>
-                    </div>
-                  </div>
-                  <div>
-                    <h1 className="text-lg font-bold">iTakecare</h1>
-                    <p className="text-xs text-muted-foreground">Espace Client</p>
-                  </div>
-                </div>
+                <Logo />
                 <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full">
                   <X className="h-5 w-5" />
                 </Button>
@@ -153,12 +170,17 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
                 <div className="p-4 border-t mt-auto">
                   <div className="flex items-center gap-3 mb-4">
                     <Avatar>
+                      <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
                       <AvatarFallback className="bg-primary/20 text-primary">
                         {user.email?.substring(0, 2).toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="overflow-hidden">
-                      <p className="text-sm font-medium truncate">{user.email}</p>
+                      <p className="text-sm font-medium truncate">
+                        {user.first_name && user.last_name 
+                          ? `${user.first_name} ${user.last_name}` 
+                          : user.email}
+                      </p>
                       <p className="text-xs text-muted-foreground">Client</p>
                     </div>
                   </div>
@@ -194,22 +216,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
           "flex items-center p-4 mb-2 transition-all duration-300",
           collapsed ? "justify-center" : "px-6 justify-between"
         )}>
-          <div className="flex items-center gap-2">
-            <div className="relative w-10 h-10 flex-shrink-0">
-              <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
-              <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
-              <div className="absolute inset-0 flex items-center justify-center bg-background rounded-xl shadow-md">
-                <span className="font-bold text-primary text-lg">IT</span>
-              </div>
-            </div>
-            
-            {!collapsed && (
-              <div className="overflow-hidden">
-                <h1 className="text-lg font-bold">iTakecare</h1>
-                <p className="text-xs text-muted-foreground">Espace Client</p>
-              </div>
-            )}
-          </div>
+          <Logo showText={!collapsed} />
           
           {!collapsed && (
             <Button 
@@ -292,12 +299,17 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
               <>
                 <div className="flex items-center gap-3 mb-4">
                   <Avatar>
+                    <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
                     <AvatarFallback className="bg-primary/20 text-primary">
                       {user.email?.substring(0, 2).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="overflow-hidden">
-                    <p className="text-sm font-medium truncate">{user.email}</p>
+                    <p className="text-sm font-medium truncate">
+                      {user.first_name && user.last_name 
+                        ? `${user.first_name} ${user.last_name}` 
+                        : user.email}
+                    </p>
                     <p className="text-xs text-muted-foreground">Client</p>
                   </div>
                 </div>
