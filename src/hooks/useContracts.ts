@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { 
@@ -117,7 +116,7 @@ export const useContracts = () => {
     trackingNumber: string, 
     estimatedDelivery?: string,
     carrier?: string
-  ) => {
+  ): Promise<void> => {
     try {
       setIsUpdatingStatus(true);
       
@@ -125,7 +124,7 @@ export const useContracts = () => {
       const contract = contracts.find(c => c.id === contractId);
       if (!contract) {
         toast.error("Contrat non trouvé");
-        return false;
+        return;
       }
       
       // CRITICAL: Explicitly store the current status before any operations
@@ -161,16 +160,12 @@ export const useContracts = () => {
         
         // Force a complete reload to ensure everything is in sync with the database
         await fetchContracts();
-        
-        return true;
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
-        return false;
       }
     } catch (error) {
       console.error("Error adding tracking info:", error);
       toast.error("Erreur lors de l'ajout des informations de suivi");
-      return false;
     } finally {
       setIsUpdatingStatus(false);
     }
