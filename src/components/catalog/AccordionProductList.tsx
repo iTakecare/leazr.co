@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -23,7 +22,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   readOnly = false
 }) => {
   const [isDeleting, setIsDeleting] = useState<{ [key: string]: boolean }>({});
-  const [expandedVariants, setExpandedVariants] = useState<string[]>([]);
   
   // Log what we're receiving for debugging
   console.log("AccordionProductList: Received products:", products.length);
@@ -58,11 +56,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return acc;
   }, {} as Record<string, Product[]>);
 
-  // Get variants for a specific product
-  const getVariantsForProduct = (productId: string): Product[] => {
-    return products.filter(p => p.parent_id === productId);
-  };
-
   // Check if a product has variants - improved detection
   const hasVariants = (product: Product): boolean => {
     if (!product) return false;
@@ -71,7 +64,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     const isParent = product.is_parent || false;
     const hasCombinationPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
     const hasVariationAttrs = product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0;
-    const hasChildVariants = getVariantsForProduct(product.id).length > 0;
+    const hasChildVariants = products.filter(p => p.parent_id === product.id).length > 0;
     
     return isParent || hasCombinationPrices || hasVariationAttrs || hasChildVariants;
   };
@@ -79,25 +72,11 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   // Get count of variants for a product
   const getVariantsCount = (product: Product): number => {
     // First check for actual variants (child products)
-    const childVariants = getVariantsForProduct(product.id);
+    const childVariants = products.filter(p => p.parent_id === product.id);
     if (childVariants.length > 0) return childVariants.length;
     
     // Otherwise return count of variant combination prices
     return product.variant_combination_prices?.length || 0;
-  };
-
-  // Toggle variant expansion
-  const toggleVariants = (productId: string) => {
-    setExpandedVariants(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId) 
-        : [...prev, productId]
-    );
-  };
-
-  // Check if variants are expanded for a product
-  const isVariantsExpanded = (productId: string): boolean => {
-    return expandedVariants.includes(productId);
   };
 
   const handleDelete = async (productId: string, event?: React.MouseEvent) => {
@@ -189,7 +168,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium">{product.name}</h3>
                             
-                            {/* Variant indicator - force display if we know it has variants */}
+                            {/* Afficher l'indicateur de variante mais pas les variantes elles-mêmes */}
                             {hasVariants(product) && (
                               <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100 mr-2 flex items-center gap-1">
                                 <Layers className="h-3 w-3" /> 
@@ -247,143 +226,18 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                   
                   <AccordionContent className="px-4 pb-3">
                     <div className="grid gap-4">
-                      <div className="text-sm">
-                        {product.description || "Aucune description disponible."}
-                      </div>
-                      
-                      {/* Variants section - always show if hasVariants is true */}
-                      {hasVariants(product) && (
-                        <div className="mt-2">
-                          <div 
-                            className="flex items-center gap-2 text-sm font-medium text-blue-600 cursor-pointer py-2"
-                            onClick={() => toggleVariants(product.id)}
-                          >
-                            {isVariantsExpanded(product.id) ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                            {getVariantsCount(product)} Variante{getVariantsCount(product) > 1 ? 's' : ''}
-                          </div>
-                          
-                          {isVariantsExpanded(product.id) && (
-                            <div className="pl-4 border-l-2 border-blue-200 mt-2 space-y-3">
-                              {/* Display child product variants if any */}
-                              {getVariantsForProduct(product.id).length > 0 ? (
-                                getVariantsForProduct(product.id).map((variant) => (
-                                  <div 
-                                    key={variant.id} 
-                                    className="p-3 bg-blue-50/50 border border-blue-100 rounded-md flex items-center justify-between"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      {variant.image_url && (
-                                        <div className="w-10 h-10 rounded overflow-hidden bg-white">
-                                          <img 
-                                            src={variant.image_url} 
-                                            alt={variant.name}
-                                            className="w-full h-full object-contain p-1"
-                                            onError={(e) => {
-                                              const target = e.target as HTMLImageElement;
-                                              target.src = "/placeholder.svg";
-                                            }}
-                                          />
-                                        </div>
-                                      )}
-                                      <div>
-                                        <div className="font-medium">{variant.name}</div>
-                                        <div className="text-xs text-gray-500 flex flex-wrap gap-1">
-                                          {variant.attributes && Object.entries(variant.attributes).map(([key, value]) => (
-                                            <Badge key={key} variant="outline" className="bg-white">
-                                              {key}: {value}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-2">
-                                      {variant.monthly_price !== undefined && variant.monthly_price > 0 && (
-                                        <span className="text-sm text-primary font-medium">
-                                          {formatCurrency(variant.monthly_price)}/mois
-                                        </span>
-                                      )}
-                                      
-                                      {!readOnly && (
-                                        <>
-                                          <Link to={`/products/${variant.id}`}>
-                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                              <Edit className="h-4 w-4" />
-                                            </Button>
-                                          </Link>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                            onClick={(e) => handleDuplicate(variant, e as React.MouseEvent)}
-                                          >
-                                            <Copy className="h-4 w-4" />
-                                          </Button>
-                                          {onProductDeleted && (
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                              disabled={isDeleting[variant.id]}
-                                              onClick={(e) => handleDelete(variant.id, e as React.MouseEvent)}
-                                            >
-                                              <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                          )}
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))
-                              ) : (
-                                /* If no child products, display variant pricing combinations */
-                                product.variant_combination_prices && product.variant_combination_prices.map((priceVariant, index) => (
-                                  <div 
-                                    key={priceVariant.id || `var-${index}`}
-                                    className="p-3 bg-blue-50/50 border border-blue-100 rounded-md flex items-center justify-between"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded overflow-hidden bg-white flex items-center justify-center text-gray-400">
-                                        <Layers className="h-6 w-6" />
-                                      </div>
-                                      <div>
-                                        <div className="font-medium">Configuration</div>
-                                        <div className="text-xs text-gray-500 flex flex-wrap gap-1">
-                                          {priceVariant.attributes && Object.entries(priceVariant.attributes).map(([key, value]) => (
-                                            <Badge key={key} variant="outline" className="bg-white">
-                                              {key}: {value}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-2">
-                                      {priceVariant.monthly_price !== undefined && priceVariant.monthly_price > 0 && (
-                                        <span className="text-sm text-primary font-medium">
-                                          {formatCurrency(priceVariant.monthly_price)}/mois
-                                        </span>
-                                      )}
-                                      
-                                      {!readOnly && (
-                                        <Link to={`/products/${product.id}`}>
-                                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                            <Edit className="h-4 w-4" />
-                                          </Button>
-                                        </Link>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          )}
+                      {/* Information simplifiée dans l'accordéon */}
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">Détails</h4>
+                          <ul className="text-sm space-y-1">
+                            <li><span className="text-muted-foreground">Marque:</span> {product.brand || "Non spécifiée"}</li>
+                            <li><span className="text-muted-foreground">Catégorie:</span> {product.category || "Non spécifiée"}</li>
+                            <li><span className="text-muted-foreground">Prix:</span> {formatCurrency(product.price || 0)}</li>
+                            <li><span className="text-muted-foreground">Mensualité:</span> {formatCurrency(product.monthly_price || 0)}/mois</li>
+                          </ul>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
