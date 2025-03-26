@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -8,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "@/components/ui/use-toast";
+import VariantIndicator from "@/components/ui/product/VariantIndicator";
 
 interface AccordionProductListProps {
   products: Product[];
@@ -24,7 +24,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
 }) => {
   const [isDeleting, setIsDeleting] = useState<{ [key: string]: boolean }>({});
   
-  // Log what we're receiving for debugging
   console.log("AccordionProductList: Received products:", products.length);
   console.log("AccordionProductList: Products with variants:", 
     products.filter(p => p.is_parent || 
@@ -40,9 +39,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     );
   }
 
-  // Group products based on the selected option
   const groupedProducts = products.reduce((acc, product) => {
-    // Skip variants if they will be displayed under parent
     if (product.parent_id) return acc;
     
     const groupKey = groupingOption === "model" ? 
@@ -57,11 +54,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return acc;
   }, {} as Record<string, Product[]>);
 
-  // Check if a product has variants - improved detection
   const hasVariants = (product: Product): boolean => {
     if (!product) return false;
     
-    // More reliable check for variants
     const isParent = product.is_parent || false;
     const hasCombinationPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
     const hasVariationAttrs = product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0;
@@ -70,14 +65,35 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return isParent || hasCombinationPrices || hasVariationAttrs || hasChildVariants;
   };
 
-  // Get count of variants for a product
   const getVariantsCount = (product: Product): number => {
-    // First check for actual variants (child products)
     const childVariants = products.filter(p => p.parent_id === product.id);
     if (childVariants.length > 0) return childVariants.length;
     
-    // Otherwise return count of variant combination prices
-    return product.variant_combination_prices?.length || 0;
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      return product.variant_combination_prices.length;
+    }
+    
+    if (product.variation_attributes) {
+      const attrs = product.variation_attributes;
+      let totalOptions = 0;
+      
+      Object.keys(attrs).forEach(key => {
+        const options = attrs[key];
+        if (Array.isArray(options) && options.length > 0) {
+          if (totalOptions === 0) {
+            totalOptions = options.length;
+          } else {
+            totalOptions *= options.length;
+          }
+        }
+      });
+      
+      if (totalOptions > 0) return totalOptions;
+    }
+    
+    if (product.is_parent) return 1;
+    
+    return 0;
   };
 
   const handleDelete = async (productId: string, event?: React.MouseEvent) => {
@@ -116,15 +132,11 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       event.stopPropagation();
     }
     
-    // Création d'une copie du produit avec un nouvel ID
     const duplicatedProduct = {
       ...product,
       name: `${product.name} (copie)`,
-      // L'ID sera généré côté backend
     };
     
-    // Ici on pourrait appeler une fonction pour dupliquer le produit dans la BDD
-    // Mais pour l'instant, on va juste afficher un toast
     toast({
       title: "Fonctionnalité en développement",
       description: "La duplication de produits sera bientôt disponible",
@@ -169,13 +181,10 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium">{product.name}</h3>
                             
-                            {/* Simplified variant badge - just show the count */}
-                            {hasVariants(product) && (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100 mr-2 flex items-center gap-1">
-                                <Layers className="h-3.5 w-3.5" /> 
-                                {getVariantsCount(product)}
-                              </Badge>
-                            )}
+                            <VariantIndicator 
+                              hasVariants={hasVariants(product)} 
+                              variantsCount={getVariantsCount(product)} 
+                            />
                           </div>
                           <div className="text-sm text-muted-foreground mt-1 flex flex-wrap gap-2">
                             {product.brand && (
@@ -194,7 +203,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                       </div>
                     </AccordionTrigger>
                     
-                    {/* Action buttons - now as icons only */}
                     {!readOnly && (
                       <div className="flex items-center gap-1 ml-auto">
                         <Link to={`/products/${product.id}`}>
@@ -225,7 +233,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     )}
                   </div>
                   
-                  {/* Empty accordion content */}
                   <AccordionContent className="px-4 pb-2">
                     {/* Intentionally left empty */}
                   </AccordionContent>

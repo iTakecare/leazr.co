@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
-import { Layers } from "lucide-react";
+import VariantIndicator from "@/components/ui/product/VariantIndicator";
 
 interface ProductGridCardProps {
   product: Product;
@@ -83,7 +83,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     return isParent || hasCombPrices || hasVariationAttrs;
   };
 
-  // Count available variants for the badge
+  // Count available variants for the badge - improved to never return 0 when has variants
   const getVariantsCount = (): number => {
     if (product.variants && product.variants.length > 0) {
       return product.variants.length;
@@ -93,10 +93,32 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       return product.variant_combination_prices.length;
     }
     
-    // If it has variation_attributes but no combinations yet, count them as 0 but still show badge
+    // If it has variation_attributes, count possible combinations
     if (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) {
-      return 0;
+      const attrs = product.variation_attributes;
+      let totalOptions = 0;
+      
+      // Count total variants based on attribute combinations
+      Object.keys(attrs).forEach(key => {
+        const options = attrs[key];
+        if (Array.isArray(options) && options.length > 0) {
+          if (totalOptions === 0) {
+            totalOptions = options.length;
+          } else {
+            // Multiply to get possible combinations
+            totalOptions *= options.length;
+          }
+        }
+      });
+      
+      if (totalOptions > 0) return totalOptions;
+      
+      // If we have variation attributes but couldn't calculate combinations, return 1
+      return 1;
     }
+    
+    // If product is marked as parent but no specific variant info
+    if (product.is_parent) return 1;
     
     return 0;
   };
@@ -142,12 +164,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             </Badge>
           )}
           
-          {/* Simplified variant badge - just show the count */}
+          {/* Use VariantIndicator component */}
           {hasVariantsFlag && (
-            <Badge variant="outline" className="rounded-full font-normal text-blue-600 bg-blue-50 flex items-center gap-1">
-              <Layers className="h-3 w-3" />
-              {variantsCount}
-            </Badge>
+            <VariantIndicator 
+              hasVariants={hasVariantsFlag} 
+              variantsCount={variantsCount} 
+            />
           )}
         </div>
         
