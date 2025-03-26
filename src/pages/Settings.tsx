@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { toast } from "sonner";
 import LeaserManager from "@/components/settings/LeaserManager";
 import CommissionManager from "@/components/settings/CommissionManager";
 import SmtpSettings from "@/components/settings/SmtpSettings";
@@ -11,11 +14,13 @@ import PDFTemplateList from "@/components/settings/PDFTemplateList";
 import DataImporter from "@/components/settings/DataImporter";
 import AdminManager from "@/components/settings/AdminManager";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("leasers");
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   
   useEffect(() => {
     // Récupère l'onglet à partir des paramètres d'URL
@@ -32,6 +37,18 @@ const Settings = () => {
     console.log("Tab changed to:", value); // Ajout de log pour débogage
   };
 
+  // Function to handle logout
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success("Déconnexion réussie");
+      navigate("/login");
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      toast.error("Erreur lors de la déconnexion");
+    }
+  };
+
   // Récupère le template ID s'il est spécifié dans l'URL
   const selectedTemplateId = searchParams.get("template") || "default";
 
@@ -39,9 +56,19 @@ const Settings = () => {
   
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Paramètres</h1>
-        <p className="text-gray-500">Gérez les paramètres de votre application</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Paramètres</h1>
+          <p className="text-gray-500">Gérez les paramètres de votre application</p>
+        </div>
+        <Button 
+          variant="destructive" 
+          onClick={handleLogout}
+          className="flex items-center gap-2"
+        >
+          <LogOut size={16} />
+          Déconnexion
+        </Button>
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
