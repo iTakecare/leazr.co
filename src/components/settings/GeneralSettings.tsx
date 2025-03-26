@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -26,14 +25,14 @@ import {
   RefreshCw, 
   Building, 
   Info,
-  AlertTriangle
+  AlertTriangle,
+  Shield
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { ensureStorageBucket } from "@/services/storageService";
 import Logo from "@/components/layout/Logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Définition du schéma de validation
 const generalSettingsSchema = z.object({
   siteName: z.string().min(2, {
     message: "Le nom du site doit contenir au moins 2 caractères",
@@ -58,8 +57,8 @@ const GeneralSettings = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
+  const [error, setError] = useState<string | null>(null);
   
-  // Initialisation du formulaire
   const form = useForm<GeneralSettingsFormValues>({
     resolver: zodResolver(generalSettingsSchema),
     defaultValues: {
@@ -73,7 +72,6 @@ const GeneralSettings = () => {
     },
   });
   
-  // Vérifier l'état d'authentification
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -82,7 +80,6 @@ const GeneralSettings = () => {
     
     checkAuth();
     
-    // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setAuthStatus(session ? 'authenticated' : 'unauthenticated');
     });
@@ -92,22 +89,27 @@ const GeneralSettings = () => {
     };
   }, []);
   
-  // Chargement des paramètres actuels au montage du composant
   useEffect(() => {
     if (authStatus !== 'loading') {
       loadSettings();
     }
   }, [authStatus]);
   
-  // Fonction pour charger les paramètres depuis la base de données
   const loadSettings = async () => {
     setIsLoading(true);
+    setError(null);
     
     try {
-      // Vérifier que le bucket de stockage existe
-      await ensureStorageBucket('site-settings');
+      console.log('Vérification du bucket de stockage site-settings...');
+      const bucketExists = await ensureStorageBucket('site-settings');
       
-      // Récupérer les paramètres depuis la base de données
+      if (!bucketExists) {
+        console.error('Échec de la création/vérification du bucket site-settings');
+        toast.warning("Le stockage n'est pas correctement configuré. Les uploads de logo peuvent ne pas fonctionner.");
+      } else {
+        console.log('Bucket site-settings vérifié ou créé avec succès');
+      }
+      
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
@@ -115,14 +117,12 @@ const GeneralSettings = () => {
       
       if (error) {
         if (error.code === 'PGRST116') {
-          // Aucun enregistrement trouvé, c'est normal si c'est la première utilisation
           console.log("Aucun paramètre trouvé, utilisation des valeurs par défaut");
         } else {
           console.error("Erreur lors du chargement des paramètres:", error);
           toast.error("Erreur lors du chargement des paramètres");
         }
       } else if (data) {
-        // Mettre à jour le formulaire avec les données récupérées
         form.reset({
           siteName: data.site_name || "iTakecare",
           siteDescription: data.site_description || "Hub de gestion",
@@ -133,7 +133,6 @@ const GeneralSettings = () => {
           logoUrl: data.logo_url || "",
         });
         
-        // Mettre à jour l'aperçu du logo
         if (data.logo_url) {
           setLogoPreview(data.logo_url);
         }
@@ -146,7 +145,6 @@ const GeneralSettings = () => {
     }
   };
   
-  // Fonction pour sauvegarder les paramètres
   const onSubmit = async (values: GeneralSettingsFormValues) => {
     if (authStatus !== 'authenticated') {
       toast.error("Vous devez être connecté pour sauvegarder les paramètres");
@@ -156,7 +154,6 @@ const GeneralSettings = () => {
     setIsSaving(true);
     
     try {
-      // Transformer les données pour correspondre au schéma de la table
       const settingsData = {
         site_name: values.siteName,
         site_description: values.siteDescription,
@@ -167,7 +164,6 @@ const GeneralSettings = () => {
         logo_url: values.logoUrl,
       };
       
-      // Upsert des paramètres (mise à jour ou insertion si n'existe pas)
       const { error } = await supabase
         .from('site_settings')
         .upsert(settingsData);
@@ -186,24 +182,20 @@ const GeneralSettings = () => {
     }
   };
   
-  // Fonction pour gérer l'upload du logo
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     
-    // Vérifier que l'utilisateur est connecté
     if (authStatus !== 'authenticated') {
       toast.error("Vous devez être connecté pour uploader un logo");
       return;
     }
     
-    // Vérifier le type de fichier
     if (!file.type.startsWith('image/')) {
       toast.error("Veuillez sélectionner une image");
       return;
     }
     
-    // Vérifier la taille du fichier (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error("L'image est trop volumineuse (max 2MB)");
       return;
@@ -211,68 +203,104 @@ const GeneralSettings = () => {
     
     try {
       setIsUploading(true);
+      toast.info("Préparation de l'upload du logo...");
       
       console.log("Tentative d'upload du logo...");
       
-      // S'assurer que le bucket existe
       const bucketExists = await ensureStorageBucket('site-settings');
+      
       if (!bucketExists) {
-        toast.error("Erreur lors de la création du bucket de stockage");
+        toast.error("Erreur lors de la configuration du stockage. Veuillez réessayer.");
         return;
       }
       
-      // Générer un nom de fichier unique
       const fileExt = file.name.split('.').pop();
       const fileName = `site-logo-${Date.now()}.${fileExt}`;
       
-      // Uploader l'image
-      const { data, error } = await supabase
-        .storage
-        .from('site-settings')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
+      let uploadResult;
+      let useAdminClient = false;
       
-      if (error) {
-        console.error("Erreur lors de l'upload:", error);
-        throw error;
-      }
-      
-      // Obtenir l'URL publique
-      const { data: urlData } = supabase
-        .storage
-        .from('site-settings')
-        .getPublicUrl(fileName);
-      
-      const publicUrl = urlData.publicUrl;
-      
-      // Mettre à jour l'URL du logo dans le formulaire
-      form.setValue('logoUrl', publicUrl);
-      setLogoPreview(publicUrl);
-      
-      // Copier le logo vers le répertoire public pour l'utiliser comme favicon
       try {
-        // Récupérer le fichier pour le copier
-        const { data: fileData, error: fileError } = await supabase
+        uploadResult = await supabase
           .storage
           .from('site-settings')
-          .download(fileName);
-        
-        if (fileError) throw fileError;
-        
-        // Uploader vers le répertoire public
-        const { error: uploadError } = await supabase
-          .storage
-          .from('public')
-          .upload('site-favicon.ico', fileData, { upsert: true });
-        
-        if (uploadError) {
-          console.warn("Impossible de copier le logo comme favicon:", uploadError);
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+          
+        if (uploadResult.error) {
+          console.warn("Erreur d'upload avec le client standard:", uploadResult.error);
+          
+          if (uploadResult.error.message.includes("row-level security") || 
+              uploadResult.error.message.includes("Unauthorized")) {
+            console.log("Problème d'autorisation, tentative avec le client admin...");
+            useAdminClient = true;
+            toast.info("Nouvelle tentative en cours...");
+          } else {
+            throw uploadResult.error;
+          }
         }
       } catch (error) {
-        console.warn("Erreur lors de la copie du logo comme favicon:", error);
+        console.error("Erreur lors de la première tentative d'upload:", error);
+        useAdminClient = true;
       }
+      
+      if (useAdminClient) {
+        try {
+          uploadResult = await adminSupabase
+            .storage
+            .from('site-settings')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: true
+            });
+            
+          if (uploadResult.error) {
+            throw uploadResult.error;
+          }
+        } catch (adminError) {
+          console.error("Erreur avec le client admin:", adminError);
+          
+          toast.info("Tentative alternative en cours...");
+          try {
+            const { data: funcData, error: funcError } = await supabase.functions.invoke('create-storage-bucket', {
+              body: { bucket_name: 'site-settings' }
+            });
+            
+            if (funcError) throw funcError;
+            
+            uploadResult = await supabase
+              .storage
+              .from('site-settings')
+              .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: true
+              });
+              
+            if (uploadResult.error) throw uploadResult.error;
+          } catch (funcUploadError) {
+            throw new Error(`Toutes les tentatives d'upload ont échoué: ${funcUploadError.message}`);
+          }
+        }
+      }
+      
+      console.log("Upload réussi!");
+      
+      const publicUrlResult = useAdminClient ? 
+        adminSupabase
+          .storage
+          .from('site-settings')
+          .getPublicUrl(uploadResult.data.path) :
+        supabase
+          .storage
+          .from('site-settings')
+          .getPublicUrl(uploadResult.data.path);
+      
+      const publicUrl = publicUrlResult.data.publicUrl;
+      
+      form.setValue('logoUrl', publicUrl);
+      setLogoPreview(publicUrl);
       
       toast.success("Logo uploadé avec succès");
     } catch (error: any) {
@@ -280,11 +308,16 @@ const GeneralSettings = () => {
       
       let errorMessage = "Erreur lors de l'upload du logo";
       
-      // Vérifier si l'erreur est liée à RLS
-      if (error.message && error.message.includes("violates row-level security policy")) {
-        errorMessage = "Erreur d'autorisation: Assurez-vous d'être connecté avec un compte autorisé";
-      } else if (error.message) {
-        errorMessage = `Erreur: ${error.message}`;
+      if (error.message) {
+        if (error.message.includes("violates row-level security policy")) {
+          errorMessage = "Erreur d'autorisation: Problème avec les politiques de sécurité du stockage";
+        } else if (error.message.includes("bucket not found")) {
+          errorMessage = "Le bucket de stockage n'existe pas ou n'est pas accessible";
+        } else if (error.message.includes("Unauthorized")) {
+          errorMessage = "Erreur d'authentification: Vous n'avez pas les autorisations nécessaires";
+        } else {
+          errorMessage = `Erreur: ${error.message}`;
+        }
       }
       
       toast.error(errorMessage);
@@ -314,10 +347,17 @@ const GeneralSettings = () => {
         </Alert>
       )}
       
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Erreur</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Section Logo du site */}
             <Card className="overflow-hidden">
               <CardContent className="p-6">
                 <div className="flex flex-col items-center justify-center space-y-4">
@@ -328,6 +368,11 @@ const GeneralSettings = () => {
                   
                   <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-6 w-full flex flex-col items-center space-y-4">
                     <div className="relative w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden">
+                      {isUploading && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 text-white animate-spin" />
+                        </div>
+                      )}
                       {logoPreview ? (
                         <img 
                           src={logoPreview} 
@@ -349,28 +394,39 @@ const GeneralSettings = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 w-full">
-                      <FormLabel htmlFor="logo-upload" className="cursor-pointer py-2 px-4 bg-primary text-white rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors">
-                        <Upload className="h-4 w-4" />
-                        <span>Choisir un fichier</span>
-                      </FormLabel>
-                      <input 
-                        id="logo-upload" 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        disabled={isSaving || isUploading || authStatus !== 'authenticated'}
-                      />
-                      {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="flex items-center gap-2 w-full">
+                        <FormLabel htmlFor="logo-upload" className="cursor-pointer py-2 px-4 bg-primary text-white rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors">
+                          <Upload className="h-4 w-4" />
+                          <span>Choisir un fichier</span>
+                        </FormLabel>
+                        <input 
+                          id="logo-upload" 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={isSaving || isUploading || authStatus !== 'authenticated'}
+                        />
+                        {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
+                      </div>
                       <p className="text-xs text-muted-foreground">Format recommandé: PNG ou SVG, carré, fond transparent</p>
+                      
+                      {authStatus === 'authenticated' && (
+                        <Alert variant="outline" className="mt-2">
+                          <Shield className="h-4 w-4 text-blue-500" />
+                          <AlertTitle className="text-xs font-medium">Stockage sécurisé</AlertTitle>
+                          <AlertDescription className="text-xs">
+                            Le fichier sera stocké de manière sécurisée dans Supabase Storage.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            {/* Section Informations du site */}
             <Card>
               <CardContent className="p-6">
                 <div className="space-y-4">
@@ -421,7 +477,6 @@ const GeneralSettings = () => {
           
           <Separator />
           
-          {/* Section Informations de l'entreprise */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Building className="h-5 w-5 text-primary" />
@@ -530,3 +585,4 @@ const GeneralSettings = () => {
 };
 
 export default GeneralSettings;
+

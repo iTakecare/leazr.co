@@ -14,7 +14,7 @@ serve(async (req) => {
   }
   
   try {
-    const supabaseClient = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
@@ -28,64 +28,110 @@ serve(async (req) => {
       );
     }
     
-    // Créer le bucket s'il n'existe pas
-    const { data, error } = await supabaseClient
-      .storage
-      .createBucket(bucket_name, {
-        public: true,
-        fileSizeLimit: 52428800 // 50MB
-      });
+    console.log(`Tentative de création du bucket: ${bucket_name}`);
     
-    if (error && error.message !== 'Bucket already exists') {
-      console.error("Error creating bucket:", error);
+    // Vérifier d'abord si le bucket existe déjà
+    try {
+      const { data: existingBucket } = await supabaseAdmin.storage.getBucket(bucket_name);
+      
+      if (existingBucket) {
+        console.log(`Le bucket ${bucket_name} existe déjà`);
+        return new Response(
+          JSON.stringify({ success: true, bucket: bucket_name, message: "Bucket already exists" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } catch (checkError) {
+      // Si l'erreur n'est pas "bucket not found", alors il y a un autre problème
+      if (!checkError.message?.includes("not found")) {
+        console.error("Error checking bucket:", checkError);
+      }
+    }
+    
+    // Créer le bucket s'il n'existe pas
+    try {
+      const { data, error } = await supabaseAdmin.storage
+        .createBucket(bucket_name, {
+          public: true,
+          fileSizeLimit: 52428800 // 50MB
+        });
+      
+      if (error) {
+        if (error.message === 'The resource already exists') {
+          console.log(`Le bucket ${bucket_name} existe déjà (conflit)`);
+          return new Response(
+            JSON.stringify({ success: true, bucket: bucket_name, message: "Bucket already exists" }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        console.error("Error creating bucket:", error);
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      console.log(`Bucket ${bucket_name} créé avec succès`);
+    } catch (createError) {
+      if (createError.message?.includes("already exists")) {
+        console.log(`Le bucket ${bucket_name} existe déjà (exception)`);
+        return new Response(
+          JSON.stringify({ success: true, bucket: bucket_name, message: "Bucket already exists" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      console.error("Error creating bucket:", createError);
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: createError.message || "Unknown error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    // Créer les politiques d'accès public si le bucket a été créé
-    if (!error || error.message === 'Bucket already exists') {
-      try {
-        // Policies for SELECT
-        await supabaseClient
-          .rpc('create_storage_policy', { 
-            bucket_name, 
-            policy_name: `${bucket_name}_public_select`, 
-            definition: 'TRUE', 
-            policy_type: 'SELECT' 
-          });
+    // Créer les politiques d'accès
+    try {
+      console.log("Création des politiques pour le bucket");
+      
+      // Utiliser une requête SQL pour créer les politiques
+      const createPoliciesQuery = `
+        BEGIN;
+        -- Supprimer les politiques existantes pour éviter les erreurs
+        DROP POLICY IF EXISTS "${bucket_name}_public_select" ON storage.objects;
+        DROP POLICY IF EXISTS "${bucket_name}_authenticated_insert" ON storage.objects;
+        DROP POLICY IF EXISTS "${bucket_name}_authenticated_update" ON storage.objects;
+        DROP POLICY IF EXISTS "${bucket_name}_authenticated_delete" ON storage.objects;
         
-        // Policies for INSERT
-        await supabaseClient
-          .rpc('create_storage_policy', { 
-            bucket_name, 
-            policy_name: `${bucket_name}_public_insert`, 
-            definition: 'TRUE', 
-            policy_type: 'INSERT' 
-          });
+        -- Créer les nouvelles politiques
+        CREATE POLICY "${bucket_name}_public_select" 
+        ON storage.objects 
+        FOR SELECT 
+        USING (bucket_id = '${bucket_name}');
         
-        // Policies for UPDATE
-        await supabaseClient
-          .rpc('create_storage_policy', { 
-            bucket_name, 
-            policy_name: `${bucket_name}_public_update`, 
-            definition: 'TRUE', 
-            policy_type: 'UPDATE' 
-          });
+        CREATE POLICY "${bucket_name}_authenticated_insert" 
+        ON storage.objects 
+        FOR INSERT 
+        WITH CHECK (bucket_id = '${bucket_name}' AND auth.role() = 'authenticated');
         
-        // Policies for DELETE
-        await supabaseClient
-          .rpc('create_storage_policy', { 
-            bucket_name, 
-            policy_name: `${bucket_name}_public_delete`, 
-            definition: 'TRUE', 
-            policy_type: 'DELETE' 
-          });
-      } catch (policyError) {
-        console.error("Error creating policies:", policyError);
-        // Continue even if policy creation failed
-      }
+        CREATE POLICY "${bucket_name}_authenticated_update" 
+        ON storage.objects 
+        FOR UPDATE 
+        USING (bucket_id = '${bucket_name}' AND auth.role() = 'authenticated');
+        
+        CREATE POLICY "${bucket_name}_authenticated_delete" 
+        ON storage.objects 
+        FOR DELETE 
+        USING (bucket_id = '${bucket_name}' AND auth.role() = 'authenticated');
+        COMMIT;
+      `;
+      
+      // Exécuter les requêtes SQL via rpc
+      await supabaseAdmin.rpc('execute_sql', { sql: createPoliciesQuery });
+      
+      console.log("Politiques créées avec succès");
+    } catch (policyError) {
+      console.error("Error creating policies (continuing anyway):", policyError);
+      // Continuer même si la création des politiques a échoué
     }
     
     return new Response(
@@ -95,7 +141,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
