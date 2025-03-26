@@ -1,9 +1,10 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { formatCurrency } from "@/utils/formatters";
 import { useContracts } from "@/hooks/useContracts";
-import { FileText, Search, Filter, Grid, List, Plus, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { FileText, Search, Filter, Grid, List, Plus, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import ContractsKanban from "@/components/contracts/ContractsKanban";
@@ -242,6 +243,13 @@ const Contracts = () => {
               (isRefreshing || isDeleting) ? "opacity-50 pointer-events-none relative" : "relative"
             }
           >
+            {loadingError && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
+                <p className="text-sm">{loadingError}</p>
+              </div>
+            )}
+            
             {viewMode === 'kanban' ? (
               <>
                 <div className="flex justify-between items-center mb-2">
@@ -286,7 +294,7 @@ const Contracts = () => {
             )}
             
             {(isRefreshing || isDeleting) && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10 backdrop-blur-sm">
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10 backdrop-blur-sm">
                 <div className="flex flex-col items-center">
                   <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full"></div>
                   <p className="mt-4 font-medium text-sm">

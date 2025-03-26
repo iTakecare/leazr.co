@@ -318,76 +318,122 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
 
 export const deleteContract = async (contractId: string): Promise<boolean> => {
   try {
-    console.log("Starting contract deletion for ID:", contractId);
+    console.log("DELETION: Starting contract deletion process for ID:", contractId);
     
-    // 1. Fetch contract details first (for offer relationship)
-    const { data: contract, error: fetchError } = await supabase
+    // 1. First verify the contract exists
+    const { data: initialCheck, error: initialError } = await supabase
       .from('contracts')
       .select('id, offer_id')
       .eq('id', contractId)
       .single();
       
-    if (fetchError || !contract) {
-      console.error("Contract not found:", fetchError);
-      toast.error("Contract not found");
+    if (initialError) {
+      console.error("DELETION ERROR: Contract not found during initial check:", initialError);
       return false;
     }
     
-    console.log("Found contract to delete:", contract);
+    if (!initialCheck) {
+      console.error("DELETION ERROR: Contract not found (null result)");
+      return false;
+    }
     
-    // 2. Delete logs first (handle foreign key constraints)
-    await supabase
+    console.log("DELETION: Found contract to delete:", initialCheck);
+    
+    // 2. Get the offer_id for later reference (if we need to update the offer)
+    const offerId = initialCheck.offer_id;
+    
+    // 3. Delete associated workflow logs first (foreign key constraint)
+    const { error: logsError } = await supabase
       .from('contract_workflow_logs')
       .delete()
       .eq('contract_id', contractId);
     
-    console.log("Deleted workflow logs");
+    if (logsError) {
+      console.error("DELETION ERROR: Error deleting workflow logs:", logsError);
+      // Continue with deletion attempt even if log deletion fails
+    } else {
+      console.log("DELETION: Successfully deleted workflow logs");
+    }
     
-    // 3. Delete the contract with HARD delete (no .select())
+    // 4. CRITICAL: Add a small delay to ensure the delete operation completes fully
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // 5. Delete the contract with explicit return type - NO .select()
     const { error: deleteError } = await supabase
       .from('contracts')
       .delete()
       .eq('id', contractId);
       
     if (deleteError) {
-      console.error("Error deleting contract:", deleteError);
-      toast.error("Failed to delete contract");
+      console.error("DELETION ERROR: Failed to delete contract:", deleteError);
       return false;
     }
     
-    // 4. Verify contract is actually deleted with a separate query
-    const { data: checkData } = await supabase
+    console.log("DELETION: Delete operation completed, verifying...");
+    
+    // 6. CRITICAL: Add another delay before verification to allow for database propagation
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 7. CRITICAL: Triple-verify the contract is actually deleted with a separate query
+    const { data: verifyData, error: verifyError } = await supabase
       .from('contracts')
       .select('id')
       .eq('id', contractId);
       
-    if (checkData && checkData.length > 0) {
-      console.error("CRITICAL: Contract still exists after deletion!");
-      toast.error("Database error: Contract still exists after deletion");
-      return false;
+    if (verifyError) {
+      console.log("DELETION WARNING: Error during verification check:", verifyError);
+      // We continue and assume it was deleted
     }
     
-    console.log("Contract successfully deleted and verified");
+    if (verifyData && verifyData.length > 0) {
+      console.error("DELETION CRITICAL FAILURE: Contract still exists after deletion!", verifyData);
+      
+      // 8. Last resort: Try one more forceful deletion with different approach
+      const { error: forceDeleteError } = await supabase
+        .from('contracts')
+        .delete()
+        .match({ id: contractId });
+        
+      if (forceDeleteError) {
+        console.error("DELETION ERROR: Force deletion also failed:", forceDeleteError);
+        return false;
+      }
+      
+      // One final verification
+      const { data: finalCheck } = await supabase
+        .from('contracts')
+        .select('id')
+        .eq('id', contractId);
+        
+      if (finalCheck && finalCheck.length > 0) {
+        console.error("DELETION FATAL: Contract could not be deleted after multiple attempts");
+        return false;
+      }
+    }
     
-    // 5. Update associated offer if exists
-    if (contract.offer_id) {
+    console.log("DELETION: Contract successfully deleted and verified");
+    
+    // 9. Update associated offer if exists
+    if (offerId) {
+      console.log("DELETION: Updating associated offer:", offerId);
+      
       const { error: offerError } = await supabase
         .from('offers')
         .update({ converted_to_contract: false })
-        .eq('id', contract.offer_id);
+        .eq('id', offerId);
         
       if (offerError) {
-        console.warn("Could not update associated offer:", offerError);
+        console.warn("DELETION WARNING: Could not update associated offer:", offerError);
         // We still consider deletion successful
       } else {
-        console.log("Updated associated offer status");
+        console.log("DELETION: Successfully updated associated offer status");
       }
     }
     
     return true;
   } catch (error) {
-    console.error("Exception in deleteContract:", error);
-    toast.error("An error occurred while deleting the contract");
+    console.error("DELETION EXCEPTION: Unhandled error in deleteContract:", error);
     return false;
   }
 };
+

@@ -67,10 +67,19 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
 
   const handleDelete = async (contractId: string) => {
     try {
-      setConfirmDelete(null); // Close dialog immediately for better UX
+      // Close confirm dialog immediately for better UX
+      setConfirmDelete(null);
+      
+      // Ensure we can't trigger multiple deletions
+      if (isDeleting || deleteInProgress) {
+        console.log("DELETE UI: Ignoring delete request, deletion already in progress");
+        return;
+      }
+      
+      console.log("DELETE UI: Initiating deletion for contract:", contractId);
       await onDeleteContract(contractId);
     } catch (error) {
-      console.error("Error in handleDelete:", error);
+      console.error("DELETE UI ERROR: Error in handleDelete:", error);
       setConfirmDelete(null);
     }
   };
@@ -152,8 +161,10 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 key={contract.id} 
                 className={
                   deleteInProgress === contract.id 
-                    ? "opacity-50 pointer-events-none bg-red-50 transition-all" 
-                    : "transition-all"
+                    ? "opacity-40 pointer-events-none bg-red-50 transition-all" 
+                    : isDeleting 
+                      ? "opacity-70 pointer-events-none transition-all"
+                      : "transition-all"
                 }
               >
                 <TableCell className="font-medium cursor-pointer" onClick={() => handleRowClick(contract.id)}>
@@ -209,20 +220,27 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
-                        disabled={deleteInProgress === contract.id}
+                        disabled={deleteInProgress !== null || isDeleting}
                       >
-                        <MoreHorizontal className="h-4 w-4" />
+                        {deleteInProgress === contract.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <MoreHorizontal className="h-4 w-4" />
+                        )}
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleRowClick(contract.id)}>
+                      <DropdownMenuItem 
+                        onClick={() => handleRowClick(contract.id)}
+                        disabled={isDeleting || deleteInProgress !== null}
+                      >
                         <ExternalLink className="mr-2 h-4 w-4" />
                         <span>Voir les détails</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (deleteInProgress || isDeleting) return;
+                          if (deleteInProgress !== null || isDeleting) return;
                           setConfirmDelete(contract.id);
                         }}
                         disabled={isDeleting || deleteInProgress !== null}
@@ -257,7 +275,15 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         </Table>
       </div>
 
-      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+      <AlertDialog 
+        open={!!confirmDelete} 
+        onOpenChange={(open) => {
+          // Don't allow closing the dialog if deletion is in progress
+          if (!open && !isDeleting && deleteInProgress === null) {
+            setConfirmDelete(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
@@ -266,17 +292,17 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting || deleteInProgress !== null}>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (confirmDelete) {
+                if (confirmDelete && !isDeleting && deleteInProgress === null) {
                   handleDelete(confirmDelete);
                 }
               }}
               className="bg-red-500 hover:bg-red-600"
-              disabled={isDeleting || !!deleteInProgress}
+              disabled={isDeleting || deleteInProgress !== null}
             >
-              {isDeleting || deleteInProgress ? (
+              {isDeleting || deleteInProgress !== null ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Suppression...
