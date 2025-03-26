@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { 
@@ -127,7 +128,7 @@ export const useContracts = () => {
         return;
       }
       
-      // CRITICAL: Explicitly store the current status before any operations
+      // CRITIQUE: Stocker explicitement le statut actuel avant toute opération
       const currentStatus = contract.status;
       console.log(`Ajout de numéro de suivi pour le contrat ${contractId}, préservation du statut actuel: "${currentStatus}"`);
       
@@ -141,7 +142,7 @@ export const useContracts = () => {
       if (success) {
         console.log(`Mise à jour locale du contrat, maintien du statut: "${currentStatus}"`);
         
-        // Update local state while explicitly preserving the current status
+        // FIXÉ: Mettre à jour l'état local tout en préservant EXPLICITEMENT le statut actuel
         setContracts(prevContracts => 
           prevContracts.map(c => 
             c.id === contractId ? { 
@@ -150,7 +151,7 @@ export const useContracts = () => {
               estimated_delivery: estimatedDelivery,
               delivery_carrier: carrier,
               delivery_status: 'en_attente',
-              status: currentStatus, // Explicitly preserve the current status
+              status: currentStatus, // Préserver explicitement le statut actuel
               updated_at: new Date().toISOString()
             } : c
           )
@@ -158,8 +159,11 @@ export const useContracts = () => {
         
         toast.success(`Informations de suivi ajoutées avec succès`);
         
-        // Force a complete reload to ensure everything is in sync with the database
-        await fetchContracts();
+        // Attendons un peu avant de recharger pour s'assurer que la BD est à jour
+        setTimeout(async () => {
+          // Forcer un rechargement complet pour s'assurer que tout est synchronisé
+          await fetchContracts();
+        }, 500);
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
       }

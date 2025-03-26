@@ -221,12 +221,15 @@ export const addTrackingNumber = async (
       return false;
     }
     
-    // Important: Always use the contract's current status from database
+    // CRITIQUE: Toujours utiliser le statut actuel du contrat depuis la base de données
     const currentStatus = contract.status;
     
     console.log(`Current status before tracking update: ${currentStatus}, maintaining this status`);
     
-    // Update the contract with tracking info while preserving the current status
+    // Log pour débogage - très important
+    console.log(`CRITICAL DEBUG: Updating contract ${contractId} with tracking ${trackingNumber}, preserving status "${currentStatus}"`);
+    
+    // Mettre à jour le contrat avec les infos de suivi tout en préservant le statut actuel
     const { error } = await supabase
       .from('contracts')
       .update({
@@ -234,7 +237,7 @@ export const addTrackingNumber = async (
         estimated_delivery: estimatedDelivery,
         delivery_carrier: carrier,
         delivery_status: 'en_attente',
-        status: currentStatus, // Keep the current status explicitly
+        status: currentStatus, // Garder explicitement le statut actuel
         updated_at: new Date().toISOString()
       })
       .eq('id', contractId);
@@ -242,6 +245,19 @@ export const addTrackingNumber = async (
     if (error) {
       console.error("Erreur lors de l'ajout du numéro de suivi:", error);
       return false;
+    }
+
+    // Vérifier que le statut est bien préservé après la mise à jour
+    const { data: updatedContract, error: verifyError } = await supabase
+      .from('contracts')
+      .select('status')
+      .eq('id', contractId)
+      .single();
+      
+    if (verifyError) {
+      console.error("Erreur lors de la vérification après mise à jour:", verifyError);
+    } else {
+      console.log(`Vérification après mise à jour: status = "${updatedContract?.status}"`);
     }
 
     console.log(`Numéro de suivi ajouté avec succès. Status maintenu à: ${currentStatus}`);

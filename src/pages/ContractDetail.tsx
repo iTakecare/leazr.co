@@ -189,8 +189,10 @@ const ContractDetail = () => {
         toast.success(`Informations de suivi ajoutées avec succès`);
         setTrackingDialogOpen(false);
         
-        await fetchLogs();
-        await fetchContractDetails();
+        setTimeout(async () => {
+          await fetchLogs();
+          await fetchContractDetails();
+        }, 500);
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
       }
