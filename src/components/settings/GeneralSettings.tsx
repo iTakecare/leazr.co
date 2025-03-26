@@ -39,7 +39,7 @@ const generalSettingsSchema = z.object({
   siteDescription: z.string().optional(),
   companyName: z.string().min(2, {
     message: "Le nom de l'entreprise doit contenir au moins 2 caractères",
-  }),
+  }).optional(),
   companyAddress: z.string().optional(),
   companyPhone: z.string().optional(),
   companyEmail: z.string().email({
@@ -140,7 +140,7 @@ const GeneralSettings = () => {
       // Upsert des paramètres (mise à jour ou insertion si n'existe pas)
       const { error } = await supabase
         .from('site_settings')
-        .upsert(settingsData, { onConflict: 'id' });
+        .upsert(settingsData);
       
       if (error) {
         console.error("Erreur lors de la sauvegarde des paramètres:", error);
