@@ -161,7 +161,7 @@ const ContractDetail = () => {
       setIsUpdatingStatus(true);
       
       const currentStatus = contract.status;
-      console.log(`Ajout d'informations de suivi au contrat avec statut actuel: "${currentStatus}"`);
+      console.log(`ContractDetail: Ajout d'infos de suivi pour contrat avec statut "${currentStatus}"`);
       
       const success = await addTrackingNumber(
         contract.id,
@@ -171,7 +171,7 @@ const ContractDetail = () => {
       );
       
       if (success) {
-        console.log(`Tracking info added, maintaining current status: "${currentStatus}"`);
+        console.log(`ContractDetail: Infos de suivi ajoutées, statut maintenu à "${currentStatus}"`);
         
         setContract(prevContract => {
           if (!prevContract) return null;
@@ -190,9 +190,10 @@ const ContractDetail = () => {
         setTrackingDialogOpen(false);
         
         setTimeout(async () => {
+          console.log("ContractDetail: Rechargement des logs et détails après ajout tracking");
           await fetchLogs();
           await fetchContractDetails();
-        }, 500);
+        }, 800);
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
       }

@@ -202,9 +202,9 @@ export const addTrackingNumber = async (
   carrier?: string
 ): Promise<boolean> => {
   try {
-    console.log(`Adding tracking number ${trackingNumber} to contract ${contractId}`);
+    console.log(`Début de l'ajout du numéro de suivi ${trackingNumber} au contrat ${contractId}`);
     
-    // Fetch the current contract to get its current status
+    // 1. Récupérer le contrat actuel avec son statut
     const { data: contract, error: fetchError } = await supabase
       .from('contracts')
       .select('status')
@@ -212,7 +212,7 @@ export const addTrackingNumber = async (
       .single();
     
     if (fetchError) {
-      console.error("Erreur lors de la récupération du contrat:", fetchError);
+      console.error("Erreur lors de la récupération du statut du contrat:", fetchError);
       return false;
     }
     
@@ -221,25 +221,25 @@ export const addTrackingNumber = async (
       return false;
     }
     
-    // CRITIQUE: Toujours utiliser le statut actuel du contrat depuis la base de données
+    // 2. Enregistrer le statut actuel pour le conserver
     const currentStatus = contract.status;
+    console.log(`Statut actuel avant mise à jour: "${currentStatus}"`);
     
-    console.log(`Current status before tracking update: ${currentStatus}, maintaining this status`);
+    // 3. Mettre à jour le contrat avec les infos de suivi tout en préservant explicitement le statut actuel
+    const updateData = {
+      tracking_number: trackingNumber,
+      estimated_delivery: estimatedDelivery || null,
+      delivery_carrier: carrier || null,
+      delivery_status: 'en_attente',
+      status: currentStatus, // IMPORTANT: Préserver explicitement le statut actuel
+      updated_at: new Date().toISOString()
+    };
     
-    // Log pour débogage - très important
-    console.log(`CRITICAL DEBUG: Updating contract ${contractId} with tracking ${trackingNumber}, preserving status "${currentStatus}"`);
+    console.log(`Mise à jour avec les données suivantes:`, updateData);
     
-    // Mettre à jour le contrat avec les infos de suivi tout en préservant le statut actuel
     const { error } = await supabase
       .from('contracts')
-      .update({
-        tracking_number: trackingNumber,
-        estimated_delivery: estimatedDelivery,
-        delivery_carrier: carrier,
-        delivery_status: 'en_attente',
-        status: currentStatus, // Garder explicitement le statut actuel
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', contractId);
 
     if (error) {
@@ -247,23 +247,40 @@ export const addTrackingNumber = async (
       return false;
     }
 
-    // Vérifier que le statut est bien préservé après la mise à jour
+    // 4. Vérifier que le statut a bien été préservé après la mise à jour
     const { data: updatedContract, error: verifyError } = await supabase
       .from('contracts')
-      .select('status')
+      .select('status, tracking_number')
       .eq('id', contractId)
       .single();
       
     if (verifyError) {
       console.error("Erreur lors de la vérification après mise à jour:", verifyError);
-    } else {
-      console.log(`Vérification après mise à jour: status = "${updatedContract?.status}"`);
+    } else if (updatedContract) {
+      console.log(`VÉRIFICATION après mise à jour: status = "${updatedContract.status}", tracking = "${updatedContract.tracking_number}"`);
+      
+      // Double vérification que le statut est toujours le bon
+      if (updatedContract.status !== currentStatus) {
+        console.error(`ERREUR CRITIQUE: Le statut a changé de "${currentStatus}" à "${updatedContract.status}"`);
+        
+        // Tentative de correction immédiate si le statut a été modifié
+        const { error: fixError } = await supabase
+          .from('contracts')
+          .update({ status: currentStatus })
+          .eq('id', contractId);
+          
+        if (fixError) {
+          console.error("Échec de la correction du statut:", fixError);
+        } else {
+          console.log(`Correction du statut réussie, restauré à "${currentStatus}"`);
+        }
+      }
     }
 
-    console.log(`Numéro de suivi ajouté avec succès. Status maintenu à: ${currentStatus}`);
+    console.log(`Numéro de suivi ajouté avec succès. Statut maintenu à: ${currentStatus}`);
     return true;
   } catch (error) {
-    console.error("Erreur lors de l'ajout du numéro de suivi:", error);
+    console.error("Exception lors de l'ajout du numéro de suivi:", error);
     return false;
   }
 };

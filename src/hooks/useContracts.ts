@@ -128,10 +128,11 @@ export const useContracts = () => {
         return;
       }
       
-      // CRITIQUE: Stocker explicitement le statut actuel avant toute opération
+      // Stocker explicitement le statut actuel avant toute opération
       const currentStatus = contract.status;
-      console.log(`Ajout de numéro de suivi pour le contrat ${contractId}, préservation du statut actuel: "${currentStatus}"`);
+      console.log(`Ajout de numéro de suivi pour le contrat ${contractId}, statut actuel: "${currentStatus}"`);
       
+      // Appeler le service pour ajouter le numéro de suivi
       const success = await addTrackingNumber(
         contractId,
         trackingNumber,
@@ -140,9 +141,9 @@ export const useContracts = () => {
       );
       
       if (success) {
-        console.log(`Mise à jour locale du contrat, maintien du statut: "${currentStatus}"`);
+        console.log(`Mise à jour locale du contrat, statut maintenu à: "${currentStatus}"`);
         
-        // FIXÉ: Mettre à jour l'état local tout en préservant EXPLICITEMENT le statut actuel
+        // Mettre à jour l'état local en préservant explicitement le statut actuel
         setContracts(prevContracts => 
           prevContracts.map(c => 
             c.id === contractId ? { 
@@ -151,7 +152,7 @@ export const useContracts = () => {
               estimated_delivery: estimatedDelivery,
               delivery_carrier: carrier,
               delivery_status: 'en_attente',
-              status: currentStatus, // Préserver explicitement le statut actuel
+              status: currentStatus, // IMPORTANT: Préserver explicitement le statut actuel
               updated_at: new Date().toISOString()
             } : c
           )
@@ -159,11 +160,11 @@ export const useContracts = () => {
         
         toast.success(`Informations de suivi ajoutées avec succès`);
         
-        // Attendons un peu avant de recharger pour s'assurer que la BD est à jour
+        // Attendre avant de recharger pour s'assurer que la BD est à jour
         setTimeout(async () => {
-          // Forcer un rechargement complet pour s'assurer que tout est synchronisé
+          // Recharger tous les contrats pour s'assurer que tout est synchronisé
           await fetchContracts();
-        }, 500);
+        }, 800);
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
       }
