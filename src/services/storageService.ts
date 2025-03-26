@@ -28,43 +28,9 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       return true;
     }
     
-    // Le bucket n'existe pas dans la liste, essayons de le récupérer directement
-    try {
-      const { data: getBucketData, error: getBucketError } = await supabase
-        .storage
-        .getBucket(bucketName);
-      
-      if (!getBucketError && getBucketData) {
-        console.log(`Le bucket ${bucketName} existe déjà (vérifié par getBucket)`);
-        return true;
-      }
-    } catch (getBucketErr) {
-      console.log(`Erreur getBucket ignorée:`, getBucketErr);
-      // Continuer, car nous allons tenter de créer le bucket
-    }
+    // Le bucket n'existe pas, création directe
+    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création directe...`);
     
-    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création...`);
-    
-    // Essayer d'appeler la fonction RPC si elle existe
-    try {
-      const { data: rpcData, error: rpcError } = await supabase.functions.invoke('create-storage-bucket', {
-        body: {
-          bucket_name: bucketName
-        }
-      });
-      
-      if (!rpcError && rpcData?.success) {
-        console.log(`Bucket ${bucketName} créé avec succès via RPC`);
-        return true;
-      }
-      
-      console.log(`La fonction RPC a échoué ou n'existe pas:`, rpcError || 'Sans erreur mais sans succès');
-    } catch (rpcErr) {
-      console.log(`Exception lors de l'appel RPC:`, rpcErr);
-      // Continuer car nous allons essayer de créer directement
-    }
-    
-    // Tenter de créer directement le bucket
     try {
       const { data: createData, error: createError } = await supabase
         .storage
@@ -75,12 +41,23 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       
       if (createError) {
         // Si l'erreur est "Bucket already exists", le bucket existe déjà
-        if (createError.message.includes("already exists")) {
+        if (createError.message && createError.message.includes("already exists")) {
           console.log(`Le bucket ${bucketName} existe déjà (d'après l'erreur)`);
           return true;
         }
         
         console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+        
+        // Tentative alternative - Essayer d'utiliser getBucket pour vérifier si le bucket existe malgré tout
+        const { data: getBucketData, error: getBucketError } = await supabase
+          .storage
+          .getBucket(bucketName);
+        
+        if (!getBucketError && getBucketData) {
+          console.log(`Le bucket ${bucketName} existe déjà (vérifié par getBucket après échec de création)`);
+          return true;
+        }
+        
         return false;
       }
       

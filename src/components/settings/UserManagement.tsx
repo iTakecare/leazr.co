@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,7 @@ const UserManagement: React.FC = () => {
     password: "",
     first_name: "",
     last_name: "",
-    role: "admin", // Par défaut à admin car nous ne gérons que les admins ici
+    role: "admin",
     company: ""
   });
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -36,12 +35,10 @@ const UserManagement: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
 
-  // Filtrer uniquement les administrateurs
   const adminUsers = users.filter(user => 
     user.role === 'admin'
   );
 
-  // Filtrer les administrateurs en fonction du terme de recherche
   const filteredUsers = adminUsers.filter(user =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${user.first_name || ""} ${user.last_name || ""}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -96,7 +93,6 @@ const UserManagement: React.FC = () => {
     
     setUploading(true);
     try {
-      // S'assurer que le bucket avatars existe
       const bucketExists = await ensureStorageBucket('avatars');
       if (!bucketExists) {
         toast.error("Erreur: Le bucket de stockage 'avatars' n'existe pas");
@@ -104,11 +100,10 @@ const UserManagement: React.FC = () => {
         return;
       }
       
-      // Générer un nom de fichier unique
       const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const timestamp = Date.now();
+      const fileName = `${user.id}-${timestamp}.${fileExt}`;
       
-      // Télécharger l'avatar
       const { data, error } = await supabase.storage
         .from('avatars')
         .upload(fileName, avatarFile, {
@@ -117,16 +112,14 @@ const UserManagement: React.FC = () => {
         });
         
       if (error) {
-        console.error("Erreur détaillée:", error);
+        console.error("Erreur détaillée lors de l'upload:", error);
         throw error;
       }
       
-      // Obtenir l'URL publique
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
         
-      // Mettre à jour le profil avec la nouvelle URL d'avatar
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: urlData.publicUrl })
@@ -151,7 +144,6 @@ const UserManagement: React.FC = () => {
       return;
     }
     
-    // Force le rôle à admin
     const userData = { ...newUser, role: "admin" };
     const success = await addUser(userData);
     
@@ -183,15 +175,12 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // Trouver l'utilisateur actuel dans la liste
   const currentUserDetails = user ? adminUsers.find(u => u.id === user.id) : null;
 
   useEffect(() => {
-    // Au chargement, si l'utilisateur actuel est un admin, s'assurer qu'il est dans la liste
     if (user && user.user_metadata?.role === 'admin' && !loading && users.length > 0) {
       const userFound = users.some(u => u.id === user.id);
       if (!userFound) {
-        // Forcer un rechargement si l'utilisateur actuel n'est pas dans la liste
         refreshUsers();
       }
     }
@@ -299,7 +288,6 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Section de profil utilisateur connecté */}
         {user && (
           <div className="border rounded-lg p-6 mb-6">
             <h3 className="text-lg font-semibold mb-2">Mon profil administrateur</h3>
