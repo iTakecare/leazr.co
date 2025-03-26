@@ -1,12 +1,9 @@
 
-import React, { useState } from "react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { Card, CardContent } from "@/components/ui/card";
-import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
-import OfferCard from "@/components/offers/OfferCard";
+import React, { useRef } from "react";
+import { DragDropContext } from "react-beautiful-dnd";
 import { Offer } from "@/hooks/offers/useFetchOffers";
-import { Plus, Pencil, SendHorizontal, CheckCircle, Sparkle, Building, Star, X, HelpCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { KANBAN_COLUMNS } from "./kanban/kanbanConfig";
+import KanbanColumn from "./kanban/KanbanColumn";
 
 interface OffersKanbanProps {
   offers: Offer[];
@@ -15,74 +12,6 @@ interface OffersKanbanProps {
   onDeleteOffer: (id: string) => Promise<void>;
   includeConverted: boolean;
 }
-
-// Définition des colonnes du Kanban
-const KANBAN_COLUMNS = [
-  {
-    id: OFFER_STATUSES.DRAFT.id,
-    title: "Brouillons",
-    icon: Pencil,
-    color: "bg-gray-100",
-    borderColor: "border-gray-300",
-    textColor: "text-gray-700",
-  },
-  {
-    id: OFFER_STATUSES.SENT.id,
-    title: "Envoyées",
-    icon: SendHorizontal,
-    color: "bg-orange-50",
-    borderColor: "border-orange-200",
-    textColor: "text-orange-700",
-  },
-  {
-    id: OFFER_STATUSES.VALID_ITC.id,
-    title: "Valid. ITC",
-    icon: Sparkle,
-    color: "bg-purple-50",
-    borderColor: "border-purple-200",
-    textColor: "text-purple-700",
-  },
-  {
-    id: OFFER_STATUSES.INFO_REQUESTED.id,
-    title: "Infos demandées",
-    icon: HelpCircle,
-    color: "bg-amber-50",
-    borderColor: "border-amber-200",
-    textColor: "text-amber-700",
-  },
-  {
-    id: OFFER_STATUSES.APPROVED.id,
-    title: "Approuvées",
-    icon: CheckCircle,
-    color: "bg-emerald-50",
-    borderColor: "border-emerald-200",
-    textColor: "text-emerald-700",
-  },
-  {
-    id: OFFER_STATUSES.LEASER_REVIEW.id,
-    title: "Validation Bailleur",
-    icon: Building,
-    color: "bg-blue-50",
-    borderColor: "border-blue-200",
-    textColor: "text-blue-700",
-  },
-  {
-    id: OFFER_STATUSES.FINANCED.id,
-    title: "Financées",
-    icon: Star,
-    color: "bg-green-50",
-    borderColor: "border-green-200",
-    textColor: "text-green-700",
-  },
-  {
-    id: OFFER_STATUSES.REJECTED.id,
-    title: "Rejetées",
-    icon: X,
-    color: "bg-red-50",
-    borderColor: "border-red-200",
-    textColor: "text-red-700",
-  },
-];
 
 const OffersKanban: React.FC<OffersKanbanProps> = ({
   offers,
@@ -127,63 +56,19 @@ const OffersKanban: React.FC<OffersKanbanProps> = ({
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex overflow-x-auto pb-4 gap-4 py-1 px-1 scroll-smooth snap-x">
           {KANBAN_COLUMNS.map(column => (
-            <div key={column.id} className="flex-shrink-0 w-72 md:w-80 snap-start">
-              <div className={cn(
-                "rounded-t-lg p-3 flex items-center",
-                column.color,
-                column.textColor
-              )}>
-                <column.icon className="mr-2 h-5 w-5" />
-                <h3 className="font-medium">{column.title}</h3>
-                <span className="ml-2 bg-white/80 text-xs font-semibold rounded-full px-2 py-0.5">
-                  {getOffersForColumn(column.id).length}
-                </span>
-              </div>
-              
-              <Droppable droppableId={column.id}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={cn(
-                      "min-h-[calc(100vh-280px)] max-h-[calc(100vh-280px)] overflow-y-auto rounded-b-lg p-2 transition-colors",
-                      column.borderColor,
-                      "border-l border-r border-b",
-                      snapshot.isDraggingOver ? column.color : "bg-background"
-                    )}
-                  >
-                    {getOffersForColumn(column.id).map((offer, index) => (
-                      <Draggable
-                        key={offer.id}
-                        draggableId={offer.id}
-                        index={index}
-                        isDragDisabled={isUpdatingStatus || offer.converted_to_contract}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={cn(
-                              "mb-3",
-                              snapshot.isDragging ? "opacity-80" : ""
-                            )}
-                          >
-                            <OfferCard
-                              offer={offer}
-                              onDelete={() => onDeleteOffer(offer.id)}
-                              onStatusChange={onStatusChange}
-                              isUpdatingStatus={isUpdatingStatus}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
+            <KanbanColumn
+              key={column.id}
+              id={column.id}
+              title={column.title}
+              icon={column.icon}
+              color={column.color}
+              borderColor={column.borderColor}
+              textColor={column.textColor}
+              offers={getOffersForColumn(column.id)}
+              onDeleteOffer={onDeleteOffer}
+              onStatusChange={onStatusChange}
+              isUpdatingStatus={isUpdatingStatus}
+            />
           ))}
         </div>
       </DragDropContext>
