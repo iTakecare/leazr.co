@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { 
@@ -20,6 +19,7 @@ export const useContracts = () => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
   const [includeCompleted, setIncludeCompleted] = useState(false);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
+  const [deleteInProgress, setDeleteInProgress] = useState<string | null>(null);
 
   const fetchContracts = async () => {
     try {
@@ -178,33 +178,44 @@ export const useContracts = () => {
 
   const handleDeleteContract = async (contractId: string) => {
     try {
+      if (isDeleting || deleteInProgress) {
+        return; // Empêcher les suppressions multiples simultanées
+      }
+      
       setIsDeleting(true);
+      setDeleteInProgress(contractId);
+      
       toast.info("Suppression du contrat en cours...");
       
       console.log("Tentative de suppression du contrat:", contractId);
       const success = await deleteContract(contractId);
       
       if (success) {
-        // Mettre à jour l'état local en supprimant le contrat
+        console.log("Contrat supprimé avec succès, mise à jour de l'état local");
+        
+        // Mettre à jour l'état local en supprimant le contrat immédiatement
         setContracts(prevContracts => prevContracts.filter(c => c.id !== contractId));
         
-        // Lancer immédiatement la mise à jour des filteredContracts
+        // Mettre également à jour les contrats filtrés
         setFilteredContracts(prevFiltered => prevFiltered.filter(c => c.id !== contractId));
         
         toast.success("Contrat supprimé avec succès");
-        
-        // Recharger complètement les contrats après un court délai pour s'assurer de la synchronisation
-        setTimeout(() => {
-          fetchContracts();
-        }, 500);
       } else {
+        console.error("Échec de la suppression du contrat");
         toast.error("Erreur lors de la suppression du contrat");
+        
+        // Recharger les contrats pour s'assurer que l'interface est à jour
+        await fetchContracts();
       }
     } catch (error: any) {
       console.error("Error deleting contract:", error);
       toast.error(`Erreur lors de la suppression du contrat: ${error.message || "Erreur inconnue"}`);
+      
+      // Recharger les contrats en cas d'erreur
+      await fetchContracts();
     } finally {
       setIsDeleting(false);
+      setDeleteInProgress(null);
     }
   };
 
@@ -215,6 +226,7 @@ export const useContracts = () => {
     loadingError,
     isUpdatingStatus,
     isDeleting,
+    deleteInProgress,
     searchTerm,
     setSearchTerm,
     activeStatusFilter,

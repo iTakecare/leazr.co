@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -351,12 +350,11 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       // On continue la suppression même si l'effacement des logs échoue
     }
     
-    // Supprimer le contrat lui-même
-    const { error: deleteError, count } = await supabase
+    // Supprimer le contrat lui-même - CORRECTION: ne pas utiliser .select('count')
+    const { error: deleteError } = await supabase
       .from('contracts')
       .delete()
-      .eq('id', contractId)
-      .select('count');
+      .eq('id', contractId);
     
     if (deleteError) {
       console.error("Erreur critique lors de la suppression du contrat:", deleteError);
@@ -364,14 +362,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
       return false;
     }
     
-    const deletedCount = count || 0;
-    console.log(`Nombre d'enregistrements supprimés: ${deletedCount}`);
-    
-    if (deletedCount === 0) {
-      console.error("Aucun contrat n'a été supprimé. Le contrat n'existe peut-être plus.");
-      toast.error("Aucun contrat n'a été supprimé. Il a peut-être déjà été supprimé.");
-      return false;
-    }
+    console.log("Contrat supprimé avec succès");
     
     // Mettre à jour l'offre associée si elle existe
     if (contract?.offer_id) {

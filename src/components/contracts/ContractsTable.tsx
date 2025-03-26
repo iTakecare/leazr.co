@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -34,6 +33,7 @@ interface ContractsTableProps {
   onDeleteContract: (contractId: string) => Promise<void>;
   isUpdatingStatus: boolean;
   isDeleting: boolean;
+  deleteInProgress?: string | null;
 }
 
 const ContractsTable: React.FC<ContractsTableProps> = ({
@@ -42,14 +42,14 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   onAddTrackingInfo,
   onDeleteContract,
   isUpdatingStatus,
-  isDeleting
+  isDeleting,
+  deleteInProgress
 }) => {
   const navigate = useNavigate();
   const [equipmentModalOpen, setEquipmentModalOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any[]>([]);
   const [equipmentModalTitle, setEquipmentModalTitle] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [deleteInProgress, setDeleteInProgress] = useState<string | null>(null);
   
   const handleRowClick = (contractId: string) => {
     navigate(`/contracts/${contractId}`);
@@ -70,10 +70,8 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     }
     
     try {
-      setDeleteInProgress(contractId);
       await onDeleteContract(contractId);
     } finally {
-      setDeleteInProgress(null);
       setConfirmDelete(null);
     }
   };
@@ -151,7 +149,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
           </TableHeader>
           <TableBody>
             {contracts.map((contract) => (
-              <TableRow key={contract.id}>
+              <TableRow key={contract.id} className={deleteInProgress === contract.id ? "opacity-50 pointer-events-none" : ""}>
                 <TableCell className="font-medium cursor-pointer" onClick={() => handleRowClick(contract.id)}>
                   {contract.id ? `CON-${contract.id.slice(0, 8)}` : 'N/A'}
                 </TableCell>

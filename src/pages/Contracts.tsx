@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { formatCurrency } from "@/utils/formatters";
 import { useContracts } from "@/hooks/useContracts";
-import { FileText, Search, Filter, Grid, List, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Search, Filter, Grid, List, Plus, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -34,6 +33,7 @@ const Contracts = () => {
     setActiveStatusFilter,
     isUpdatingStatus,
     isDeleting,
+    deleteInProgress,
     fetchContracts,
     handleUpdateContractStatus,
     handleAddTrackingInfo,
@@ -281,6 +281,7 @@ const Contracts = () => {
                 onDeleteContract={handleDeleteContract}
                 isUpdatingStatus={isUpdatingStatus}
                 isDeleting={isDeleting}
+                deleteInProgress={deleteInProgress}
               />
             )}
           </motion.div>
