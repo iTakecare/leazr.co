@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -52,6 +53,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   const hasVariants = (product: Product): boolean => {
     if (!product) return false;
     
+    // Un produit peut avoir des variantes de plusieurs façons
     const isParent = product.is_parent || false;
     const hasCombinationPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
     const hasVariationAttrs = product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0;
@@ -61,19 +63,32 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   };
 
   const getVariantsCount = (product: Product): number => {
-    // Priorité 1: Utiliser le nombre de combinaisons de prix
+    if (!product) return 0;
+    
+    // 1. Si le produit a des combinaisons de prix de variantes, nous utilisons ce nombre
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    // Priorité 2: Compter les variantes enfants directes
+    // 2. Si le produit a des variantes enfants, nous utilisons ce nombre
     const childVariants = products.filter(p => p.parent_id === product.id);
     if (childVariants.length > 0) {
       return childVariants.length;
     }
     
-    // Ne pas calculer le nombre de combinaisons possibles à partir des attributs
-    // car cela peut conduire à des nombres incorrects
+    // 3. Si le produit a des attributs de variation, nous calculons le nombre de combinaisons possibles
+    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+      const attributes = product.variation_attributes;
+      
+      // Calculer le nombre de combinaisons possibles
+      // Par exemple, pour CPU: [M3 Pro, M3 Max] et Disque: [512Go, 1To, 2To], nous avons 2×3=6 combinaisons
+      const numberOfCombinations = Object.values(attributes).reduce((total, values) => {
+        return total * values.length;
+      }, 1);
+      
+      return numberOfCombinations;
+    }
+    
     return 0;
   };
 

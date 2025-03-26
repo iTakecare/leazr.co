@@ -9,14 +9,15 @@ interface VariantIndicatorProps {
 }
 
 const VariantIndicator: React.FC<VariantIndicatorProps> = ({ hasVariants, variantsCount }) => {
-  // Ne rien afficher si le produit n'a pas de variantes
-  if (!hasVariants) return null;
+  // Si le produit n'a pas de variantes ou si le compteur est à 0, ne rien afficher
+  if (!hasVariants || variantsCount <= 0) {
+    return null;
+  }
   
-  // N'afficher le badge que si le nombre de variantes est positif
-  if (variantsCount <= 0) return null;
-  
+  // Afficher le badge avec le nombre exact de variantes
   return (
-    <Badge className="rounded-full text-xs bg-indigo-100 text-indigo-800">
+    <Badge className="rounded-full text-xs bg-indigo-100 text-indigo-800 flex items-center gap-1">
+      <Layers className="h-3 w-3" />
       {variantsCount} {variantsCount > 1 ? "variantes" : "variante"}
     </Badge>
   );

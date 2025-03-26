@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -83,20 +84,30 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     return isParent || hasCombPrices || hasVariationAttrs;
   };
 
-  // Count actual variants based on combination prices or variant products
+  // Count variants based on various sources of truth
   const getVariantsCount = (): number => {
-    // Priorité 1: Si nous avons des prix de combinaison, c'est le compte le plus précis
+    // 1. Si le produit a des combinaisons de prix de variantes, nous utilisons ce nombre
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    // Priorité 2: Si nous avons des variantes directes, compter celles-ci
+    // 2. Si le produit a des variantes directes, compter celles-ci
     if (product.variants && product.variants.length > 0) {
       return product.variants.length;
     }
     
-    // Ne pas calculer le nombre de combinaisons possibles à partir des attributs
-    // car cela peut conduire à des nombres incorrects
+    // 3. Si le produit a des attributs de variation, calculer le nombre de combinaisons possibles
+    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+      const attributes = product.variation_attributes;
+      
+      // Calculer le nombre de combinaisons possibles
+      const numberOfCombinations = Object.values(attributes).reduce((total, values) => {
+        return total * values.length;
+      }, 1);
+      
+      return numberOfCombinations;
+    }
+    
     return 0;
   };
   
