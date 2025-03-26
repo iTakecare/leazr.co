@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Copy, Layers } from "lucide-react";
+import { Edit, Trash2, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
@@ -66,32 +66,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   };
 
   const getVariantsCount = (product: Product): number => {
-    const childVariants = products.filter(p => p.parent_id === product.id);
-    if (childVariants.length > 0) return childVariants.length;
-    
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    if (product.variation_attributes) {
-      const attrs = product.variation_attributes;
-      let totalOptions = 0;
-      
-      Object.keys(attrs).forEach(key => {
-        const options = attrs[key];
-        if (Array.isArray(options) && options.length > 0) {
-          if (totalOptions === 0) {
-            totalOptions = options.length;
-          } else {
-            totalOptions *= options.length;
-          }
-        }
-      });
-      
-      if (totalOptions > 0) return totalOptions;
+    const childVariants = products.filter(p => p.parent_id === product.id);
+    if (childVariants.length > 0) {
+      return childVariants.length;
     }
-    
-    if (product.is_parent) return 1;
     
     return 0;
   };

@@ -83,42 +83,17 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     return isParent || hasCombPrices || hasVariationAttrs;
   };
 
-  // Count available variants for the badge - improved to never return 0 when has variants
+  // Count actual variants based on combination prices or variant products
   const getVariantsCount = (): number => {
-    if (product.variants && product.variants.length > 0) {
-      return product.variants.length;
-    }
-    
+    // If we have direct combination prices, that's the most accurate count
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    // If it has variation_attributes, count possible combinations
-    if (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) {
-      const attrs = product.variation_attributes;
-      let totalOptions = 0;
-      
-      // Count total variants based on attribute combinations
-      Object.keys(attrs).forEach(key => {
-        const options = attrs[key];
-        if (Array.isArray(options) && options.length > 0) {
-          if (totalOptions === 0) {
-            totalOptions = options.length;
-          } else {
-            // Multiply to get possible combinations
-            totalOptions *= options.length;
-          }
-        }
-      });
-      
-      if (totalOptions > 0) return totalOptions;
-      
-      // If we have variation attributes but couldn't calculate combinations, return 1
-      return 1;
+    // If we have direct variants, count those
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.length;
     }
-    
-    // If product is marked as parent but no specific variant info
-    if (product.is_parent) return 1;
     
     return 0;
   };

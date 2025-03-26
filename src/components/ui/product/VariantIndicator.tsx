@@ -11,12 +11,11 @@ interface VariantIndicatorProps {
 const VariantIndicator: React.FC<VariantIndicatorProps> = ({ hasVariants, variantsCount }) => {
   if (!hasVariants) return null;
   
-  // Fix for cases where variants exist but count is 0
+  // Display the actual count if it's greater than 0, otherwise show '?'
   const displayCount = variantsCount > 0 ? variantsCount : '?';
   
   return (
-    <Badge className="rounded-full text-xs bg-indigo-100 text-indigo-800 flex items-center gap-1">
-      <Layers className="h-3 w-3" /> 
+    <Badge className="rounded-full text-xs bg-indigo-100 text-indigo-800">
       {displayCount}
     </Badge>
   );
