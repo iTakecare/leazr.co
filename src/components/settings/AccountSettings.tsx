@@ -78,6 +78,13 @@ const AccountSettings = () => {
     }
   };
 
+  const handleClearField = (fieldName: string) => {
+    setFormData({
+      ...formData,
+      [fieldName]: ""
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -119,7 +126,7 @@ const AccountSettings = () => {
           <Mail className="h-5 w-5 text-muted-foreground" />
           <div className="flex-1">
             <h4 className="text-sm font-medium">Email</h4>
-            <p className="text-sm text-muted-foreground">Vous êtes connecté avec: <strong>{user?.email}</strong></p>
+            <p className="text-sm text-muted-foreground">Vous êtes connecté avec: <strong>{user?.email || "N/A"}</strong></p>
           </div>
           <Badge variant="outline" className="ml-auto">
             {user?.email_confirmed_at ? "Vérifiée" : "Non vérifiée"}
@@ -128,7 +135,20 @@ const AccountSettings = () => {
         
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="first_name">Prénom</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="first_name">Prénom</Label>
+              {formData.first_name && (
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleClearField('first_name')}
+                  className="h-6 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  Effacer
+                </Button>
+              )}
+            </div>
             <Input 
               id="first_name" 
               placeholder="Votre prénom" 
@@ -137,7 +157,20 @@ const AccountSettings = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="last_name">Nom</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="last_name">Nom</Label>
+              {formData.last_name && (
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleClearField('last_name')}
+                  className="h-6 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  Effacer
+                </Button>
+              )}
+            </div>
             <Input 
               id="last_name" 
               placeholder="Votre nom" 
@@ -148,7 +181,20 @@ const AccountSettings = () => {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="company">Entreprise</Label>
+          <div className="flex justify-between items-center">
+            <Label htmlFor="company">Entreprise</Label>
+            {formData.company && (
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleClearField('company')}
+                className="h-6 text-xs text-muted-foreground hover:text-destructive"
+              >
+                Effacer
+              </Button>
+            )}
+          </div>
           <Input 
             id="company" 
             placeholder="Votre entreprise" 
@@ -157,7 +203,20 @@ const AccountSettings = () => {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="title">Titre professionnel</Label>
+          <div className="flex justify-between items-center">
+            <Label htmlFor="title">Titre professionnel</Label>
+            {formData.title && (
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleClearField('title')}
+                className="h-6 text-xs text-muted-foreground hover:text-destructive"
+              >
+                Effacer
+              </Button>
+            )}
+          </div>
           <Input 
             id="title" 
             placeholder="Votre titre professionnel" 
