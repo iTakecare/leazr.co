@@ -411,16 +411,6 @@ const GeneralSettings = () => {
                         {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
                       </div>
                       <p className="text-xs text-muted-foreground">Format recommandé: PNG ou SVG, carré, fond transparent</p>
-                      
-                      {authStatus === 'authenticated' && (
-                        <Alert variant="default">
-                          <Shield className="h-4 w-4 text-blue-500" />
-                          <AlertTitle className="text-xs font-medium">Stockage sécurisé</AlertTitle>
-                          <AlertDescription className="text-xs">
-                            Le fichier sera stocké de manière sécurisée dans Supabase Storage.
-                          </AlertDescription>
-                        </Alert>
-                      )}
                     </div>
                   </div>
                 </div>
