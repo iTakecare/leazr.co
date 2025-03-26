@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -30,6 +29,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import Logo from "./Logo";
 
 interface SidebarProps {
   className?: string;
@@ -84,7 +84,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     return location.pathname.startsWith(href) && href !== "/";
   };
 
-  // Générer les initiales de l'utilisateur à partir de son nom ou email
   const getUserInitials = () => {
     if (!user) return "IT";
     
@@ -96,7 +95,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     return "IT";
   };
 
-  // Obtenir le nom complet de l'utilisateur ou son email
   const getUserDisplayName = () => {
     if (!user) return "Admin Portal";
     
@@ -108,16 +106,13 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     return "Admin Portal";
   };
   
-  // Obtenir le rôle de l'utilisateur
   const getUserRole = () => {
     if (!user) return "Gestion complète";
     
-    // Si l'utilisateur a un rôle défini
     if (user.role) {
       return user.role;
     }
     
-    // Sinon, déterminer le rôle en fonction des autres propriétés
     if (user.partner_id) return "Partenaire";
     if (user.ambassador_id) return "Ambassadeur";
     if (user.client_id) return "Client";
@@ -143,19 +138,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-4 border-b">
-                <div className="flex items-center gap-2">
-                  <div className="relative w-10 h-10">
-                    <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
-                    <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
-                    <div className="absolute inset-0 flex items-center justify-center bg-background rounded-xl shadow-md">
-                      <span className="font-bold text-primary text-lg">IT</span>
-                    </div>
-                  </div>
-                  <div>
-                    <h1 className="text-lg font-bold">iTakecare</h1>
-                    <p className="text-xs text-muted-foreground">Hub de gestion</p>
-                  </div>
-                </div>
+                <Logo />
                 <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full">
                   <X className="h-5 w-5" />
                 </Button>
@@ -228,22 +211,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           "flex items-center p-4 mb-2 transition-all duration-300",
           collapsed ? "justify-center" : "px-6 justify-between"
         )}>
-          <div className="flex items-center gap-2">
-            <div className="relative w-10 h-10 flex-shrink-0">
-              <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
-              <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
-              <div className="absolute inset-0 flex items-center justify-center bg-background rounded-xl shadow-md">
-                <span className="font-bold text-primary text-lg">IT</span>
-              </div>
-            </div>
-            
-            {!collapsed && (
-              <div className="overflow-hidden">
-                <h1 className="text-lg font-bold">iTakecare</h1>
-                <p className="text-xs text-muted-foreground">Hub de gestion</p>
-              </div>
-            )}
-          </div>
+          <Logo showText={!collapsed} />
           
           {!collapsed && (
             <Button 

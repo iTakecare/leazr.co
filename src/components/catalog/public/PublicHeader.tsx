@@ -1,10 +1,10 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import Logo from "@/components/layout/Logo";
 
 const PublicHeader = () => {
   return (
@@ -13,9 +13,7 @@ const PublicHeader = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="text-2xl font-bold text-indigo-600 flex items-center">
-              <div className="h-8 w-8 bg-indigo-600 rounded-md flex items-center justify-center text-white mr-2">
-                <span>I</span>
-              </div>
+              <Logo showText={false} className="mr-2" />
               iTakecare
             </Link>
             
