@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import NavbarUserProfile from "./NavbarUserProfile";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -72,17 +73,11 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
         
         <div className="ml-auto flex items-center space-x-4">
           {user && (
-            <div className="flex items-center gap-3">
-              <div className="text-sm font-medium">
-                {user.first_name ? `${user.first_name} ${user.last_name || ''}` : user.email}
-              </div>
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
-                <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                  {getUserInitials()}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+            <NavbarUserProfile 
+              user={user}
+              avatarUrl={avatarUrl}
+              getUserInitials={getUserInitials} 
+            />
           )}
         </div>
       </div>
