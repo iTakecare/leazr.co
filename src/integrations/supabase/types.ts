@@ -1452,6 +1452,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_all_users_extended: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          email: string
+          email_confirmed_at: string
+          last_sign_in_at: string
+          created_at: string
+        }[]
+      }
       get_brands: {
         Args: Record<PropertyKey, never>
         Returns: {
