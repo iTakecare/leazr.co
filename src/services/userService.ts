@@ -17,43 +17,50 @@ export interface UserExtended {
 
 export const fetchAllUsers = async (): Promise<UserExtended[]> => {
   try {
-    // Récupérer les informations d'authentification des utilisateurs via la fonction SQL
-    const { data: authUsers, error: authError } = await supabase
-      .rpc('get_all_users_extended');
-    
-    if (authError) {
-      console.error("Erreur lors de la récupération des informations d'authentification:", authError);
-      throw authError;
-    }
-    
-    // Récupérer les profils des utilisateurs
+    // Use a simpler approach by getting auth users via profiles table
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*');
-      
+    
     if (profilesError) {
       console.error("Erreur lors de la récupération des profils:", profilesError);
       throw profilesError;
     }
     
-    // Fusionner les données d'authentification et de profil
-    const mergedUsers = authUsers.map(authUser => {
-      const profile = profiles.find(p => p.id === authUser.id) || {};
-      return {
-        id: authUser.id,
-        email: authUser.email,
-        first_name: profile.first_name || null,
-        last_name: profile.last_name || null,
-        role: profile.role || 'client',
-        company: profile.company || null,
-        email_confirmed_at: authUser.email_confirmed_at,
-        last_sign_in_at: authUser.last_sign_in_at,
-        created_at: authUser.created_at,
-        avatar_url: profile.avatar_url || null
-      };
-    });
+    // Format the data into the expected UserExtended structure
+    const users: UserExtended[] = [];
     
-    return mergedUsers;
+    for (const profile of profiles) {
+      users.push({
+        id: profile.id,
+        email: '',  // Will be filled from auth metadata query
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        role: profile.role,
+        company: profile.company,
+        email_confirmed_at: null,
+        last_sign_in_at: null,
+        created_at: profile.created_at,
+        avatar_url: profile.avatar_url
+      });
+    }
+    
+    // For each profile, fetch the email address (this approach avoids the issue with the RPC function)
+    for (const user of users) {
+      try {
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(user.id);
+        
+        if (!userError && userData?.user) {
+          user.email = userData.user.email || '';
+          user.email_confirmed_at = userData.user.email_confirmed_at;
+          user.last_sign_in_at = userData.user.last_sign_in_at;
+        }
+      } catch (err) {
+        console.error(`Impossible de récupérer l'email pour l'utilisateur ${user.id}:`, err);
+      }
+    }
+    
+    return users;
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs:", error);
     toast.error("Impossible de récupérer la liste des utilisateurs");

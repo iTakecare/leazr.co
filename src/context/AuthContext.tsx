@@ -11,6 +11,16 @@ interface AuthContextProps {
   children: React.ReactNode;
 }
 
+// Extended User type to include the metadata properties accessed in the app
+export interface ExtendedUser extends User {
+  first_name?: string;
+  last_name?: string;
+  company?: string;
+  ambassador_id?: string;
+  partner_id?: string;
+  error?: any;
+}
+
 interface UserMetadata {
   first_name?: string;
   last_name?: string;
@@ -23,21 +33,21 @@ interface UserMetadata {
 // Définir le type pour le contexte utilisateur
 // Mettre à jour la structure UserContextType pour inclure le rôle
 export interface UserContextType {
-  user: User | null;
+  user: ExtendedUser | null;
   session: Session | null;
   loading: boolean;
   isLoading: boolean;
   error: Error | null;
   userRoleChecked: boolean;
-  login: (email: string, password: string) => Promise<User | null>;
+  login: (email: string, password: string) => Promise<ExtendedUser | null>;
   logout: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<User | null>;
+  signIn: (email: string, password: string) => Promise<ExtendedUser | null>;
   signOut: () => Promise<void>;
-  signup: (email: string, password: string, userData?: Partial<UserMetadata>) => Promise<User | null>;
-  signUp: (email: string, password: string, userData?: Partial<UserMetadata>) => Promise<User | null>;
+  signup: (email: string, password: string, userData?: Partial<UserMetadata>) => Promise<ExtendedUser | null>;
+  signUp: (email: string, password: string, userData?: Partial<UserMetadata>) => Promise<ExtendedUser | null>;
   resetPassword: (email: string) => Promise<void>;
   updateUserData: (userData: Partial<UserMetadata>) => Promise<void>;
-  checkSession: () => Promise<User | null>;
+  checkSession: () => Promise<ExtendedUser | null>;
   isAdmin: () => boolean;
   isClient: () => boolean;
   isPartner: () => boolean;
@@ -70,7 +80,7 @@ const AuthContext = createContext<UserContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -82,7 +92,16 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
     supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       console.log(`Auth event: ${event}`);
       if (session?.user) {
-        setUser(session.user);
+        // Extend the user with metadata properties for easier access
+        const extendedUser: ExtendedUser = {
+          ...session.user,
+          first_name: session.user.user_metadata?.first_name,
+          last_name: session.user.user_metadata?.last_name,
+          company: session.user.user_metadata?.company,
+          ambassador_id: session.user.user_metadata?.ambassador_id,
+          partner_id: session.user.user_metadata?.partner_id
+        };
+        setUser(extendedUser);
         setSession(session);
       } else {
         setUser(null);
@@ -91,7 +110,7 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
     });
   }, []);
 
-  const signup = async (email: string, password: string, userData?: Partial<UserMetadata>): Promise<User | null> => {
+  const signup = async (email: string, password: string, userData?: Partial<UserMetadata>): Promise<ExtendedUser | null> => {
     try {
       setError(null);
       setLoading(true);
@@ -108,8 +127,20 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
 
       if (error) throw error;
 
-      setUser(data.user);
-      return data.user;
+      if (data.user) {
+        // Extend the user with metadata properties
+        const extendedUser: ExtendedUser = {
+          ...data.user,
+          first_name: data.user.user_metadata?.first_name,
+          last_name: data.user.user_metadata?.last_name,
+          company: data.user.user_metadata?.company,
+          ambassador_id: data.user.user_metadata?.ambassador_id,
+          partner_id: data.user.user_metadata?.partner_id
+        };
+        setUser(extendedUser);
+        return extendedUser;
+      }
+      return null;
     } catch (error) {
       setError(error as Error);
       setUser(null);
@@ -120,7 +151,7 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
   };
 
   // S'assurer que les données métier sont correctement remplies lors du login
-  const login = async (email: string, password: string): Promise<User | null> => {
+  const login = async (email: string, password: string): Promise<ExtendedUser | null> => {
     try {
       setError(null);
       setLoading(true);
@@ -167,9 +198,19 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
           }
         }
         
-        setUser(data.user);
+        // Create extended user with direct property access
+        const extendedUser: ExtendedUser = {
+          ...data.user,
+          first_name: data.user.user_metadata?.first_name,
+          last_name: data.user.user_metadata?.last_name,
+          company: data.user.user_metadata?.company,
+          ambassador_id: data.user.user_metadata?.ambassador_id,
+          partner_id: data.user.user_metadata?.partner_id
+        };
+        
+        setUser(extendedUser);
         setSession(data.session);
-        return data.user;
+        return extendedUser;
       }
       
       return null;
@@ -226,7 +267,18 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
 
       if (error) throw error;
 
-      setUser(data.user);
+      if (data.user) {
+        // Create extended user with direct property access
+        const extendedUser: ExtendedUser = {
+          ...data.user,
+          first_name: data.user.user_metadata?.first_name,
+          last_name: data.user.user_metadata?.last_name,
+          company: data.user.user_metadata?.company,
+          ambassador_id: data.user.user_metadata?.ambassador_id,
+          partner_id: data.user.user_metadata?.partner_id
+        };
+        setUser(extendedUser);
+      }
     } catch (error) {
       setError(error as Error);
     } finally {
@@ -235,7 +287,7 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
   };
 
   // Vérifier la session, récupérer les informations de profil si nécessaire
-  const checkSession = async (): Promise<User | null> => {
+  const checkSession = async (): Promise<ExtendedUser | null> => {
     try {
       setLoading(true);
       setError(null);
@@ -279,10 +331,20 @@ export const AuthProvider: React.FC<AuthContextProps> = ({ children }) => {
           }
         }
         
-        setUser(data.session.user);
+        // Create extended user with direct property access
+        const extendedUser: ExtendedUser = {
+          ...data.session.user,
+          first_name: data.session.user.user_metadata?.first_name,
+          last_name: data.session.user.user_metadata?.last_name,
+          company: data.session.user.user_metadata?.company,
+          ambassador_id: data.session.user.user_metadata?.ambassador_id,
+          partner_id: data.session.user.user_metadata?.partner_id
+        };
+        
+        setUser(extendedUser);
         setSession(data.session);
         setUserRoleChecked(true);
-        return data.session.user;
+        return extendedUser;
       } else {
         setUser(null);
         setSession(null);

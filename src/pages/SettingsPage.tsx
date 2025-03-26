@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,50 +14,8 @@ import SmtpSettings from "@/components/settings/SmtpSettings";
 import PDFModelManager from "@/components/settings/PDFModelManager";
 import DataImporter from "@/components/settings/DataImporter";
 import { useAuth } from "@/context/AuthContext";
-
-const AccountSettings = () => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Paramètres du compte</CardTitle>
-        <CardDescription>
-          Gérez les informations de votre compte
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Nom</Label>
-          <Input id="name" placeholder="Votre nom" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="Votre email" disabled />
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button onClick={() => toast.success("Modifications enregistrées")}>
-          Enregistrer
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-};
-
-const PageHeader = ({ title, subtitle, icon }: { title: string, subtitle: string, icon: React.ReactNode }) => {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="space-y-1">
-        <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          {icon}
-          {title}
-        </h2>
-        <p className="text-muted-foreground">
-          {subtitle}
-        </p>
-      </div>
-    </div>
-  );
-};
+import AccountSettings from "@/components/settings/AccountSettings";
+import PageHeader from "@/components/layout/PageHeader";
 
 const SettingsPage = () => {
   const { user } = useAuth();
