@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -26,11 +25,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   const [isDeleting, setIsDeleting] = useState<{ [key: string]: boolean }>({});
   
   console.log("AccordionProductList: Received products:", products.length);
-  console.log("AccordionProductList: Products with variants:", 
-    products.filter(p => p.is_parent || 
-                         (p.variant_combination_prices && p.variant_combination_prices.length > 0) ||
-                         (p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0)).length
-  );
   
   if (!products || products.length === 0) {
     return (
@@ -67,33 +61,19 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   };
 
   const getVariantsCount = (product: Product): number => {
-    // First check if we have combination prices - this is the most accurate
+    // Priorité 1: Utiliser le nombre de combinaisons de prix
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    // Then check for direct child variants
+    // Priorité 2: Compter les variantes enfants directes
     const childVariants = products.filter(p => p.parent_id === product.id);
     if (childVariants.length > 0) {
       return childVariants.length;
     }
     
-    // If we have variation_attributes, calculate possible combinations
-    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
-      // Count combinations based on attributes
-      const attributes = product.variation_attributes;
-      // Extract all attribute options
-      const options = Object.values(attributes);
-      
-      // Calculate total possible combinations (multiply lengths)
-      if (options.length > 0) {
-        return options.reduce((count, optionValues) => {
-          return count * (optionValues.length || 1);
-        }, 1);
-      }
-    }
-    
-    // If product is marked as having variants but we couldn't find any, return 0
+    // Ne pas calculer le nombre de combinaisons possibles à partir des attributs
+    // car cela peut conduire à des nombres incorrects
     return 0;
   };
 
