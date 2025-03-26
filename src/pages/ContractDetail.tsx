@@ -32,6 +32,7 @@ const ContractDetail = () => {
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [carrier, setCarrier] = useState('');
   const [equipmentItems, setEquipmentItems] = useState<any[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
   const fetchContractDetails = async () => {
     if (!id) return;
@@ -42,12 +43,8 @@ const ContractDetail = () => {
       
       console.log("Chargement des détails du contrat:", id);
       
-      // Charger simultanément le contrat et l'historique des logs
-      const [contractsData, logsData] = await Promise.all([
-        getContracts(true), // S'assurer qu'on récupère tous les contrats
-        getContractWorkflowLogs(id)
-      ]);
-
+      // Charger le contrat
+      const contractsData = await getContracts(true);
       const contractData = contractsData.find(c => c.id === id);
       
       if (!contractData) {
@@ -59,8 +56,8 @@ const ContractDetail = () => {
       console.log("Contrat trouvé:", contractData);
       setContract(contractData);
       
-      console.log("Logs récupérés:", logsData);
-      setLogs(logsData);
+      // Charger les logs séparément
+      await fetchLogs();
       
       if (contractData.equipment_description) {
         try {
@@ -80,6 +77,24 @@ const ContractDetail = () => {
       setLoadingError("Erreur lors du chargement des détails du contrat.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLogs = async () => {
+    if (!id) return;
+    
+    try {
+      setIsLoadingLogs(true);
+      
+      console.log("Chargement des logs pour le contrat:", id);
+      const logsData = await getContractWorkflowLogs(id);
+      
+      console.log("Logs récupérés:", logsData);
+      setLogs(logsData);
+    } catch (error) {
+      console.error("Erreur lors du chargement des logs:", error);
+    } finally {
+      setIsLoadingLogs(false);
     }
   };
   
@@ -127,18 +142,10 @@ const ContractDetail = () => {
         });
         
         toast.success(`Statut du contrat mis à jour avec succès`);
-        
-        // Rafraîchir les logs et les données complètes après la mise à jour
-        console.log("Rafraîchissement des données après mise à jour de statut");
-        await Promise.all([
-          getContractWorkflowLogs(contract.id).then(logsData => {
-            console.log("Nouveaux logs récupérés:", logsData);
-            setLogs(logsData);
-          }),
-          fetchContractDetails()
-        ]);
-        
         setStatusDialogOpen(false);
+        
+        // Rafraîchir les logs après la mise à jour
+        await fetchLogs();
       } else {
         toast.error("Erreur lors de la mise à jour du statut du contrat");
       }
@@ -288,109 +295,111 @@ const ContractDetail = () => {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-2xl font-bold">
-              Contrat {`CON-${contract.id.slice(0, 8)}`}
+              Contrat {`CON-${contract?.id.slice(0, 8)}`}
             </h1>
-            <ContractStatusBadge status={contract.status} />
+            {contract && <ContractStatusBadge status={contract.status} />}
           </div>
         </div>
         
-        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-          <h2 className="text-lg font-medium mb-4">
-            Gestion du contrat - Étapes du workflow
-          </h2>
-          
-          <div className="flex flex-wrap gap-3">
-            {availableActions.map((action, index) => (
-              <Button 
-                key={`${action.label}-${index}`}
-                onClick={action.onClick}
-                disabled={isUpdatingStatus}
-                size="lg"
-              >
-                <action.icon className="mr-2 h-5 w-5" />
-                {action.label}
-              </Button>
-            ))}
+        {contract && (
+          <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+            <h2 className="text-lg font-medium mb-4">
+              Gestion du contrat - Étapes du workflow
+            </h2>
             
-            {availableActions.length === 0 && (
-              <div className="text-gray-500 italic p-2">
-                Aucune action disponible pour ce statut de contrat
+            <div className="flex flex-wrap gap-3">
+              {availableActions.map((action, index) => (
+                <Button 
+                  key={`${action.label}-${index}`}
+                  onClick={action.onClick}
+                  disabled={isUpdatingStatus}
+                  size="lg"
+                >
+                  <action.icon className="mr-2 h-5 w-5" />
+                  {action.label}
+                </Button>
+              ))}
+              
+              {availableActions.length === 0 && (
+                <div className="text-gray-500 italic p-2">
+                  Aucune action disponible pour ce statut de contrat
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6">
+              <div className="flex items-center justify-between">
+                <ProgressStep 
+                  label="Contrat envoyé" 
+                  isActive={contract.status === contractStatuses.CONTRACT_SENT}
+                  isCompleted={[
+                    contractStatuses.CONTRACT_SIGNED, 
+                    contractStatuses.EQUIPMENT_ORDERED,
+                    contractStatuses.DELIVERED,
+                    contractStatuses.ACTIVE,
+                    contractStatuses.COMPLETED
+                  ].includes(contract.status || '')}
+                  status={contractStatuses.CONTRACT_SENT}
+                  onClick={handleStepClick}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Contrat signé" 
+                  isActive={contract.status === contractStatuses.CONTRACT_SIGNED}
+                  isCompleted={[
+                    contractStatuses.EQUIPMENT_ORDERED,
+                    contractStatuses.DELIVERED,
+                    contractStatuses.ACTIVE,
+                    contractStatuses.COMPLETED
+                  ].includes(contract.status || '')}
+                  status={contractStatuses.CONTRACT_SIGNED}
+                  onClick={handleStepClick}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Équipement commandé" 
+                  isActive={contract.status === contractStatuses.EQUIPMENT_ORDERED}
+                  isCompleted={[
+                    contractStatuses.DELIVERED,
+                    contractStatuses.ACTIVE,
+                    contractStatuses.COMPLETED
+                  ].includes(contract.status || '')}
+                  status={contractStatuses.EQUIPMENT_ORDERED}
+                  onClick={handleStepClick}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Livré" 
+                  isActive={contract.status === contractStatuses.DELIVERED}
+                  isCompleted={[
+                    contractStatuses.ACTIVE,
+                    contractStatuses.COMPLETED
+                  ].includes(contract.status || '')}
+                  status={contractStatuses.DELIVERED}
+                  onClick={handleStepClick}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Actif" 
+                  isActive={contract.status === contractStatuses.ACTIVE}
+                  isCompleted={[
+                    contractStatuses.COMPLETED
+                  ].includes(contract.status || '')}
+                  status={contractStatuses.ACTIVE}
+                  onClick={handleStepClick}
+                />
+                <ProgressLine />
+                <ProgressStep 
+                  label="Terminé" 
+                  isActive={contract.status === contractStatuses.COMPLETED}
+                  isCompleted={false}
+                  status={contractStatuses.COMPLETED}
+                  onClick={handleStepClick}
+                />
               </div>
-            )}
-          </div>
-          
-          <div className="mt-6">
-            <div className="flex items-center justify-between">
-              <ProgressStep 
-                label="Contrat envoyé" 
-                isActive={contract.status === contractStatuses.CONTRACT_SENT}
-                isCompleted={[
-                  contractStatuses.CONTRACT_SIGNED, 
-                  contractStatuses.EQUIPMENT_ORDERED,
-                  contractStatuses.DELIVERED,
-                  contractStatuses.ACTIVE,
-                  contractStatuses.COMPLETED
-                ].includes(contract.status || '')}
-                status={contractStatuses.CONTRACT_SENT}
-                onClick={handleStepClick}
-              />
-              <ProgressLine />
-              <ProgressStep 
-                label="Contrat signé" 
-                isActive={contract.status === contractStatuses.CONTRACT_SIGNED}
-                isCompleted={[
-                  contractStatuses.EQUIPMENT_ORDERED,
-                  contractStatuses.DELIVERED,
-                  contractStatuses.ACTIVE,
-                  contractStatuses.COMPLETED
-                ].includes(contract.status || '')}
-                status={contractStatuses.CONTRACT_SIGNED}
-                onClick={handleStepClick}
-              />
-              <ProgressLine />
-              <ProgressStep 
-                label="Équipement commandé" 
-                isActive={contract.status === contractStatuses.EQUIPMENT_ORDERED}
-                isCompleted={[
-                  contractStatuses.DELIVERED,
-                  contractStatuses.ACTIVE,
-                  contractStatuses.COMPLETED
-                ].includes(contract.status || '')}
-                status={contractStatuses.EQUIPMENT_ORDERED}
-                onClick={handleStepClick}
-              />
-              <ProgressLine />
-              <ProgressStep 
-                label="Livré" 
-                isActive={contract.status === contractStatuses.DELIVERED}
-                isCompleted={[
-                  contractStatuses.ACTIVE,
-                  contractStatuses.COMPLETED
-                ].includes(contract.status || '')}
-                status={contractStatuses.DELIVERED}
-                onClick={handleStepClick}
-              />
-              <ProgressLine />
-              <ProgressStep 
-                label="Actif" 
-                isActive={contract.status === contractStatuses.ACTIVE}
-                isCompleted={[
-                  contractStatuses.COMPLETED
-                ].includes(contract.status || '')}
-                status={contractStatuses.ACTIVE}
-                onClick={handleStepClick}
-              />
-              <ProgressLine />
-              <ProgressStep 
-                label="Terminé" 
-                isActive={contract.status === contractStatuses.COMPLETED}
-                isCompleted={false}
-                status={contractStatuses.COMPLETED}
-                onClick={handleStepClick}
-              />
             </div>
           </div>
-        </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="md:col-span-2">
@@ -491,7 +500,11 @@ const ContractDetail = () => {
               <CardDescription>Modifications de statut</CardDescription>
             </CardHeader>
             <CardContent>
-              {logs.length > 0 ? (
+              {isLoadingLogs ? (
+                <div className="flex justify-center py-6">
+                  <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : logs.length > 0 ? (
                 <div className="space-y-4">
                   {logs.map((log) => (
                     <div key={log.id} className="border-l-2 border-blue-200 pl-4 py-2">

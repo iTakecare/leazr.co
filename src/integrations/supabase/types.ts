@@ -371,6 +371,7 @@ export type Database = {
           previous_status: string
           reason: string | null
           user_id: string
+          user_name: string | null
         }
         Insert: {
           contract_id: string
@@ -380,6 +381,7 @@ export type Database = {
           previous_status: string
           reason?: string | null
           user_id: string
+          user_name?: string | null
         }
         Update: {
           contract_id?: string
@@ -389,6 +391,7 @@ export type Database = {
           previous_status?: string
           reason?: string | null
           user_id?: string
+          user_name?: string | null
         }
         Relationships: [
           {

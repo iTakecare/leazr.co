@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -151,7 +152,28 @@ export const updateContractStatus = async (
       throw new Error("Utilisateur non authentifié");
     }
 
-    // D'abord mettre à jour le statut du contrat
+    const userName = `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email;
+
+    // D'abord, ajouter l'entrée de log
+    const { error: logError } = await supabase
+      .from('contract_workflow_logs')
+      .insert({
+        contract_id: contractId,
+        user_id: user.id,
+        previous_status: previousStatus,
+        new_status: newStatus,
+        reason: reason || null,
+        user_name: userName
+      });
+
+    if (logError) {
+      console.error("Erreur lors de l'enregistrement du log :", logError);
+      // On continue même si l'enregistrement du log échoue
+    } else {
+      console.log("Le log de workflow a été enregistré avec succès");
+    }
+
+    // Ensuite mettre à jour le statut du contrat
     const { error } = await supabase
       .from('contracts')
       .update({ 
@@ -166,26 +188,6 @@ export const updateContractStatus = async (
     }
 
     console.log("Le statut du contrat a été mis à jour avec succès");
-
-    // Ensuite, ajouter l'entrée de log
-    const { error: logError } = await supabase
-      .from('contract_workflow_logs')
-      .insert({
-        contract_id: contractId,
-        user_id: user.id,
-        previous_status: previousStatus,
-        new_status: newStatus,
-        reason: reason || null,
-        user_name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`
-      });
-
-    if (logError) {
-      console.error("Erreur lors de l'enregistrement du log :", logError);
-      // On continue même si l'enregistrement du log échoue
-    } else {
-      console.log("Le log de workflow a été enregistré avec succès");
-    }
-
     return true;
   } catch (error) {
     console.error("Erreur lors de la mise à jour du statut du contrat:", error);
