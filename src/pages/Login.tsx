@@ -207,13 +207,13 @@ const Login = () => {
   return (
     <PageTransition className="min-h-screen flex overflow-hidden">
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
-        <div className="w-full max-w-md space-y-6">
-          <div className="flex flex-col items-center justify-center mb-2">
-            <Logo className="scale-150 mb-2" showText={false} />
-            <p className="text-xl font-medium text-black">
+        <div className="w-full max-w-md space-y-8">
+          <div className="flex flex-col items-center justify-center mb-8">
+            <Logo className="scale-150 mb-4" showText={false} />
+            <p className="text-xl font-semibold text-black mb-2">
               iTakecare
             </p>
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900 mt-1">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900">
               Bienvenue
             </h2>
           </div>
@@ -331,8 +331,8 @@ const Login = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center" 
           style={{ 
-            backgroundImage: "url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80')",
-            filter: "brightness(0.8) blur(2px)"
+            backgroundImage: "url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80')",
+            filter: "brightness(0.8) blur(1px)"
           }}
         ></div>
         
