@@ -8,6 +8,8 @@ import { useAuth } from '@/context/AuthContext';
 import Container from '@/components/layout/Container';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react';
+import PageTransition from '@/components/layout/PageTransition';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +17,7 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,76 +121,123 @@ const Login = () => {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   if (isResetMode) {
     return (
-      <Container maxWidth="sm" className="px-4">
-        <div className="flex justify-center items-center min-h-[80vh]">
-          <Card className="w-full max-w-sm">
-            <CardHeader>
-              <CardTitle>Réinitialisation du mot de passe</CardTitle>
-              <CardDescription>Créez un nouveau mot de passe pour votre compte</CardDescription>
+      <PageTransition className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+        <div className="w-full max-w-md">
+          <Card className="glass-morphism shadow-xl border-0 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 pointer-events-none" />
+            <CardHeader className="space-y-1 relative z-10">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Lock className="text-primary w-6 h-6" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold text-center">Réinitialisation du mot de passe</CardTitle>
+              <CardDescription className="text-center">Créez un nouveau mot de passe sécurisé pour votre compte</CardDescription>
             </CardHeader>
             <form onSubmit={handlePasswordReset}>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 relative z-10">
                 <div className="space-y-2">
                   <Label htmlFor="new-password">Nouveau mot de passe</Label>
-                  <Input 
-                    id="new-password" 
-                    type="password" 
-                    placeholder="Entrez votre nouveau mot de passe" 
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    autoFocus
-                  />
+                  <div className="relative">
+                    <Input 
+                      id="new-password" 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="Entrez votre nouveau mot de passe" 
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pr-10"
+                      autoFocus
+                    />
+                    <button 
+                      type="button" 
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                      onClick={togglePasswordVisibility}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
-                  <Input 
-                    id="confirm-password" 
-                    type="password" 
-                    placeholder="Confirmez votre nouveau mot de passe" 
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input 
+                      id="confirm-password" 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="Confirmez votre nouveau mot de passe" 
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <button 
+                      type="button" 
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                      onClick={togglePasswordVisibility}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="relative z-10">
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
+                  {loading ? 
+                    'Mise à jour...' : 
+                    <span className="flex items-center justify-center">
+                      Mettre à jour le mot de passe
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </span>
+                  }
                 </Button>
               </CardFooter>
             </form>
           </Card>
         </div>
-      </Container>
+      </PageTransition>
     );
   }
 
   return (
-    <Container maxWidth="sm" className="px-4">
-      <div className="flex justify-center items-center min-h-[80vh]">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>Connexion</CardTitle>
-            <CardDescription>Connectez-vous à votre compte</CardDescription>
+    <PageTransition className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+      <div className="w-full max-w-md">
+        <Card className="glass-morphism shadow-xl border-0 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 pointer-events-none" />
+          <CardHeader className="space-y-1 relative z-10">
+            <div className="flex items-center justify-center mb-2">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Lock className="text-primary w-6 h-6" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold text-center">Connexion</CardTitle>
+            <CardDescription className="text-center">Accédez à votre espace personnel</CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 relative z-10">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="nom@exemple.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="nom@exemple.com" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    autoFocus
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <Link 
-                    to="/login" 
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.preventDefault();
                       if (email) {
@@ -205,33 +255,50 @@ const Login = () => {
                       } else {
                         toast.error('Veuillez entrer votre email');
                       }
-                    }} 
+                    }}
                     className="text-sm text-blue-600 hover:underline"
                   >
                     Mot de passe oublié?
-                  </Link>
+                  </button>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="Entrez votre mot de passe" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Entrez votre mot de passe" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10"
+                  />
+                  <button 
+                    type="button" 
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                    onClick={togglePasswordVisibility}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Connexion...' : 'Se connecter'}
+            <CardFooter className="flex flex-col space-y-4 relative z-10">
+              <Button type="submit" className="w-full transition-all hover:shadow-md" disabled={loading}>
+                {loading ? 
+                  'Connexion...' : 
+                  <span className="flex items-center justify-center">
+                    Se connecter
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </span>
+                }
               </Button>
               <div className="text-center text-sm">
-                Vous n'avez pas de compte? <Link to="/signup" className="text-blue-600 hover:underline">S'inscrire</Link>
+                Vous n'avez pas de compte? <Link to="/signup" className="text-blue-600 hover:underline font-medium">S'inscrire</Link>
               </div>
             </CardFooter>
           </form>
         </Card>
       </div>
-    </Container>
+    </PageTransition>
   );
 };
 
