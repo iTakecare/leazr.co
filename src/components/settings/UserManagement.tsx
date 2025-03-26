@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -447,10 +448,7 @@ const UserManagement: React.FC = () => {
           </div>
         )}
 
-        <div className="border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-2">Liste des administrateurs</h3>
-          <p className="text-sm text-muted-foreground mb-4">Tous les administrateurs du système</p>
-          
+        <div>
           <div className="space-y-4">
             <div className="flex justify-between">
               <div className="relative w-full max-w-sm">
