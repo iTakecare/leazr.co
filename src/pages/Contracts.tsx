@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -84,12 +83,7 @@ const Contracts = () => {
         <Container>
           <div className="py-8 flex justify-center items-center">
             <div className="text-center">
-              <div className="animate-spin mb-4 h-8 w-8 text-primary mx-auto">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </div>
+              <div className="animate-spin mb-4 h-12 w-12 border-t-2 border-b-2 border-primary mx-auto rounded-full"></div>
               <p className="text-muted-foreground">Chargement des contrats...</p>
             </div>
           </div>
@@ -169,7 +163,7 @@ const Contracts = () => {
                 variant="outline" 
                 size="sm" 
                 onClick={handleRefresh}
-                disabled={isRefreshing || loading}
+                disabled={isRefreshing || loading || isDeleting}
                 className="relative"
               >
                 {isRefreshing ? (
@@ -242,7 +236,12 @@ const Contracts = () => {
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className={isRefreshing ? "opacity-50 pointer-events-none" : ""}>
+          <motion.div 
+            variants={itemVariants} 
+            className={
+              (isRefreshing || isDeleting) ? "opacity-50 pointer-events-none relative" : "relative"
+            }
+          >
             {viewMode === 'kanban' ? (
               <>
                 <div className="flex justify-between items-center mb-2">
@@ -286,13 +285,13 @@ const Contracts = () => {
               />
             )}
             
-            {isRefreshing && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-                <div className="animate-spin h-8 w-8 text-primary">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+            {(isRefreshing || isDeleting) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10 backdrop-blur-sm">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full"></div>
+                  <p className="mt-4 font-medium text-sm">
+                    {isDeleting ? "Suppression en cours..." : "Actualisation..."}
+                  </p>
                 </div>
               </div>
             )}

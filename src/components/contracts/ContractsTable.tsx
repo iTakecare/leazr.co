@@ -67,8 +67,10 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
 
   const handleDelete = async (contractId: string) => {
     try {
+      setConfirmDelete(null); // Close dialog immediately for better UX
       await onDeleteContract(contractId);
-    } finally {
+    } catch (error) {
+      console.error("Error in handleDelete:", error);
       setConfirmDelete(null);
     }
   };
@@ -148,7 +150,11 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             {contracts.map((contract) => (
               <TableRow 
                 key={contract.id} 
-                className={deleteInProgress === contract.id ? "opacity-50 pointer-events-none bg-red-50" : ""}
+                className={
+                  deleteInProgress === contract.id 
+                    ? "opacity-50 pointer-events-none bg-red-50 transition-all" 
+                    : "transition-all"
+                }
               >
                 <TableCell className="font-medium cursor-pointer" onClick={() => handleRowClick(contract.id)}>
                   {contract.id ? `CON-${contract.id.slice(0, 8)}` : 'N/A'}
@@ -199,7 +205,12 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        disabled={deleteInProgress === contract.id}
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -211,11 +222,11 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (deleteInProgress === contract.id || isDeleting) return;
+                          if (deleteInProgress || isDeleting) return;
                           setConfirmDelete(contract.id);
                         }}
                         disabled={isDeleting || deleteInProgress !== null}
-                        className={`text-red-500 focus:text-red-500 ${deleteInProgress === contract.id ? 'opacity-50' : ''}`}
+                        className="text-red-500 focus:text-red-500"
                       >
                         {deleteInProgress === contract.id ? (
                           <>

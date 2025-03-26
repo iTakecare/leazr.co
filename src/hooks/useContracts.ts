@@ -181,48 +181,58 @@ export const useContracts = () => {
 
   const handleDeleteContract = async (contractId: string) => {
     if (isDeleting || deleteInProgress) {
-      console.log("Suppression déjà en cours, annulation de la demande");
-      return; // Empêcher les suppressions multiples simultanées
+      console.log("Deletion already in progress");
+      return;
     }
     
     try {
       setIsDeleting(true);
       setDeleteInProgress(contractId);
       
-      toast.info("Suppression du contrat en cours...");
+      // Optimistic UI update - remove contract from local state immediately
+      const contractToDelete = contracts.find(c => c.id === contractId);
+      if (!contractToDelete) {
+        toast.error("Contract not found");
+        return;
+      }
       
-      console.log("Tentative de suppression du contrat:", contractId);
+      // Show toast with pending state
+      const toastId = toast.loading("Suppression du contrat en cours...");
+      
+      // Update UI immediately for responsiveness
+      setContracts(prevContracts => prevContracts.filter(c => c.id !== contractId));
+      setFilteredContracts(prevFiltered => prevFiltered.filter(c => c.id !== contractId));
+      
+      // Call the API to delete the contract
       const success = await deleteContract(contractId);
       
       if (success) {
-        console.log("Contrat supprimé avec succès, mise à jour de l'état local");
+        // Update toast to success
+        toast.success("Contrat supprimé avec succès", { id: toastId });
         
-        // Mettre à jour l'état local en supprimant le contrat immédiatement
-        setContracts(prevContracts => prevContracts.filter(c => c.id !== contractId));
-        setFilteredContracts(prevFiltered => prevFiltered.filter(c => c.id !== contractId));
-        
-        toast.success("Contrat supprimé avec succès");
-        
-        // Recharger complètement après un délai pour s'assurer de la synchronisation avec la BD
-        setTimeout(async () => {
-          console.log("Rechargement complet des contrats après suppression");
-          await fetchContracts();
+        // Double check with a fresh reload after a delay
+        setTimeout(() => {
+          console.log("Performing verification reload after deletion");
+          fetchContracts();
         }, 1000);
       } else {
-        console.error("Échec de la suppression du contrat");
-        toast.error("Erreur lors de la suppression du contrat");
+        // Revert optimistic update if deletion failed
+        toast.error("Échec de la suppression du contrat", { id: toastId });
         
-        // Forcer une actualisation complète pour rétablir l'état correct
+        // Add the contract back to the state
+        setContracts(prevContracts => [...prevContracts, contractToDelete]);
+        
+        // Force a full reload to ensure data consistency
         await fetchContracts();
       }
     } catch (error: any) {
-      console.error("Error deleting contract:", error);
-      toast.error(`Erreur lors de la suppression du contrat: ${error.message || "Erreur inconnue"}`);
+      console.error("Error in handleDeleteContract:", error);
+      toast.error(`Erreur lors de la suppression: ${error.message || "Erreur inconnue"}`);
       
-      // Recharger les contrats en cas d'erreur
+      // Force a reload on error
       await fetchContracts();
     } finally {
-      // Attendre un court instant avant de réinitialiser les états pour éviter les problèmes d'UI
+      // Reset states after a slight delay
       setTimeout(() => {
         setIsDeleting(false);
         setDeleteInProgress(null);

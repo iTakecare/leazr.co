@@ -318,81 +318,76 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
 
 export const deleteContract = async (contractId: string): Promise<boolean> => {
   try {
-    console.log("Début de la suppression du contrat:", contractId);
+    console.log("Starting contract deletion for ID:", contractId);
     
-    // Vérifier que le contrat existe avant de le supprimer
+    // 1. Fetch contract details first (for offer relationship)
     const { data: contract, error: fetchError } = await supabase
       .from('contracts')
       .select('id, offer_id')
       .eq('id', contractId)
       .single();
-    
+      
     if (fetchError || !contract) {
-      console.error("Erreur lors de la récupération des informations du contrat:", fetchError);
-      toast.error("Erreur: Le contrat n'a pas été trouvé");
+      console.error("Contract not found:", fetchError);
+      toast.error("Contract not found");
       return false;
     }
     
-    // Supprimer les logs du workflow en premier (contraintes de clé étrangère)
-    const { error: logsError } = await supabase
+    console.log("Found contract to delete:", contract);
+    
+    // 2. Delete logs first (handle foreign key constraints)
+    await supabase
       .from('contract_workflow_logs')
       .delete()
       .eq('contract_id', contractId);
     
-    if (logsError) {
-      console.error("Erreur lors de la suppression des logs du contrat:", logsError);
-      // On continue malgré l'échec des logs
-    }
+    console.log("Deleted workflow logs");
     
-    // Supprimer le contrat lui-même - PAS de .select()
+    // 3. Delete the contract with HARD delete (no .select())
     const { error: deleteError } = await supabase
       .from('contracts')
       .delete()
       .eq('id', contractId);
-    
+      
     if (deleteError) {
-      console.error("Erreur critique lors de la suppression du contrat:", deleteError);
-      throw new Error("Échec de la suppression du contrat: " + deleteError.message);
+      console.error("Error deleting contract:", deleteError);
+      toast.error("Failed to delete contract");
+      return false;
     }
     
-    // Vérifier que le contrat a réellement été supprimé
-    const { data: checkContract, error: checkError } = await supabase
+    // 4. Verify contract is actually deleted with a separate query
+    const { data: checkData } = await supabase
       .from('contracts')
       .select('id')
-      .eq('id', contractId)
-      .maybeSingle();
+      .eq('id', contractId);
       
-    if (checkError) {
-      console.error("Erreur lors de la vérification de suppression:", checkError);
+    if (checkData && checkData.length > 0) {
+      console.error("CRITICAL: Contract still exists after deletion!");
+      toast.error("Database error: Contract still exists after deletion");
+      return false;
     }
     
-    if (checkContract) {
-      console.error("Le contrat existe toujours après la suppression!");
-      throw new Error("La suppression a échoué: le contrat existe toujours");
-    }
+    console.log("Contract successfully deleted and verified");
     
-    console.log("Contrat supprimé avec succès - vérification réussie");
-    
-    // Mettre à jour l'offre associée si elle existe
-    if (contract?.offer_id) {
-      console.log("Mise à jour de l'offre associée:", contract.offer_id);
+    // 5. Update associated offer if exists
+    if (contract.offer_id) {
       const { error: offerError } = await supabase
         .from('offers')
         .update({ converted_to_contract: false })
         .eq('id', contract.offer_id);
-      
+        
       if (offerError) {
-        console.error("Erreur lors de la mise à jour de l'offre associée:", offerError);
-        // Nous considérons toujours la suppression comme réussie
+        console.warn("Could not update associated offer:", offerError);
+        // We still consider deletion successful
       } else {
-        console.log("Offre associée mise à jour avec succès");
+        console.log("Updated associated offer status");
       }
     }
     
     return true;
-  } catch (error: any) {
-    console.error("Exception non gérée lors de la suppression du contrat:", error);
-    toast.error("Erreur lors de la suppression du contrat: " + (error.message || "Erreur inconnue"));
+  } catch (error) {
+    console.error("Exception in deleteContract:", error);
+    toast.error("An error occurred while deleting the contract");
     return false;
   }
 };
