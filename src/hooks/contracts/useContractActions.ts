@@ -6,8 +6,9 @@ import {
   deleteContract, 
   addTrackingNumber 
 } from "@/services/contracts";
+import { Contract } from "@/services/contracts/contractTypes";
 
-export const useContractActions = (refreshContracts: () => Promise<void>) => {
+export const useContractActions = (refreshContracts: () => Promise<void>, getContracts?: () => Contract[]) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteInProgress, setDeleteInProgress] = useState<string | null>(null);
@@ -16,9 +17,26 @@ export const useContractActions = (refreshContracts: () => Promise<void>) => {
     try {
       setIsUpdatingStatus(true);
       
-      // 1. Recherche du contrat actuel (cette fonctionnalité pourrait être extraite dans un hook séparé)
-      const contracts = await refreshContracts();
-      const contract = contracts ? contracts.find(c => c.id === contractId) : null;
+      // 1. Recherche du contrat actuel
+      let contract: Contract | undefined;
+      
+      // Si getContracts est fourni, utiliser ça pour obtenir les contrats actuels
+      if (getContracts) {
+        const contracts = getContracts();
+        contract = contracts.find(c => c.id === contractId);
+      }
+      
+      // Si nous n'avons pas encore trouvé le contrat ou getContracts n'est pas fourni
+      if (!contract) {
+        // Rafraîchir les contrats et chercher à nouveau
+        await refreshContracts();
+        
+        // Après le rafraîchissement, utiliser getContracts s'il est disponible
+        if (getContracts) {
+          const refreshedContracts = getContracts();
+          contract = refreshedContracts.find(c => c.id === contractId);
+        }
+      }
       
       if (!contract) {
         toast.error("Contrat non trouvé");

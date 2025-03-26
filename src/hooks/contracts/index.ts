@@ -23,6 +23,8 @@ export const useContracts = () => {
     setSearchTerm
   } = useContractsFilter(contracts);
 
+  const getContracts = () => contracts;
+
   const {
     isUpdatingStatus,
     isDeleting,
@@ -30,7 +32,7 @@ export const useContracts = () => {
     handleUpdateContractStatus,
     handleAddTrackingInfo,
     handleDeleteContract
-  } = useContractActions(fetchContracts);
+  } = useContractActions(fetchContracts, getContracts);
 
   const { viewMode, setViewMode } = useContractView();
 
