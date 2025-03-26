@@ -29,7 +29,7 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
     (p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0)
   ).length);
 
-  // Log specific details for each product
+  // Log specific details for each product to help debugging
   products.forEach(p => {
     console.log(`CatalogContent: Product "${p.name}" (${p.id}):`, {
       isParent: p.is_parent,
