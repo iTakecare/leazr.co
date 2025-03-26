@@ -413,7 +413,7 @@ const GeneralSettings = () => {
                       <p className="text-xs text-muted-foreground">Format recommandé: PNG ou SVG, carré, fond transparent</p>
                       
                       {authStatus === 'authenticated' && (
-                        <Alert variant="outline" className="mt-2">
+                        <Alert variant="default">
                           <Shield className="h-4 w-4 text-blue-500" />
                           <AlertTitle className="text-xs font-medium">Stockage sécurisé</AlertTitle>
                           <AlertDescription className="text-xs">
@@ -585,4 +585,3 @@ const GeneralSettings = () => {
 };
 
 export default GeneralSettings;
-
