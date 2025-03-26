@@ -8,59 +8,90 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export async function ensureStorageBucket(bucketName: string): Promise<boolean> {
   try {
-    console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
+    console.log(`Vérification du bucket de stockage: ${bucketName}`);
     
     // Vérifier si le bucket existe déjà
-    const { data: existingBucket, error: bucketError } = await supabase
+    const { data: existingBuckets, error: listError } = await supabase
       .storage
-      .getBucket(bucketName);
+      .listBuckets();
     
-    if (existingBucket) {
+    if (listError) {
+      console.error(`Erreur lors de la vérification des buckets:`, listError);
+      return false;
+    }
+    
+    // Vérifier si le bucket est dans la liste
+    const bucketExists = existingBuckets?.some(bucket => bucket.name === bucketName);
+    
+    if (bucketExists) {
       console.log(`Le bucket ${bucketName} existe déjà`);
       return true;
     }
     
-    if (bucketError && bucketError.message !== 'Bucket not found') {
-      console.error(`Erreur lors de la vérification du bucket ${bucketName}:`, bucketError);
-      return false;
+    // Le bucket n'existe pas dans la liste, essayons de le récupérer directement
+    try {
+      const { data: getBucketData, error: getBucketError } = await supabase
+        .storage
+        .getBucket(bucketName);
+      
+      if (!getBucketError && getBucketData) {
+        console.log(`Le bucket ${bucketName} existe déjà (vérifié par getBucket)`);
+        return true;
+      }
+    } catch (getBucketErr) {
+      console.log(`Erreur getBucket ignorée:`, getBucketErr);
+      // Continuer, car nous allons tenter de créer le bucket
     }
     
-    // Le bucket n'existe pas, essayons de le créer
+    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création...`);
+    
+    // Essayer d'appeler la fonction RPC si elle existe
     try {
-      // Essayons d'appeler la fonction RPC si elle existe
       const { data: rpcData, error: rpcError } = await supabase.functions.invoke('create-storage-bucket', {
         body: {
           bucket_name: bucketName
         }
       });
       
-      if (rpcError) {
-        console.log(`La fonction RPC n'existe pas ou a échoué, création directe: ${rpcError.message}`);
-        // Échec de la fonction RPC, essayons de créer directement
-        const { data: createData, error: createError } = await supabase
-          .storage
-          .createBucket(bucketName, {
-            public: true,
-            fileSizeLimit: 52428800, // 50MB
-          });
-        
-        if (createError) {
-          console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
-          return false;
-        }
-        
-        console.log(`Bucket ${bucketName} créé avec succès`);
+      if (!rpcError && rpcData?.success) {
+        console.log(`Bucket ${bucketName} créé avec succès via RPC`);
         return true;
       }
       
-      console.log(`Bucket ${bucketName} créé avec succès via RPC`);
+      console.log(`La fonction RPC a échoué ou n'existe pas:`, rpcError || 'Sans erreur mais sans succès');
+    } catch (rpcErr) {
+      console.log(`Exception lors de l'appel RPC:`, rpcErr);
+      // Continuer car nous allons essayer de créer directement
+    }
+    
+    // Tenter de créer directement le bucket
+    try {
+      const { data: createData, error: createError } = await supabase
+        .storage
+        .createBucket(bucketName, {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
+      
+      if (createError) {
+        // Si l'erreur est "Bucket already exists", le bucket existe déjà
+        if (createError.message.includes("already exists")) {
+          console.log(`Le bucket ${bucketName} existe déjà (d'après l'erreur)`);
+          return true;
+        }
+        
+        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+        return false;
+      }
+      
+      console.log(`Bucket ${bucketName} créé avec succès`);
       return true;
     } catch (error) {
-      console.error(`Erreur lors de la création du bucket ${bucketName}:`, error);
+      console.error(`Exception lors de la création du bucket ${bucketName}:`, error);
       return false;
     }
   } catch (error) {
-    console.error(`Erreur lors de la vérification/création du bucket ${bucketName}:`, error);
+    console.error(`Erreur générale lors de l'opération sur le bucket ${bucketName}:`, error);
     return false;
   }
 }

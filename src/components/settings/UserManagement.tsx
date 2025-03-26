@@ -15,6 +15,7 @@ import { fr } from "date-fns/locale";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStorageBucket } from "@/services/storageService";
 
 const UserManagement: React.FC = () => {
   const { users, loading, error, refreshUsers, updateUser, addUser, removeUser } = useUsers();
@@ -95,14 +96,19 @@ const UserManagement: React.FC = () => {
     
     setUploading(true);
     try {
-      // Vérifier si le bucket avatars existe, sinon le créer
-      const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.find(bucket => bucket.name === 'avatars')) {
-        await supabase.storage.createBucket('avatars', { public: true });
+      // S'assurer que le bucket avatars existe
+      const bucketExists = await ensureStorageBucket('avatars');
+      if (!bucketExists) {
+        toast.error("Erreur: Le bucket de stockage 'avatars' n'existe pas");
+        setUploading(false);
+        return;
       }
       
+      // Générer un nom de fichier unique
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      
       // Télécharger l'avatar
-      const fileName = `${user.id}-${Date.now()}`;
       const { data, error } = await supabase.storage
         .from('avatars')
         .upload(fileName, avatarFile, {
@@ -110,7 +116,10 @@ const UserManagement: React.FC = () => {
           contentType: avatarFile.type
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur détaillée:", error);
+        throw error;
+      }
       
       // Obtenir l'URL publique
       const { data: urlData } = supabase.storage
