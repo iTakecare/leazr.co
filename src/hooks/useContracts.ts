@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { 
@@ -177,12 +176,9 @@ export const useContracts = () => {
   };
 
   const handleDeleteContract = async (contractId: string) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce contrat ? Cette action est irréversible.")) {
-      return;
-    }
-    
     try {
       setIsDeleting(true);
+      toast.info("Suppression du contrat en cours...");
       
       const success = await deleteContract(contractId);
       
@@ -195,9 +191,9 @@ export const useContracts = () => {
       } else {
         toast.error("Erreur lors de la suppression du contrat");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting contract:", error);
-      toast.error("Erreur lors de la suppression du contrat");
+      toast.error(`Erreur lors de la suppression du contrat: ${error.message || "Erreur inconnue"}`);
     } finally {
       setIsDeleting(false);
     }

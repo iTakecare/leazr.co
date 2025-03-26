@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -352,6 +351,7 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     if (deleteError) {
       console.error("Erreur critique lors de la suppression du contrat:", deleteError);
+      toast.error("Erreur lors de la suppression du contrat: " + deleteError.message);
       return false;
     }
     
@@ -371,8 +371,9 @@ export const deleteContract = async (contractId: string): Promise<boolean> => {
     
     console.log("Contrat supprimé avec succès");
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Exception non gérée lors de la suppression du contrat:", error);
+    toast.error("Erreur lors de la suppression du contrat: " + (error.message || "Erreur inconnue"));
     return false;
   }
 };

@@ -1,12 +1,21 @@
-
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Contract } from "@/services/contractService";
 import { formatCurrency, formatDate } from "@/utils/formatters";
-import { MoreHorizontal, Trash2, ExternalLink, Package, Eye, Box } from "lucide-react";
+import { MoreHorizontal, Trash2, ExternalLink, Package, Eye, Box, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -38,6 +47,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   const [equipmentModalOpen, setEquipmentModalOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any[]>([]);
   const [equipmentModalTitle, setEquipmentModalTitle] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   
   const handleRowClick = (contractId: string) => {
     navigate(`/contracts/${contractId}`);
@@ -59,14 +69,12 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     
     try {
       let parsedEquipment: any[] = [];
-      // Check if it's already a JSON object
       if (typeof equipment === 'string') {
         parsedEquipment = JSON.parse(equipment);
       } else {
         parsedEquipment = equipment as any;
       }
       
-      // Ensure we have an array
       if (!Array.isArray(parsedEquipment)) {
         parsedEquipment = [parsedEquipment];
       }
@@ -76,7 +84,6 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
       setEquipmentModalOpen(true);
     } catch (e) {
       console.error("Erreur lors de l'analyse des données d'équipement:", e);
-      // If parsing fails, just show the raw string
       setSelectedEquipment([{ title: equipment }]);
       setEquipmentModalTitle(`Équipement : ${contractName}`);
       setEquipmentModalOpen(true);
@@ -100,14 +107,12 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
       
       if (parsedEquipment.length === 0) return "Non spécifié";
       
-      // Return a summary like "3 items (Dell XPS 13, ...)"
       if (parsedEquipment.length === 1) {
         return parsedEquipment[0].title || "1 item";
       } else {
         return `${parsedEquipment.length} items`;
       }
     } catch (e) {
-      // If it's not JSON, return the first X characters
       return equipment.length > 30 ? `${equipment.substring(0, 30)}...` : equipment;
     }
   };
@@ -192,7 +197,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDeleteContract(contract.id);
+                          setConfirmDelete(contract.id);
                         }}
                         disabled={isDeleting}
                       >
@@ -216,7 +221,39 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         </Table>
       </div>
 
-      {/* Modal pour afficher les détails de l'équipement */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Cela supprimera définitivement ce contrat.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmDelete) {
+                  onDeleteContract(confirmDelete);
+                  setConfirmDelete(null);
+                }
+              }}
+              className="bg-red-500 hover:bg-red-600"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                'Supprimer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={equipmentModalOpen} onOpenChange={setEquipmentModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
