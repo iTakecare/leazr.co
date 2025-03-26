@@ -9,7 +9,7 @@ import WooCommerceImporter from "@/components/settings/WooCommerceImporter";
 import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
 import PDFTemplateList from "@/components/settings/PDFTemplateList";
 import DataImporter from "@/components/settings/DataImporter";
-import ContractSettings from "@/components/settings/ContractSettings";
+import UserManagement from "@/components/settings/UserManagement";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 const Settings = () => {
@@ -49,7 +49,7 @@ const Settings = () => {
           <TabsTrigger value="email">Configuration Email</TabsTrigger>
           <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
           <TabsTrigger value="import">Import Données</TabsTrigger>
-          <TabsTrigger value="contracts">Contrats</TabsTrigger>
+          <TabsTrigger value="users">Utilisateurs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leasers">
@@ -126,16 +126,16 @@ const Settings = () => {
           <DataImporter />
         </TabsContent>
 
-        <TabsContent value="contracts">
+        <TabsContent value="users">
           <Card>
             <CardHeader>
-              <CardTitle>Paramètres des contrats</CardTitle>
+              <CardTitle>Gestion des utilisateurs</CardTitle>
               <CardDescription>
-                Configurez les paramètres des contrats et les templates
+                Gérez les utilisateurs, leurs rôles et leurs permissions
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ContractSettings />
+              <UserManagement />
             </CardContent>
           </Card>
         </TabsContent>
