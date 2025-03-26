@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -166,6 +165,8 @@ export const updateContractStatus = async (
       return false;
     }
 
+    console.log("Le statut du contrat a été mis à jour avec succès");
+
     // Ensuite, ajouter l'entrée de log
     const { error: logError } = await supabase
       .from('contract_workflow_logs')
@@ -174,12 +175,15 @@ export const updateContractStatus = async (
         user_id: user.id,
         previous_status: previousStatus,
         new_status: newStatus,
-        reason: reason || null
+        reason: reason || null,
+        user_name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`
       });
 
     if (logError) {
       console.error("Erreur lors de l'enregistrement du log :", logError);
       // On continue même si l'enregistrement du log échoue
+    } else {
+      console.log("Le log de workflow a été enregistré avec succès");
     }
 
     return true;
@@ -233,7 +237,7 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
         new_status,
         reason,
         created_at,
-        profiles:user_id (first_name, last_name)
+        user_name
       `)
       .eq('contract_id', contractId)
       .order('created_at', { ascending: false });

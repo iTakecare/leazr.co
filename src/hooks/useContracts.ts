@@ -89,17 +89,17 @@ export const useContracts = () => {
       if (success) {
         console.log(`Mise à jour réussie, application des changements locaux`);
         
-        // Mettre à jour l'état local immédiatement
+        // Mettre à jour l'état local immédiatement pour refléter le changement d'état
         setContracts(prevContracts => 
           prevContracts.map(c => 
-            c.id === contractId ? { ...c, status: newStatus } : c
+            c.id === contractId ? { ...c, status: newStatus, updated_at: new Date().toISOString() } : c
           )
         );
         
+        toast.success(`Statut du contrat mis à jour avec succès`);
+        
         // Forcer un rechargement complet des contrats pour s'assurer que tout est synchronisé
         await fetchContracts();
-        
-        toast.success(`Statut du contrat mis à jour avec succès`);
       } else {
         console.error("Échec de la mise à jour du statut");
         toast.error("Erreur lors de la mise à jour du statut");
@@ -137,15 +137,16 @@ export const useContracts = () => {
               tracking_number: trackingNumber,
               estimated_delivery: estimatedDelivery,
               delivery_carrier: carrier,
-              delivery_status: 'en_attente'
+              delivery_status: 'en_attente',
+              updated_at: new Date().toISOString()
             } : c
           )
         );
         
+        toast.success(`Informations de suivi ajoutées avec succès`);
+        
         // Forcer un rechargement complet
         await fetchContracts();
-        
-        toast.success(`Informations de suivi ajoutées avec succès`);
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
       }

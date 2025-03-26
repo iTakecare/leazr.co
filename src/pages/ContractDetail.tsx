@@ -42,6 +42,7 @@ const ContractDetail = () => {
       
       console.log("Chargement des détails du contrat:", id);
       
+      // Charger simultanément le contrat et l'historique des logs
       const [contractsData, logsData] = await Promise.all([
         getContracts(true), // S'assurer qu'on récupère tous les contrats
         getContractWorkflowLogs(id)
@@ -115,20 +116,28 @@ const ContractDetail = () => {
       );
       
       if (success) {
-        toast.success(`Statut du contrat mis à jour avec succès`);
-        
-        // Mettre à jour l'état local immédiatement
+        // Mettre à jour l'état local immédiatement - importante pour l'UX
         setContract(prevContract => {
           if (!prevContract) return null;
           return {
             ...prevContract,
-            status: targetStatus
+            status: targetStatus,
+            updated_at: new Date().toISOString()
           };
         });
         
-        // Rafraîchir les données complètes après la mise à jour
+        toast.success(`Statut du contrat mis à jour avec succès`);
+        
+        // Rafraîchir les logs et les données complètes après la mise à jour
         console.log("Rafraîchissement des données après mise à jour de statut");
-        await fetchContractDetails();
+        await Promise.all([
+          getContractWorkflowLogs(contract.id).then(logsData => {
+            console.log("Nouveaux logs récupérés:", logsData);
+            setLogs(logsData);
+          }),
+          fetchContractDetails()
+        ]);
+        
         setStatusDialogOpen(false);
       } else {
         toast.error("Erreur lors de la mise à jour du statut du contrat");
@@ -155,8 +164,6 @@ const ContractDetail = () => {
       );
       
       if (success) {
-        toast.success(`Informations de suivi ajoutées avec succès`);
-        
         // Mettre à jour l'état local immédiatement
         setContract(prevContract => {
           if (!prevContract) return null;
@@ -165,11 +172,14 @@ const ContractDetail = () => {
             tracking_number: trackingNumber,
             estimated_delivery: estimatedDelivery,
             delivery_carrier: carrier,
-            delivery_status: 'en_attente'
+            delivery_status: 'en_attente',
+            updated_at: new Date().toISOString()
           };
         });
         
-        // Rafraîchir les données
+        toast.success(`Informations de suivi ajoutées avec succès`);
+        
+        // Rafraîchir les données complètes
         await fetchContractDetails();
         setTrackingDialogOpen(false);
       } else {
@@ -487,7 +497,7 @@ const ContractDetail = () => {
                     <div key={log.id} className="border-l-2 border-blue-200 pl-4 py-2">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="font-medium">
-                          {log.profiles?.first_name} {log.profiles?.last_name}
+                          {log.user_name || "Utilisateur"}
                         </div>
                         <div className="text-xs text-gray-500">
                           {formatDate(log.created_at)}
@@ -538,8 +548,16 @@ const ContractDetail = () => {
             <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={handleStatusChange} disabled={isUpdatingStatus}>
-              {isUpdatingStatus ? "Mise à jour..." : "Confirmer"}
+            <Button 
+              onClick={handleStatusChange} 
+              disabled={isUpdatingStatus}
+            >
+              {isUpdatingStatus ? (
+                <>
+                  <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
+                  Mise à jour...
+                </>
+              ) : "Confirmer"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -602,7 +620,12 @@ const ContractDetail = () => {
               onClick={handleAddTrackingInfo}
               disabled={!trackingNumber.trim() || isUpdatingStatus}
             >
-              {isUpdatingStatus ? "Ajout en cours..." : "Confirmer"}
+              {isUpdatingStatus ? (
+                <>
+                  <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
+                  Ajout en cours...
+                </>
+              ) : "Confirmer"}
             </Button>
           </DialogFooter>
         </DialogContent>
