@@ -48,7 +48,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   
   const menuItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/" },
@@ -77,6 +77,26 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
       return true;
     }
     return location.pathname.startsWith(href) && href !== "/";
+  };
+
+  // Générer les initiales de l'utilisateur à partir de son nom ou email
+  const getUserInitials = () => {
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+    } else if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return "IT";
+  };
+
+  // Obtenir le nom complet de l'utilisateur ou son email
+  const getUserDisplayName = () => {
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    } else if (user?.email) {
+      return user.email;
+    }
+    return "Admin Portal";
   };
 
   if (isMobile) {
@@ -144,11 +164,11 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
               <div className="p-4 mt-auto border-t">
                 <div className="flex items-center gap-3 mb-4">
                   <Avatar>
-                    <AvatarFallback className="bg-primary/20 text-primary">IT</AvatarFallback>
+                    <AvatarFallback className="bg-primary/20 text-primary">{getUserInitials()}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium">Admin Portal</p>
-                    <p className="text-xs text-muted-foreground">Gestion complète</p>
+                    <p className="text-sm font-medium">{getUserDisplayName()}</p>
+                    <p className="text-xs text-muted-foreground">{user?.role || "Gestion complète"}</p>
                   </div>
                 </div>
                 
@@ -260,11 +280,11 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarFallback className="bg-primary/20 text-primary">IT</AvatarFallback>
+                  <AvatarFallback className="bg-primary/20 text-primary">{getUserInitials()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">Admin Portal</p>
-                  <p className="text-xs text-muted-foreground">Gestion complète</p>
+                  <p className="text-sm font-medium">{getUserDisplayName()}</p>
+                  <p className="text-xs text-muted-foreground">{user?.role || "Gestion complète"}</p>
                 </div>
               </div>
               
