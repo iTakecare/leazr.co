@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { updateUserAvatar } from "@/services/userService";
+import { updateUserAvatar, updateUserProfile } from "@/services/userService";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Mail } from "lucide-react";
+import { AlertCircle, Mail, Upload } from "lucide-react";
 
 const AccountSettings = () => {
   const { user, updateUserData } = useAuth();
@@ -43,6 +43,7 @@ const AccountSettings = () => {
 
   const handleSave = async () => {
     try {
+      // Mettre à jour les données utilisateur via Auth
       await updateUserData({
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -50,12 +51,22 @@ const AccountSettings = () => {
         title: formData.title
       });
       
-      // Mettre à jour l'avatar séparément si l'URL a changé
-      if (formData.avatar_url !== user?.avatar_url && formData.avatar_url.trim() !== '') {
-        await updateUserAvatar(user?.id || '', formData.avatar_url);
+      // Mettre à jour le profil dans la base de données
+      if (user?.id) {
+        await updateUserProfile(user.id, {
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          company: formData.company,
+          title: formData.title
+        });
       }
       
-      toast.success("Modifications enregistrées");
+      // Mettre à jour l'avatar séparément si l'URL a changé
+      if (formData.avatar_url !== user?.avatar_url && formData.avatar_url.trim() !== '' && user?.id) {
+        await updateUserAvatar(user.id, formData.avatar_url);
+      }
+      
+      toast.success("Modifications enregistrées avec succès");
       
       // Actualiser la page pour que les changements soient visibles immédiatement
       setTimeout(() => {
@@ -70,7 +81,7 @@ const AccountSettings = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Paramètres du compte</CardTitle>
+        <CardTitle>Mon profil</CardTitle>
         <CardDescription>
           Gérez les informations de votre compte
         </CardDescription>
@@ -87,23 +98,27 @@ const AccountSettings = () => {
             )}
           </Avatar>
           <div className="space-y-2 flex-1">
-            <Label htmlFor="avatar_url">URL de l'avatar</Label>
-            <Input 
-              id="avatar_url" 
-              placeholder="https://exemple.com/votre-avatar.jpg" 
-              value={formData.avatar_url}
-              onChange={handleChange}
-            />
-            <p className="text-xs text-muted-foreground">
-              Entrez l'URL complète d'une image pour votre avatar. Formats recommandés: JPG, PNG (carré).
-            </p>
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Changer d'avatar
+            </Button>
+            <div className="mt-2">
+              <Label htmlFor="avatar_url">URL de l'avatar</Label>
+              <Input 
+                id="avatar_url" 
+                placeholder="https://exemple.com/votre-avatar.jpg" 
+                value={formData.avatar_url}
+                onChange={handleChange}
+                className="mt-1"
+              />
+            </div>
           </div>
         </div>
 
         <div className="bg-muted/50 p-4 rounded-lg flex items-center space-x-2">
           <Mail className="h-5 w-5 text-muted-foreground" />
           <div className="flex-1">
-            <h4 className="text-sm font-medium">Adresse email</h4>
+            <h4 className="text-sm font-medium">Email</h4>
             <p className="text-sm text-muted-foreground">Vous êtes connecté avec: <strong>{user?.email}</strong></p>
           </div>
           <Badge variant="outline" className="ml-auto">
@@ -142,23 +157,28 @@ const AccountSettings = () => {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="title">Titre (affiché sous votre avatar)</Label>
+          <Label htmlFor="title">Titre professionnel</Label>
           <Input 
             id="title" 
-            placeholder="Votre titre" 
+            placeholder="Votre titre professionnel" 
             value={formData.title}
             onChange={handleChange}
           />
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <p className="text-sm text-muted-foreground">
-          <AlertCircle className="h-4 w-4 inline-block mr-1" />
+      <CardFooter className="flex flex-col sm:flex-row sm:justify-between space-y-4 sm:space-y-0">
+        <div className="text-sm text-muted-foreground flex items-center">
+          <AlertCircle className="h-4 w-4 mr-1" />
           Les modifications seront appliquées après actualisation
-        </p>
-        <Button onClick={handleSave}>
-          Enregistrer les modifications
-        </Button>
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto justify-end">
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Annuler
+          </Button>
+          <Button onClick={handleSave}>
+            Mettre à jour le profil
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

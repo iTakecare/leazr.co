@@ -150,15 +150,17 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         </div>
         <div className="mt-auto border-t p-4">
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              {user?.avatar_url ? (
-                <AvatarImage src={user.avatar_url} alt={`${user.first_name || ''} ${user.last_name || ''}`} />
-              ) : (
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  {user?.first_name?.[0] || ''}{user?.last_name?.[0] || ''}
-                </AvatarFallback>
-              )}
-            </Avatar>
+            <Link to="/settings" className="block">
+              <Avatar className="h-10 w-10">
+                {user?.avatar_url ? (
+                  <AvatarImage src={user.avatar_url} alt={`${user.first_name || ''} ${user.last_name || ''}`} />
+                ) : (
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {user?.first_name?.[0] || ''}{user?.last_name?.[0] || ''}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            </Link>
             {!collapsed && (
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{user?.first_name || ''} {user?.last_name || ''}</span>
