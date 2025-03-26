@@ -1579,9 +1579,23 @@ export type Database = {
         }
         Returns: Json
       }
+      group_products_by_sku: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          parent_id: string
+          parent_name: string
+          parent_sku: string
+          variants_count: number
+          variation_attributes: Json
+        }[]
+      }
       is_ambassador: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      organize_product_variants: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_ambassador_commission_level: {
         Args: {
