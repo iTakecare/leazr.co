@@ -22,6 +22,7 @@ export const useProductSelector = (isOpen: boolean) => {
       
       console.log(`Retrieved ${productsData.length} products`);
       
+      // Fetch variant prices for all products
       const { data: variantPricesData, error: variantPricesError } = await supabase
         .from("product_variant_prices")
         .select("*");
@@ -34,12 +35,15 @@ export const useProductSelector = (isOpen: boolean) => {
       console.log(`Retrieved ${variantPricesData.length} variant prices`);
       
       const productsWithVariants = productsData.map(product => {
+        // Get all price variants for this product
         const productVariantPrices = variantPricesData.filter(price => 
           price.product_id === product.id
         );
         
-        const isParent = productVariantPrices.length > 0;
+        // Determine if this is a parent product (has variants)
+        const isParent = productVariantPrices.length > 0 || product.is_parent;
         
+        // Extract variation attributes if needed
         let variationAttributes = product.variation_attributes;
         if (isParent && (!variationAttributes || Object.keys(variationAttributes).length === 0)) {
           variationAttributes = extractVariationAttributes(productVariantPrices);
@@ -48,15 +52,28 @@ export const useProductSelector = (isOpen: boolean) => {
         return {
           ...product,
           variant_combination_prices: productVariantPrices,
-          is_parent: isParent || product.is_parent,
+          is_parent: isParent,
           variation_attributes: variationAttributes,
           createdAt: product.created_at || new Date(),
           updatedAt: product.updated_at || new Date()
         };
       });
       
-      console.log("Processed products with variants:", productsWithVariants.length);
-      return productsWithVariants;
+      // Find child-parent relationships and organize variants
+      const productsWithChildrenInfo = productsWithVariants.map(product => {
+        // Find variants that have this product as parent
+        const variants = productsWithVariants.filter(p => p.parent_id === product.id);
+        
+        return {
+          ...product,
+          variants: variants,
+          // Track if this has actual child products as variants
+          has_child_variants: variants.length > 0
+        };
+      });
+      
+      console.log("Processed products with variants:", productsWithChildrenInfo.length);
+      return productsWithChildrenInfo;
     } catch (error) {
       console.error("Failed to fetch products:", error);
       throw error;
