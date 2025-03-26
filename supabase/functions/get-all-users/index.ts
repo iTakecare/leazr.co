@@ -22,17 +22,17 @@ serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
     // Get all users with the admin client
-    const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
     
-    if (usersError) {
+    if (error) {
       return new Response(
-        JSON.stringify({ error: usersError.message }),
+        JSON.stringify({ error: error.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
     // Format the users data to match what the component expects
-    const formattedUsers = users.users.map(user => ({
+    const formattedUsers = data.users.map(user => ({
       id: user.id,
       email: user.email,
       email_confirmed_at: user.email_confirmed_at,
@@ -41,10 +41,11 @@ serve(async (req) => {
     }));
     
     return new Response(
-      JSON.stringify({ data: formattedUsers }),
+      JSON.stringify(formattedUsers),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error) {
+    console.error("Error in get-all-users function:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

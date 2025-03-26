@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -58,37 +57,46 @@ const UserManager = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Get all users via edge function instead of RPC
+      console.log("Fetching users from edge function...");
+      // Get all users via edge function
       const { data, error } = await supabase.functions.invoke('get-all-users');
       
       if (error) {
+        console.error("Error fetching users:", error);
         toast.error("Erreur lors de la récupération des utilisateurs : " + error.message);
         return;
       }
       
-      if (data) {
-        // For each user, fetch their profile info
-        const usersWithProfiles = await Promise.all(
-          data.map(async (user: UserData) => {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('first_name, last_name, role')
-              .eq('id', user.id)
-              .single();
-            
-            return {
-              ...user,
-              first_name: profileData?.first_name || '',
-              last_name: profileData?.last_name || '',
-              role: profileData?.role || 'client'
-            };
-          })
-        );
-        
-        // Filter to only show admins
-        const adminUsers = usersWithProfiles.filter(user => user.role === 'admin');
-        setUsers(adminUsers);
+      if (!data || !Array.isArray(data)) {
+        console.error("Invalid data format received:", data);
+        toast.error("Format de données invalide reçu du serveur");
+        setLoading(false);
+        return;
       }
+      
+      console.log("Users data received:", data);
+      
+      // For each user, fetch their profile info
+      const usersWithProfiles = await Promise.all(
+        data.map(async (user: UserData) => {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, role')
+            .eq('id', user.id)
+            .single();
+          
+          return {
+            ...user,
+            first_name: profileData?.first_name || '',
+            last_name: profileData?.last_name || '',
+            role: profileData?.role || 'client'
+          };
+        })
+      );
+      
+      // Filter to only show admins
+      const adminUsers = usersWithProfiles.filter(user => user.role === 'admin');
+      setUsers(adminUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Erreur lors de la récupération des utilisateurs");
