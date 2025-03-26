@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -160,6 +161,10 @@ const ContractDetail = () => {
     try {
       setIsUpdatingStatus(true);
       
+      // Important: Capture the current status explicitly
+      const currentStatus = contract.status;
+      console.log(`Ajout d'informations de suivi au contrat avec statut actuel: ${currentStatus}`);
+      
       const success = await addTrackingNumber(
         contract.id,
         trackingNumber,
@@ -168,10 +173,7 @@ const ContractDetail = () => {
       );
       
       if (success) {
-        const newStatus = contract.status === contractStatuses.CONTRACT_SIGNED 
-          ? contractStatuses.EQUIPMENT_ORDERED 
-          : contract.status;
-        
+        // Update local state while preserving the current status
         setContract(prevContract => {
           if (!prevContract) return null;
           return {
@@ -180,7 +182,7 @@ const ContractDetail = () => {
             estimated_delivery: estimatedDelivery,
             delivery_carrier: carrier,
             delivery_status: 'en_attente',
-            status: newStatus,
+            status: currentStatus, // Explicitly maintain the current status
             updated_at: new Date().toISOString()
           };
         });
@@ -188,9 +190,8 @@ const ContractDetail = () => {
         toast.success(`Informations de suivi ajoutées avec succès`);
         setTrackingDialogOpen(false);
         
-        if (contract.status !== newStatus) {
-          await fetchLogs();
-        }
+        // Refresh logs if needed
+        await fetchLogs();
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
       }

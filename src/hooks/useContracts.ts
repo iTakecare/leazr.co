@@ -121,14 +121,16 @@ export const useContracts = () => {
     try {
       setIsUpdatingStatus(true);
       
-      // Find the contract to get its current status
+      // Trouver le contrat pour obtenir son statut actuel
       const contract = contracts.find(c => c.id === contractId);
       if (!contract) {
         toast.error("Contrat non trouvé");
         return;
       }
       
-      console.log(`Ajout de numéro de suivi pour le contrat ${contractId} avec statut actuel: ${contract.status}`);
+      // Important: Capture the current status explicitly before the operation
+      const currentStatus = contract.status;
+      console.log(`Ajout de numéro de suivi pour le contrat ${contractId} avec statut actuel: ${currentStatus}`);
       
       const success = await addTrackingNumber(
         contractId,
@@ -147,8 +149,7 @@ export const useContracts = () => {
               estimated_delivery: estimatedDelivery,
               delivery_carrier: carrier,
               delivery_status: 'en_attente',
-              // Important: Explicitly preserve the current status, don't change it
-              status: contract.status,
+              status: currentStatus, // Maintain current status explicitly
               updated_at: new Date().toISOString()
             } : c
           )
