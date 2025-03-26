@@ -10,7 +10,8 @@ export * from './clientRequests';
 // Exportations spécifiques pour éviter l'ambiguïté
 import { generateAndDownloadOfferPdf, getOfferDataForPdf, generateSamplePdf } from './offerPdf';
 import { isOfferSigned, saveOfferSignature, generateSignatureLink } from './offerSignature';
-import { OfferData, Equipment, OfferStatus, WorkflowStatus } from './types';
+import type { OfferData, Equipment } from './types';
+import { OfferStatus, WorkflowStatus } from './types';
 
 // Ré-exporter explicitement pour résoudre l'ambiguïté
 export {
@@ -20,8 +21,9 @@ export {
   isOfferSigned,
   saveOfferSignature,
   generateSignatureLink,
-  OfferData,
-  Equipment,
   OfferStatus,
   WorkflowStatus
 };
+
+// Ré-exporter les types avec 'export type'
+export type { OfferData, Equipment };

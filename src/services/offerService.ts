@@ -3,6 +3,7 @@
 // It provides backward compatibility while allowing for better code organization
 export * from './offers';
 export * from './offers/offerDetail';
-export * from './offers/offerPdf';
-export * from './offers/offerSignature';
+// Avoid re-exporting these as they're already being exported from './offers'
+// export * from './offers/offerPdf';
+// export * from './offers/offerSignature';
 export * from './offers/types';

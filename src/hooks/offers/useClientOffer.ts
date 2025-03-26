@@ -6,7 +6,7 @@ import {
   isOfferSigned,
   saveOfferSignature
 } from "@/services/offers/offerSignature";
-import { generateAndDownloadOfferPdf } from "@/services/offers/offerPdf";
+import { generateAndDownloadOfferPdf } from "@/services/offerService";
 
 export const useClientOffer = (offerId: string | undefined) => {
   const [offer, setOffer] = useState<any>(null);
