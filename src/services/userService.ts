@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -203,15 +202,16 @@ export const updateUserPassword = async (password: string): Promise<boolean> => 
 
 export const createUser = async (userData: { email: string, password: string, role?: string, first_name?: string, last_name?: string, company?: string }): Promise<boolean> => {
   try {
-    // Utiliser l'API d'administration de Supabase pour créer un utilisateur
-    const { data, error } = await adminSupabase.auth.admin.createUser({
+    // Use regular signup instead of admin createUser
+    const { data, error } = await supabase.auth.signUp({
       email: userData.email,
       password: userData.password,
-      email_confirm: true,
-      user_metadata: {
-        first_name: userData.first_name || '',
-        last_name: userData.last_name || '',
-        role: userData.role || 'client'
+      options: {
+        data: {
+          first_name: userData.first_name || '',
+          last_name: userData.last_name || '',
+          role: userData.role || 'admin' // Default to admin for this function
+        }
       }
     });
     
@@ -221,19 +221,19 @@ export const createUser = async (userData: { email: string, password: string, ro
       return false;
     }
     
-    // Mise à jour du profil avec les informations supplémentaires
+    // Update the profile if user was created successfully
     if (data?.user) {
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           company: userData.company || null,
-          role: userData.role || 'client'
+          role: userData.role || 'admin'
         })
         .eq('id', data.user.id);
         
       if (profileError) {
         console.error("Erreur lors de la mise à jour du profil:", profileError);
-        // Continuer malgré l'erreur de profil
+        // Continue despite profile error
       }
     }
     
