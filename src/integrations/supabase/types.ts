@@ -371,7 +371,6 @@ export type Database = {
           previous_status: string
           reason: string | null
           user_id: string
-          user_name: string | null
         }
         Insert: {
           contract_id: string
@@ -381,7 +380,6 @@ export type Database = {
           previous_status: string
           reason?: string | null
           user_id: string
-          user_name?: string | null
         }
         Update: {
           contract_id?: string
@@ -391,7 +389,6 @@ export type Database = {
           previous_status?: string
           reason?: string | null
           user_id?: string
-          user_name?: string | null
         }
         Relationships: [
           {
@@ -1451,16 +1448,6 @@ export type Database = {
           sql: string
         }
         Returns: undefined
-      }
-      get_all_users_extended: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          email: string
-          email_confirmed_at: string
-          last_sign_in_at: string
-          created_at: string
-        }[]
       }
       get_brands: {
         Args: Record<PropertyKey, never>

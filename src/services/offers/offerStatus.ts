@@ -5,110 +5,13 @@ import { createContractFromOffer } from "../contractService";
 
 export const deleteOffer = async (offerId: string): Promise<boolean> => {
   try {
-    console.log(`Tentative de suppression de l'offre: ${offerId}`);
-    
-    // Vérifier si l'offre a été convertie en contrat
-    const { data: offer, error: offerError } = await supabase
-      .from('offers')
-      .select('converted_to_contract, workflow_status')
-      .eq('id', offerId)
-      .single();
-    
-    if (offerError) {
-      console.error("Erreur lors de la vérification de l'offre:", offerError);
-      throw new Error("Impossible de vérifier l'état de l'offre");
-    }
-    
-    // Si l'offre a été convertie en contrat (et potentiellement a le statut "financed")
-    if (offer?.converted_to_contract) {
-      console.log("L'offre a été convertie en contrat, recherche du contrat associé");
-      
-      // Rechercher le contrat associé à cette offre
-      const { data: contract, error: contractError } = await supabase
-        .from('contracts')
-        .select('id')
-        .eq('offer_id', offerId)
-        .single();
-      
-      if (contractError && contractError.code !== 'PGRST116') { // PGRST116 = not found
-        console.error("Erreur lors de la recherche du contrat associé:", contractError);
-      }
-      
-      // Si un contrat est trouvé, on doit le supprimer avant de supprimer l'offre
-      if (contract) {
-        console.log(`Contrat associé trouvé: ${contract.id}. Suppression du contrat...`);
-        
-        // Supprimer d'abord les logs de workflow du contrat si nécessaire
-        const { error: contractLogError } = await supabase
-          .from('contract_workflow_logs')
-          .delete()
-          .eq('contract_id', contract.id);
-          
-        if (contractLogError) {
-          console.error("Erreur lors de la suppression des logs du contrat:", contractLogError);
-          // On continue même en cas d'erreur
-        }
-        
-        // Supprimer le contrat
-        const { error: deleteContractError } = await supabase
-          .from('contracts')
-          .delete()
-          .eq('id', contract.id);
-          
-        if (deleteContractError) {
-          console.error("Erreur lors de la suppression du contrat:", deleteContractError);
-          throw new Error("Impossible de supprimer le contrat associé à cette offre");
-        }
-        
-        console.log("Contrat supprimé avec succès");
-      }
-    }
-    
-    // Supprimer d'abord les logs associés à l'offre
-    const { error: logsError } = await supabase
-      .from('offer_workflow_logs')
-      .delete()
-      .eq('offer_id', offerId);
-    
-    if (logsError) {
-      console.error("Erreur lors de la suppression des logs de l'offre:", logsError);
-      // On continue même en cas d'erreur, pour essayer de supprimer l'offre
-    }
-    
-    // Supprimer ensuite les demandes d'information associées
-    const { error: infoRequestsError } = await supabase
-      .from('offer_info_requests')
-      .delete()
-      .eq('offer_id', offerId);
-    
-    if (infoRequestsError) {
-      console.error("Erreur lors de la suppression des demandes d'information:", infoRequestsError);
-      // On continue même en cas d'erreur, pour essayer de supprimer l'offre
-    }
-    
-    // Supprimer ensuite les notes associées
-    const { error: notesError } = await supabase
-      .from('offer_notes')
-      .delete()
-      .eq('offer_id', offerId);
-    
-    if (notesError) {
-      console.error("Erreur lors de la suppression des notes de l'offre:", notesError);
-      // On continue même en cas d'erreur, pour essayer de supprimer l'offre
-    }
-    
-    // Finalement, supprimer l'offre elle-même
     const { error } = await supabase
       .from('offers')
       .delete()
       .eq('id', offerId);
     
-    if (error) {
-      console.error("Erreur lors de la suppression de l'offre:", error);
-      throw error;
-    }
+    if (error) throw error;
     
-    console.log("Offre supprimée avec succès");
     return true;
   } catch (error) {
     console.error("Error deleting offer:", error);

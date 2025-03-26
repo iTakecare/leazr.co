@@ -14,29 +14,13 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isRequestingInfo, setIsRequestingInfo] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteOffer = async (id: string) => {
-    const offer = offers.find(o => o.id === id);
-    if (!offer) {
-      toast.error("Offre non trouvée");
-      return;
-    }
-
-    let confirmMessage = "Êtes-vous sûr de vouloir supprimer cette offre ? Cette action est irréversible.";
-    
-    if (offer.workflow_status === 'financed' || offer.converted_to_contract) {
-      confirmMessage = "ATTENTION: Cette offre a le statut 'financée' ou a été convertie en contrat. Sa suppression entraînera également la suppression du contrat associé. Êtes-vous vraiment sûr de vouloir supprimer cette offre et son contrat ?";
-    }
-    
-    if (!window.confirm(confirmMessage)) {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette offre ? Cette action est irréversible.")) {
       return;
     }
     
     try {
-      setIsDeleting(true);
-      toast.info("Suppression en cours...", { duration: 3000 });
-      
       const success = await deleteOffer(id);
       
       if (success) {
@@ -48,8 +32,6 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     } catch (error) {
       console.error("Error deleting offer:", error);
       toast.error("Erreur lors de la suppression de l'offre");
-    } finally {
-      setIsDeleting(false);
     }
   };
   
@@ -184,7 +166,6 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     isUpdatingStatus,
     isRequestingInfo,
     isGeneratingPdf,
-    isDeleting,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     handleResendOffer,

@@ -1,12 +1,36 @@
 
 import React, { useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Contract } from "@/services/contractService";
-import { formatCurrency, formatDate } from "@/utils/formatters";
-import { MoreHorizontal, Trash2, ExternalLink, Package, Eye, Box, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { Contract, contractStatuses } from "@/services/contractService";
+import { formatCurrency } from "@/utils/formatters";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,24 +41,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import ContractStatusBadge from "./ContractStatusBadge";
+  MoreHorizontal,
+  Eye,
+  Trash2,
+  FileText,
+  Package,
+  Send,
+  Truck,
+  Calendar,
+  CheckCheck,
+  X,
+  Clock,
+  Share2,
+} from "lucide-react";
 
 interface ContractsTableProps {
   contracts: Contract[];
   onStatusChange: (contractId: string, newStatus: string) => Promise<void>;
-  onAddTrackingInfo: (contractId: string, trackingNumber: string, estimatedDelivery?: string, carrier?: string) => Promise<void>;
+  onAddTrackingInfo: (
+    contractId: string,
+    trackingNumber: string,
+    estimatedDelivery?: string,
+    carrier?: string
+  ) => Promise<void>;
   onDeleteContract: (contractId: string) => Promise<void>;
   isUpdatingStatus: boolean;
   isDeleting: boolean;
-  deleteInProgress?: string | null;
 }
 
 const ContractsTable: React.FC<ContractsTableProps> = ({
@@ -44,98 +77,126 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   onDeleteContract,
   isUpdatingStatus,
   isDeleting,
-  deleteInProgress
 }) => {
   const navigate = useNavigate();
-  const [equipmentModalOpen, setEquipmentModalOpen] = useState(false);
-  const [selectedEquipment, setSelectedEquipment] = useState<any[]>([]);
-  const [equipmentModalTitle, setEquipmentModalTitle] = useState('');
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  
-  const handleRowClick = (contractId: string) => {
-    navigate(`/contracts/${contractId}`);
-  };
-  
-  const formatDateString = (dateString?: string) => {
-    if (!dateString) return "-";
+  const [showTrackingDialog, setShowTrackingDialog] = useState(false);
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+  const [trackingInfo, setTrackingInfo] = useState({
+    trackingNumber: "",
+    estimatedDelivery: "",
+    carrier: "",
+  });
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+
+  if (!contracts.length) {
+    return (
+      <div className="text-center p-8 bg-gray-50 rounded-md">
+        <p className="text-gray-500">Aucun contrat trouvé.</p>
+      </div>
+    );
+  }
+
+  const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  const handleDelete = async (contractId: string) => {
-    try {
-      // Close confirm dialog immediately for better UX
-      setConfirmDelete(null);
-      
-      // Ensure we can't trigger multiple deletions
-      if (isDeleting || deleteInProgress) {
-        console.log("DELETE UI: Ignoring delete request, deletion already in progress");
-        return;
-      }
-      
-      console.log("DELETE UI: Initiating deletion for contract:", contractId);
-      await onDeleteContract(contractId);
     } catch (error) {
-      console.error("DELETE UI ERROR: Error in handleDelete:", error);
-      setConfirmDelete(null);
+      return "Date incorrecte";
     }
   };
 
-  const openEquipmentModal = (equipment: string | undefined, contractName: string) => {
-    if (!equipment) {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case contractStatuses.CONTRACT_SENT:
+        return (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            <Send className="mr-1 h-3 w-3" />
+            Envoyé
+          </Badge>
+        );
+      case contractStatuses.CONTRACT_SIGNED:
+        return (
+          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+            <FileText className="mr-1 h-3 w-3" />
+            Signé
+          </Badge>
+        );
+      case contractStatuses.EQUIPMENT_ORDERED:
+        return (
+          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+            <Package className="mr-1 h-3 w-3" />
+            Commandé
+          </Badge>
+        );
+      case contractStatuses.DELIVERED:
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+            <Truck className="mr-1 h-3 w-3" />
+            Livré
+          </Badge>
+        );
+      case contractStatuses.ACTIVE:
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <CheckCheck className="mr-1 h-3 w-3" />
+            Actif
+          </Badge>
+        );
+      case contractStatuses.COMPLETED:
+        return (
+          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+            <Clock className="mr-1 h-3 w-3" />
+            Terminé
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline">
+            {status}
+          </Badge>
+        );
+    }
+  };
+
+  const handleViewDetails = (contractId: string) => {
+    navigate(`/contracts/${contractId}`);
+  };
+
+  const handleAddTracking = (contractId: string) => {
+    setSelectedContractId(contractId);
+    setTrackingInfo({
+      trackingNumber: "",
+      estimatedDelivery: "",
+      carrier: "",
+    });
+    setShowTrackingDialog(true);
+  };
+
+  const handleSubmitTracking = async () => {
+    if (!selectedContractId || !trackingInfo.trackingNumber) {
       return;
     }
-    
-    try {
-      let parsedEquipment: any[] = [];
-      if (typeof equipment === 'string') {
-        parsedEquipment = JSON.parse(equipment);
-      } else {
-        parsedEquipment = equipment as any;
-      }
-      
-      if (!Array.isArray(parsedEquipment)) {
-        parsedEquipment = [parsedEquipment];
-      }
-      
-      setSelectedEquipment(parsedEquipment);
-      setEquipmentModalTitle(`Équipement : ${contractName}`);
-      setEquipmentModalOpen(true);
-    } catch (e) {
-      console.error("Erreur lors de l'analyse des données d'équipement:", e);
-      setSelectedEquipment([{ title: equipment }]);
-      setEquipmentModalTitle(`Équipement : ${contractName}`);
-      setEquipmentModalOpen(true);
-    }
+
+    await onAddTrackingInfo(
+      selectedContractId,
+      trackingInfo.trackingNumber,
+      trackingInfo.estimatedDelivery,
+      trackingInfo.carrier
+    );
+
+    setShowTrackingDialog(false);
+    setSelectedContractId(null);
   };
 
-  const getEquipmentSummary = (equipment: string | undefined): string => {
-    if (!equipment) return "Non spécifié";
-    
-    try {
-      let parsedEquipment: any[] = [];
-      if (typeof equipment === 'string') {
-        parsedEquipment = JSON.parse(equipment);
-      } else {
-        parsedEquipment = equipment as any;
-      }
-      
-      if (!Array.isArray(parsedEquipment)) {
-        parsedEquipment = [parsedEquipment];
-      }
-      
-      if (parsedEquipment.length === 0) return "Non spécifié";
-      
-      if (parsedEquipment.length === 1) {
-        return parsedEquipment[0].title || "1 item";
-      } else {
-        return `${parsedEquipment.length} items`;
-      }
-    } catch (e) {
-      return equipment.length > 30 ? `${equipment.substring(0, 30)}...` : equipment;
+  const handleDelete = (contractId: string) => {
+    setSelectedContractId(contractId);
+    setShowDeleteAlert(true);
+  };
+
+  const confirmDelete = async () => {
+    if (selectedContractId) {
+      await onDeleteContract(selectedContractId);
+      setShowDeleteAlert(false);
+      setSelectedContractId(null);
     }
   };
 
@@ -145,233 +206,226 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Contrat</TableHead>
-              <TableHead>Client</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead>Montant</TableHead>
+              <TableHead>Client</TableHead>
               <TableHead>Matériel</TableHead>
               <TableHead>Bailleur</TableHead>
+              <TableHead className="text-right">Mensualité</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead>Suivi</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {contracts.map((contract) => (
-              <TableRow 
-                key={contract.id} 
-                className={
-                  deleteInProgress === contract.id 
-                    ? "opacity-40 pointer-events-none bg-red-50 transition-all" 
-                    : isDeleting 
-                      ? "opacity-70 pointer-events-none transition-all"
-                      : "transition-all"
-                }
-              >
-                <TableCell className="font-medium cursor-pointer" onClick={() => handleRowClick(contract.id)}>
-                  {contract.id ? `CON-${contract.id.slice(0, 8)}` : 'N/A'}
-                </TableCell>
-                <TableCell onClick={() => handleRowClick(contract.id)} className="cursor-pointer">
-                  {contract.client_name}
-                  {contract.clients?.company && (
-                    <div className="text-xs text-muted-foreground">{contract.clients.company}</div>
-                  )}
-                </TableCell>
-                <TableCell onClick={() => handleRowClick(contract.id)} className="cursor-pointer">
-                  {formatDateString(contract.created_at)}
-                </TableCell>
-                <TableCell>
-                  <ContractStatusBadge status={contract.status} />
-                </TableCell>
-                <TableCell onClick={() => handleRowClick(contract.id)} className="cursor-pointer">
-                  {formatCurrency(contract.monthly_payment)}<span className="text-xs text-muted-foreground">/mois</span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <span className="truncate max-w-[150px]">{getEquipmentSummary(contract.equipment_description)}</span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEquipmentModal(contract.equipment_description, contract.client_name);
-                      }}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+              <TableRow key={contract.id}>
+                <TableCell className="font-medium whitespace-nowrap">
+                  <div className="flex items-center">
+                    <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                    {formatDate(contract.created_at)}
                   </div>
                 </TableCell>
-                <TableCell onClick={() => handleRowClick(contract.id)} className="cursor-pointer">
-                  <div className="flex items-center space-x-2">
+                <TableCell>{contract.client_name}</TableCell>
+                <TableCell className="max-w-[200px] truncate">
+                  {contract.equipment_description || "Non spécifié"}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center">
                     {contract.leaser_logo && (
                       <img 
                         src={contract.leaser_logo} 
                         alt={contract.leaser_name} 
-                        className="h-5 w-5 object-contain" 
+                        className="w-5 h-5 mr-2 rounded-full" 
                       />
                     )}
-                    <span>{contract.leaser_name}</span>
+                    {contract.leaser_name}
                   </div>
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatCurrency(contract.monthly_payment)}
+                </TableCell>
+                <TableCell>
+                  {getStatusBadge(contract.status)}
+                </TableCell>
+                <TableCell>
+                  {contract.tracking_number ? (
+                    <div className="text-xs">
+                      <div className="font-medium">{contract.tracking_number}</div>
+                      <div className="text-muted-foreground">
+                        {contract.delivery_carrier && `${contract.delivery_carrier} - `}
+                        {contract.estimated_delivery && `Livraison: ${contract.estimated_delivery}`}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Non suivi</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        disabled={deleteInProgress !== null || isDeleting}
-                      >
-                        {deleteInProgress === contract.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <MoreHorizontal className="h-4 w-4" />
-                        )}
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Ouvrir le menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
-                        onClick={() => handleRowClick(contract.id)}
-                        disabled={isDeleting || deleteInProgress !== null}
-                      >
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        <span>Voir les détails</span>
+                      <DropdownMenuItem onClick={() => handleViewDetails(contract.id)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Voir détails
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (deleteInProgress !== null || isDeleting) return;
-                          setConfirmDelete(contract.id);
-                        }}
-                        disabled={isDeleting || deleteInProgress !== null}
-                        className="text-red-500 focus:text-red-500"
+                      
+                      {contract.status === contractStatuses.CONTRACT_SENT && (
+                        <DropdownMenuItem 
+                          onClick={() => onStatusChange(contract.id, contractStatuses.CONTRACT_SIGNED)}
+                          disabled={isUpdatingStatus}
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          Marquer comme signé
+                        </DropdownMenuItem>
+                      )}
+                      
+                      {contract.status === contractStatuses.CONTRACT_SIGNED && (
+                        <DropdownMenuItem 
+                          onClick={() => onStatusChange(contract.id, contractStatuses.EQUIPMENT_ORDERED)}
+                          disabled={isUpdatingStatus}
+                        >
+                          <Package className="mr-2 h-4 w-4" />
+                          Marquer comme commandé
+                        </DropdownMenuItem>
+                      )}
+                      
+                      {contract.status === contractStatuses.EQUIPMENT_ORDERED && (
+                        <DropdownMenuItem 
+                          onClick={() => handleAddTracking(contract.id)}
+                          disabled={isUpdatingStatus}
+                        >
+                          <Truck className="mr-2 h-4 w-4" />
+                          Ajouter suivi de livraison
+                        </DropdownMenuItem>
+                      )}
+                      
+                      {contract.status === contractStatuses.EQUIPMENT_ORDERED && contract.tracking_number && (
+                        <DropdownMenuItem 
+                          onClick={() => onStatusChange(contract.id, contractStatuses.DELIVERED)}
+                          disabled={isUpdatingStatus}
+                        >
+                          <CheckCheck className="mr-2 h-4 w-4" />
+                          Marquer comme livré
+                        </DropdownMenuItem>
+                      )}
+                      
+                      {contract.status === contractStatuses.DELIVERED && (
+                        <DropdownMenuItem 
+                          onClick={() => onStatusChange(contract.id, contractStatuses.ACTIVE)}
+                          disabled={isUpdatingStatus}
+                        >
+                          <CheckCheck className="mr-2 h-4 w-4" />
+                          Marquer comme actif
+                        </DropdownMenuItem>
+                      )}
+                      
+                      {contract.status === contractStatuses.ACTIVE && (
+                        <DropdownMenuItem 
+                          onClick={() => onStatusChange(contract.id, contractStatuses.COMPLETED)}
+                          disabled={isUpdatingStatus}
+                        >
+                          <Clock className="mr-2 h-4 w-4" />
+                          Marquer comme terminé
+                        </DropdownMenuItem>
+                      )}
+                      
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(contract.id)}
+                        disabled={isDeleting}
+                        className="text-red-600"
                       >
-                        {deleteInProgress === contract.id ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            <span>Suppression...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Supprimer</span>
-                          </>
-                        )}
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Supprimer
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
-
-            {contracts.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
-                  Aucun contrat trouvé.
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>
 
-      <AlertDialog 
-        open={!!confirmDelete} 
-        onOpenChange={(open) => {
-          // Don't allow closing the dialog if deletion is in progress
-          if (!open && !isDeleting && deleteInProgress === null) {
-            setConfirmDelete(null);
-          }
-        }}
-      >
+      {/* Dialog pour ajouter les informations de suivi */}
+      <Dialog open={showTrackingDialog} onOpenChange={setShowTrackingDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter les informations de suivi</DialogTitle>
+            <DialogDescription>
+              Saisissez les détails de suivi pour ce contrat
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="tracking-number">Numéro de suivi*</Label>
+              <Input
+                id="tracking-number"
+                placeholder="Ex: TR123456789FR"
+                value={trackingInfo.trackingNumber}
+                onChange={(e) =>
+                  setTrackingInfo({ ...trackingInfo, trackingNumber: e.target.value })
+                }
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="carrier">Transporteur</Label>
+              <Input
+                id="carrier"
+                placeholder="Ex: Colissimo"
+                value={trackingInfo.carrier}
+                onChange={(e) =>
+                  setTrackingInfo({ ...trackingInfo, carrier: e.target.value })
+                }
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="estimated-delivery">Date de livraison estimée</Label>
+              <Input
+                id="estimated-delivery"
+                placeholder="Ex: 20/05/2023"
+                value={trackingInfo.estimatedDelivery}
+                onChange={(e) =>
+                  setTrackingInfo({ ...trackingInfo, estimatedDelivery: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTrackingDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleSubmitTracking} disabled={!trackingInfo.trackingNumber}>
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert de confirmation de suppression */}
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce contrat ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. Cela supprimera définitivement ce contrat.
+              Cette action est irréversible. Elle supprimera définitivement ce contrat et permettra
+              de reconvertir l'offre associée en contrat si nécessaire.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting || deleteInProgress !== null}>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (confirmDelete && !isDeleting && deleteInProgress === null) {
-                  handleDelete(confirmDelete);
-                }
-              }}
-              className="bg-red-500 hover:bg-red-600"
-              disabled={isDeleting || deleteInProgress !== null}
-            >
-              {isDeleting || deleteInProgress !== null ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Suppression...
-                </>
-              ) : (
-                'Supprimer'
-              )}
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">
+              Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Dialog open={equipmentModalOpen} onOpenChange={setEquipmentModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{equipmentModalTitle}</DialogTitle>
-            <DialogDescription>
-              Détails des équipements associés à ce contrat
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            {selectedEquipment && selectedEquipment.length > 0 ? (
-              selectedEquipment.map((item, index) => (
-                <div key={index} className="border rounded-md p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Box className="h-4 w-4 text-primary" />
-                    <h3 className="font-medium">{item.title}</h3>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {item.purchasePrice !== undefined && (
-                      <div className="flex flex-col">
-                        <span className="text-muted-foreground text-xs">Prix d'achat</span>
-                        <span>{formatCurrency(item.purchasePrice)}</span>
-                      </div>
-                    )}
-                    
-                    {item.quantity !== undefined && (
-                      <div className="flex flex-col">
-                        <span className="text-muted-foreground text-xs">Quantité</span>
-                        <span>{item.quantity}</span>
-                      </div>
-                    )}
-                    
-                    {item.margin !== undefined && (
-                      <div className="flex flex-col">
-                        <span className="text-muted-foreground text-xs">Marge</span>
-                        <span>{item.margin}%</span>
-                      </div>
-                    )}
-                    
-                    {item.description && (
-                      <div className="col-span-2 mt-2">
-                        <span className="text-muted-foreground text-xs">Description</span>
-                        <p className="mt-1">{item.description}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center text-muted-foreground py-4">
-                Aucune information détaillée disponible sur l'équipement
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

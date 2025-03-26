@@ -1,3 +1,4 @@
+
 import React from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Contract, contractStatuses } from "@/services/contractService";
@@ -40,6 +41,7 @@ interface ContractsKanbanProps {
   isUpdatingStatus: boolean;
 }
 
+// Définition des colonnes
 const KANBAN_COLUMNS = [
   {
     id: contractStatuses.CONTRACT_SENT,
@@ -97,24 +99,25 @@ const ContractsKanban: React.FC<ContractsKanbanProps> = ({
   onAddTrackingInfo,
   isUpdatingStatus,
 }) => {
+  // Récupérer les contrats pour une colonne donnée
   const getContractsForColumn = (columnId: string) => {
     return contracts.filter(contract => contract.status === columnId);
   };
 
+  // Gérer la fin d'un glisser-déposer
   const onDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result;
 
+    // Si pas de destination ou même source et destination, ne rien faire
     if (!destination || (destination.droppableId === source.droppableId)) {
       return;
     }
 
-    try {
-      await onStatusChange(draggableId, destination.droppableId);
-    } catch (error) {
-      console.error("Erreur lors du changement de statut:", error);
-    }
+    // Si la colonne de destination est différente, changer le statut
+    await onStatusChange(draggableId, destination.droppableId);
   };
 
+  // Formatter une date
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
@@ -123,6 +126,7 @@ const ContractsKanban: React.FC<ContractsKanbanProps> = ({
     }
   };
 
+  // Préparer le prochain statut possible pour un contrat
   const getNextStatus = (currentStatus: string) => {
     switch (currentStatus) {
       case contractStatuses.CONTRACT_SENT:
