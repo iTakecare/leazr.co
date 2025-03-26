@@ -71,7 +71,7 @@ const NewPDFTemplateManager = () => {
   };
   
   // Fonction optimisée pour sauvegarder avec un debounce
-  const handleSaveTemplate = useCallback(async (updatedTemplate: PDFTemplate) => {
+  const handleSaveTemplate = useCallback(async (updatedTemplate: PDFTemplate): Promise<void> => {
     try {
       setSaving(true);
       setError(null);
@@ -127,7 +127,7 @@ const NewPDFTemplateManager = () => {
     }
   }, [saveTimeout]);
   
-  const handleCompanyInfoUpdate = useCallback(async (companyInfo: Partial<PDFTemplate>) => {
+  const handleCompanyInfoUpdate = useCallback(async (companyInfo: Partial<PDFTemplate>): Promise<void> => {
     if (template) {
       const updatedTemplate = {
         ...template,
@@ -138,8 +138,8 @@ const NewPDFTemplateManager = () => {
     }
   }, [template, handleSaveTemplate]);
   
-  const handleTemplateUpdate = useCallback(async (updatedTemplate: PDFTemplate) => {
-    await handleSaveTemplate(updatedTemplate);
+  const handleTemplateUpdate = useCallback(async (updatedTemplate: PDFTemplate): Promise<void> => {
+    return handleSaveTemplate(updatedTemplate);
   }, [handleSaveTemplate]);
   
   const handleRetry = () => {

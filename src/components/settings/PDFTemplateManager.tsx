@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -45,19 +44,16 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
   const [templateExists, setTemplateExists] = useState(false);
   const [templateName, setTemplateName] = useState<string | undefined>(undefined);
   
-  // Initialisation au montage ou lorsque templateId change
   useEffect(() => {
     console.log(`Initialisation du gestionnaire pour le modèle: ${templateId}`);
     initializeStorage();
   }, [templateId]);
 
-  // Fonction pour initialiser le stockage
   const initializeStorage = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Vérifier la connexion au stockage
       try {
         const isConnected = await checkStorageConnection();
         if (isConnected) {
@@ -78,7 +74,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
         return;
       }
       
-      // Charger le modèle spécifié
       await loadTemplate(templateId);
     } catch (err) {
       console.error("Erreur lors de l'initialisation:", err);
@@ -87,7 +82,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     }
   };
 
-  // Fonction pour réessayer la connexion
   const handleRetryConnection = async () => {
     try {
       setReconnecting(true);
@@ -95,14 +89,12 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       
       toast.info("Tentative de connexion au stockage Supabase...");
       
-      // Réinitialiser et vérifier la connexion au stockage
       const isConnected = await resetStorageConnection();
       
       if (isConnected) {
         console.log("Connexion au stockage Supabase établie");
         toast.success("Connexion au stockage Supabase établie");
         
-        // Recharger le modèle
         await loadTemplate(templateId);
       } else {
         console.log("Stockage Supabase non disponible");
@@ -118,7 +110,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     }
   };
 
-  // Fonction pour charger le modèle
   const loadTemplate = async (id: string = 'default') => {
     setLoading(true);
     setError(null);
@@ -141,7 +132,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       } else {
         console.log("Modèle chargé avec succès:", data);
         
-        // S'assurer que les tableaux sont correctement initialisés
         const sanitizedTemplate = {
           ...data,
           templateImages: Array.isArray(data.templateImages) ? data.templateImages : [],
@@ -162,7 +152,6 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
       setError("Erreur lors du chargement du modèle");
       toast.error("Erreur lors du chargement du modèle");
       
-      // En cas d'erreur, définir quand même un modèle par défaut
       setTemplate({
         ...DEFAULT_MODEL,
         templateImages: [],
@@ -175,21 +164,18 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     }
   };
   
-  // Fonction pour sauvegarder le modèle
-  const handleSaveTemplate = async (updatedTemplate: PDFTemplate) => {
+  const handleSaveTemplate = async (updatedTemplate: PDFTemplate): Promise<void> => {
     setSaving(true);
     setError(null);
     
     try {
       console.log(`Sauvegarde du modèle: ${updatedTemplate.id}`, updatedTemplate);
       
-      // Vérifier la connexion au stockage
       const isConnected = await checkStorageConnection();
       if (!isConnected) {
         throw new Error("Stockage Supabase non disponible. Veuillez vérifier votre connexion.");
       }
       
-      // S'assurer que les tableaux sont initialisés
       const sanitizedTemplate: PDFTemplate = {
         ...updatedTemplate,
         templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
@@ -216,8 +202,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     }
   };
   
-  // Gestion des informations de l'entreprise
-  const handleCompanyInfoUpdate = (companyInfo: Partial<PDFTemplate>) => {
+  const handleCompanyInfoUpdate = (companyInfo: Partial<PDFTemplate>): void => {
     if (template) {
       const updatedTemplate = {
         ...template,
@@ -228,23 +213,20 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     }
   };
   
-  // Gestion du modèle complet
-  const handleTemplateUpdate = (updatedTemplate: PDFTemplate) => {
+  const handleTemplateUpdate = async (updatedTemplate: PDFTemplate): Promise<void> => {
     console.log("handleTemplateUpdate appelé avec:", updatedTemplate);
     console.log("Nombre d'images dans updatedTemplate:", updatedTemplate.templateImages?.length || 0);
     console.log("Nombre de champs dans updatedTemplate:", updatedTemplate.fields?.length || 0);
     
-    // S'assurer que les tableaux sont initialisés
     const sanitizedTemplate: PDFTemplate = {
       ...updatedTemplate,
       templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
       fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : []
     };
     
-    handleSaveTemplate(sanitizedTemplate);
+    return handleSaveTemplate(sanitizedTemplate);
   };
   
-  // Fonction pour réessayer en cas d'erreur
   const handleRetry = () => {
     initializeStorage();
   };
