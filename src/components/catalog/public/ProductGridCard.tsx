@@ -74,20 +74,22 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     return categoryMap[category] || "Autre";
   };
 
-  // Check if product has variants
-  const hasVariants = () => {
+  // Check if product has variants - improved detection
+  const hasVariants = (): boolean => {
+    // More reliable check for variants
+    const isParent = product.is_parent || false;
+    const hasCombPrices = product.variant_combination_prices && product.variant_combination_prices.length > 0;
+    const hasVariationAttrs = product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0;
+    
     // Log for debugging
-    console.log(`Checking variants for ${product.name}:`, {
-      isParent: product.is_parent,
-      hasCombPrices: product.variant_combination_prices?.length > 0,
-      hasVariationAttrs: product.variation_attributes && Object.keys(product.variation_attributes).length > 0,
-      hasVariants: product.variants?.length > 0
+    console.log(`Checking variants for ${product.name} (${product.id}):`, {
+      isParent,
+      hasCombPrices,
+      hasVariationAttrs,
+      hasVariants: isParent || hasCombPrices || hasVariationAttrs
     });
     
-    return product.is_parent || 
-           (product.variants && product.variants.length > 0) ||
-           (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
-           (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0);
+    return isParent || hasCombPrices || hasVariationAttrs;
   };
 
   // Count available variants for the badge
@@ -95,18 +97,30 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     if (product.variants && product.variants.length > 0) {
       return product.variants.length;
     }
+    
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
+    
     // If it has variation_attributes but no combinations yet, count them as 0 but still show badge
     if (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) {
       return 0;
     }
+    
     return 0;
   };
   
   const hasVariantsFlag = hasVariants();
   const variantsCount = getVariantsCount();
+  
+  // Log the variant information for debugging
+  console.log(`ProductGridCard: ${product.name} variants:`, {
+    hasVariants: hasVariantsFlag,
+    variantsCount,
+    isParent: product.is_parent,
+    hasCombPrices: product.variant_combination_prices?.length > 0,
+    hasVariationAttrs: product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0
+  });
 
   return (
     <Card 
@@ -137,7 +151,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             </Badge>
           )}
           
-          {/* Add variant badge */}
+          {/* Add variant badge - force display if we have variant information */}
           {hasVariantsFlag && (
             <Badge variant="outline" className="rounded-full font-normal text-blue-600 bg-blue-50 flex items-center gap-1">
               <Layers className="h-3 w-3" />

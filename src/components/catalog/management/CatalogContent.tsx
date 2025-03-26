@@ -22,15 +22,23 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   onProductDeleted
 }) => {
   // Debug log to check products data
-  console.log("CatalogContent: Products with variants:", products.map(p => ({
-    id: p.id,
-    name: p.name,
-    hasVariants: p.is_parent || 
-                (p.variant_combination_prices && p.variant_combination_prices.length > 0) ||
-                (p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0),
-    variantCount: p.variant_combination_prices?.length || 0,
-    variations: p.variation_attributes
-  })));
+  console.log("CatalogContent: Products count:", products.length);
+  console.log("CatalogContent: Products with variants:", products.filter(p => 
+    p.is_parent || 
+    (p.variant_combination_prices && p.variant_combination_prices.length > 0) ||
+    (p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0)
+  ).length);
+
+  // Log specific details for each product
+  products.forEach(p => {
+    console.log(`CatalogContent: Product "${p.name}" (${p.id}):`, {
+      isParent: p.is_parent,
+      hasVariantPrices: p.variant_combination_prices?.length > 0,
+      variantPricesCount: p.variant_combination_prices?.length || 0,
+      hasVariationAttrs: p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0,
+      variationAttrs: p.variation_attributes
+    });
+  });
 
   if (error) {
     return (

@@ -21,17 +21,38 @@ export const useCatalogManagement = () => {
     queryFn: getProducts,
   });
   
-  // Process products data to add variants information
+  // Enhanced products processing with better variant detection
   const products = React.useMemo(() => {
     // Add debug logging
     console.log("Processing products in useCatalogManagement:", productsData.length);
-    console.log("Products with variants:", productsData.filter(p => 
-      p.is_parent || 
-      (p.variant_combination_prices && p.variant_combination_prices.length > 0) ||
-      (p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0)
-    ).length);
     
-    return productsData;
+    // Check each product for variants
+    const processedProducts = productsData.map(product => {
+      // Determine if this product has variants or is a variant
+      const isParent = product.is_parent || 
+                       (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
+                       (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0);
+                       
+      // Count variants if this is a parent product
+      const variantCount = product.variant_combination_prices?.length || 0;
+      
+      // Log details for debugging
+      console.log(`Product ${product.name} (${product.id}):`, {
+        isParent,
+        variantCount,
+        hasVariationAttrs: product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0,
+        hasCombinationPrices: product.variant_combination_prices && product.variant_combination_prices.length > 0
+      });
+      
+      return {
+        ...product,
+        is_parent: isParent
+      };
+    });
+    
+    console.log("Products with variants:", processedProducts.filter(p => p.is_parent).length);
+    
+    return processedProducts;
   }, [productsData]);
   
   // Handle adding a new product
