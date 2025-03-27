@@ -18,14 +18,21 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     (url, index, self) => url && self.indexOf(url) === index // Deduplicate
   );
 
-  const [selectedImage, setSelectedImage] = useState(allImages[0] || '');
+  const [selectedImage, setSelectedImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  // Reset loading state when selected image changes
+  // Set the first image as the selected image on component mount
   useEffect(() => {
-    // Pre-load the first image
+    if (allImages.length > 0) {
+      setSelectedImage(allImages[0]);
+      setCurrentIndex(0);
+    }
+  }, [allImages]);
+  
+  // Pre-load the first image
+  useEffect(() => {
     if (allImages.length > 0) {
       const img = new Image();
       img.src = allImages[0];
@@ -37,7 +44,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
         setHasError(true);
       };
     }
-  }, []);
+  }, [allImages]);
 
   const handleImageLoad = () => {
     setIsLoading(false);
