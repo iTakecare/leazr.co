@@ -41,9 +41,9 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
   const treeMonthsEquivalent = Math.round(totalSavings / 20); // ~20kg CO2 absorbés par arbre par mois
   
   return (
-    <div className="bg-gradient-to-br from-[#eefdf6] to-[#e2f9e7] border border-[#38b77c]/30 rounded-xl p-3 shadow-sm">
+    <div className="bg-gradient-to-br from-[#f2fcfa] to-[#e8f7f9] border border-[#4ab6c4]/30 rounded-xl p-3 shadow-sm">
       <div className="flex items-center mb-2">
-        <div className="bg-[#38b77c] rounded-full p-1.5 text-white mr-2">
+        <div className="bg-gradient-to-r from-[#33638e] to-[#4ab6c4] rounded-full p-1.5 text-white mr-2">
           <Leaf className="h-4 w-4" />
         </div>
         <h3 className="text-sm font-semibold text-[#33638e]">
@@ -59,32 +59,32 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
       </div>
       
       <div className="flex flex-col gap-2 mb-2">
-        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#38b77c]/20">
+        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#4ab6c4]/20">
           <div className="flex-shrink-0 rounded-full p-1 mr-2 text-lg">
             🍃
           </div>
           <div>
-            <div className="text-base font-bold text-[#38b77c]">{totalSavings} kg</div>
+            <div className="text-base font-bold text-[#33638e]">{totalSavings} kg</div>
             <div className="text-xs text-gray-600">d'équivalent CO2</div>
           </div>
         </div>
         
-        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#38b77c]/20">
+        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#4ab6c4]/20">
           <div className="flex-shrink-0 rounded-full p-1 mr-2 text-lg">
             🚗
           </div>
           <div>
-            <div className="text-base font-bold text-[#38b77c]">{carKmEquivalent} km</div>
+            <div className="text-base font-bold text-[#33638e]">{carKmEquivalent} km</div>
             <div className="text-xs text-gray-600">de trajet en voiture</div>
           </div>
         </div>
         
-        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#38b77c]/20">
+        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#4ab6c4]/20">
           <div className="flex-shrink-0 rounded-full p-1 mr-2 text-lg">
             🌳
           </div>
           <div>
-            <div className="text-base font-bold text-[#38b77c]">{treeMonthsEquivalent} {treeMonthsEquivalent > 1 ? "mois" : "mois"}</div>
+            <div className="text-base font-bold text-[#33638e]">{treeMonthsEquivalent} {treeMonthsEquivalent > 1 ? "mois" : "mois"}</div>
             <div className="text-xs text-gray-600">d'absorption d'un arbre</div>
           </div>
         </div>
