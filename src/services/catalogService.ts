@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -135,6 +136,250 @@ export const uploadProductImage = async (
     console.log(`Image uploaded successfully to ${urlData.publicUrl} and product updated.`);
   } catch (error) {
     console.error("Error uploading product image:", error);
+    throw error;
+  }
+};
+
+// Brand Management Functions
+export const getBrands = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error("Error fetching brands:", error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error in getBrands:", error);
+    return [];
+  }
+};
+
+export const addBrand = async ({ name, translation }: { name: string; translation: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('brands')
+      .insert([{ name, translation }])
+      .select();
+    
+    if (error) {
+      console.error("Error adding brand:", error);
+      throw error;
+    }
+    
+    return data?.[0];
+  } catch (error) {
+    console.error("Error in addBrand:", error);
+    throw error;
+  }
+};
+
+export const updateBrand = async ({ 
+  originalName, 
+  name, 
+  translation 
+}: { 
+  originalName: string; 
+  name: string; 
+  translation: string 
+}) => {
+  try {
+    const { data, error } = await supabase
+      .from('brands')
+      .update({ name, translation })
+      .eq('name', originalName)
+      .select();
+    
+    if (error) {
+      console.error("Error updating brand:", error);
+      throw error;
+    }
+    
+    return data?.[0];
+  } catch (error) {
+    console.error("Error in updateBrand:", error);
+    throw error;
+  }
+};
+
+export const deleteBrand = async ({ name }: { name: string }) => {
+  try {
+    const { error } = await supabase
+      .from('brands')
+      .delete()
+      .eq('name', name);
+    
+    if (error) {
+      console.error("Error deleting brand:", error);
+      throw error;
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error in deleteBrand:", error);
+    throw error;
+  }
+};
+
+// Category Management Functions
+export const getCategories = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error("Error fetching categories:", error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error in getCategories:", error);
+    return [];
+  }
+};
+
+export const addCategory = async ({ name, translation }: { name: string; translation: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert([{ name, translation }])
+      .select();
+    
+    if (error) {
+      console.error("Error adding category:", error);
+      throw error;
+    }
+    
+    return data?.[0];
+  } catch (error) {
+    console.error("Error in addCategory:", error);
+    throw error;
+  }
+};
+
+export const updateCategory = async ({ 
+  originalName, 
+  name, 
+  translation 
+}: { 
+  originalName: string; 
+  name: string; 
+  translation: string 
+}) => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .update({ name, translation })
+      .eq('name', originalName)
+      .select();
+    
+    if (error) {
+      console.error("Error updating category:", error);
+      throw error;
+    }
+    
+    return data?.[0];
+  } catch (error) {
+    console.error("Error in updateCategory:", error);
+    throw error;
+  }
+};
+
+export const deleteCategory = async ({ name }: { name: string }) => {
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('name', name);
+    
+    if (error) {
+      console.error("Error deleting category:", error);
+      throw error;
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error in deleteCategory:", error);
+    throw error;
+  }
+};
+
+// Product Variant Functions
+export const findVariantByAttributes = async (
+  parentId: string, 
+  attributes: Record<string, string>
+): Promise<Product | null> => {
+  try {
+    // Get all variants for the parent product
+    const { data: variants, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('parent_id', parentId);
+    
+    if (error) {
+      console.error("Error fetching variants:", error);
+      throw error;
+    }
+    
+    if (!variants || variants.length === 0) {
+      return null;
+    }
+    
+    // Find the variant that matches all the attributes
+    const matchingVariant = variants.find((variant: any) => {
+      if (!variant.attributes) return false;
+      
+      // Check if all selected attributes match this variant
+      for (const [key, value] of Object.entries(attributes)) {
+        if (variant.attributes[key] !== value) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+    
+    return matchingVariant ? matchingVariant as Product : null;
+  } catch (error) {
+    console.error("Error finding variant by attributes:", error);
+    return null;
+  }
+};
+
+// Convert product to parent function
+export const convertProductToParent = async (
+  productId: string, 
+  variationAttributes: Record<string, string[]>
+): Promise<Product> => {
+  try {
+    const updates = {
+      is_parent: true,
+      variation_attributes: variationAttributes
+    };
+    
+    const { data, error } = await supabase
+      .from('products')
+      .update(updates)
+      .eq('id', productId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error converting product to parent:", error);
+      throw error;
+    }
+    
+    return data as Product;
+  } catch (error) {
+    console.error("Error in convertProductToParent:", error);
     throw error;
   }
 };

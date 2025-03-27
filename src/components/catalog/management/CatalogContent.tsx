@@ -141,7 +141,7 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
                     {product.is_parent ? (
                       <Badge variant="secondary">Parent</Badge>
                     ) : product.active ? (
-                      <Badge variant="success" className="bg-green-100 text-green-800">
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
                         <Check className="mr-1 h-3 w-3" /> Actif
                       </Badge>
                     ) : (
@@ -194,15 +194,10 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
           {groupingOption === "model" ? (
             <AccordionProductList 
               products={products} 
-              onEdit={handleEditProduct}
-              onDelete={confirmDelete}
             />
           ) : (
             <ProductGrid 
               products={products} 
-              groupBy="brand"
-              onEdit={handleEditProduct}
-              onDelete={confirmDelete}
             />
           )}
         </div>
