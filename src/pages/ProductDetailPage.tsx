@@ -5,7 +5,7 @@ import { ArrowLeft, Info, Check, MinusIcon, PlusIcon, ShoppingCart } from "lucid
 import { Separator } from "@/components/ui/separator";
 import PublicHeader from "@/components/catalog/public/PublicHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
-import { useProductDetails } from "@/hooks/products/useProductDetails";
+import { usePublicProductDetails } from "@/hooks/products/useProductDetails";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
 import { 
   Select,
@@ -53,7 +53,7 @@ const ProductDetailPage = () => {
     variationAttributes,
     hasAttributeOptions,
     getOptionsForAttribute
-  } = useProductDetails(id);
+  } = usePublicProductDetails(id);
   
   const handleBackToCatalog = () => {
     navigate("/catalogue");

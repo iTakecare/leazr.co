@@ -36,6 +36,10 @@ export const getProductById = async (productId: string): Promise<Product> => {
   }
 };
 
+export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
+  return createProduct(product);
+};
+
 export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
   try {
     // Ensure we have the full product data structure including SEO metadata
@@ -64,19 +68,19 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
   }
 };
 
-export const updateProduct = async (product: Partial<Product>): Promise<Product> => {
+export const updateProduct = async (productId: string, productData: Partial<Product>): Promise<Product> => {
   try {
     // Ensure we have the full product data structure
-    const productData = {
-      ...product,
-      meta: product.meta || {},
+    const updateData = {
+      ...productData,
+      meta: productData.meta || {},
       updated_at: new Date().toISOString()
     };
     
     const { data, error } = await supabase
       .from('products')
-      .update(productData)
-      .eq('id', product.id)
+      .update(updateData)
+      .eq('id', productId)
       .select()
       .single();
     
@@ -87,6 +91,13 @@ export const updateProduct = async (product: Partial<Product>): Promise<Product>
     console.error('Error updating product:', error);
     throw error;
   }
+};
+
+export const updateProductLegacy = async (product: Partial<Product>): Promise<Product> => {
+  if (!product.id) {
+    throw new Error("Product ID is required for update");
+  }
+  return updateProduct(product.id, product);
 };
 
 export const deleteProduct = async (productId: string): Promise<void> => {

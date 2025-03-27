@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -119,7 +118,12 @@ export const useProductDetails = (props: UseProductDetailsProps) => {
 
   // Mutations for updating and creating products
   const updateProductMutation = useMutation({
-    mutationFn: (updatedProduct: Product) => updateProduct(updatedProduct),
+    mutationFn: (updatedProduct: Partial<Product>) => {
+      if (!updatedProduct.id) {
+        throw new Error("Product ID is required for update");
+      }
+      return updateProduct(updatedProduct.id, updatedProduct);
+    },
     onSuccess: (updatedProduct) => {
       toast.success("Produit mis à jour avec succès!");
       queryClient.invalidateQueries({ queryKey: ["product", updatedProduct.id] });

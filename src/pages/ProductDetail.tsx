@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { usePublicProductDetails } from "@/hooks/products/useProductDetails";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Info, Check, MinusIcon, PlusIcon, ShoppingCart } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -26,7 +27,7 @@ import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import CustomerReviews from "@/components/product-detail/CustomerReviews";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 
-const ProductDetailPage = () => {
+const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
@@ -53,7 +54,7 @@ const ProductDetailPage = () => {
     variationAttributes,
     hasAttributeOptions,
     getOptionsForAttribute
-  } = useProductDetails(id);
+  } = usePublicProductDetails(id);
   
   const handleBackToCatalog = () => {
     navigate("/catalogue");
@@ -450,4 +451,4 @@ const ProductDetailPage = () => {
   );
 };
 
-export default ProductDetailPage;
+export default ProductDetail;
