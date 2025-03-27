@@ -186,8 +186,7 @@ const ProductDetailPage = () => {
       'carte_graphique': 'graphics_card',
       'network': 'network',
       'reseau': 'network',
-      'keyboard': 'keyboard',
-      'clavier': 'keyboard'
+      'keyboard': 'keyboard'
     };
     
     return canonicalMap[key.toLowerCase()] || key;
@@ -308,8 +307,8 @@ const ProductDetailPage = () => {
           </div>
           
           <div>
-            <div className="sticky top-4 rounded-xl overflow-hidden">
-              <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white p-4 shadow-md">
+            <div className="sticky top-4 rounded-xl overflow-hidden shadow-lg">
+              <div className="bg-gradient-to-br from-[#5469d4] to-[#4756b3] text-white p-6">
                 <div className="flex mb-2">
                   <Badge variant="outline" className="bg-white/20 text-white border-white/30 mr-2">
                     {productCategory === "laptop" ? "Ordinateur" : productCategory}
@@ -326,11 +325,11 @@ const ProductDetailPage = () => {
                 </div>
               </div>
               
-              <div className="bg-white p-6 border border-indigo-100 shadow-md">
+              <div className="bg-white p-6 border-x border-b border-gray-100">
                 <Separator className="my-4" />
                 
                 <div className="mb-6">
-                  <h3 className="text-xl font-medium mb-4 text-indigo-900">Sélectionnez votre configuration idéale.</h3>
+                  <h3 className="text-xl font-medium mb-4 text-gray-800">Sélectionnez votre configuration idéale.</h3>
                   
                   <div className="grid grid-cols-2 gap-4">
                     {configAttributes.map(attribute => {
@@ -346,7 +345,7 @@ const ProductDetailPage = () => {
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Durée</label>
-                      <div className="bg-indigo-50 rounded border border-indigo-100 px-3 py-2">
+                      <div className="bg-blue-50 rounded border border-blue-100 px-3 py-2">
                         {duration} mois
                       </div>
                     </div>
@@ -357,19 +356,19 @@ const ProductDetailPage = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10 rounded-r-none border-indigo-200"
+                          className="h-10 w-10 rounded-r-none border-gray-200"
                           onClick={() => handleQuantityChange(quantity - 1)}
                           disabled={quantity <= 1}
                         >
                           <MinusIcon className="h-4 w-4" />
                         </Button>
-                        <div className="h-10 px-4 flex items-center justify-center border-y border-indigo-200">
+                        <div className="h-10 px-4 flex items-center justify-center border-y border-gray-200">
                           {quantity}
                         </div>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10 rounded-l-none border-indigo-200"
+                          className="h-10 w-10 rounded-l-none border-gray-200"
                           onClick={() => handleQuantityChange(quantity + 1)}
                         >
                           <PlusIcon className="h-4 w-4" />
@@ -379,35 +378,35 @@ const ProductDetailPage = () => {
                   </div>
                 </div>
                 
-                <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-4 rounded-lg border border-indigo-200 mb-4">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-700 font-medium">Votre sélection pour</span>
-                    <span className="text-2xl font-bold text-indigo-700">{formatCurrency(totalPrice)} HT / mois</span>
+                    <span className="text-2xl font-bold text-[#5469d4]">{formatCurrency(totalPrice)} HT / mois</span>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
                     <Button 
-                      className="w-full sm:w-auto px-8 bg-indigo-600 hover:bg-indigo-700"
+                      className="w-full sm:w-auto px-8 bg-[#5469d4] hover:bg-[#4756b3]"
                       onClick={handleRequestProduct}
                     >
                       Ajouter
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="w-full sm:w-auto border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                      className="w-full sm:w-auto border-blue-200 text-[#5469d4] hover:bg-blue-50"
                       onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                     >
                       Parler à un conseiller
                     </Button>
                   </div>
                   
-                  <div className="mt-4 space-y-1 text-sm">
+                  <div className="space-y-1 text-sm">
                     <div className="flex items-center text-gray-600">
-                      <Check className="h-4 w-4 text-indigo-500 mr-2" />
-                      <span>Livraison gratuite en France et Europe</span>
+                      <Check className="h-4 w-4 text-[#5469d4] mr-2" />
+                      <span>Livraison gratuite en Europe</span>
                     </div>
                     <div className="flex items-center text-gray-600">
-                      <Check className="h-4 w-4 text-indigo-500 mr-2" />
+                      <Check className="h-4 w-4 text-[#5469d4] mr-2" />
                       <span>Pas de premier loyer majoré</span>
                     </div>
                   </div>
@@ -415,7 +414,7 @@ const ProductDetailPage = () => {
                 
                 <Button 
                   variant="link" 
-                  className="text-indigo-600"
+                  className="text-[#5469d4]"
                   onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                 >
                   Besoin d&apos;aide ?

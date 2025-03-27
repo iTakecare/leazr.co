@@ -14,10 +14,10 @@ const ProductPriceDisplay: React.FC<ProductPriceDisplayProps> = ({
   return (
     <div className="text-lg text-gray-700 mb-4">
       {currentPrice ? (
-        <span className="font-bold text-indigo-700">{formatCurrency(currentPrice)}/mois</span>
+        <span className="font-bold text-[#4ab6c4]">{formatCurrency(currentPrice)}/mois</span>
       ) : (
         <>
-          à partir de <span className="font-bold text-indigo-700">{formatCurrency(minimumPrice)}/mois</span>
+          à partir de <span className="font-bold text-[#4ab6c4]">{formatCurrency(minimumPrice)}/mois</span>
         </>
       )}
     </div>

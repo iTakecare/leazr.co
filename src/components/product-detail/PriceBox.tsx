@@ -12,22 +12,22 @@ interface PriceBoxProps {
 
 const PriceBox: React.FC<PriceBoxProps> = ({ totalPrice, onRequestOffer }) => {
   return (
-    <div className="bg-white p-6 rounded-lg border border-[#4ab6c4]/20 mb-6 shadow-sm">
+    <div className="bg-white p-6 rounded-lg border border-gray-100 mb-6 shadow-md">
       <div className="flex justify-between items-center mb-4">
         <span className="text-gray-700 font-medium">Total mensuel (HT)</span>
-        <span className="text-2xl font-bold text-[#33638e]">{formatCurrency(totalPrice)} / mois</span>
+        <span className="text-2xl font-bold text-[#4ab6c4]">{formatCurrency(totalPrice)} / mois</span>
       </div>
       
       <div className="flex flex-col sm:flex-row gap-3">
         <Button 
-          className="w-full sm:w-auto px-8 bg-[#da2959] hover:bg-[#da2959]/90 shadow-sm"
+          className="w-full sm:w-auto px-8 bg-[#33638e] hover:bg-[#33638e]/90 shadow-sm"
           onClick={onRequestOffer}
         >
           Demander une offre
         </Button>
         <Button 
           variant="outline" 
-          className="w-full sm:w-auto border-[#4ab6c4] text-[#33638e] hover:bg-[#4ab6c4]/10"
+          className="w-full sm:w-auto border-[#4ab6c4]/50 text-[#33638e] hover:bg-[#4ab6c4]/10"
           onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
         >
           Parler à un conseiller
