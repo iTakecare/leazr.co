@@ -5,13 +5,13 @@ import { ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Breadcrumb = React.forwardRef<
+const BreadcrumbPrimitive = React.forwardRef<
   HTMLElement,
   React.ComponentPropsWithoutRef<"nav"> & {
     separator?: React.ReactNode
   }
 >(({ ...props }, ref) => <nav ref={ref} aria-label="breadcrumb" {...props} />)
-Breadcrumb.displayName = "Breadcrumb"
+BreadcrumbPrimitive.displayName = "BreadcrumbPrimitive"
 
 const BreadcrumbList = React.forwardRef<
   HTMLOListElement,
@@ -93,7 +93,7 @@ const BreadcrumbSeparator = ({
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator"
 
 // Custom Breadcrumb component that includes the list and items
-const Breadcrumb2 = React.forwardRef<
+const Breadcrumb = React.forwardRef<
   HTMLElement,
   React.ComponentPropsWithoutRef<"nav"> & {
     separator?: React.ReactNode
@@ -118,14 +118,14 @@ const Breadcrumb2 = React.forwardRef<
     </nav>
   );
 });
-Breadcrumb2.displayName = "Breadcrumb2";
+Breadcrumb.displayName = "Breadcrumb";
 
 export {
-  Breadcrumb,
+  BreadcrumbPrimitive,
   BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbPage,
   BreadcrumbSeparator,
-  Breadcrumb2 as Breadcrumb
+  Breadcrumb
 }
