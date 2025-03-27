@@ -117,6 +117,26 @@ const ProductDetailPage = () => {
   const productBrand = product.brand || "";
   const productDescription = product.description || "Aucune description disponible pour ce produit.";
   
+  // Extract specifications for the configuration section
+  const productSpecs = specifications || {};
+  const screenSize = productSpecs.screen_size || productSpecs.taille_ecran || "15\"";
+  const processor = productSpecs.processor || productSpecs.processeur || `${productBrand} M4`;
+  const storage = productSpecs.storage || productSpecs.stockage || "256 Go";
+  const memory = productSpecs.memory || productSpecs.ram || "16 Go";
+  const graphicsCard = productSpecs.graphics_card || productSpecs.carte_graphique || "GPU 10 coeurs";
+  const networkType = productSpecs.network || productSpecs.reseau || "Wi-Fi";
+  const keyboardType = productSpecs.keyboard || productSpecs.clavier || "Français - AZERTY";
+  const productCondition = productSpecs.condition || productSpecs.etat || "Neuf";
+  
+  // Available storage options
+  const storageOptions = ["256 Go", "512 Go", "1 To"];
+  
+  // Available RAM options
+  const ramOptions = ["8 Go", "16 Go", "32 Go"];
+  
+  // Available keyboard layouts
+  const keyboardOptions = ["Français - AZERTY", "US - QWERTY"];
+  
   return (
     <div className="min-h-screen bg-white">
       <PublicHeader />
@@ -188,7 +208,7 @@ const ProductDetailPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">État</label>
                     <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      Neuf
+                      {productCondition}
                     </div>
                   </div>
                   
@@ -196,7 +216,7 @@ const ProductDetailPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Taille d&apos;écran</label>
                     <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      {product.specifications?.screen_size || "15\""}
+                      {screenSize}
                     </div>
                   </div>
                   
@@ -204,16 +224,18 @@ const ProductDetailPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Stockage</label>
                     <Select
-                      defaultValue="256 Go"
+                      defaultValue={storage}
                       onValueChange={(value) => handleOptionChange("stockage", value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Sélectionner" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="256 Go">256 Go</SelectItem>
-                        <SelectItem value="512 Go">512 Go</SelectItem>
-                        <SelectItem value="1 To">1 To</SelectItem>
+                        {storageOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -222,7 +244,7 @@ const ProductDetailPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Processeur</label>
                     <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      {productBrand} {product.specifications?.processor || "M4"}
+                      {processor}
                     </div>
                   </div>
                   
@@ -230,16 +252,18 @@ const ProductDetailPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Mémoire (RAM)</label>
                     <Select
-                      defaultValue="16 Go"
+                      defaultValue={memory}
                       onValueChange={(value) => handleOptionChange("ram", value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Sélectionner" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="8 Go">8 Go</SelectItem>
-                        <SelectItem value="16 Go">16 Go</SelectItem>
-                        <SelectItem value="32 Go">32 Go</SelectItem>
+                        {ramOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -248,7 +272,7 @@ const ProductDetailPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Réseau</label>
                     <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      Wi-Fi
+                      {networkType}
                     </div>
                   </div>
                   
@@ -256,7 +280,7 @@ const ProductDetailPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Carte graphique</label>
                     <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      GPU 10 coeurs
+                      {graphicsCard}
                     </div>
                   </div>
                   
@@ -264,15 +288,18 @@ const ProductDetailPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Clavier</label>
                     <Select
-                      defaultValue="Français - AZERTY"
+                      defaultValue={keyboardType}
                       onValueChange={(value) => handleOptionChange("keyboard", value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Sélectionner" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Français - AZERTY">Français - AZERTY</SelectItem>
-                        <SelectItem value="US - QWERTY">US - QWERTY</SelectItem>
+                        {keyboardOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -281,7 +308,7 @@ const ProductDetailPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Durée</label>
                     <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      36 mois
+                      {duration} mois
                     </div>
                   </div>
                   
@@ -362,7 +389,7 @@ const ProductDetailPage = () => {
             {/* Additional product information - below the sticky box */}
             <div className="mt-8">
               <ProductDescription 
-                title="Descriptif Apple MacBook Air M4 15&quot;"
+                title={`Descriptif ${productBrand} ${productName}`}
                 description={productDescription} 
               />
               

@@ -13,12 +13,6 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ title, descript
       
       <div className="text-gray-700">
         <p className="mb-4">
-          Le MacBook Air 15&quot; M4 d&apos;Apple est l&apos;équipement idéal pour les entreprises et les professionnels à la recherche d&apos;un ordinateur 
-          portable alliant performance, portabilité et élégance. Ce modèle de 15,3 pouces offre une expérience utilisateur exceptionnelle grâce 
-          à des caractéristiques techniques avancées. Voici un aperçu détaillé de ses principales caractéristiques du MacBook Air 15&quot; M4 :
-        </p>
-        
-        <p className="mb-4">
           {description}
         </p>
       </div>
