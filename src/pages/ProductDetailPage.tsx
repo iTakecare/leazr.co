@@ -119,23 +119,35 @@ const ProductDetailPage = () => {
   
   // Extract specifications for the configuration section
   const productSpecs = specifications || {};
-  const screenSize = productSpecs.screen_size || productSpecs.taille_ecran || "15\"";
-  const processor = productSpecs.processor || productSpecs.processeur || `${productBrand} M4`;
-  const storage = productSpecs.storage || productSpecs.stockage || "256 Go";
-  const memory = productSpecs.memory || productSpecs.ram || "16 Go";
-  const graphicsCard = productSpecs.graphics_card || productSpecs.carte_graphique || "GPU 10 coeurs";
-  const networkType = productSpecs.network || productSpecs.reseau || "Wi-Fi";
-  const keyboardType = productSpecs.keyboard || productSpecs.clavier || "Français - AZERTY";
-  const productCondition = productSpecs.condition || productSpecs.etat || "Neuf";
+  
+  // Convert possible number values to strings
+  const screenSize = String(productSpecs.screen_size || productSpecs.taille_ecran || "15\"");
+  const processor = String(productSpecs.processor || productSpecs.processeur || `${productBrand} M4`);
+  const storage = String(productSpecs.storage || productSpecs.stockage || "256 Go");
+  const memory = String(productSpecs.memory || productSpecs.ram || "16 Go");
+  const graphicsCard = String(productSpecs.graphics_card || productSpecs.carte_graphique || "GPU 10 coeurs");
+  const networkType = String(productSpecs.network || productSpecs.reseau || "Wi-Fi");
+  const keyboardType = String(productSpecs.keyboard || productSpecs.clavier || "Français - AZERTY");
+  const productCondition = String(productSpecs.condition || productSpecs.etat || "Neuf");
+  
+  // Get available options from product variation attributes
+  const getOptions = (attributeName: string): string[] => {
+    if (!product.variation_attributes) return [];
+    
+    const attributeOptions = product.variation_attributes[attributeName];
+    if (!attributeOptions) return [];
+    
+    return attributeOptions.map(option => String(option));
+  };
   
   // Available storage options
-  const storageOptions = ["256 Go", "512 Go", "1 To"];
+  const storageOptions = getOptions('stockage') || ["256 Go", "512 Go", "1 To"];
   
   // Available RAM options
-  const ramOptions = ["8 Go", "16 Go", "32 Go"];
+  const ramOptions = getOptions('ram') || ["8 Go", "16 Go", "32 Go"];
   
   // Available keyboard layouts
-  const keyboardOptions = ["Français - AZERTY", "US - QWERTY"];
+  const keyboardOptions = getOptions('keyboard') || ["Français - AZERTY", "US - QWERTY"];
   
   return (
     <div className="min-h-screen bg-white">
@@ -223,21 +235,27 @@ const ProductDetailPage = () => {
                   {/* Stockage */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Stockage</label>
-                    <Select
-                      defaultValue={storage}
-                      onValueChange={(value) => handleOptionChange("stockage", value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Sélectionner" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {storageOptions.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {storageOptions.length > 0 ? (
+                      <Select
+                        defaultValue={storage}
+                        onValueChange={(value) => handleOptionChange("stockage", value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {storageOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
+                        {storage}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Processeur */}
@@ -251,21 +269,27 @@ const ProductDetailPage = () => {
                   {/* Mémoire */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Mémoire (RAM)</label>
-                    <Select
-                      defaultValue={memory}
-                      onValueChange={(value) => handleOptionChange("ram", value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Sélectionner" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ramOptions.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {ramOptions.length > 0 ? (
+                      <Select
+                        defaultValue={memory}
+                        onValueChange={(value) => handleOptionChange("ram", value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ramOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
+                        {memory}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Réseau */}
@@ -287,21 +311,27 @@ const ProductDetailPage = () => {
                   {/* Clavier */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Clavier</label>
-                    <Select
-                      defaultValue={keyboardType}
-                      onValueChange={(value) => handleOptionChange("keyboard", value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Sélectionner" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {keyboardOptions.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {keyboardOptions.length > 0 ? (
+                      <Select
+                        defaultValue={keyboardType}
+                        onValueChange={(value) => handleOptionChange("keyboard", value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {keyboardOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
+                        {keyboardType}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Durée */}

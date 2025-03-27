@@ -59,7 +59,7 @@ export const useProductDetails = (productId: string | undefined) => {
       const initialOptions: Record<string, string> = {};
       Object.entries(options).forEach(([key, values]) => {
         if (values && values.length > 0) {
-          initialOptions[key] = values[0];
+          initialOptions[key] = String(values[0]);
         }
       });
       
@@ -126,6 +126,7 @@ export const useProductDetails = (productId: string | undefined) => {
       if (!variant.attributes) return false;
       
       return Object.entries(options).every(([key, value]) => {
+        // Convert variant attribute value to string for comparison
         const variantValue = String(variant.attributes?.[key] || '');
         const match = variantValue === value;
         
@@ -151,6 +152,7 @@ export const useProductDetails = (productId: string | undefined) => {
       
       // Check if all selected attributes match this price configuration
       return Object.entries(options).every(([key, value]) => {
+        // Convert price attribute value to string for comparison
         const priceValue = String(price.attributes[key] || '');
         return priceValue === value;
       });
