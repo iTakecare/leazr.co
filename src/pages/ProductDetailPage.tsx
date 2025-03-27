@@ -308,115 +308,119 @@ const ProductDetailPage = () => {
           </div>
           
           <div>
-            <div className="sticky top-4 bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
-              <div className="flex mb-2">
-                <Badge variant="outline" className="bg-indigo-100 text-indigo-800 mr-2">
-                  {productCategory === "laptop" ? "Ordinateur" : productCategory}
-                </Badge>
-                <span className="text-gray-600">{productBrand}</span>
-              </div>
-              
-              <h1 className="text-3xl font-bold mb-2">
-                Location {productName}
-              </h1>
-              
-              <div className="text-lg text-gray-700 mb-4">
-                à partir de <span className="font-bold text-indigo-700">{formatCurrency(minMonthlyPrice)}/mois</span>
-              </div>
-              
-              <Separator className="my-4" />
-              
-              <div className="mb-6">
-                <h3 className="text-xl font-medium mb-4">Sélectionnez votre configuration idéale.</h3>
+            <div className="sticky top-4 rounded-xl overflow-hidden">
+              <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white p-4 shadow-md">
+                <div className="flex mb-2">
+                  <Badge variant="outline" className="bg-white/20 text-white border-white/30 mr-2">
+                    {productCategory === "laptop" ? "Ordinateur" : productCategory}
+                  </Badge>
+                  <span className="text-indigo-100">{productBrand}</span>
+                </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  {configAttributes.map(attribute => {
-                    const displayName = getDisplayName(attribute);
-                    const currentValue = getCurrentValue(attribute);
+                <h1 className="text-3xl font-bold mb-2 text-white">
+                  Location {productName}
+                </h1>
+                
+                <div className="text-lg text-indigo-100 mb-4">
+                  à partir de <span className="font-bold text-white">{formatCurrency(minMonthlyPrice)}/mois</span>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 border border-indigo-100 shadow-md">
+                <Separator className="my-4" />
+                
+                <div className="mb-6">
+                  <h3 className="text-xl font-medium mb-4 text-indigo-900">Sélectionnez votre configuration idéale.</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {configAttributes.map(attribute => {
+                      const displayName = getDisplayName(attribute);
+                      const currentValue = getCurrentValue(attribute);
+                      
+                      return (
+                        <React.Fragment key={attribute}>
+                          {renderAttributeField(attribute, displayName, currentValue)}
+                        </React.Fragment>
+                      );
+                    })}
                     
-                    return (
-                      <React.Fragment key={attribute}>
-                        {renderAttributeField(attribute, displayName, currentValue)}
-                      </React.Fragment>
-                    );
-                  })}
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Durée</label>
-                    <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      {duration} mois
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Quantité souhaitée</label>
-                    <div className="flex items-center">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10 rounded-r-none"
-                        onClick={() => handleQuantityChange(quantity - 1)}
-                        disabled={quantity <= 1}
-                      >
-                        <MinusIcon className="h-4 w-4" />
-                      </Button>
-                      <div className="h-10 px-4 flex items-center justify-center border-y border-input">
-                        {quantity}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">Durée</label>
+                      <div className="bg-indigo-50 rounded border border-indigo-100 px-3 py-2">
+                        {duration} mois
                       </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10 rounded-l-none"
-                        onClick={() => handleQuantityChange(quantity + 1)}
-                      >
-                        <PlusIcon className="h-4 w-4" />
-                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">Quantité souhaitée</label>
+                      <div className="flex items-center">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-10 w-10 rounded-r-none border-indigo-200"
+                          onClick={() => handleQuantityChange(quantity - 1)}
+                          disabled={quantity <= 1}
+                        >
+                          <MinusIcon className="h-4 w-4" />
+                        </Button>
+                        <div className="h-10 px-4 flex items-center justify-center border-y border-indigo-200">
+                          {quantity}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-10 w-10 rounded-l-none border-indigo-200"
+                          onClick={() => handleQuantityChange(quantity + 1)}
+                        >
+                          <PlusIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700 font-medium">Votre sélection pour</span>
-                  <span className="text-2xl font-bold text-indigo-700">{formatCurrency(totalPrice)} HT / mois</span>
+                
+                <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-4 rounded-lg border border-indigo-200 mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-700 font-medium">Votre sélection pour</span>
+                    <span className="text-2xl font-bold text-indigo-700">{formatCurrency(totalPrice)} HT / mois</span>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      className="w-full sm:w-auto px-8 bg-indigo-600 hover:bg-indigo-700"
+                      onClick={handleRequestProduct}
+                    >
+                      Ajouter
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full sm:w-auto border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                      onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
+                    >
+                      Parler à un conseiller
+                    </Button>
+                  </div>
+                  
+                  <div className="mt-4 space-y-1 text-sm">
+                    <div className="flex items-center text-gray-600">
+                      <Check className="h-4 w-4 text-indigo-500 mr-2" />
+                      <span>Livraison gratuite en France et Europe</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Check className="h-4 w-4 text-indigo-500 mr-2" />
+                      <span>Pas de premier loyer majoré</span>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button 
-                    className="w-full sm:w-auto px-8 bg-indigo-600 hover:bg-indigo-700"
-                    onClick={handleRequestProduct}
-                  >
-                    Ajouter
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full sm:w-auto"
-                    onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
-                  >
-                    Parler à un conseiller
-                  </Button>
-                </div>
-                
-                <div className="mt-4 space-y-1 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    <span>Livraison gratuite en France et Europe</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    <span>Pas de premier loyer majoré</span>
-                  </div>
-                </div>
+                <Button 
+                  variant="link" 
+                  className="text-indigo-600"
+                  onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
+                >
+                  Besoin d&apos;aide ?
+                </Button>
               </div>
-              
-              <Button 
-                variant="link" 
-                className="text-indigo-600"
-                onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
-              >
-                Besoin d&apos;aide ?
-              </Button>
             </div>
           </div>
         </div>

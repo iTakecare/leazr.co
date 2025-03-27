@@ -4,14 +4,14 @@ import { Check, DollarSign, RefreshCw, TrendingUp, FileText } from "lucide-react
 
 const ProductBenefits = () => {
   return (
-    <div className="my-12 bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-8 rounded-2xl shadow-lg">
+    <div className="my-12 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white p-8 rounded-2xl shadow-lg">
       <h2 className="text-2xl font-bold mb-8 text-white flex items-center">
         <TrendingUp className="h-6 w-6 mr-3" />
         Pourquoi choisir la location ?
       </h2>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105">
+        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105 hover:bg-white/20">
           <div className="bg-white rounded-full p-2 mr-4 mt-1">
             <DollarSign className="h-5 w-5 text-indigo-600" />
           </div>
@@ -23,7 +23,7 @@ const ProductBenefits = () => {
           </div>
         </div>
         
-        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105">
+        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105 hover:bg-white/20">
           <div className="bg-white rounded-full p-2 mr-4 mt-1">
             <RefreshCw className="h-5 w-5 text-indigo-600" />
           </div>
@@ -35,7 +35,7 @@ const ProductBenefits = () => {
           </div>
         </div>
         
-        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105">
+        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105 hover:bg-white/20">
           <div className="bg-white rounded-full p-2 mr-4 mt-1">
             <Check className="h-5 w-5 text-indigo-600" />
           </div>
@@ -47,7 +47,7 @@ const ProductBenefits = () => {
           </div>
         </div>
         
-        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105">
+        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105 hover:bg-white/20">
           <div className="bg-white rounded-full p-2 mr-4 mt-1">
             <FileText className="h-5 w-5 text-indigo-600" />
           </div>

@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Star, ThumbsUp, MessageCircle, User } from "lucide-react";
+import { Star, ThumbsUp, MessageCircle, User, Quote } from "lucide-react";
 
 const CustomerReviews = () => {
   // Mock reviews
@@ -32,42 +32,47 @@ const CustomerReviews = () => {
   ];
 
   return (
-    <div className="mb-16 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-8">
+    <div className="mb-16">
       <h2 className="text-2xl font-bold mb-8 text-indigo-900 flex items-center">
         <MessageCircle className="h-6 w-6 mr-2 text-indigo-600" />
         Ce que nos clients en disent
       </h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
         {reviews.map((review) => (
-          <div key={review.id} className="bg-white p-6 rounded-xl border border-indigo-100 shadow-sm hover:shadow-md transition-shadow relative">
-            <div className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs font-bold rounded-full h-8 w-8 flex items-center justify-center">
-              {review.rating}
+          <div 
+            key={review.id} 
+            className="bg-white p-6 rounded-xl border-l-4 border-indigo-500 shadow-md hover:shadow-lg transition-shadow relative overflow-hidden"
+          >
+            <div className="absolute -bottom-6 -right-6 text-indigo-100 opacity-20">
+              <Quote className="h-24 w-24 transform rotate-180" />
             </div>
             
-            <div className="flex items-center mb-4">
-              <div className="bg-indigo-100 rounded-full p-2 mr-3">
-                <User className="h-5 w-5 text-indigo-700" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 relative z-10">
+              <div className="flex items-center">
+                <div className="bg-indigo-100 rounded-full p-2 mr-3">
+                  <User className="h-5 w-5 text-indigo-700" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900">{review.name}</h3>
+                  <p className="text-sm text-indigo-600">{review.company}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium text-gray-900">{review.name}</h3>
-                <p className="text-sm text-indigo-600">{review.company}</p>
+              
+              <div className="flex mt-2 sm:mt-0 items-center">
+                {[...Array(5)].map((_, i) => (
+                  <Star 
+                    key={i}
+                    className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} 
+                  />
+                ))}
+                <span className="text-xs text-gray-500 ml-2">{review.date}</span>
               </div>
             </div>
             
-            <div className="flex mb-4">
-              {[...Array(5)].map((_, i) => (
-                <Star 
-                  key={i}
-                  className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} 
-                />
-              ))}
-              <span className="text-xs text-gray-500 ml-2">{review.date}</span>
-            </div>
+            <p className="text-gray-700 italic relative z-10">{review.content}</p>
             
-            <p className="text-gray-700 italic">{review.content}</p>
-            
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-end relative z-10">
               <button className="flex items-center text-indigo-600 text-sm hover:text-indigo-800 transition-colors">
                 <ThumbsUp className="h-3 w-3 mr-1" />
                 Utile
