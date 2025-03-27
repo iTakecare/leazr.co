@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { addProduct, uploadProductImage, getProductById, updateProduct } from "@/services/catalogService";
+import { updateProductVariationAttributes } from "@/services/variantPriceService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +13,6 @@ import { Product, ProductVariationAttributes } from "@/types/catalog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { updateProductVariationAttributes } from "@/services/variantPriceService";
 import Container from "@/components/layout/Container";
 import { useNavigate, useParams } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,8 +114,14 @@ const ProductEditPage: React.FC = () => {
         setLoadedImages([productData.image_url]);
         setImagePreviews([productData.image_url]);
       }
-      if (productData.additional_images && Array.isArray(productData.additional_images)) {
-        const additionalImages = productData.additional_images.filter(Boolean);
+      
+      // Handle additional images if they exist in various formats
+      if (productData.image_urls && Array.isArray(productData.image_urls)) {
+        const additionalImages = productData.image_urls.filter(Boolean);
+        setLoadedImages(prev => [...prev, ...additionalImages]);
+        setImagePreviews(prev => [...prev, ...additionalImages]);
+      } else if (productData.imageUrls && Array.isArray(productData.imageUrls)) {
+        const additionalImages = productData.imageUrls.filter(Boolean);
         setLoadedImages(prev => [...prev, ...additionalImages]);
         setImagePreviews(prev => [...prev, ...additionalImages]);
       }
@@ -365,6 +372,86 @@ const ProductEditPage: React.FC = () => {
       delete updated[attributeName];
       return updated;
     });
+  };
+
+  const finishProductCreation = async (productId: string) => {
+    try {
+      if (isParentProduct && Object.keys(variationAttributes).length > 0) {
+        try {
+          await updateProductVariationAttributes(productId, variationAttributes);
+          toast.success("Attributs de variante enregistrés avec succès");
+        } catch (error) {
+          console.error("Erreur lors de l'enregistrement des attributs de variante:", error);
+          toast.error("Erreur lors de l'enregistrement des attributs de variante");
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la finalisation de la création du produit:", error);
+    } finally {
+      setIsSubmitting(false);
+      toast.success("Produit ajouté avec succès");
+      navigate("/catalog");
+    }
+  };
+
+  const finishProductUpdate = async () => {
+    try {
+      if (id && isParentProduct && Object.keys(variationAttributes).length > 0) {
+        try {
+          await updateProductVariationAttributes(id, variationAttributes);
+          toast.success("Attributs de variante mis à jour avec succès");
+        } catch (error) {
+          console.error("Erreur lors de la mise à jour des attributs de variante:", error);
+          toast.error("Erreur lors de la mise à jour des attributs de variante");
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la finalisation de la mise à jour du produit:", error);
+    } finally {
+      setIsSubmitting(false);
+      toast.success("Produit mis à jour avec succès");
+      navigate("/catalog");
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name || !category || (!isParentProduct && !price)) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const productData = {
+        name,
+        category,
+        price: isParentProduct ? 0 : parseFloat(price) || 0,
+        monthly_price: isParentProduct ? 0 : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
+        description,
+        brand: brand || "",
+        imageUrl: "",
+        specifications: {},
+        active: true,
+        is_parent: isParentProduct,
+        parent_id: null,
+        is_variation: false,
+        stock: isParentProduct ? 0 : undefined,
+        variation_attributes: isParentProduct ? variationAttributes : {}
+      };
+
+      if (isEditMode && id) {
+        updateProductMutation.mutate({ id, product: productData });
+      } else {
+        addProductMutation.mutate(productData);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la préparation des données du produit:", error);
+      toast.error(`Erreur lors de la ${isEditMode ? 'mise à jour' : 'création'} du produit: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      setIsSubmitting(false);
+    }
   };
 
   if (isEditMode && isProductLoading) {
