@@ -52,7 +52,6 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
       active: product.active !== undefined ? product.active : true,
       stock: product.stock || 0,
       sku: product.sku || null,
-      meta: product.meta || {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -104,6 +103,9 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
     if (product.is_variation !== undefined) productData.is_variation = product.is_variation;
     if (product.variation_attributes) productData.variation_attributes = product.variation_attributes;
     
+    // IMPORTANT: Remove meta field as it doesn't exist in the database
+    // This field might be used in the frontend but shouldn't be sent to the database
+    
     console.log("Sending sanitized data to Supabase:", productData);
     
     const { data, error } = await supabase
@@ -118,6 +120,12 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
     }
     
     console.log("Product created successfully:", data);
+    
+    // Add the meta field back to the returned data for frontend use
+    if (product.meta) {
+      (data as any).meta = product.meta;
+    }
+    
     return data as Product;
   } catch (error) {
     console.error("Error creating product:", error);
