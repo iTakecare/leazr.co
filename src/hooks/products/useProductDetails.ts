@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -10,23 +11,23 @@ import { Product, ProductAttributes } from "@/types/catalog";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-interface UseProductDetailsProps {
+export interface UseProductDetailsProps {
   productId?: string;
-  isEditing: boolean;
+  isEditing?: boolean;
 }
 
-export const useProductDetails = ({ productId, isEditing }: UseProductDetailsProps) => {
+export const useProductDetails = (props: UseProductDetailsProps) => {
+  const { productId, isEditing = false } = typeof props === 'string' 
+    ? { productId: props, isEditing: !!props } 
+    : props;
+    
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Local state for managing the product details
-  const [product, setProduct] = useState<Product>(
-    {} as Product // Initialize as empty Product
-  );
+  const [product, setProduct] = useState<Product>({} as Product);
   const [isDirty, setIsDirty] = useState(false);
-  const [initialProduct, setInitialProduct] = useState<Product>(
-    {} as Product // Initialize as empty Product
-  );
+  const [initialProduct, setInitialProduct] = useState<Product>({} as Product);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
@@ -92,61 +93,74 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
     queryKey: ["product", productId],
     queryFn: () => getProductById(productId || ""),
     enabled: isEditing && !!productId,
-    onSuccess: (fetchedProduct) => {
-      if (fetchedProduct) {
-        setProduct(fetchedProduct);
-        setInitialProduct(fetchedProduct);
-        setIsParent(fetchedProduct.is_parent || false);
-        setSpecificationValues(fetchedProduct.specifications || {});
-        setAttributeValues(fetchedProduct.attributes || {});
+    meta: {
+      onSuccess: (fetchedProduct: Product) => {
+        if (fetchedProduct) {
+          setProduct(fetchedProduct);
+          setInitialProduct(fetchedProduct);
+          setIsParent(fetchedProduct.is_parent || false);
+          setSpecificationValues(fetchedProduct.specifications || {});
+          setAttributeValues(fetchedProduct.attributes || {});
+        }
       }
-    },
+    }
   });
 
+  // Effect to handle successful query fetch
+  useEffect(() => {
+    if (data) {
+      setProduct(data);
+      setInitialProduct(data);
+      setIsParent(data.is_parent || false);
+      setSpecificationValues(data.specifications || {});
+      setAttributeValues(data.attributes || {});
+    }
+  }, [data]);
+
   // Mutations for updating and creating products
-  const updateProductMutation = useMutation(updateProduct, {
+  const updateProductMutation = useMutation({
+    mutationFn: (updatedProduct: Product) => updateProduct(updatedProduct),
     onSuccess: (updatedProduct) => {
       toast.success("Produit mis à jour avec succès!");
-      queryClient.invalidateQueries(["product", updatedProduct.id]);
-      queryClient.invalidateQueries(["products"]);
+      queryClient.invalidateQueries({ queryKey: ["product", updatedProduct.id] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       setIsDirty(false);
       setInitialProduct(updatedProduct);
       setProduct(updatedProduct);
+      setIsSaving(false);
     },
     onError: (error: any) => {
       toast.error(`Erreur lors de la mise à jour du produit: ${error.message || "Unknown error"}`);
-    },
-    onSettled: () => {
       setIsSaving(false);
-    },
+    }
   });
 
-  const createProductMutation = useMutation(createProduct, {
+  const createProductMutation = useMutation({
+    mutationFn: (newProduct: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => createProduct(newProduct),
     onSuccess: (newProduct) => {
       toast.success("Produit créé avec succès!");
-      queryClient.invalidateQueries(["products"]);
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       navigate(`/catalog/${newProduct.id}`);
+      setIsSaving(false);
     },
     onError: (error: any) => {
       toast.error(`Erreur lors de la création du produit: ${error.message || "Unknown error"}`);
-    },
-    onSettled: () => {
       setIsSaving(false);
-    },
+    }
   });
 
-  const deleteProductMutation = useMutation(deleteProductService, {
+  const deleteProductMutation = useMutation({
+    mutationFn: (productId: string) => deleteProductService(productId),
     onSuccess: () => {
       toast.success("Produit supprimé avec succès!");
-      queryClient.invalidateQueries(["products"]);
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       navigate("/catalog");
+      setIsDeleting(false);
     },
     onError: (error: any) => {
       toast.error(`Erreur lors de la suppression du produit: ${error.message || "Unknown error"}`);
-    },
-    onSettled: () => {
       setIsDeleting(false);
-    },
+    }
   });
 
   // Handlers for updating product properties
@@ -205,7 +219,7 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
 
   const handleMetaTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!product.meta) {
-      setProduct({ ...product, meta: { ...product.meta, title: e.target.value } });
+      setProduct({ ...product, meta: { title: e.target.value } });
     } else {
       setProduct({ ...product, meta: { ...product.meta, title: e.target.value } });
     }
@@ -214,7 +228,7 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
 
   const handleMetaDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (!product.meta) {
-      setProduct({ ...product, meta: { ...product.meta, description: e.target.value } });
+      setProduct({ ...product, meta: { description: e.target.value } });
     } else {
       setProduct({ ...product, meta: { ...product.meta, description: e.target.value } });
     }
@@ -223,7 +237,7 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
 
   const handleMetaKeywordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!product.meta) {
-      setProduct({ ...product, meta: { ...product.meta, keywords: e.target.value } });
+      setProduct({ ...product, meta: { keywords: e.target.value } });
     } else {
       setProduct({ ...product, meta: { ...product.meta, keywords: e.target.value } });
     }
@@ -232,7 +246,7 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
 
   const handleMetaSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!product.meta) {
-      setProduct({ ...product, meta: { ...product.meta, slug: e.target.value } });
+      setProduct({ ...product, meta: { slug: e.target.value } });
     } else {
       setProduct({ ...product, meta: { ...product.meta, slug: e.target.value } });
     }
@@ -241,7 +255,7 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
 
   const handleMetaCanonicalUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!product.meta) {
-      setProduct({ ...product, meta: { ...product.meta, canonical_url: e.target.value } });
+      setProduct({ ...product, meta: { canonical_url: e.target.value } });
     } else {
       setProduct({ ...product, meta: { ...product.meta, canonical_url: e.target.value } });
     }
@@ -286,17 +300,18 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
     };
 
     if (isEditing) {
-      updateProductMutation.mutate(productToSave);
+      updateProductMutation.mutate(productToSave as Product);
     } else {
-      createProductMutation.mutate(productToSave);
+      createProductMutation.mutate(productToSave as Omit<Product, 'id' | 'createdAt' | 'updatedAt'>);
     }
   }, [product, specificationValues, attributeValues, isEditing, updateProductMutation, createProductMutation]);
 
   // Function to handle deleting the product
   const handleDelete = useCallback(async () => {
+    if (!product.id) return;
     setIsDeleting(true);
     deleteProductMutation.mutate(product.id);
-  }, [product, deleteProductMutation]);
+  }, [product.id, deleteProductMutation]);
 
   // Function to handle cloning the product
   const handleClone = useCallback(async () => {
@@ -307,11 +322,11 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
       ...product,
       id: undefined, // remove id for cloning
       name: `${product.name} (Clone)`,
-      sku: `${product.sku}-clone`,
+      sku: `${product.sku || ''}-clone`,
       active: false,
     };
 
-    createProductMutation.mutate(productToClone);
+    createProductMutation.mutate(productToClone as Omit<Product, 'id' | 'createdAt' | 'updatedAt'>);
   }, [product, createProductMutation]);
 
   // Function to reset the form to initial values
@@ -380,7 +395,7 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
 
   // Function to handle image urls update
   const applyImageUrlsUpdate = () => {
-    setProduct(prevProduct => ({ ...prevProduct, image_urls: imageUrlValue }));
+    setProduct(prevProduct => ({ ...prevProduct, image_urls: imageUrlsValue }));
     setIsDirty(true);
     setIsImageUrlsDialogOpen(false);
   };
@@ -604,5 +619,113 @@ export const useProductDetails = ({ productId, isEditing }: UseProductDetailsPro
     applyDescriptionUpdate,
     applyNameUpdate,
     applyStockUpdate,
+  };
+};
+
+// Create a specialized version of the hook for public catalog
+export const usePublicProductDetails = (id?: string) => {
+  const [quantity, setQuantity] = useState(1);
+  const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [currentImage, setCurrentImage] = useState("");
+  const [duration, setDuration] = useState(24); // default 24 months
+  
+  // Fetch product data
+  const { data: product, isLoading, error } = useQuery({
+    queryKey: ["product", id],
+    queryFn: () => getProductById(id || ""),
+    enabled: !!id,
+  });
+
+  // Calculate derived values
+  const variationAttributes = product?.variation_attributes || {};
+  const specifications = product?.specifications || {};
+  const hasVariants = !!(product?.variants && product.variants.length > 0);
+  const hasOptions = !!(variationAttributes && Object.keys(variationAttributes).length > 0);
+  
+  // Selected variant based on selected options
+  const selectedVariant = hasVariants && product?.variants ? 
+    product.variants.find(variant => {
+      if (!variant.attributes) return false;
+      return Object.entries(selectedOptions).every(
+        ([key, value]) => variant.attributes[key] === value
+      );
+    }) : null;
+  
+  // Current price based on selected variant or base product
+  const currentPrice = selectedVariant ? selectedVariant.price : (product?.price || 0);
+  
+  // Monthly price calculation based on current price and duration
+  const calculateMonthlyPrice = (price: number) => {
+    // Simple calculation - in real life this would use complex leasing formulas
+    const interestRate = 0.05; // 5% interest
+    const monthlyRate = interestRate / 12;
+    const denominator = 1 - Math.pow(1 + monthlyRate, -duration);
+    return (price * monthlyRate) / denominator;
+  };
+  
+  const baseMonthlyPrice = product?.monthly_price || calculateMonthlyPrice(product?.price || 0);
+  const variantMonthlyPrice = selectedVariant?.monthly_price || calculateMonthlyPrice(selectedVariant?.price || 0);
+  
+  const totalPrice = (selectedVariant ? variantMonthlyPrice : baseMonthlyPrice) * quantity;
+  const minMonthlyPrice = baseMonthlyPrice;
+  
+  // Image handling
+  useEffect(() => {
+    if (product) {
+      // Set initial image
+      setCurrentImage(product.image_url || (product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : ''));
+    }
+  }, [product]);
+  
+  // Options handling
+  const handleOptionChange = (attribute: string, value: string) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [attribute]: value
+    }));
+  };
+  
+  const hasAttributeOptions = (attributeName: string) => {
+    return !!(variationAttributes && variationAttributes[attributeName] && variationAttributes[attributeName].length > 0);
+  };
+  
+  const getOptionsForAttribute = (attributeName: string) => {
+    return variationAttributes[attributeName] || [];
+  };
+  
+  const isOptionAvailable = (attributeName: string, optionValue: string) => {
+    // In real implementation, we would check if this option is available with other selected options
+    return true;
+  };
+  
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity < 1) return;
+    setQuantity(newQuantity);
+  };
+
+  return {
+    product,
+    isLoading,
+    error,
+    quantity,
+    handleQuantityChange,
+    isRequestFormOpen,
+    setIsRequestFormOpen,
+    selectedOptions,
+    handleOptionChange,
+    isOptionAvailable,
+    currentImage,
+    currentPrice,
+    selectedVariant,
+    duration,
+    totalPrice,
+    minMonthlyPrice,
+    specifications,
+    hasVariants,
+    hasOptions,
+    variationAttributes,
+    hasAttributeOptions,
+    getOptionsForAttribute
   };
 };

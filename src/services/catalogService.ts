@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -37,32 +36,7 @@ export const getProductById = async (productId: string): Promise<Product> => {
   }
 };
 
-export const updateProduct = async (productId: string, product: Partial<Product>): Promise<Product> => {
-  try {
-    // Ensure we have the full product data structure
-    const productData = {
-      ...product,
-      meta: product.meta || {},
-      updated_at: new Date().toISOString()
-    };
-    
-    const { data, error } = await supabase
-      .from('products')
-      .update(productData)
-      .eq('id', productId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    return data as Product;
-  } catch (error) {
-    console.error('Error updating product:', error);
-    throw error;
-  }
-};
-
-export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
+export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
   try {
     // Ensure we have the full product data structure including SEO metadata
     const productData = {
@@ -79,13 +53,38 @@ export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'up
       .single();
     
     if (error) {
-      console.error("Error adding product:", error);
+      console.error("Error creating product:", error);
       throw error;
     }
     
     return data as Product;
   } catch (error) {
-    console.error("Error adding product:", error);
+    console.error("Error creating product:", error);
+    throw error;
+  }
+};
+
+export const updateProduct = async (product: Partial<Product>): Promise<Product> => {
+  try {
+    // Ensure we have the full product data structure
+    const productData = {
+      ...product,
+      meta: product.meta || {},
+      updated_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('products')
+      .update(productData)
+      .eq('id', product.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return data as Product;
+  } catch (error) {
+    console.error('Error updating product:', error);
     throw error;
   }
 };

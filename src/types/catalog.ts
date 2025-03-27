@@ -49,7 +49,7 @@ export interface Product {
   image_alt_texts?: string[]; // Added for SEO
   category?: string;
   brand?: string;
-  specifications?: Record<string, string | number | boolean>;
+  specifications?: Record<string, string | number>;
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -69,9 +69,9 @@ export interface Product {
   selected_attributes?: ProductAttributes;
   variant_id?: string;
   
-  // Additional properties used in some components
+  // For backwards compatibility
   model?: string;
-  imageUrl?: string; // Alias for image_url for backward compatibility
+  imageUrl?: string; // Alias for image_url
 }
 
 // New interface for SEO metadata
