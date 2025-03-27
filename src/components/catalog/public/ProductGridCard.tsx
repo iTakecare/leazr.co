@@ -23,21 +23,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const getMinimumMonthlyPrice = (): number => {
     let minPrice = product.monthly_price || 0;
     
-    if (product.variants && product.variants.length > 0) {
-      console.log(`Product ${product.name} has ${product.variants.length} variants`);
-      const variantPrices = product.variants
-        .map(variant => variant.monthly_price || 0)
-        .filter(price => price > 0);
-      
-      if (variantPrices.length > 0) {
-        const minVariantPrice = Math.min(...variantPrices);
-        console.log(`Minimum variant price found: ${minVariantPrice}`);
-        if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
-          minPrice = minVariantPrice;
-        }
-      }
-    }
-    
+    // Check for variant_combination_prices first (this is from product_variant_prices table)
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       console.log(`Product ${product.name} has ${product.variant_combination_prices.length} variant combinations`);
       const combinationPrices = product.variant_combination_prices
@@ -49,6 +35,22 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         console.log(`Minimum combination price found: ${minCombinationPrice}`);
         if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
           minPrice = minCombinationPrice;
+        }
+      }
+    }
+    
+    // Check variants only if we don't have combination prices
+    else if (product.variants && product.variants.length > 0) {
+      console.log(`Product ${product.name} has ${product.variants.length} variants`);
+      const variantPrices = product.variants
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (variantPrices.length > 0) {
+        const minVariantPrice = Math.min(...variantPrices);
+        console.log(`Minimum variant price found: ${minVariantPrice}`);
+        if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
+          minPrice = minVariantPrice;
         }
       }
     }
@@ -79,14 +81,14 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   // Méthode pour compter le nombre de variantes EXISTANTES (configurations réelles)
   const countExistingVariants = (): number => {
-    // 1. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
-    if (product.variants_count !== undefined && product.variants_count > 0) {
-      return product.variants_count;
-    }
-    
-    // 2. Si le produit a des combinaisons de prix de variantes, compter celles-ci
+    // 1. Vérifier si le produit a des combinaisons de prix de variantes (priorité la plus élevée)
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
+    }
+    
+    // 2. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
+    if (product.variants_count !== undefined && product.variants_count > 0) {
+      return product.variants_count;
     }
     
     // 3. Si le produit a des variantes directes, compter celles-ci
@@ -94,8 +96,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       return product.variants.length;
     }
     
-    // 4. Si le produit a des attributs de variation mais pas de variantes/combinaisons existantes,
-    // nous ne comptons pas les variantes théoriques, mais retournons 0 car aucune configuration n'existe
+    // Si aucune variante réelle n'est trouvée, retourner 0
     return 0;
   };
 
