@@ -959,7 +959,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                         <div className="flex flex-wrap gap-1 mb-2">
                           {Object.entries(variant).map(([key, value]) => (
                             <Badge key={key} variant="outline" className="bg-white text-xs">
-                              {key}: {value}
+                              {key}: {String(value)}
                             </Badge>
                           ))}
                         </div>
