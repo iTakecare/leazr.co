@@ -41,41 +41,41 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
   const treeMonthsEquivalent = Math.round(totalSavings / 20); // ~20kg CO2 absorbés par arbre par mois
   
   return (
-    <div className="bg-gradient-to-br from-[#eefdf6] to-[#e2f9e7] border border-[#38b77c]/30 rounded-xl p-6 my-6 shadow-sm">
-      <div className="flex items-center mb-3">
-        <div className="bg-[#38b77c] rounded-full p-2 text-white mr-3">
-          <Leaf className="h-5 w-5" />
+    <div className="bg-gradient-to-br from-[#eefdf6] to-[#e2f9e7] border border-[#38b77c]/30 rounded-xl p-4 my-4 shadow-sm">
+      <div className="flex items-center mb-2">
+        <div className="bg-[#38b77c] rounded-full p-1.5 text-white mr-2">
+          <Leaf className="h-4 w-4" />
         </div>
-        <h3 className="text-xl font-semibold text-[#33638e]">
+        <h3 className="text-lg font-semibold text-[#33638e]">
           Impact environnemental positif
         </h3>
       </div>
       
-      <div className="mb-4">
-        <p className="text-gray-700">
-          En choisissant {quantity} {quantity > 1 ? "appareils" : "appareil"} reconditionnés, 
+      <div className="mb-3">
+        <p className="text-gray-700 text-sm">
+          En choisissant {quantity} {quantity > 1 ? "appareils reconditionnés" : "appareil reconditionné"}, 
           vous économisez:
         </p>
       </div>
       
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
-        <div className="flex-1 bg-white bg-opacity-80 rounded-lg p-4 border border-[#38b77c]/20">
-          <div className="text-3xl font-bold text-[#38b77c] mb-1">{totalSavings} kg</div>
-          <div className="text-sm text-gray-600">d'équivalent CO2</div>
+      <div className="flex flex-col md:flex-row gap-3 mb-3">
+        <div className="flex-1 bg-white bg-opacity-80 rounded-lg p-3 border border-[#38b77c]/20">
+          <div className="text-2xl font-bold text-[#38b77c] mb-1">{totalSavings} kg</div>
+          <div className="text-xs text-gray-600">d'équivalent CO2</div>
         </div>
         
-        <div className="flex-1 bg-white bg-opacity-80 rounded-lg p-4 border border-[#38b77c]/20">
-          <div className="text-3xl font-bold text-[#38b77c] mb-1">{carKmEquivalent} km</div>
-          <div className="text-sm text-gray-600">de trajet en voiture</div>
+        <div className="flex-1 bg-white bg-opacity-80 rounded-lg p-3 border border-[#38b77c]/20">
+          <div className="text-2xl font-bold text-[#38b77c] mb-1">{carKmEquivalent} km</div>
+          <div className="text-xs text-gray-600">de trajet en voiture</div>
         </div>
         
-        <div className="flex-1 bg-white bg-opacity-80 rounded-lg p-4 border border-[#38b77c]/20">
-          <div className="text-3xl font-bold text-[#38b77c] mb-1">{treeMonthsEquivalent} {treeMonthsEquivalent > 1 ? "mois" : "mois"}</div>
-          <div className="text-sm text-gray-600">d'absorption d'un arbre</div>
+        <div className="flex-1 bg-white bg-opacity-80 rounded-lg p-3 border border-[#38b77c]/20">
+          <div className="text-2xl font-bold text-[#38b77c] mb-1">{treeMonthsEquivalent} {treeMonthsEquivalent > 1 ? "mois" : "mois"}</div>
+          <div className="text-xs text-gray-600">d'absorption d'un arbre</div>
         </div>
       </div>
       
-      <p className="text-sm text-gray-500 italic">
+      <p className="text-xs text-gray-500 italic">
         * Estimations basées sur des études comparant la production d'équipements neufs vs. reconditionnés.
       </p>
     </div>

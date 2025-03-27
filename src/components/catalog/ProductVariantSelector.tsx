@@ -34,11 +34,13 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
   const [hasOptions, setHasOptions] = useState(false);
   const [hasVariants, setHasVariants] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     setSelectedOptions({});
     setCurrentPrice(null);
     setSelectedVariant(null);
+    setQuantity(1);
 
     const hasVariationAttributes = product.variation_attributes && 
       Object.keys(product.variation_attributes).length > 0;
@@ -156,6 +158,15 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                 imageUrl={product.image_url || "/placeholder.svg"} 
                 altText={product.name} 
               />
+              
+              {product.category && (
+                <div className="mt-4">
+                  <CO2SavingsCalculator 
+                    category={product.category} 
+                    quantity={quantity} 
+                  />
+                </div>
+              )}
             </div>
             <div>
               <h2 className="text-2xl font-bold mb-2">{product.brand} {product.name}</h2>
@@ -177,13 +188,6 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                   isOptionAvailable={isOptionAvailable}
                   hasVariants={hasVariants}
                   hasOptions={hasOptions}
-                />
-              )}
-              
-              {product.category && (
-                <CO2SavingsCalculator 
-                  category={product.category} 
-                  quantity={1} 
                 />
               )}
               

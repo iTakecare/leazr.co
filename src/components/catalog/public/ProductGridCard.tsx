@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -161,8 +160,8 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         />
         
         {co2Savings > 0 && (
-          <div className="absolute top-2 right-2 z-10">
-            <div className="bg-[#38b77c] text-white text-xs px-2 py-1 rounded-full flex items-center shadow-md transform rotate-[15deg] animate-pulse">
+          <div className="absolute top-3 left-0 z-10">
+            <div className="bg-[#38b77c] text-white text-xs px-2 py-1 rounded-r-full flex items-center shadow-md">
               <Leaf className="h-3 w-3 mr-1" />
               <span>{co2Savings} kg CO2 économisés</span>
             </div>
