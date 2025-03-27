@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import OrderProcess from "@/components/product-detail/OrderProcess";
 import ProductIncludedServices from "@/components/product-detail/ProductIncludedServices";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import CustomerReviews from "@/components/product-detail/CustomerReviews";
+import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -287,6 +289,12 @@ const ProductDetailPage = () => {
                 description={productDescription} 
               />
             </div>
+            
+            {/* Ajout du calculateur d'économie CO2 */}
+            <CO2SavingsCalculator 
+              category={productCategory}
+              quantity={quantity}
+            />
             
             <div className="mt-8">
               <ProductBenefits />

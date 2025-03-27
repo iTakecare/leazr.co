@@ -5,11 +5,29 @@ import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import VariantIndicator from "@/components/ui/product/VariantIndicator";
+import { Leaf } from "lucide-react";
 
 interface ProductGridCardProps {
   product: Product;
   onClick: () => void;
 }
+
+// Fonction utilitaire pour calculer l'économie de CO2 selon la catégorie du produit
+const getCO2Savings = (category: string | undefined): number => {
+  if (!category) return 0;
+  
+  switch (category.toLowerCase()) {
+    case "laptop":
+    case "desktop":
+      return 170;
+    case "smartphone":
+      return 45;
+    case "tablet":
+      return 87;
+    default:
+      return 0;
+  }
+};
 
 const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) => {
   // Skip rendering if this is a variant
@@ -123,6 +141,9 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   
   const hasVariantsFlag = hasVariants();
   const variantsCount = hasVariantsFlag ? countExistingVariants() : 0;
+  
+  // Calculer l'économie de CO2
+  const co2Savings = getCO2Savings(product.category);
 
   return (
     <Card 
@@ -138,6 +159,15 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             (e.target as HTMLImageElement).src = "/placeholder.svg";
           }}
         />
+        
+        {co2Savings > 0 && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className="bg-[#38b77c] text-white text-xs px-2 py-1 rounded-full flex items-center shadow-md transform rotate-[15deg] animate-pulse">
+              <Leaf className="h-3 w-3 mr-1" />
+              <span>{co2Savings} kg CO2 économisés</span>
+            </div>
+          </div>
+        )}
       </div>
       
       <CardContent className="flex-1 flex flex-col p-4">
