@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,6 +66,9 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ product, isEditing = fals
         imageUrl: product.imageUrl,
         image_alts: product.image_alts,
         specifications: product.specifications,
+        // Conserver les attributs de variante
+        variation_attributes: product.variation_attributes,
+        is_parent: product.is_parent,
       });
       setPreviewImage(product.imageUrl || null);
     }
