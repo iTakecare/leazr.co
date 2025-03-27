@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Leaf } from "lucide-react";
 
@@ -13,7 +12,6 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
 }) => {
   const [totalSavings, setTotalSavings] = useState(0);
   
-  // Fonction pour calculer l'économie de CO2 selon la catégorie du produit
   const getCO2Savings = (category: string): number => {
     switch (category.toLowerCase()) {
       case "laptop":
@@ -33,10 +31,8 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
     setTotalSavings(savingsPerUnit * quantity);
   }, [category, quantity]);
   
-  // Si aucune économie CO2, ne pas afficher le calculateur
   if (totalSavings === 0) return null;
   
-  // Calculer quelques équivalences pour rendre l'information plus concrète
   const carKmEquivalent = Math.round(totalSavings * 6); // ~6km de voiture par kg de CO2
   const treeMonthsEquivalent = Math.round(totalSavings / 20); // ~20kg CO2 absorbés par arbre par mois
   
@@ -90,18 +86,15 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
         </div>
       </div>
       
-      <div className="flex justify-between items-center mt-3 border-t border-[#4ab6c4]/10 pt-2">
-        <p className="text-[10px] text-gray-500 italic">
-          * Estimations basées sur des études comparant la production d'équipements neufs vs. reconditionnés.
-        </p>
-        <a 
+      <div className="mt-3 border-t border-[#4ab6c4]/10 pt-2 text-right">
+        <span className="text-[9px] text-gray-500 italic">* Estimations basées sur des études - Source: <a 
           href="https://impactco2.fr" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-[10px] text-[#33638e] hover:underline font-medium"
+          className="text-[9px] text-[#33638e] hover:underline inline-block"
         >
-          Source: impactco2.fr
-        </a>
+          impactco2.fr
+        </a></span>
       </div>
     </div>
   );
