@@ -126,7 +126,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   return (
     <Card 
-      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl"
+      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl hover:border-[#4ab6c4]/30"
       onClick={onClick}
     >
       <div className="relative pt-[100%] bg-white">
@@ -143,12 +143,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       <CardContent className="flex-1 flex flex-col p-4">
         <div className="flex flex-wrap gap-2 mb-2">
           {product.category && (
-            <Badge className="bg-indigo-500 text-white hover:bg-indigo-600 rounded-full font-normal text-xs">
+            <Badge className="bg-[#33638e] text-white hover:bg-[#33638e]/90 rounded-full font-normal text-xs">
               {getCategoryLabel(product.category)}
             </Badge>
           )}
           {brandLabel && (
-            <Badge variant="outline" className="rounded-full font-normal text-gray-600 bg-gray-50 text-xs">
+            <Badge variant="outline" className="rounded-full font-normal text-gray-600 bg-gray-50 text-xs border-[#4ab6c4]/20">
               {brandLabel}
             </Badge>
           )}
@@ -165,12 +165,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           {hasPrice ? (
             <div className="text-gray-700 text-sm">
               {hasVariantsFlag ? "À partir de " : ""}
-              <span className="font-bold text-indigo-700">{formatCurrency(monthlyPrice)}</span>
+              <span className="font-bold text-[#4ab6c4]">{formatCurrency(monthlyPrice)}</span>
               <span className="text-xs"> par mois</span>
             </div>
           ) : (
             <div className="text-gray-700 text-sm">
-              <span className="font-medium text-indigo-600">Prix sur demande</span>
+              <span className="font-medium text-[#33638e]">Prix sur demande</span>
             </div>
           )}
         </div>
