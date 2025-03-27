@@ -54,7 +54,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   
   const monthlyPrice = getMinimumMonthlyPrice();
   const hasPrice = monthlyPrice > 0;
-  const monthlyPriceLabel = hasPrice ? `${formatCurrency(monthlyPrice)}/mois` : "Prix sur demande";
   const imageUrl = product.image_url || product.imageUrl || "/placeholder.svg";
   
   // Get appropriate category label
@@ -151,13 +150,13 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         <div className="mt-auto pt-2">
           {hasPrice ? (
             <div className="text-gray-700 text-base">
-              {hasVariantsFlag ? "dès " : ""}
+              {hasVariantsFlag ? "à partir de " : ""}
               <span className="font-bold text-indigo-700">{formatCurrency(monthlyPrice)}</span>
               <span className="text-sm"> par mois</span>
             </div>
           ) : (
             <div className="text-gray-700 text-base">
-              <span className="font-medium text-indigo-600">{monthlyPriceLabel}</span>
+              <span className="font-medium text-indigo-600">Prix sur demande</span>
             </div>
           )}
         </div>
