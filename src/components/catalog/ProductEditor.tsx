@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getAttributes } from "@/services/attributeService";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import ImageProcessingTool from "./ImageProcessingTool";
 
 const productCategories = [
   "laptop",
@@ -336,6 +337,28 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  const handleProcessedImageAdd = (file: File) => {
+    console.log(`Ajout d'une image traitée: ${file.name}, type: ${file.type}, taille: ${file.size} octets`);
+    
+    if (imageFiles.length >= 5) {
+      toast.error("Vous avez déjà atteint le nombre maximum d'images (5)");
+      return;
+    }
+    
+    setImageFiles(prev => [...prev, file]);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreviews(prev => {
+        const updated = [...prev, reader.result as string].slice(0, 5);
+        return updated;
+      });
+    };
+    reader.readAsDataURL(file);
+    
+    toast.success("Image optimisée ajoutée avec succès");
   };
 
   const removeImage = (index: number) => {
@@ -711,6 +734,12 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                     </p>
                   </CardContent>
                 </Card>
+
+                <ImageProcessingTool
+                  productName={name}
+                  productBrand={brand}
+                  onImageProcessed={handleProcessedImageAdd}
+                />
               </TabsContent>
 
               <TabsContent value="variants" className="space-y-6 mt-0">
