@@ -59,6 +59,7 @@ const ProductDetailPage = () => {
     specifications,
     hasVariants,
     hasOptions,
+    variationAttributes
   } = useProductDetails(id);
   
   // Navigation
@@ -117,37 +118,55 @@ const ProductDetailPage = () => {
   const productBrand = product.brand || "";
   const productDescription = product.description || "Aucune description disponible pour ce produit.";
   
-  // Extract specifications for the configuration section
-  const productSpecs = specifications || {};
-  
-  // Convert possible number values to strings
-  const screenSize = String(productSpecs.screen_size || productSpecs.taille_ecran || "15\"");
-  const processor = String(productSpecs.processor || productSpecs.processeur || `${productBrand} M4`);
-  const storage = String(productSpecs.storage || productSpecs.stockage || "256 Go");
-  const memory = String(productSpecs.memory || productSpecs.ram || "16 Go");
-  const graphicsCard = String(productSpecs.graphics_card || productSpecs.carte_graphique || "GPU 10 coeurs");
-  const networkType = String(productSpecs.network || productSpecs.reseau || "Wi-Fi");
-  const keyboardType = String(productSpecs.keyboard || productSpecs.clavier || "Français - AZERTY");
-  const productCondition = String(productSpecs.condition || productSpecs.etat || "Neuf");
-  
-  // Get available options from product variation attributes
-  const getOptions = (attributeName: string): string[] => {
-    if (!product.variation_attributes) return [];
-    
-    const attributeOptions = product.variation_attributes[attributeName];
-    if (!attributeOptions) return [];
-    
-    return attributeOptions.map(option => String(option));
+  // Helper function to check if an attribute has variation options
+  const hasVariationOptions = (attributeName: string): boolean => {
+    return variationAttributes && variationAttributes[attributeName] && variationAttributes[attributeName].length > 0;
   };
-  
-  // Available storage options
-  const storageOptions = getOptions('stockage') || ["256 Go", "512 Go", "1 To"];
-  
-  // Available RAM options
-  const ramOptions = getOptions('ram') || ["8 Go", "16 Go", "32 Go"];
-  
-  // Available keyboard layouts
-  const keyboardOptions = getOptions('keyboard') || ["Français - AZERTY", "US - QWERTY"];
+
+  // Helper function to get available options for an attribute
+  const getAttributeOptions = (attributeName: string): string[] => {
+    if (variationAttributes && variationAttributes[attributeName]) {
+      return variationAttributes[attributeName].map(String);
+    }
+    return [];
+  };
+
+  // Helper function to render select input or static field based on available options
+  const renderAttributeField = (attributeName: string, displayName: string, currentValue: string) => {
+    const options = getAttributeOptions(attributeName);
+    const isModifiable = hasVariationOptions(attributeName);
+    
+    return (
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-700">{displayName}</label>
+        {isModifiable ? (
+          <Select
+            value={currentValue}
+            onValueChange={(value) => handleOptionChange(attributeName, value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem 
+                  key={option} 
+                  value={option}
+                  disabled={!isOptionAvailable(attributeName, option)}
+                >
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
+            {currentValue}
+          </div>
+        )}
+      </div>
+    );
+  };
   
   return (
     <div className="min-h-screen bg-white">
@@ -217,122 +236,35 @@ const ProductDetailPage = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   {/* État */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">État</label>
-                    <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      {productCondition}
-                    </div>
-                  </div>
+                  {renderAttributeField("condition", "État", String(specifications.condition || specifications.etat || "Neuf"))}
                   
                   {/* Taille d'écran */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Taille d&apos;écran</label>
-                    <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      {screenSize}
-                    </div>
-                  </div>
+                  {renderAttributeField("screen_size", "Taille d'écran", 
+                    String(specifications.screen_size || specifications.taille_ecran || "15\""))}
                   
                   {/* Stockage */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Stockage</label>
-                    {storageOptions.length > 0 ? (
-                      <Select
-                        defaultValue={storage}
-                        onValueChange={(value) => handleOptionChange("stockage", value)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Sélectionner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {storageOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                        {storage}
-                      </div>
-                    )}
-                  </div>
+                  {renderAttributeField("stockage", "Stockage", 
+                    String(specifications.storage || specifications.stockage || "256 Go"))}
                   
                   {/* Processeur */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Processeur</label>
-                    <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      {processor}
-                    </div>
-                  </div>
+                  {renderAttributeField("processor", "Processeur", 
+                    String(specifications.processor || specifications.processeur || `${productBrand} M4`))}
                   
-                  {/* Mémoire */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Mémoire (RAM)</label>
-                    {ramOptions.length > 0 ? (
-                      <Select
-                        defaultValue={memory}
-                        onValueChange={(value) => handleOptionChange("ram", value)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Sélectionner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ramOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                        {memory}
-                      </div>
-                    )}
-                  </div>
+                  {/* Mémoire (RAM) */}
+                  {renderAttributeField("ram", "Mémoire (RAM)", 
+                    String(specifications.memory || specifications.ram || "16 Go"))}
                   
                   {/* Réseau */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Réseau</label>
-                    <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      {networkType}
-                    </div>
-                  </div>
+                  {renderAttributeField("network", "Réseau", 
+                    String(specifications.network || specifications.reseau || "Wi-Fi"))}
                   
                   {/* Carte graphique */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Carte graphique</label>
-                    <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                      {graphicsCard}
-                    </div>
-                  </div>
+                  {renderAttributeField("graphics_card", "Carte graphique", 
+                    String(specifications.graphics_card || specifications.carte_graphique || "GPU 10 coeurs"))}
                   
                   {/* Clavier */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Clavier</label>
-                    {keyboardOptions.length > 0 ? (
-                      <Select
-                        defaultValue={keyboardType}
-                        onValueChange={(value) => handleOptionChange("keyboard", value)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Sélectionner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {keyboardOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-                        {keyboardType}
-                      </div>
-                    )}
-                  </div>
+                  {renderAttributeField("keyboard", "Clavier", 
+                    String(specifications.keyboard || specifications.clavier || "Français - AZERTY"))}
                   
                   {/* Durée */}
                   <div className="space-y-2">

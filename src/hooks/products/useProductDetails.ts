@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProductById } from "@/services/catalogService";
-import { Product } from "@/types/catalog";
+import { Product, ProductVariationAttributes } from "@/types/catalog";
 
 export const useProductDetails = (productId: string | undefined) => {
   const [quantity, setQuantity] = useState(1);
@@ -11,6 +11,7 @@ export const useProductDetails = (productId: string | undefined) => {
   const [currentImage, setCurrentImage] = useState<string>("");
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
+  const [variationAttributes, setVariationAttributes] = useState<ProductVariationAttributes>({});
   const duration = 36; // Fixed duration to 36 months
   
   const { data: product, isLoading, error } = useQuery({
@@ -30,21 +31,62 @@ export const useProductDetails = (productId: string | undefined) => {
     // Set initial price
     setCurrentPrice(product.monthly_price || null);
     
+    // Store variation attributes for later use in UI
+    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+      setVariationAttributes(product.variation_attributes);
+    } else if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      // Extract variation attributes from variant combination prices if not directly provided
+      const extractedAttributes: ProductVariationAttributes = {};
+      
+      product.variant_combination_prices.forEach(price => {
+        if (price.attributes) {
+          Object.entries(price.attributes).forEach(([key, value]) => {
+            if (!extractedAttributes[key]) {
+              extractedAttributes[key] = [];
+            }
+            
+            const stringValue = String(value);
+            if (!extractedAttributes[key].includes(stringValue)) {
+              extractedAttributes[key].push(stringValue);
+            }
+          });
+        }
+      });
+      
+      setVariationAttributes(extractedAttributes);
+    }
+    
     // Initialize selected options from product specifications if available
     if (product.specifications) {
       const initialOptions: Record<string, string> = {};
       
-      if (product.specifications.storage || product.specifications.stockage) {
-        initialOptions.stockage = String(product.specifications.storage || product.specifications.stockage);
-      }
+      // Map common specification fields to their attribute names
+      const specToAttributeMap: Record<string, string> = {
+        'storage': 'stockage',
+        'stockage': 'stockage',
+        'memory': 'ram',
+        'ram': 'ram',
+        'keyboard': 'keyboard',
+        'clavier': 'keyboard',
+        'processor': 'processor',
+        'processeur': 'processor',
+        'screen_size': 'screen_size',
+        'taille_ecran': 'screen_size',
+        'graphics_card': 'graphics_card',
+        'carte_graphique': 'graphics_card',
+        'network': 'network',
+        'reseau': 'network',
+        'condition': 'condition',
+        'etat': 'condition'
+      };
       
-      if (product.specifications.memory || product.specifications.ram) {
-        initialOptions.ram = String(product.specifications.memory || product.specifications.ram);
-      }
-      
-      if (product.specifications.keyboard || product.specifications.clavier) {
-        initialOptions.keyboard = String(product.specifications.keyboard || product.specifications.clavier);
-      }
+      // Populate initial options from specifications
+      Object.entries(product.specifications).forEach(([key, value]) => {
+        const attributeName = specToAttributeMap[key] || key;
+        if (value !== undefined && value !== null) {
+          initialOptions[attributeName] = String(value);
+        }
+      });
       
       setSelectedOptions(initialOptions);
     }
@@ -103,6 +145,11 @@ export const useProductDetails = (productId: string | undefined) => {
         };
         
         setSelectedVariant(pseudoVariant);
+        
+        // Update image if variant has one
+        if (variantPrice.image_url) {
+          setCurrentImage(variantPrice.image_url);
+        }
       } else {
         // If no exact match, use the product's default price
         setCurrentPrice(product.monthly_price || null);
@@ -142,16 +189,26 @@ export const useProductDetails = (productId: string | undefined) => {
   const findMatchingVariantPrice = (
     variantPrices: any[], 
     options: Record<string, string>
-  ): { price: number, monthly_price?: number } | null => {
+  ): { price: number, monthly_price?: number, image_url?: string } | null => {
     if (!variantPrices || variantPrices.length === 0 || Object.keys(options).length === 0) {
       return null;
     }
+    
+    // Filter attributes that are actually part of the variation attributes
+    const relevantOptions = Object.keys(options).reduce((acc, key) => {
+      if (variationAttributes[key]) {
+        acc[key] = options[key];
+      }
+      return acc;
+    }, {} as Record<string, string>);
+    
+    console.log("Looking for variant price with relevant options:", relevantOptions);
     
     return variantPrices.find(price => {
       if (!price.attributes) return false;
       
       // Check if all selected attributes match this price configuration
-      return Object.entries(options).every(([key, value]) => {
+      return Object.entries(relevantOptions).every(([key, value]) => {
         // Convert price attribute value to string for comparison
         const priceValue = String(price.attributes[key] || '');
         return priceValue === value;
@@ -298,6 +355,7 @@ export const useProductDetails = (productId: string | undefined) => {
     specifications: getSelectedSpecifications(),
     hasVariants: product?.variants?.length > 0 || (product?.variant_combination_prices && product?.variant_combination_prices.length > 0),
     hasOptions: product?.variation_attributes && Object.keys(product?.variation_attributes || {}).length > 0,
-    variantsCount: getAccurateVariantsCount()
+    variantsCount: getAccurateVariantsCount(),
+    variationAttributes
   };
 };
