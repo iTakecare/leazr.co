@@ -67,8 +67,9 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
     // Handle image arrays if they exist
     if (product.image_urls && product.image_urls.length > 0) {
       productData.image_urls = product.image_urls;
-    } else if (product.imageurls && product.imageurls.length > 0) {
-      productData.image_urls = product.imageurls;
+    } else if (product.image_urls && Array.isArray(product.image_urls)) {
+      // Using the correct property name from the type definition
+      productData.image_urls = product.image_urls;
     }
     
     if (product.image_alt_texts && product.image_alt_texts.length > 0) {
