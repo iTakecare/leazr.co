@@ -897,5 +897,367 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                           {imageAltTexts.length}/5 textes
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        {imageAltTexts.map((altText, index) =>
+                      <div className="grid grid-cols-1 gap-3">
+                        {imageAltTexts.map((altText, index) => (
+                          <div key={index} className="relative">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="text-xs font-medium">Image {index + 1}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs px-2 py-0 h-auto"
+                                onClick={() => generateAltText(index)}
+                              >
+                                Générer
+                              </Button>
+                            </div>
+                            <Input
+                              value={altText}
+                              onChange={(e) => handleAltTextChange(index, e.target.value)}
+                              placeholder={`Texte alternatif pour l'image ${index + 1}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Les textes alternatifs sont utilisés par les lecteurs d'écran et améliorent le référencement des images.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="variants" className="space-y-6 mt-0">
+                {isParentProduct ? (
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Attributs de variante</CardTitle>
+                        <CardDescription>
+                          Définissez les attributs qui différencient vos variantes (couleur, taille, etc.)
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="attribute-name">Nom de l'attribut</Label>
+                              <Select value={newAttributeName} onValueChange={setNewAttributeName}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Sélectionner ou saisir un nom" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {predefinedAttributes && predefinedAttributes.map((attr: any) => (
+                                    <SelectItem key={attr.name} value={attr.name}>
+                                      {attr.name}
+                                    </SelectItem>
+                                  ))}
+                                  <SelectItem value="custom">Personnalisé...</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {newAttributeName === "custom" && (
+                                <Input
+                                  className="mt-2"
+                                  placeholder="Nom personnalisé de l'attribut"
+                                  onChange={(e) => setNewAttributeName(e.target.value)}
+                                  value=""
+                                />
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="attribute-values">Valeurs possibles</Label>
+                              <Textarea
+                                id="attribute-values"
+                                value={newAttributeValues}
+                                onChange={(e) => setNewAttributeValues(e.target.value)}
+                                placeholder="Valeurs séparées par des virgules (ex: Rouge, Bleu, Vert)"
+                              />
+                            </div>
+                          </div>
+
+                          <Button
+                            type="button"
+                            onClick={handleAddAttribute}
+                            disabled={!newAttributeName || !newAttributeValues}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Ajouter l'attribut
+                          </Button>
+                        </div>
+
+                        {Object.keys(variationAttributes).length > 0 && (
+                          <div className="space-y-4 pt-4 border-t">
+                            <h3 className="font-medium">Attributs définis</h3>
+                            <div className="space-y-2">
+                              {Object.entries(variationAttributes).map(([attrName, values]) => (
+                                <div key={attrName} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
+                                  <div>
+                                    <span className="font-medium">{attrName}:</span>{" "}
+                                    <span className="text-muted-foreground">{values.join(", ")}</span>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRemoveAttribute(attrName)}
+                                    className="text-destructive hover:text-destructive/90"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+
+                            <Button
+                              type="button"
+                              onClick={handleGenerateVariants}
+                              className="mt-4"
+                              disabled={Object.keys(variationAttributes).length === 0}
+                            >
+                              <Layers className="h-4 w-4 mr-2" />
+                              Générer des combinaisons de variantes
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {isEditing && variantCombinations.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Combinaisons de prix des variantes</CardTitle>
+                          <CardDescription>
+                            Gérer les prix pour chaque combinaison d'attributs
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Attributs</TableHead>
+                                <TableHead>Prix</TableHead>
+                                <TableHead>Mensualité</TableHead>
+                                <TableHead>Stock</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {variantCombinations.map((variant) => (
+                                <TableRow key={variant.id}>
+                                  <TableCell>
+                                    {Object.entries(variant).map(([key, value]) => (
+                                      <Badge key={key} variant="outline" className="mr-1">
+                                        {key}: {value as string}
+                                      </Badge>
+                                    ))}
+                                  </TableCell>
+                                  <TableCell>{variant.price.toFixed(2)} €</TableCell>
+                                  <TableCell>{variant.monthly_price ? `${variant.monthly_price.toFixed(2)} €` : '-'}</TableCell>
+                                  <TableCell>{variant.stock !== undefined && variant.stock !== null ? variant.stock : '-'}</TableCell>
+                                  <TableCell className="text-right">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleEditVariantCombination(variant)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-destructive"
+                                      onClick={() => handleDeleteVariantCombination(variant.id)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                ) : (
+                  <Alert className="bg-muted">
+                    <AlertDescription>
+                      Pour gérer les variantes, activez l'option "Ce produit a des variantes" dans l'onglet "Informations".
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </TabsContent>
+
+              <div className="flex justify-end pt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGoBack}
+                  className="mr-2"
+                  disabled={isSubmitting}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      {isEditing ? "Modification en cours..." : "Création en cours..."}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {isEditing ? "Modifier le produit" : "Créer le produit"}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showGenerateDialog} onOpenChange={setShowGenerateDialog}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Générer des combinaisons de variantes</DialogTitle>
+            <DialogDescription>
+              Sélectionnez les attributs à inclure dans la génération de variantes
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="font-medium">Sélectionnez les attributs</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {renderVariantAttributeCheckboxes()}
+              </div>
+            </div>
+            
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-2">Combinaisons générées ({generatedVariants.length})</h4>
+              <ScrollArea className="h-60">
+                <div className="space-y-2">
+                  {generatedVariants.map((variant, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                      <div>
+                        {Object.entries(variant).map(([key, value]) => (
+                          <Badge key={key} variant="outline">
+                            {key}: {value}
+                          </Badge>
+                        ))}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAddVariantCombination(variant)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" onClick={() => setShowGenerateDialog(false)}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showVariantDialog} onOpenChange={setShowVariantDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingVariantId ? "Modifier la combinaison" : "Ajouter une combinaison"}
+            </DialogTitle>
+            <DialogDescription>
+              Définir les prix pour cette combinaison d'attributs.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/50 p-3 rounded-md space-y-2">
+              <h4 className="font-medium">Attributs sélectionnés</h4>
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(currentVariantAttributes).map(([key, value]) => (
+                  <Badge key={key} variant="outline">
+                    {key}: {value}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="variant-price" className="required">Prix (€)</Label>
+                <div className="relative">
+                  <Input
+                    id="variant-price"
+                    type="number"
+                    value={currentVariantPrice}
+                    onChange={(e) => setCurrentVariantPrice(e.target.value)}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    required
+                    className="pl-8"
+                  />
+                  <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="variant-monthly-price">Mensualité (€/mois)</Label>
+                <div className="relative">
+                  <Input
+                    id="variant-monthly-price"
+                    type="number"
+                    value={currentVariantMonthlyPrice}
+                    onChange={(e) => setCurrentVariantMonthlyPrice(e.target.value)}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="pl-8"
+                  />
+                  <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="variant-stock">Stock</Label>
+                <Input
+                  id="variant-stock"
+                  type="number"
+                  value={currentVariantStock}
+                  onChange={(e) => setCurrentVariantStock(e.target.value)}
+                  placeholder="Quantité en stock"
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowVariantDialog(false)}>
+              Annuler
+            </Button>
+            <Button type="button" onClick={handleSaveVariantCombination}>
+              {editingVariantId ? "Modifier" : "Ajouter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ProductEditor;
