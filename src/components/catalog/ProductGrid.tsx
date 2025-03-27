@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Layers } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { Separator } from '@/components/ui/separator';
+import { VariantIndicator } from '@/components/ui/product/VariantIndicator';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductGridProps {
   products: Product[];
@@ -23,6 +25,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   onDelete,
   readOnly = false
 }) => {
+  const navigate = useNavigate();
+  
   // Group by specified property (brand or category)
   const groupedProducts = products.reduce((acc, product) => {
     const groupKey = groupBy === "brand" ? 
@@ -37,7 +41,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   }, {} as Record<string, Product[]>);
 
   const handleEdit = (productId: string) => {
-    if (onEdit) onEdit(productId);
+    if (onEdit) {
+      onEdit(productId);
+    } else {
+      navigate(`/catalog/edit-product/${productId}`);
+    }
   };
 
   const handleDelete = (productId: string) => {
@@ -88,12 +96,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                     <CardTitle className="text-base font-medium line-clamp-2">{product.name}</CardTitle>
                     <CardDescription className="line-clamp-1 flex items-center gap-2">
                       {product.brand}
-                      {isParent && configCount > 0 && (
-                        <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border-0 text-xs flex items-center">
-                          <Layers className="h-3 w-3 mr-1" />
-                          {configCount} configuration{configCount > 1 ? 's' : ''}
-                        </Badge>
-                      )}
+                      <VariantIndicator 
+                        hasVariants={isParent} 
+                        variantsCount={configCount} 
+                      />
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow pb-2">

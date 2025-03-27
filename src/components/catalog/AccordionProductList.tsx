@@ -9,8 +9,10 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Layers } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
+import { VariantIndicator } from '@/components/ui/product/VariantIndicator';
+import { useNavigate } from 'react-router-dom';
 
 interface AccordionProductListProps {
   products: Product[];
@@ -27,6 +29,8 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   groupingOption = "category",
   readOnly = false
 }) => {
+  const navigate = useNavigate();
+  
   const groupedProducts = products.reduce((acc, product) => {
     const groupKey = groupingOption === "brand" ? 
       (product.brand || 'Autres marques') : 
@@ -40,7 +44,11 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   }, {} as Record<string, Product[]>);
 
   const handleEdit = (productId: string) => {
-    if (onEdit) onEdit(productId);
+    if (onEdit) {
+      onEdit(productId);
+    } else {
+      navigate(`/catalog/edit-product/${productId}`);
+    }
   };
 
   const handleDelete = (productId: string) => {
@@ -112,12 +120,10 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                           {product.brand && (
                             <span className="mr-2">{product.brand}</span>
                           )}
-                          {isParent && configCount > 0 && (
-                            <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border-0 text-xs flex items-center">
-                              <Layers className="h-3 w-3 mr-1" />
-                              {configCount} configuration{configCount > 1 ? 's' : ''}
-                            </Badge>
-                          )}
+                          <VariantIndicator 
+                            hasVariants={isParent} 
+                            variantsCount={configCount} 
+                          />
                         </div>
                       </div>
                     </div>

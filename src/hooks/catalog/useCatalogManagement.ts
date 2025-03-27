@@ -4,23 +4,23 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const useCatalogManagement = () => {
-  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
   const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
   const [groupingOption, setGroupingOption] = useState<"model" | "brand" | "category">("category");
   
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
   });
   
-  const onProductAdded = () => {
+  const handleProductAdded = () => {
     queryClient.invalidateQueries({ queryKey: ["products"] });
-    setIsAddProductOpen(false);
     toast.success("Produit ajouté avec succès");
   };
   
@@ -44,7 +44,7 @@ export const useCatalogManagement = () => {
   };
   
   const handleAddNewProduct = () => {
-    setIsAddProductOpen(true);
+    navigate('/catalog/create-product');
   };
 
   const handleViewModeChange = (mode: "grid" | "accordion") => {
@@ -55,14 +55,12 @@ export const useCatalogManagement = () => {
     products,
     isLoading,
     error,
-    isAddProductOpen,
-    setIsAddProductOpen,
     activeTab,
     setActiveTab,
     viewMode,
     groupingOption,
     setGroupingOption,
-    onProductAdded,
+    onProductAdded: handleProductAdded,
     handleProductDeleted,
     handleAddNewProduct,
     handleViewModeChange

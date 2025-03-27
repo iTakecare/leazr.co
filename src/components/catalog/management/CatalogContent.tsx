@@ -1,15 +1,13 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Product } from "@/types/catalog";
-import { Check, Edit, Trash2 } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
@@ -174,7 +172,7 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
                   className="flex-1"
                   onClick={() => handleEditProduct(product.id)}
                 >
-                  <Edit className="h-4 w-4 mr-1" /> Éditer
+                  Éditer
                 </Button>
                 <Button 
                   variant="destructive" 
@@ -182,7 +180,7 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
                   className="flex-1"
                   onClick={() => confirmDelete(product.id)}
                 >
-                  <Trash2 className="h-4 w-4 mr-1" /> Supprimer
+                  Supprimer
                 </Button>
               </CardFooter>
             </Card>
@@ -193,7 +191,6 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
           {viewMode === "accordion" ? (
             <AccordionProductList 
               products={products}
-              onEdit={handleEditProduct}
               onDelete={confirmDelete}
               groupingOption={groupingOption === "model" ? "brand" : "category"}
             />
@@ -201,7 +198,6 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
             <ProductGrid 
               products={products}
               groupBy={groupingOption === "model" ? "brand" : "category"}
-              onEdit={handleEditProduct}
               onDelete={confirmDelete}
             />
           )}
