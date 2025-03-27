@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -158,15 +159,6 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                 imageUrl={product.image_url || "/placeholder.svg"} 
                 altText={product.name} 
               />
-              
-              {product.category && (
-                <div className="mt-4">
-                  <CO2SavingsCalculator 
-                    category={product.category} 
-                    quantity={quantity} 
-                  />
-                </div>
-              )}
             </div>
             <div>
               <h2 className="text-2xl font-bold mb-2">{product.brand} {product.name}</h2>
@@ -191,7 +183,16 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                 />
               )}
               
-              <div className="mt-8">
+              <div className="mt-4">
+                {product.category && (
+                  <CO2SavingsCalculator 
+                    category={product.category} 
+                    quantity={quantity} 
+                  />
+                )}
+              </div>
+              
+              <div className="mt-4">
                 <Button 
                   className="w-full"
                   size="lg"

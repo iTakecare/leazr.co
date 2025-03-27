@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -290,12 +289,6 @@ const ProductDetailPage = () => {
               />
             </div>
             
-            {/* Ajout du calculateur d'économie CO2 */}
-            <CO2SavingsCalculator 
-              category={productCategory}
-              quantity={quantity}
-            />
-            
             <div className="mt-8">
               <ProductBenefits />
               
@@ -385,6 +378,15 @@ const ProductDetailPage = () => {
                     </div>
                   </div>
                 </div>
+                
+                {productCategory && (
+                  <div className="mb-4">
+                    <CO2SavingsCalculator 
+                      category={productCategory}
+                      quantity={quantity}
+                    />
+                  </div>
+                )}
                 
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                   <div className="flex justify-between items-center mb-2">
