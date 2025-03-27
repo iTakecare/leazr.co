@@ -183,6 +183,23 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                 />
               )}
               
+              <div className="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-700 font-medium">Votre sélection</span>
+                  <span className="text-xl font-bold text-[#2d618f]">
+                    {currentPrice ? `${(currentPrice * quantity).toFixed(2)}€ HT / mois` : "Prix sur demande"}
+                  </span>
+                </div>
+                
+                <Button 
+                  className="w-full mt-2"
+                  size="lg"
+                  onClick={handleSelectVariant}
+                >
+                  Sélectionner
+                </Button>
+              </div>
+              
               <div className="mt-4">
                 {product.category && (
                   <CO2SavingsCalculator 
@@ -190,16 +207,6 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                     quantity={quantity} 
                   />
                 )}
-              </div>
-              
-              <div className="mt-4">
-                <Button 
-                  className="w-full"
-                  size="lg"
-                  onClick={handleSelectVariant}
-                >
-                  Sélectionner
-                </Button>
               </div>
             </div>
           </div>

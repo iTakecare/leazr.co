@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Leaf, Car, TreeDeciduous } from "lucide-react";
+import { Leaf } from "lucide-react";
 
 interface CO2SavingsCalculatorProps {
   category: string;
@@ -60,8 +60,8 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
       
       <div className="flex flex-col gap-2 mb-2">
         <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#38b77c]/20">
-          <div className="flex-shrink-0 bg-[#38b77c]/10 rounded-full p-1 mr-2">
-            <Leaf className="h-4 w-4 text-[#38b77c]" />
+          <div className="flex-shrink-0 rounded-full p-1 mr-2 text-lg">
+            🍃
           </div>
           <div>
             <div className="text-base font-bold text-[#38b77c]">{totalSavings} kg</div>
@@ -70,8 +70,8 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
         </div>
         
         <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#38b77c]/20">
-          <div className="flex-shrink-0 bg-[#38b77c]/10 rounded-full p-1 mr-2">
-            <Car className="h-4 w-4 text-[#38b77c]" />
+          <div className="flex-shrink-0 rounded-full p-1 mr-2 text-lg">
+            🚗
           </div>
           <div>
             <div className="text-base font-bold text-[#38b77c]">{carKmEquivalent} km</div>
@@ -80,8 +80,8 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
         </div>
         
         <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#38b77c]/20">
-          <div className="flex-shrink-0 bg-[#38b77c]/10 rounded-full p-1 mr-2">
-            <TreeDeciduous className="h-4 w-4 text-[#38b77c]" />
+          <div className="flex-shrink-0 rounded-full p-1 mr-2 text-lg">
+            🌳
           </div>
           <div>
             <div className="text-base font-bold text-[#38b77c]">{treeMonthsEquivalent} {treeMonthsEquivalent > 1 ? "mois" : "mois"}</div>
