@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProduct } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
@@ -22,6 +23,8 @@ const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({
   readOnly = false,
 }) => {
   const queryClient = useQueryClient();
+  const [newSpecKey, setNewSpecKey] = useState("");
+  const [newSpecValue, setNewSpecValue] = useState("");
   
   const updateProductMutation = useMutation({
     mutationFn: (specs: Record<string, string | number | boolean>) => {
@@ -46,11 +49,31 @@ const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({
   };
 
   const handleAddSpecification = () => {
-    // Implement logic to add a new specification
+    if (!newSpecKey.trim()) {
+      toast.error("Please enter a specification name");
+      return;
+    }
+
+    const updatedSpecs = { 
+      ...specifications, 
+      [newSpecKey]: newSpecValue 
+    };
+    
+    onSpecificationChange?.(newSpecKey, newSpecValue);
+    
+    setNewSpecKey("");
+    setNewSpecValue("");
   };
 
   const handleRemoveSpecification = (key: string) => {
-    // Implement logic to remove a specification
+    const updatedSpecs = { ...specifications };
+    delete updatedSpecs[key];
+    
+    // Update parent component state
+    if (onSpecificationChange) {
+      // We need to call this for each deleted key with undefined value
+      onSpecificationChange(key, "");
+    }
   };
 
   const handleSaveSpecifications = async () => {
@@ -89,18 +112,30 @@ const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({
         </div>
       ))}
       {!readOnly && (
-        <div className="flex items-center space-x-4">
-          <Button type="button" variant="ghost" onClick={handleAddSpecification}>
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter une spécification
+        <>
+          <div className="flex items-center space-x-4">
+            <Input
+              type="text"
+              placeholder="Nom"
+              value={newSpecKey}
+              onChange={(e) => setNewSpecKey(e.target.value)}
+            />
+            <Input
+              type="text"
+              placeholder="Valeur"
+              value={newSpecValue}
+              onChange={(e) => setNewSpecValue(e.target.value)}
+            />
+            <Button type="button" variant="outline" onClick={handleAddSpecification}>
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter
+            </Button>
+          </div>
+          <Button onClick={handleSaveSpecifications}>
+            <Save className="h-4 w-4 mr-2" />
+            Enregistrer les spécifications
           </Button>
-        </div>
-      )}
-      {!readOnly && (
-        <Button onClick={handleSaveSpecifications}>
-          <Save className="h-4 w-4 mr-2" />
-          Enregistrer les spécifications
-        </Button>
+        </>
       )}
     </div>
   );

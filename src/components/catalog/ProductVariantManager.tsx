@@ -33,6 +33,9 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("prices");
+  const [specifications, setSpecifications] = useState<Record<string, string | number | boolean>>(
+    product.specifications as Record<string, string | number | boolean> || {}
+  );
   
   // Format the attribute display for variant combinations
   const formatVariantAttributes = (attributes: Record<string, any>) => {
@@ -57,7 +60,19 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
     
     return count;
   };
-  
+
+  const handleSpecificationChange = (key: string, value: string | number | boolean) => {
+    setSpecifications(prev => {
+      // If value is empty string, remove the key
+      if (value === "") {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
+      }
+      return { ...prev, [key]: value };
+    });
+  };
+
   const variantsCount = countVariants();
   const hasVariants = variantsCount > 0;
   
@@ -105,11 +120,10 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
             
             <TabsContent value="specifications">
               <ProductSpecifications 
-                productId={product.id}
-                initialSpecifications={product.specifications as Record<string, string>}
-                onSpecificationsUpdated={() => {
-                  queryClient.invalidateQueries({ queryKey: ["product", product.id] });
-                }}
+                product={product}
+                specifications={specifications}
+                onSpecificationChange={handleSpecificationChange}
+                readOnly={false}
               />
             </TabsContent>
             
