@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
@@ -26,17 +25,13 @@ const PublicCatalog = () => {
     queryFn: getCategories,
   });
 
-  // Group products by parent/child relationship to avoid showing variants as separate products
   const groupedProducts = React.useMemo(() => {
-    // First pass: collect all parent products and standalone products
     const parentProducts = products.filter(p => 
       !p.parent_id && !p.is_variation
     );
     
-    // Create a map of parent IDs to array of variant products
     const variantMap = new Map<string, Product[]>();
     
-    // Second pass: organize variants by parent
     products.forEach(product => {
       if (product.parent_id) {
         const variants = variantMap.get(product.parent_id) || [];
@@ -45,12 +40,10 @@ const PublicCatalog = () => {
       }
     });
     
-    // Attach variants to parents
     parentProducts.forEach(parent => {
       if (parent.id) {
         const variants = variantMap.get(parent.id) || [];
         parent.variants = variants;
-        // Mark parent if it has variants
         parent.is_parent = variants.length > 0;
       }
     });
@@ -84,7 +77,6 @@ const PublicCatalog = () => {
     <div className="min-h-screen bg-gray-50">
       <PublicHeader />
       
-      {/* Hero Banner */}
       <div className="bg-indigo-900 text-white py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl">
@@ -102,7 +94,6 @@ const PublicCatalog = () => {
         </div>
       </div>
       
-      {/* Category Navigation */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {categories.map((category) => (
@@ -122,7 +113,6 @@ const PublicCatalog = () => {
           ))}
         </div>
         
-        {/* Search and Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -145,12 +135,11 @@ const PublicCatalog = () => {
           </div>
         </div>
         
-        {/* Product Grid - Version plus compacte */}
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {[...Array(10)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg shadow animate-pulse h-[260px]">
-                <div className="h-0 pb-[80%] bg-gray-200 rounded-t-lg"></div>
+              <div key={i} className="bg-white rounded-lg shadow animate-pulse h-[280px]">
+                <div className="h-0 pb-[90%] bg-gray-200 rounded-t-lg"></div>
                 <div className="p-3 space-y-2">
                   <div className="h-3 bg-gray-200 rounded w-1/3"></div>
                   <div className="h-4 bg-gray-200 rounded w-4/5"></div>
@@ -167,7 +156,7 @@ const PublicCatalog = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {filteredProducts.map((product) => (
               <ProductGridCard 
                 key={product.id} 

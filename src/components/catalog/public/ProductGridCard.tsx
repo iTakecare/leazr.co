@@ -114,11 +114,11 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl"
       onClick={onClick}
     >
-      <div className="relative pt-[80%] bg-white">
+      <div className="relative pt-[90%] bg-white">
         <img 
           src={imageUrl} 
           alt={product.name} 
-          className="absolute inset-0 object-contain w-full h-full p-3"
+          className="absolute inset-0 object-contain w-full h-full p-4"
           onError={(e) => {
             (e.target as HTMLImageElement).src = "/placeholder.svg";
           }}
@@ -144,7 +144,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           />
         </div>
         
-        <h3 className="font-bold text-gray-900 text-base mb-1 line-clamp-2">{product.name}</h3>
+        <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-1">{product.name}</h3>
         
         <div className="mt-auto pt-2">
           {hasPrice ? (
