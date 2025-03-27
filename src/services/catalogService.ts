@@ -34,7 +34,7 @@ export const getProductById = async (id: string): Promise<Product> => {
   }
 };
 
-export const createProduct = async (
+export const addProduct = async (
   productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Product> => {
   try {
@@ -70,10 +70,12 @@ export const createProduct = async (
     
     return data;
   } catch (error) {
-    console.error("Error in createProduct:", error);
+    console.error("Error in addProduct:", error);
     throw error;
   }
 };
+
+export const createProduct = addProduct;
 
 export const updateProduct = async (
   id: string,
