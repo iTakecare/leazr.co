@@ -4,7 +4,7 @@ import { Product } from '@/types/catalog';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Layers } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { Separator } from '@/components/ui/separator';
 
@@ -52,6 +52,22 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     return a.localeCompare(b);
   });
 
+  const getConfigurationsCount = (product: Product): number => {
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.length;
+    }
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      return product.variant_combination_prices.length;
+    }
+    return 0;
+  };
+
+  const isParentProduct = (product: Product): boolean => {
+    return product.is_parent || 
+           (product.variants && product.variants.length > 0) || 
+           (product.variant_combination_prices && product.variant_combination_prices.length > 0);
+  };
+
   return (
     <div className="space-y-8">
       {sortedGroupNames.map((groupName) => (
@@ -62,56 +78,71 @@ const ProductGrid: React.FC<ProductGridProps> = ({
           </div>
           <Separator />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {groupedProducts[groupName].map((product) => (
-              <Card key={product.id} className="h-full flex flex-col">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-medium line-clamp-2">{product.name}</CardTitle>
-                  <CardDescription className="line-clamp-1">{product.brand}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow pb-2">
-                  <div className="aspect-square rounded-md overflow-hidden bg-gray-100 mb-3">
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                        <span className="text-gray-400">Aucune image</span>
+            {groupedProducts[groupName].map((product) => {
+              const configCount = getConfigurationsCount(product);
+              const isParent = isParentProduct(product);
+              
+              return (
+                <Card key={product.id} className="h-full flex flex-col">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium line-clamp-2">{product.name}</CardTitle>
+                    <CardDescription className="line-clamp-1 flex items-center gap-2">
+                      {product.brand}
+                      {isParent && configCount > 0 && (
+                        <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border-0 text-xs flex items-center">
+                          <Layers className="h-3 w-3 mr-1" />
+                          {configCount} configuration{configCount > 1 ? 's' : ''}
+                        </Badge>
+                      )}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow pb-2">
+                    <div className="aspect-square rounded-md overflow-hidden bg-gray-100 mb-3">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                          <span className="text-gray-400">Aucune image</span>
+                        </div>
+                      )}
+                    </div>
+                    {!isParent && (
+                      <div className="mt-2 text-sm font-medium">
+                        {product.monthly_price ? (
+                          <div className="flex flex-col">
+                            <span className="text-lg font-bold text-primary">
+                              {formatCurrency(product.monthly_price)} /mois
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ou {formatCurrency(product.price || 0)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span>{formatCurrency(product.price || 0)}</span>
+                        )}
                       </div>
                     )}
-                  </div>
-                  <div className="mt-2 text-sm font-medium">
-                    {product.monthly_price ? (
-                      <div className="flex flex-col">
-                        <span className="text-lg font-bold text-primary">
-                          {formatCurrency(product.monthly_price)} /mois
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          ou {formatCurrency(product.price || 0)}
-                        </span>
-                      </div>
-                    ) : (
-                      <span>{formatCurrency(product.price || 0)}</span>
-                    )}
-                  </div>
-                </CardContent>
-                {!readOnly && (
-                  <CardFooter className="pt-2 flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(product.id)}>
-                      <Edit className="h-4 w-4 mr-1" /> Éditer
-                    </Button>
-                    <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDelete(product.id)}>
-                      <Trash2 className="h-4 w-4 mr-1" /> Supprimer
-                    </Button>
-                  </CardFooter>
-                )}
-              </Card>
-            ))}
+                  </CardContent>
+                  {!readOnly && (
+                    <CardFooter className="pt-2 flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(product.id)}>
+                        <Edit className="h-4 w-4 mr-1" /> Éditer
+                      </Button>
+                      <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDelete(product.id)}>
+                        <Trash2 className="h-4 w-4 mr-1" /> Supprimer
+                      </Button>
+                    </CardFooter>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         </div>
       ))}
