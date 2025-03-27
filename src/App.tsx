@@ -39,7 +39,7 @@ import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import PartnerDashboard from "./pages/PartnerDashboard";
 import CreateTestUsers from "./pages/CreateTestUsers";
 import Signup from "./pages/Signup";
-import ProductCreationPage from "@/components/catalog/ProductCreationPage";
+import ProductEditPage from "@/components/catalog/ProductEditPage";
 import ProductDetail from "./pages/ProductDetail";
 import AmbassadorDashboardPage from "./pages/AmbassadorPages/AmbassadorDashboardPage";
 import AmbassadorOffersPage from "./pages/AmbassadorPages/AmbassadorOffersPage";
@@ -92,8 +92,8 @@ function App() {
                 <Route path="clients/edit/:id" element={<ClientForm />} />
                 <Route path="clients/:id/create-offer" element={<CreateOffer />} />
                 <Route path="catalog" element={<CatalogManagement />} />
-                <Route path="catalog/create-product" element={<ProductCreationPage />} />
-                <Route path="catalog/products/:id" element={<ProductDetail />} />
+                <Route path="catalog/create-product" element={<ProductEditPage />} />
+                <Route path="catalog/products/:id" element={<ProductEditPage />} />
                 <Route path="products/:id" element={<ProductDetail />} />
                 <Route path="offers" element={<Offers />} />
                 <Route path="offers/:id" element={<OfferDetail />} />

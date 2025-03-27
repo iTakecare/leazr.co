@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import ProductEditor from "@/components/catalog/ProductEditor";
@@ -14,7 +13,7 @@ import CatalogContent from "@/components/catalog/management/CatalogContent";
 import { useCatalogManagement } from "@/hooks/catalog/useCatalogManagement";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const CatalogManagement = () => {
+export default function CatalogManagement() {
   const isMobile = useIsMobile();
   
   // Use catalog management hook
@@ -94,6 +93,4 @@ const CatalogManagement = () => {
       />
     </Container>
   );
-};
-
-export default CatalogManagement;
+}
