@@ -1,12 +1,13 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { removeBackground } from "@/utils/imageProcessor";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Upload, Search, Check, RefreshCw, Image as ImageIcon } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Loader2, Search, Camera, Upload, Image as ImageIcon, RotateCw } from "lucide-react";
 import { toast } from "sonner";
-import { generateSeoAltText, removeBackground } from "@/utils/imageProcessor";
 
 interface ImageProcessingToolProps {
   productName: string;
@@ -19,373 +20,332 @@ const ImageProcessingTool: React.FC<ImageProcessingToolProps> = ({
   productBrand,
   onImageProcessed
 }) => {
-  const [activeTab, setActiveTab] = useState<string>("upload");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [originalPreview, setOriginalPreview] = useState<string | null>(null);
-  const [processedPreview, setProcessedPreview] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [processedImage, setProcessedImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<string[]>([]);
-  const [isSearching, setIsSearching] = useState<boolean>(false);
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeTab, setActiveTab] = useState("upload");
+  
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setSelectedFile(file);
-    setOriginalPreview(URL.createObjectURL(file));
-    setProcessedPreview(null);
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (imgRef.current && e.target?.result) {
+          imgRef.current.src = e.target.result as string;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const handleSearch = async () => {
+  const processImage = async () => {
+    if (!selectedImage || !canvasRef.current || !imgRef.current) {
+      toast.error("Please select an image first");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const canvas = canvasRef.current;
+      const img = imgRef.current;
+      
+      // Attend que l'image soit complètement chargée
+      if (!img.complete) {
+        await new Promise(resolve => {
+          img.onload = resolve;
+        });
+      }
+      
+      // Ajuster la taille du canvas à celle de l'image
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      
+      // Appliquer le traitement d'image
+      await removeBackground(canvas, img);
+      
+      // Convertir le canvas en Blob puis en File
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const processedFile = new File([blob], "processed-" + selectedImage.name, { 
+            type: "image/png" 
+          });
+          
+          setProcessedImage(URL.createObjectURL(blob));
+          onImageProcessed(processedFile);
+        }
+      }, "image/png");
+      
+      toast.success("Image processed successfully!");
+    } catch (error) {
+      console.error("Error processing image:", error);
+      toast.error("Failed to process image. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const performImageSearch = async () => {
+    if (!searchQuery.trim()) {
+      toast.error("Please enter a search query");
+      return;
+    }
+
     setIsSearching(true);
     try {
-      // Utiliser la marque et le nom du produit comme terme de recherche si non spécifié
-      const query = searchQuery.trim() || `${productBrand} ${productName}`;
+      // Simulation de recherche d'image - Remplacer par une API réelle
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // API pour chercher des images
-      const response = await fetch(`https://api.serpstack.com/search?access_key=${process.env.SERPSTACK_API_KEY || 'demo'}&query=${encodeURIComponent(query)}&type=images&num=10`);
+      // Exemples de résultats (simulés)
+      const mockResults = [
+        'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1531297484001-80022131f5a1?q=80&w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=1000&auto=format&fit=crop',
+      ];
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch images');
-      }
-      
-      const data = await response.json();
-      
-      // Si nous sommes en mode démo ou si l'API n'est pas disponible, utiliser des images d'exemple
-      let images;
-      if (data.error || process.env.SERPSTACK_API_KEY === 'demo') {
-        // Générer des URLs d'exemple basées sur le nom du produit
-        images = [
-          `https://source.unsplash.com/featured/?${encodeURIComponent(productName)}`,
-          `https://source.unsplash.com/featured/?${encodeURIComponent(productBrand)}`,
-          `https://source.unsplash.com/featured/?laptop`,
-          `https://source.unsplash.com/featured/?computer`,
-          `https://source.unsplash.com/featured/?tech`,
-          `https://source.unsplash.com/featured/?product`,
-          `https://source.unsplash.com/featured/?electronics`,
-          `https://source.unsplash.com/featured/?gadget`,
-          `https://source.unsplash.com/featured/?device`,
-          `https://source.unsplash.com/featured/?hardware`
-        ];
-      } else {
-        // Extraire les URLs d'image de la réponse API
-        images = data.images_results.map((img: any) => img.original);
-      }
-      
-      setSearchResults(images);
+      setSearchResults(mockResults);
+      toast.success("Image search completed");
     } catch (error) {
-      console.error('Error searching for images:', error);
-      toast.error('Failed to search for images');
+      console.error("Error searching images:", error);
+      toast.error("Failed to search images. Please try again.");
     } finally {
       setIsSearching(false);
     }
   };
 
-  const toggleImageSelection = (imageUrl: string) => {
-    setSelectedImages(prev => {
-      if (prev.includes(imageUrl)) {
-        return prev.filter(url => url !== imageUrl);
-      } else {
-        // Limiter à 5 images maximum
-        if (prev.length >= 5) {
-          toast.warning('Vous pouvez sélectionner au maximum 5 images');
-          return prev;
-        }
-        return [...prev, imageUrl];
-      }
-    });
-  };
-
-  const processImageFromUrl = async (imageUrl: string) => {
-    setIsProcessing(true);
-    setOriginalPreview(imageUrl);
-    
+  const selectSearchResult = async (imageUrl: string) => {
     try {
+      setIsProcessing(true);
+      
       // Télécharger l'image depuis l'URL
       const response = await fetch(imageUrl);
       const blob = await response.blob();
+      const file = new File([blob], `search-result-${Date.now()}.jpg`, { type: blob.type });
       
-      // Créer un fichier avec un nom basé sur le produit
-      const filename = `${productBrand}-${productName}-${Date.now()}.jpg`;
-      const file = new File([blob], filename, { type: blob.type });
+      setSelectedImage(file);
       
-      setSelectedFile(file);
+      if (imgRef.current) {
+        imgRef.current.src = URL.createObjectURL(file);
+        
+        // Attendre que l'image soit chargée avant de procéder
+        if (!imgRef.current.complete) {
+          await new Promise(resolve => {
+            imgRef.current!.onload = resolve;
+          });
+        }
+        
+        // Passer à l'onglet de traitement
+        setActiveTab("process");
+      }
       
-      // Effectuer le traitement d'image
-      await processImage(imageUrl);
+      toast.success("Image selected. You can now process it.");
     } catch (error) {
-      console.error('Error processing image from URL:', error);
-      toast.error('Failed to process image from URL');
-      setIsProcessing(false);
-    }
-  };
-
-  const processSelectedImages = async () => {
-    if (selectedImages.length === 0) {
-      toast.warning('Veuillez sélectionner au moins une image');
-      return;
-    }
-    
-    // Traiter la première image sélectionnée
-    await processImageFromUrl(selectedImages[0]);
-  };
-
-  const processImage = async (imageUrl: string = originalPreview as string) => {
-    setIsProcessing(true);
-    try {
-      // Charger l'image pour le traitement
-      const img = document.createElement('img');
-      img.src = imageUrl;
-      await new Promise((resolve) => {
-        img.onload = resolve;
-      });
-
-      // Créer un canvas pour traiter l'image
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get canvas context');
-
-      // Dessiner l'image sur le canvas
-      ctx.drawImage(img, 0, 0);
-
-      // Supprimer l'arrière-plan de l'image (simulation)
-      await removeBackground(canvas, img);
-
-      // Convertir le canvas en blob
-      const processedBlob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-          else resolve(new Blob());
-        }, 'image/png');
-      });
-
-      // Créer une URL pour l'aperçu
-      const processedUrl = URL.createObjectURL(processedBlob);
-      setProcessedPreview(processedUrl);
-
-      // Créer un fichier à partir du blob traité
-      const processedFile = new File(
-        [processedBlob],
-        selectedFile ? `processed-${selectedFile.name}` : `processed-image-${Date.now()}.png`,
-        { type: 'image/png' }
-      );
-
-      // Informer le parent que l'image a été traitée
-      onImageProcessed(processedFile);
-      toast.success('Image traitée avec succès!');
-    } catch (error) {
-      console.error('Error processing image:', error);
-      toast.error('Erreur lors du traitement de l\'image');
+      console.error("Error selecting image:", error);
+      toast.error("Failed to select image. Please try again.");
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <CardContent className="p-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="upload">
-            <Upload className="h-4 w-4 mr-2" />
-            Télécharger une image
-          </TabsTrigger>
-          <TabsTrigger value="search">
-            <Search className="h-4 w-4 mr-2" />
-            Rechercher des images
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="upload" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid grid-cols-3 mb-4">
+        <TabsTrigger value="upload" className="flex items-center">
+          <Upload className="h-4 w-4 mr-2" />
+          Upload
+        </TabsTrigger>
+        <TabsTrigger value="search" className="flex items-center">
+          <Search className="h-4 w-4 mr-2" />
+          Search
+        </TabsTrigger>
+        <TabsTrigger value="process" className="flex items-center" disabled={!selectedImage}>
+          <RotateCw className="h-4 w-4 mr-2" />
+          Process
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="upload" className="mt-0">
+        <CardContent className="p-4">
+          <div className="space-y-4">
             <div>
-              <div className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  id="product-image"
-                  className="hidden"
-                  onChange={handleFileChange}
+              <Label htmlFor="image-upload">Upload Image</Label>
+              <Input 
+                id="image-upload" 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange}
+                className="mt-1"
+              />
+            </div>
+            
+            {selectedImage && (
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2">Selected Image:</p>
+                <div className="border border-border rounded-md p-2 bg-muted/20">
+                  <p className="text-sm">{selectedImage.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {Math.round(selectedImage.size / 1024)} KB
+                  </p>
+                </div>
+                <img
+                  ref={imgRef}
+                  src=""
+                  alt="Preview"
+                  className="mt-2 max-h-40 rounded-md object-contain hidden"
                 />
-                <label
-                  htmlFor="product-image"
-                  className="cursor-pointer flex flex-col items-center justify-center h-40"
-                >
-                  {originalPreview ? (
-                    <img
-                      src={originalPreview}
-                      alt="Preview"
-                      className="max-h-full object-contain"
-                    />
-                  ) : (
-                    <>
-                      <ImageIcon className="h-10 w-10 text-gray-400" />
-                      <span className="mt-2 text-sm text-gray-500">
-                        Cliquez pour sélectionner une image
-                      </span>
-                    </>
-                  )}
-                </label>
-              </div>
-              {originalPreview && (
-                <div className="mt-2 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      setOriginalPreview(null);
-                      setProcessedPreview(null);
-                    }}
-                  >
-                    Supprimer
+                
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={() => setActiveTab("process")}>
+                    Continue to Processing
                   </Button>
                 </div>
-              )}
-            </div>
-
-            <div>
-              <div className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center">
-                {isProcessing ? (
-                  <div className="flex flex-col items-center justify-center h-40">
-                    <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                    <span className="mt-2 text-sm text-gray-500">
-                      Traitement en cours...
-                    </span>
-                  </div>
-                ) : processedPreview ? (
-                  <div className="flex flex-col items-center justify-center h-40">
-                    <img
-                      src={processedPreview}
-                      alt="Processed"
-                      className="max-h-full object-contain"
-                    />
-                    <div className="absolute top-2 right-2">
-                      <Check className="h-5 w-5 text-green-500" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-40">
-                    <RefreshCw className="h-10 w-10 text-gray-400" />
-                    <span className="mt-2 text-sm text-gray-500">
-                      Résultat du traitement
-                    </span>
-                  </div>
-                )}
               </div>
+            )}
+          </div>
+        </CardContent>
+      </TabsContent>
+      
+      <TabsContent value="search" className="mt-0">
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  placeholder={`Search for ${productName || 'product'} images...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button onClick={performImageSearch} disabled={isSearching}>
+                {isSearching ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Search
+                  </>
+                )}
+              </Button>
             </div>
+            
+            {searchResults.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2">Search Results:</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {searchResults.map((url, index) => (
+                    <div 
+                      key={index} 
+                      className="border border-border rounded-md overflow-hidden cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => selectSearchResult(url)}
+                    >
+                      <img 
+                        src={url} 
+                        alt={`Search result ${index+1}`} 
+                        className="w-full aspect-square object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              disabled={!originalPreview || isProcessing}
-              onClick={() => processImage()}
-              className="w-full"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Traitement en cours...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Traiter l'image
-                </>
-              )}
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="search" className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              placeholder={`Rechercher des images pour ${productBrand} ${productName}`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="button" onClick={handleSearch} disabled={isSearching}>
-              {isSearching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-
-          {isSearching ? (
-            <div className="h-60 flex items-center justify-center">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-          ) : searchResults.length > 0 ? (
-            <div>
-              <p className="text-sm mb-2">
-                Sélectionnez jusqu'à 5 images pour le traitement ({selectedImages.length}/5)
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 max-h-60 overflow-y-auto p-2">
-                {searchResults.map((imageUrl, index) => (
-                  <div
-                    key={index}
-                    className={`
-                      relative cursor-pointer border-2 rounded-md overflow-hidden
-                      ${selectedImages.includes(imageUrl) ? 'border-primary' : 'border-transparent'}
-                    `}
-                    onClick={() => toggleImageSelection(imageUrl)}
-                  >
+        </CardContent>
+      </TabsContent>
+      
+      <TabsContent value="process" className="mt-0">
+        <CardContent className="p-4">
+          {selectedImage ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium mb-2">Original Image:</p>
+                  <div className="border border-border rounded-md overflow-hidden bg-muted/20 p-2">
                     <img
-                      src={imageUrl}
-                      alt={`Search result ${index + 1}`}
-                      className="w-full h-24 object-cover"
-                      onError={(e) => {
-                        // Remplacer les images non chargées par une image par défaut
-                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Image+non+disponible';
-                      }}
+                      ref={imgRef}
+                      src={selectedImage ? URL.createObjectURL(selectedImage) : ""}
+                      alt="Original"
+                      className="max-h-40 w-full object-contain"
                     />
-                    {selectedImages.includes(imageUrl) && (
-                      <div className="absolute top-1 right-1 bg-primary text-white rounded-full p-1">
-                        <Check className="h-3 w-3" />
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium mb-2">Processed Image:</p>
+                  <div className="border border-border rounded-md overflow-hidden bg-muted/20 p-2 relative" style={{ minHeight: "150px" }}>
+                    {processedImage ? (
+                      <img
+                        src={processedImage}
+                        alt="Processed"
+                        className="max-h-40 w-full object-contain"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-sm text-muted-foreground">
+                          Processed image will appear here
+                        </p>
                       </div>
                     )}
                   </div>
-                ))}
+                </div>
               </div>
-              <div className="mt-4">
+              
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+              
+              <div className="flex justify-end space-x-2">
                 <Button
-                  onClick={processSelectedImages}
-                  disabled={selectedImages.length === 0 || isProcessing}
-                  className="w-full"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedImage(null);
+                    setProcessedImage(null);
+                    setActiveTab("upload");
+                  }}
                 >
+                  Cancel
+                </Button>
+                <Button onClick={processImage} disabled={isProcessing}>
                   {isProcessing ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Traitement en cours...
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Traiter l'image sélectionnée
+                      <RotateCw className="h-4 w-4 mr-2" />
+                      Process Image
                     </>
                   )}
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="h-60 flex items-center justify-center">
-              <p className="text-muted-foreground">
-                Recherchez des images pour voir les résultats
+            <div className="text-center py-8">
+              <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
+              <p className="mt-2 text-muted-foreground">
+                Please select an image first
               </p>
+              <Button 
+                variant="outline" 
+                className="mt-4" 
+                onClick={() => setActiveTab("upload")}
+              >
+                Go to Upload
+              </Button>
             </div>
           )}
-        </TabsContent>
-      </Tabs>
-    </CardContent>
+        </CardContent>
+      </TabsContent>
+    </Tabs>
   );
 };
 
