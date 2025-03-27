@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,26 +18,10 @@ import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-// Import refactored components
-import ProductImageDisplay from "@/components/product-detail/ProductImageDisplay";
-import ProductBadges from "@/components/product-detail/ProductBadges";
-import ProductPriceDisplay from "@/components/product-detail/ProductPriceDisplay";
-import QuantitySelector from "@/components/product-detail/QuantitySelector";
-import VariantSelector from "@/components/product-detail/VariantSelector";
-import PriceBox from "@/components/product-detail/PriceBox";
-import ProductSpecificationsTable from "@/components/product-detail/ProductSpecificationsTable";
-import ProductBenefits from "@/components/product-detail/ProductBenefits";
-import ProductIncludedServices from "@/components/product-detail/ProductIncludedServices";
-import RelatedProducts from "@/components/product-detail/RelatedProducts";
-import ProductDescription from "@/components/product-detail/ProductDescription";
-import OrderProcess from "@/components/product-detail/OrderProcess";
-import CustomerReviews from "@/components/product-detail/CustomerReviews";
-
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  // Use the product details hook
   const {
     product,
     isLoading,
@@ -64,17 +47,14 @@ const ProductDetailPage = () => {
     getOptionsForAttribute
   } = useProductDetails(id);
   
-  // Navigation
   const handleBackToCatalog = () => {
     navigate("/catalogue");
   };
   
-  // Form handling
   const handleRequestProduct = () => {
     setIsRequestFormOpen(true);
   };
   
-  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -98,7 +78,6 @@ const ProductDetailPage = () => {
     );
   }
   
-  // Error state
   if (error || !product) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -114,15 +93,12 @@ const ProductDetailPage = () => {
     );
   }
   
-  // Prepare product data
   const productName = product.name || "Produit";
   const productCategory = product.category || "Autre";
   const productBrand = product.brand || "";
   const productDescription = product.description || "Aucune description disponible pour ce produit.";
   
-  // Helper function to render select input or static field based on available options
   const renderAttributeField = (attributeName: string, displayName: string, currentValue: string) => {
-    // Check if this attribute has variation options
     const hasOptions = hasAttributeOptions(attributeName);
     const options = hasOptions ? getOptionsForAttribute(attributeName) : [];
     
@@ -164,7 +140,6 @@ const ProductDetailPage = () => {
     );
   };
   
-  // Get display name for common field keys
   const getDisplayName = (key: string): string => {
     const nameMap: Record<string, string> = {
       'condition': 'État',
@@ -188,7 +163,6 @@ const ProductDetailPage = () => {
     return nameMap[key.toLowerCase()] || key;
   };
   
-  // Get the canonical attribute name (handles different naming conventions)
   const getCanonicalName = (key: string): string => {
     const canonicalMap: Record<string, string> = {
       'condition': 'condition',
@@ -212,7 +186,6 @@ const ProductDetailPage = () => {
     return canonicalMap[key.toLowerCase()] || key;
   };
   
-  // Group configuration attributes by priority
   const getConfigAttributes = () => {
     const priorityOrder = [
       "condition", "etat", 
@@ -225,17 +198,14 @@ const ProductDetailPage = () => {
       "keyboard", "clavier"
     ];
     
-    // Get all attribute names from different sources
     const allKeys = new Set([
       ...Object.keys(specifications || {}),
       ...Object.keys(variationAttributes || {})
     ]);
     
-    // Map these to canonical names and deduplicate
     const canonicalKeys = Array.from(allKeys).map(key => getCanonicalName(key));
     const uniqueKeys = Array.from(new Set(canonicalKeys));
     
-    // Sort by priority
     uniqueKeys.sort((a, b) => {
       const indexA = priorityOrder.indexOf(a.toLowerCase());
       const indexB = priorityOrder.indexOf(b.toLowerCase());
@@ -249,20 +219,16 @@ const ProductDetailPage = () => {
     return uniqueKeys;
   };
   
-  // Get the current value for an attribute
   const getCurrentValue = (attributeName: string): string => {
-    // First check selected options
     if (selectedOptions[attributeName] !== undefined) {
       return String(selectedOptions[attributeName]);
     }
     
-    // Then check specifications
     const specValue = specifications[attributeName];
     if (specValue !== undefined) {
       return String(specValue);
     }
     
-    // Finally check variation attributes for a default
     const variationValues = variationAttributes[attributeName];
     if (variationValues && variationValues.length > 0) {
       return String(variationValues[0]);
@@ -277,7 +243,6 @@ const ProductDetailPage = () => {
     <div className="min-h-screen bg-white">
       <PublicHeader />
       
-      {/* Breadcrumb */}
       <div className="bg-gray-50 py-2">
         <div className="container mx-auto px-4">
           <Breadcrumb>
@@ -303,7 +268,6 @@ const ProductDetailPage = () => {
       
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left column - Product Image and Description */}
           <div>
             <ProductImageDisplay 
               imageUrl={currentImage} 
@@ -311,7 +275,6 @@ const ProductDetailPage = () => {
               imageUrls={product.image_urls || []}
             />
             
-            {/* Product Description moved here */}
             <div className="mt-8">
               <ProductDescription 
                 title={`Descriptif ${productBrand} ${productName}`}
@@ -320,10 +283,8 @@ const ProductDetailPage = () => {
             </div>
           </div>
           
-          {/* Right column - Product Info and Configuration */}
           <div>
             <div className="sticky top-4 bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
-              {/* Category badge & Brand */}
               <div className="flex mb-2">
                 <Badge variant="outline" className="bg-indigo-100 text-indigo-800 mr-2">
                   {productCategory === "laptop" ? "Ordinateur" : productCategory}
@@ -331,24 +292,20 @@ const ProductDetailPage = () => {
                 <span className="text-gray-600">{productBrand}</span>
               </div>
               
-              {/* Product Title */}
               <h1 className="text-3xl font-bold mb-2">
                 Location {productName}
               </h1>
               
-              {/* Product Price */}
               <div className="text-lg text-gray-700 mb-4">
                 à partir de <span className="font-bold text-indigo-700">{formatCurrency(minMonthlyPrice)}/mois</span>
               </div>
               
               <Separator className="my-4" />
               
-              {/* Configuration Options */}
               <div className="mb-6">
                 <h3 className="text-xl font-medium mb-4">Sélectionnez votre configuration idéale.</h3>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Dynamic configuration fields */}
                   {configAttributes.map(attribute => {
                     const displayName = getDisplayName(attribute);
                     const currentValue = getCurrentValue(attribute);
@@ -360,7 +317,6 @@ const ProductDetailPage = () => {
                     );
                   })}
                   
-                  {/* Durée */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Durée</label>
                     <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
@@ -368,7 +324,6 @@ const ProductDetailPage = () => {
                     </div>
                   </div>
                   
-                  {/* Quantité */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Quantité souhaitée</label>
                     <div className="flex items-center">
@@ -397,7 +352,6 @@ const ProductDetailPage = () => {
                 </div>
               </div>
               
-              {/* Total Price */}
               <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-700 font-medium">Votre sélection pour</span>
@@ -420,7 +374,6 @@ const ProductDetailPage = () => {
                   </Button>
                 </div>
                 
-                {/* Shipping info */}
                 <div className="mt-4 space-y-1 text-sm">
                   <div className="flex items-center text-gray-600">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
@@ -442,36 +395,29 @@ const ProductDetailPage = () => {
               </Button>
             </div>
             
-            {/* Additional product information - below the sticky box */}
             <div className="mt-8">
-              {/* Remove product description from here as it's moved to the left column */}
+              <Button 
+                variant="outline" 
+                className="mb-4"
+                onClick={() => toast.info("Affichage des caractéristiques détaillées")}
+              >
+                Voir plus
+              </Button>
               
-              <div className="mt-8">
-                <Button 
-                  variant="outline" 
-                  className="mb-4"
-                  onClick={() => toast.info("Affichage des caractéristiques détaillées")}
-                >
-                  Voir plus
-                </Button>
-                
-                <ProductBenefits />
-                
-                <OrderProcess />
-                
-                <ProductIncludedServices />
-              </div>
+              <ProductBenefits />
+              
+              <OrderProcess />
+              
+              <ProductIncludedServices />
             </div>
           </div>
         </div>
         
-        {/* Related Products */}
         <div className="mt-16">
           <h2 className="text-2xl font-bold mb-6">Produits de la même catégorie que {productName}</h2>
           <RelatedProducts category={productCategory} currentProductId={product.id} />
         </div>
         
-        {/* Customer Reviews */}
         <div className="mt-16">
           <CustomerReviews />
         </div>
