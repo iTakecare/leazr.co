@@ -24,12 +24,14 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     let minPrice = product.monthly_price || 0;
     
     if (product.variants && product.variants.length > 0) {
+      console.log(`Product ${product.name} has ${product.variants.length} variants`);
       const variantPrices = product.variants
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (variantPrices.length > 0) {
         const minVariantPrice = Math.min(...variantPrices);
+        console.log(`Minimum variant price found: ${minVariantPrice}`);
         if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
           minPrice = minVariantPrice;
         }
@@ -37,12 +39,14 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     }
     
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      console.log(`Product ${product.name} has ${product.variant_combination_prices.length} variant combinations`);
       const combinationPrices = product.variant_combination_prices
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (combinationPrices.length > 0) {
         const minCombinationPrice = Math.min(...combinationPrices);
+        console.log(`Minimum combination price found: ${minCombinationPrice}`);
         if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
           minPrice = minCombinationPrice;
         }
@@ -98,12 +102,19 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   // Déterminer si le produit a des variantes
   const hasVariants = (): boolean => {
     // Les conditions pour qu'un produit ait des variantes
-    return (
+    const result = 
       (product.is_parent === true) || 
       (product.variant_combination_prices && product.variant_combination_prices.length > 0) || 
       (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) ||
-      (product.variants && product.variants.length > 0)
-    );
+      (product.variants && product.variants.length > 0);
+    
+    console.log(`Product ${product.name}: hasVariants = ${result}`);
+    console.log(`- is_parent: ${product.is_parent}`);
+    console.log(`- has variant_combination_prices: ${product.variant_combination_prices?.length > 0}`);
+    console.log(`- has variation_attributes: ${product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0}`);
+    console.log(`- has variants: ${product.variants?.length > 0}`);
+    
+    return result;
   };
   
   const hasVariantsFlag = hasVariants();

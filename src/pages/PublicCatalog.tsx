@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,33 @@ const PublicCatalog = () => {
     queryKey: ["categories"],
     queryFn: getCategories,
   });
+
+  // Debugging useEffect to log variant information
+  useEffect(() => {
+    if (products && products.length > 0) {
+      console.log("Total products loaded:", products.length);
+      
+      const productsWithVariants = products.filter(p => 
+        p.variants && p.variants.length > 0 || 
+        p.variant_combination_prices && p.variant_combination_prices.length > 0 ||
+        p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0
+      );
+      
+      console.log("Products with variants:", productsWithVariants.length);
+      
+      productsWithVariants.forEach(p => {
+        console.log(`Product "${p.name}" (${p.id}) variant info:`, {
+          has_variants: p.variants && p.variants.length > 0,
+          variants_count: p.variants?.length || 0,
+          has_variant_prices: p.variant_combination_prices && p.variant_combination_prices.length > 0,
+          variant_prices_count: p.variant_combination_prices?.length || 0,
+          has_variation_attributes: p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0,
+          variation_attributes: p.variation_attributes,
+          monthly_price: p.monthly_price
+        });
+      });
+    }
+  }, [products]);
 
   const groupedProducts = React.useMemo(() => {
     const parentProducts = products.filter(p => 
