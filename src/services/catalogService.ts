@@ -39,16 +39,17 @@ export const getProductById = async (productId: string): Promise<Product> => {
 
 export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
   try {
-    // Ensure we have the full product data structure including SEO metadata
+    console.log("Creating product with data:", product);
+    
+    // Prepare the data for insertion, with proper field mapping
     const productData = {
       ...product,
       meta: product.meta || {},
-      // Ensure we're using image_url, not imageUrl
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
     
-    // If imageUrl was provided but image_url wasn't, copy it over
+    // Handle imageUrl/image_url compatibility
     if (product.imageUrl && !product.image_url) {
       productData.image_url = product.imageUrl;
     }
@@ -57,6 +58,22 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
     if ('imageUrl' in productData) {
       delete productData.imageUrl;
     }
+    
+    // Convert specifications to proper format if needed
+    if (productData.specifications) {
+      // Ensure boolean values are converted to strings for database storage
+      const processedSpecs: Record<string, string | number> = {};
+      Object.entries(productData.specifications).forEach(([key, value]) => {
+        if (typeof value === 'boolean') {
+          processedSpecs[key] = value.toString();
+        } else {
+          processedSpecs[key] = value;
+        }
+      });
+      productData.specifications = processedSpecs;
+    }
+    
+    console.log("Sending data to Supabase:", productData);
     
     const { data, error } = await supabase
       .from('products')
@@ -69,6 +86,7 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
       throw error;
     }
     
+    console.log("Product created successfully:", data);
     return data as Product;
   } catch (error) {
     console.error("Error creating product:", error);
@@ -81,6 +99,8 @@ export const addProduct = createProduct;
 
 export const updateProduct = async (productId: string, productData: Partial<Product>): Promise<Product> => {
   try {
+    console.log("Updating product with ID:", productId, "Data:", productData);
+    
     // Create a clean version of the data to send to the database
     const updateData = {
       ...productData,
@@ -88,7 +108,7 @@ export const updateProduct = async (productId: string, productData: Partial<Prod
       updated_at: new Date().toISOString()
     };
     
-    // If imageUrl was provided but image_url wasn't, copy it over
+    // Handle imageUrl/image_url compatibility
     if (productData.imageUrl && !productData.image_url) {
       updateData.image_url = productData.imageUrl;
     }
@@ -97,6 +117,22 @@ export const updateProduct = async (productId: string, productData: Partial<Prod
     if ('imageUrl' in updateData) {
       delete updateData.imageUrl;
     }
+    
+    // Convert specifications to proper format if needed
+    if (updateData.specifications) {
+      // Ensure boolean values are converted to strings for database storage
+      const processedSpecs: Record<string, string | number> = {};
+      Object.entries(updateData.specifications).forEach(([key, value]) => {
+        if (typeof value === 'boolean') {
+          processedSpecs[key] = value.toString();
+        } else {
+          processedSpecs[key] = value;
+        }
+      });
+      updateData.specifications = processedSpecs;
+    }
+    
+    console.log("Sending update data to Supabase:", updateData);
     
     const { data, error } = await supabase
       .from('products')
@@ -107,6 +143,7 @@ export const updateProduct = async (productId: string, productData: Partial<Prod
     
     if (error) throw error;
     
+    console.log("Product updated successfully:", data);
     return data as Product;
   } catch (error) {
     console.error('Error updating product:', error);
