@@ -28,8 +28,6 @@ const PublicCatalog = () => {
 
   // Group products by parent/child relationship to avoid showing variants as separate products
   const groupedProducts = React.useMemo(() => {
-    console.log("Grouping products:", products.length);
-    
     // First pass: collect all parent products and standalone products
     const parentProducts = products.filter(p => 
       !p.parent_id && !p.is_variation
@@ -57,7 +55,6 @@ const PublicCatalog = () => {
       }
     });
     
-    console.log("Grouped products:", parentProducts.length);
     return parentProducts;
   }, [products]);
 

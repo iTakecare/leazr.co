@@ -76,13 +76,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   // Méthode pour compter le nombre de variantes EXISTANTES (configurations réelles)
   const countExistingVariants = (): number => {
-    // Ajouter du logging pour déboguer
-    console.log(`ProductGridCard: Counting variants for ${product.name}:`, {
-      variants_count: product.variants_count,
-      combinationPrices: product.variant_combination_prices?.length,
-      variants: product.variants?.length
-    });
-    
     // 1. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
     if (product.variants_count !== undefined && product.variants_count > 0) {
       return product.variants_count;
