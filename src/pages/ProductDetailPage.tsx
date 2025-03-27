@@ -303,13 +303,21 @@ const ProductDetailPage = () => {
       
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left column - Product Image */}
-          <div className="lg:sticky lg:top-4">
+          {/* Left column - Product Image and Description */}
+          <div>
             <ProductImageDisplay 
               imageUrl={currentImage} 
               altText={product.name} 
               imageUrls={product.image_urls || []}
             />
+            
+            {/* Product Description moved here */}
+            <div className="mt-8">
+              <ProductDescription 
+                title={`Descriptif ${productBrand} ${productName}`}
+                description={productDescription} 
+              />
+            </div>
           </div>
           
           {/* Right column - Product Info and Configuration */}
@@ -436,10 +444,7 @@ const ProductDetailPage = () => {
             
             {/* Additional product information - below the sticky box */}
             <div className="mt-8">
-              <ProductDescription 
-                title={`Descriptif ${productBrand} ${productName}`}
-                description={productDescription} 
-              />
+              {/* Remove product description from here as it's moved to the left column */}
               
               <div className="mt-8">
                 <Button 
