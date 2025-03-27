@@ -4,8 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import PageTransition from "./PageTransition";
-import { Home, ShoppingBag, FileText, Users, Award, Settings } from "lucide-react";
-import { FileIcon } from "lucide-react";
+import { Home, ShoppingBag, FileText, Users, Award, Settings, FileIcon } from "lucide-react";
 import MobileNavDrawer from "./MobileNavDrawer";
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -62,6 +62,9 @@ export async function getVariantCombinationPrices(
   }
 }
 
+// Adding alias for findVariantCombinationPrice to maintain compatibility
+export const findVariantCombinationPrice = getVariantCombinationPrices;
+
 export async function deleteVariantCombinationPrice(id: string): Promise<void> {
   try {
     const { error } = await supabase
@@ -72,6 +75,23 @@ export async function deleteVariantCombinationPrice(id: string): Promise<void> {
     if (error) throw error;
   } catch (error) {
     console.error('Error deleting variant combination price:', error);
+    throw error;
+  }
+}
+
+// Adding the missing function for updateParentProductRemovePrice
+export async function updateParentProductRemovePrice(productId: string): Promise<void> {
+  try {
+    // Implementation depends on what this function is supposed to do.
+    // This is a placeholder implementation based on the name
+    const { error } = await supabase
+      .from('products')
+      .update({ has_variant_prices: false })
+      .eq('id', productId);
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error updating parent product prices:', error);
     throw error;
   }
 }
