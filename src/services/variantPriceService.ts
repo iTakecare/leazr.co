@@ -47,7 +47,7 @@ export const createVariantCombinationPrice = async (
       // Si stock est un objet avec _type et value, essayer de récupérer la valeur
       if (typeof data.stock === 'object' && data.stock !== null) {
         if ('value' in data.stock && typeof data.stock.value !== 'undefined') {
-          const stockValue = Number(data.stock.value);
+          const stockValue = Number((data.stock as any).value);
           if (!isNaN(stockValue)) {
             dataToInsert.stock = stockValue;
           }

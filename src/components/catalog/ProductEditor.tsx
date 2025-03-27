@@ -646,7 +646,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                   <Label htmlFor="brand">Marque</Label>
                   <Select value={brand} onValueChange={setBrand}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une marque" />
+                      <SelectValue placeholder="S��lectionner une marque" />
                     </SelectTrigger>
                     <SelectContent>
                       {popularBrands.map((brandName) => (
@@ -1059,96 +1059,94 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
               Sélectionnez les attributs pour générer des variantes pour votre produit.
             </DialogDescription>
           </DialogHeader>
-          <DialogBody>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                {renderVariantAttributeCheckboxes()}
-              </div>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              {renderVariantAttributeCheckboxes()}
             </div>
+          </div>
 
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleGenerateVariants}
+                disabled={selectedAttributes.length === 0}
+              >
+                Générer variantes
+              </Button>
+            </div>
+          </div>
+
+          {generatedVariants.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={handleGenerateVariants}
-                  disabled={selectedAttributes.length === 0}
+                  onClick={() => setShowGenerateDialog(false)}
                 >
-                  Générer variantes
+                  Fermer
                 </Button>
               </div>
-            </div>
-
-            {generatedVariants.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowGenerateDialog(false)}
-                  >
-                    Fermer
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {generatedVariants.map((variant, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <div className="flex-1">
+                {generatedVariants.map((variant, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium">Variant {index + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          onClick={() => handleAddVariantCombination(variant)}
+                        >
+                          Ajouter
+                        </Button>
+                      </div>
+                      <div className="space-y-1">
                         <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium">Variant {index + 1}</span>
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            onClick={() => handleAddVariantCombination(variant)}
-                          >
-                            Ajouter
-                          </Button>
+                          <span className="text-sm font-medium">Prix</span>
+                          <Input
+                            type="number"
+                            value={variant.price}
+                            onChange={(e) => setCurrentVariantPrice(e.target.value)}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            className="pl-8"
+                          />
+                          <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium">Prix</span>
-                            <Input
-                              type="number"
-                              value={variant.price}
-                              onChange={(e) => setCurrentVariantPrice(e.target.value)}
-                              placeholder="0.00"
-                              step="0.01"
-                              min="0"
-                              className="pl-8"
-                            />
-                            <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium">Mensualité</span>
-                            <Input
-                              type="number"
-                              value={variant.monthly_price}
-                              onChange={(e) => setCurrentVariantMonthlyPrice(e.target.value)}
-                              placeholder="0.00"
-                              step="0.01"
-                              min="0"
-                              className="pl-8"
-                            />
-                            <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium">Stock</span>
-                            <Input
-                              type="number"
-                              value={variant.stock}
-                              onChange={(e) => setCurrentVariantStock(e.target.value)}
-                              placeholder="0"
-                              className="pl-8"
-                            />
-                          </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium">Mensualité</span>
+                          <Input
+                            type="number"
+                            value={variant.monthly_price}
+                            onChange={(e) => setCurrentVariantMonthlyPrice(e.target.value)}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            className="pl-8"
+                          />
+                          <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium">Stock</span>
+                          <Input
+                            type="number"
+                            value={variant.stock}
+                            onChange={(e) => setCurrentVariantStock(e.target.value)}
+                            placeholder="0"
+                            className="pl-8"
+                          />
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </DialogBody>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -1160,70 +1158,68 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
               Ajoutez une variante pour votre produit en fonction des attributs sélectionnés.
             </DialogDescription>
           </DialogHeader>
-          <DialogBody>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">Prix</span>
-                    <Input
-                      type="number"
-                      value={currentVariantPrice}
-                      onChange={(e) => setCurrentVariantPrice(e.target.value)}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      className="pl-8"
-                    />
-                    <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">Mensualité</span>
-                    <Input
-                      type="number"
-                      value={currentVariantMonthlyPrice}
-                      onChange={(e) => setCurrentVariantMonthlyPrice(e.target.value)}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      className="pl-8"
-                    />
-                    <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">Stock</span>
-                    <Input
-                      type="number"
-                      value={currentVariantStock}
-                      onChange={(e) => setCurrentVariantStock(e.target.value)}
-                      placeholder="0"
-                      className="pl-8"
-                    />
-                  </div>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <div className="flex-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium">Prix</span>
+                  <Input
+                    type="number"
+                    value={currentVariantPrice}
+                    onChange={(e) => setCurrentVariantPrice(e.target.value)}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="pl-8"
+                  />
+                  <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium">Mensualité</span>
+                  <Input
+                    type="number"
+                    value={currentVariantMonthlyPrice}
+                    onChange={(e) => setCurrentVariantMonthlyPrice(e.target.value)}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="pl-8"
+                  />
+                  <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium">Stock</span>
+                  <Input
+                    type="number"
+                    value={currentVariantStock}
+                    onChange={(e) => setCurrentVariantStock(e.target.value)}
+                    placeholder="0"
+                    className="pl-8"
+                  />
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={handleSaveVariantCombination}
-                  disabled={!currentVariantPrice}
-                >
-                  Enregistrer
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={() => setShowVariantDialog(false)}
-                >
-                  Annuler
-                </Button>
-              </div>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={handleSaveVariantCombination}
+                disabled={!currentVariantPrice}
+              >
+                Enregistrer
+              </Button>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={() => setShowVariantDialog(false)}
+              >
+                Annuler
+              </Button>
             </div>
-          </DialogBody>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
