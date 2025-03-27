@@ -888,6 +888,15 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                           Générer
                         </Button>
                       </div>
+                      <Input
+                        id="keywords"
+                        value={keywords}
+                        onChange={(e) => setKeywords(e.target.value)}
+                        placeholder="Mots-clés séparés par des virgules"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Les mots-clés aident les moteurs de recherche à comprendre le contenu de votre page.
+                      </p>
                     </div>
 
                     <div className="space-y-2">
@@ -913,7 +922,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                               </Button>
                             </div>
                             <Input
-                              value={altText}
+                              value={altText || ""}
                               onChange={(e) => handleAltTextChange(index, e.target.value)}
                               placeholder={`Texte alternatif pour l'image ${index + 1}`}
                             />
@@ -1049,7 +1058,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                                   <TableCell>
                                     {Object.entries(variant).map(([key, value]) => (
                                       <Badge key={key} variant="outline" className="mr-1">
-                                        {key}: {value as string}
+                                        {key}: {String(value)}
                                       </Badge>
                                     ))}
                                   </TableCell>
@@ -1145,7 +1154,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                       <div>
                         {Object.entries(variant).map(([key, value]) => (
                           <Badge key={key} variant="outline">
-                            {key}: {value}
+                            {key}: {String(value)}
                           </Badge>
                         ))}
                       </div>
@@ -1190,7 +1199,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
               <div className="flex flex-wrap gap-1">
                 {Object.entries(currentVariantAttributes).map(([key, value]) => (
                   <Badge key={key} variant="outline">
-                    {key}: {value}
+                    {key}: {String(value)}
                   </Badge>
                 ))}
               </div>
