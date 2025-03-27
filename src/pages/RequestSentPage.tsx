@@ -32,7 +32,7 @@ const RequestSentPage = () => {
               <ol className="space-y-4">
                 <li className="flex">
                   <span className="flex-shrink-0 flex items-center justify-center bg-indigo-100 text-indigo-800 h-6 w-6 rounded-full mr-3 text-sm font-medium">1</span>
-                  <span>Pour identifier votre entreprise, nous allons vous demander votre numéro de SIRET et votre adresse email professionnelle.</span>
+                  <span>Pour identifier votre entreprise, nous allons vous demander votre numéro d'entreprise (BCE) et votre adresse email professionnelle.</span>
                 </li>
                 <li className="flex">
                   <span className="flex-shrink-0 flex items-center justify-center bg-indigo-100 text-indigo-800 h-6 w-6 rounded-full mr-3 text-sm font-medium">2</span>
@@ -40,7 +40,7 @@ const RequestSentPage = () => {
                 </li>
                 <li className="flex">
                   <span className="flex-shrink-0 flex items-center justify-center bg-indigo-100 text-indigo-800 h-6 w-6 rounded-full mr-3 text-sm font-medium">3</span>
-                  <span>Si votre dossier est accepté, votre RIB + votre CNI vous seront demandés pour la signature du contrat en ligne.</span>
+                  <span>Si votre dossier est accepté, votre carte d'identité vous sera demandée pour la signature du contrat en ligne.</span>
                 </li>
               </ol>
             </div>

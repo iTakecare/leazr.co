@@ -17,7 +17,7 @@ const OrderProcess = () => {
               <div className="bg-white p-6 rounded-xl shadow-md border border-indigo-100 max-w-md transform transition-all hover:-translate-y-1 hover:shadow-lg">
                 <h3 className="font-bold text-lg text-indigo-700 mb-3">1. Identification simple</h3>
                 <p className="text-gray-600">
-                  Nous vous demandons simplement votre numéro de SIREN et votre email professionnel pour identifier votre entreprise.
+                  Nous vous demandons simplement votre numéro d'entreprise (BCE) et votre email professionnel pour identifier votre entreprise belge.
                 </p>
               </div>
             </div>
@@ -33,7 +33,7 @@ const OrderProcess = () => {
               <div className="bg-white p-6 rounded-xl shadow-md border border-indigo-100 max-w-md transform transition-all hover:-translate-y-1 hover:shadow-lg">
                 <h3 className="font-bold text-lg text-indigo-700 mb-3">2. Étude rapide de votre dossier</h3>
                 <p className="text-gray-600">
-                  Une fois vos informations et votre sélection complétées, nous étudions votre dossier en moins de 24 heures.
+                  Une fois vos informations et votre sélection complétées, nous étudions votre dossier en moins de 24 heures. Des documents complémentaires pourront éventuellement vous être demandés.
                 </p>
               </div>
             </div>
@@ -49,8 +49,8 @@ const OrderProcess = () => {
               <div className="bg-white p-6 rounded-xl shadow-md border border-indigo-100 max-w-md transform transition-all hover:-translate-y-1 hover:shadow-lg">
                 <h3 className="font-bold text-lg text-indigo-700 mb-3">3. Finalisation en ligne</h3>
                 <p className="text-gray-600">
-                  Après acceptation de votre dossier, téléchargez simplement votre RIB et votre CNI pour la signature électronique du contrat. 
-                  Vous pouvez les fournir dès la commande en ligne.
+                  Après acceptation de votre dossier, téléchargez simplement votre carte d'identité pour la signature électronique du contrat. 
+                  Vous pouvez la fournir dès la commande en ligne.
                 </p>
               </div>
             </div>
