@@ -41,39 +41,69 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
   try {
     console.log("Creating product with data:", product);
     
-    // Prepare the data for insertion, with proper field mapping
-    const productData = {
-      ...product,
+    // Create a sanitized copy of the product data
+    const productData: any = {
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      monthly_price: product.monthly_price || null,
+      category: product.category || 'other',
+      brand: product.brand || 'Generic',
+      active: product.active !== undefined ? product.active : true,
+      stock: product.stock || 0,
+      sku: product.sku || null,
       meta: product.meta || {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
     
-    // Handle imageUrl/image_url compatibility
-    if (product.imageUrl && !product.image_url) {
+    // Handle image URLs properly
+    if (product.image_url) {
+      productData.image_url = product.image_url;
+    } else if (product.imageUrl) {
       productData.image_url = product.imageUrl;
     }
     
-    // Remove imageUrl as it's not a field in the database
-    if ('imageUrl' in productData) {
-      delete productData.imageUrl;
+    // Handle image arrays if they exist
+    if (product.image_urls && product.image_urls.length > 0) {
+      productData.image_urls = product.image_urls;
+    } else if (product.imageurls && product.imageurls.length > 0) {
+      productData.image_urls = product.imageurls;
     }
     
-    // Convert specifications to proper format if needed
-    if (productData.specifications) {
-      // Ensure boolean values are converted to strings for database storage
+    if (product.image_alt_texts && product.image_alt_texts.length > 0) {
+      productData.image_alt_texts = product.image_alt_texts;
+    }
+    
+    // Process specifications if they exist
+    if (product.specifications && Object.keys(product.specifications).length > 0) {
       const processedSpecs: Record<string, string | number> = {};
-      Object.entries(productData.specifications).forEach(([key, value]) => {
+      
+      Object.entries(product.specifications).forEach(([key, value]) => {
         if (typeof value === 'boolean') {
           processedSpecs[key] = value.toString();
+        } else if (value === null || value === undefined) {
+          // Skip null/undefined values
         } else {
           processedSpecs[key] = value;
         }
       });
+      
       productData.specifications = processedSpecs;
     }
     
-    console.log("Sending data to Supabase:", productData);
+    // Handle attributes if they exist
+    if (product.attributes && Object.keys(product.attributes).length > 0) {
+      productData.attributes = product.attributes;
+    }
+    
+    // Handle variant-related fields if they exist
+    if (product.parent_id) productData.parent_id = product.parent_id;
+    if (product.is_parent !== undefined) productData.is_parent = product.is_parent;
+    if (product.is_variation !== undefined) productData.is_variation = product.is_variation;
+    if (product.variation_attributes) productData.variation_attributes = product.variation_attributes;
+    
+    console.log("Sending sanitized data to Supabase:", productData);
     
     const { data, error } = await supabase
       .from('products')
