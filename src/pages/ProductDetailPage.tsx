@@ -17,6 +17,13 @@ import {
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import ProductImageDisplay from "@/components/product-detail/ProductImageDisplay";
+import ProductDescription from "@/components/product-detail/ProductDescription";
+import ProductBenefits from "@/components/product-detail/ProductBenefits";
+import OrderProcess from "@/components/product-detail/OrderProcess";
+import ProductIncludedServices from "@/components/product-detail/ProductIncludedServices";
+import RelatedProducts from "@/components/product-detail/RelatedProducts";
+import CustomerReviews from "@/components/product-detail/CustomerReviews";
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
