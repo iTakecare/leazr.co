@@ -200,14 +200,14 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                 </Button>
               </div>
               
-              <div className="mt-4">
-                {product.category && (
+              {product.category && (
+                <div className="mt-4">
                   <CO2SavingsCalculator 
                     category={product.category} 
                     quantity={quantity} 
                   />
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </ScrollArea>
