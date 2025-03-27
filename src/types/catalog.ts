@@ -1,84 +1,187 @@
 
-export interface ProductVariationAttributes {
-  [key: string]: string[];
-}
-
-export interface ProductAttributes {
-  [key: string]: string;
-}
-
-export interface VariantCombinationPrice {
+// Product type definition
+export interface Product {
   id: string;
-  product_id: string;
-  attributes: ProductAttributes;
+  name: string;
+  brand: string;
+  category: string;
+  description: string;
   price: number;
   monthly_price?: number;
+  imageUrl?: string;
+  specifications?: Record<string, string | number>;
+  tier?: string; // Silver, gold, or platinum
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  active: boolean;
+  model?: string;
   stock?: number;
-  created_at: string;
-  updated_at: string;
+  
+  // WooCommerce compatibility fields
+  slug?: string;
+  permalink?: string;
+  dateCreated?: string;
+  dateModified?: string;
+  type?: string;
+  status?: string;
+  featured?: boolean;
+  catalogVisibility?: string;
+  shortDescription?: string;
+  sku?: string;
+  regularPrice?: string;
+  salePrice?: string;
+  dateOnSaleFrom?: string | null;
+  dateOnSaleTo?: string | null;
+  priceHtml?: string;
+  onSale?: boolean;
+  purchasable?: boolean;
+  totalSales?: number;
+  virtual?: boolean;
+  downloadable?: boolean;
+  downloads?: any[];
+  downloadLimit?: number;
+  downloadExpiry?: number;
+  externalUrl?: string;
+  buttonText?: string;
+  taxStatus?: string;
+  taxClass?: string;
+  manageStock?: boolean;
+  stockQuantity?: number;
+  inStock?: boolean;
+  backorders?: string;
+  backordersAllowed?: boolean;
+  backordered?: boolean;
+  soldIndividually?: boolean;
+  weight?: string;
+  dimensions?: {
+    length: string;
+    width: string;
+    height: string;
+  };
+  shippingRequired?: boolean;
+  shippingTaxable?: boolean;
+  shippingClass?: string;
+  shippingClassId?: number;
+  reviewsAllowed?: boolean;
+  averageRating?: string;
+  ratingCount?: number;
+  relatedIds?: number[];
+  upsellIds?: number[];
+  crossSellIds?: number[];
+  parentId?: number;
+  purchaseNote?: string;
+  categories?: any[];
+  tags?: any[];
+  images?: any[];
+  attributes?: ProductAttributes | Record<string, string | number | boolean>;
+  defaultAttributes?: any[];
+  variations?: any[];
+  groupedProducts?: any[];
+  menuOrder?: number;
+  metaData?: any[];
+  price_number?: number;
+  discount_per_quantity?: Record<string, any>;
+  
+  // Additional properties used by the application
+  is_parent?: boolean;
+  is_variation?: boolean;
+  parent_id?: string;
+  variants?: Product[]; // List of product variants
+  variation_attributes?: ProductVariationAttributes; // Available attribute options for this product
+  variant_combination_prices?: VariantCombinationPrice[]; // Prices for specific attribute combinations
+  variants_count?: number; // Count of variants for this product
+  has_variants?: boolean; // Whether this product has variants
+  has_child_variants?: boolean; // Whether this product has child variants
+  
+  // Used to store the selected attributes for a specific variant
+  selected_attributes?: ProductAttributes;
+  
+  // Alternative property names used in Supabase
+  image_url?: string; // Alternative to imageUrl for DB compatibility
+  image_urls?: string[]; // Additional images
+  imageUrls?: string[]; // Alternative property name
+  image_alts?: string[]; // Alt text for additional images
 }
 
-// Define interfaces for attribute management
+// Product attribute definition
+export interface ProductAttribute {
+  id?: string;
+  name: string;
+  display_name?: string;
+  value: string | number | boolean;
+  options?: string[];
+}
+
+// Product attributes as key-value pairs
+export interface ProductAttributes {
+  [key: string]: string | number | boolean;
+}
+
+// Product variation attributes definition - for storing available options
+export interface ProductVariationAttributes {
+  [attributeName: string]: string[]; // attribute name -> list of possible values
+}
+
+// Product variant definition - ensuring compatible structure with Product
+export interface ProductVariant extends Omit<Product, 'variants' | 'variation_attributes'> {
+  parent_id: string;
+  attributes: ProductAttributes;
+}
+
+// Attribute type definition for the new product_attributes table
 export interface AttributeDefinition {
   id: string;
   name: string;
   display_name: string;
-  values?: AttributeValue[]; // Added values property
-  created_at?: string;
-  updated_at?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+  values?: AttributeValue[];
 }
 
+// Attribute value definition for the new product_attribute_values table
 export interface AttributeValue {
   id: string;
   attribute_id: string;
   value: string;
   display_value: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
 }
 
-// Extend the Product interface to include SEO metadata
-export interface Product {
+// Price definition for specific combinations of attribute values
+export interface VariantCombinationPrice {
+  id: string;
+  product_id: string; // Parent product ID
+  attributes: ProductAttributes; // Combination of attributes
+  price: number; // Selling price
+  purchase_price?: number; // Purchase price (cost)
+  monthly_price?: number;
+  stock?: number;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+}
+
+// Category type definition
+export interface Category {
   id: string;
   name: string;
+  slug?: string;
+  translation?: string;
   description?: string;
-  price: number;
-  monthly_price?: number;
-  image_url?: string;
-  image_urls?: string[];
-  image_alt_texts?: string[]; // Added for SEO
-  category?: string;
-  brand?: string;
-  specifications?: Record<string, string | number | boolean>;
-  active?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  sku?: string;
-  parent_id?: string;
-  is_parent?: boolean;
-  is_variation?: boolean;
-  variation_attributes?: ProductVariationAttributes;
-  attributes?: ProductAttributes;
-  stock?: number;
-  meta?: ProductSeoMetadata; // Added for SEO
-  
-  // Properties for variants handling
-  variants?: Product[];
-  variants_count?: number;
-  variant_combination_prices?: VariantCombinationPrice[];
-  selected_attributes?: ProductAttributes;
-  variant_id?: string;
-  
-  // For backwards compatibility
-  model?: string;
-  imageUrl?: string; // Alias for image_url for backwards compatibility
+  imageUrl?: string;
+  products?: Product[];
+  created_at?: Date | string;
+  updated_at?: Date | string;
 }
 
-// New interface for SEO metadata
-export interface ProductSeoMetadata {
-  title?: string;
+// Brand type definition
+export interface Brand {
+  id: string;
+  name: string;
+  translation?: string;
+  logo?: string;
   description?: string;
-  keywords?: string;
-  slug?: string;
-  canonical_url?: string;
+  products?: Product[];
+  created_at?: Date | string;
+  updated_at?: Date | string;
 }

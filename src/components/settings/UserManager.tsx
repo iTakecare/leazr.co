@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,12 +42,14 @@ const UserManager = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   
+  // Form state
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newFirstName, setNewFirstName] = useState("");
   const [newLastName, setNewLastName] = useState("");
   const [newRole, setNewRole] = useState("admin");
   
+  // Fetch users on mount
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -57,6 +58,7 @@ const UserManager = () => {
     setLoading(true);
     try {
       console.log("Fetching users from edge function...");
+      // Get all users via edge function
       const { data, error } = await supabase.functions.invoke('get-all-users');
       
       if (error) {
@@ -74,6 +76,7 @@ const UserManager = () => {
       
       console.log("Users data received:", data);
       
+      // For each user, fetch their profile info
       const usersWithProfiles = await Promise.all(
         data.map(async (user: UserData) => {
           const { data: profileData } = await supabase
@@ -91,6 +94,7 @@ const UserManager = () => {
         })
       );
       
+      // Filter to only show admins
       const adminUsers = usersWithProfiles.filter(user => user.role === 'admin');
       setUsers(adminUsers);
     } catch (error) {
@@ -108,6 +112,7 @@ const UserManager = () => {
     }
     
     try {
+      // First check if user already exists
       const { data: existingUser } = await supabase.rpc('check_user_exists_by_email', {
         user_email: newEmail
       });
@@ -117,6 +122,7 @@ const UserManager = () => {
         return;
       }
       
+      // Create user directly with admin supabase client via edge function
       const { data, error } = await supabase.functions.invoke('create-admin-user', {
         body: {
           email: newEmail,
@@ -146,6 +152,7 @@ const UserManager = () => {
     if (!selectedUser) return;
     
     try {
+      // Update profile
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -160,7 +167,9 @@ const UserManager = () => {
         return;
       }
       
+      // Handle email change if needed
       if (newEmail !== selectedUser.email) {
+        // Update email via edge function
         const { error: emailError } = await supabase.functions.invoke('update-user-email', {
           body: {
             user_id: selectedUser.id,
@@ -174,6 +183,7 @@ const UserManager = () => {
         }
       }
       
+      // Handle password change if provided
       if (newPassword) {
         const { error: passwordError } = await supabase.functions.invoke('update-user-password', {
           body: {
@@ -204,6 +214,7 @@ const UserManager = () => {
     try {
       const userId = selectedUser.id;
       
+      // First, try to use the account utility function
       try {
         await deleteSpecificUserAccount(userId);
         toast.success("Utilisateur supprimé avec succès");
@@ -212,8 +223,10 @@ const UserManager = () => {
         return;
       } catch (utilError) {
         console.error("Error using utility function:", utilError);
+        // Fall back to the edge function
       }
       
+      // Fallback: delete user via edge function
       const { error } = await supabase.functions.invoke('delete-user', {
         body: { user_id: userId }
       });
@@ -255,6 +268,7 @@ const UserManager = () => {
     setShowDeleteDialog(true);
   };
   
+  // Helper function to format dates
   const formatDate = (dateString: string) => {
     if (!dateString) return "Jamais";
     return new Date(dateString).toLocaleString("fr-FR");
@@ -325,6 +339,7 @@ const UserManager = () => {
         </Table>
       )}
       
+      {/* Add User Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
@@ -404,6 +419,7 @@ const UserManager = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Edit User Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
@@ -482,6 +498,7 @@ const UserManager = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Delete User Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
@@ -512,6 +529,7 @@ const UserManager = () => {
   );
 };
 
+// Import the account utility function
 const deleteSpecificUserAccount = async (userId: string): Promise<void> => {
   const { deleteSpecificUserAccount } = await import('@/utils/accountUtils');
   return deleteSpecificUserAccount(userId);

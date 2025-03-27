@@ -1,143 +1,164 @@
 
-import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { updateProduct } from "@/services/catalogService";
-import { Product } from "@/types/catalog";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Plus, Save } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface ProductSpecificationsProps {
-  product: Product;
-  onSpecificationChange?: (key: string, value: string | number | boolean) => void;
-  specifications: Record<string, string | number | boolean>;
-  readOnly?: boolean;
+  productId: string;
+  initialSpecifications: Record<string, string>;
+  onSpecificationsUpdated?: () => void;
 }
 
 const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({
-  product,
-  onSpecificationChange,
-  specifications,
-  readOnly = false,
+  productId,
+  initialSpecifications = {},
+  onSpecificationsUpdated
 }) => {
-  const queryClient = useQueryClient();
+  const [specifications, setSpecifications] = useState<Record<string, string>>({});
   const [newSpecKey, setNewSpecKey] = useState("");
   const [newSpecValue, setNewSpecValue] = useState("");
+  const [isUpdated, setIsUpdated] = useState(false);
   
-  const updateProductMutation = useMutation({
-    mutationFn: (specs: Record<string, string | number | boolean>) => {
-      // Ensure we're passing the product ID and the specifications separately
-      return updateProduct(product.id, { specifications: specs });
-    },
+  // Update specifications mutation
+  const updateSpecificationsMutation = useMutation({
+    mutationFn: (specs: Record<string, string>) => 
+      updateProduct(productId, { specifications: specs }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["product", product.id] });
-      toast.success("Specifications updated successfully");
+      toast.success("Spécifications mises à jour avec succès");
+      setIsUpdated(false);
+      if (onSpecificationsUpdated) {
+        onSpecificationsUpdated();
+      }
     },
-    onError: (error) => {
-      console.error("Error updating specifications:", error);
-      toast.error("Error updating specifications");
-    },
+    onError: (error: any) => {
+      toast.error(`Erreur lors de la mise à jour des spécifications: ${error.message}`);
+    }
   });
   
-  const handleSpecificationChange = (
-    key: string,
-    value: string | number | boolean
-  ) => {
-    onSpecificationChange?.(key, value);
-  };
-
-  const handleAddSpecification = () => {
-    if (!newSpecKey.trim()) {
-      toast.error("Please enter a specification name");
-      return;
+  // Initialize specifications from props
+  useEffect(() => {
+    if (initialSpecifications) {
+      setSpecifications(initialSpecifications);
     }
-
-    const updatedSpecs = { 
-      ...specifications, 
-      [newSpecKey]: newSpecValue 
-    };
-    
-    onSpecificationChange?.(newSpecKey, newSpecValue);
-    
-    setNewSpecKey("");
-    setNewSpecValue("");
+  }, [initialSpecifications]);
+  
+  // Handle specification change
+  const handleSpecificationChange = (key: string, value: string) => {
+    setSpecifications({ ...specifications, [key]: value });
+    setIsUpdated(true);
   };
-
-  const handleRemoveSpecification = (key: string) => {
-    const updatedSpecs = { ...specifications };
-    delete updatedSpecs[key];
-    
-    // Update parent component state
-    if (onSpecificationChange) {
-      // We need to call this for each deleted key with undefined value
-      onSpecificationChange(key, "");
+  
+  // Add new specification
+  const addSpecification = () => {
+    if (newSpecKey && newSpecValue) {
+      handleSpecificationChange(newSpecKey, newSpecValue);
+      setNewSpecKey("");
+      setNewSpecValue("");
+    } else {
+      toast.error("Veuillez entrer un nom et une valeur pour la spécification");
     }
   };
-
-  const handleSaveSpecifications = async () => {
-    try {
-      await updateProductMutation.mutateAsync(specifications);
-    } catch (error) {
-      console.error("Error saving specifications:", error);
-    }
+  
+  // Remove specification
+  const removeSpecification = (key: string) => {
+    const newSpecs = { ...specifications };
+    delete newSpecs[key];
+    setSpecifications(newSpecs);
+    setIsUpdated(true);
   };
-
+  
+  // Save specifications
+  const saveSpecifications = () => {
+    updateSpecificationsMutation.mutate(specifications);
+  };
+  
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Spécifications</h3>
-      {Object.entries(specifications).map(([key, value]) => (
-        <div key={key} className="flex items-center space-x-4">
-          <Label htmlFor={`spec-${key}`}>{key}</Label>
-          <Input
-            type="text"
-            id={`spec-${key}`}
-            value={String(value)}
-            onChange={(e) =>
-              handleSpecificationChange(key, e.target.value)
-            }
-            disabled={readOnly}
-          />
-          {!readOnly && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => handleRemoveSpecification(key)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle>Spécifications techniques</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {Object.entries(specifications).length > 0 ? (
+            <div className="space-y-4">
+              {Object.entries(specifications).map(([key, value]) => (
+                <div key={key} className="flex items-center gap-2">
+                  <Input 
+                    value={key} 
+                    disabled 
+                    className="w-1/3" 
+                  />
+                  <Input 
+                    value={value} 
+                    onChange={(e) => handleSpecificationChange(key, e.target.value)} 
+                    className="w-2/3" 
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeSpecification(key)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center p-4 text-gray-500">
+              Aucune spécification définie pour ce produit.
+            </div>
           )}
-        </div>
-      ))}
-      {!readOnly && (
-        <>
-          <div className="flex items-center space-x-4">
-            <Input
-              type="text"
-              placeholder="Nom"
+          
+          <Separator className="my-4" />
+          
+          <h4 className="text-sm font-medium mb-2">Ajouter une spécification</h4>
+          <div className="flex items-center gap-2">
+            <Input 
               value={newSpecKey}
               onChange={(e) => setNewSpecKey(e.target.value)}
+              placeholder="Nom de la spécification"
+              className="w-1/3"
             />
-            <Input
-              type="text"
-              placeholder="Valeur"
+            <Input 
               value={newSpecValue}
               onChange={(e) => setNewSpecValue(e.target.value)}
+              placeholder="Valeur"
+              className="w-2/3"
             />
-            <Button type="button" variant="outline" onClick={handleAddSpecification}>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter
+            <Button
+              type="button"
+              onClick={addSpecification}
+            >
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={handleSaveSpecifications}>
-            <Save className="h-4 w-4 mr-2" />
-            Enregistrer les spécifications
-          </Button>
-        </>
-      )}
-    </div>
+          
+          {isUpdated && (
+            <div className="mt-4 flex justify-end">
+              <Button
+                onClick={saveSpecifications}
+                disabled={updateSpecificationsMutation.isPending}
+              >
+                {updateSpecificationsMutation.isPending ? (
+                  <span className="flex items-center">
+                    <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
+                    Sauvegarde...
+                  </span>
+                ) : "Enregistrer les modifications"}
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

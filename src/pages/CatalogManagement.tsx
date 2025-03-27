@@ -1,6 +1,7 @@
 
 import React from "react";
 import Container from "@/components/layout/Container";
+import ProductEditor from "@/components/catalog/ProductEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tag, Award } from "lucide-react";
 import CategoryManager from "@/components/catalog/CategoryManager";
@@ -21,11 +22,14 @@ const CatalogManagement = () => {
     products,
     isLoading,
     error,
+    isAddProductOpen,
+    setIsAddProductOpen,
     activeTab,
     setActiveTab,
     viewMode,
     groupingOption,
     setGroupingOption,
+    onProductAdded,
     handleProductDeleted,
     handleAddNewProduct,
     handleViewModeChange
@@ -81,6 +85,13 @@ const CatalogManagement = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Product editor dialog */}
+      <ProductEditor 
+        isOpen={isAddProductOpen} 
+        onClose={() => setIsAddProductOpen(false)} 
+        onSuccess={onProductAdded}
+      />
     </Container>
   );
 };

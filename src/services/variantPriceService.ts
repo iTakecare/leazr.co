@@ -1,97 +1,161 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ProductVariationAttributes, VariantCombinationPrice, ProductAttributes } from "@/types/catalog";
+import { 
+  ProductAttributes, 
+  ProductVariationAttributes,
+  VariantCombinationPrice 
+} from "@/types/catalog";
 
-export async function updateProductVariationAttributes(
-  productId: string, 
-  attributes: ProductVariationAttributes
-): Promise<any> {
+/**
+ * Récupère toutes les combinaisons de prix pour un produit donné
+ */
+export const getVariantCombinationPrices = async (productId: string): Promise<VariantCombinationPrice[]> => {
   try {
     const { data, error } = await supabase
-      .from('products')
-      .update({ variation_attributes: attributes })
-      .eq('id', productId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error updating product variation attributes:', error);
-    throw error;
-  }
-}
-
-export async function createVariantCombinationPrice(
-  combinationData: Omit<VariantCombinationPrice, 'id' | 'created_at' | 'updated_at'>
-): Promise<VariantCombinationPrice> {
-  try {
-    const { data, error } = await supabase
-      .from('variant_combination_prices')
-      .insert(combinationData)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error creating variant combination price:', error);
-    throw error;
-  }
-}
-
-export async function getVariantCombinationPrices(
-  productId: string
-): Promise<VariantCombinationPrice[]> {
-  try {
-    const { data, error } = await supabase
-      .from('variant_combination_prices')
+      .from('product_variant_prices')
       .select('*')
       .eq('product_id', productId)
-      .order('id');
+      .order('created_at', { ascending: false });
     
     if (error) throw error;
     
-    return data.map(item => ({
-      ...item,
-      stock: item.stock !== null ? item.stock : undefined
-    }));
+    return data || [];
   } catch (error) {
-    console.error('Error fetching variant combination prices:', error);
+    console.error("Error fetching variant combination prices:", error);
     throw error;
   }
-}
+};
 
-// Adding alias for findVariantCombinationPrice to maintain compatibility
-export const findVariantCombinationPrice = getVariantCombinationPrices;
+/**
+ * Crée une nouvelle combinaison de prix pour un produit
+ */
+export const createVariantCombinationPrice = async (
+  data: Omit<VariantCombinationPrice, 'id' | 'created_at' | 'updated_at'>
+): Promise<VariantCombinationPrice> => {
+  try {
+    // Adapter les données pour correspondre à la structure de la table
+    const dataToInsert = {
+      product_id: data.product_id,
+      attributes: data.attributes,
+      price: data.price !== undefined ? data.price : 0,
+      monthly_price: data.monthly_price !== undefined ? data.monthly_price : 0,
+      stock: data.stock
+    };
+    
+    console.log("Inserting variant price data:", dataToInsert);
+    
+    const { data: newPrice, error } = await supabase
+      .from('product_variant_prices')
+      .insert([dataToInsert])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating variant combination price:", error);
+      throw error;
+    }
+    
+    return newPrice;
+  } catch (error) {
+    console.error("Error creating variant combination price:", error);
+    throw error;
+  }
+};
 
-export async function deleteVariantCombinationPrice(id: string): Promise<void> {
+/**
+ * Supprime une combinaison de prix
+ */
+export const deleteVariantCombinationPrice = async (id: string): Promise<void> => {
   try {
     const { error } = await supabase
-      .from('variant_combination_prices')
+      .from('product_variant_prices')
       .delete()
       .eq('id', id);
     
     if (error) throw error;
   } catch (error) {
-    console.error('Error deleting variant combination price:', error);
+    console.error("Error deleting variant combination price:", error);
     throw error;
   }
-}
+};
 
-// Adding the missing function for updateParentProductRemovePrice
-export async function updateParentProductRemovePrice(productId: string): Promise<void> {
+/**
+ * Trouve une combinaison de prix basée sur les attributs sélectionnés
+ */
+export const findVariantCombinationPrice = async (
+  productId: string,
+  attributes: ProductAttributes
+): Promise<VariantCombinationPrice | null> => {
   try {
-    // Implementation depends on what this function is supposed to do.
-    // This is a placeholder implementation based on the name
+    // Récupérer toutes les combinaisons de prix pour ce produit
+    const { data, error } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', productId);
+    
+    if (error) throw error;
+    
+    if (!data || data.length === 0) return null;
+    
+    // Trouver la combinaison qui correspond exactement aux attributs
+    const foundPrice = data.find(price => {
+      if (!price.attributes) return false;
+      
+      const priceAttrs = price.attributes;
+      return Object.keys(attributes).every(
+        key => 
+          priceAttrs[key] !== undefined && 
+          attributes[key] !== undefined &&
+          String(priceAttrs[key]).toLowerCase() === String(attributes[key]).toLowerCase()
+      );
+    });
+    
+    return foundPrice || null;
+  } catch (error) {
+    console.error("Error finding variant combination price:", error);
+    throw error;
+  }
+};
+
+/**
+ * Met à jour les attributs de variation d'un produit
+ */
+export const updateProductVariationAttributes = async (
+  productId: string,
+  attributes: ProductVariationAttributes
+): Promise<void> => {
+  try {
     const { error } = await supabase
       .from('products')
-      .update({ has_variant_prices: false })
+      .update({
+        variation_attributes: attributes
+      })
       .eq('id', productId);
     
     if (error) throw error;
   } catch (error) {
-    console.error('Error updating parent product prices:', error);
+    console.error("Error updating product variation attributes:", error);
     throw error;
   }
-}
+};
+
+/**
+ * Met à jour un produit parent pour supprimer le prix d'achat fixe
+ */
+export const updateParentProductRemovePrice = async (
+  productId: string
+): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('products')
+      .update({
+        price: 0
+      })
+      .eq('id', productId);
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error updating parent product price:", error);
+    throw error;
+  }
+};

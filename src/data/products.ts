@@ -1,208 +1,270 @@
+
 import { Product } from "@/types/catalog";
 
-// Sample data for products
+// Sample product data if API fails
 export const products: Product[] = [
   {
     id: "1",
-    name: "Laptop Pro X1",
-    description: "High performance laptop for professionals",
-    price: 1299.99,
-    monthly_price: 69.99,
-    image_url: "/images/laptop1.jpg",
+    name: "Dell XPS 13",
+    brand: "Dell",
     category: "laptop",
-    brand: "TechBrand",
+    description: "Puissant ordinateur portable professionnel",
+    price: 1399,
+    monthly_price: 45.99,
+    imageUrl: "https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/xps-notebooks/xps-13-9315/media-gallery/notebook-xps-9315-nt-blue-gallery-3.psd?fmt=png-alpha&pscan=auto&scl=1&hei=402&wid=402&qlt=100,1&resMode=sharp2&size=402,402",
     specifications: {
-      processor: "Intel i7",
+      processor: "Intel Core i7",
       memory: "16GB",
       storage: "512GB SSD",
-      display: "15.6-inch 4K",
-      graphics: "NVIDIA GeForce RTX",
-      battery: "Up to 10 hours"
+      display: "13.4 pouces Full HD+"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "LPX1-001"
+    tier: "gold", // This laptop is available for the gold tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   },
   {
     id: "2",
-    name: "Ergonomic Office Chair",
-    description: "Comfortable and adjustable office chair",
-    price: 249.00,
-    monthly_price: 19.99,
-    image_url: "/images/chair1.jpg",
-    category: "furniture",
-    brand: "ComfortPlus",
+    name: "MacBook Pro 14",
+    brand: "Apple",
+    category: "laptop",
+    description: "Ordinateur portable Apple avec puce M2 Pro",
+    price: 1999,
+    monthly_price: 65.99,
+    imageUrl: "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp14-spacegray-select-202301?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1671304673229",
     specifications: {
-      material: "Mesh",
-      adjustability: "Full",
-      weight_capacity: "300 lbs",
-      color: "Black"
+      processor: "M2 Pro",
+      memory: "16GB",
+      storage: "512GB SSD", 
+      display: "14 pouces Liquid Retina XDR"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "CHR-002"
+    tier: "platinum", // This laptop is available for the platinum tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   },
   {
     id: "3",
-    name: "Wireless Keyboard and Mouse Combo",
-    description: "Reliable wireless combo for everyday use",
-    price: 59.99,
-    monthly_price: 5.99,
-    image_url: "/images/keyboard1.jpg",
-    category: "accessories",
-    brand: "KeyMaster",
+    name: "iPad Pro 12.9",
+    brand: "Apple",
+    category: "tablet",
+    description: "Tablette professionnelle avec écran Retina",
+    price: 1099,
+    monthly_price: 35.99,
+    imageUrl: "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/ipad-pro-13-select-cell-spacegray-202210?wid=940&hei=1112&fmt=png-alpha&.v=1664412732072",
     specifications: {
-      keyboard_type: "Wireless",
-      mouse_type: "Optical",
-      connectivity: "2.4 GHz",
-      battery_life: "12 months"
+      processor: "M2",
+      memory: "8GB",
+      storage: "256GB SSD",
+      display: "12.9 pouces Liquid Retina XDR"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "KBM-003"
+    tier: "platinum", // This tablet is available for the platinum tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   },
   {
     id: "4",
-    name: "4K Ultra HD Monitor",
-    description: "Stunning visuals for work and entertainment",
-    price: 399.00,
-    monthly_price: 29.99,
-    image_url: "/images/monitor1.jpg",
-    category: "monitor",
-    brand: "VisionTech",
+    name: "Surface Laptop 5",
+    brand: "Microsoft",
+    category: "laptop",
+    description: "Ordinateur portable élégant et performant",
+    price: 1299,
+    monthly_price: 42.99,
+    imageUrl: "https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE59bX0?ver=a611",
     specifications: {
-      screen_size: "27-inch",
-      resolution: "3840x2160",
-      panel_type: "IPS",
-      response_time: "5ms",
-      refresh_rate: "60Hz"
+      processor: "Intel Core i5",
+      memory: "8GB",
+      storage: "256GB SSD",
+      display: "13.5 pouces PixelSense"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "MON-004"
+    tier: "gold", // This laptop is available for the gold tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   },
   {
     id: "5",
-    name: "Noise Cancelling Headphones",
-    description: "Immerse yourself in your work or music",
-    price: 199.00,
-    monthly_price: 14.99,
-    image_url: "/images/headphones1.jpg",
-    category: "audio",
-    brand: "AudioZenith",
+    name: "iPhone 15 Pro",
+    brand: "Apple",
+    category: "smartphone",
+    description: "Smartphone haut de gamme avec caméra pro",
+    price: 1199,
+    monthly_price: 39.99,
+    imageUrl: "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-1inch-naturaltitanium?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1692845702708",
     specifications: {
-      type: "Over-ear",
-      noise_cancellation: "Active",
-      battery_life: "Up to 20 hours",
-      connectivity: "Bluetooth 5.0"
+      processor: "A17 Pro",
+      memory: "8GB",
+      storage: "256GB",
+      display: "6.1 pouces Super Retina XDR"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "HPH-005"
+    tier: "platinum", // This smartphone is available for the platinum tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   },
   {
     id: "6",
-    name: "Standing Desk Converter",
-    description: "Transform your desk into a standing workstation",
-    price: 299.00,
-    monthly_price: 22.99,
-    image_url: "/images/desk1.jpg",
-    category: "furniture",
-    brand: "ErgoRise",
+    name: "Samsung Galaxy S23 Ultra",
+    brand: "Samsung",
+    category: "smartphone",
+    description: "Smartphone Android avec S Pen intégré",
+    price: 1299,
+    monthly_price: 42.99,
+    imageUrl: "https://images.samsung.com/fr/smartphones/galaxy-s23-ultra/buy/03_Color_Selection/07_PDP_Carousel/S23Ultra_Carousel_ColorSelection_Lavender_MO.jpg",
     specifications: {
-      adjustability: "Height adjustable",
-      desk_size: "32x24 inches",
-      weight_capacity: "40 lbs",
-      material: "Wood"
+      processor: "Snapdragon 8 Gen 2",
+      memory: "12GB",
+      storage: "256GB",
+      display: "6.8 pouces Dynamic AMOLED 2X"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "DSK-006"
+    tier: "gold", // This smartphone is available for the gold tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   },
   {
     id: "7",
-    name: "Webcam 1080p",
-    description: "High-definition webcam for video conferencing",
-    price: 79.99,
-    monthly_price: 7.99,
-    image_url: "/images/webcam1.jpg",
-    category: "accessories",
-    brand: "ClearView",
+    name: "ThinkPad X1 Carbon",
+    brand: "Lenovo",
+    category: "laptop",
+    description: "Ordinateur portable professionnel léger et robuste",
+    price: 1599,
+    monthly_price: 52.99,
+    imageUrl: "https://p2-ofp.static.pub/fes/cms/2022/04/26/dx4k8mid73gk5ldw8rkodl7c7c04pe236853.png",
     specifications: {
-      resolution: "1920x1080",
-      frame_rate: "30fps",
-      microphone: "Built-in",
-      connectivity: "USB"
+      processor: "Intel Core i7",
+      memory: "16GB",
+      storage: "512GB SSD",
+      display: "14 pouces WUXGA"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "WCM-007"
+    tier: "platinum", // This laptop is available for the platinum tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   },
   {
     id: "8",
-    name: "External SSD 1TB",
-    description: "Portable solid-state drive for fast data transfer",
-    price: 149.00,
-    monthly_price: 11.99,
-    image_url: "/images/ssd1.jpg",
-    category: "storage",
-    brand: "DataSwift",
+    name: "Galaxy Tab S9 Ultra",
+    brand: "Samsung",
+    category: "tablet",
+    description: "Tablette Android haut de gamme avec stylet",
+    price: 1299,
+    monthly_price: 42.99,
+    imageUrl: "https://images.samsung.com/is/image/samsung/p6pim/fr/sm-x910nzaeeub/gallery/fr-galaxy-tab-s9-ultra-wifi-sm-x910nzaeeub-536818644?$650_519_PNG$",
     specifications: {
-      capacity: "1TB",
-      transfer_speed: "Up to 500MB/s",
-      connectivity: "USB 3.0",
-      form_factor: "Portable"
+      processor: "Snapdragon 8 Gen 2",
+      memory: "12GB",
+      storage: "256GB",
+      display: "14.6 pouces Dynamic AMOLED 2X"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "SSD-008"
+    tier: "gold", // This tablet is available for the gold tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   },
   {
     id: "9",
-    name: "Wireless Charging Pad",
-    description: "Convenient wireless charging for your devices",
-    price: 29.99,
-    monthly_price: 2.99,
-    image_url: "/images/charger1.jpg",
-    category: "accessories",
-    brand: "ChargeUp",
+    name: "Lenovo Ideapad",
+    brand: "Lenovo",
+    category: "laptop",
+    description: "Ordinateur portable abordable pour usage quotidien",
+    price: 699,
+    monthly_price: 22.99,
+    imageUrl: "https://p2-ofp.static.pub/fes/cms/2022/04/26/dx4k8mid73gk5ldw8rkodl7c7c04pe236853.png",
     specifications: {
-      compatibility: "Qi-enabled devices",
-      charging_speed: "10W",
-      material: "Aluminum",
-      color: "Black"
+      processor: "Intel Core i3",
+      memory: "8GB",
+      storage: "256GB SSD",
+      display: "15.6 pouces Full HD"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "CHP-009"
+    tier: "silver", // This laptop is available for the silver tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   },
   {
     id: "10",
-    name: "Laptop Backpack",
-    description: "Durable and stylish backpack for laptops and accessories",
-    price: 89.00,
-    monthly_price: 8.99,
-    image_url: "/images/backpack1.jpg",
-    category: "accessories",
-    brand: "CarryAll",
+    name: "Samsung Galaxy A54",
+    brand: "Samsung",
+    category: "smartphone",
+    description: "Smartphone milieu de gamme avec bon rapport qualité-prix",
+    price: 499,
+    monthly_price: 16.99,
+    imageUrl: "https://images.samsung.com/fr/smartphones/galaxy-a54-5g/buy/04_Color_Selection/mobile/a54_carousel_colorselection_awesome_graphite_mo.jpg",
     specifications: {
-      laptop_size: "Up to 15.6-inch",
-      material: "Water-resistant nylon",
-      capacity: "20L",
-      color: "Gray"
+      processor: "Exynos 1380",
+      memory: "6GB",
+      storage: "128GB",
+      display: "6.4 pouces Super AMOLED"
     },
-    active: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sku: "BCK-010"
+    tier: "silver", // This smartphone is available for the silver tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
+  },
+  {
+    id: "11",
+    name: "iPad 10e gen",
+    brand: "Apple",
+    category: "tablet",
+    description: "Tablette abordable pour un usage quotidien",
+    price: 599,
+    monthly_price: 19.99,
+    imageUrl: "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/ipad-10th-gen-finish-select-202212-blue?wid=2560&hei=1440&fmt=p-jpg&qlt=95&.v=1670854677494",
+    specifications: {
+      processor: "A14 Bionic",
+      memory: "4GB",
+      storage: "64GB",
+      display: "10.9 pouces Retina"
+    },
+    tier: "silver", // This tablet is available for the silver tier
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true
   }
 ];
+
+/**
+ * Get a product by its ID
+ */
+export const getProductById = (id: string): Product | undefined => {
+  return products.find((product) => product.id === id);
+};
+
+/**
+ * Get products by category
+ */
+export const getProductsByCategory = (category: string): Product[] => {
+  return products.filter((product) => product.category === category);
+};
+
+/**
+ * Get all unique product categories
+ */
+export const getProductCategories = (): string[] => {
+  return [...new Set(products.map((product) => product.category))];
+};
+
+/**
+ * Get all brands
+ */
+export const getProductBrands = (): string[] => {
+  return [...new Set(products.map((product) => product.brand))];
+};
+
+/**
+ * Search products by term
+ */
+export const searchProducts = (term: string): Product[] => {
+  const searchTerm = term.toLowerCase();
+  return products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm) ||
+    product.description.toLowerCase().includes(searchTerm) ||
+    product.brand.toLowerCase().includes(searchTerm) ||
+    product.category.toLowerCase().includes(searchTerm)
+  );
+};
+
+// Re-export the Product type for backward compatibility
+export type { Product } from "@/types/catalog";

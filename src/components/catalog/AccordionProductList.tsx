@@ -1,171 +1,261 @@
 
-import React from 'react';
-import { Product } from '@/types/catalog';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/utils/formatters';
-import VariantIndicator from '@/components/ui/product/VariantIndicator';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { Product } from "@/types/catalog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Edit, Trash2, Copy } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/utils/formatters";
+import { toast } from "@/components/ui/use-toast";
+import VariantIndicator from "@/components/ui/product/VariantIndicator";
 
 interface AccordionProductListProps {
   products: Product[];
-  onEdit?: (productId: string) => void;
-  onDelete?: (productId: string) => void;
-  groupingOption?: "brand" | "category";
+  onProductDeleted: (productId: string) => Promise<void> | null;
+  groupingOption: "model" | "brand";
   readOnly?: boolean;
 }
 
-const AccordionProductList: React.FC<AccordionProductListProps> = ({ 
+const AccordionProductList: React.FC<AccordionProductListProps> = ({
   products,
-  onEdit,
-  onDelete,
-  groupingOption = "category",
+  onProductDeleted,
+  groupingOption,
   readOnly = false
 }) => {
-  const navigate = useNavigate();
+  const [isDeleting, setIsDeleting] = useState<{ [key: string]: boolean }>({});
   
+  console.log("AccordionProductList: Received products:", products.length);
+  
+  if (!products || products.length === 0) {
+    return (
+      <div className="text-center p-8 border rounded-lg bg-muted/10">
+        <p className="text-muted-foreground">Aucun produit trouvé</p>
+      </div>
+    );
+  }
+
   const groupedProducts = products.reduce((acc, product) => {
-    const groupKey = groupingOption === "brand" ? 
-      (product.brand || 'Autres marques') : 
-      (product.category || 'Autres produits');
+    if (product.parent_id) return acc;
+    
+    const groupKey = groupingOption === "model" ? 
+      (product.model || product.name) : 
+      (product.brand || "Sans marque");
     
     if (!acc[groupKey]) {
       acc[groupKey] = [];
     }
+    
     acc[groupKey].push(product);
     return acc;
   }, {} as Record<string, Product[]>);
 
-  const handleEdit = (productId: string) => {
-    if (onEdit) {
-      onEdit(productId);
-    } else {
-      navigate(`/catalog/edit-product/${productId}`);
+  // Méthode pour compter le nombre de variantes EXISTANTES (configurations réelles)
+  const countExistingVariants = (product: Product): number => {
+    // Ajouter du logging pour déboguer
+    console.log(`AccordionProductList: Counting variants for ${product.name}:`, {
+      variants_count: product.variants_count,
+      combinationPrices: product.variant_combination_prices?.length,
+      variants: product.variants?.length
+    });
+    
+    // 1. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
+    if (product.variants_count !== undefined && product.variants_count > 0) {
+      return product.variants_count;
     }
-  };
-
-  const handleDelete = (productId: string) => {
-    if (onDelete) onDelete(productId);
-  };
-
-  // Sort group names to ensure consistent order with categories first
-  const sortedGroupNames = Object.keys(groupedProducts).sort((a, b) => {
-    // Special case for "Autres produits" to always be last
-    if (a === "Autres produits") return 1;
-    if (b === "Autres produits") return -1;
-    return a.localeCompare(b);
-  });
-
-  const getConfigurationsCount = (product: Product): number => {
-    if (product.variants && product.variants.length > 0) {
-      return product.variants.length;
-    }
+    
+    // 2. Si le produit a des combinaisons de prix de variantes, compter celles-ci
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
+    
+    // 3. Si le produit a des variantes directes, compter celles-ci
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.length;
+    }
+    
+    // 4. Si le produit a des attributs de variation mais pas de variantes/combinaisons existantes,
+    // nous ne comptons pas les variantes théoriques, mais retournons 0 car aucune configuration n'existe
     return 0;
   };
 
-  const isParentProduct = (product: Product): boolean => {
-    return product.is_parent || 
-           (product.variants && product.variants.length > 0) || 
-           (product.variant_combination_prices && product.variant_combination_prices.length > 0);
+  // Déterminer si le produit a des variantes
+  const hasVariants = (product: Product): boolean => {
+    if (!product) return false;
+    
+    // Les conditions pour qu'un produit ait des variantes
+    return (
+      (product.is_parent === true) || 
+      (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
+      (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) ||
+      (product.variants && product.variants.length > 0)
+    );
+  };
+
+  // Logging pour déboguer
+  products.forEach(product => {
+    const hasVariantsFlag = hasVariants(product);
+    const variantsCount = hasVariantsFlag ? countExistingVariants(product) : 0;
+    if (hasVariantsFlag) {
+      console.log(`AccordionProductList: Product ${product.name} has ${variantsCount} existing variants`);
+      if (product.variant_combination_prices) {
+        console.log(`AccordionProductList: Product ${product.name} variant combinations: ${product.variant_combination_prices.length}`);
+      }
+    }
+  });
+
+  const handleDelete = async (productId: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
+    if (!onProductDeleted) return;
+    
+    if (confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
+      try {
+        setIsDeleting(prev => ({ ...prev, [productId]: true }));
+        await onProductDeleted(productId);
+        toast({
+          title: "Produit supprimé",
+          description: "Le produit a été supprimé avec succès",
+          variant: "default",
+        });
+      } catch (error) {
+        console.error("Erreur lors de la suppression:", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la suppression",
+          variant: "destructive",
+        });
+      } finally {
+        setIsDeleting(prev => ({ ...prev, [productId]: false }));
+      }
+    }
+  };
+
+  const handleDuplicate = (product: Product, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
+    const duplicatedProduct = {
+      ...product,
+      name: `${product.name} (copie)`,
+    };
+    
+    toast({
+      title: "Fonctionnalité en développement",
+      description: "La duplication de produits sera bientôt disponible",
+      variant: "default",
+    });
+    
+    console.log("Produit à dupliquer:", duplicatedProduct);
   };
 
   return (
-    <Accordion type="multiple" className="space-y-4" defaultValue={sortedGroupNames}>
-      {sortedGroupNames.map((groupKey) => (
-        <AccordionItem key={groupKey} value={groupKey} className="border rounded-lg overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 hover:bg-gray-50">
-            <div className="flex items-center">
-              <span className="font-medium">{groupKey}</span>
-              <Badge variant="outline" className="ml-2">{groupedProducts[groupKey].length}</Badge>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="divide-y">
-              {groupedProducts[groupKey].map((product) => {
-                const configCount = getConfigurationsCount(product);
-                const isParent = isParentProduct(product);
-                
-                return (
-                  <div key={product.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 mr-4 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
-                        {product.image_url ? (
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/placeholder.svg";
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                            <span className="text-gray-400 text-xs">No img</span>
+    <div className="space-y-4">
+      {Object.entries(groupedProducts).map(([group, groupProducts]) => (
+        <div key={group} className="bg-card rounded-md overflow-hidden border">
+          <div className="bg-muted/40 px-4 py-2 font-medium text-lg">
+            {group}
+          </div>
+          <Accordion type="multiple" className="px-0">
+            {groupProducts.map((product) => {
+              const productHasVariants = hasVariants(product);
+              const variantsCount = productHasVariants ? countExistingVariants(product) : 0;
+              
+              return (
+                <div key={product.id}>
+                  <AccordionItem value={product.id} className="border-b">
+                    <div className="flex items-center pr-4">
+                      <AccordionTrigger className="px-4 hover:no-underline flex-1 [&>svg]:hidden">
+                        <div className="flex-1 flex items-center">
+                          <div className="w-14 h-14 flex-shrink-0 rounded overflow-hidden mr-4 bg-muted">
+                            {product.image_url ? (
+                              <img
+                                src={product.image_url}
+                                alt={product.name}
+                                className="w-full h-full object-contain p-1"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = "/placeholder.svg";
+                                }}
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center w-full h-full bg-muted text-muted-foreground">
+                                <span className="text-xs">No image</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{product.name}</h3>
-                        <div className="text-sm text-gray-500">
-                          {product.brand && (
-                            <span className="mr-2">{product.brand}</span>
-                          )}
-                          <VariantIndicator 
-                            hasVariants={isParent} 
-                            variantsCount={configCount} 
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {/* Only show price for non-parent products */}
-                      {!isParent && (
-                        <div className="text-right">
-                          {product.monthly_price ? (
-                            <>
-                              <div className="font-medium text-primary">
-                                {formatCurrency(product.monthly_price)}/mois
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                ou {formatCurrency(product.price || 0)}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="font-medium">
-                              {formatCurrency(product.price || 0)}
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium">{product.name}</h3>
+                              
+                              <VariantIndicator 
+                                hasVariants={productHasVariants} 
+                                variantsCount={variantsCount} 
+                              />
                             </div>
+                            <div className="text-sm text-muted-foreground mt-1 flex flex-wrap gap-2">
+                              {product.brand && (
+                                <Badge variant="outline" className="bg-gray-50">{product.brand}</Badge>
+                              )}
+                              {product.category && (
+                                <Badge variant="outline" className="bg-gray-50">{product.category}</Badge>
+                              )}
+                              {product.monthly_price !== undefined && product.monthly_price > 0 && (
+                                <span className="text-primary font-medium">
+                                  {formatCurrency(product.monthly_price)}/mois
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      
+                      {!readOnly && (
+                        <div className="flex items-center gap-1 ml-auto">
+                          <Link to={`/products/${product.id}`}>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={(e) => handleDuplicate(product, e as React.MouseEvent)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          {onProductDeleted && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              disabled={isDeleting[product.id]}
+                              onClick={(e) => handleDelete(product.id, e as React.MouseEvent)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
                       )}
-                      {!readOnly && (
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(product.id)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDelete(product.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+                    
+                    <AccordionContent className="px-4 pb-2">
+                      {/* Intentionally left empty */}
+                    </AccordionContent>
+                  </AccordionItem>
+                </div>
+              );
+            })}
+          </Accordion>
+        </div>
       ))}
-    </Accordion>
+    </div>
   );
 };
 

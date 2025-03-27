@@ -1,43 +1,84 @@
 
-import React from "react";
-import { Menu, Bell, Search } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { Link } from "react-router-dom";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import NavbarUserProfile from "./NavbarUserProfile";
 
 interface NavbarProps {
-  onMenuClick?: () => void;
+  onMenuClick: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
-  return (
-    <header className="border-b p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={onMenuClick}
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle menu</span>
-          </Button>
-          
-          <div className="hidden md:flex relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Rechercher..."
-              className="h-9 w-[200px] lg:w-[280px] rounded-md border border-input bg-background px-8 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            />
-          </div>
-        </div>
+const Navbar = ({ onMenuClick }: NavbarProps) => {
+  const { user } = useAuth();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
         
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">3</span>
-            <span className="sr-only">Notifications</span>
-          </Button>
+        if (error) {
+          console.error("Erreur lors de la récupération de l'avatar:", error);
+          return;
+        }
+        
+        if (data?.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
+      } catch (err) {
+        console.error("Erreur lors du chargement de l'avatar:", err);
+      }
+    };
+    
+    fetchAvatar();
+  }, [user]);
+
+  const getUserInitials = () => {
+    if (!user) return "IT";
+    
+    if (user.first_name && user.last_name) {
+      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+    } else if (user.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return "IT";
+  };
+
+  return (
+    <header className="sticky top-0 z-30 border-b bg-background">
+      <div className="flex h-16 items-center px-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="mr-2 md:hidden"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Menu</span>
+        </Button>
+        
+        <Link to="/" className="text-xl font-semibold text-primary hidden md:block">
+          Hub iTakecare
+        </Link>
+        
+        <div className="ml-auto flex items-center space-x-4">
+          {user && (
+            <NavbarUserProfile 
+              user={user}
+              avatarUrl={avatarUrl}
+              getUserInitials={getUserInitials} 
+            />
+          )}
         </div>
       </div>
     </header>
