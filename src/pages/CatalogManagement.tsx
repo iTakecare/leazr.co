@@ -14,7 +14,7 @@ import CatalogContent from "@/components/catalog/management/CatalogContent";
 import { useCatalogManagement } from "@/hooks/catalog/useCatalogManagement";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-export default function CatalogManagement() {
+const CatalogManagement = () => {
   const isMobile = useIsMobile();
   
   // Use catalog management hook
@@ -94,4 +94,6 @@ export default function CatalogManagement() {
       />
     </Container>
   );
-}
+};
+
+export default CatalogManagement;
