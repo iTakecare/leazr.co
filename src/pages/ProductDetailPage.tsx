@@ -317,7 +317,7 @@ const ProductDetailPage = () => {
                 </div>
                 
                 <h1 className="text-3xl font-bold mb-2 text-white">
-                  Location {productName}
+                  Leasing {productName}
                 </h1>
                 
                 <div className="text-lg text-indigo-100 mb-4">
