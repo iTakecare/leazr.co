@@ -38,7 +38,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
       {products.map((product) => (
         <motion.div key={product.id} variants={itemVariants}>
           <Link
-            to={`/products/${product.id}`}
+            to={`/catalog/products/${product.id}`}
             className="block h-full"
           >
             <ProductCard product={product} />
