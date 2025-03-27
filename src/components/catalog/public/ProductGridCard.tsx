@@ -144,12 +144,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           />
         </div>
         
-        <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-1">{product.name}</h3>
+        <h3 className="font-bold text-gray-900 text-sm mb-1 truncate">{product.name}</h3>
         
         <div className="mt-auto pt-2">
           {hasPrice ? (
             <div className="text-gray-700 text-sm">
-              {hasVariantsFlag ? "à partir de " : ""}
+              {hasVariantsFlag ? "À partir de " : ""}
               <span className="font-bold text-indigo-700">{formatCurrency(monthlyPrice)}</span>
               <span className="text-xs"> par mois</span>
             </div>
