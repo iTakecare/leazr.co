@@ -101,8 +101,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <div className="flex h-screen">
         {/* Keep existing Sidebar - it will be hidden on mobile screens */}
         <Sidebar
-          mobileOpen={mobileOpen}
-          setMobileOpen={setMobileOpen}
           menuItems={menuItems}
           isActive={isActive}
           onLinkClick={onLinkClick}

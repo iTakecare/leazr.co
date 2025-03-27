@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Euro, Package } from "lucide-react";
 import VariantAttributeSelector from "./VariantAttributeSelector";
-import { findVariantCombinationPrice } from "@/services/variantPriceService";
+import { getVariantCombinationPrices } from "@/services/variantPriceService";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
 
@@ -85,16 +85,30 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
       
       // Option 2: Fallback to API lookup
       console.log("Searching for variant price via API");
-      const priceMatch = await findVariantCombinationPrice(product.id, attributes);
+      const priceMatches = await getVariantCombinationPrices(product.id);
       
-      console.log("API price match result:", priceMatch);
-      setSelectedPrice(priceMatch);
+      console.log("API price match results:", priceMatches);
+      
+      // Find the matching price
+      const match = priceMatches.find(price => {
+        if (!price.attributes) return false;
+        
+        return Object.keys(attributes).every(key => 
+          String(price.attributes[key]).toLowerCase() === String(attributes[key]).toLowerCase()
+        );
+      });
+      
+      setSelectedPrice(match || null);
       
       if (onVariantSelect) {
-        onVariantSelect(priceMatch);
+        onVariantSelect(match || null);
       }
     } catch (error) {
       console.error("Error finding variant price:", error);
+      setSelectedPrice(null);
+      if (onVariantSelect) {
+        onVariantSelect(null);
+      }
     } finally {
       setIsLoading(false);
     }
