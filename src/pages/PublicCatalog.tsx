@@ -31,6 +31,7 @@ const PublicCatalog = () => {
     if (products && products.length > 0) {
       console.log("Total products loaded:", products.length);
       
+      // Compter les produits avec des variantes
       const productsWithVariants = products.filter(p => 
         p.variants && p.variants.length > 0 || 
         p.variant_combination_prices && p.variant_combination_prices.length > 0 ||
@@ -39,6 +40,7 @@ const PublicCatalog = () => {
       
       console.log("Products with variants:", productsWithVariants.length);
       
+      // Log des informations détaillées sur chaque produit avec variantes
       productsWithVariants.forEach(p => {
         console.log(`Product "${p.name}" (${p.id}) variant info:`, {
           has_variants: p.variants && p.variants.length > 0,
@@ -54,12 +56,15 @@ const PublicCatalog = () => {
   }, [products]);
 
   const groupedProducts = React.useMemo(() => {
+    // Filtrer pour n'obtenir que les produits parents (non-variantes)
     const parentProducts = products.filter(p => 
       !p.parent_id && !p.is_variation
     );
     
+    // Créer une map pour stocker les variantes par produit parent
     const variantMap = new Map<string, Product[]>();
     
+    // Grouper les variantes par produit parent
     products.forEach(product => {
       if (product.parent_id) {
         const variants = variantMap.get(product.parent_id) || [];
@@ -68,11 +73,14 @@ const PublicCatalog = () => {
       }
     });
     
+    // Attacher les variantes à leurs produits parents
     parentProducts.forEach(parent => {
       if (parent.id) {
         const variants = variantMap.get(parent.id) || [];
         parent.variants = variants;
-        parent.is_parent = variants.length > 0;
+        parent.is_parent = variants.length > 0 || 
+                          (parent.variation_attributes && Object.keys(parent.variation_attributes).length > 0) ||
+                          (parent.variant_combination_prices && parent.variant_combination_prices.length > 0);
       }
     });
     
