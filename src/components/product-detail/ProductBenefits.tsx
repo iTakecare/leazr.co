@@ -1,57 +1,60 @@
 
 import React from "react";
-import { Check } from "lucide-react";
+import { Check, DollarSign, RefreshCw, TrendingUp, FileText } from "lucide-react";
 
 const ProductBenefits = () => {
   return (
-    <div className="my-12 bg-gray-50 p-6 rounded-lg border border-gray-200">
-      <h2 className="text-xl font-bold mb-6">Les avantages de la location</h2>
+    <div className="my-12 bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-8 rounded-2xl shadow-lg">
+      <h2 className="text-2xl font-bold mb-8 text-white flex items-center">
+        <TrendingUp className="h-6 w-6 mr-3" />
+        Pourquoi choisir la location ?
+      </h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex items-start">
-          <div className="bg-indigo-100 p-2 rounded-full mr-3 mt-1">
-            <Check className="h-4 w-4 text-indigo-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105">
+          <div className="bg-white rounded-full p-2 mr-4 mt-1">
+            <DollarSign className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="font-medium text-gray-900 mb-1">Pas d'investissement initial</h3>
-            <p className="text-gray-600 text-sm">
-              Préservez votre trésorerie et votre capacité d'emprunt pour d'autres projets.
+            <h3 className="font-semibold text-white text-lg mb-2">Préservez votre trésorerie</h3>
+            <p className="text-indigo-100">
+              Pas d'investissement initial important. Conservez votre capacité d'emprunt pour d'autres projets stratégiques.
             </p>
           </div>
         </div>
         
-        <div className="flex items-start">
-          <div className="bg-indigo-100 p-2 rounded-full mr-3 mt-1">
-            <Check className="h-4 w-4 text-indigo-600" />
+        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105">
+          <div className="bg-white rounded-full p-2 mr-4 mt-1">
+            <RefreshCw className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="font-medium text-gray-900 mb-1">Équipements toujours à jour</h3>
-            <p className="text-gray-600 text-sm">
-              Remplacez facilement vos équipements en fin de contrat par des modèles plus récents.
+            <h3 className="font-semibold text-white text-lg mb-2">Toujours à la pointe</h3>
+            <p className="text-indigo-100">
+              Renouvelez facilement vos équipements en fin de contrat pour disposer des dernières technologies et éviter l'obsolescence.
             </p>
           </div>
         </div>
         
-        <div className="flex items-start">
-          <div className="bg-indigo-100 p-2 rounded-full mr-3 mt-1">
-            <Check className="h-4 w-4 text-indigo-600" />
+        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105">
+          <div className="bg-white rounded-full p-2 mr-4 mt-1">
+            <Check className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="font-medium text-gray-900 mb-1">Coûts maîtrisés et prévisibles</h3>
-            <p className="text-gray-600 text-sm">
-              Un loyer fixe mensuel pour une meilleure gestion budgétaire.
+            <h3 className="font-semibold text-white text-lg mb-2">Budgétisation simplifiée</h3>
+            <p className="text-indigo-100">
+              Loyers fixes mensuels prévisibles, incluant souvent les services et la maintenance, pour une meilleure maîtrise budgétaire.
             </p>
           </div>
         </div>
         
-        <div className="flex items-start">
-          <div className="bg-indigo-100 p-2 rounded-full mr-3 mt-1">
-            <Check className="h-4 w-4 text-indigo-600" />
+        <div className="flex items-start backdrop-blur-sm bg-white/10 rounded-xl p-5 transform transition hover:scale-105">
+          <div className="bg-white rounded-full p-2 mr-4 mt-1">
+            <FileText className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="font-medium text-gray-900 mb-1">Avantage fiscal</h3>
-            <p className="text-gray-600 text-sm">
-              Les loyers sont des charges déductibles du résultat imposable de l'entreprise.
+            <h3 className="font-semibold text-white text-lg mb-2">Optimisation fiscale</h3>
+            <p className="text-indigo-100">
+              Les loyers sont intégralement déductibles des résultats de l'entreprise, offrant un avantage fiscal par rapport à l'achat.
             </p>
           </div>
         </div>
