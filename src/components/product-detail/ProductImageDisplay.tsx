@@ -38,9 +38,9 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   };
 
   return (
-    <div className="lg:sticky lg:top-4">
+    <div>
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden transition-all hover:shadow-md mb-4">
-        <div className="relative w-full aspect-video flex items-center justify-center p-6">
+        <div className="relative w-full aspect-square md:aspect-video flex items-center justify-center p-4">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
               <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
