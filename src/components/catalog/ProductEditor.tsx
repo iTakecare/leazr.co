@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info, ChevronLeft, Settings, RefreshCw, Save, Check } from "lucide-react";
+import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info, ChevronLeft, Settings, RefreshCw, Save, Check, Edit, Pencil } from "lucide-react";
 import { Product, ProductVariationAttributes, ProductAttributes, VariantCombinationPrice } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -118,11 +118,14 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
   const { data: fetchedVariantCombinations, refetch: refetchVariants } = useQuery({
     queryKey: ["variant-combinations", product?.id],
     queryFn: () => getVariantCombinationPrices(product?.id || ""),
-    enabled: isEditing && !!product?.id && product.is_parent,
-    onSuccess: (data) => {
-      setVariantCombinations(data);
-    }
+    enabled: isEditing && !!product?.id && product.is_parent
   });
+
+  useEffect(() => {
+    if (fetchedVariantCombinations) {
+      setVariantCombinations(fetchedVariantCombinations);
+    }
+  }, [fetchedVariantCombinations]);
 
   useEffect(() => {
     if (isEditing && product) {
@@ -151,12 +154,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
       }
     }
   }, [isEditing, product, refetchVariants]);
-
-  useEffect(() => {
-    if (fetchedVariantCombinations) {
-      setVariantCombinations(fetchedVariantCombinations);
-    }
-  }, [fetchedVariantCombinations]);
 
   const resetForm = () => {
     setName("");
