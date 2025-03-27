@@ -216,12 +216,20 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       }
     }
     
+    let stockNumber: number | undefined = undefined;
+    if (stock !== "") {
+      stockNumber = Number(stock);
+      if (isNaN(stockNumber)) {
+        stockNumber = 0;
+      }
+    }
+    
     const newVariantPrice = {
       product_id: product.id,
       attributes: selectedAttributes,
       price: numPurchasePrice,
       monthly_price: monthlyPrice ? Number(monthlyPrice) : undefined,
-      stock: stock ? Number(stock) : undefined
+      stock: stockNumber
     };
     
     if (isEditing && editingVariantId) {

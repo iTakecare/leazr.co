@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ProductAttributes, 
@@ -39,8 +38,27 @@ export const createVariantCombinationPrice = async (
       attributes: data.attributes,
       price: data.price !== undefined ? data.price : 0,
       monthly_price: data.monthly_price !== undefined ? data.monthly_price : 0,
-      stock: data.stock
+      stock: null
     };
+    
+    // Traiter correctement la valeur de stock
+    if (data.stock !== undefined) {
+      // Si stock est un objet avec _type et value, essayer de récupérer la valeur
+      if (typeof data.stock === 'object' && data.stock !== null) {
+        if ('value' in data.stock && typeof data.stock.value !== 'undefined') {
+          const stockValue = Number(data.stock.value);
+          if (!isNaN(stockValue)) {
+            dataToInsert.stock = stockValue;
+          }
+        }
+      } else if (typeof data.stock === 'number' || typeof data.stock === 'string') {
+        // Si c'est directement un nombre ou une chaîne, la convertir en nombre
+        const stockValue = Number(data.stock);
+        if (!isNaN(stockValue)) {
+          dataToInsert.stock = stockValue;
+        }
+      }
+    }
     
     console.log("Inserting variant price data:", dataToInsert);
     
