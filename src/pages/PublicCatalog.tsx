@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
@@ -139,7 +140,7 @@ const PublicCatalog = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {[...Array(10)].map((_, i) => (
               <div key={i} className="bg-white rounded-lg shadow animate-pulse h-[280px]">
-                <div className="h-0 pb-[90%] bg-gray-200 rounded-t-lg"></div>
+                <div className="h-0 pb-[100%] bg-gray-200 rounded-t-lg"></div>
                 <div className="p-3 space-y-2">
                   <div className="h-3 bg-gray-200 rounded w-1/3"></div>
                   <div className="h-4 bg-gray-200 rounded w-4/5"></div>
