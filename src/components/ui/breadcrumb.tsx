@@ -1,6 +1,7 @@
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
-import { ChevronRight, MoreHorizontal } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -19,7 +20,7 @@ const BreadcrumbList = React.forwardRef<
   <ol
     ref={ref}
     className={cn(
-      "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5",
+      "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground",
       className
     )}
     {...props}
@@ -50,7 +51,10 @@ const BreadcrumbLink = React.forwardRef<
   return (
     <Comp
       ref={ref}
-      className={cn("transition-colors hover:text-foreground", className)}
+      className={cn(
+        "transition-colors hover:text-foreground text-xs text-gray-600",
+        className
+      )}
       {...props}
     />
   )
@@ -66,7 +70,7 @@ const BreadcrumbPage = React.forwardRef<
     role="link"
     aria-disabled="true"
     aria-current="page"
-    className={cn("font-normal text-foreground", className)}
+    className={cn("text-xs text-foreground font-normal", className)}
     {...props}
   />
 ))
@@ -80,29 +84,41 @@ const BreadcrumbSeparator = ({
   <li
     role="presentation"
     aria-hidden="true"
-    className={cn("[&>svg]:size-3.5", className)}
+    className={cn("[&>svg]:size-3.5 text-muted-foreground", className)}
     {...props}
   >
-    {children ?? <ChevronRight />}
+    {children || <ChevronRight className="h-3 w-3" />}
   </li>
 )
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator"
 
-const BreadcrumbEllipsis = ({
-  className,
-  ...props
-}: React.ComponentProps<"span">) => (
-  <span
-    role="presentation"
-    aria-hidden="true"
-    className={cn("flex h-9 w-9 items-center justify-center", className)}
-    {...props}
-  >
-    <MoreHorizontal className="h-4 w-4" />
-    <span className="sr-only">More</span>
-  </span>
-)
-BreadcrumbEllipsis.displayName = "BreadcrumbElipssis"
+// Custom Breadcrumb component that includes the list and items
+const Breadcrumb2 = React.forwardRef<
+  HTMLElement,
+  React.ComponentPropsWithoutRef<"nav"> & {
+    separator?: React.ReactNode
+    children: React.ReactNode
+  }
+>(({ children, separator, className, ...props }, ref) => {
+  // Filter out falsy child elements
+  const childrenArray = React.Children.toArray(children).filter(Boolean);
+  
+  return (
+    <nav ref={ref} aria-label="breadcrumb" className={className} {...props}>
+      <ol className="flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground">
+        {childrenArray.map((child, index) => (
+          <React.Fragment key={index}>
+            {child}
+            {index < childrenArray.length - 1 && (
+              <BreadcrumbSeparator>{separator}</BreadcrumbSeparator>
+            )}
+          </React.Fragment>
+        ))}
+      </ol>
+    </nav>
+  );
+});
+Breadcrumb2.displayName = "Breadcrumb2";
 
 export {
   Breadcrumb,
@@ -111,5 +127,5 @@ export {
   BreadcrumbLink,
   BreadcrumbPage,
   BreadcrumbSeparator,
-  BreadcrumbEllipsis,
+  Breadcrumb2 as Breadcrumb
 }
