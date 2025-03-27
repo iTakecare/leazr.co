@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
@@ -93,6 +92,7 @@ function App() {
                 <Route path="clients/:id/create-offer" element={<CreateOffer />} />
                 <Route path="catalog" element={<CatalogManagement />} />
                 <Route path="catalog/create-product" element={<ProductCreationPage />} />
+                <Route path="catalog/edit-product/:id" element={<ProductCreationPage isEditing={true} />} />
                 <Route path="products/:id" element={<ProductDetail />} />
                 <Route path="offers" element={<Offers />} />
                 <Route path="offers/:id" element={<OfferDetail />} />

@@ -69,9 +69,17 @@ interface ProductEditorProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  product?: Product;
+  isEditing?: boolean;
 }
 
-const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSuccess }) => {
+const ProductEditor: React.FC<ProductEditorProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSuccess,
+  product,
+  isEditing = false
+}) => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("basic");
   const [name, setName] = useState("");
@@ -88,6 +96,30 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   const [newAttributeName, setNewAttributeName] = useState("");
   const [newAttributeValues, setNewAttributeValues] = useState("");
   const [isParentProduct, setIsParentProduct] = useState(false);
+
+  useEffect(() => {
+    if (isEditing && product) {
+      setName(product.name || "");
+      setCategory(product.category || "");
+      setBrand(product.brand || "");
+      setPrice(product.price?.toString() || "");
+      setMonthlyPrice(product.monthly_price?.toString() || "");
+      setDescription(product.description || "");
+      setIsParentProduct(product.is_parent || false);
+      
+      if (product.variation_attributes) {
+        setVariationAttributes(product.variation_attributes);
+      }
+      
+      if (product.image_url) {
+        setImagePreviews([product.image_url]);
+      }
+      
+      if (product.image_urls && Array.isArray(product.image_urls)) {
+        setImagePreviews(prev => [...prev, ...product.image_urls || []]);
+      }
+    }
+  }, [isEditing, product]);
 
   const resetForm = () => {
     setName("");
@@ -111,7 +143,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   };
 
   const addProductMutation = useMutation({
-    mutationFn: (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => addProduct(productData),
+    mutationFn: (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => 
+      isEditing && product ? 
+        updateProduct(product.id, productData) : 
+        addProduct(productData),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       
@@ -122,8 +157,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       }
     },
     onError: (error) => {
-      console.error("Erreur lors de l'ajout du produit:", error);
-      toast.error("Erreur lors de l'ajout du produit");
+      console.error(`Erreur lors de ${isEditing ? "la modification" : "l'ajout"} du produit:`, error);
+      toast.error(`Erreur lors de ${isEditing ? "la modification" : "l'ajout"} du produit`);
       setIsSubmitting(false);
     }
   });
@@ -196,8 +231,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
         monthly_price: isParentProduct ? 0 : (monthlyPrice ? parseFloat(monthlyPrice) : undefined),
         description,
         brand: brand || "",
-        imageUrl: "",
-        specifications: {},
+        imageUrl: product?.image_url || "",
+        specifications: product?.specifications || {},
         active: true,
         is_parent: isParentProduct,
         stock: isParentProduct ? 0 : undefined,
@@ -276,9 +311,11 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     <Sheet open={isOpen} onOpenChange={handleClose}>
       <SheetContent side="right" className="sm:max-w-2xl w-full p-0">
         <SheetHeader className="p-6 pb-2">
-          <SheetTitle>Créer un nouveau produit</SheetTitle>
+          <SheetTitle>{isEditing ? "Modifier le produit" : "Créer un nouveau produit"}</SheetTitle>
           <SheetDescription>
-            Ajoutez un nouveau produit au catalogue avec toutes ses caractéristiques.
+            {isEditing 
+              ? "Modifiez les caractéristiques de votre produit." 
+              : "Ajoutez un nouveau produit au catalogue avec toutes ses caractéristiques."}
           </SheetDescription>
         </SheetHeader>
 
@@ -593,10 +630,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                       {isSubmitting ? (
                         <span className="flex items-center">
                           <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
-                          Création en cours...
+                          {isEditing ? "Mise à jour en cours..." : "Création en cours..."}
                         </span>
                       ) : (
-                        "Ajouter le produit"
+                        isEditing ? "Mettre à jour le produit" : "Ajouter le produit"
                       )}
                     </Button>
                   </div>
@@ -611,4 +648,3 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 };
 
 export default ProductEditor;
-
