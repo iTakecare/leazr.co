@@ -1,20 +1,25 @@
-
 import React, { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { addProduct, uploadProductImage, updateProduct } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info, ChevronLeft } from "lucide-react";
-import { Product, ProductVariationAttributes } from "@/types/catalog";
+import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info, ChevronLeft, Settings, RefreshCw, Save, Check } from "lucide-react";
+import { Product, ProductVariationAttributes, ProductAttributes, VariantCombinationPrice } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { updateProductVariationAttributes } from "@/services/variantPriceService";
+import { updateProductVariationAttributes, createVariantCombinationPrice, getVariantCombinationPrices, deleteVariantCombinationPrice } from "@/services/variantPriceService";
 import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getAttributes } from "@/services/attributeService";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const productCategories = [
   "laptop",
@@ -93,6 +98,31 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
   const [newAttributeName, setNewAttributeName] = useState("");
   const [newAttributeValues, setNewAttributeValues] = useState("");
   const [isParentProduct, setIsParentProduct] = useState(false);
+  const [generatedVariants, setGeneratedVariants] = useState<any[]>([]);
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
+
+  const [variantCombinations, setVariantCombinations] = useState<VariantCombinationPrice[]>([]);
+  const [showVariantDialog, setShowVariantDialog] = useState(false);
+  const [currentVariantAttributes, setCurrentVariantAttributes] = useState<ProductAttributes>({});
+  const [currentVariantPrice, setCurrentVariantPrice] = useState("");
+  const [currentVariantMonthlyPrice, setCurrentVariantMonthlyPrice] = useState("");
+  const [currentVariantStock, setCurrentVariantStock] = useState("");
+  const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
+
+  const { data: predefinedAttributes } = useQuery({
+    queryKey: ["attributes"],
+    queryFn: getAttributes
+  });
+
+  const { data: fetchedVariantCombinations, refetch: refetchVariants } = useQuery({
+    queryKey: ["variant-combinations", product?.id],
+    queryFn: () => getVariantCombinationPrices(product?.id || ""),
+    enabled: isEditing && !!product?.id && product.is_parent,
+    onSuccess: (data) => {
+      setVariantCombinations(data);
+    }
+  });
 
   useEffect(() => {
     if (isEditing && product) {
@@ -113,10 +143,20 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
       }
       
       if (product.image_urls && Array.isArray(product.image_urls)) {
-        setImagePreviews(prev => [...prev, ...product.image_urls || []]);
+        setImagePreviews(prev => [...prev, ...product.image_urls || []].filter(Boolean));
+      }
+
+      if (product.is_parent && product.id) {
+        refetchVariants();
       }
     }
-  }, [isEditing, product]);
+  }, [isEditing, product, refetchVariants]);
+
+  useEffect(() => {
+    if (fetchedVariantCombinations) {
+      setVariantCombinations(fetchedVariantCombinations);
+    }
+  }, [fetchedVariantCombinations]);
 
   const resetForm = () => {
     setName("");
@@ -132,6 +172,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     setNewAttributeValues("");
     setIsParentProduct(false);
     setActiveTab("basic");
+    setVariantCombinations([]);
   };
 
   const handleGoBack = () => {
@@ -146,7 +187,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       
-      // Fix typings here by properly typing the data
       const productData = data as Product;
       
       if (imageFiles.length > 0 && productData.id) {
@@ -159,6 +199,35 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
       console.error(`Erreur lors de ${isEditing ? "la modification" : "l'ajout"} du produit:`, error);
       toast.error(`Erreur lors de ${isEditing ? "la modification" : "l'ajout"} du produit`);
       setIsSubmitting(false);
+    }
+  });
+
+  const createVariantCombinationMutation = useMutation({
+    mutationFn: (data: Omit<VariantCombinationPrice, 'id' | 'created_at' | 'updated_at'>) => 
+      createVariantCombinationPrice(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["variant-combinations", product?.id] });
+      toast.success("Combinaison de variante ajoutée avec succès");
+      setShowVariantDialog(false);
+      resetVariantForm();
+      refetchVariants();
+    },
+    onError: (error) => {
+      console.error("Erreur lors de la création de la combinaison de variante:", error);
+      toast.error("Erreur lors de la création de la combinaison de variante");
+    }
+  });
+
+  const deleteVariantCombinationMutation = useMutation({
+    mutationFn: (id: string) => deleteVariantCombinationPrice(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["variant-combinations", product?.id] });
+      toast.success("Combinaison de variante supprimée avec succès");
+      refetchVariants();
+    },
+    onError: (error) => {
+      console.error("Erreur lors de la suppression de la combinaison de variante:", error);
+      toast.error("Erreur lors de la suppression de la combinaison de variante");
     }
   });
 
@@ -307,6 +376,121 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     });
   };
 
+  const generateAttributeCombinations = () => {
+    const filteredAttributes: ProductVariationAttributes = {};
+    selectedAttributes.forEach(attr => {
+      if (variationAttributes[attr]) {
+        filteredAttributes[attr] = variationAttributes[attr];
+      }
+    });
+
+    if (Object.keys(filteredAttributes).length === 0) {
+      toast.error("Veuillez sélectionner au moins un attribut pour générer des variantes");
+      return;
+    }
+
+    const attributeNames = Object.keys(filteredAttributes);
+    const combinations: Array<ProductAttributes> = [];
+
+    const generateCombos = (current: ProductAttributes, depth: number) => {
+      if (depth === attributeNames.length) {
+        combinations.push({...current});
+        return;
+      }
+
+      const attrName = attributeNames[depth];
+      const values = filteredAttributes[attrName];
+
+      values.forEach(val => {
+        current[attrName] = val;
+        generateCombos(current, depth + 1);
+      });
+    };
+
+    generateCombos({}, 0);
+    setGeneratedVariants(combinations);
+  };
+
+  const handleGenerateVariants = () => {
+    generateAttributeCombinations();
+    setShowGenerateDialog(true);
+  };
+
+  const handleAddVariantCombination = (variant: ProductAttributes) => {
+    setCurrentVariantAttributes(variant);
+    setShowVariantDialog(true);
+  };
+
+  const handleEditVariantCombination = (variant: VariantCombinationPrice) => {
+    setEditingVariantId(variant.id);
+    setCurrentVariantAttributes(variant.attributes);
+    setCurrentVariantPrice(variant.price.toString());
+    setCurrentVariantMonthlyPrice(variant.monthly_price?.toString() || "");
+    setCurrentVariantStock(variant.stock?.toString() || "");
+    setShowVariantDialog(true);
+  };
+
+  const resetVariantForm = () => {
+    setCurrentVariantAttributes({});
+    setCurrentVariantPrice("");
+    setCurrentVariantMonthlyPrice("");
+    setCurrentVariantStock("");
+    setEditingVariantId(null);
+  };
+
+  const handleSaveVariantCombination = () => {
+    if (!product?.id) {
+      toast.error("Vous devez d'abord enregistrer le produit principal");
+      return;
+    }
+
+    if (!currentVariantPrice) {
+      toast.error("Veuillez saisir un prix pour cette variante");
+      return;
+    }
+
+    const combinationData = {
+      product_id: product.id,
+      attributes: currentVariantAttributes,
+      price: parseFloat(currentVariantPrice) || 0,
+      monthly_price: currentVariantMonthlyPrice ? parseFloat(currentVariantMonthlyPrice) : undefined,
+      stock: currentVariantStock ? parseInt(currentVariantStock) : undefined
+    };
+
+    createVariantCombinationMutation.mutate(combinationData);
+  };
+
+  const handleDeleteVariantCombination = (id: string) => {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cette combinaison de variante ?")) {
+      deleteVariantCombinationMutation.mutate(id);
+    }
+  };
+
+  const handleAttributeSelectionChange = (attributeName: string) => {
+    setSelectedAttributes(prev => {
+      if (prev.includes(attributeName)) {
+        return prev.filter(attr => attr !== attributeName);
+      } else {
+        return [...prev, attributeName];
+      }
+    });
+  };
+
+  const renderVariantAttributeCheckboxes = () => {
+    return Object.keys(variationAttributes).map(attrName => (
+      <div key={attrName} className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id={`attr-${attrName}`}
+          checked={selectedAttributes.includes(attrName)}
+          onChange={() => handleAttributeSelectionChange(attrName)}
+          className="rounded border-gray-300 text-primary focus:ring-primary"
+        />
+        <Label htmlFor={`attr-${attrName}`}>{attrName}</Label>
+      </div>
+    ));
+  };
+
   return (
     <div className="container py-6 max-w-4xl mx-auto">
       <div className="flex items-center mb-6">
@@ -392,12 +576,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
 
                 <div className="pt-4 border-t">
                   <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
+                    <Switch
                       id="is_parent"
                       checked={isParentProduct}
-                      onChange={(e) => setIsParentProduct(e.target.checked)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary"
+                      onCheckedChange={setIsParentProduct}
                     />
                     <Label htmlFor="is_parent">Ce produit a des variantes</Label>
                   </div>
@@ -503,7 +685,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                           >
                             <div className="text-center space-y-1">
                               <Plus className="mx-auto h-6 w-6 text-muted-foreground" />
-                              <p className="text-xs text-muted-foreground">Ajouter</p>
+                              <p className="text-sm text-muted-foreground">Cliquez pour télécharger des images (max 5)</p>
                             </div>
                           </div>
                         )}
@@ -608,6 +790,85 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                         </Button>
                       </div>
                     </div>
+
+                    {Object.keys(variationAttributes).length > 0 && isEditing && product && (
+                      <Alert className="mt-6 bg-blue-50 border-blue-200">
+                        <div className="flex items-center mb-2">
+                          <Settings className="h-4 w-4 mr-2 text-blue-600" />
+                          <h4 className="font-medium text-blue-700">Générer des variantes</h4>
+                        </div>
+                        <AlertDescription className="text-sm text-muted-foreground">
+                          Générez automatiquement toutes les combinaisons possibles d'attributs et créez des variantes de produit avec des prix spécifiques.
+                        </AlertDescription>
+                        <div className="mt-4">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                            onClick={handleGenerateVariants}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Générer les combinaisons de variantes
+                          </Button>
+                        </div>
+                      </Alert>
+                    )}
+
+                    {variantCombinations && variantCombinations.length > 0 && (
+                      <div className="mt-6 space-y-4">
+                        <h3 className="text-lg font-medium">Combinaisons de variantes existantes</h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Attributs</TableHead>
+                              <TableHead className="text-right">Prix (€)</TableHead>
+                              <TableHead className="text-right">Mensualité (€)</TableHead>
+                              <TableHead className="text-center">Stock</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {variantCombinations.map((variant) => (
+                              <TableRow key={variant.id}>
+                                <TableCell>
+                                  <div className="flex flex-wrap gap-1">
+                                    {variant.attributes && Object.entries(variant.attributes).map(([key, value]) => (
+                                      <Badge key={key} variant="outline" className="bg-gray-50 text-xs">
+                                        {key}: {value}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">{variant.price.toFixed(2)}</TableCell>
+                                <TableCell className="text-right">{variant.monthly_price?.toFixed(2) || "-"}</TableCell>
+                                <TableCell className="text-center">{variant.stock || "-"}</TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end space-x-2">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEditVariantCombination(variant)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteVariantCombination(variant.id)}
+                                      className="text-red-500 hover:text-red-700"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -651,6 +912,191 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={showGenerateDialog} onOpenChange={setShowGenerateDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Générer des combinaisons de variantes</DialogTitle>
+            <DialogDescription>
+              Sélectionnez les attributs à utiliser pour générer des combinaisons, puis créez les variantes avec leurs prix spécifiques.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="mb-4 p-3 border rounded-md bg-muted/30">
+              <h4 className="font-medium mb-2">Sélectionner les attributs à utiliser</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {renderVariantAttributeCheckboxes()}
+              </div>
+              <div className="mt-4">
+                <Button
+                  type="button"
+                  onClick={generateAttributeCombinations}
+                  disabled={selectedAttributes.length === 0}
+                  className="w-full"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Générer les combinaisons
+                </Button>
+              </div>
+            </div>
+
+            {generatedVariants.length > 0 && (
+              <>
+                <h4 className="font-medium mt-4">{generatedVariants.length} combinaisons possibles</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {generatedVariants.map((variant, idx) => {
+                    const isExisting = variantCombinations.some(vc => 
+                      Object.entries(vc.attributes).every(([key, val]) => 
+                        variant[key] === val
+                      ) && 
+                      Object.keys(variant).length === Object.keys(vc.attributes).length
+                    );
+                    
+                    return (
+                      <div 
+                        key={idx} 
+                        className={`p-3 border rounded-md ${isExisting ? 'bg-green-50 border-green-200' : 'bg-gray-50 hover:bg-gray-100'}`}
+                      >
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {Object.entries(variant).map(([key, value]) => (
+                            <Badge key={key} variant="outline" className="bg-white text-xs">
+                              {key}: {value}
+                            </Badge>
+                          ))}
+                        </div>
+                        
+                        {isExisting ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full text-green-700 border-green-300"
+                            disabled
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Déjà créée
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => handleAddVariantCombination(variant)}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Définir le prix
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowGenerateDialog(false)}
+            >
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showVariantDialog} onOpenChange={setShowVariantDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingVariantId ? "Modifier la combinaison" : "Ajouter une combinaison"}</DialogTitle>
+            <DialogDescription>
+              Définissez les prix et le stock pour cette configuration de variante.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="mb-4 p-3 border rounded-md bg-muted/30">
+              <h4 className="font-medium mb-2">Configuration</h4>
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(currentVariantAttributes).map(([key, value]) => (
+                  <Badge key={key} variant="outline" className="bg-gray-50 text-xs">
+                    {key}: {value}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="variant-price" className="required">Prix (€)</Label>
+              <div className="relative">
+                <Input
+                  id="variant-price"
+                  type="number"
+                  value={currentVariantPrice}
+                  onChange={(e) => setCurrentVariantPrice(e.target.value)}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  required
+                  className="pl-8"
+                />
+                <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="variant-monthly-price">Mensualité (€/mois)</Label>
+              <div className="relative">
+                <Input
+                  id="variant-monthly-price"
+                  type="number"
+                  value={currentVariantMonthlyPrice}
+                  onChange={(e) => setCurrentVariantMonthlyPrice(e.target.value)}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  className="pl-8"
+                />
+                <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="variant-stock">Stock</Label>
+              <Input
+                id="variant-stock"
+                type="number"
+                value={currentVariantStock}
+                onChange={(e) => setCurrentVariantStock(e.target.value)}
+                placeholder="0"
+                min="0"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowVariantDialog(false);
+                resetVariantForm();
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveVariantCombination}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {editingVariantId ? "Mettre à jour" : "Ajouter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
