@@ -7,7 +7,7 @@ const ProductBenefits = () => {
     <div className="my-12 bg-gradient-to-br from-[#33638e]/10 to-[#4ab6c4]/10 text-gray-700 p-8 rounded-2xl shadow-sm border border-[#4ab6c4]/10">
       <h2 className="text-2xl font-bold mb-8 text-[#33638e] flex items-center">
         <TrendingUp className="h-6 w-6 mr-3 text-[#da2959]/80" />
-        Pourquoi choisir la location ?
+        Pourquoi choisir le leasing ?
       </h2>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
