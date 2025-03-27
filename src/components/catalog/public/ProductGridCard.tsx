@@ -117,29 +117,23 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const hasVariantsFlag = hasVariants();
   const variantsCount = hasVariantsFlag ? countExistingVariants() : 0;
 
-  // Ajouter du logging pour déboguer
-  console.log(`ProductGridCard: ${product.name} - Has variants: ${hasVariantsFlag}, Existing count: ${variantsCount}`);
-  if (product.variant_combination_prices) {
-    console.log(`ProductGridCard: ${product.name} - Variant combinations: ${product.variant_combination_prices.length}`);
-  }
-
   return (
     <Card 
       className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl"
       onClick={onClick}
     >
-      <div className="relative aspect-video bg-white flex items-center justify-center p-4">
+      <div className="relative pt-[100%] bg-white">
         <img 
           src={imageUrl} 
           alt={product.name} 
-          className="object-contain max-h-full max-w-full"
+          className="absolute inset-0 object-contain w-full h-full p-4"
           onError={(e) => {
             (e.target as HTMLImageElement).src = "/placeholder.svg";
           }}
         />
       </div>
       
-      <CardContent className="flex-1 flex flex-col p-5 pt-3">
+      <CardContent className="flex-1 flex flex-col p-5 pt-4">
         <div className="flex flex-wrap gap-2 mb-2">
           {product.category && (
             <Badge className="bg-indigo-500 text-white hover:bg-indigo-600 rounded-full font-normal">
@@ -161,9 +155,18 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         
         <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-2">{product.name}</h3>
         
-        <div className="text-gray-700 text-base mt-1">
-          {hasPrice && <span>à partir de </span>}
-          <span className="font-bold text-indigo-700">{monthlyPriceLabel}</span>
+        <div className="mt-auto pt-2">
+          {hasPrice ? (
+            <div className="text-gray-700 text-base">
+              {hasVariantsFlag ? "dès " : ""}
+              <span className="font-bold text-indigo-700">{formatCurrency(monthlyPrice)}</span>
+              <span className="text-sm"> par mois</span>
+            </div>
+          ) : (
+            <div className="text-gray-700 text-base">
+              <span className="font-medium text-indigo-600">{monthlyPriceLabel}</span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

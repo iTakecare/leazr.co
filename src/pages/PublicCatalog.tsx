@@ -148,14 +148,17 @@ const PublicCatalog = () => {
           </div>
         </div>
         
-        {/* Product Grid */}
+        {/* Product Grid - Maintenant avec des images carrées et prix uniformes */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-white p-4 rounded-lg shadow animate-pulse">
-                <div className="h-48 bg-gray-200 rounded-md mb-4"></div>
-                <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow animate-pulse h-[360px]">
+                <div className="h-0 pb-[100%] bg-gray-200 rounded-t-lg"></div>
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                  <div className="h-5 bg-gray-200 rounded w-4/5"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                </div>
               </div>
             ))}
           </div>
@@ -167,7 +170,7 @@ const PublicCatalog = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
             {filteredProducts.map((product) => (
               <ProductGridCard 
                 key={product.id} 
