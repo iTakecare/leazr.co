@@ -23,6 +23,7 @@ export interface AttributeDefinition {
   id: string;
   name: string;
   display_name: string;
+  values?: AttributeValue[]; // Added values property
   created_at?: string;
   updated_at?: string;
 }

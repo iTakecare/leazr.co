@@ -1,393 +1,608 @@
 import { useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getProductById } from "@/services/catalogService";
-import { Product, ProductVariationAttributes } from "@/types/catalog";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getProductById,
+  updateProduct,
+  createProduct,
+  deleteProduct as deleteProductService,
+} from "@/services/catalogService";
+import { Product, ProductAttributes } from "@/types/catalog";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
-export const useProductDetails = (productId: string | undefined) => {
-  const [quantity, setQuantity] = useState(1);
-  const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  const [currentImage, setCurrentImage] = useState<string>("");
-  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
-  const [variationAttributes, setVariationAttributes] = useState<ProductVariationAttributes>({});
-  const duration = 36; // Fixed duration to 36 months
-  
-  const { data: product, isLoading, error } = useQuery({
+interface UseProductDetailsProps {
+  productId?: string;
+  isEditing: boolean;
+}
+
+export const useProductDetails = ({ productId, isEditing }: UseProductDetailsProps) => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Local state for managing the product details
+  const [product, setProduct] = useState<Product>(
+    {} as Product // Initialize as empty Product
+  );
+  const [isDirty, setIsDirty] = useState(false);
+  const [initialProduct, setInitialProduct] = useState<Product>(
+    {} as Product // Initialize as empty Product
+  );
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
+  const [specificationValues, setSpecificationValues] = useState<Record<string, string | number | boolean>>({});
+  const [attributeValues, setAttributeValues] = useState<ProductAttributes>({});
+  const [isParent, setIsParent] = useState(false);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [isCreatingVariant, setIsCreatingVariant] = useState(false);
+  const [isVariantDialogOpen, setIsVariantDialogOpen] = useState(false);
+  const [isVariantCombinationDialogOpen, setIsVariantCombinationDialogOpen] = useState(false);
+  const [isVariantCombinationCreating, setIsVariantCombinationCreating] = useState(false);
+  const [isVariantCombinationDeleting, setIsVariantCombinationDeleting] = useState(false);
+  const [isDeletingVariant, setIsDeletingVariant] = useState(false);
+  const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
+  const [stockValue, setStockValue] = useState<number>(0);
+  const [isStockUpdating, setIsStockUpdating] = useState(false);
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
+  const [bulkEditValues, setBulkEditValues] = useState<Partial<Product>>({});
+  const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
+  const [priceValue, setPriceValue] = useState<number>(0);
+  const [isPriceUpdating, setIsPriceUpdating] = useState(false);
+  const [isMonthlyPriceDialogOpen, setIsMonthlyPriceDialogOpen] = useState(false);
+  const [monthlyPriceValue, setMonthlyPriceValue] = useState<number>(0);
+  const [isMonthlyPriceUpdating, setIsMonthlyPriceUpdating] = useState(false);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const [imageUrlValue, setImageUrlValue] = useState<string>("");
+  const [isImageUrlUpdating, setIsImageUrlUpdating] = useState(false);
+  const [isImageUrlsDialogOpen, setIsImageUrlsDialogOpen] = useState(false);
+  const [imageUrlsValue, setImageUrlsValue] = useState<string[]>([]);
+  const [isImageUrlsUpdating, setIsImageUrlsUpdating] = useState(false);
+  const [isImageAltTextsDialogOpen, setIsImageAltTextsDialogOpen] = useState(false);
+  const [imageAltTextsValue, setImageAltTextsValue] = useState<string[]>([]);
+  const [isImageAltTextsUpdating, setIsImageAltTextsUpdating] = useState(false);
+  const [isMetaDialogOpen, setIsMetaDialogOpen] = useState(false);
+  const [metaTitleValue, setMetaTitleValue] = useState<string>("");
+  const [metaDescriptionValue, setMetaDescriptionValue] = useState<string>("");
+  const [metaKeywordsValue, setMetaKeywordsValue] = useState<string>("");
+  const [metaSlugValue, setMetaSlugValue] = useState<string>("");
+  const [metaCanonicalUrlValue, setMetaCanonicalUrlValue] = useState<string>("");
+  const [isMetaUpdating, setIsMetaUpdating] = useState(false);
+  const [isSkuDialogOpen, setIsSkuDialogOpen] = useState(false);
+  const [skuValue, setSkuValue] = useState<string>("");
+  const [isSkuUpdating, setIsSkuUpdating] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [categoryValue, setCategoryValue] = useState<string>("");
+  const [isCategoryUpdating, setIsCategoryUpdating] = useState(false);
+  const [isBrandDialogOpen, setIsBrandDialogOpen] = useState(false);
+  const [brandValue, setBrandValue] = useState<string>("");
+  const [isBrandUpdating, setIsBrandUpdating] = useState(false);
+  const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
+  const [descriptionValue, setDescriptionValue] = useState<string>("");
+  const [isDescriptionUpdating, setIsDescriptionUpdating] = useState(false);
+  const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
+  const [nameValue, setNameValue] = useState<string>("");
+  const [isNameUpdating, setIsNameUpdating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Fetch product data
+  const { data, isLoading, error } = useQuery({
     queryKey: ["product", productId],
     queryFn: () => getProductById(productId || ""),
-    enabled: !!productId,
+    enabled: isEditing && !!productId,
+    onSuccess: (fetchedProduct) => {
+      if (fetchedProduct) {
+        setProduct(fetchedProduct);
+        setInitialProduct(fetchedProduct);
+        setIsParent(fetchedProduct.is_parent || false);
+        setSpecificationValues(fetchedProduct.specifications || {});
+        setAttributeValues(fetchedProduct.attributes || {});
+      }
+    },
   });
-  
-  const extractSpecifications = useCallback((product: Product | null): Record<string, string | number | boolean> => {
-    if (!product) return {};
-    
-    // Convert specifications to the right format
-    const specs: Record<string, string | number | boolean> = {};
-    
-    if (product.specifications) {
-      Object.entries(product.specifications).forEach(([key, value]) => {
-        specs[key] = value;
-      });
-    }
-    
-    return specs;
-  }, []);
 
-  useEffect(() => {
-    if (!product) return;
-    
-    console.log("Product loaded:", product);
-    
-    // Set initial image
-    setCurrentImage(product.image_url || "/placeholder.svg");
-    
-    // Set initial price
-    setCurrentPrice(product.monthly_price || null);
-    
-    // Store variation attributes for later use in UI
-    if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
-      console.log("Product has variation attributes:", product.variation_attributes);
-      setVariationAttributes(product.variation_attributes);
-    } else if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      // Extract variation attributes from variant combination prices if not directly provided
-      const extractedAttributes: ProductVariationAttributes = {};
-      
-      product.variant_combination_prices.forEach(price => {
-        if (price.attributes) {
-          Object.entries(price.attributes).forEach(([key, value]) => {
-            if (!extractedAttributes[key]) {
-              extractedAttributes[key] = [];
-            }
-            
-            const stringValue = String(value);
-            if (!extractedAttributes[key].includes(stringValue)) {
-              extractedAttributes[key].push(stringValue);
-            }
-          });
-        }
-      });
-      
-      console.log("Extracted variation attributes from prices:", extractedAttributes);
-      setVariationAttributes(extractedAttributes);
-    }
-    
-    // Initialize selected options from product specifications if available
-    const initialOptions: Record<string, string> = {};
-    
-    // Map common specification fields to their attribute names
-    const specToAttributeMap: Record<string, string> = {
-      'storage': 'stockage',
-      'stockage': 'stockage',
-      'memory': 'ram',
-      'ram': 'ram',
-      'keyboard': 'keyboard',
-      'clavier': 'keyboard',
-      'processor': 'processor',
-      'processeur': 'processor',
-      'screen_size': 'screen_size',
-      'taille_ecran': 'screen_size',
-      'graphics_card': 'graphics_card',
-      'carte_graphique': 'graphics_card',
-      'network': 'network',
-      'reseau': 'network',
-      'condition': 'condition',
-      'etat': 'condition'
-    };
-    
-    // Populate initial options from specifications
-    if (product.specifications) {
-      Object.entries(product.specifications).forEach(([key, value]) => {
-        const attributeName = specToAttributeMap[key.toLowerCase()] || key;
-        if (value !== undefined && value !== null) {
-          initialOptions[attributeName] = String(value);
-        }
-      });
-    }
-    
-    // If the product has variant attributes, initialize selections from them
-    const hasVariants = product.variants && product.variants.length > 0 || 
-                       (product.variant_combination_prices && product.variant_combination_prices.length > 0);
-    
-    console.log("Product has variants:", hasVariants);
-    
-    if (hasVariants && product.variation_attributes && typeof product.variation_attributes === 'object') {
-      Object.entries(product.variation_attributes).forEach(([key, values]) => {
-        if (values && values.length > 0) {
-          // If we already have an initial option for this attribute that matches one of the available values, keep it
-          if (!initialOptions[key] || !values.includes(initialOptions[key])) {
-            initialOptions[key] = String(values[0]);
-          }
-        }
-      });
-    }
-    
-    console.log("Setting initial options:", initialOptions);
-    setSelectedOptions(initialOptions);
-  }, [product]);
-  
-  useEffect(() => {
-    if (!product || Object.keys(selectedOptions).length === 0) {
-      return;
-    }
-    
-    console.log("Selected options changed:", selectedOptions);
-    
-    // Check if the product has variants
-    if (product.variants && product.variants.length > 0) {
-      const variant = findMatchingVariant(product.variants, selectedOptions);
-      console.log("Found variant:", variant ? variant.id : "none");
-      setSelectedVariant(variant);
-      
-      if (variant) {
-        setCurrentPrice(variant.monthly_price || product.monthly_price || null);
-        setCurrentImage(variant.image_url || product.image_url || "/placeholder.svg");
-      }
-    } 
-    // Check if the product has variant_combination_prices
-    else if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      const variantPrice = findMatchingVariantPrice(product.variant_combination_prices, selectedOptions);
-      console.log("Found variant price:", variantPrice);
-      
-      if (variantPrice) {
-        setCurrentPrice(variantPrice.monthly_price || variantPrice.price || null);
-        
-        // Create a pseudo-variant for the selected options
-        const pseudoVariant = {
-          ...product,
-          price: variantPrice.price,
-          monthly_price: variantPrice.monthly_price || null,
-          selected_attributes: selectedOptions
-        };
-        
-        setSelectedVariant(pseudoVariant);
-        
-        // Update image if variant has one
-        if (variantPrice.image_url) {
-          setCurrentImage(variantPrice.image_url);
-        }
-      } else {
-        // If no exact match, use the product's default price
-        setCurrentPrice(product.monthly_price || null);
-        setSelectedVariant(null);
-      }
+  // Mutations for updating and creating products
+  const updateProductMutation = useMutation(updateProduct, {
+    onSuccess: (updatedProduct) => {
+      toast.success("Produit mis à jour avec succès!");
+      queryClient.invalidateQueries(["product", updatedProduct.id]);
+      queryClient.invalidateQueries(["products"]);
+      setIsDirty(false);
+      setInitialProduct(updatedProduct);
+      setProduct(updatedProduct);
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur lors de la mise à jour du produit: ${error.message || "Unknown error"}`);
+    },
+    onSettled: () => {
+      setIsSaving(false);
+    },
+  });
+
+  const createProductMutation = useMutation(createProduct, {
+    onSuccess: (newProduct) => {
+      toast.success("Produit créé avec succès!");
+      queryClient.invalidateQueries(["products"]);
+      navigate(`/catalog/${newProduct.id}`);
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur lors de la création du produit: ${error.message || "Unknown error"}`);
+    },
+    onSettled: () => {
+      setIsSaving(false);
+    },
+  });
+
+  const deleteProductMutation = useMutation(deleteProductService, {
+    onSuccess: () => {
+      toast.success("Produit supprimé avec succès!");
+      queryClient.invalidateQueries(["products"]);
+      navigate("/catalog");
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur lors de la suppression du produit: ${error.message || "Unknown error"}`);
+    },
+    onSettled: () => {
+      setIsDeleting(false);
+    },
+  });
+
+  // Handlers for updating product properties
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProduct({ ...product, name: e.target.value });
+    setIsDirty(true);
+  };
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setProduct({ ...product, description: e.target.value });
+    setIsDirty(true);
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPrice = parseFloat(e.target.value);
+    setProduct({ ...product, price: isNaN(newPrice) ? 0 : newPrice });
+    setIsDirty(true);
+  };
+
+  const handleMonthlyPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newMonthlyPrice = parseFloat(e.target.value);
+    setProduct({ ...product, monthly_price: isNaN(newMonthlyPrice) ? 0 : newMonthlyPrice });
+    setIsDirty(true);
+  };
+
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProduct({ ...product, image_url: e.target.value });
+    setIsDirty(true);
+  };
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProduct({ ...product, category: e.target.value });
+    setIsDirty(true);
+  };
+
+  const handleBrandChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProduct({ ...product, brand: e.target.value });
+    setIsDirty(true);
+  };
+
+  const handleSkuChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProduct({ ...product, sku: e.target.value });
+    setIsDirty(true);
+  };
+
+  const handleStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStock = parseInt(e.target.value, 10);
+    setProduct({ ...product, stock: isNaN(newStock) ? 0 : newStock });
+    setIsDirty(true);
+  };
+
+  const handleActiveChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProduct({ ...product, active: e.target.checked });
+    setIsDirty(true);
+  };
+
+  const handleMetaTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!product.meta) {
+      setProduct({ ...product, meta: { ...product.meta, title: e.target.value } });
     } else {
-      // No variants or variant prices, just use product price
-      setCurrentPrice(product.monthly_price || null);
+      setProduct({ ...product, meta: { ...product.meta, title: e.target.value } });
     }
-  }, [selectedOptions, product]);
-  
-  const findMatchingVariant = (variants: Product[], options: Record<string, string>): Product | null => {
-    console.log("Finding matching variant for options:", options);
-    console.log("Available variants:", variants.map(v => ({id: v.id, attributes: v.attributes})));
-    
-    if (!variants || variants.length === 0 || Object.keys(options).length === 0) {
-      return null;
-    }
-    
-    return variants.find(variant => {
-      if (!variant.attributes) return false;
-      
-      return Object.entries(options).every(([key, value]) => {
-        // Convert variant attribute value to string for comparison
-        const variantValue = String(variant.attributes?.[key] || '');
-        const match = variantValue === value;
-        
-        if (!match) {
-          console.log(`Option ${key}=${value} doesn't match variant ${variant.id} with ${key}=${variantValue}`);
-        }
-        
-        return match;
-      });
-    }) || null;
+    setIsDirty(true);
   };
-  
-  const findMatchingVariantPrice = (
-    variantPrices: any[], 
-    options: Record<string, string>
-  ): { price: number, monthly_price?: number, image_url?: string } | null => {
-    if (!variantPrices || variantPrices.length === 0 || Object.keys(options).length === 0) {
-      return null;
+
+  const handleMetaDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!product.meta) {
+      setProduct({ ...product, meta: { ...product.meta, description: e.target.value } });
+    } else {
+      setProduct({ ...product, meta: { ...product.meta, description: e.target.value } });
     }
-    
-    // Filter attributes that are actually part of the variation attributes
-    const relevantOptions = Object.keys(options).reduce((acc, key) => {
-      if (variationAttributes[key]) {
-        acc[key] = options[key];
-      }
-      return acc;
-    }, {} as Record<string, string>);
-    
-    console.log("Looking for variant price with relevant options:", relevantOptions);
-    console.log("Available variant prices:", variantPrices.map(p => p.attributes));
-    
-    return variantPrices.find(price => {
-      if (!price.attributes) return false;
-      
-      // Check if all selected attributes match this price configuration
-      return Object.entries(relevantOptions).every(([key, value]) => {
-        // Convert price attribute value to string for comparison
-        const priceValue = String(price.attributes[key] || '');
-        return priceValue === value;
-      });
-    }) || null;
+    setIsDirty(true);
   };
-  
-  const isOptionAvailable = (optionName: string, value: string): boolean => {
-    if (!product) return false;
-    
-    console.log(`Checking if option ${optionName}=${value} is available`);
-    
-    // If the product has direct variants
-    if (product.variants && product.variants.length > 0) {
-      const otherOptions = { ...selectedOptions };
-      delete otherOptions[optionName];
-      
-      return product.variants.some(variant => {
-        if (!variant.attributes) return false;
-        
-        const variantValue = String(variant.attributes[optionName] || '');
-        if (variantValue !== value) return false;
-        
-        return Object.entries(otherOptions).every(([key, val]) => {
-          const matchValue = String(variant.attributes?.[key] || '');
-          return matchValue === val;
-        });
-      });
+
+  const handleMetaKeywordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!product.meta) {
+      setProduct({ ...product, meta: { ...product.meta, keywords: e.target.value } });
+    } else {
+      setProduct({ ...product, meta: { ...product.meta, keywords: e.target.value } });
     }
-    
-    // If the product has variant_combination_prices
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      const otherOptions = { ...selectedOptions };
-      delete otherOptions[optionName];
-      
-      return product.variant_combination_prices.some(price => {
-        if (!price.attributes) return false;
-        
-        const priceValue = String(price.attributes[optionName] || '');
-        if (priceValue !== value) return false;
-        
-        return Object.entries(otherOptions).every(([key, val]) => {
-          const matchValue = String(price.attributes?.[key] || '');
-          return matchValue === val;
-        });
-      });
+    setIsDirty(true);
+  };
+
+  const handleMetaSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!product.meta) {
+      setProduct({ ...product, meta: { ...product.meta, slug: e.target.value } });
+    } else {
+      setProduct({ ...product, meta: { ...product.meta, slug: e.target.value } });
     }
-    
-    // Default to true if product doesn't have variants
-    return true;
+    setIsDirty(true);
   };
-  
-  const handleOptionChange = (optionName: string, value: string) => {
-    console.log(`Changing option ${optionName} to ${value}`);
-    setSelectedOptions(prev => ({
-      ...prev,
-      [optionName]: value
-    }));
-  };
-  
-  const handleQuantityChange = (value: number) => {
-    if (value >= 1) {
-      setQuantity(value);
+
+  const handleMetaCanonicalUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!product.meta) {
+      setProduct({ ...product, meta: { ...product.meta, canonical_url: e.target.value } });
+    } else {
+      setProduct({ ...product, meta: { ...product.meta, canonical_url: e.target.value } });
     }
+    setIsDirty(true);
   };
-  
-  const calculateTotalPrice = (): number => {
-    return (currentPrice || 0) * quantity;
+
+  const handleImageUrlsChange = (newImageUrls: string[]) => {
+    setProduct({ ...product, image_urls: newImageUrls });
+    setIsDirty(true);
   };
-  
-  const getMinimumMonthlyPrice = (): number => {
-    if (!product) return 0;
-    
-    let minPrice = product.monthly_price || 0;
-    
-    if (product.variants && product.variants.length > 0) {
-      const variantPrices = product.variants
-        .map(variant => variant.monthly_price || 0)
-        .filter(price => price > 0);
-      
-      if (variantPrices.length > 0) {
-        const minVariantPrice = Math.min(...variantPrices);
-        if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
-          minPrice = minVariantPrice;
-        }
-      }
-    }
-    
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      const combinationPrices = product.variant_combination_prices
-        .map(price => price.monthly_price || 0)
-        .filter(price => price > 0);
-      
-      if (combinationPrices.length > 0) {
-        const minCombinationPrice = Math.min(...combinationPrices);
-        if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
-          minPrice = minCombinationPrice;
-        }
-      }
-    }
-    
-    return minPrice;
+
+  const handleImageAltTextsChange = (newImageAltTexts: string[]) => {
+    setProduct({ ...product, image_alt_texts: newImageAltTexts });
+    setIsDirty(true);
   };
-  
-  const getSelectedSpecifications = (): Record<string, string | number> => {
-    const baseSpecs = selectedVariant?.specifications || product?.specifications || {};
-    
-    // Merge base specs with selected options
-    return {
-      ...baseSpecs,
-      ...selectedOptions
+
+  const handleSpecificationChange = (
+    key: string,
+    value: string | number | boolean
+  ) => {
+    setSpecificationValues(prev => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  };
+
+  const handleAttributeChange = (
+    key: string,
+    value: string
+  ) => {
+    setAttributeValues(prev => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  };
+
+  // Function to handle saving the product
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
+
+    // Prepare the product data for saving
+    const productToSave = {
+      ...product,
+      specifications: specificationValues,
+      attributes: attributeValues,
     };
-  };
-  
-  const getAccurateVariantsCount = (): number => {
-    if (!product) return 0;
-    
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      return product.variant_combination_prices.length;
+
+    if (isEditing) {
+      updateProductMutation.mutate(productToSave);
+    } else {
+      createProductMutation.mutate(productToSave);
     }
-    
-    if (product.variants && product.variants.length > 0) {
-      return product.variants.length;
-    }
-    
-    return 0;
+  }, [product, specificationValues, attributeValues, isEditing, updateProductMutation, createProductMutation]);
+
+  // Function to handle deleting the product
+  const handleDelete = useCallback(async () => {
+    setIsDeleting(true);
+    deleteProductMutation.mutate(product.id);
+  }, [product, deleteProductMutation]);
+
+  // Function to handle cloning the product
+  const handleClone = useCallback(async () => {
+    setIsCloning(true);
+
+    // Prepare the product data for cloning
+    const productToClone = {
+      ...product,
+      id: undefined, // remove id for cloning
+      name: `${product.name} (Clone)`,
+      sku: `${product.sku}-clone`,
+      active: false,
+    };
+
+    createProductMutation.mutate(productToClone);
+  }, [product, createProductMutation]);
+
+  // Function to reset the form to initial values
+  const handleReset = () => {
+    setProduct(initialProduct);
+    setSpecificationValues(initialProduct.specifications || {});
+    setAttributeValues(initialProduct.attributes || {});
+    setIsDirty(false);
   };
+
+  // Function to update specifications
+  const updateSpecifications = () => {
+    if (!product || !Object.keys(specificationValues).length) return;
   
-  // Determine if an attribute has multiple options available
-  const hasAttributeOptions = (attributeName: string): boolean => {
-    console.log(`Checking if attribute ${attributeName} has options:`, variationAttributes[attributeName]);
-    return variationAttributes[attributeName] && variationAttributes[attributeName].length > 0;
+    // Convert boolean values to strings to satisfy the type requirement
+    const processedSpecs: Record<string, string | number> = {};
+  
+    Object.entries(specificationValues).forEach(([key, value]) => {
+      if (typeof value === 'boolean') {
+        processedSpecs[key] = value.toString();
+      } else {
+        processedSpecs[key] = value;
+      }
+    });
+  
+    setProduct({
+      ...product,
+      specifications: processedSpecs
+    });
+  
+    setIsDirty(true);
   };
-  
-  // Get available options for a specific attribute
-  const getOptionsForAttribute = (attributeName: string): string[] => {
-    return variationAttributes[attributeName] || [];
+
+  // Function to handle bulk editing
+  const handleBulkEdit = (field: string, value: any) => {
+    setBulkEditValues(prev => ({ ...prev, [field]: value }));
   };
-  
+
+  // Function to apply bulk updates
+  const applyBulkUpdates = () => {
+    setProduct(prevProduct => ({ ...prevProduct, ...bulkEditValues }));
+    setIsDirty(true);
+    setIsBulkUpdateDialogOpen(false);
+  };
+
+  // Function to handle price update
+  const applyPriceUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, price: priceValue }));
+    setIsDirty(true);
+    setIsPriceDialogOpen(false);
+  };
+
+  // Function to handle monthly price update
+  const applyMonthlyPriceUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, monthly_price: monthlyPriceValue }));
+    setIsDirty(true);
+    setIsMonthlyPriceDialogOpen(false);
+  };
+
+  // Function to handle image url update
+  const applyImageUrlUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, image_url: imageUrlValue }));
+    setIsDirty(true);
+    setIsImageDialogOpen(false);
+  };
+
+  // Function to handle image urls update
+  const applyImageUrlsUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, image_urls: imageUrlValue }));
+    setIsDirty(true);
+    setIsImageUrlsDialogOpen(false);
+  };
+
+  // Function to handle image alt texts update
+  const applyImageAltTextsUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, image_alt_texts: imageAltTextsValue }));
+    setIsDirty(true);
+    setIsImageAltTextsDialogOpen(false);
+  };
+
+  // Function to handle meta update
+  const applyMetaUpdate = () => {
+    setProduct(prevProduct => ({
+      ...prevProduct,
+      meta: {
+        title: metaTitleValue,
+        description: metaDescriptionValue,
+        keywords: metaKeywordsValue,
+        slug: metaSlugValue,
+        canonical_url: metaCanonicalUrlValue,
+      }
+    }));
+    setIsDirty(true);
+    setIsMetaDialogOpen(false);
+  };
+
+  // Function to handle sku update
+  const applySkuUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, sku: skuValue }));
+    setIsDirty(true);
+    setIsSkuDialogOpen(false);
+  };
+
+  // Function to handle category update
+  const applyCategoryUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, category: categoryValue }));
+    setIsDirty(true);
+    setIsCategoryDialogOpen(false);
+  };
+
+  // Function to handle brand update
+  const applyBrandUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, brand: brandValue }));
+    setIsDirty(true);
+    setIsBrandDialogOpen(false);
+  };
+
+  // Function to handle description update
+  const applyDescriptionUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, description: descriptionValue }));
+    setIsDirty(true);
+    setIsDescriptionDialogOpen(false);
+  };
+
+  // Function to handle name update
+  const applyNameUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, name: nameValue }));
+    setIsDirty(true);
+    setIsNameDialogOpen(false);
+  };
+
+  // Function to handle stock update
+  const applyStockUpdate = () => {
+    setProduct(prevProduct => ({ ...prevProduct, stock: stockValue }));
+    setIsDirty(true);
+    setIsStockDialogOpen(false);
+  };
+
   return {
     product,
     isLoading,
     error,
-    quantity,
-    handleQuantityChange,
-    isRequestFormOpen,
-    setIsRequestFormOpen,
-    selectedOptions,
-    handleOptionChange,
-    isOptionAvailable,
-    currentImage,
-    currentPrice,
-    selectedVariant,
-    duration,
-    totalPrice: calculateTotalPrice(),
-    minMonthlyPrice: getMinimumMonthlyPrice(),
-    specifications: getSelectedSpecifications(),
-    hasVariants: product?.variants?.length > 0 || (product?.variant_combination_prices && product?.variant_combination_prices.length > 0),
-    hasOptions: product?.variation_attributes && Object.keys(product?.variation_attributes || {}).length > 0,
-    variantsCount: getAccurateVariantsCount(),
-    variationAttributes,
-    hasAttributeOptions,
-    getOptionsForAttribute
+    isDirty,
+    isDialogOpen,
+    isDeleteDialogOpen,
+    isCloning,
+    isSaving,
+    isDeleting,
+    isParent,
+    specificationValues,
+    attributeValues,
+    isCreatingVariant,
+    isVariantDialogOpen,
+    isVariantCombinationDialogOpen,
+    isVariantCombinationCreating,
+    isVariantCombinationDeleting,
+    isDeletingVariant,
+    isStockDialogOpen,
+    stockValue,
+    isStockUpdating,
+    isBulkEditing,
+    bulkEditValues,
+    isBulkUpdateDialogOpen,
+    isBulkUpdating,
+    isPriceDialogOpen,
+    priceValue,
+    isPriceUpdating,
+    isMonthlyPriceDialogOpen,
+    monthlyPriceValue,
+    isMonthlyPriceUpdating,
+    isImageDialogOpen,
+    imageUrlValue,
+    isImageUrlUpdating,
+    isImageUrlsDialogOpen,
+    imageUrlsValue,
+    isImageUrlsUpdating,
+    isImageAltTextsDialogOpen,
+    imageAltTextsValue,
+    isImageAltTextsUpdating,
+    isMetaDialogOpen,
+    metaTitleValue,
+    metaDescriptionValue,
+    metaKeywordsValue,
+    metaSlugValue,
+    metaCanonicalUrlValue,
+    isMetaUpdating,
+    isSkuDialogOpen,
+    skuValue,
+    isSkuUpdating,
+    isCategoryDialogOpen,
+    categoryValue,
+    isCategoryUpdating,
+    isBrandDialogOpen,
+    brandValue,
+    isBrandUpdating,
+    isDescriptionDialogOpen,
+    descriptionValue,
+    isDescriptionUpdating,
+    isNameDialogOpen,
+    nameValue,
+    isNameUpdating,
+    handleNameChange,
+    handleDescriptionChange,
+    handlePriceChange,
+    handleMonthlyPriceChange,
+    handleImageUrlChange,
+    handleCategoryChange,
+    handleBrandChange,
+    handleSkuChange,
+    handleStockChange,
+    handleActiveChange,
+    handleMetaTitleChange,
+    handleMetaDescriptionChange,
+    handleMetaKeywordsChange,
+    handleMetaSlugChange,
+    handleMetaCanonicalUrlChange,
+    handleImageUrlsChange,
+    handleImageAltTextsChange,
+    handleSpecificationChange,
+    handleAttributeChange,
+    handleSave,
+    handleDelete,
+    handleClone,
+    handleReset,
+    setIsDialogOpen,
+    setIsDeleteDialogOpen,
+    setIsCloning,
+    setIsCreatingVariant,
+    setIsVariantDialogOpen,
+    setIsVariantCombinationDialogOpen,
+    setIsVariantCombinationCreating,
+    setIsVariantCombinationDeleting,
+    setIsDeletingVariant,
+    setIsStockDialogOpen,
+    setStockValue,
+    setIsStockUpdating,
+    setIsBulkEditing,
+    setBulkEditValues,
+    setIsBulkUpdateDialogOpen,
+    setIsBulkUpdating,
+    setIsPriceDialogOpen,
+    setPriceValue,
+    setIsPriceUpdating,
+    setIsMonthlyPriceDialogOpen,
+    setMonthlyPriceValue,
+    setIsMonthlyPriceUpdating,
+    setIsImageDialogOpen,
+    setImageUrlValue,
+    setIsImageUrlUpdating,
+    setIsImageUrlsDialogOpen,
+    setImageUrlsValue,
+    setIsImageUrlsUpdating,
+    setIsImageAltTextsDialogOpen,
+    setImageAltTextsValue,
+    setIsImageAltTextsUpdating,
+    setIsMetaDialogOpen,
+    setMetaTitleValue,
+    setMetaDescriptionValue,
+    setMetaKeywordsValue,
+    setMetaSlugValue,
+    setMetaCanonicalUrlValue,
+    setIsMetaUpdating,
+    setIsSkuDialogOpen,
+    setSkuValue,
+    setIsSkuUpdating,
+    setIsCategoryDialogOpen,
+    setCategoryValue,
+    setIsCategoryUpdating,
+    setIsBrandDialogOpen,
+    setBrandValue,
+    setIsBrandUpdating,
+    setIsDescriptionDialogOpen,
+    setDescriptionValue,
+    setIsDescriptionUpdating,
+    setIsNameDialogOpen,
+    setNameValue,
+    setIsNameUpdating,
+    updateSpecifications,
+    handleBulkEdit,
+    applyBulkUpdates,
+    applyPriceUpdate,
+    applyMonthlyPriceUpdate,
+    applyImageUrlUpdate,
+    applyImageUrlsUpdate,
+    applyImageAltTextsUpdate,
+    applyMetaUpdate,
+    applySkuUpdate,
+    applyCategoryUpdate,
+    applyBrandUpdate,
+    applyDescriptionUpdate,
+    applyNameUpdate,
+    applyStockUpdate,
   };
 };
