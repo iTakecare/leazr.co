@@ -59,7 +59,9 @@ const ProductDetailPage = () => {
     specifications,
     hasVariants,
     hasOptions,
-    variationAttributes
+    variationAttributes,
+    hasAttributeOptions,
+    getOptionsForAttribute
   } = useProductDetails(id);
   
   // Navigation
@@ -118,28 +120,22 @@ const ProductDetailPage = () => {
   const productBrand = product.brand || "";
   const productDescription = product.description || "Aucune description disponible pour ce produit.";
   
-  // Helper function to check if an attribute has variation options
-  const hasVariationOptions = (attributeName: string): boolean => {
-    return variationAttributes && variationAttributes[attributeName] && variationAttributes[attributeName].length > 0;
-  };
-
-  // Helper function to get available options for an attribute
-  const getAttributeOptions = (attributeName: string): string[] => {
-    if (variationAttributes && variationAttributes[attributeName]) {
-      return variationAttributes[attributeName].map(String);
-    }
-    return [];
-  };
-
   // Helper function to render select input or static field based on available options
   const renderAttributeField = (attributeName: string, displayName: string, currentValue: string) => {
-    const options = getAttributeOptions(attributeName);
-    const isModifiable = hasVariationOptions(attributeName);
+    // Check if this attribute has variation options
+    const hasOptions = hasAttributeOptions(attributeName);
+    const options = hasOptions ? getOptionsForAttribute(attributeName) : [];
+    
+    console.log(`Rendering field ${attributeName} (${displayName}):`, {
+      hasOptions,
+      options,
+      currentValue
+    });
     
     return (
       <div className="space-y-2">
         <label className="text-sm font-medium text-gray-700">{displayName}</label>
-        {isModifiable ? (
+        {hasOptions && options.length > 0 ? (
           <Select
             value={currentValue}
             onValueChange={(value) => handleOptionChange(attributeName, value)}
@@ -161,12 +157,121 @@ const ProductDetailPage = () => {
           </Select>
         ) : (
           <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
-            {currentValue}
+            {currentValue || "Non spécifié"}
           </div>
         )}
       </div>
     );
   };
+  
+  // Get display name for common field keys
+  const getDisplayName = (key: string): string => {
+    const nameMap: Record<string, string> = {
+      'condition': 'État',
+      'etat': 'État',
+      'screen_size': "Taille d'écran",
+      'taille_ecran': "Taille d'écran",
+      'stockage': 'Stockage',
+      'storage': 'Stockage',
+      'processor': 'Processeur',
+      'processeur': 'Processeur',
+      'memory': 'Mémoire (RAM)',
+      'ram': 'Mémoire (RAM)',
+      'graphics_card': 'Carte graphique',
+      'carte_graphique': 'Carte graphique',
+      'network': 'Réseau',
+      'reseau': 'Réseau',
+      'keyboard': 'Clavier',
+      'clavier': 'Clavier'
+    };
+    
+    return nameMap[key.toLowerCase()] || key;
+  };
+  
+  // Get the canonical attribute name (handles different naming conventions)
+  const getCanonicalName = (key: string): string => {
+    const canonicalMap: Record<string, string> = {
+      'condition': 'condition',
+      'etat': 'condition',
+      'screen_size': 'screen_size',
+      'taille_ecran': 'screen_size',
+      'stockage': 'stockage',
+      'storage': 'stockage',
+      'processor': 'processor',
+      'processeur': 'processor',
+      'memory': 'ram',
+      'ram': 'ram',
+      'graphics_card': 'graphics_card',
+      'carte_graphique': 'graphics_card',
+      'network': 'network',
+      'reseau': 'network',
+      'keyboard': 'keyboard',
+      'clavier': 'keyboard'
+    };
+    
+    return canonicalMap[key.toLowerCase()] || key;
+  };
+  
+  // Group configuration attributes by priority
+  const getConfigAttributes = () => {
+    const priorityOrder = [
+      "condition", "etat", 
+      "screen_size", "taille_ecran", 
+      "processor", "processeur", 
+      "stockage", "storage", 
+      "memory", "ram", 
+      "graphics_card", "carte_graphique", 
+      "network", "reseau", 
+      "keyboard", "clavier"
+    ];
+    
+    // Get all attribute names from different sources
+    const allKeys = new Set([
+      ...Object.keys(specifications || {}),
+      ...Object.keys(variationAttributes || {})
+    ]);
+    
+    // Map these to canonical names and deduplicate
+    const canonicalKeys = Array.from(allKeys).map(key => getCanonicalName(key));
+    const uniqueKeys = Array.from(new Set(canonicalKeys));
+    
+    // Sort by priority
+    uniqueKeys.sort((a, b) => {
+      const indexA = priorityOrder.indexOf(a.toLowerCase());
+      const indexB = priorityOrder.indexOf(b.toLowerCase());
+      
+      const valueA = indexA === -1 ? 999 : indexA;
+      const valueB = indexB === -1 ? 999 : indexB;
+      
+      return valueA - valueB;
+    });
+    
+    return uniqueKeys;
+  };
+  
+  // Get the current value for an attribute
+  const getCurrentValue = (attributeName: string): string => {
+    // First check selected options
+    if (selectedOptions[attributeName] !== undefined) {
+      return String(selectedOptions[attributeName]);
+    }
+    
+    // Then check specifications
+    const specValue = specifications[attributeName];
+    if (specValue !== undefined) {
+      return String(specValue);
+    }
+    
+    // Finally check variation attributes for a default
+    const variationValues = variationAttributes[attributeName];
+    if (variationValues && variationValues.length > 0) {
+      return String(variationValues[0]);
+    }
+    
+    return "";
+  };
+  
+  const configAttributes = getConfigAttributes();
   
   return (
     <div className="min-h-screen bg-white">
@@ -235,36 +340,17 @@ const ProductDetailPage = () => {
                 <h3 className="text-xl font-medium mb-4">Sélectionnez votre configuration idéale.</h3>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* État */}
-                  {renderAttributeField("condition", "État", String(specifications.condition || specifications.etat || "Neuf"))}
-                  
-                  {/* Taille d'écran */}
-                  {renderAttributeField("screen_size", "Taille d'écran", 
-                    String(specifications.screen_size || specifications.taille_ecran || "15\""))}
-                  
-                  {/* Stockage */}
-                  {renderAttributeField("stockage", "Stockage", 
-                    String(specifications.storage || specifications.stockage || "256 Go"))}
-                  
-                  {/* Processeur */}
-                  {renderAttributeField("processor", "Processeur", 
-                    String(specifications.processor || specifications.processeur || `${productBrand} M4`))}
-                  
-                  {/* Mémoire (RAM) */}
-                  {renderAttributeField("ram", "Mémoire (RAM)", 
-                    String(specifications.memory || specifications.ram || "16 Go"))}
-                  
-                  {/* Réseau */}
-                  {renderAttributeField("network", "Réseau", 
-                    String(specifications.network || specifications.reseau || "Wi-Fi"))}
-                  
-                  {/* Carte graphique */}
-                  {renderAttributeField("graphics_card", "Carte graphique", 
-                    String(specifications.graphics_card || specifications.carte_graphique || "GPU 10 coeurs"))}
-                  
-                  {/* Clavier */}
-                  {renderAttributeField("keyboard", "Clavier", 
-                    String(specifications.keyboard || specifications.clavier || "Français - AZERTY"))}
+                  {/* Dynamic configuration fields */}
+                  {configAttributes.map(attribute => {
+                    const displayName = getDisplayName(attribute);
+                    const currentValue = getCurrentValue(attribute);
+                    
+                    return (
+                      <React.Fragment key={attribute}>
+                        {renderAttributeField(attribute, displayName, currentValue)}
+                      </React.Fragment>
+                    );
+                  })}
                   
                   {/* Durée */}
                   <div className="space-y-2">

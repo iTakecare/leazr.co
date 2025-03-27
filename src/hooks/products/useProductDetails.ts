@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProductById } from "@/services/catalogService";
@@ -33,6 +32,7 @@ export const useProductDetails = (productId: string | undefined) => {
     
     // Store variation attributes for later use in UI
     if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
+      console.log("Product has variation attributes:", product.variation_attributes);
       setVariationAttributes(product.variation_attributes);
     } else if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       // Extract variation attributes from variant combination prices if not directly provided
@@ -53,61 +53,62 @@ export const useProductDetails = (productId: string | undefined) => {
         }
       });
       
+      console.log("Extracted variation attributes from prices:", extractedAttributes);
       setVariationAttributes(extractedAttributes);
     }
     
     // Initialize selected options from product specifications if available
+    const initialOptions: Record<string, string> = {};
+    
+    // Map common specification fields to their attribute names
+    const specToAttributeMap: Record<string, string> = {
+      'storage': 'stockage',
+      'stockage': 'stockage',
+      'memory': 'ram',
+      'ram': 'ram',
+      'keyboard': 'keyboard',
+      'clavier': 'keyboard',
+      'processor': 'processor',
+      'processeur': 'processor',
+      'screen_size': 'screen_size',
+      'taille_ecran': 'screen_size',
+      'graphics_card': 'graphics_card',
+      'carte_graphique': 'graphics_card',
+      'network': 'network',
+      'reseau': 'network',
+      'condition': 'condition',
+      'etat': 'condition'
+    };
+    
+    // Populate initial options from specifications
     if (product.specifications) {
-      const initialOptions: Record<string, string> = {};
-      
-      // Map common specification fields to their attribute names
-      const specToAttributeMap: Record<string, string> = {
-        'storage': 'stockage',
-        'stockage': 'stockage',
-        'memory': 'ram',
-        'ram': 'ram',
-        'keyboard': 'keyboard',
-        'clavier': 'keyboard',
-        'processor': 'processor',
-        'processeur': 'processor',
-        'screen_size': 'screen_size',
-        'taille_ecran': 'screen_size',
-        'graphics_card': 'graphics_card',
-        'carte_graphique': 'graphics_card',
-        'network': 'network',
-        'reseau': 'network',
-        'condition': 'condition',
-        'etat': 'condition'
-      };
-      
-      // Populate initial options from specifications
       Object.entries(product.specifications).forEach(([key, value]) => {
-        const attributeName = specToAttributeMap[key] || key;
+        const attributeName = specToAttributeMap[key.toLowerCase()] || key;
         if (value !== undefined && value !== null) {
           initialOptions[attributeName] = String(value);
         }
       });
-      
-      setSelectedOptions(initialOptions);
     }
     
     // If the product has variant attributes, initialize selections from them
-    const hasVariants = product.variants && product.variants.length > 0;
-    console.log("Product has variants:", hasVariants ? product.variants.length : 0);
+    const hasVariants = product.variants && product.variants.length > 0 || 
+                       (product.variant_combination_prices && product.variant_combination_prices.length > 0);
+    
+    console.log("Product has variants:", hasVariants);
     
     if (hasVariants && product.variation_attributes && typeof product.variation_attributes === 'object') {
-      const options = { ...product.variation_attributes };
-      
-      const initialOptions: Record<string, string> = {};
-      Object.entries(options).forEach(([key, values]) => {
+      Object.entries(product.variation_attributes).forEach(([key, values]) => {
         if (values && values.length > 0) {
-          initialOptions[key] = String(values[0]);
+          // If we already have an initial option for this attribute that matches one of the available values, keep it
+          if (!initialOptions[key] || !values.includes(initialOptions[key])) {
+            initialOptions[key] = String(values[0]);
+          }
         }
       });
-      
-      console.log("Setting initial options from variations:", initialOptions);
-      setSelectedOptions(prev => ({...prev, ...initialOptions}));
     }
+    
+    console.log("Setting initial options:", initialOptions);
+    setSelectedOptions(initialOptions);
   }, [product]);
   
   useEffect(() => {
@@ -203,6 +204,7 @@ export const useProductDetails = (productId: string | undefined) => {
     }, {} as Record<string, string>);
     
     console.log("Looking for variant price with relevant options:", relevantOptions);
+    console.log("Available variant prices:", variantPrices.map(p => p.attributes));
     
     return variantPrices.find(price => {
       if (!price.attributes) return false;
@@ -218,6 +220,8 @@ export const useProductDetails = (productId: string | undefined) => {
   
   const isOptionAvailable = (optionName: string, value: string): boolean => {
     if (!product) return false;
+    
+    console.log(`Checking if option ${optionName}=${value} is available`);
     
     // If the product has direct variants
     if (product.variants && product.variants.length > 0) {
@@ -335,6 +339,17 @@ export const useProductDetails = (productId: string | undefined) => {
     return 0;
   };
   
+  // Determine if an attribute has multiple options available
+  const hasAttributeOptions = (attributeName: string): boolean => {
+    console.log(`Checking if attribute ${attributeName} has options:`, variationAttributes[attributeName]);
+    return variationAttributes[attributeName] && variationAttributes[attributeName].length > 0;
+  };
+  
+  // Get available options for a specific attribute
+  const getOptionsForAttribute = (attributeName: string): string[] => {
+    return variationAttributes[attributeName] || [];
+  };
+  
   return {
     product,
     isLoading,
@@ -356,6 +371,8 @@ export const useProductDetails = (productId: string | undefined) => {
     hasVariants: product?.variants?.length > 0 || (product?.variant_combination_prices && product?.variant_combination_prices.length > 0),
     hasOptions: product?.variation_attributes && Object.keys(product?.variation_attributes || {}).length > 0,
     variantsCount: getAccurateVariantsCount(),
-    variationAttributes
+    variationAttributes,
+    hasAttributeOptions,
+    getOptionsForAttribute
   };
 };

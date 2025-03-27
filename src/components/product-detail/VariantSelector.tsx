@@ -23,8 +23,17 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
 }) => {
   // Fonction pour organiser les options par groupes
   const getGroupedAttributes = () => {
-    // Trier les attributs par priorité (par exemple, taille, couleur, etc.)
-    const priorityOrder = ["size", "color", "capacity", "memory", "processor", "storage"];
+    // Trier les attributs par priorité
+    const priorityOrder = [
+      "condition", "etat", 
+      "screen_size", "taille_ecran", 
+      "processor", "processeur", 
+      "stockage", "storage", 
+      "memory", "ram", 
+      "graphics_card", "carte_graphique", 
+      "network", "reseau", 
+      "keyboard", "clavier"
+    ];
     
     // Convertir les attributs en tableau pour le tri
     const attributesArray = Object.entries(variationAttributes || {});
@@ -41,6 +50,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
       return valueA - valueB;
     });
     
+    console.log("Grouped attributes:", attributesArray);
     return attributesArray;
   };
 

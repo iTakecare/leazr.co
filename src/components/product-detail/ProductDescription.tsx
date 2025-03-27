@@ -12,9 +12,11 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ title, descript
       <h2 className="text-2xl font-bold mb-4">{title}</h2>
       
       <div className="text-gray-700">
-        <p className="mb-4">
-          {description}
-        </p>
+        {description ? (
+          <p className="mb-4">{description}</p>
+        ) : (
+          <p className="text-gray-500 italic">Aucune description disponible pour ce produit.</p>
+        )}
       </div>
     </div>
   );
