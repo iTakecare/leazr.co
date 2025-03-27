@@ -362,7 +362,7 @@ const ProductDetailPage = () => {
             {/* Additional product information - below the sticky box */}
             <div className="mt-8">
               <ProductDescription 
-                title="Descriptif Apple MacBook Air M4 15\""
+                title="Descriptif Apple MacBook Air M4 15&quot;"
                 description={productDescription} 
               />
               
