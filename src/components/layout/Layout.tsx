@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import PageTransition from "./PageTransition";
 import { Home, ShoppingBag, FileText, Users, Award, Settings } from "lucide-react";
-import { FileContract } from "lucide-react";
+import { FileIcon } from "lucide-react";
 import MobileNavDrawer from "./MobileNavDrawer";
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -19,7 +19,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { label: "Tableau de bord", href: "/dashboard", icon: <Home className="h-4 w-4" /> },
     { label: "Catalogue", href: "/catalog", icon: <ShoppingBag className="h-4 w-4" /> },
     { label: "Offres", href: "/offers", icon: <FileText className="h-4 w-4" /> },
-    { label: "Contrats", href: "/contracts", icon: <FileContract className="h-4 w-4" /> },
+    { label: "Contrats", href: "/contracts", icon: <FileIcon className="h-4 w-4" /> },
     { label: "Clients", href: "/clients", icon: <Users className="h-4 w-4" /> },
     { label: "Partenaires", href: "/partners", icon: <Users className="h-4 w-4" /> },
     { label: "Ambassadeurs", href: "/ambassadors", icon: <Award className="h-4 w-4" /> },
@@ -117,12 +117,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-auto">
           <Navbar 
-            user={user} 
-            avatarUrl={user?.user_metadata?.avatar_url} 
-            getUserInitials={getUserInitials}
-            getUserDisplayName={getUserDisplayName}
-            getUserRole={getUserRole}
-            handleLogout={handleLogout}
+            onMenuClick={() => setMobileOpen(true)}
           />
           
           <main className="flex-1 p-4 md:p-6">
