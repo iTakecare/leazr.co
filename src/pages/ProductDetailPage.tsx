@@ -194,7 +194,7 @@ const ProductDetailPage = () => {
                   
                   {/* Taille d'écran */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Taille d'écran</label>
+                    <label className="text-sm font-medium text-gray-700">Taille d&apos;écran</label>
                     <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
                       {product.specifications?.screen_size || "15\""}
                     </div>
@@ -355,7 +355,7 @@ const ProductDetailPage = () => {
                 className="text-indigo-600"
                 onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
               >
-                Besoin d'aide ?
+                Besoin d&apos;aide ?
               </Button>
             </div>
             
