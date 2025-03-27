@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Product } from "@/types/catalog";
@@ -39,7 +38,6 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   const [productToDelete, setProductToDelete] = React.useState<string | null>(null);
   
   const handleEditProduct = (productId: string) => {
-    // Rediriger vers la page d'édition du produit au lieu de la fiche produit publique
     navigate(`/catalog/edit-product/${productId}`);
   };
   
@@ -193,11 +191,16 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
         <div className="p-4">
           {groupingOption === "model" ? (
             <AccordionProductList 
-              products={products} 
+              products={products}
+              onEdit={handleEditProduct}
+              onDelete={confirmDelete}
             />
           ) : (
             <ProductGrid 
-              products={products} 
+              products={products}
+              groupBy="brand"
+              onEdit={handleEditProduct}
+              onDelete={confirmDelete}
             />
           )}
         </div>

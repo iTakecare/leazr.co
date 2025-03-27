@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -61,7 +62,13 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       }
 
       try {
-        const selectedAttrs: ProductAttributes = selectedOptions;
+        // Convert ProductAttributes to Record<string, string> to match the function signature
+        const selectedAttrs: Record<string, string> = {};
+        
+        // Convert all values to strings to match expected type
+        Object.entries(selectedOptions).forEach(([key, value]) => {
+          selectedAttrs[key] = String(value);
+        });
 
         if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
           const price = await findVariantCombinationPrice(product.id, selectedAttrs);
@@ -72,7 +79,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
               ...product,
               price: price.price,
               monthly_price: price.monthly_price || 0,
-              selected_attributes: selectedAttrs,
+              selected_attributes: selectedOptions,
             };
             
             setSelectedVariant(variant);

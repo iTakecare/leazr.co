@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -357,12 +356,24 @@ export const findVariantByAttributes = async (
 // Convert product to parent function
 export const convertProductToParent = async (
   productId: string, 
-  variationAttributes: Record<string, string[]>
+  variationAttributes: string | Record<string, string[]>
 ): Promise<Product> => {
   try {
+    let processedAttributes: Record<string, string[]>;
+    
+    // Handle if a model name string is passed instead of attributes
+    if (typeof variationAttributes === 'string') {
+      // Create a basic variation attribute with model name as key
+      processedAttributes = {
+        'model': [variationAttributes]
+      };
+    } else {
+      processedAttributes = variationAttributes;
+    }
+    
     const updates = {
       is_parent: true,
-      variation_attributes: variationAttributes
+      variation_attributes: processedAttributes
     };
     
     const { data, error } = await supabase

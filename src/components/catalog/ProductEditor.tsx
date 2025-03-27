@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addProduct, uploadProductImage } from "@/services/catalogService";
+import { addProduct, uploadProductImage, updateProduct } from "@/services/catalogService"; // Added updateProduct import
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -150,10 +151,13 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       
-      if (imageFiles.length > 0 && data.id) {
-        uploadImages(data.id);
+      // Fix typings here by properly typing the data
+      const productData = data as Product;
+      
+      if (imageFiles.length > 0 && productData.id) {
+        uploadImages(productData.id);
       } else {
-        finishProductCreation(data.id);
+        finishProductCreation(productData.id);
       }
     },
     onError: (error) => {

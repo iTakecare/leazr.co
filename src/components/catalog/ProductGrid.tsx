@@ -10,30 +10,51 @@ import { Separator } from '@/components/ui/separator';
 
 interface ProductGridProps {
   products: Product[];
+  groupBy?: string;
+  onEdit?: (productId: string) => void;
+  onDelete?: (productId: string) => void;
+  readOnly?: boolean;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
-  // Group by brand
+const ProductGrid: React.FC<ProductGridProps> = ({ 
+  products, 
+  groupBy = "brand",
+  onEdit,
+  onDelete,
+  readOnly = false
+}) => {
+  // Group by specified property (brand or model)
   const groupedProducts = products.reduce((acc, product) => {
-    const brand = product.brand || 'Autres marques';
-    if (!acc[brand]) {
-      acc[brand] = [];
+    const groupKey = groupBy === "model" ? 
+      (product.model || 'Autres produits') : 
+      (product.brand || 'Autres marques');
+      
+    if (!acc[groupKey]) {
+      acc[groupKey] = [];
     }
-    acc[brand].push(product);
+    acc[groupKey].push(product);
     return acc;
   }, {} as Record<string, Product[]>);
 
+  const handleEdit = (productId: string) => {
+    if (onEdit) onEdit(productId);
+  };
+
+  const handleDelete = (productId: string) => {
+    if (onDelete) onDelete(productId);
+  };
+
   return (
     <div className="space-y-8">
-      {Object.entries(groupedProducts).map(([brand, brandProducts]) => (
-        <div key={brand} className="space-y-4">
+      {Object.entries(groupedProducts).map(([groupName, groupProducts]) => (
+        <div key={groupName} className="space-y-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">{brand}</h2>
-            <Badge variant="outline">{brandProducts.length}</Badge>
+            <h2 className="text-xl font-semibold">{groupName}</h2>
+            <Badge variant="outline">{groupProducts.length}</Badge>
           </div>
           <Separator />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {brandProducts.map((product) => (
+            {groupProducts.map((product) => (
               <Card key={product.id} className="h-full flex flex-col">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base font-medium line-clamp-2">{product.name}</CardTitle>
@@ -71,14 +92,16 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
                     )}
                   </div>
                 </CardContent>
-                <CardFooter className="pt-2 flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Edit className="h-4 w-4 mr-1" /> Éditer
-                  </Button>
-                  <Button variant="destructive" size="sm" className="flex-1">
-                    <Trash2 className="h-4 w-4 mr-1" /> Supprimer
-                  </Button>
-                </CardFooter>
+                {!readOnly && (
+                  <CardFooter className="pt-2 flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(product.id)}>
+                      <Edit className="h-4 w-4 mr-1" /> Éditer
+                    </Button>
+                    <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDelete(product.id)}>
+                      <Trash2 className="h-4 w-4 mr-1" /> Supprimer
+                    </Button>
+                  </CardFooter>
+                )}
               </Card>
             ))}
           </div>
