@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -36,19 +37,26 @@ export const getProductById = async (productId: string): Promise<Product> => {
   }
 };
 
-export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
-  return createProduct(product);
-};
-
 export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
   try {
     // Ensure we have the full product data structure including SEO metadata
     const productData = {
       ...product,
       meta: product.meta || {},
+      // Ensure we're using image_url, not imageUrl
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+    
+    // If imageUrl was provided but image_url wasn't, copy it over
+    if (product.imageUrl && !product.image_url) {
+      productData.image_url = product.imageUrl;
+    }
+    
+    // Remove imageUrl as it's not a field in the database
+    if ('imageUrl' in productData) {
+      delete productData.imageUrl;
+    }
     
     const { data, error } = await supabase
       .from('products')
@@ -68,14 +76,27 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
   }
 };
 
+// Add this alias for backward compatibility
+export const addProduct = createProduct;
+
 export const updateProduct = async (productId: string, productData: Partial<Product>): Promise<Product> => {
   try {
-    // Ensure we have the full product data structure
+    // Create a clean version of the data to send to the database
     const updateData = {
       ...productData,
       meta: productData.meta || {},
       updated_at: new Date().toISOString()
     };
+    
+    // If imageUrl was provided but image_url wasn't, copy it over
+    if (productData.imageUrl && !productData.image_url) {
+      updateData.image_url = productData.imageUrl;
+    }
+    
+    // Remove imageUrl as it's not a field in the database
+    if ('imageUrl' in updateData) {
+      delete updateData.imageUrl;
+    }
     
     const { data, error } = await supabase
       .from('products')
