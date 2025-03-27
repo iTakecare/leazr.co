@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -38,9 +39,16 @@ export const getProductById = async (productId: string): Promise<Product> => {
 
 export const updateProduct = async (productId: string, product: Partial<Product>): Promise<Product> => {
   try {
+    // Ensure we have the full product data structure
+    const productData = {
+      ...product,
+      meta: product.meta || {},
+      updated_at: new Date().toISOString()
+    };
+    
     const { data, error } = await supabase
       .from('products')
-      .update(product)
+      .update(productData)
       .eq('id', productId)
       .select()
       .single();
@@ -56,9 +64,17 @@ export const updateProduct = async (productId: string, product: Partial<Product>
 
 export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
   try {
+    // Ensure we have the full product data structure including SEO metadata
+    const productData = {
+      ...product,
+      meta: product.meta || {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
     const { data, error } = await supabase
       .from('products')
-      .insert([product])
+      .insert([productData])
       .select()
       .single();
     
@@ -94,7 +110,8 @@ export const deleteProduct = async (productId: string): Promise<void> => {
 export const uploadProductImage = async (
   file: File, 
   productId: string,
-  isMainImage: boolean = false
+  isMainImage: boolean = false,
+  altText?: string // Added altText parameter
 ): Promise<void> => {
   try {
     const filePath = `products/${productId}/${file.name}`;
@@ -121,14 +138,57 @@ export const uploadProductImage = async (
       throw new Error("Could not retrieve public URL for the image.");
     }
     
-    // Update the product record with the image URL
+    // Get the existing product first to update its image data properly
+    const { data: productData, error: fetchError } = await supabase
+      .from('products')
+      .select('image_url, image_urls, image_alt_texts')
+      .eq('id', productId)
+      .single();
+    
+    if (fetchError) {
+      console.error("Error fetching product for image update:", fetchError);
+      throw fetchError;
+    }
+    
+    // Prepare update data
+    let updateData: any = {};
+    
+    if (isMainImage) {
+      // If this is the main image, set it as the primary image_url
+      updateData.image_url = urlData.publicUrl;
+      
+      // If there's alt text, update or create the alt_texts array accordingly
+      if (altText) {
+        let altTexts = productData.image_alt_texts || [];
+        if (altTexts.length === 0) {
+          altTexts = [altText];
+        } else {
+          altTexts[0] = altText;
+        }
+        updateData.image_alt_texts = altTexts;
+      }
+    } else {
+      // For additional images, add to the image_urls array
+      let imageUrls = productData.image_urls || [];
+      imageUrls.push(urlData.publicUrl);
+      updateData.image_urls = imageUrls;
+      
+      // If there's alt text, add it to the alt_texts array
+      if (altText) {
+        let altTexts = productData.image_alt_texts || [];
+        altTexts.push(altText);
+        updateData.image_alt_texts = altTexts;
+      }
+    }
+    
+    // Update the product with the new image URL and alt text
     const { error: updateError } = await supabase
       .from('products')
-      .update({ image_url: urlData.publicUrl })
+      .update(updateData)
       .eq('id', productId);
     
     if (updateError) {
-      console.error("Error updating product with image URL:", updateError);
+      console.error("Error updating product with image data:", updateError);
       throw updateError;
     }
     

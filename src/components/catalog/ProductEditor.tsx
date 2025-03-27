@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info, ChevronLeft, Settings, RefreshCw, Save, Check, Pencil } from "lucide-react";
+import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info, ChevronLeft, Settings, RefreshCw, Save, Check, Pencil, Search } from "lucide-react";
 import { Product, ProductVariationAttributes, ProductAttributes, VariantCombinationPrice } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -95,6 +95,14 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // SEO-related state
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [keywords, setKeywords] = useState("");
+  const [imageAltTexts, setImageAltTexts] = useState<string[]>([]);
+  const [slug, setSlug] = useState("");
+  const [canonicalUrl, setCanonicalUrl] = useState("");
+
   const [variationAttributes, setVariationAttributes] = useState<ProductVariationAttributes>({});
   const [newAttributeName, setNewAttributeName] = useState("");
   const [newAttributeValues, setNewAttributeValues] = useState("");
@@ -138,6 +146,15 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
       setDescription(product.description || "");
       setIsParentProduct(product.is_parent || false);
       
+      // Load SEO data if available
+      if (product.meta) {
+        setMetaTitle(product.meta.title || "");
+        setMetaDescription(product.meta.description || "");
+        setKeywords(product.meta.keywords || "");
+        setSlug(product.meta.slug || "");
+        setCanonicalUrl(product.meta.canonical_url || "");
+      }
+      
       if (product.variation_attributes) {
         setVariationAttributes(product.variation_attributes);
       }
@@ -149,12 +166,33 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
       if (product.image_urls && Array.isArray(product.image_urls)) {
         setImagePreviews(prev => [...prev, ...product.image_urls || []].filter(Boolean));
       }
+      
+      // Set alt texts for images if available
+      if (product.image_alt_texts && Array.isArray(product.image_alt_texts)) {
+        setImageAltTexts(product.image_alt_texts);
+      } else {
+        // Initialize alt texts array with empty strings for existing images
+        setImageAltTexts(Array(imagePreviews.length).fill(""));
+      }
 
       if (product.is_parent && product.id) {
         refetchVariants();
       }
     }
   }, [isEditing, product, refetchVariants]);
+
+  // Generate slug from name
+  useEffect(() => {
+    if (name && !slug) {
+      const generatedSlug = name
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      setSlug(generatedSlug);
+    }
+  }, [name, slug]);
 
   const resetForm = () => {
     setName("");
@@ -171,6 +209,14 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     setIsParentProduct(false);
     setActiveTab("basic");
     setVariantCombinations([]);
+    
+    // Reset SEO fields
+    setMetaTitle("");
+    setMetaDescription("");
+    setKeywords("");
+    setImageAltTexts([]);
+    setSlug("");
+    setCanonicalUrl("");
   };
 
   const handleGoBack = () => {
@@ -303,7 +349,16 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
         active: true,
         is_parent: isParentProduct,
         stock: isParentProduct ? 0 : undefined,
-        variation_attributes: isParentProduct ? variationAttributes : {}
+        variation_attributes: isParentProduct ? variationAttributes : {},
+        // Add SEO data
+        meta: {
+          title: metaTitle || name,
+          description: metaDescription,
+          keywords,
+          slug,
+          canonical_url: canonicalUrl,
+        },
+        image_alt_texts: imageAltTexts.length > 0 ? imageAltTexts : undefined
       };
 
       addProductMutation.mutate(productData);
@@ -325,6 +380,15 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     const updatedFiles = [...imageFiles, ...newFiles].slice(0, 5);
     setImageFiles(updatedFiles);
 
+    // Update alt texts array with empty strings for new images
+    setImageAltTexts(prev => {
+      const newAltTexts = [...prev];
+      while (newAltTexts.length < updatedFiles.length) {
+        newAltTexts.push("");
+      }
+      return newAltTexts;
+    });
+
     newFiles.forEach(file => {
       console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
       
@@ -342,6 +406,50 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
   const removeImage = (index: number) => {
     setImageFiles(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setImageAltTexts(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAltTextChange = (index: number, text: string) => {
+    setImageAltTexts(prev => {
+      const newAltTexts = [...prev];
+      newAltTexts[index] = text;
+      return newAltTexts;
+    });
+  };
+  
+  const generateSeoDescription = () => {
+    if (description) {
+      const truncated = description.substring(0, 155);
+      setMetaDescription(truncated + (description.length > 155 ? "..." : ""));
+      toast.success("Description méta générée à partir de la description");
+    } else {
+      toast.error("Veuillez d'abord ajouter une description produit");
+    }
+  };
+
+  // Generate keywords from product name, brand, and category
+  const generateKeywords = () => {
+    const parts = [name, brand, categoryTranslations[category] || category];
+    const keywordsStr = parts.filter(Boolean).join(", ");
+    setKeywords(keywordsStr);
+    toast.success("Mots-clés générés à partir des informations produit");
+  };
+
+  // Generate alt text for an image based on product information
+  const generateAltText = (index: number) => {
+    const position = index === 0 ? "" : ` vue ${index + 1}`;
+    let altText = `${name}${position}`;
+    
+    if (brand) {
+      altText += ` ${brand}`;
+    }
+    
+    if (category) {
+      altText += ` - ${categoryTranslations[category] || category}`;
+    }
+    
+    handleAltTextChange(index, altText);
+    toast.success(`Texte alternatif généré pour l'image ${index + 1}`);
   };
   
   const handleAddAttribute = () => {
@@ -512,7 +620,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 w-full mb-6">
+            <TabsList className="grid grid-cols-4 w-full mb-6">
               <TabsTrigger value="basic">
                 <Info className="h-4 w-4 mr-2" />
                 Informations
@@ -520,6 +628,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
               <TabsTrigger value="images">
                 <Image className="h-4 w-4 mr-2" />
                 Images
+              </TabsTrigger>
+              <TabsTrigger value="seo">
+                <Search className="h-4 w-4 mr-2" />
+                SEO
               </TabsTrigger>
               <TabsTrigger value="variants" disabled={!isParentProduct}>
                 <Layers className="h-4 w-4 mr-2" />
@@ -653,7 +765,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                           <div key={index} className="relative border rounded-md overflow-hidden aspect-square">
                             <img
                               src={preview}
-                              alt={`Aperçu ${index + 1}`}
+                              alt={imageAltTexts[index] || `Aperçu ${index + 1}`}
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -710,6 +822,170 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                       La première image sera utilisée comme image principale.
                       {imagePreviews.length > 0 && ` ${5 - imagePreviews.length} emplacement(s) restant(s).`}
                     </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Nouvel onglet SEO */}
+              <TabsContent value="seo" className="space-y-6 mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Optimisation pour les moteurs de recherche (SEO)</CardTitle>
+                    <CardDescription>
+                      Optimisez votre produit pour améliorer sa visibilité dans les moteurs de recherche.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="meta-title">Titre méta</Label>
+                        <span className="text-xs text-muted-foreground">
+                          {metaTitle.length}/60 caractères
+                        </span>
+                      </div>
+                      <Input
+                        id="meta-title"
+                        value={metaTitle}
+                        onChange={(e) => setMetaTitle(e.target.value)}
+                        placeholder="Titre pour les moteurs de recherche"
+                        maxLength={60}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Le titre qui apparaîtra dans les résultats de recherche. Si vide, le nom du produit sera utilisé.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="meta-description">Description méta</Label>
+                        <span className="text-xs text-muted-foreground">
+                          {metaDescription.length}/155 caractères
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <Textarea
+                          id="meta-description"
+                          value={metaDescription}
+                          onChange={(e) => setMetaDescription(e.target.value)}
+                          placeholder="Description courte pour les moteurs de recherche"
+                          className="pr-24"
+                          maxLength={155}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-2 text-xs px-2 py-1 h-auto"
+                          onClick={generateSeoDescription}
+                        >
+                          Générer
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Cette description apparaîtra sous le titre dans les résultats de recherche.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="keywords">Mots-clés</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs px-2 py-1 h-auto"
+                          onClick={generateKeywords}
+                        >
+                          Générer
+                        </Button>
+                      </div>
+                      <Input
+                        id="keywords"
+                        value={keywords}
+                        onChange={(e) => setKeywords(e.target.value)}
+                        placeholder="mots-clés, séparés, par des virgules"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Mots-clés pertinents pour votre produit, séparés par des virgules.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="slug">Slug URL</Label>
+                      <Input
+                        id="slug"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                        placeholder="slug-du-produit"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        L'identifiant unique dans l'URL. Utilisez uniquement des lettres minuscules, des chiffres et des tirets.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="canonical">URL canonique</Label>
+                      <Input
+                        id="canonical"
+                        value={canonicalUrl}
+                        onChange={(e) => setCanonicalUrl(e.target.value)}
+                        placeholder="https://exemple.com/produits/mon-produit"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        L'URL canonique à utiliser si ce produit existe à plusieurs endroits.
+                      </p>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                      <h3 className="text-sm font-medium mb-2">Textes alternatifs des images</h3>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        Les textes alternatifs aident à l'accessibilité et au référencement des images.
+                      </p>
+                      
+                      {imagePreviews.length > 0 ? (
+                        <div className="space-y-4">
+                          {imagePreviews.map((preview, index) => (
+                            <div key={index} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center border p-3 rounded-md">
+                              <div className="w-16 h-16 shrink-0">
+                                <img 
+                                  src={preview} 
+                                  alt="" 
+                                  className="w-16 h-16 object-cover rounded-md" 
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1 space-y-1 w-full">
+                                <Label htmlFor={`alt-text-${index}`} className="text-xs">{index === 0 ? "Image principale" : `Image ${index + 1}`}</Label>
+                                <div className="relative">
+                                  <Input
+                                    id={`alt-text-${index}`}
+                                    value={imageAltTexts[index] || ""}
+                                    onChange={(e) => handleAltTextChange(index, e.target.value)}
+                                    placeholder="Texte alternatif décrivant l'image"
+                                    className="pr-20"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs px-2 py-1 h-auto"
+                                    onClick={() => generateAltText(index)}
+                                  >
+                                    Générer
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          Ajoutez des images dans l'onglet Images pour définir leurs textes alternatifs.
+                        </p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -832,7 +1108,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                                   <div className="flex flex-wrap gap-1">
                                     {variant.attributes && Object.entries(variant.attributes).map(([key, value]) => (
                                       <Badge key={key} variant="outline" className="bg-gray-50 text-xs">
-                                        {key}: {value}
+                                        {key}: {String(value)}
                                       </Badge>
                                     ))}
                                   </div>
@@ -1020,7 +1296,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
               <div className="flex flex-wrap gap-1">
                 {Object.entries(currentVariantAttributes).map(([key, value]) => (
                   <Badge key={key} variant="outline" className="bg-gray-50 text-xs">
-                    {key}: {value}
+                    {key}: {String(value)}
                   </Badge>
                 ))}
               </div>
