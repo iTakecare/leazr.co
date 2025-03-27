@@ -30,8 +30,8 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ title, descript
   };
   
   return (
-    <div className="mt-6 bg-white rounded-xl border border-indigo-100 shadow-sm overflow-hidden">
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-400 px-6 py-4">
+    <div className="mt-6 bg-white rounded-xl border border-[#4ab6c4]/30 shadow-sm overflow-hidden">
+      <div className="bg-gradient-to-r from-[#33638e] to-[#4ab6c4] px-6 py-4">
         <h2 className="text-xl font-bold text-white flex items-center">
           <Info className="h-5 w-5 mr-2 text-white" />
           {title}
@@ -58,7 +58,7 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ title, descript
       {showExpandButton && (
         <button 
           onClick={toggleExpanded}
-          className="w-full flex items-center justify-center p-3 text-indigo-600 hover:text-indigo-800 transition-colors border-t border-indigo-100 bg-indigo-50"
+          className="w-full flex items-center justify-center p-3 text-[#33638e] hover:text-[#da2959] transition-colors border-t border-[#4ab6c4]/20 bg-[#4ab6c4]/5"
         >
           {expanded ? (
             <>
