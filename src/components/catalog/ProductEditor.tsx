@@ -1,21 +1,20 @@
 
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addProduct, uploadProductImage, updateProduct } from "@/services/catalogService"; // Added updateProduct import
+import { addProduct, uploadProductImage, updateProduct } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info } from "lucide-react";
+import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info, ChevronLeft } from "lucide-react";
 import { Product, ProductVariationAttributes } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { updateProductVariationAttributes } from "@/services/variantPriceService";
 import { Textarea } from "@/components/ui/textarea";
+import { useNavigate } from "react-router-dom";
 
 const productCategories = [
   "laptop",
@@ -67,20 +66,17 @@ const popularBrands = [
 ];
 
 interface ProductEditorProps {
-  isOpen: boolean;
-  onClose: () => void;
   onSuccess?: () => void;
   product?: Product;
   isEditing?: boolean;
 }
 
 const ProductEditor: React.FC<ProductEditorProps> = ({ 
-  isOpen, 
-  onClose, 
   onSuccess,
   product,
   isEditing = false
 }) => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("basic");
   const [name, setName] = useState("");
@@ -138,9 +134,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     setActiveTab("basic");
   };
 
-  const handleClose = () => {
-    resetForm();
-    onClose();
+  const handleGoBack = () => {
+    navigate("/catalog");
   };
 
   const addProductMutation = useMutation({
@@ -214,7 +209,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     if (onSuccess) {
       onSuccess();
     }
-    toast.success("Le produit a été ajouté avec succès");
+    toast.success(`Le produit a été ${isEditing ? "modifié" : "ajouté"} avec succès`);
+    navigate("/catalog");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -312,20 +308,29 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent side="right" className="sm:max-w-2xl w-full p-0">
-        <SheetHeader className="p-6 pb-2">
-          <SheetTitle>{isEditing ? "Modifier le produit" : "Créer un nouveau produit"}</SheetTitle>
-          <SheetDescription>
+    <div className="container py-6 max-w-4xl mx-auto">
+      <div className="flex items-center mb-6">
+        <Button variant="ghost" onClick={handleGoBack} className="mr-2">
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Retour au catalogue
+        </Button>
+        <h1 className="text-2xl font-bold">
+          {isEditing ? "Modifier le produit" : "Créer un nouveau produit"}
+        </h1>
+      </div>
+
+      <Card className="mb-8">
+        <CardHeader className="pb-2">
+          <CardTitle>{isEditing ? "Modifier le produit" : "Créer un nouveau produit"}</CardTitle>
+          <CardDescription>
             {isEditing 
               ? "Modifiez les caractéristiques de votre produit." 
               : "Ajoutez un nouveau produit au catalogue avec toutes ses caractéristiques."}
-          </SheetDescription>
-        </SheetHeader>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="px-6">
-            <TabsList className="grid grid-cols-3 w-full">
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-3 w-full mb-6">
               <TabsTrigger value="basic">
                 <Info className="h-4 w-4 mr-2" />
                 Informations
@@ -339,9 +344,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                 Variantes
               </TabsTrigger>
             </TabsList>
-          </div>
 
-          <ScrollArea className="h-[calc(100vh-200px)] px-6 py-4">
             <form onSubmit={handleSubmit} className="space-y-6">
               <TabsContent value="basic" className="space-y-6 mt-0">
                 <div className="space-y-2">
@@ -472,6 +475,9 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                               src={preview}
                               alt={`Aperçu ${index + 1}`}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              }}
                             />
                             <Button
                               type="button"
@@ -606,48 +612,46 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                 </Card>
               </TabsContent>
 
-              <SheetFooter className="pt-4 px-6 border-t sticky bottom-0 bg-background mt-auto">
-                <div className="flex w-full justify-between items-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleClose}
-                    disabled={isSubmitting}
-                  >
-                    Annuler
-                  </Button>
-                  
-                  <div className="flex gap-2">
-                    {activeTab !== "variants" && isParentProduct && (
-                      <Button 
-                        type="button" 
-                        variant="secondary" 
-                        onClick={() => setActiveTab("variants")}
-                        disabled={isSubmitting}
-                      >
-                        Définir les variantes
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    )}
-                    
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <span className="flex items-center">
-                          <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
-                          {isEditing ? "Mise à jour en cours..." : "Création en cours..."}
-                        </span>
-                      ) : (
-                        isEditing ? "Mettre à jour le produit" : "Ajouter le produit"
-                      )}
+              <div className="flex justify-between items-center pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGoBack}
+                  disabled={isSubmitting}
+                >
+                  Annuler
+                </Button>
+                
+                <div className="flex gap-2">
+                  {activeTab !== "variants" && isParentProduct && (
+                    <Button 
+                      type="button" 
+                      variant="secondary" 
+                      onClick={() => setActiveTab("variants")}
+                      disabled={isSubmitting}
+                    >
+                      Définir les variantes
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
-                  </div>
+                  )}
+                  
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <span className="flex items-center">
+                        <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
+                        {isEditing ? "Mise à jour en cours..." : "Création en cours..."}
+                      </span>
+                    ) : (
+                      isEditing ? "Mettre à jour le produit" : "Ajouter le produit"
+                    )}
+                  </Button>
                 </div>
-              </SheetFooter>
+              </div>
             </form>
-          </ScrollArea>
-        </Tabs>
-      </SheetContent>
-    </Sheet>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
