@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ProductAttributes, 
@@ -42,7 +43,7 @@ export const createVariantCombinationPrice = async (
     };
     
     // Traiter correctement la valeur de stock
-    if (data.stock !== undefined) {
+    if (data.stock !== undefined && data.stock !== null) {
       // Si stock est un objet avec _type et value, essayer de récupérer la valeur
       if (typeof data.stock === 'object' && data.stock !== null) {
         if ('value' in data.stock && typeof data.stock.value !== 'undefined') {

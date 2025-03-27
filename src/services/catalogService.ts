@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -6,111 +5,61 @@ export const getProducts = async (): Promise<Product[]> => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .select('*');
+      .select('*')
+      .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error("Error fetching products:", error);
-      throw error;
-    }
+    if (error) throw error;
     
-    return data as Product[];
+    return data || [];
   } catch (error) {
     console.error("Error fetching products:", error);
-    throw error;
+    return [];
   }
 };
 
-export const getProductById = async (productId: string): Promise<Product> => {
+export const getProductById = async (id: string): Promise<Product> => {
   try {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('id', productId)
+      .eq('id', id)
       .single();
     
     if (error) throw error;
     
-    return data as Product;
+    return data;
   } catch (error) {
-    console.error('Error fetching product:', error);
+    console.error(`Error fetching product with ID ${id}:`, error);
     throw error;
   }
 };
 
-export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
+export const createProduct = async (
+  productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Product> => {
   try {
-    console.log("Creating product with data:", product);
+    const cleanedData: Record<string, any> = { ...productData };
     
-    // Create a sanitized copy of the product data
-    const productData: any = {
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      monthly_price: product.monthly_price || null,
-      category: product.category || 'other',
-      brand: product.brand || 'Generic',
-      active: product.active !== undefined ? product.active : true,
-      stock: product.stock || 0,
-      sku: product.sku || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    // Handle image URLs properly
-    if (product.image_url) {
-      productData.image_url = product.image_url;
-    } else if (product.imageUrl) {
-      productData.image_url = product.imageUrl;
+    if (productData.image_urls) {
+      cleanedData.image_urls = productData.image_urls;
+    } else if ('imageurls' in productData) {
+      cleanedData.image_urls = (productData as any).imageurls;
+      delete cleanedData.imageurls;
     }
     
-    // Handle image arrays if they exist
-    if (product.image_urls && product.image_urls.length > 0) {
-      productData.image_urls = product.image_urls;
-    } else if (product.image_urls && Array.isArray(product.image_urls)) {
-      // Using the correct property name from the type definition
-      productData.image_urls = product.image_urls;
+    if ('meta' in cleanedData) {
+      delete cleanedData.meta;
     }
     
-    if (product.image_alt_texts && product.image_alt_texts.length > 0) {
-      productData.image_alt_texts = product.image_alt_texts;
+    if ('image_alt_texts' in cleanedData) {
+      delete cleanedData.image_alt_texts;
     }
     
-    // Process specifications if they exist
-    if (product.specifications && Object.keys(product.specifications).length > 0) {
-      const processedSpecs: Record<string, string | number> = {};
-      
-      Object.entries(product.specifications).forEach(([key, value]) => {
-        if (typeof value === 'boolean') {
-          processedSpecs[key] = value.toString();
-        } else if (value === null || value === undefined) {
-          // Skip null/undefined values
-        } else {
-          processedSpecs[key] = value;
-        }
-      });
-      
-      productData.specifications = processedSpecs;
-    }
-    
-    // Handle attributes if they exist
-    if (product.attributes && Object.keys(product.attributes).length > 0) {
-      productData.attributes = product.attributes;
-    }
-    
-    // Handle variant-related fields if they exist
-    if (product.parent_id) productData.parent_id = product.parent_id;
-    if (product.is_parent !== undefined) productData.is_parent = product.is_parent;
-    if (product.is_variation !== undefined) productData.is_variation = product.is_variation;
-    if (product.variation_attributes) productData.variation_attributes = product.variation_attributes;
-    
-    // IMPORTANT: Remove meta field as it doesn't exist in the database
-    // This field might be used in the frontend but shouldn't be sent to the database
-    
-    console.log("Sending sanitized data to Supabase:", productData);
+    console.log("Creating new product with data:", cleanedData);
     
     const { data, error } = await supabase
       .from('products')
-      .insert([productData])
+      .insert([cleanedData])
       .select()
       .single();
     
@@ -119,90 +68,64 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
       throw error;
     }
     
-    console.log("Product created successfully:", data);
-    
-    // Add the meta field back to the returned data for frontend use
-    if (product.meta) {
-      (data as any).meta = product.meta;
-    }
-    
-    return data as Product;
+    return data;
   } catch (error) {
-    console.error("Error creating product:", error);
+    console.error("Error in createProduct:", error);
     throw error;
   }
 };
 
-// Add this alias for backward compatibility
-export const addProduct = createProduct;
-
-export const updateProduct = async (productId: string, productData: Partial<Product>): Promise<Product> => {
+export const updateProduct = async (
+  id: string,
+  productData: Partial<Product>
+): Promise<Product> => {
   try {
-    console.log("Updating product with ID:", productId, "Data:", productData);
+    const cleanedData: Record<string, any> = { ...productData };
     
-    // Create a clean version of the data to send to the database
-    const updateData = {
-      ...productData,
-      meta: productData.meta || {},
-      updated_at: new Date().toISOString()
-    };
+    cleanedData.updated_at = new Date().toISOString();
     
-    // Handle imageUrl/image_url compatibility
-    if (productData.imageUrl && !productData.image_url) {
-      updateData.image_url = productData.imageUrl;
+    if (productData.image_urls) {
+      cleanedData.image_urls = productData.image_urls;
+    } else if ('imageurls' in productData) {
+      cleanedData.image_urls = (productData as any).imageurls;
+      delete cleanedData.imageurls;
     }
     
-    // Remove imageUrl as it's not a field in the database
-    if ('imageUrl' in updateData) {
-      delete updateData.imageUrl;
+    if ('meta' in cleanedData) {
+      delete cleanedData.meta;
     }
     
-    // Convert specifications to proper format if needed
-    if (updateData.specifications) {
-      // Ensure boolean values are converted to strings for database storage
-      const processedSpecs: Record<string, string | number> = {};
-      Object.entries(updateData.specifications).forEach(([key, value]) => {
-        if (typeof value === 'boolean') {
-          processedSpecs[key] = value.toString();
-        } else {
-          processedSpecs[key] = value;
-        }
-      });
-      updateData.specifications = processedSpecs;
+    if ('image_alt_texts' in cleanedData) {
+      delete cleanedData.image_alt_texts;
     }
     
-    console.log("Sending update data to Supabase:", updateData);
+    console.log("Sending update data to Supabase:", cleanedData);
     
     const { data, error } = await supabase
       .from('products')
-      .update(updateData)
-      .eq('id', productId)
+      .update(cleanedData)
+      .eq('id', id)
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error updating product:", error);
+      throw error;
+    }
     
-    console.log("Product updated successfully:", data);
-    return data as Product;
+    return data;
   } catch (error) {
-    console.error('Error updating product:', error);
+    console.error("Error in updateProduct:", error);
     throw error;
   }
 };
 
-export const updateProductLegacy = async (product: Partial<Product>): Promise<Product> => {
-  if (!product.id) {
-    throw new Error("Product ID is required for update");
-  }
-  return updateProduct(product.id, product);
-};
-
-export const deleteProduct = async (productId: string): Promise<void> => {
+export const deleteProduct = async (id: string): Promise<void> => {
   try {
     const { error } = await supabase
       .from('products')
       .delete()
-      .eq('id', productId);
+      .eq('id', id);
     
     if (error) {
       console.error("Error deleting product:", error);
@@ -218,12 +141,11 @@ export const uploadProductImage = async (
   file: File, 
   productId: string,
   isMainImage: boolean = false,
-  altText?: string // Added altText parameter
+  altText?: string
 ): Promise<void> => {
   try {
     const filePath = `products/${productId}/${file.name}`;
     
-    // Upload the image to Supabase storage
     const { error: uploadError } = await supabase.storage
       .from('product-images')
       .upload(filePath, file, {
@@ -236,7 +158,6 @@ export const uploadProductImage = async (
       throw uploadError;
     }
     
-    // Get the public URL of the uploaded image
     const { data: urlData } = supabase.storage
       .from('product-images')
       .getPublicUrl(filePath);
@@ -245,7 +166,6 @@ export const uploadProductImage = async (
       throw new Error("Could not retrieve public URL for the image.");
     }
     
-    // Get the existing product first to update its image data properly
     const { data: productData, error: fetchError } = await supabase
       .from('products')
       .select('image_url, image_urls, image_alt_texts')
@@ -257,14 +177,11 @@ export const uploadProductImage = async (
       throw fetchError;
     }
     
-    // Prepare update data
     let updateData: any = {};
     
     if (isMainImage) {
-      // If this is the main image, set it as the primary image_url
       updateData.image_url = urlData.publicUrl;
       
-      // If there's alt text, update or create the alt_texts array accordingly
       if (altText) {
         let altTexts = productData.image_alt_texts || [];
         if (altTexts.length === 0) {
@@ -275,12 +192,10 @@ export const uploadProductImage = async (
         updateData.image_alt_texts = altTexts;
       }
     } else {
-      // For additional images, add to the image_urls array
       let imageUrls = productData.image_urls || [];
       imageUrls.push(urlData.publicUrl);
       updateData.image_urls = imageUrls;
       
-      // If there's alt text, add it to the alt_texts array
       if (altText) {
         let altTexts = productData.image_alt_texts || [];
         altTexts.push(altText);
@@ -288,7 +203,6 @@ export const uploadProductImage = async (
       }
     }
     
-    // Update the product with the new image URL and alt text
     const { error: updateError } = await supabase
       .from('products')
       .update(updateData)
@@ -306,7 +220,6 @@ export const uploadProductImage = async (
   }
 };
 
-// Brand Management Functions
 export const getBrands = async () => {
   try {
     const { data, error } = await supabase
@@ -392,7 +305,6 @@ export const deleteBrand = async ({ name }: { name: string }) => {
   }
 };
 
-// Category Management Functions
 export const getCategories = async () => {
   try {
     const { data, error } = await supabase
@@ -478,13 +390,11 @@ export const deleteCategory = async ({ name }: { name: string }) => {
   }
 };
 
-// Product Variant Functions
 export const findVariantByAttributes = async (
   parentId: string, 
   attributes: Record<string, string>
 ): Promise<Product | null> => {
   try {
-    // Get all variants for the parent product
     const { data: variants, error } = await supabase
       .from('products')
       .select('*')
@@ -499,11 +409,9 @@ export const findVariantByAttributes = async (
       return null;
     }
     
-    // Find the variant that matches all the attributes
     const matchingVariant = variants.find((variant: any) => {
       if (!variant.attributes) return false;
       
-      // Check if all selected attributes match this variant
       for (const [key, value] of Object.entries(attributes)) {
         if (variant.attributes[key] !== value) {
           return false;
@@ -520,7 +428,6 @@ export const findVariantByAttributes = async (
   }
 };
 
-// Convert product to parent function
 export const convertProductToParent = async (
   productId: string, 
   variationAttributes: string | Record<string, string[]>
@@ -528,9 +435,7 @@ export const convertProductToParent = async (
   try {
     let processedAttributes: Record<string, string[]>;
     
-    // Handle if a model name string is passed instead of attributes
     if (typeof variationAttributes === 'string') {
-      // Create a basic variation attribute with model name as key
       processedAttributes = {
         'model': [variationAttributes]
       };
