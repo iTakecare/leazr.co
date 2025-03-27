@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Product } from "@/types/catalog";
@@ -22,7 +23,7 @@ interface CatalogContentProps {
   isLoading: boolean;
   error: any;
   viewMode: "grid" | "accordion";
-  groupingOption: "model" | "brand";
+  groupingOption: "model" | "brand" | "category";
   onProductDeleted: (productId: string) => void;
 }
 
@@ -189,16 +190,17 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
         </div>
       ) : (
         <div className="p-4">
-          {groupingOption === "model" ? (
+          {viewMode === "accordion" ? (
             <AccordionProductList 
               products={products}
               onEdit={handleEditProduct}
               onDelete={confirmDelete}
+              groupingOption={groupingOption === "model" ? "brand" : "category"}
             />
           ) : (
             <ProductGrid 
               products={products}
-              groupBy="brand"
+              groupBy={groupingOption === "model" ? "brand" : "category"}
               onEdit={handleEditProduct}
               onDelete={confirmDelete}
             />

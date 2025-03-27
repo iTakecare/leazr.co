@@ -14,7 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const AmbassadorCatalog = () => {
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
-  const [groupingOption, setGroupingOption] = useState<"model" | "brand">("model");
+  const [groupingOption, setGroupingOption] = useState<"category" | "brand">("category");
   
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ["products"],
@@ -37,12 +37,12 @@ const AmbassadorCatalog = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-md w-full sm:w-auto">
             <Button 
-              variant={groupingOption === "model" ? "secondary" : "ghost"} 
+              variant={groupingOption === "category" ? "secondary" : "ghost"} 
               size="sm"
-              onClick={() => setGroupingOption("model")}
+              onClick={() => setGroupingOption("category")}
               className="rounded-md flex-1 sm:flex-initial"
             >
-              Par modèle
+              Par catégorie
             </Button>
             <Button 
               variant={groupingOption === "brand" ? "secondary" : "ghost"} 
@@ -84,12 +84,17 @@ const AmbassadorCatalog = () => {
         ) : viewMode === "accordion" ? (
           <AccordionProductList 
             products={products} 
-            onProductDeleted={null}
             groupingOption={groupingOption}
             readOnly={true}
+            onEdit={(id) => console.log(id)}
+            onDelete={(id) => console.log(id)}
           />
         ) : (
-          <ProductGrid products={products} />
+          <ProductGrid 
+            products={products} 
+            groupBy={groupingOption}
+            readOnly={true}
+          />
         )}
       </div>
     </Container>

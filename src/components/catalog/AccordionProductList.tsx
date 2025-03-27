@@ -16,8 +16,7 @@ interface AccordionProductListProps {
   products: Product[];
   onEdit?: (productId: string) => void;
   onDelete?: (productId: string) => void;
-  onProductDeleted?: (productId: string) => void;
-  groupingOption?: "model" | "brand";
+  groupingOption?: "brand" | "category";
   readOnly?: boolean;
 }
 
@@ -25,14 +24,13 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   products,
   onEdit,
   onDelete,
-  onProductDeleted,
-  groupingOption = "model",
+  groupingOption = "category",
   readOnly = false
 }) => {
   const groupedProducts = products.reduce((acc, product) => {
     const groupKey = groupingOption === "brand" ? 
       (product.brand || 'Autres marques') : 
-      (product.model || 'Autres produits');
+      (product.category || 'Autres produits');
     
     if (!acc[groupKey]) {
       acc[groupKey] = [];
@@ -47,22 +45,29 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
 
   const handleDelete = (productId: string) => {
     if (onDelete) onDelete(productId);
-    if (onProductDeleted) onProductDeleted(productId);
   };
 
+  // Sort group names to ensure consistent order with categories first
+  const sortedGroupNames = Object.keys(groupedProducts).sort((a, b) => {
+    // Special case for "Autres produits" to always be last
+    if (a === "Autres produits") return 1;
+    if (b === "Autres produits") return -1;
+    return a.localeCompare(b);
+  });
+
   return (
-    <Accordion type="multiple" className="space-y-4">
-      {Object.entries(groupedProducts).map(([groupKey, groupProducts]) => (
+    <Accordion type="multiple" className="space-y-4" defaultValue={sortedGroupNames}>
+      {sortedGroupNames.map((groupKey) => (
         <AccordionItem key={groupKey} value={groupKey} className="border rounded-lg overflow-hidden">
           <AccordionTrigger className="px-4 py-3 hover:bg-gray-50">
             <div className="flex items-center">
               <span className="font-medium">{groupKey}</span>
-              <Badge variant="outline" className="ml-2">{groupProducts.length}</Badge>
+              <Badge variant="outline" className="ml-2">{groupedProducts[groupKey].length}</Badge>
             </div>
           </AccordionTrigger>
           <AccordionContent>
             <div className="divide-y">
-              {groupProducts.map((product) => (
+              {groupedProducts[groupKey].map((product) => (
                 <div key={product.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
                   <div className="flex items-center">
                     <div className="w-12 h-12 mr-4 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
@@ -87,7 +92,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         {product.brand && (
                           <span className="mr-2">{product.brand}</span>
                         )}
-                        <span>{product.category}</span>
                       </div>
                     </div>
                   </div>

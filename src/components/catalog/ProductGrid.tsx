@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 
 interface ProductGridProps {
   products: Product[];
-  groupBy?: string;
+  groupBy?: "brand" | "category";
   onEdit?: (productId: string) => void;
   onDelete?: (productId: string) => void;
   readOnly?: boolean;
@@ -18,16 +18,16 @@ interface ProductGridProps {
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
   products, 
-  groupBy = "brand",
+  groupBy = "category",
   onEdit,
   onDelete,
   readOnly = false
 }) => {
-  // Group by specified property (brand or model)
+  // Group by specified property (brand or category)
   const groupedProducts = products.reduce((acc, product) => {
-    const groupKey = groupBy === "model" ? 
-      (product.model || 'Autres produits') : 
-      (product.brand || 'Autres marques');
+    const groupKey = groupBy === "brand" ? 
+      (product.brand || 'Autres marques') : 
+      (product.category || 'Autres produits');
       
     if (!acc[groupKey]) {
       acc[groupKey] = [];
@@ -44,21 +44,29 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     if (onDelete) onDelete(productId);
   };
 
+  // Sort group names to ensure consistent order with categories first
+  const sortedGroupNames = Object.keys(groupedProducts).sort((a, b) => {
+    // Special case for "Autres produits" to always be last
+    if (a === "Autres produits") return 1;
+    if (b === "Autres produits") return -1;
+    return a.localeCompare(b);
+  });
+
   return (
     <div className="space-y-8">
-      {Object.entries(groupedProducts).map(([groupName, groupProducts]) => (
+      {sortedGroupNames.map((groupName) => (
         <div key={groupName} className="space-y-4">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-semibold">{groupName}</h2>
-            <Badge variant="outline">{groupProducts.length}</Badge>
+            <Badge variant="outline">{groupedProducts[groupName].length}</Badge>
           </div>
           <Separator />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {groupProducts.map((product) => (
+            {groupedProducts[groupName].map((product) => (
               <Card key={product.id} className="h-full flex flex-col">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base font-medium line-clamp-2">{product.name}</CardTitle>
-                  <CardDescription className="line-clamp-1">{product.category}</CardDescription>
+                  <CardDescription className="line-clamp-1">{product.brand}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow pb-2">
                   <div className="aspect-square rounded-md overflow-hidden bg-gray-100 mb-3">
