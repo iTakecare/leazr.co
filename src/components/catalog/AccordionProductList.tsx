@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
-import { VariantIndicator } from '@/components/ui/product/VariantIndicator';
+import VariantIndicator from '@/components/ui/product/VariantIndicator';
 import { useNavigate } from 'react-router-dom';
 
 interface AccordionProductListProps {

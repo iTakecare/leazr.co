@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Product } from "@/types/catalog";
@@ -9,7 +10,8 @@ import {
   CardContent, 
   CardDescription, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
 import AccordionProductList from "../AccordionProductList";
