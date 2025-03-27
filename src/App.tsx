@@ -75,6 +75,10 @@ function App() {
               {/* Catalogue public - accessible sans authentification */}
               <Route path="/catalogue" element={<PublicCatalog />} />
               
+              {/* Pages de produits publiques - accessibles sans authentification */}
+              <Route path="/products/:id" element={<ProductDetailPage />} />
+              <Route path="/produits/:id" element={<ProductDetailPage />} />
+              
               {/* Page de signature d'offre - accessible sans authentification */}
               <Route path="/client/sign-offer/:id" element={<SignOffer />} />
               
