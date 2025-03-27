@@ -136,10 +136,10 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       onClick={onClick}
     >
       <div className="relative pt-[100%] bg-white">
-        <img 
-          src={imageUrl} 
-          alt={product.name} 
-          className="absolute inset-0 object-contain w-full h-full p-5"
+        <img
+          src={product.image_url}
+          alt={product.name}
+          className="w-full h-full object-cover"
           onError={(e) => {
             (e.target as HTMLImageElement).src = "/placeholder.svg";
           }}

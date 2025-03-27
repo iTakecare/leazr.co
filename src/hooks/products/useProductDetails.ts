@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProductById } from "@/services/catalogService";
 import { Product, ProductVariationAttributes } from "@/types/catalog";
@@ -19,6 +19,21 @@ export const useProductDetails = (productId: string | undefined) => {
     enabled: !!productId,
   });
   
+  const extractSpecifications = useCallback((product: Product | null): Record<string, string | number | boolean> => {
+    if (!product) return {};
+    
+    // Convert specifications to the right format
+    const specs: Record<string, string | number | boolean> = {};
+    
+    if (product.specifications) {
+      Object.entries(product.specifications).forEach(([key, value]) => {
+        specs[key] = value;
+      });
+    }
+    
+    return specs;
+  }, []);
+
   useEffect(() => {
     if (!product) return;
     

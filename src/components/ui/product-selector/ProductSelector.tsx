@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -94,11 +93,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           
           {/* Product list */}
           <ProductList 
-            filteredProducts={filteredProducts}
+            filteredProducts={filteredProducts as any}
             isLoading={isLoading}
             error={error}
-            handleProductSelect={handleProductSelect}
-            onViewVariants={onViewVariants}
+            handleProductSelect={(product: any) => handleProductSelect(product)}
+            onViewVariants={onViewVariants ? (product: any, e: React.MouseEvent) => onViewVariants(product, e) : undefined}
           />
         </div>
       </SheetContent>

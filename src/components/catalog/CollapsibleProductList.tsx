@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -30,14 +29,12 @@ interface CollapsibleProductListProps {
 const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }: CollapsibleProductListProps) => {
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
   
-  // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
   const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
-    enabled: !providedProducts, // Ne récupère les produits que s'ils ne sont pas déjà fournis
+    enabled: !providedProducts,
   });
 
-  // Mise à jour des produits locaux quand les produits fournis ou récupérés changent
   useEffect(() => {
     setLocalProducts(providedProducts || fetchedProducts);
   }, [providedProducts, fetchedProducts]);
@@ -72,7 +69,6 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
     try {
       await onDeleteProduct(productId);
       
-      // Mise à jour des produits locaux après la suppression
       setLocalProducts(prevProducts => prevProducts.filter(product => product.id !== productId));
       
       toast({
@@ -105,7 +101,7 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-muted rounded overflow-hidden">
                   <img
-                    src={product.image_url || product.imageUrl || '/placeholder.svg'}
+                    src={product.image_url}
                     alt={product.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {

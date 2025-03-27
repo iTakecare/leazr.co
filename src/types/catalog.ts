@@ -1,3 +1,4 @@
+
 export interface ProductVariationAttributes {
   [key: string]: string[];
 }
@@ -15,6 +16,24 @@ export interface VariantCombinationPrice {
   stock?: number;
   created_at: string;
   updated_at: string;
+}
+
+// Define interfaces for attribute management
+export interface AttributeDefinition {
+  id: string;
+  name: string;
+  display_name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AttributeValue {
+  id: string;
+  attribute_id: string;
+  value: string;
+  display_value: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Extend the Product interface to include SEO metadata
@@ -41,6 +60,17 @@ export interface Product {
   attributes?: ProductAttributes;
   stock?: number;
   meta?: ProductSeoMetadata; // Added for SEO
+  
+  // Properties for variants handling
+  variants?: Product[];
+  variants_count?: number;
+  variant_combination_prices?: VariantCombinationPrice[];
+  selected_attributes?: ProductAttributes;
+  variant_id?: string;
+  
+  // Additional properties used in some components
+  model?: string;
+  imageUrl?: string; // Alias for image_url for backward compatibility
 }
 
 // New interface for SEO metadata
