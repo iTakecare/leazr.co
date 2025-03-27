@@ -90,7 +90,7 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
         </div>
       </div>
       
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mt-3 border-t border-[#4ab6c4]/10 pt-2">
         <p className="text-[10px] text-gray-500 italic">
           * Estimations basées sur des études comparant la production d'équipements neufs vs. reconditionnés.
         </p>
@@ -98,7 +98,7 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
           href="https://impactco2.fr" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-[10px] text-[#33638e] hover:underline"
+          className="text-[10px] text-[#33638e] hover:underline font-medium"
         >
           Source: impactco2.fr
         </a>
