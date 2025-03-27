@@ -1,66 +1,63 @@
 
 import React from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Star } from "lucide-react";
 
 const CustomerReviews = () => {
+  // Mock reviews
   const reviews = [
     {
       id: 1,
-      companyName: "Raizume",
-      companyType: "PME",
-      companySize: "Communication",
-      reviewerName: "Corentin Launay",
-      reviewerPosition: "Co-Fondateur",
-      content: "Nous avons pris nos ordinateurs avec Valaia, et sommes ravis du service ! Je recommande vivement, d'autant que l'équipe est super sympa !",
-      avatar: "/placeholder.svg",
+      name: "Sophie Martin",
+      company: "Agence Créative Digital",
+      rating: 5,
+      date: "15 mars 2023",
+      content: "Excellente expérience de location. Le processus était simple et rapide. L'équipement est exactement ce dont nous avions besoin, et le support client a été très réactif."
     },
     {
       id: 2,
-      companyName: "Playground",
-      companyType: "50+ employés",
-      companySize: "Ingénierie Événementielle",
-      reviewerName: "Alexia Montoussin",
-      reviewerPosition: "Office Manager",
-      content: "Au sein de l'entreprise nous sommes ravis de travailler avec Valaia, plateforme efficace et fiable !",
-      avatar: "/placeholder.svg",
+      name: "Thomas Dubois",
+      company: "Tech Solutions",
+      rating: 4,
+      date: "28 avril 2023",
+      content: "Très satisfait de notre contrat de location. Le rapport qualité-prix est excellent et la flexibilité des options correspond parfaitement à nos besoins changeants."
+    },
+    {
+      id: 3,
+      name: "Marie Lefèvre",
+      company: "StartUp Innovante",
+      rating: 5,
+      date: "10 juin 2023",
+      content: "Je recommande vivement ce service. Nous avons pu équiper toute notre équipe rapidement sans impact sur notre trésorerie. Le processus était transparent du début à la fin."
     }
   ];
-  
+
   return (
-    <div className="my-12">
-      <h2 className="text-2xl font-bold mb-4">L'avis de nos clients</h2>
+    <div className="mb-16">
+      <h2 className="text-2xl font-bold mb-6">Avis clients</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {reviews.map(review => (
-          <div 
-            key={review.id} 
-            className="bg-white p-6 rounded-xl border shadow-sm transition-all hover:shadow-md"
-          >
-            <div className="mb-4 flex gap-2">
-              <Badge variant="outline" className="bg-gray-50">{review.companyType}</Badge>
-              <Badge variant="outline" className="bg-gray-50">{review.companySize}</Badge>
-            </div>
-            
-            <h3 className="text-xl font-bold mb-4">
-              {review.companyName}
-            </h3>
-            
-            <p className="text-gray-700 mb-6">
-              {review.content}
-            </p>
-            
-            <div className="flex items-center">
-              <Avatar className="h-12 w-12 mr-4">
-                <AvatarImage src={review.avatar} alt={review.reviewerName} />
-                <AvatarFallback>{review.reviewerName.charAt(0)}</AvatarFallback>
-              </Avatar>
-              
+      <div className="space-y-6">
+        {reviews.map((review) => (
+          <div key={review.id} className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className="font-medium">{review.reviewerName}</h4>
-                <p className="text-sm text-gray-500">{review.reviewerPosition}</p>
+                <h3 className="font-medium text-gray-900">{review.name}</h3>
+                <p className="text-sm text-gray-500">{review.company}</p>
+              </div>
+              <div className="text-sm text-gray-500">
+                {review.date}
               </div>
             </div>
+            
+            <div className="flex mb-4">
+              {[...Array(5)].map((_, i) => (
+                <Star 
+                  key={i}
+                  className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} 
+                />
+              ))}
+            </div>
+            
+            <p className="text-gray-700">{review.content}</p>
           </div>
         ))}
       </div>
