@@ -288,6 +288,23 @@ const ProductDetailPage = () => {
                 description={productDescription} 
               />
             </div>
+            
+            <div className="mt-8">
+              <ProductBenefits />
+              
+              <OrderProcess />
+              
+              <ProductIncludedServices />
+            </div>
+            
+            <div className="mt-16">
+              <h2 className="text-2xl font-bold mb-6">Produits de la même catégorie que {productName}</h2>
+              <RelatedProducts category={productCategory} currentProductId={product.id} />
+            </div>
+            
+            <div className="mt-16">
+              <CustomerReviews />
+            </div>
           </div>
           
           <div>
@@ -401,32 +418,7 @@ const ProductDetailPage = () => {
                 Besoin d&apos;aide ?
               </Button>
             </div>
-            
-            <div className="mt-8">
-              <Button 
-                variant="outline" 
-                className="mb-4"
-                onClick={() => toast.info("Affichage des caractéristiques détaillées")}
-              >
-                Voir plus
-              </Button>
-              
-              <ProductBenefits />
-              
-              <OrderProcess />
-              
-              <ProductIncludedServices />
-            </div>
           </div>
-        </div>
-        
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-6">Produits de la même catégorie que {productName}</h2>
-          <RelatedProducts category={productCategory} currentProductId={product.id} />
-        </div>
-        
-        <div className="mt-16">
-          <CustomerReviews />
         </div>
       </div>
       
