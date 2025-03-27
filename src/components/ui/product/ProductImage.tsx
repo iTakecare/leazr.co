@@ -17,6 +17,9 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         setImageUrl(product.image_url);
       } else if (product.image_urls && product.image_urls.length > 0 && product.image_urls[0]) {
         setImageUrl(product.image_urls[0]);
+      } else if (product.imageUrl && product.imageUrl.trim() !== '') {
+        // Handle backward compatibility with old imageUrl field
+        setImageUrl(product.imageUrl);
       } else {
         setImageUrl("/placeholder.svg");
       }

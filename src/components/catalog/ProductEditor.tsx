@@ -95,7 +95,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // SEO-related state
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [keywords, setKeywords] = useState("");
@@ -146,7 +145,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
       setDescription(product.description || "");
       setIsParentProduct(product.is_parent || false);
       
-      // Load SEO data if available
       if (product.meta) {
         setMetaTitle(product.meta.title || "");
         setMetaDescription(product.meta.description || "");
@@ -167,11 +165,9 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
         setImagePreviews(prev => [...prev, ...product.image_urls || []].filter(Boolean));
       }
       
-      // Set alt texts for images if available
       if (product.image_alt_texts && Array.isArray(product.image_alt_texts)) {
         setImageAltTexts(product.image_alt_texts);
       } else {
-        // Initialize alt texts array with empty strings for existing images
         setImageAltTexts(Array(imagePreviews.length).fill(""));
       }
 
@@ -181,7 +177,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     }
   }, [isEditing, product, refetchVariants]);
 
-  // Generate slug from name
   useEffect(() => {
     if (name && !slug) {
       const generatedSlug = name
@@ -210,7 +205,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     setActiveTab("basic");
     setVariantCombinations([]);
     
-    // Reset SEO fields
     setMetaTitle("");
     setMetaDescription("");
     setKeywords("");
@@ -350,7 +344,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
         is_parent: isParentProduct,
         stock: isParentProduct ? 0 : undefined,
         variation_attributes: isParentProduct ? variationAttributes : {},
-        // Add SEO data
         meta: {
           title: metaTitle || name,
           description: metaDescription,
@@ -380,7 +373,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     const updatedFiles = [...imageFiles, ...newFiles].slice(0, 5);
     setImageFiles(updatedFiles);
 
-    // Update alt texts array with empty strings for new images
     setImageAltTexts(prev => {
       const newAltTexts = [...prev];
       while (newAltTexts.length < updatedFiles.length) {
@@ -427,7 +419,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     }
   };
 
-  // Generate keywords from product name, brand, and category
   const generateKeywords = () => {
     const parts = [name, brand, categoryTranslations[category] || category];
     const keywordsStr = parts.filter(Boolean).join(", ");
@@ -435,7 +426,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     toast.success("Mots-clés générés à partir des informations produit");
   };
 
-  // Generate alt text for an image based on product information
   const generateAltText = (index: number) => {
     const position = index === 0 ? "" : ` vue ${index + 1}`;
     let altText = `${name}${position}`;
@@ -451,7 +441,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     handleAltTextChange(index, altText);
     toast.success(`Texte alternatif généré pour l'image ${index + 1}`);
   };
-  
+
   const handleAddAttribute = () => {
     if (!newAttributeName || !newAttributeValues) {
       toast.error("Veuillez saisir un nom d'attribut et au moins une valeur");
@@ -473,7 +463,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     setNewAttributeName("");
     setNewAttributeValues("");
   };
-  
+
   const handleRemoveAttribute = (attributeName: string) => {
     setVariationAttributes(prev => {
       const updated = { ...prev };
@@ -826,7 +816,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                 </Card>
               </TabsContent>
 
-              {/* Nouvel onglet SEO */}
               <TabsContent value="seo" className="space-y-6 mt-0">
                 <Card>
                   <CardHeader>
@@ -898,3 +887,347 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                         >
                           Générer
                         </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="image-alt-texts">Textes alternatifs</Label>
+                        <span className="text-xs text-muted-foreground">
+                          {imageAltTexts.length}/5 textes
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {imageAltTexts.map((altText, index) => (
+                          <div key={index} className="relative border rounded-md overflow-hidden aspect-square">
+                            <input
+                              type="text"
+                              value={altText}
+                              onChange={(e) => handleAltTextChange(index, e.target.value)}
+                              className="w-full h-full p-2 text-sm text-black bg-white border border-gray-300 rounded-md"
+                            />
+                            {index === 0 && (
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-1">
+                                Image principale
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="variants" className="space-y-6 mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Variantes</CardTitle>
+                    <CardDescription>
+                      Générez des variantes pour votre produit en fonction des attributs sélectionnés.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        {renderVariantAttributeCheckboxes()}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={handleGenerateVariants}
+                          disabled={selectedAttributes.length === 0}
+                        >
+                          Générer variantes
+                        </Button>
+                      </div>
+                    </div>
+
+                    {generatedVariants.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setShowGenerateDialog(false)}
+                          >
+                            Fermer
+                          </Button>
+                        </div>
+                        <div className="space-y-2">
+                          {generatedVariants.map((variant, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm font-medium">Variant {index + 1}</span>
+                                  <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    onClick={() => handleAddVariantCombination(variant)}
+                                  >
+                                    Ajouter
+                                  </Button>
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm font-medium">Prix</span>
+                                    <Input
+                                      type="number"
+                                      value={variant.price}
+                                      onChange={(e) => setCurrentVariantPrice(e.target.value)}
+                                      placeholder="0.00"
+                                      step="0.01"
+                                      min="0"
+                                      className="pl-8"
+                                    />
+                                    <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm font-medium">Mensualité</span>
+                                    <Input
+                                      type="number"
+                                      value={variant.monthly_price}
+                                      onChange={(e) => setCurrentVariantMonthlyPrice(e.target.value)}
+                                      placeholder="0.00"
+                                      step="0.01"
+                                      min="0"
+                                      className="pl-8"
+                                    />
+                                    <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm font-medium">Stock</span>
+                                    <Input
+                                      type="number"
+                                      value={variant.stock}
+                                      onChange={(e) => setCurrentVariantStock(e.target.value)}
+                                      placeholder="0"
+                                      className="pl-8"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <div className="pt-6 border-t flex justify-end space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleGoBack}
+                  disabled={isSubmitting}
+                >
+                  Annuler
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      {isEditing ? "Mise à jour..." : "Création..."}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {isEditing ? "Mettre à jour" : "Créer le produit"}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showGenerateDialog} onOpenChange={setShowGenerateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Générer des variantes</DialogTitle>
+            <DialogDescription>
+              Sélectionnez les attributs pour générer des variantes pour votre produit.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                {renderVariantAttributeCheckboxes()}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleGenerateVariants}
+                  disabled={selectedAttributes.length === 0}
+                >
+                  Générer variantes
+                </Button>
+              </div>
+            </div>
+
+            {generatedVariants.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setShowGenerateDialog(false)}
+                  >
+                    Fermer
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {generatedVariants.map((variant, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium">Variant {index + 1}</span>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            onClick={() => handleAddVariantCombination(variant)}
+                          >
+                            Ajouter
+                          </Button>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium">Prix</span>
+                            <Input
+                              type="number"
+                              value={variant.price}
+                              onChange={(e) => setCurrentVariantPrice(e.target.value)}
+                              placeholder="0.00"
+                              step="0.01"
+                              min="0"
+                              className="pl-8"
+                            />
+                            <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium">Mensualité</span>
+                            <Input
+                              type="number"
+                              value={variant.monthly_price}
+                              onChange={(e) => setCurrentVariantMonthlyPrice(e.target.value)}
+                              placeholder="0.00"
+                              step="0.01"
+                              min="0"
+                              className="pl-8"
+                            />
+                            <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium">Stock</span>
+                            <Input
+                              type="number"
+                              value={variant.stock}
+                              onChange={(e) => setCurrentVariantStock(e.target.value)}
+                              placeholder="0"
+                              className="pl-8"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showVariantDialog} onOpenChange={setShowVariantDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter une variante</DialogTitle>
+            <DialogDescription>
+              Ajoutez une variante pour votre produit en fonction des attributs sélectionnés.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium">Prix</span>
+                    <Input
+                      type="number"
+                      value={currentVariantPrice}
+                      onChange={(e) => setCurrentVariantPrice(e.target.value)}
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      className="pl-8"
+                    />
+                    <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium">Mensualité</span>
+                    <Input
+                      type="number"
+                      value={currentVariantMonthlyPrice}
+                      onChange={(e) => setCurrentVariantMonthlyPrice(e.target.value)}
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      className="pl-8"
+                    />
+                    <Euro className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium">Stock</span>
+                    <Input
+                      type="number"
+                      value={currentVariantStock}
+                      onChange={(e) => setCurrentVariantStock(e.target.value)}
+                      placeholder="0"
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={handleSaveVariantCombination}
+                  disabled={!currentVariantPrice}
+                >
+                  Enregistrer
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={() => setShowVariantDialog(false)}
+                >
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ProductEditor;

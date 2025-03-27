@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -40,6 +41,7 @@ export const addProduct = async (
   try {
     const cleanedData: Record<string, any> = { ...productData };
     
+    // Handle image_urls field naming inconsistency
     if (productData.image_urls) {
       cleanedData.image_urls = productData.image_urls;
     } else if ('imageurls' in productData) {
@@ -47,13 +49,13 @@ export const addProduct = async (
       delete cleanedData.imageurls;
     }
     
-    if ('meta' in cleanedData) {
-      delete cleanedData.meta;
-    }
-    
-    if ('image_alt_texts' in cleanedData) {
-      delete cleanedData.image_alt_texts;
-    }
+    // Remove fields that don't exist in the database
+    const fieldsToRemove = ['meta', 'image_alt_texts', 'imageAltTexts'];
+    fieldsToRemove.forEach(field => {
+      if (field in cleanedData) {
+        delete cleanedData[field];
+      }
+    });
     
     console.log("Creating new product with data:", cleanedData);
     
@@ -86,6 +88,7 @@ export const updateProduct = async (
     
     cleanedData.updated_at = new Date().toISOString();
     
+    // Handle image_urls field naming inconsistency
     if (productData.image_urls) {
       cleanedData.image_urls = productData.image_urls;
     } else if ('imageurls' in productData) {
@@ -93,13 +96,13 @@ export const updateProduct = async (
       delete cleanedData.imageurls;
     }
     
-    if ('meta' in cleanedData) {
-      delete cleanedData.meta;
-    }
-    
-    if ('image_alt_texts' in cleanedData) {
-      delete cleanedData.image_alt_texts;
-    }
+    // Remove fields that don't exist in the database
+    const fieldsToRemove = ['meta', 'image_alt_texts', 'imageAltTexts'];
+    fieldsToRemove.forEach(field => {
+      if (field in cleanedData) {
+        delete cleanedData[field];
+      }
+    });
     
     console.log("Sending update data to Supabase:", cleanedData);
     
