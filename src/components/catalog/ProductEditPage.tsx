@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { addProduct, uploadProductImage, getProduct, updateProduct } from "@/services/catalogService";
+import { addProduct, uploadProductImage, getProductById, updateProduct } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +11,7 @@ import { Product, ProductVariationAttributes } from "@/types/catalog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { updateProductVariationAttributes, getProductVariationAttributes } from "@/services/variantPriceService";
+import { updateProductVariationAttributes } from "@/services/variantPriceService";
 import Container from "@/components/layout/Container";
 import { useNavigate, useParams } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
@@ -90,46 +89,37 @@ const ProductEditPage: React.FC = () => {
   const [newAttributeValues, setNewAttributeValues] = useState("");
   const [isParentProduct, setIsParentProduct] = useState(false);
 
-  // Fetch product data if in edit mode
   const { data: productData, isLoading: isProductLoading } = useQuery({
     queryKey: ['product', id],
-    queryFn: () => getProduct(id as string),
+    queryFn: () => id ? getProductById(id) : null,
     enabled: isEditMode,
-    onSuccess: (data) => {
-      if (data) {
-        setName(data.name || "");
-        setCategory(data.category || "");
-        setBrand(data.brand || "");
-        setPrice(data.price ? data.price.toString() : "");
-        setMonthlyPrice(data.monthly_price ? data.monthly_price.toString() : "");
-        setDescription(data.description || "");
-        setIsParentProduct(data.is_parent || false);
-        
-        // Load images
-        if (data.image_url) {
-          setLoadedImages([data.image_url]);
-          setImagePreviews([data.image_url]);
-        }
-        if (data.additional_images && Array.isArray(data.additional_images)) {
-          const additionalImages = data.additional_images.filter(Boolean);
-          setLoadedImages(prev => [...prev, ...additionalImages]);
-          setImagePreviews(prev => [...prev, ...additionalImages]);
-        }
-      }
-    }
   });
 
-  // Fetch variation attributes if product is parent
-  const { data: variationData } = useQuery({
-    queryKey: ['product-variations', id],
-    queryFn: () => getProductVariationAttributes(id as string),
-    enabled: isEditMode && (productData?.is_parent || isParentProduct),
-    onSuccess: (data) => {
-      if (data) {
-        setVariationAttributes(data);
+  useEffect(() => {
+    if (productData) {
+      setName(productData.name || "");
+      setCategory(productData.category || "");
+      setBrand(productData.brand || "");
+      setPrice(productData.price ? productData.price.toString() : "");
+      setMonthlyPrice(productData.monthly_price ? productData.monthly_price.toString() : "");
+      setDescription(productData.description || "");
+      setIsParentProduct(productData.is_parent || false);
+      
+      if (productData.variation_attributes) {
+        setVariationAttributes(productData.variation_attributes);
+      }
+      
+      if (productData.image_url) {
+        setLoadedImages([productData.image_url]);
+        setImagePreviews([productData.image_url]);
+      }
+      if (productData.additional_images && Array.isArray(productData.additional_images)) {
+        const additionalImages = productData.additional_images.filter(Boolean);
+        setLoadedImages(prev => [...prev, ...additionalImages]);
+        setImagePreviews(prev => [...prev, ...additionalImages]);
       }
     }
-  });
+  }, [productData]);
 
   const resetForm = () => {
     setName("");
@@ -189,7 +179,6 @@ const ProductEditPage: React.FC = () => {
   const uploadImages = async (productId: string) => {
     try {
       if (imageFiles.length > 0) {
-        // Upload main image if it's a new image (not from server)
         if (!loadedImages.includes(imagePreviews[0])) {
           await uploadProductImage(imageFiles[0], productId, true);
         }
@@ -197,7 +186,6 @@ const ProductEditPage: React.FC = () => {
       
       const uploadPromises = [];
       for (let i = 1; i < imageFiles.length && i < 5; i++) {
-        // Only upload new images (not from server)
         if (!loadedImages.includes(imagePreviews[i])) {
           uploadPromises.push(uploadProductImage(imageFiles[i], productId, false));
         }
@@ -334,22 +322,18 @@ const ProductEditPage: React.FC = () => {
   };
 
   const removeImage = (index: number) => {
-    // Remove from loaded images if it's a server image
     if (index < loadedImages.length) {
       setLoadedImages(prev => prev.filter((_, i) => i !== index));
     }
     
-    // Adjust the file array accordingly
     setImageFiles(prev => {
       const newFiles = [...prev];
-      // Only remove from files if it's a new file
       if (index >= loadedImages.length) {
         newFiles.splice(index - loadedImages.length, 1);
       }
       return newFiles;
     });
     
-    // Always remove from previews
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
