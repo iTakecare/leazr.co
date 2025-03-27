@@ -23,7 +23,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const getMinimumMonthlyPrice = (): number => {
     let minPrice = product.monthly_price || 0;
     
-    // Check for variant_combination_prices first (this is from product_variant_prices table)
+    // Vérifier d'abord les prix de combinaison de variantes
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       console.log(`Product ${product.name} has ${product.variant_combination_prices.length} variant combinations`);
       const combinationPrices = product.variant_combination_prices
@@ -35,11 +35,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         console.log(`Minimum combination price found: ${minCombinationPrice}`);
         if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
           minPrice = minCombinationPrice;
+          console.log(`Using combination price: ${minPrice}`);
         }
       }
     }
     
-    // Check variants only if we don't have combination prices
+    // Vérifier les variantes uniquement si nous n'avons pas de prix de combinaison
     else if (product.variants && product.variants.length > 0) {
       console.log(`Product ${product.name} has ${product.variants.length} variants`);
       const variantPrices = product.variants
@@ -51,6 +52,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         console.log(`Minimum variant price found: ${minVariantPrice}`);
         if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
           minPrice = minVariantPrice;
+          console.log(`Using variant price: ${minPrice}`);
         }
       }
     }
@@ -83,6 +85,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const countExistingVariants = (): number => {
     // 1. Vérifier si le produit a des combinaisons de prix de variantes (priorité la plus élevée)
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      console.log(`${product.name} a ${product.variant_combination_prices.length} combinaisons de prix de variantes`);
       return product.variant_combination_prices.length;
     }
     
