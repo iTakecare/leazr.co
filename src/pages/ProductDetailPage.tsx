@@ -308,7 +308,7 @@ const ProductDetailPage = () => {
           
           <div>
             <div className="sticky top-4 rounded-xl overflow-hidden shadow-lg">
-              <div className="bg-gradient-to-br from-[#5469d4] to-[#4756b3] text-white p-6">
+              <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-6">
                 <div className="flex mb-2">
                   <Badge variant="outline" className="bg-white/20 text-white border-white/30 mr-2">
                     {productCategory === "laptop" ? "Ordinateur" : productCategory}
@@ -381,19 +381,19 @@ const ProductDetailPage = () => {
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-700 font-medium">Votre sélection pour</span>
-                    <span className="text-2xl font-bold text-[#5469d4]">{formatCurrency(totalPrice)} HT / mois</span>
+                    <span className="text-2xl font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
                   </div>
                   
                   <div className="flex flex-col sm:flex-row gap-3 mb-4">
                     <Button 
-                      className="w-full sm:w-auto px-8 bg-[#5469d4] hover:bg-[#4756b3]"
+                      className="w-full sm:w-auto px-8 bg-[#2d618f] hover:bg-[#347599]"
                       onClick={handleRequestProduct}
                     >
                       Ajouter
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="w-full sm:w-auto border-blue-200 text-[#5469d4] hover:bg-blue-50"
+                      className="w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50"
                       onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                     >
                       Parler à un conseiller
@@ -402,11 +402,11 @@ const ProductDetailPage = () => {
                   
                   <div className="space-y-1 text-sm">
                     <div className="flex items-center text-gray-600">
-                      <Check className="h-4 w-4 text-[#5469d4] mr-2" />
+                      <Check className="h-4 w-4 text-[#347599] mr-2" />
                       <span>Livraison gratuite en Europe</span>
                     </div>
                     <div className="flex items-center text-gray-600">
-                      <Check className="h-4 w-4 text-[#5469d4] mr-2" />
+                      <Check className="h-4 w-4 text-[#347599] mr-2" />
                       <span>Pas de premier loyer majoré</span>
                     </div>
                   </div>
@@ -414,7 +414,7 @@ const ProductDetailPage = () => {
                 
                 <Button 
                   variant="link" 
-                  className="text-[#5469d4]"
+                  className="text-[#2d618f]"
                   onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                 >
                   Besoin d&apos;aide ?
