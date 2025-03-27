@@ -2,7 +2,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { getProductsByCategory } from "@/services/catalogService";
+import { getProducts } from "@/services/catalogService";
 import { formatCurrency } from "@/utils/formatters";
 
 interface RelatedProductsProps {
@@ -13,7 +13,11 @@ interface RelatedProductsProps {
 const RelatedProducts: React.FC<RelatedProductsProps> = ({ category, currentProductId }) => {
   const { data: products, isLoading, error } = useQuery({
     queryKey: ["products", { category }],
-    queryFn: () => getProductsByCategory(category),
+    queryFn: async () => {
+      // Get all products and filter by category
+      const allProducts = await getProducts();
+      return allProducts.filter(product => product.category === category);
+    },
   });
 
   if (isLoading) {
