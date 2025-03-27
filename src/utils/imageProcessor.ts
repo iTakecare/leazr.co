@@ -1,3 +1,8 @@
+import { pipeline, env } from '@huggingface/transformers';
+
+// Configure transformers.js
+env.allowLocalModels = false;
+env.useBrowserCache = false;
 
 /**
  * Utilitaire de traitement d'images pour les produits
@@ -41,38 +46,114 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
   try {
     console.log('Démarrage du processus de suppression d\'arrière-plan...');
     
-    // Créer un canvas pour l'image originale
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) throw new Error('Impossible d\'obtenir le contexte du canvas');
-    
-    // Redimensionner l'image si nécessaire et la dessiner sur le canvas
-    const wasResized = resizeImageIfNeeded(canvas, ctx, imageElement);
-    console.log(`L'image ${wasResized ? 'a été' : 'n\'a pas été'} redimensionnée. Dimensions finales: ${canvas.width}x${canvas.height}`);
-    
-    // Utiliser une segmentation simple pour l'exemple
-    // En production, remplacer par une véritable implémentation de segmentation d'image
-    await simulateBackgroundRemoval(canvas, ctx);
-    
-    // Standardiser les dimensions à 600x600px avec bordure blanche
-    const standardizedCanvas = await standardizeImage(canvas);
-    
-    // Convertir en WebP pour une meilleure optimisation
-    return new Promise((resolve, reject) => {
-      standardizedCanvas.toBlob(
-        (blob) => {
-          if (blob) {
-            console.log('Blob WebP créé avec succès');
-            resolve(blob);
-          } else {
-            reject(new Error('Échec de la création du blob'));
-          }
-        },
-        'image/webp',
-        0.9
+    // Tentative d'utilisation du modèle Hugging Face si disponible
+    try {
+      const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', {
+        device: 'cpu', // fallback to CPU if WebGPU not available
+      });
+      
+      // Convert HTMLImageElement to canvas
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Impossible d\'obtenir le contexte du canvas');
+      
+      // Resize image if needed and draw it to canvas
+      const wasResized = resizeImageIfNeeded(canvas, ctx, imageElement);
+      console.log(`L'image ${wasResized ? 'a été' : 'n\'a pas été'} redimensionnée. Dimensions: ${canvas.width}x${canvas.height}`);
+      
+      // Get image data as base64
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      
+      // Process the image with the segmentation model
+      console.log('Processing with segmentation model...');
+      const result = await segmenter(imageData);
+      
+      if (!result || !Array.isArray(result) || result.length === 0 || !result[0].mask) {
+        throw new Error('Invalid segmentation result');
+      }
+      
+      // Create a new canvas for the masked image
+      const outputCanvas = document.createElement('canvas');
+      outputCanvas.width = canvas.width;
+      outputCanvas.height = canvas.height;
+      const outputCtx = outputCanvas.getContext('2d');
+      
+      if (!outputCtx) throw new Error('Could not get output canvas context');
+      
+      // Draw original image
+      outputCtx.drawImage(canvas, 0, 0);
+      
+      // Apply the mask
+      const outputImageData = outputCtx.getImageData(
+        0, 0,
+        outputCanvas.width,
+        outputCanvas.height
       );
-    });
+      const data = outputImageData.data;
+      
+      // Apply inverted mask to alpha channel
+      for (let i = 0; i < result[0].mask.data.length; i++) {
+        // Invert the mask value (1 - value) to keep the subject instead of the background
+        const alpha = Math.round((1 - result[0].mask.data[i]) * 255);
+        data[i * 4 + 3] = alpha;
+      }
+      
+      outputCtx.putImageData(outputImageData, 0, 0);
+      
+      // Standardize the image
+      const standardizedCanvas = await standardizeImage(outputCanvas);
+      
+      // Convert to WebP for better optimization
+      return new Promise((resolve, reject) => {
+        standardizedCanvas.toBlob(
+          (blob) => {
+            if (blob) {
+              console.log('Blob WebP créé avec succès');
+              resolve(blob);
+            } else {
+              reject(new Error('Échec de la création du blob'));
+            }
+          },
+          'image/webp',
+          0.9
+        );
+      });
+    } catch (modelError) {
+      console.warn('Erreur avec le modèle HuggingFace, utilisation du fallback:', modelError);
+      
+      // Créer un canvas pour l'image originale
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Impossible d\'obtenir le contexte du canvas');
+      
+      // Redimensionner l'image si nécessaire et la dessiner sur le canvas
+      const wasResized = resizeImageIfNeeded(canvas, ctx, imageElement);
+      console.log(`L'image ${wasResized ? 'a été' : 'n\'a pas été'} redimensionnée. Dimensions finales: ${canvas.width}x${canvas.height}`);
+      
+      // Utiliser une segmentation simple pour l'exemple
+      await simulateBackgroundRemoval(canvas, ctx);
+      
+      // Standardiser les dimensions à 600x600px avec bordure blanche
+      const standardizedCanvas = await standardizeImage(canvas);
+      
+      // Convertir en WebP pour une meilleure optimisation
+      return new Promise((resolve, reject) => {
+        standardizedCanvas.toBlob(
+          (blob) => {
+            if (blob) {
+              console.log('Blob WebP créé avec succès');
+              resolve(blob);
+            } else {
+              reject(new Error('Échec de la création du blob'));
+            }
+          },
+          'image/webp',
+          0.9
+        );
+      });
+    }
   } catch (error) {
     console.error('Erreur lors de la suppression de l\'arrière-plan:', error);
     throw error;

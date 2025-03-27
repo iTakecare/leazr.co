@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
-import { createProduct, updateProduct } from "@/services/catalogService";
+import { updateProduct, addProduct } from "@/services/catalogService";
 import { useParams } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Check, X, Upload, Loader2 } from "lucide-react";
@@ -71,10 +72,13 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ product, isEditing = fals
   }, [product]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
+    const inputElement = e.target as HTMLInputElement;
+    const isCheckbox = inputElement.type === 'checkbox';
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: isCheckbox ? inputElement.checked : value,
     }));
   };
 
@@ -128,21 +132,21 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ product, isEditing = fals
     }
   };
 
-  const mutation = useMutation(
-    isEditing ? updateProduct : createProduct,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["products"]);
-        toast.success(`Product ${isEditing ? "updated" : "created"}!`);
-        navigate("/catalog");
-      },
-      onError: (error: any) => {
-        toast.error(
-          `Error ${isEditing ? "updating" : "creating"} product: ${error?.message || error}`
-        );
-      },
-    }
-  );
+  const mutation = useMutation({
+    mutationFn: isEditing ? 
+      (data: Partial<Product>) => updateProduct(id as string, data) : 
+      (data: Partial<Product>) => addProduct(data as Omit<Product, 'id' | 'createdAt' | 'updatedAt'>),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success(`Product ${isEditing ? "updated" : "created"}!`);
+      navigate("/catalog");
+    },
+    onError: (error: any) => {
+      toast.error(
+        `Error ${isEditing ? "updating" : "creating"} product: ${error?.message || error}`
+      );
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,11 +158,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ product, isEditing = fals
       specifications: formData.specifications || {},
     };
 
-    if (isEditing && id) {
-      mutation.mutate({ ...productData, id });
-    } else {
-      mutation.mutate(productData);
-    }
+    mutation.mutate(productData);
   };
 
   const addAltText = () => {
@@ -393,8 +393,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ product, isEditing = fals
         <Button type="button" variant="ghost" onClick={() => navigate("/catalog")}>
           Cancel
         </Button>
-        <Button type="submit" disabled={mutation.isLoading}>
-          {mutation.isLoading ? (
+        <Button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Saving...
