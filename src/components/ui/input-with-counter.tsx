@@ -1,9 +1,9 @@
 
 import * as React from "react";
-import { Input, InputProps } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-interface InputWithCounterProps extends InputProps {
+interface InputWithCounterProps extends React.InputHTMLAttributes<HTMLInputElement> {
   maxLength?: number;
 }
 

@@ -79,7 +79,7 @@ const ImageProcessingTool: React.FC<ImageProcessingToolProps> = ({
     setIsProcessing(true);
     try {
       // Load image for processing
-      const img = new Image();
+      const img = document.createElement('img');
       img.src = originalPreview;
       await new Promise((resolve) => {
         img.onload = resolve;

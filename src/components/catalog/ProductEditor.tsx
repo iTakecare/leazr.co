@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -134,8 +133,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ product, isEditing = fals
 
   const mutation = useMutation({
     mutationFn: isEditing ? 
-      (data: Partial<Product>) => updateProduct(id as string, data) : 
-      (data: Partial<Product>) => addProduct(data as Omit<Product, 'id' | 'createdAt' | 'updatedAt'>),
+      (productData: Partial<Product>) => updateProduct(id as string, productData) : 
+      (productData: Partial<Product>) => addProduct(productData as Omit<Product, 'id' | 'createdAt' | 'updatedAt'>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success(`Product ${isEditing ? "updated" : "created"}!`);
@@ -269,7 +268,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ product, isEditing = fals
           <div>
             <Label htmlFor="shortDescription">Short Description</Label>
             <InputWithCounter
-              id="shortDescription"
               name="shortDescription"
               value={formData.shortDescription || ""}
               onChange={handleChange}
