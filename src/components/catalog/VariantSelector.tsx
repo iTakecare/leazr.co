@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
 import { Check, ChevronRight } from "lucide-react";
+import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 
 interface VariantSelectorProps {
   product: any;
@@ -16,15 +16,12 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   
-  // Initialize available options from product variation attributes
   useEffect(() => {
     if (!product) return;
     
-    // Get variation attributes
     const variationAttrs = product.variation_attributes || {};
     setAvailableOptions(variationAttrs);
     
-    // Set initial selected attributes (first option for each attribute)
     const initialSelection: Record<string, string> = {};
     Object.entries(variationAttrs).forEach(([attrName, values]) => {
       if (Array.isArray(values) && values.length > 0) {
@@ -35,13 +32,11 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
     setSelectedAttributes(initialSelection);
   }, [product]);
   
-  // Find matching variant when attributes change
   useEffect(() => {
     if (!product || !product.variant_combination_prices || Object.keys(selectedAttributes).length === 0) {
       return;
     }
     
-    // Find a variant that matches all selected attributes
     const matchingVariant = product.variant_combination_prices.find((variant: any) => {
       if (!variant.attributes) return false;
       
@@ -53,29 +48,23 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
     setSelectedVariant(matchingVariant);
   }, [selectedAttributes, product]);
   
-  // Check if a specific option is available with current selections
   const isOptionAvailable = (attributeName: string, value: string): boolean => {
     if (!product || !product.variant_combination_prices) return false;
     
-    // Get current selections excluding the attribute we're checking
     const otherSelections = { ...selectedAttributes };
     delete otherSelections[attributeName];
     
-    // Check if any variant matches this option and all other selected attributes
     return product.variant_combination_prices.some((variant: any) => {
       if (!variant.attributes) return false;
       
-      // First check if the variant has the attribute value we're looking for
       if (String(variant.attributes[attributeName]) !== String(value)) return false;
       
-      // Then check if the variant matches all other selected attributes
       return Object.entries(otherSelections).every(([key, val]) => 
         String(variant.attributes[key]) === String(val)
       );
     });
   };
   
-  // Handle attribute change
   const handleSelectAttribute = (attributeName: string, value: string) => {
     setSelectedAttributes(prev => ({
       ...prev,
@@ -83,10 +72,8 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
     }));
   };
   
-  // Confirm variant selection
   const handleConfirmSelection = () => {
     if (selectedVariant) {
-      // Create a composite product with variant info
       const productWithVariant = {
         ...product,
         price: selectedVariant.price,
@@ -99,12 +86,10 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
     }
   };
   
-  // If no variation attributes, return null
   if (!product || !product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
     return null;
   }
   
-  // Check if we have variants
   const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;
   
   return (
@@ -116,7 +101,6 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Attribute Selection */}
           {Object.entries(availableOptions).map(([attributeName, options]) => (
             <div key={attributeName} className="space-y-3">
               <h3 className="text-md font-semibold text-gray-800">
@@ -153,7 +137,6 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
             </div>
           ))}
           
-          {/* Selected Variant Information */}
           {selectedVariant ? (
             <div className="mt-6 rounded-xl bg-gray-50 p-4">
               <div className="mb-3 flex items-center justify-between">
@@ -196,6 +179,13 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
                   : "Aucune configuration disponible pour ce produit"}
               </p>
             </div>
+          )}
+          
+          {product.category && (
+            <CO2SavingsCalculator 
+              category={product.category} 
+              quantity={1}
+            />
           )}
         </div>
       </CardContent>

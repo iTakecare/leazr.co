@@ -433,4 +433,3 @@ const PartnerCreateOffer = () => {
 };
 
 export default PartnerCreateOffer;
-

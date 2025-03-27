@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -15,6 +14,7 @@ import { findVariantCombinationPrice } from "@/services/variantService";
 import VariantSelector from "@/components/product-detail/VariantSelector";
 import ProductPriceDisplay from "@/components/product-detail/ProductPriceDisplay";
 import ProductImageDisplay from "@/components/product-detail/ProductImageDisplay";
+import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 
 interface ProductVariantSelectorProps {
   product: Product;
@@ -59,7 +59,6 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       }
 
       try {
-        // Convert selectedOptions to ProductAttributes type
         const selectedAttrs: ProductAttributes = selectedOptions;
 
         if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
@@ -67,13 +66,11 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
           if (price) {
             setCurrentPrice(price.monthly_price || price.price);
             
-            // Create a variant with the selected attributes
             const variant: Product = {
               ...product,
               price: price.price,
               monthly_price: price.monthly_price || 0,
               selected_attributes: selectedAttrs,
-              // We don't set variation_attributes here as it would change the structure
             };
             
             setSelectedVariant(variant);
@@ -116,8 +113,6 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
     if (selectedVariant) {
       onSelectVariant(selectedVariant);
     } else if (Object.keys(selectedOptions).length > 0) {
-      // Create a modified product with selected attributes
-      // Without changing variation_attributes structure
       const modifiedProduct: Product = {
         ...product,
         selected_attributes: selectedOptions
@@ -182,6 +177,13 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                   isOptionAvailable={isOptionAvailable}
                   hasVariants={hasVariants}
                   hasOptions={hasOptions}
+                />
+              )}
+              
+              {product.category && (
+                <CO2SavingsCalculator 
+                  category={product.category} 
+                  quantity={1} 
                 />
               )}
               
