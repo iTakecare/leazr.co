@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface ProductImageDisplayProps {
   imageUrl: string;
@@ -12,14 +12,30 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   altText,
   imageUrls = []
 }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(imageUrl);
-  
   // Use imageUrl as the default, then add any additional images from imageUrls
   const allImages = [imageUrl, ...(imageUrls || [])].filter(
     (url, index, self) => url && self.indexOf(url) === index // Deduplicate
   );
+
+  const [selectedImage, setSelectedImage] = useState(allImages[0] || '');
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  
+  // Reset loading state when selected image changes
+  useEffect(() => {
+    // Pre-load the first image
+    if (allImages.length > 0) {
+      const img = new Image();
+      img.src = allImages[0];
+      img.onload = () => {
+        setIsLoading(false);
+      };
+      img.onerror = () => {
+        setIsLoading(false);
+        setHasError(true);
+      };
+    }
+  }, []);
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -40,7 +56,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   return (
     <div>
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden transition-all hover:shadow-md mb-4">
-        <div className="relative w-full aspect-square md:aspect-video flex items-center justify-center p-4">
+        <div className="relative w-full aspect-square md:aspect-[4/3] flex items-center justify-center p-4">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
               <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
