@@ -11,18 +11,20 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
     console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
     
     // Vérifier si le bucket existe déjà
-    const { data: existingBucket, error: bucketError } = await supabase
+    const { data: existingBuckets, error: bucketError } = await supabase
       .storage
-      .getBucket(bucketName);
+      .listBuckets();
     
-    if (existingBucket) {
-      console.log(`Le bucket ${bucketName} existe déjà`);
-      return true;
+    if (bucketError) {
+      console.error(`Erreur lors de la vérification des buckets:`, bucketError);
+      return false;
     }
     
-    if (bucketError && bucketError.message !== 'Bucket not found') {
-      console.error(`Erreur lors de la vérification du bucket ${bucketName}:`, bucketError);
-      return false;
+    const bucketExists = existingBuckets?.some(bucket => bucket.name === bucketName);
+    
+    if (bucketExists) {
+      console.log(`Le bucket ${bucketName} existe déjà`);
+      return true;
     }
     
     // Le bucket n'existe pas, essayons de le créer avec l'API Edge Function
@@ -33,7 +35,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       });
       
       if (rpcError) {
-        console.log(`La fonction Edge Function a échoué: ${rpcError.message}`);
+        console.error(`La fonction Edge Function a échoué:`, rpcError);
         
         // Si nous avons un token de service administrateur, essayons de créer directement
         console.log(`Tentative de création avec le client admin`);
@@ -58,10 +60,11 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         return true;
       }
       
-      console.log(`Bucket ${bucketName} créé avec succès via RPC`);
+      console.log(`Bucket ${bucketName} créé ou vérifié avec succès via RPC`);
       return true;
     } catch (error) {
       console.error(`Erreur lors de la création du bucket ${bucketName}:`, error);
+      
       // Si le bucket existe déjà, c'est une fausse erreur
       if (error instanceof Error && error.message && error.message.includes('already exists')) {
         console.log(`Le bucket ${bucketName} existe déjà (détecté dans l'erreur)`);

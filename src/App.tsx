@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
@@ -50,6 +49,8 @@ import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
 import SignOffer from "./pages/client/SignOffer";
 import PublicCatalog from "./pages/PublicCatalog";
+import { initializeStorageBuckets } from "@/utils/ensureBuckets";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +63,12 @@ const queryClient = new QueryClient({
 
 function App() {
   const location = useLocation();
+
+  useEffect(() => {
+    initializeStorageBuckets()
+      .then(() => console.log("Storage buckets initialization complete"))
+      .catch(err => console.error("Failed to initialize storage buckets:", err));
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

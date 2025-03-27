@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import Container from "@/components/layout/Container";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,8 @@ import ProductsViewOptions from "@/components/catalog/management/ProductsViewOpt
 import CatalogContent from "@/components/catalog/management/CatalogContent";
 import { useCatalogManagement } from "@/hooks/catalog/useCatalogManagement";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ensureStorageBucket } from "@/services/storageService";
+import { toast } from "sonner";
 
 const CatalogManagement = () => {
   const isMobile = useIsMobile();
@@ -34,6 +36,25 @@ const CatalogManagement = () => {
     handleAddNewProduct,
     handleViewModeChange
   } = useCatalogManagement();
+  
+  // Ensure product-images bucket exists when component mounts
+  useEffect(() => {
+    const initializeProductImagesBucket = async () => {
+      try {
+        const bucketExists = await ensureStorageBucket('product-images');
+        if (bucketExists) {
+          console.log('Product images bucket is ready');
+        } else {
+          console.error('Failed to create or verify product-images bucket');
+          toast.error('Erreur lors de la vérification du stockage des images produit');
+        }
+      } catch (error) {
+        console.error('Error initializing product images bucket:', error);
+      }
+    };
+    
+    initializeProductImagesBucket();
+  }, []);
   
   return (
     <Container>
