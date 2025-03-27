@@ -6,8 +6,8 @@ const ProductIncludedServices = () => {
   const services = [
     {
       icon: Truck,
-      title: "Livraison premium",
-      description: "Livraison rapide et gratuite dans toute l'Europe. Nous coordonnons l'installation avec vos équipes.",
+      title: "Livraison en Europe",
+      description: "Service de livraison rapide et gratuit partout en Europe. Installation coordonnée avec vos équipes.",
       color: "bg-[#33638e]"
     },
     {
@@ -19,7 +19,7 @@ const ProductIncludedServices = () => {
     {
       icon: Headphones,
       title: "Support dédié",
-      description: "Accès prioritaire à notre équipe de support technique qui vous accompagne tout au long de votre contrat.",
+      description: "Accès prioritaire à notre équipe de support technique basée en Belgique qui vous accompagne tout au long de votre contrat.",
       color: "bg-[#da2959]"
     },
     {
@@ -38,12 +38,12 @@ const ProductIncludedServices = () => {
         {services.map((service, index) => (
           <div 
             key={index} 
-            className="bg-gradient-to-br from-white to-slate-50 rounded-xl overflow-hidden shadow-md border border-gray-100 transition-all hover:shadow-lg group"
+            className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 transition-all hover:shadow-md group"
           >
             <div className={`${service.color} h-2 w-full group-hover:h-3 transition-all`}></div>
             <div className="p-6">
               <div className="flex items-start">
-                <div className={`rounded-full p-3 mr-4 bg-[#33638e]/10 text-[#33638e]`}>
+                <div className={`rounded-full p-3 mr-4 bg-[#33638e]/5 text-[#33638e]`}>
                   <service.icon className="h-6 w-6" />
                 </div>
                 <div>

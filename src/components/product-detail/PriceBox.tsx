@@ -12,7 +12,7 @@ interface PriceBoxProps {
 
 const PriceBox: React.FC<PriceBoxProps> = ({ totalPrice, onRequestOffer }) => {
   return (
-    <div className="bg-gradient-to-r from-[#33638e]/10 to-[#4ab6c4]/10 p-6 rounded-lg border border-[#4ab6c4]/30 mb-6 shadow-md">
+    <div className="bg-white p-6 rounded-lg border border-[#4ab6c4]/20 mb-6 shadow-sm">
       <div className="flex justify-between items-center mb-4">
         <span className="text-gray-700 font-medium">Total mensuel (HT)</span>
         <span className="text-2xl font-bold text-[#33638e]">{formatCurrency(totalPrice)} / mois</span>
@@ -38,7 +38,7 @@ const PriceBox: React.FC<PriceBoxProps> = ({ totalPrice, onRequestOffer }) => {
       <div className="mt-4 text-sm text-gray-600 grid grid-cols-2 gap-y-2">
         <div className="flex items-center">
           <Check className="h-4 w-4 text-[#4ab6c4] mr-2 flex-shrink-0" />
-          <span>Livraison gratuite</span>
+          <span>Livraison en Europe</span>
         </div>
         <div className="flex items-center">
           <Check className="h-4 w-4 text-[#4ab6c4] mr-2 flex-shrink-0" />
