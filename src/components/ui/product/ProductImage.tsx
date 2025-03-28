@@ -13,7 +13,6 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
   const [retryCount, setRetryCount] = useState(0);
-  const [isFixingImage, setIsFixingImage] = useState(false);
   
   useEffect(() => {
     // Reset states when product changes
@@ -57,105 +56,27 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
-    setRetryCount(0);
   };
   
   const handleImageError = async () => {
     setIsLoading(false);
     setHasError(true);
     
-    // More detailed error logging
     console.error(`Failed to load image: ${imageUrl}`);
     
-    // Prevent infinite retry loops
-    if (retryCount > 3) {
-      console.error("Too many retry attempts for image:", imageUrl);
+    if (retryCount >= 2) {
       return;
     }
     
-    // Try to load the image directly via fetch to get more details about the issue
-    try {
-      const response = await fetch(imageUrl);
-      const contentType = response.headers.get('content-type');
-      
-      console.log(`Image response content-type: ${contentType}`);
-      
-      // Check if the response is an image or not
-      if (contentType && contentType.startsWith('image/')) {
-        // It is an image but still not loading, try with different cache settings
-        setRetryCount(prev => prev + 1);
-        setImageUrl(addCacheBuster(imageUrl, true));
-        return;
-      }
-      
-      // Handle JSON response
-      if (contentType?.includes('application/json')) {
-        const text = await response.text();
-        try {
-          const json = JSON.parse(text);
-          console.error("Image URL returned JSON instead of an image:", json);
-          toast.error("L'image a été téléchargée au mauvais format (JSON)");
-          
-          // Only try to fix on the first error
-          if (!isFixingImage && product.id && retryCount === 0) {
-            fixImageUrl();
-          }
-        } catch (e) {
-          console.error("Image URL returned invalid JSON:", text);
-        }
-      } else {
-        // Handle other unexpected responses
-        const text = await response.text();
-        if (text.length < 1000) {
-          console.error("Image URL returned unexpected text:", text);
-        } else {
-          console.error("Image URL returned unexpected response (too large to display)");
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching image details:", error);
-    }
-  };
-  
-  // Try to fix the image by re-downloading and storing it properly
-  const fixImageUrl = async () => {
-    if (!product.id || imageUrl === "/placeholder.svg" || isFixingImage) return;
+    // Try with a cache buster on the URL
+    setRetryCount(prev => prev + 1);
     
-    setIsFixingImage(true);
+    // Add cache buster
+    const cacheBuster = `?t=${Date.now()}`;
+    const separator = imageUrl.includes('?') ? '&' : '?';
+    const newUrl = `${imageUrl}${separator}t=${Date.now()}&contentType=image`;
     
-    try {
-      toast.info("Tentative de correction de l'image...");
-      
-      // Try to download and store the image again
-      const fixedUrl = await downloadAndStoreImage(imageUrl, "product-images", product.id);
-      
-      if (fixedUrl) {
-        console.log("Successfully fixed image URL:", fixedUrl);
-        toast.success("Image corrigée avec succès");
-        setImageUrl(addCacheBuster(fixedUrl, true));
-        setRetryCount(0);
-        setHasError(false);
-        setIsLoading(true);
-      } else {
-        console.error("Failed to fix image URL");
-        toast.error("Impossible de corriger l'image");
-      }
-    } catch (error) {
-      console.error("Error fixing image:", error);
-      toast.error("Erreur lors de la correction de l'image");
-    } finally {
-      setIsFixingImage(false);
-    }
-  };
-  
-  // Add cache-busting parameter to avoid loading cached incorrect content type
-  const addCacheBuster = (url: string, force = false): string => {
-    if (!url || url === '/placeholder.svg') return url;
-    
-    // Force image content type and cache busting
-    const separator = url.includes('?') ? '&' : '?';
-    const timestamp = force ? Date.now() : Math.floor(Date.now() / 10000) * 10000; // Less frequent cache busting
-    return `${url}${separator}t=${timestamp}&contentType=image&forceImageType=true`;
+    setImageUrl(newUrl);
   };
   
   return (
@@ -166,7 +87,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         </div>
       )}
       <img 
-        src={addCacheBuster(imageUrl)}
+        src={imageUrl}
         alt={product?.name || "Product"}
         className="object-contain h-24 w-24"
         onLoad={handleImageLoad}
