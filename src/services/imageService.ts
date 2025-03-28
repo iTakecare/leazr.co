@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
-import { ensureStorageBucket } from "@/services/storageService";
+import { checkBucketExists, ensureFolderExists } from "@/utils/storage";
 
 /**
  * Detects the file extension from a File object
@@ -78,6 +78,14 @@ export const uploadImage = async (
       return { url: fileOrPath };
     }
     
+    // Vérifier si le bucket existe
+    const bucketExists = await checkBucketExists(bucketName);
+    if (!bucketExists) {
+      console.error(`Bucket ${bucketName} does not exist`);
+      toast.error(`Le bucket ${bucketName} n'existe pas`);
+      return null;
+    }
+    
     // We're dealing with a File object
     const file = fileOrPath;
     const extension = detectFileExtension(file);
@@ -122,41 +130,34 @@ export const uploadProductImage = async (
   try {
     const BUCKET_NAME = 'catalog';
     
-    // Ensure bucket exists before upload
-    const bucketExists = await ensureStorageBucket(BUCKET_NAME);
+    // Vérifier si le bucket existe
+    const bucketExists = await checkBucketExists(BUCKET_NAME);
     if (!bucketExists) {
-      console.error(`Bucket ${BUCKET_NAME} does not exist and could not be created`);
-      toast.error(`Le bucket ${BUCKET_NAME} n'existe pas et n'a pas pu être créé`);
+      console.error(`Bucket ${BUCKET_NAME} n'existe pas`);
+      toast.error(`Le bucket ${BUCKET_NAME} n'existe pas`);
+      return null;
+    }
+    
+    // Créer le dossier du produit s'il n'existe pas
+    const folderPath = `products/${productId}`;
+    const folderOk = await ensureFolderExists(BUCKET_NAME, folderPath);
+    if (!folderOk) {
+      console.error(`Impossible de créer le dossier ${folderPath}`);
+      toast.error(`Erreur lors de la création du dossier`);
       return null;
     }
     
     const extension = detectFileExtension(file);
-    const folderPath = `products/${productId}`;
     const fileName = `${isMain ? 'main' : uuidv4()}.${extension}`;
+    const filePath = `${folderPath}/${fileName}`;
     const mimeType = await detectMimeTypeFromSignature(file) || file.type;
     
     console.log(`Uploading product image: ${fileName}, MIME type: ${mimeType}`);
     
-    // Create empty placeholder file to ensure folder exists
-    try {
-      const { error: placeholderError } = await supabase.storage
-        .from(BUCKET_NAME)
-        .upload(`${folderPath}/.placeholder`, new Blob([]), {
-          contentType: 'text/plain',
-          upsert: true
-        });
-      
-      if (placeholderError && !placeholderError.message.includes('The resource already exists')) {
-        console.warn("Warning creating folder placeholder:", placeholderError);
-      }
-    } catch (e) {
-      console.warn("Exception creating folder placeholder (continuing):", e);
-    }
-    
     // Upload the actual image file
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(`${folderPath}/${fileName}`, file, {
+      .upload(filePath, file, {
         contentType: mimeType,
         upsert: true
       });
@@ -169,7 +170,7 @@ export const uploadProductImage = async (
     
     const { data: urlData } = supabase.storage
       .from(BUCKET_NAME)
-      .getPublicUrl(`${folderPath}/${fileName}`);
+      .getPublicUrl(filePath);
     
     const imageUrl = urlData?.publicUrl || '';
     console.log("Product image upload successful, URL:", imageUrl);

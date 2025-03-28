@@ -10,7 +10,6 @@ import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/integrations/supabase/client";
 import { checkBucketExists, ensureFolderExists } from "@/utils/storage";
 import { uploadProductImage } from "@/services/imageService";
-import { ensureStorageBucket } from "@/services/storageService";
 
 interface ProductImage {
   id: string;
@@ -36,34 +35,11 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const [images, setImages] = useState<ProductImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [isBucketCreated, setIsBucketCreated] = useState(false);
   
-  // Bucket name constant - using 'catalog' which should already exist
+  // Nom du bucket à utiliser - utilisation constante du même bucket
   const BUCKET_NAME = 'catalog';
 
-  // First, ensure the bucket exists
-  useEffect(() => {
-    const createBucketIfNeeded = async () => {
-      try {
-        // Try to create/ensure the bucket exists
-        const bucketCreated = await ensureStorageBucket(BUCKET_NAME);
-        console.log(`Bucket ${BUCKET_NAME} creation result:`, bucketCreated);
-        setIsBucketCreated(bucketCreated);
-        
-        if (!bucketCreated) {
-          console.error(`Failed to create or ensure bucket: ${BUCKET_NAME}`);
-          setLoadError(`Impossible de créer le bucket de stockage ${BUCKET_NAME}`);
-        }
-      } catch (error) {
-        console.error("Error ensuring storage bucket:", error);
-        setLoadError(`Erreur lors de la création du bucket: ${BUCKET_NAME}`);
-      }
-    };
-    
-    createBucketIfNeeded();
-  }, []);
-
-  // Initialize images
+  // Initialisation des images
   useEffect(() => {
     if (!productId) return;
     
@@ -72,55 +48,49 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       setLoadError(null);
       
       try {
-        // Check if initial images were provided
+        // Vérifier si des images initiales ont été fournies
         if (initialImages && initialImages.length > 0) {
-          console.log("Using provided images:", initialImages);
+          console.log("Utilisation des images fournies:", initialImages);
           setImages(initialImages);
           onChange(initialImages);
           setIsLoading(false);
           return;
         }
         
-        // Check if bucket exists
+        // Vérifier l'existence du bucket
         const bucketExists = await checkBucketExists(BUCKET_NAME);
         if (!bucketExists) {
-          console.error(`Bucket ${BUCKET_NAME} does not exist`);
-          
-          // Try to create the bucket
-          const bucketCreated = await ensureStorageBucket(BUCKET_NAME);
-          if (!bucketCreated) {
-            setLoadError(`Le bucket ${BUCKET_NAME} n'existe pas et n'a pas pu être créé`);
-            setIsLoading(false);
-            return;
-          }
+          console.error(`Le bucket ${BUCKET_NAME} n'existe pas`);
+          setLoadError(`Le bucket ${BUCKET_NAME} n'existe pas. Veuillez contacter l'administrateur.`);
+          setIsLoading(false);
+          return;
         }
         
-        // Try to load images from storage first
+        console.log(`Bucket ${BUCKET_NAME} trouvé, chargement des images...`);
+        
+        // Chemin du dossier pour ce produit
         const folderPath = `products/${productId}`;
         
-        // Ensure folder exists
-        await ensureFolderExists(BUCKET_NAME, folderPath);
-        
-        // List files in the folder
+        // Lister les fichiers dans le dossier
         const { data: files, error: listError } = await supabase.storage
           .from(BUCKET_NAME)
           .list(folderPath);
         
         if (listError) {
-          console.error("Error listing files:", listError);
+          console.error("Erreur lors de la liste des fichiers:", listError);
           
-          // If we can't list files, try to get image URLs from the product
+          // Essayer de charger les images depuis les données du produit
           await loadImagesFromProduct();
           return;
         }
         
         if (!files || files.length === 0) {
-          console.log("No files found in storage, trying product data");
+          console.log("Aucun fichier trouvé dans le dossier, chargement depuis les données du produit");
           await loadImagesFromProduct();
           return;
         }
         
-        // Process files from storage
+        // Traiter les fichiers du stockage
         const imageFiles = files.filter(file => 
           !file.name.endsWith('/') && 
           file.name !== '.placeholder' &&
@@ -128,7 +98,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         );
         
         if (imageFiles.length === 0) {
-          console.log("No valid image files found in storage, trying product data");
+          console.log("Aucun fichier d'image trouvé, chargement depuis les données du produit");
           await loadImagesFromProduct();
           return;
         }
@@ -150,7 +120,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           });
         }
         
-        // Sort images to ensure main image is first
+        // Tri des images pour mettre l'image principale en premier
         storageImages.sort((a, b) => {
           if (a.isMain && !b.isMain) return -1;
           if (!a.isMain && b.isMain) return 1;
@@ -158,17 +128,17 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         });
         
         if (storageImages.length > 0) {
-          console.log("Loaded images from storage:", storageImages);
+          console.log("Images chargées depuis le stockage:", storageImages);
           setImages(storageImages);
           onChange(storageImages);
           setIsLoading(false);
           return;
         }
         
-        // If no images from storage, try product data
+        // Si aucune image n'a été trouvée dans le stockage, essayer de charger depuis les données du produit
         await loadImagesFromProduct();
       } catch (error) {
-        console.error("Error in loadImages:", error);
+        console.error("Erreur lors du chargement des images:", error);
         setLoadError("Une erreur est survenue lors du chargement des images");
         setIsLoading(false);
       }
@@ -176,7 +146,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     
     const loadImagesFromProduct = async () => {
       try {
-        // Try to load images from the product
+        // Chargement des images depuis les données du produit
         const { data: product, error: productError } = await supabase
           .from('products')
           .select('image_url, image_urls')
@@ -184,16 +154,16 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           .single();
         
         if (productError) {
-          console.error("Error fetching product:", productError);
+          console.error("Erreur lors du chargement du produit:", productError);
           setLoadError("Impossible de charger les données du produit");
           setIsLoading(false);
           return;
         }
         
-        // Prepare the list of images
+        // Préparation de la liste des images
         const productImages: ProductImage[] = [];
         
-        // Add main image if exists
+        // Ajout de l'image principale si elle existe
         if (product.image_url) {
           productImages.push({
             id: 'main',
@@ -203,7 +173,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           });
         }
         
-        // Add additional images if exist
+        // Ajout des images supplémentaires si elles existent
         if (Array.isArray(product.image_urls) && product.image_urls.length > 0) {
           product.image_urls.forEach((url: string, index: number) => {
             if (!url) return;
@@ -216,11 +186,11 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           });
         }
         
-        console.log("Loaded product images:", productImages);
+        console.log("Images chargées depuis les données du produit:", productImages);
         setImages(productImages);
         onChange(productImages);
       } catch (err) {
-        console.error("Error loading product images:", err);
+        console.error("Erreur lors du chargement des images du produit:", err);
         setLoadError("Erreur lors du chargement des images du produit");
       } finally {
         setIsLoading(false);
@@ -230,7 +200,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     loadImages();
   }, [productId, initialImages, onChange]);
 
-  // Handle file change
+  // Gestion du changement de fichier
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !productId) return;
@@ -238,15 +208,19 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     setIsUploading(true);
     
     try {
-      // First make sure the bucket exists
-      if (!isBucketCreated) {
-        const bucketCreated = await ensureStorageBucket(BUCKET_NAME);
-        if (!bucketCreated) {
-          toast.error(`Le bucket ${BUCKET_NAME} n'existe pas et n'a pas pu être créé`);
-          setIsUploading(false);
-          return;
-        }
-        setIsBucketCreated(true);
+      // Vérifier l'existence du bucket
+      const bucketExists = await checkBucketExists(BUCKET_NAME);
+      if (!bucketExists) {
+        toast.error(`Le bucket ${BUCKET_NAME} n'existe pas. Contactez l'administrateur.`);
+        setIsUploading(false);
+        return;
+      }
+      
+      // Vérifier l'existence du dossier et le créer si nécessaire
+      const folderPath = `products/${productId}`;
+      const folderExists = await ensureFolderExists(BUCKET_NAME, folderPath);
+      if (!folderExists) {
+        console.log(`Création du dossier ${folderPath} dans le bucket ${BUCKET_NAME}`);
       }
       
       const newImages: ProductImage[] = [];
@@ -260,7 +234,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           continue;
         }
         
-        // Upload the image file
+        // Utiliser la fonction d'upload d'image
         const imageUrl = await uploadProductImage(file, productId, images.length === 0);
         
         if (imageUrl) {
@@ -272,7 +246,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           };
           
           newImages.push(newImage);
-          console.log(`Image uploaded: ${file.name} -> ${imageUrl}`);
+          console.log(`Image uploadée: ${file.name} -> ${imageUrl}`);
         } else {
           toast.error(`Erreur lors de l'upload de ${file.name}`);
         }
@@ -285,24 +259,24 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         toast.success(`${newImages.length} image(s) uploadée(s) avec succès`);
       }
     } catch (error) {
-      console.error("Error uploading images:", error);
+      console.error("Erreur lors de l'upload des images:", error);
       toast.error("Une erreur est survenue lors de l'upload des images");
     } finally {
       setIsUploading(false);
-      // Reset the input to allow selecting the same file again
+      // Réinitialiser l'input pour permettre de sélectionner à nouveau le même fichier
       const input = document.getElementById("image-upload") as HTMLInputElement;
       if (input) input.value = "";
     }
   };
 
-  // Set an image as main
+  // Définir une image comme principale
   const handleSetMainImage = (image: ProductImage) => {
     if (!onSetMainImage) return;
     
     try {
       onSetMainImage(image.url);
       
-      // Update local state
+      // Mettre à jour l'état local
       setImages(images.map(img => ({
         ...img,
         isMain: img.id === image.id
@@ -310,17 +284,17 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       
       toast.success("Image principale définie avec succès");
     } catch (error) {
-      console.error("Error setting main image:", error);
+      console.error("Erreur lors de la définition de l'image principale:", error);
       toast.error("Erreur lors de la définition de l'image principale");
     }
   };
 
-  // Preview an image
+  // Prévisualiser une image
   const previewImage = (imageUrl: string) => {
     window.open(imageUrl, '_blank');
   };
 
-  // Add a timestamp to avoid caching issues
+  // Ajouter un timestamp pour éviter les problèmes de cache
   const getTimestampedUrl = (url: string) => {
     if (!url || url === '/placeholder.svg') return url;
     
@@ -343,11 +317,11 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
             type="file"
             accept="image/*"
             onChange={handleFileChange}
-            disabled={isUploading || !isBucketCreated}
+            disabled={isUploading}
             multiple
             className="flex-1"
           />
-          <Button disabled={isUploading || !isBucketCreated} className="min-w-20 relative">
+          <Button disabled={isUploading} className="min-w-20 relative">
             {isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -405,7 +379,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                     alt={image.name}
                     className="max-h-full max-w-full object-contain"
                     onError={(e) => {
-                      console.error("Error loading image:", image.url);
+                      console.error("Erreur de chargement d'image:", image.url);
                       (e.target as HTMLImageElement).src = "/placeholder.svg";
                     }}
                   />

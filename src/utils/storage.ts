@@ -8,21 +8,21 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const checkBucketExists = async (bucketName: string): Promise<boolean> => {
   try {
-    console.log(`Checking if bucket exists: ${bucketName}`);
+    console.log(`Vérification de l'existence du bucket: ${bucketName}`);
     
     // Try to list buckets first
     const { data: buckets, error } = await supabase.storage.listBuckets();
     
     if (error) {
-      console.error("Error checking buckets:", error);
+      console.error("Erreur lors de la vérification des buckets:", error);
       return false;
     }
     
     const exists = buckets.some(bucket => bucket.name === bucketName);
-    console.log(`Bucket ${bucketName} exists: ${exists}`);
+    console.log(`Bucket ${bucketName} existe: ${exists}`);
     return exists;
   } catch (error) {
-    console.error("Error in checkBucketExists:", error);
+    console.error("Erreur dans checkBucketExists:", error);
     return false;
   }
 };
@@ -35,7 +35,7 @@ export const checkBucketExists = async (bucketName: string): Promise<boolean> =>
  */
 export const ensureFolderExists = async (bucketName: string, folderPath: string): Promise<boolean> => {
   try {
-    console.log(`Ensuring folder exists: ${bucketName}/${folderPath}`);
+    console.log(`Vérification de l'existence du dossier: ${bucketName}/${folderPath}`);
     
     // Check if folder already exists
     const { data, error } = await supabase.storage
@@ -44,9 +44,11 @@ export const ensureFolderExists = async (bucketName: string, folderPath: string)
     
     if (!error && data && data.length > 0) {
       // Folder exists
-      console.log(`Folder ${folderPath} already exists in bucket ${bucketName}`);
+      console.log(`Le dossier ${folderPath} existe déjà dans le bucket ${bucketName}`);
       return true;
     }
+    
+    console.log(`Création du dossier ${folderPath} dans le bucket ${bucketName}`);
     
     // Create an empty placeholder file to ensure the folder exists
     const { error: uploadError } = await supabase.storage
@@ -57,14 +59,14 @@ export const ensureFolderExists = async (bucketName: string, folderPath: string)
       });
     
     if (uploadError) {
-      console.error("Error creating folder:", uploadError);
+      console.error("Erreur lors de la création du dossier:", uploadError);
       return false;
     }
     
-    console.log(`Successfully created folder: ${bucketName}/${folderPath}`);
+    console.log(`Dossier créé avec succès: ${bucketName}/${folderPath}`);
     return true;
   } catch (error) {
-    console.error("Error in ensureFolderExists:", error);
+    console.error("Erreur dans ensureFolderExists:", error);
     return false;
   }
 };
