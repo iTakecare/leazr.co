@@ -1,4 +1,3 @@
-
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -271,6 +270,169 @@ const readFileAsText = (file: File): Promise<string> => {
   });
 };
 
+// Fonction pour réorganiser les images d'un produit
+export const reorderProductImages = async (
+  productId: string, 
+  imageUrls: string[],
+  mainImageUrl?: string
+): Promise<boolean> => {
+  try {
+    console.log(`Réorganisation des images pour le produit ${productId}`);
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    // Récupérer d'abord le produit pour vérifier son existence
+    const { data: product, error: fetchError } = await supabase
+      .from('products')
+      .select('id, image_url, image_urls')
+      .eq('id', productId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Erreur lors de la récupération du produit:', fetchError);
+      throw new Error(`Échec de la récupération des données du produit: ${fetchError.message}`);
+    }
+    
+    if (!product) {
+      throw new Error(`Produit avec l'ID ${productId} non trouvé`);
+    }
+    
+    // Préparer les mises à jour
+    const updates: {
+      image_url?: string;
+      image_urls?: string[];
+    } = {
+      image_urls: imageUrls
+    };
+    
+    // Si une nouvelle image principale est spécifiée, la définir
+    if (mainImageUrl) {
+      updates.image_url = mainImageUrl;
+    }
+    
+    // Mise à jour du produit
+    const { error: updateError } = await supabase
+      .from('products')
+      .update(updates)
+      .eq('id', productId);
+    
+    if (updateError) {
+      console.error('Erreur lors de la mise à jour de l\'ordre des images:', updateError);
+      throw new Error(`Échec de la réorganisation des images: ${updateError.message}`);
+    }
+    
+    console.log('Images réorganisées avec succès pour le produit:', productId);
+    return true;
+  } catch (error) {
+    console.error('Erreur dans reorderProductImages:', error);
+    toast.error(`Erreur lors de la réorganisation des images: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    throw error;
+  }
+};
+
+// Fonction pour définir l'image principale d'un produit
+export const setMainProductImage = async (productId: string, imageUrl: string): Promise<boolean> => {
+  try {
+    console.log(`Définition de l'image principale pour le produit ${productId}:`, imageUrl);
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const { error } = await supabase
+      .from('products')
+      .update({ image_url: imageUrl })
+      .eq('id', productId);
+    
+    if (error) {
+      console.error(`Erreur lors de la définition de l'image principale:`, error);
+      throw new Error(`Échec de la définition de l'image principale: ${error.message}`);
+    }
+    
+    console.log(`Image principale mise à jour avec succès pour le produit ${productId}`);
+    return true;
+  } catch (error) {
+    console.error('Erreur dans setMainProductImage:', error);
+    toast.error(`Erreur lors de la définition de l'image principale: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    throw error;
+  }
+};
+
+// Fonction pour supprimer une image d'un produit
+export const removeProductImage = async (productId: string, imageUrl: string): Promise<boolean> => {
+  try {
+    console.log(`Suppression de l'image pour le produit ${productId}:`, imageUrl);
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    // Récupérer d'abord le produit pour obtenir les URLs d'images actuelles
+    const { data: product, error: fetchError } = await supabase
+      .from('products')
+      .select('image_url, image_urls')
+      .eq('id', productId)
+      .single();
+    
+    if (fetchError || !product) {
+      console.error('Erreur lors de la récupération des données du produit:', fetchError);
+      throw new Error('Échec de la récupération des données du produit');
+    }
+    
+    // Vérifier si c'est l'image principale
+    const isMainImage = product.image_url === imageUrl;
+    
+    // Filtrer les images pour retirer celle à supprimer
+    let updatedImageUrls = (product.image_urls || []).filter(url => url !== imageUrl);
+    
+    const updates: {
+      image_url?: string | null;
+      image_urls: string[];
+    } = {
+      image_urls: updatedImageUrls
+    };
+    
+    // Si c'était l'image principale, définir une nouvelle image principale
+    // si disponible, sinon mettre à null
+    if (isMainImage) {
+      updates.image_url = updatedImageUrls.length > 0 ? updatedImageUrls[0] : null;
+    }
+    
+    // Mise à jour du produit
+    const { error: updateError } = await supabase
+      .from('products')
+      .update(updates)
+      .eq('id', productId);
+    
+    if (updateError) {
+      console.error('Erreur lors de la suppression de l\'image:', updateError);
+      throw new Error(`Échec de la suppression de l'image: ${updateError.message}`);
+    }
+    
+    // Extraire le nom de fichier de l'URL
+    try {
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split('/');
+      const fileName = pathParts.pop();
+      const folderPath = pathParts.pop();
+      
+      if (fileName && folderPath) {
+        // Supprimer le fichier du stockage
+        const { error: storageError } = await supabase.storage
+          .from('product-images')
+          .remove([`${folderPath}/${fileName}`]);
+        
+        if (storageError) {
+          console.warn(`Erreur lors de la suppression du fichier physique, mais l'image a été supprimée de la base de données:`, storageError);
+        }
+      }
+    } catch (parseError) {
+      console.warn('Impossible de parser l\'URL de l\'image pour la suppression physique:', parseError);
+    }
+    
+    console.log(`Image supprimée avec succès pour le produit ${productId}`);
+    return true;
+  } catch (error) {
+    console.error('Erreur dans removeProductImage:', error);
+    toast.error(`Erreur lors de la suppression de l'image: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    throw error;
+  }
+};
+
+// Fonction pour télécharger une image dans un bucket spécifique
 export const uploadImage = async (
   file: File | string,
   bucket: string,
