@@ -1,24 +1,15 @@
 
 import React, { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ProductVariationAttributes } from "@/types/catalog";
-import { X, Plus, Loader2, HelpCircle } from "lucide-react";
-import { updateProductVariationAttributes } from "@/services/variantPriceService";
-import { toast } from "sonner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { X, Plus, Save, Trash2 } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
+import { ProductVariationAttributes } from "@/types/catalog";
+import { updateProductVariationAttributes } from "@/services/variantPriceService";
 
 interface VariantAttributeSelectorProps {
   productId: string;
@@ -31,118 +22,84 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   initialAttributes = {},
   onAttributesUpdated
 }) => {
-  const [attributes, setAttributes] = useState<Record<string, string[]>>(
-    initialAttributes || {}
-  );
-  const [isUpdating, setIsUpdating] = useState(false);
-  
+  const [attributes, setAttributes] = useState<ProductVariationAttributes>(initialAttributes || {});
   const [newAttributeName, setNewAttributeName] = useState("");
-  const [newAttributeValues, setNewAttributeValues] = useState("");
+  const [newAttributeValue, setNewAttributeValue] = useState("");
+  const [attributeToAddValueTo, setAttributeToAddValueTo] = useState<string | null>(null);
+  const [valueToAdd, setValueToAdd] = useState("");
   
-  // Mettre à jour les attributs locaux quand initialAttributes change
   useEffect(() => {
-    if (initialAttributes && Object.keys(initialAttributes).length > 0) {
-      setAttributes(initialAttributes);
-    }
+    setAttributes(initialAttributes || {});
   }, [initialAttributes]);
-
-  // Suggestions d'attributs courants pour les produits technologiques
-  const commonAttributes = [
-    { name: "CPU", examples: "i5, i7, M1, M2, Ryzen 5" },
-    { name: "RAM", examples: "8Go, 16Go, 32Go" },
-    { name: "Stockage", examples: "256Go, 512Go, 1To" },
-    { name: "Couleur", examples: "Noir, Blanc, Argent" },
-    { name: "Taille", examples: "13\", 14\", 15\"" },
-    { name: "Disque Dur", examples: "SSD, HDD, NVMe" },
-    { name: "Carte Graphique", examples: "Intégrée, RTX 3060, RTX 4070" }
-  ];
   
-  // Ajouter un attribut prédéfini
-  const handleAddPredefinedAttribute = (name: string) => {
-    if (attributes[name]) {
-      toast.info(`L'attribut "${name}" existe déjà`);
-      return;
+  const updateAttributes = useMutation({
+    mutationFn: () => updateProductVariationAttributes(productId, attributes),
+    onSuccess: () => {
+      toast.success("Attributs de variation mis à jour avec succès");
+      if (onAttributesUpdated) onAttributesUpdated();
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur lors de la mise à jour des attributs: ${error.message}`);
     }
-    
-    setNewAttributeName(name);
-  };
+  });
   
-  // Ajouter un nouvel attribut
   const handleAddAttribute = () => {
     if (!newAttributeName.trim()) {
-      toast.error("Veuillez entrer un nom d'attribut");
+      toast.error("Le nom de l'attribut est requis");
       return;
     }
     
-    const name = newAttributeName.trim();
-    let values: string[] = [];
-    
-    if (newAttributeValues.includes(',')) {
-      // Split by comma and clean up
-      values = newAttributeValues.split(',').map(val => val.trim()).filter(Boolean);
-    } else {
-      // Single value or empty
-      const singleValue = newAttributeValues.trim();
-      if (singleValue) {
-        values = [singleValue];
-      }
-    }
-    
-    if (values.length === 0) {
-      toast.error("Veuillez entrer au moins une valeur d'attribut");
+    // Check if attribute already exists
+    if (attributes[newAttributeName]) {
+      toast.error("Cet attribut existe déjà");
       return;
     }
+    
+    // Add new attribute with initial value if provided
+    const values = newAttributeValue.trim() ? [newAttributeValue.trim()] : [];
     
     setAttributes(prev => ({
       ...prev,
-      [name]: values
+      [newAttributeName]: values
     }));
     
     setNewAttributeName("");
-    setNewAttributeValues("");
+    setNewAttributeValue("");
     
-    toast.success(`Attribut "${name}" ajouté avec succès`);
+    toast.success(`Attribut "${newAttributeName}" ajouté`);
   };
   
-  // Ajouter une valeur à un attribut existant
-  const handleAddValue = (attributeName: string, value: string) => {
-    if (!value.trim()) return;
+  const handleAddValueToAttribute = (attributeName: string) => {
+    if (!valueToAdd.trim()) {
+      toast.error("La valeur de l'attribut est requise");
+      return;
+    }
     
-    setAttributes(prev => {
-      const currentValues = prev[attributeName] || [];
-      if (currentValues.includes(value.trim())) {
-        toast.error(`La valeur "${value}" existe déjà pour l'attribut "${attributeName}"`);
-        return prev;
-      }
-      
-      return {
-        ...prev,
-        [attributeName]: [...currentValues, value.trim()]
-      };
-    });
+    // Check if value already exists for this attribute
+    if (attributes[attributeName]?.includes(valueToAdd.trim())) {
+      toast.error("Cette valeur existe déjà pour cet attribut");
+      return;
+    }
+    
+    // Add value to attribute
+    setAttributes(prev => ({
+      ...prev,
+      [attributeName]: [...(prev[attributeName] || []), valueToAdd.trim()]
+    }));
+    
+    setAttributeToAddValueTo(null);
+    setValueToAdd("");
+    
+    toast.success(`Valeur "${valueToAdd}" ajoutée à l'attribut "${attributeName}"`);
   };
   
-  // Supprimer une valeur d'attribut
   const handleRemoveValue = (attributeName: string, valueIndex: number) => {
-    setAttributes(prev => {
-      const currentValues = [...(prev[attributeName] || [])];
-      currentValues.splice(valueIndex, 1);
-      
-      // Si plus de valeurs, supprimer l'attribut entier
-      if (currentValues.length === 0) {
-        const newAttributes = { ...prev };
-        delete newAttributes[attributeName];
-        return newAttributes;
-      }
-      
-      return {
-        ...prev,
-        [attributeName]: currentValues
-      };
-    });
+    setAttributes(prev => ({
+      ...prev,
+      [attributeName]: prev[attributeName].filter((_, index) => index !== valueIndex)
+    }));
   };
   
-  // Supprimer un attribut entier
   const handleRemoveAttribute = (attributeName: string) => {
     setAttributes(prev => {
       const newAttributes = { ...prev };
@@ -153,190 +110,136 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
     toast.success(`Attribut "${attributeName}" supprimé`);
   };
   
-  // Sauvegarder les modifications
   const handleSaveAttributes = async () => {
-    setIsUpdating(true);
-    
     try {
-      await updateProductVariationAttributes(productId, attributes);
-      toast.success("Attributs mis à jour avec succès");
-      
-      if (onAttributesUpdated) {
-        onAttributesUpdated();
-      }
-    } catch (error: any) {
-      toast.error(`Erreur lors de la mise à jour des attributs: ${error.message}`);
-    } finally {
-      setIsUpdating(false);
+      await updateAttributes.mutateAsync();
+    } catch (error) {
+      console.error("Failed to update attributes:", error);
     }
   };
-
-  // Vérifier s'il y a des attributs définis
-  const hasAttributes = Object.keys(attributes).length > 0;
   
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Attributs de variation</CardTitle>
-              <CardDescription>
-                Définissez les attributs pour créer différentes combinaisons de produits
-              </CardDescription>
-            </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <HelpCircle className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-sm">
-                  <p>Les attributs définissent les caractéristiques qui varient entre les différentes versions du produit, comme la taille d'écran, la mémoire RAM, etc.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+        <CardHeader>
+          <CardTitle>Attributs de variation du produit</CardTitle>
         </CardHeader>
-        <CardContent>
-          {hasAttributes ? (
-            <div className="space-y-4">
-              {Object.entries(attributes).map(([attrName, attrValues]) => (
-                <div key={attrName} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium">{attrName}</h4>
+        <CardContent className="space-y-4">
+          {Object.keys(attributes).length === 0 ? (
+            <Alert variant="default" className="bg-muted/50">
+              <AlertDescription>
+                Ce produit n'a pas encore d'attributs de variation. 
+                Ajoutez des attributs comme couleur, taille, etc., pour créer des variantes.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(attributes).map(([attributeName, values]) => (
+                <div key={attributeName} className="rounded-lg border p-4 relative">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-medium text-base">{attributeName}</h3>
                     <Button 
                       variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleRemoveAttribute(attrName)}
-                      className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                      size="icon" 
+                      onClick={() => handleRemoveAttribute(attributeName)}
+                      className="h-8 w-8 absolute right-2 top-2"
                     >
-                      <X className="h-4 w-4 mr-1" />
-                      Supprimer
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                   
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {attrValues.map((value, index) => (
-                      <Badge key={index} variant="outline" className="px-2 py-1 flex items-center gap-1">
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {Array.isArray(values) && values.map((value, index) => (
+                      <Badge key={index} variant="secondary" className="group relative">
                         {value}
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-5 w-5 ml-1 p-0 rounded-full" 
-                          onClick={() => handleRemoveValue(attrName, index)}
+                        <button
+                          className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveValue(attributeName, index)}
                         >
                           <X className="h-3 w-3" />
-                        </Button>
+                        </button>
                       </Badge>
                     ))}
                   </div>
                   
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Nouvelle valeur" 
-                      className="text-sm"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const input = e.currentTarget;
-                          handleAddValue(attrName, input.value);
-                          input.value = '';
-                        }
-                      }}
-                    />
+                  {attributeToAddValueTo === attributeName ? (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        placeholder="Nouvelle valeur"
+                        value={valueToAdd}
+                        onChange={(e) => setValueToAdd(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleAddValueToAttribute(attributeName)}
+                      >
+                        Ajouter
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => {
+                          setAttributeToAddValueTo(null);
+                          setValueToAdd("");
+                        }}
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  ) : (
                     <Button 
                       variant="outline" 
-                      size="sm"
-                      onClick={(e) => {
-                        const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                        if (input) {
-                          handleAddValue(attrName, input.value);
-                          input.value = '';
-                        }
-                      }}
+                      size="sm" 
+                      onClick={() => setAttributeToAddValueTo(attributeName)}
                     >
-                      Ajouter
+                      <Plus className="h-4 w-4 mr-2" /> Ajouter une valeur
                     </Button>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
-          ) : (
-            <Alert className="bg-amber-50">
-              <AlertTitle className="flex items-center">
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Aucun attribut défini
-              </AlertTitle>
-              <AlertDescription>
-                Définissez des attributs pour créer des variations de ce produit avec différentes combinaisons de caractéristiques.
-              </AlertDescription>
-            </Alert>
           )}
-
-          <div className="border-t mt-6 pt-6">
-            <h4 className="font-medium mb-3">Ajouter un nouvel attribut</h4>
-            
-            <div className="flex flex-wrap gap-2 mb-4">
-              {commonAttributes.map(attr => (
-                <Badge 
-                  key={attr.name} 
-                  variant="outline" 
-                  className="cursor-pointer hover:bg-muted"
-                  onClick={() => handleAddPredefinedAttribute(attr.name)}
-                >
-                  {attr.name}
-                </Badge>
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="attributeName">Nom de l'attribut</Label>
+          
+          <div className="border-t pt-4 mt-6">
+            <h3 className="font-medium mb-3">Ajouter un nouvel attribut</h3>
+            <div className="flex items-end gap-2 flex-wrap">
+              <div className="space-y-2">
+                <label className="text-sm">Nom de l'attribut</label>
                 <Input
-                  id="attributeName"
-                  placeholder="Ex: CPU, RAM, Stockage..."
+                  placeholder="Ex: Couleur, Taille, etc."
                   value={newAttributeName}
                   onChange={(e) => setNewAttributeName(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="attributeValues">Valeurs (séparées par des virgules)</Label>
+              <div className="space-y-2">
+                <label className="text-sm">Première valeur (optionnelle)</label>
                 <Input
-                  id="attributeValues"
-                  placeholder="Ex: 8Go, 16Go, 32Go"
-                  value={newAttributeValues}
-                  onChange={(e) => setNewAttributeValues(e.target.value)}
+                  placeholder="Ex: Rouge, XL, etc."
+                  value={newAttributeValue}
+                  onChange={(e) => setNewAttributeValue(e.target.value)}
                 />
               </div>
+              <Button onClick={handleAddAttribute} className="shrink-0 mt-2">
+                <Plus className="h-4 w-4 mr-2" /> Ajouter
+              </Button>
             </div>
-            <Button 
-              className="mt-3" 
-              variant="outline" 
-              onClick={handleAddAttribute}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter l'attribut
-            </Button>
-          </div>
-          
-          <div className="mt-6 pt-4 border-t flex justify-end">
-            <Button 
-              onClick={handleSaveAttributes}
-              disabled={isUpdating}
-            >
-              {isUpdating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                "Enregistrer les attributs"
-              )}
-            </Button>
           </div>
         </CardContent>
+        <CardFooter className="flex justify-end border-t pt-4">
+          <Button 
+            onClick={handleSaveAttributes} 
+            disabled={updateAttributes.isPending}
+          >
+            {updateAttributes.isPending ? (
+              <>Enregistrement...</>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" /> Enregistrer les attributs
+              </>
+            )}
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
