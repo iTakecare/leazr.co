@@ -220,6 +220,77 @@ export const uploadImage = async (
     const filePath = folder ? `${folder}/${fileName}` : fileName;
     
     console.log(`Upload du fichier vers: ${bucket}/${filePath}`);
+
+    // Important: Vérifier que le fichier est bien une image réelle et pas un objet JSON
+    let fileToUpload = file;
+    let contentType = file.type || 'application/octet-stream';
+
+    // S'assurer que le contenu est bien un fichier binaire et pas un JSON
+    try {
+      // Lire les premiers octets du fichier pour vérifier si c'est un JSON
+      const fileSlice = file.slice(0, 20);
+      const reader = new FileReader();
+      const fileContent = await new Promise<string>((resolve) => {
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsText(fileSlice);
+      });
+
+      if (fileContent.trim().startsWith('{') || fileContent.trim().startsWith('[')) {
+        console.warn("Le fichier semble être un JSON, conversion en cours...");
+        
+        // Lire le fichier complet
+        const fullReader = new FileReader();
+        const fullContent = await new Promise<string>((resolve) => {
+          fullReader.onload = (e) => resolve(e.target?.result as string);
+          fullReader.readAsText(file);
+        });
+        
+        try {
+          // Essayer de parser le JSON
+          const jsonData = JSON.parse(fullContent);
+          
+          // Si c'est un JSON et qu'il contient une propriété data qui est une chaîne
+          if (jsonData.data && typeof jsonData.data === 'string') {
+            console.log("Image encodée en base64 trouvée dans le JSON");
+            
+            // Si c'est un data URL, extraire la partie base64
+            let base64Data = jsonData.data;
+            if (base64Data.includes('base64,')) {
+              base64Data = base64Data.split('base64,')[1];
+            }
+            
+            // Déterminer le type MIME
+            let mimeType = 'image/png';
+            if (base64Data.startsWith('/9j/')) {
+              mimeType = 'image/jpeg';
+            } else if (base64Data.startsWith('iVBORw0KGgo')) {
+              mimeType = 'image/png';
+            } else if (base64Data.startsWith('R0lGODlh')) {
+              mimeType = 'image/gif';
+            } else if (base64Data.startsWith('UklGR')) {
+              mimeType = 'image/webp';
+            }
+            
+            // Convertir la chaîne base64 en Blob
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: mimeType });
+            
+            // Créer un nouveau File à partir du Blob
+            fileToUpload = new File([blob], file.name, { type: mimeType });
+            contentType = mimeType;
+          }
+        } catch (parseError) {
+          console.warn("Erreur lors de la tentative de parse JSON:", parseError);
+        }
+      }
+    } catch (checkError) {
+      console.warn("Erreur lors de la vérification du type de fichier:", checkError);
+    }
     
     // Upload avec plusieurs tentatives
     let uploadAttempts = 0;
@@ -234,8 +305,8 @@ export const uploadImage = async (
       try {
         const result = await supabase.storage
           .from(bucket)
-          .upload(filePath, file, {
-            contentType: file.type || 'application/octet-stream',
+          .upload(filePath, fileToUpload, {
+            contentType: contentType,
             upsert: upsert
           });
         

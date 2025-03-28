@@ -8,6 +8,7 @@ import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { ensureStorageBucket } from "@/services/storageService";
+import { uploadImage } from "@/services/imageService";
 
 interface TemplateImage {
   id: string;
@@ -78,10 +79,10 @@ const PDFModelUploader = ({
     };
     
     initImages();
-  }, []);
+  }, [templateImages, onChange]);
   
   // Fonction pour uploader une image
-  const uploadImage = async (file: File) => {
+  const handleUploadImage = async (file: File) => {
     if (!file) return null;
     
     try {
@@ -98,7 +99,26 @@ const PDFModelUploader = ({
       // Créer un ID unique pour l'image
       const id = uuidv4();
       
-      // Utiliser FileReader pour obtenir l'image en base64
+      // Utiliser le service d'upload pour stocker l'image dans Supabase Storage
+      try {
+        const result = await uploadImage(file, BUCKET_NAME, 'templates');
+        console.log("Image uploadée avec succès:", result);
+        
+        if (result && result.url) {
+          return {
+            id,
+            name: file.name,
+            url: result.url,
+            page: localImages.length
+          };
+        }
+      } catch (uploadError) {
+        console.error("Erreur lors de l'upload de l'image:", uploadError);
+        toast.error("Erreur lors de l'upload de l'image");
+        return null;
+      }
+      
+      // Fallback: utiliser FileReader pour l'affichage local si l'upload a échoué
       return new Promise<TemplateImage | null>((resolve) => {
         const reader = new FileReader();
         
@@ -166,7 +186,7 @@ const PDFModelUploader = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    const uploadedImage = await uploadImage(file);
+    const uploadedImage = await handleUploadImage(file);
     if (uploadedImage) {
       const newImages = [...localImages, uploadedImage];
       setLocalImages(newImages);
