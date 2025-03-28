@@ -59,6 +59,13 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     setHasError(true);
   };
   
+  // Add cache-busting parameter to avoid loading cached incorrect content type
+  const addCacheBuster = (url: string): string => {
+    if (!url || url === '/placeholder.svg') return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${Date.now()}`;
+  };
+  
   return (
     <div className="md:w-1/3 bg-gray-50 flex items-center justify-center p-4 relative">
       {isLoading && (
@@ -67,7 +74,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         </div>
       )}
       <img 
-        src={imageUrl}
+        src={addCacheBuster(imageUrl)}
         alt={product?.name || "Product"}
         className="object-contain h-24 w-24"
         onLoad={handleImageLoad}

@@ -320,18 +320,47 @@ const ProductEditPage = () => {
       }
       
       for (const file of imageFiles) {
-        const fileExt = file.name.split('.').pop();
+        const fileExt = file.name.split('.').pop()?.toLowerCase();
+        if (!fileExt) {
+          console.error("Impossible de déterminer l'extension du fichier:", file.name);
+          continue;
+        }
+        
         const originalName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '-');
         const fileName = `${originalName}-${Date.now()}.${fileExt}`;
         
-        console.log(`Uploading file: ${fileName} with type: ${file.type}`);
+        let contentType = file.type;
+        if (!contentType || contentType === 'application/octet-stream') {
+          switch (fileExt) {
+            case 'jpg':
+            case 'jpeg':
+              contentType = 'image/jpeg';
+              break;
+            case 'png':
+              contentType = 'image/png';
+              break;
+            case 'gif':
+              contentType = 'image/gif';
+              break;
+            case 'webp':
+              contentType = 'image/webp';
+              break;
+            case 'svg':
+              contentType = 'image/svg+xml';
+              break;
+            default:
+              contentType = `image/${fileExt}`;
+          }
+        }
+        
+        console.log(`Uploading file: ${fileName} with type: ${contentType}`);
         
         const { error } = await supabase
           .storage
           .from('product-images')
           .upload(`${id}/${fileName}`, file, {
             cacheControl: '3600',
-            contentType: file.type,
+            contentType: contentType,
             upsert: true
           });
         
