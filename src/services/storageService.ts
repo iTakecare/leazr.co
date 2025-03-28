@@ -150,7 +150,7 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
       // Si le contentType est JSON, c'est probablement une erreur
       if (contentType && contentType.includes('application/json')) {
         const jsonData = await response.json();
-        console.error('Réponse JSON reçue au lieu d'une image:', jsonData);
+        console.error('Réponse JSON reçue au lieu d\'une image:', jsonData);
         toast.error("Le serveur a renvoyé du JSON au lieu d'une image");
         return null;
       }
