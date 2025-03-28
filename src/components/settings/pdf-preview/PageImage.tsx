@@ -41,7 +41,7 @@ const PageImage: React.FC<PageImageProps> = ({
       return `${pageImage.url}${separator}t=${timestamp}`;
     }
     
-    // Object with data property (base64)
+    // Object with data property (base64 or JSON)
     if (pageImage.data) {
       let imageSrc = pageImage.data;
       
@@ -87,6 +87,34 @@ const PageImage: React.FC<PageImageProps> = ({
       }
       
       return imageSrc;
+    }
+    
+    // Handle WebP specific issue - if the image is just a JSON object with application/json content type
+    if (typeof pageImage === 'object' && pageImage.contentType === 'application/json') {
+      try {
+        // Try to extract image data from JSON
+        const jsonString = JSON.stringify(pageImage);
+        if (jsonString.includes('UklGR')) {
+          // This is likely a WebP image in base64
+          return `data:image/webp;base64,${pageImage.data || ''}`;
+        }
+      } catch (e) {
+        console.error("Failed to process JSON content as image:", e);
+      }
+    }
+    
+    // Last resort: if pageImage is a stringified JSON, try to parse it
+    if (typeof pageImage === 'string' && (pageImage.startsWith('{') || pageImage.startsWith('['))) {
+      try {
+        const parsed = JSON.parse(pageImage);
+        if (parsed.url) return parsed.url;
+        if (parsed.data) {
+          if (parsed.data.startsWith('data:')) return parsed.data;
+          return `data:image/webp;base64,${parsed.data}`;
+        }
+      } catch (e) {
+        console.error("Failed to parse stringified JSON image:", e);
+      }
     }
     
     return null;
