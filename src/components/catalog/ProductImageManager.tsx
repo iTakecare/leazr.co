@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +8,8 @@ import { Upload, Trash2, Eye, Plus, Loader2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadProductImage } from "@/services/catalogService";
+import { checkBucketExists, ensureFolderExists } from "@/utils/storage";
+import { uploadProductImage } from "@/services/imageService";
 
 interface ProductImage {
   id: string;
@@ -31,7 +33,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [images, setImages] = useState<ProductImage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   
   // Bucket name constant - using 'catalog' which should already exist
@@ -50,11 +52,102 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         if (initialImages && initialImages.length > 0) {
           console.log("Using provided images:", initialImages);
           setImages(initialImages);
+          onChange(initialImages);
           setIsLoading(false);
           return;
         }
         
-        // Otherwise, try to load images from the product
+        // Check if bucket exists
+        const bucketExists = await checkBucketExists(BUCKET_NAME);
+        if (!bucketExists) {
+          console.error(`Bucket ${BUCKET_NAME} does not exist`);
+          setLoadError(`Le bucket ${BUCKET_NAME} n'existe pas`);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Try to load images from storage first
+        const folderPath = `products/${productId}`;
+        
+        // Ensure folder exists
+        await ensureFolderExists(BUCKET_NAME, folderPath);
+        
+        // List files in the folder
+        const { data: files, error: listError } = await supabase.storage
+          .from(BUCKET_NAME)
+          .list(folderPath);
+        
+        if (listError) {
+          console.error("Error listing files:", listError);
+          
+          // If we can't list files, try to get image URLs from the product
+          await loadImagesFromProduct();
+          return;
+        }
+        
+        if (!files || files.length === 0) {
+          console.log("No files found in storage, trying product data");
+          await loadImagesFromProduct();
+          return;
+        }
+        
+        // Process files from storage
+        const imageFiles = files.filter(file => 
+          !file.name.endsWith('/') && 
+          file.name !== '.placeholder' &&
+          file.name !== '.emptyFolderPlaceholder'
+        );
+        
+        if (imageFiles.length === 0) {
+          console.log("No valid image files found in storage, trying product data");
+          await loadImagesFromProduct();
+          return;
+        }
+        
+        const storageImages: ProductImage[] = [];
+        
+        for (const file of imageFiles) {
+          const { data: urlData } = supabase.storage
+            .from(BUCKET_NAME)
+            .getPublicUrl(`${folderPath}/${file.name}`);
+          
+          const isMain = file.name.startsWith('main') || file.name.toLowerCase().includes('main');
+          
+          storageImages.push({
+            id: file.id || uuidv4(),
+            name: file.name,
+            url: urlData.publicUrl,
+            isMain: isMain
+          });
+        }
+        
+        // Sort images to ensure main image is first
+        storageImages.sort((a, b) => {
+          if (a.isMain && !b.isMain) return -1;
+          if (!a.isMain && b.isMain) return 1;
+          return 0;
+        });
+        
+        if (storageImages.length > 0) {
+          console.log("Loaded images from storage:", storageImages);
+          setImages(storageImages);
+          onChange(storageImages);
+          setIsLoading(false);
+          return;
+        }
+        
+        // If no images from storage, try product data
+        await loadImagesFromProduct();
+      } catch (error) {
+        console.error("Error in loadImages:", error);
+        setLoadError("Une erreur est survenue lors du chargement des images");
+        setIsLoading(false);
+      }
+    };
+    
+    const loadImagesFromProduct = async () => {
+      try {
+        // Try to load images from the product
         const { data: product, error: productError } = await supabase
           .from('products')
           .select('image_url, image_urls')
@@ -97,9 +190,9 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         console.log("Loaded product images:", productImages);
         setImages(productImages);
         onChange(productImages);
-      } catch (error) {
-        console.error("Error loading images:", error);
-        setLoadError("Une erreur est survenue lors du chargement des images");
+      } catch (err) {
+        console.error("Error loading product images:", err);
+        setLoadError("Erreur lors du chargement des images du produit");
       } finally {
         setIsLoading(false);
       }
@@ -127,7 +220,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           continue;
         }
         
-        // Use the catalogService uploadProductImage function
+        // Upload the image file
         const imageUrl = await uploadProductImage(file, productId, images.length === 0);
         
         if (imageUrl) {
