@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProductById, updateProduct, deleteProduct } from "@/services/catalogService";
-import { uploadProductImage } from "@/services/imageService";
-import { ensureStorageBucket } from "@/services/storageService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,10 +16,7 @@ import {
   Layers,
   Copy,
   Trash2,
-  Save,
-  X,
-  Plus,
-  Upload
+  Save
 } from "lucide-react";
 import { 
   Tabs, 
@@ -33,7 +28,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
@@ -45,7 +39,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
-import { supabase } from "@/integrations/supabase/client";
+import ProductImageUploader from "@/components/product/ProductImageUploader";
 
 const productCategories = [
   "laptop",
@@ -112,31 +106,7 @@ const ProductEditPage = () => {
     active: true
   });
   
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
-  const [isLoadingImages, setIsLoadingImages] = useState(false);
-  
-  useEffect(() => {
-    const initStorageBucket = async () => {
-      try {
-        console.log("Checking product-images bucket");
-        const bucketExists = await ensureStorageBucket("product-images");
-        if (bucketExists) {
-          console.log("product-images bucket verified successfully");
-        } else {
-          console.error("Could not verify product-images bucket");
-          toast.error("Error preparing image storage");
-        }
-      } catch (error) {
-        console.error("Error initializing product-images bucket:", error);
-        toast.error("Error preparing image storage");
-      }
-    };
-    
-    initStorageBucket();
-  }, []);
   
   const { data: product, isLoading, isError, error } = useQuery({
     queryKey: ["product", id],
@@ -159,55 +129,8 @@ const ProductEditPage = () => {
         is_parent: product.is_parent || false,
         variation_attributes: product.variation_attributes || {}
       });
-      
-      loadProductImages();
     }
   }, [product, id]);
-
-  const loadProductImages = async () => {
-    if (!id) return;
-    
-    setIsLoadingImages(true);
-    try {
-      const { data: files, error } = await supabase
-        .storage
-        .from('product-images')
-        .list(`${id}`);
-      
-      if (error) {
-        console.error("Error loading product images:", error);
-        toast.error("Impossible de charger les images du produit");
-        setIsLoadingImages(false);
-        return;
-      }
-      
-      const imageFiles = files.filter(file => !file.name.endsWith('/') && file.name !== '.emptyFolderPlaceholder');
-      
-      if (imageFiles.length === 0) {
-        console.log("No images found for product in bucket");
-        setImagePreviews([]);
-        setIsLoadingImages(false);
-        return;
-      }
-      
-      const imageUrls = imageFiles.map(file => {
-        const { data } = supabase
-          .storage
-          .from('product-images')
-          .getPublicUrl(`${id}/${file.name}`);
-        
-        return data.publicUrl;
-      });
-      
-      console.log("Loaded product images from storage:", imageUrls);
-      setImagePreviews(imageUrls);
-    } catch (error) {
-      console.error("Error in loadProductImages:", error);
-      toast.error("Impossible de charger les images du produit");
-    } finally {
-      setIsLoadingImages(false);
-    }
-  };
   
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Product>) => updateProduct(id || "", data),
@@ -248,178 +171,6 @@ const ProductEditPage = () => {
     }
   };
   
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    console.log(`Selected ${files.length} new image files`);
-    const newFiles = Array.from(files);
-    setImageFiles(prev => [...prev, ...newFiles]);
-
-    newFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviews(prev => [
-          ...prev,
-          reader.result as string
-        ]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-  
-  const removeImage = async (index: number) => {
-    if (!id) return;
-    
-    const imageUrl = imagePreviews[index];
-    if (imageUrl.startsWith('data:')) {
-      setImageFiles(prev => prev.filter((_, i) => i !== index));
-      setImagePreviews(prev => prev.filter((_, i) => i !== index));
-      return;
-    }
-    
-    try {
-      setIsUploading(true);
-      
-      const urlParts = imageUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1].split('?')[0];
-      
-      const { error } = await supabase
-        .storage
-        .from('product-images')
-        .remove([`${id}/${fileName}`]);
-      
-      if (error) {
-        console.error("Error deleting image:", error);
-        toast.error("Erreur lors de la suppression de l'image");
-        return;
-      }
-      
-      setImagePreviews(prev => prev.filter((_, i) => i !== index));
-      toast.success("Image supprimée avec succès");
-    } catch (error) {
-      console.error("Error removing image:", error);
-      toast.error("Erreur lors de la suppression de l'image");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-  
-  const handleUploadImages = async () => {
-    if (!id || imageFiles.length === 0) return;
-    
-    try {
-      setIsUploading(true);
-      toast.info(`Téléchargement de ${imageFiles.length} image(s)...`);
-      
-      const bucketReady = await ensureStorageBucket("product-images");
-      if (!bucketReady) {
-        toast.error("Impossible de préparer le stockage pour les images");
-        setIsUploading(false);
-        return;
-      }
-      
-      for (const file of imageFiles) {
-        const fileExt = file.name.split('.').pop()?.toLowerCase();
-        if (!fileExt) {
-          console.error("Impossible de déterminer l'extension du fichier:", file.name);
-          continue;
-        }
-        
-        const originalName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '-');
-        const fileName = `${originalName}-${Date.now()}.${fileExt}`;
-        
-        let contentType = '';
-        switch (fileExt) {
-          case 'jpg':
-          case 'jpeg':
-            contentType = 'image/jpeg';
-            break;
-          case 'png':
-            contentType = 'image/png';
-            break;
-          case 'gif':
-            contentType = 'image/gif';
-            break;
-          case 'webp':
-            contentType = 'image/webp';
-            break;
-          case 'svg':
-            contentType = 'image/svg+xml';
-            break;
-          default:
-            contentType = `image/${fileExt}`;
-        }
-        
-        console.log(`Uploading file: ${fileName} with forced type: ${contentType}`);
-        
-        try {
-          const fileBuffer = await file.arrayBuffer();
-          const imageBlob = new Blob([fileBuffer], { type: contentType });
-          
-          const { error } = await supabase
-            .storage
-            .from('product-images')
-            .upload(`${id}/${fileName}`, imageBlob, {
-              cacheControl: '3600',
-              contentType: contentType,
-              upsert: true
-            });
-          
-          if (error) {
-            console.error("Error uploading image:", error);
-            toast.error(`Erreur lors du tél��chargement: ${error.message}`);
-          }
-        } catch (fileError) {
-          console.error("Error processing file:", fileError);
-          toast.error("Erreur lors du traitement du fichier");
-        }
-      }
-      
-      setImageFiles([]);
-      
-      await loadProductImages();
-      
-      queryClient.invalidateQueries({ queryKey: ["product", id] });
-      
-      toast.success("Images téléchargées avec succès");
-    } catch (error: any) {
-      console.error("Error uploading images:", error);
-      toast.error(`Erreur lors du téléchargement: ${error.message || "Erreur inconnue"}`);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-  
-  const handleSetMainImage = async (index: number) => {
-    if (!id) return;
-    
-    try {
-      setIsUploading(true);
-      
-      const imageUrl = imagePreviews[index];
-      
-      const urlParts = imageUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1].split('?')[0]; 
-      
-      const publicUrl = supabase
-        .storage
-        .from('product-images')
-        .getPublicUrl(`${id}/${fileName}`).data.publicUrl;
-      
-      await updateMutation.mutateAsync({
-        image_url: publicUrl
-      });
-      
-      toast.success("Image principale définie avec succès");
-    } catch (error) {
-      console.error("Error setting main image:", error);
-      toast.error("Erreur lors de la définition de l'image principale");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -428,10 +179,6 @@ const ProductEditPage = () => {
     try {
       toast.info("Mise à jour du produit en cours...");
       await updateMutation.mutateAsync(formData);
-      
-      if (imageFiles.length > 0) {
-        await handleUploadImages();
-      }
     } catch (error: any) {
       console.error("Error updating product:", error);
       toast.error(`Erreur lors de la mise à jour: ${error.message}`);
@@ -450,15 +197,24 @@ const ProductEditPage = () => {
       toast.success("ID copié dans le presse-papier");
     }
   };
-
-  const addTimestamp = (url: string): string => {
-    if (!url || url === '/placeholder.svg' || url.startsWith('data:')) return url;
+  
+  const handleImageChange = (images: any[]) => {
+    console.log("Images mises à jour:", images);
+    // Les images sont gérées directement par le composant ProductImageUploader
+  };
+  
+  const handleSetMainImage = async (imageUrl: string) => {
+    if (!id) return;
     
     try {
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}t=${new Date().getTime()}&contentType=image`;
-    } catch (e) {
-      return url;
+      await updateMutation.mutateAsync({
+        image_url: imageUrl
+      });
+      
+      toast.success("Image principale définie avec succès");
+    } catch (error) {
+      console.error("Error setting main image:", error);
+      toast.error("Erreur lors de la définition de l'image principale");
     }
   };
 
@@ -510,135 +266,134 @@ const ProductEditPage = () => {
             Variantes
           </TabsTrigger>
         </TabsList>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <TabsContent value="details">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Informations du produit</CardTitle>
-                    <CardDescription>
-                      Modifiez les informations de base du produit ici.
-                    </CardDescription>
+          
+        <TabsContent value="details">
+          <Card>
+            <CardHeader>
+              <CardTitle>Informations du produit</CardTitle>
+              <CardDescription>
+                Modifiez les informations de base du produit.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyId}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copier l'ID
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      {id}
+                    </span>
                   </div>
-                  {id && (
-                    <div className="flex items-center text-xs text-gray-500">
-                      <div className="mr-2">ID: {id}</div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6" 
-                        onClick={handleCopyId}
-                        title="Copier l'ID"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
+                  
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Supprimer
+                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nom du produit</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name || ""}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="brand">Marque</Label>
+                  <Select 
+                    name="brand" 
+                    value={formData.brand || ""} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, brand: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une marque" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {popularBrands.map((brand) => (
+                        <SelectItem key={brand} value={brand}>
+                          {brand}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="category">Catégorie</Label>
+                  <Select 
+                    name="category" 
+                    value={formData.category || ""} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {productCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {categoryTranslations[cat] || cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="required">Nom du produit</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={formData.name || ""}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="category" className="required">Catégorie</Label>
-                    <Select 
-                      value={formData.category || ""} 
-                      onValueChange={(value) => setFormData({...formData, category: value})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner une catégorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {productCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {categoryTranslations[cat] || cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="brand">Marque</Label>
-                    <Select 
-                      value={formData.brand || ""} 
-                      onValueChange={(value) => setFormData({...formData, brand: value})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner une marque" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {popularBrands.map((brandName) => (
-                          <SelectItem key={brandName} value={brandName}>
-                            {brandName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="stock">Stock</Label>
-                    <Input
-                      id="stock"
-                      name="stock"
-                      type="number"
-                      value={formData.stock || 0}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Prix</Label>
+                    <Label htmlFor="price">Prix (€)</Label>
                     <Input
                       id="price"
                       name="price"
                       type="number"
-                      step="0.01"
-                      value={formData.price || 0}
+                      value={formData.price?.toString() || "0"}
                       onChange={handleChange}
+                      min="0"
+                      step="0.01"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="monthly_price">Mensualité</Label>
+                    <Label htmlFor="monthly_price">Mensualité (€/mois)</Label>
                     <Input
                       id="monthly_price"
                       name="monthly_price"
                       type="number"
-                      step="0.01"
-                      value={formData.monthly_price || 0}
+                      value={formData.monthly_price?.toString() || "0"}
                       onChange={handleChange}
+                      min="0"
+                      step="0.01"
                     />
                   </div>
-                  
-                  <div className="col-span-2 pt-4 border-t">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="is_parent"
-                        checked={formData.is_parent || false}
-                        onChange={(e) => setFormData({...formData, is_parent: e.target.checked})}
-                        className="rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      <Label htmlFor="is_parent">Ce produit a des variantes</Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Activez cette option si vous souhaitez créer des variantes (tailles, couleurs, etc.)
-                    </p>
-                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="stock">Stock</Label>
+                  <Input
+                    id="stock"
+                    name="stock"
+                    type="number"
+                    value={formData.stock?.toString() || "0"}
+                    onChange={handleChange}
+                    min="0"
+                    step="1"
+                  />
                 </div>
                 
                 <div className="space-y-2">
@@ -648,159 +403,61 @@ const ProductEditPage = () => {
                     name="description"
                     value={formData.description || ""}
                     onChange={handleChange}
-                    rows={5}
+                    rows={6}
                   />
                 </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button 
-                  type="button" 
-                  variant="destructive" 
-                  onClick={handleDelete}
-                  disabled={updateMutation.isPending || deleteMutation.isPending}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Supprimer
-                </Button>
                 
-                <Button 
-                  type="submit"
-                  disabled={updateMutation.isPending}
-                >
-                  {updateMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Mise à jour...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Enregistrer
-                    </>
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="images">
-            <Card>
-              <CardHeader>
-                <CardTitle>Images du produit</CardTitle>
-                <CardDescription>
-                  Ajoutez des images pour votre produit (maximum 5 images).
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingImages ? (
-                  <div className="flex items-center justify-center h-40">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <span className="ml-2">Chargement des images...</span>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    {imagePreviews.length > 0 ? (
-                      imagePreviews.map((src, index) => (
-                        <div key={index} className="relative rounded-lg overflow-hidden border h-40 flex items-center justify-center">
-                          <img 
-                            src={addTimestamp(src)}
-                            alt={`Preview ${index}`}
-                            className="max-w-full max-h-full object-contain"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/placeholder.svg";
-                              console.error(`Error loading image preview: ${src}`);
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                            <div className="flex flex-col gap-2">
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleSetMainImage(index)}
-                                className="bg-white hover:bg-gray-100 text-gray-800"
-                              >
-                                Définir comme principale
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeImage(index)}
-                              >
-                                Supprimer
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          {product?.image_url === src && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-primary text-white text-xs text-center py-1">
-                              Image principale
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    ) : null}
-                    
-                    {imagePreviews.length < 5 && (
-                      <label className="border border-dashed rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
-                        <Plus className="w-8 h-8 text-gray-400" />
-                        <span className="text-sm text-gray-500 mt-2">Ajouter une image</span>
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          multiple
-                        />
-                      </label>
-                    )}
-                  </div>
-                )}
-                
-                {imagePreviews.length === 0 && !isLoadingImages && (
-                  <p className="text-sm text-muted-foreground mt-4 text-center">
-                    Aucune image n'est actuellement associée à ce produit.
-                  </p>
-                )}
-              </CardContent>
-              {imageFiles.length > 0 && (
-                <CardFooter>
-                  <Button
-                    type="button"
-                    onClick={handleUploadImages}
-                    className="ml-auto"
-                    disabled={isUploading}
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Téléchargement...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Télécharger {imageFiles.length} image(s)
-                      </>
-                    )}
+                <div className="flex justify-end">
+                  <Button type="submit">
+                    <Save className="h-4 w-4 mr-2" />
+                    Enregistrer les modifications
                   </Button>
-                </CardFooter>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="images">
+          <Card>
+            <CardHeader>
+              <CardTitle>Images du produit</CardTitle>
+              <CardDescription>
+                Gérez les images du produit. La première image sera utilisée comme image principale.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {id && (
+                <ProductImageUploader
+                  productId={id}
+                  onChange={handleImageChange}
+                  onSetMainImage={handleSetMainImage}
+                />
               )}
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="variants">
-            {product && (
-              <ProductVariantManager
-                product={product}
-                onVariantAdded={() => {
-                  queryClient.invalidateQueries({ queryKey: ["product", id] });
-                }}
-              />
-            )}
-          </TabsContent>
-          
-        </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="variants">
+          <Card>
+            <CardHeader>
+              <CardTitle>Variantes du produit</CardTitle>
+              <CardDescription>
+                Gérez les variantes de ce produit.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {id && product && (
+                <ProductVariantManager
+                  product={product}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ["product", id] });
+                  }}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
