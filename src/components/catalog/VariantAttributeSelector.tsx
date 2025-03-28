@@ -28,6 +28,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   const [newAttributeValue, setNewAttributeValue] = useState("");
   const [attributeToAddValueTo, setAttributeToAddValueTo] = useState<string | null>(null);
   const [valueToAdd, setValueToAdd] = useState("");
+  const [customAttributeName, setCustomAttributeName] = useState("");
   
   // Get predefined attributes
   const { data: predefinedAttributes } = useQuery({
@@ -36,15 +37,14 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   });
   
   useEffect(() => {
-    // Make sure we're working with a clean object, not null or undefined
+    // Ensure we're working with a clean object
     setAttributes(initialAttributes || {});
   }, [initialAttributes]);
   
   const updateAttributes = useMutation({
     mutationFn: async () => {
-      console.log("Updating product variation attributes:", attributes);
       try {
-        // Convert any empty arrays to non-empty ones to avoid RLS issues
+        // Clean attributes before saving
         const cleanedAttributes: ProductVariationAttributes = {};
         
         Object.entries(attributes).forEach(([key, values]) => {
@@ -53,7 +53,13 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
           }
         });
         
-        console.log("Cleaned attributes for saving:", cleanedAttributes);
+        console.log("Cleaning attributes for saving:", cleanedAttributes);
+        
+        if (Object.keys(cleanedAttributes).length === 0) {
+          toast.error("Aucun attribut valide à enregistrer");
+          return false;
+        }
+        
         await updateProductVariationAttributes(productId, cleanedAttributes);
         return true;
       } catch (error) {
@@ -72,17 +78,20 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   });
   
   const handleAddAttribute = () => {
-    if (!newAttributeName.trim()) {
+    if (newAttributeName === "") {
       toast.error("Le nom de l'attribut est requis");
       return;
     }
     
-    // Use custom attribute name if "custom" is selected
-    const attributeName = newAttributeName === "custom" ? "" : newAttributeName.trim();
+    // Use selected attribute or custom attribute
+    let attributeName = newAttributeName;
     
-    if (!attributeName) {
-      toast.error("Veuillez saisir un nom d'attribut personnalisé");
-      return;
+    if (attributeName === "custom") {
+      if (!customAttributeName.trim()) {
+        toast.error("Veuillez saisir un nom d'attribut personnalisé");
+        return;
+      }
+      attributeName = customAttributeName.trim();
     }
     
     // Check if attribute already exists
@@ -101,6 +110,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
     
     setNewAttributeName("");
     setNewAttributeValue("");
+    setCustomAttributeName("");
     
     toast.success(`Attribut "${attributeName}" ajouté`);
   };
@@ -192,6 +202,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
                         <button
                           className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => handleRemoveValue(attributeName, index)}
+                          type="button"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -210,6 +221,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
                       <Button 
                         size="sm" 
                         onClick={() => handleAddValueToAttribute(attributeName)}
+                        type="button"
                       >
                         Ajouter
                       </Button>
@@ -220,6 +232,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
                           setAttributeToAddValueTo(null);
                           setValueToAdd("");
                         }}
+                        type="button"
                       >
                         Annuler
                       </Button>
@@ -229,6 +242,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
                       variant="outline" 
                       size="sm" 
                       onClick={() => setAttributeToAddValueTo(attributeName)}
+                      type="button"
                     >
                       <Plus className="h-4 w-4 mr-2" /> Ajouter une valeur
                     </Button>
@@ -240,7 +254,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
           
           <div className="border-t pt-4 mt-6">
             <h3 className="font-medium mb-3">Ajouter un nouvel attribut</h3>
-            <div className="flex items-end gap-2 flex-wrap">
+            <div className="flex flex-col gap-4">
               <div className="space-y-2">
                 <label className="text-sm">Nom de l'attribut</label>
                 {predefinedAttributes && predefinedAttributes.length > 0 ? (
@@ -268,16 +282,21 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
                     onChange={(e) => setNewAttributeName(e.target.value)}
                   />
                 )}
-                {newAttributeName === "custom" && (
+              </div>
+              
+              {newAttributeName === "custom" && (
+                <div className="space-y-2">
+                  <label className="text-sm">Nom personnalisé</label>
                   <Input
                     placeholder="Nom de l'attribut personnalisé"
-                    value=""
-                    onChange={(e) => setNewAttributeName(e.target.value)}
+                    value={customAttributeName}
+                    onChange={(e) => setCustomAttributeName(e.target.value)}
                     className="mt-2"
                     autoFocus
                   />
-                )}
-              </div>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <label className="text-sm">Première valeur (optionnelle)</label>
                 <Input
@@ -286,7 +305,8 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
                   onChange={(e) => setNewAttributeValue(e.target.value)}
                 />
               </div>
-              <Button onClick={handleAddAttribute} className="shrink-0 mt-2">
+              
+              <Button onClick={handleAddAttribute} className="self-start" type="button">
                 <Plus className="h-4 w-4 mr-2" /> Ajouter
               </Button>
             </div>
@@ -296,6 +316,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
           <Button 
             onClick={handleSaveAttributes} 
             disabled={updateAttributes.isPending}
+            type="button"
           >
             {updateAttributes.isPending ? (
               <>Enregistrement...</>

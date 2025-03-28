@@ -1,4 +1,3 @@
-
 /**
  * Updates the variation attributes of a product
  */
@@ -10,9 +9,10 @@ export const updateProductVariationAttributes = async (
     console.log("Updating product variation attributes for product:", productId);
     console.log("New attributes:", JSON.stringify(attributes, null, 2));
     
+    // Import supabase dynamically
     const { supabase } = await import('@/integrations/supabase/client');
     
-    // Ensure attributes is a proper JSON object, not a string
+    // Ensure attributes is properly formatted
     let attributesToSave = attributes;
     if (typeof attributes === 'string') {
       try {
@@ -23,38 +23,38 @@ export const updateProductVariationAttributes = async (
       }
     }
     
-    // First check if the product exists before updating
-    const { data: existingProduct, error: checkError } = await supabase
+    // First check if the product exists
+    const { data: productExists, error: checkError } = await supabase
       .from('products')
       .select('id')
       .eq('id', productId)
-      .single();
-      
+      .maybeSingle();
+    
     if (checkError) {
-      console.error('Error checking product existence:', checkError);
-      throw new Error(checkError.message);
+      console.error('Error checking if product exists:', checkError);
+      throw new Error(`Failed to check if product exists: ${checkError.message}`);
     }
     
-    if (!existingProduct) {
+    if (!productExists) {
       throw new Error(`Product with ID ${productId} not found`);
     }
     
-    // This is the critical fix: Use update without select() and check affected rows instead
-    const { error, count } = await supabase
-      .from('products')
-      .update({ variation_attributes: attributesToSave })
-      .eq('id', productId);
+    // Use raw SQL via RPC for the update to avoid Supabase JS client limitations
+    // This is more reliable for JSONB updates and won't try to return data causing the error
+    const { error: updateError } = await supabase.rpc(
+      'update_product_attributes',
+      { 
+        p_product_id: productId, 
+        p_variation_attributes: attributesToSave 
+      }
+    );
     
-    if (error) {
-      console.error('Error updating product variation attributes:', error);
-      throw new Error(error.message);
+    if (updateError) {
+      console.error('Error updating product attributes:', updateError);
+      throw new Error(`Failed to update product attributes: ${updateError.message}`);
     }
     
-    if (count === 0) {
-      console.warn(`No products were updated. Product ID ${productId} may not exist.`);
-    } else {
-      console.log('Successfully updated product variation attributes for ID:', productId);
-    }
+    console.log('Successfully updated product attributes for ID:', productId);
   } catch (error) {
     console.error('Error in updateProductVariationAttributes:', error);
     throw error;
