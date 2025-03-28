@@ -1,3 +1,4 @@
+
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -44,6 +45,11 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     // Générer un nom de fichier unique avec timestamp pour éviter les conflits
     const timestamp = new Date().getTime();
     const fileName = file.name.replace(/\s+/g, '-');
+    
+    // Extraire l'extension de fichier correcte
+    const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+    
+    // Assurer un nom de fichier avec l'extension correcte
     const uniqueFileName = `${timestamp}-${fileName}`;
     
     // Déterminer le nom de fichier
@@ -77,80 +83,115 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       // Non bloquant, on continue
     }
     
-    // Préparer le fichier pour l'upload
+    // Préparer le fichier pour l'upload avec le bon format MIME
     let fileToUpload: File | Blob = file;
-    let contentType = file.type || detectMimeTypeFromExtension(file.name);
     
-    // Vérifier si le contenu est un JSON contenant une image en base64
-    if (contentType === 'application/json') {
-      try {
-        const fileContent = await readFileAsText(file);
-        
+    // Déterminer le bon MIME type en fonction de l'extension
+    let contentType = '';
+    
+    // Force la détection du MIME type à partir de l'extension ou du contenu
+    if (file.type && file.type !== 'application/json' && file.type !== 'application/octet-stream') {
+      // Si le type est déjà correctement défini, l'utiliser
+      contentType = file.type;
+    } else {
+      // Sinon, détecter à partir de l'extension
+      contentType = detectMimeTypeFromExtension(fileName);
+      
+      // Si le fichier est de type JSON, vérifier s'il contient une image encodée en base64
+      if (file.type === 'application/json') {
         try {
-          const jsonData = JSON.parse(fileContent);
+          const fileContent = await readFileAsText(file);
           
-          if (jsonData && jsonData.data && typeof jsonData.data === 'string') {
-            console.log("Image encodée en base64 trouvée dans le JSON");
+          try {
+            const jsonData = JSON.parse(fileContent);
             
-            // Si c'est un data URL, extraire la partie base64
-            let base64Data = jsonData.data;
-            let mimeType = 'image/png'; // Type par défaut
-            
-            // Détecter le MIME type à partir des premiers caractères de base64
-            if (base64Data.includes('data:')) {
-              const parts = base64Data.split(';base64,');
-              if (parts.length > 1) {
-                mimeType = parts[0].replace('data:', '');
-                base64Data = parts[1];
-              }
-            } else if (base64Data.startsWith('/9j/')) {
-              mimeType = 'image/jpeg';
-            } else if (base64Data.startsWith('iVBORw0KGgo')) {
-              mimeType = 'image/png';
-            } else if (base64Data.startsWith('UklGR')) {
-              mimeType = 'image/webp';
-            } else if (base64Data.startsWith('R0lGODlh')) {
-              mimeType = 'image/gif';
-            }
-            
-            // Nettoyer les données base64 en supprimant les préfixes
-            if (base64Data.includes('base64,')) {
-              base64Data = base64Data.split('base64,')[1];
-            }
-            
-            // Convertir la chaîne base64 en Blob
-            const byteCharacters = atob(base64Data);
-            const byteArrays = [];
-            const sliceSize = 512;
-            
-            for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-              const slice = byteCharacters.slice(offset, offset + sliceSize);
-              const byteNumbers = new Array(slice.length);
+            if (jsonData && jsonData.data && typeof jsonData.data === 'string') {
+              console.log("Image encodée en base64 trouvée dans le JSON");
               
-              for (let i = 0; i < slice.length; i++) {
-                byteNumbers[i] = slice.charCodeAt(i);
+              // Si c'est un data URL, extraire la partie base64
+              let base64Data = jsonData.data;
+              let mimeType = 'image/png'; // Type par défaut
+              
+              // Détecter le MIME type à partir des premiers caractères de base64
+              if (base64Data.includes('data:')) {
+                const parts = base64Data.split(';base64,');
+                if (parts.length > 1) {
+                  mimeType = parts[0].replace('data:', '');
+                  base64Data = parts[1];
+                }
+              } else if (base64Data.startsWith('/9j/')) {
+                mimeType = 'image/jpeg';
+              } else if (base64Data.startsWith('iVBORw0KGgo')) {
+                mimeType = 'image/png';
+              } else if (base64Data.startsWith('UklGR')) {
+                mimeType = 'image/webp';
+              } else if (base64Data.startsWith('R0lGODlh')) {
+                mimeType = 'image/gif';
               }
               
-              const byteArray = new Uint8Array(byteNumbers);
-              byteArrays.push(byteArray);
+              // Nettoyer les données base64 en supprimant les préfixes
+              if (base64Data.includes('base64,')) {
+                base64Data = base64Data.split('base64,')[1];
+              }
+              
+              // Convertir la chaîne base64 en Blob
+              const byteCharacters = atob(base64Data);
+              const byteArrays = [];
+              const sliceSize = 512;
+              
+              for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                const slice = byteCharacters.slice(offset, offset + sliceSize);
+                const byteNumbers = new Array(slice.length);
+                
+                for (let i = 0; i < slice.length; i++) {
+                  byteNumbers[i] = slice.charCodeAt(i);
+                }
+                
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+              }
+              
+              // Créer un blob à partir des données binaires
+              const blob = new Blob(byteArrays, { type: mimeType });
+              
+              // Récupérer l'extension appropriée pour le MIME type
+              const extension = getExtensionFromMimeType(mimeType);
+              
+              // Créer un nouveau File à partir du Blob avec un nom de fichier qui reflète correctement le type d'image
+              const baseFileName = uniqueFileName.split('.')[0];
+              const newFileName = `${baseFileName}.${extension}`;
+              fileToUpload = new File([blob], newFileName, { type: mimeType });
+              contentType = mimeType;
+              
+              console.log(`Fichier converti de JSON à ${mimeType} avec le nom ${newFileName}`);
             }
-            
-            // Créer un blob à partir des données binaires
-            const blob = new Blob(byteArrays, { type: mimeType });
-            
-            // Créer un nouveau File à partir du Blob en conservant le nom du fichier original
-            fileToUpload = new File([blob], uniqueFileName, { type: mimeType });
-            contentType = mimeType;
-            
-            console.log(`Fichier converti de JSON à ${mimeType}`);
+          } catch (parseError) {
+            console.warn("Erreur lors de la tentative de parse JSON:", parseError);
           }
-        } catch (parseError) {
-          console.warn("Erreur lors de la tentative de parse JSON:", parseError);
+        } catch (checkError) {
+          console.warn("Erreur lors de la vérification du type de fichier:", checkError);
         }
-      } catch (checkError) {
-        console.warn("Erreur lors de la vérification du type de fichier:", checkError);
+      }
+      
+      // Si le MIME type n'a toujours pas été détecté correctement
+      if (!contentType || contentType === 'application/octet-stream' || contentType === 'application/json') {
+        // Fallback: essayer de deviner en fonction de l'extension
+        if (fileExtension === 'png') {
+          contentType = 'image/png';
+        } else if (fileExtension === 'jpg' || fileExtension === 'jpeg') {
+          contentType = 'image/jpeg';
+        } else if (fileExtension === 'webp') {
+          contentType = 'image/webp';
+        } else if (fileExtension === 'gif') {
+          contentType = 'image/gif';
+        } else {
+          // Fallback ultime
+          contentType = 'image/jpeg';
+        }
       }
     }
+    
+    console.log(`Type de contenu détecté pour le fichier: ${contentType}`);
     
     // Utiliser upload directs pour éviter les problèmes de duplication
     let uploadResult = await supabase.storage
@@ -250,6 +291,24 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     throw error;
   }
 };
+
+// Fonction pour déterminer l'extension de fichier à partir du MIME type
+function getExtensionFromMimeType(mimeType: string): string {
+  switch (mimeType) {
+    case 'image/jpeg':
+      return 'jpg';
+    case 'image/png':
+      return 'png';
+    case 'image/webp':
+      return 'webp';
+    case 'image/gif':
+      return 'gif';
+    case 'image/svg+xml':
+      return 'svg';
+    default:
+      return 'jpg'; // extension par défaut
+  }
+}
 
 // Fonction utilitaire pour lire un fichier sous forme de texte
 const readFileAsText = (file: File): Promise<string> => {
