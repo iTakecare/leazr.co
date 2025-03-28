@@ -1,3 +1,4 @@
+
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -205,45 +206,71 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
     
     // Générer un nom unique pour éviter les collisions
     const timestamp = Date.now();
-    const uniqueFileName = `${fileNameWithoutExt}-${timestamp}.${fileExt}`;
+    const uniqueFileName = `${fileNameWithoutExt}-${timestamp}.${fileExt || 'jpg'}`;
     const filePath = folder ? `${folder}/${uniqueFileName}` : uniqueFileName;
     
     // Télécharger l'image
     try {
       console.log(`Téléchargement de l'image: ${imageUrl}`);
-      const response = await fetch(imageUrl);
+      
+      // Force un timeout pour éviter les requêtes qui ne se terminent jamais
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const response = await fetch(imageUrl, { 
+        signal: controller.signal,
+        headers: {
+          'Accept': 'image/*',
+          'Cache-Control': 'no-cache' 
+        }
+      });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`Erreur lors du téléchargement de l'image: ${response.statusText}`);
+      }
+      
+      // Vérifier le type de contenu
+      const contentType = response.headers.get('content-type');
+      console.log(`Type de contenu de la réponse: ${contentType}`);
+      
+      // Si le contenu est du JSON, c'est une erreur
+      if (contentType && contentType.includes('application/json')) {
+        const textData = await response.text();
+        console.error(`L'URL a retourné du JSON au lieu d'une image:`, textData);
+        throw new Error('L\'URL a retourné du JSON au lieu d\'une image');
       }
       
       // Récupérer comme blob
       const blob = await response.blob();
       
       // Forcer le type MIME correct à partir de l'extension
-      let contentType = '';
-      switch (fileExt.toLowerCase()) {
-        case 'jpg':
-        case 'jpeg':
-          contentType = 'image/jpeg';
-          break;
-        case 'png':
-          contentType = 'image/png';
-          break;
-        case 'gif':
-          contentType = 'image/gif';
-          break;
-        case 'webp':
-          contentType = 'image/webp';
-          break;
-        case 'svg':
-          contentType = 'image/svg+xml';
-          break;
-        default:
-          contentType = `image/${fileExt}`;
+      let contentTypeFinal = contentType;
+      if (!contentType || contentType === 'application/octet-stream' || contentType.includes('application/json')) {
+        switch (fileExt.toLowerCase()) {
+          case 'jpg':
+          case 'jpeg':
+            contentTypeFinal = 'image/jpeg';
+            break;
+          case 'png':
+            contentTypeFinal = 'image/png';
+            break;
+          case 'gif':
+            contentTypeFinal = 'image/gif';
+            break;
+          case 'webp':
+            contentTypeFinal = 'image/webp';
+            break;
+          case 'svg':
+            contentTypeFinal = 'image/svg+xml';
+            break;
+          default:
+            contentTypeFinal = `image/${fileExt || 'jpeg'}`;
+        }
       }
       
-      console.log(`Upload de l'image vers ${bucketName}/${filePath} avec type FORCÉ ${contentType}`);
+      console.log(`Upload de l'image vers ${bucketName}/${filePath} avec type FORCÉ ${contentTypeFinal}`);
       
       let attempts = 0;
       const maxAttempts = 3;
@@ -256,16 +283,16 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
         try {
           // Créer un nouveau Blob avec le type MIME correct
           const arrayBuffer = await blob.arrayBuffer();
-          const correctBlob = new Blob([arrayBuffer], { type: contentType });
+          const correctBlob = new Blob([arrayBuffer], { type: contentTypeFinal });
           
           // Log de débogage
-          console.log(`Attempt ${attempts}: Uploading blob with type ${contentType}, size: ${correctBlob.size} bytes`);
+          console.log(`Attempt ${attempts}: Uploading blob with type ${contentTypeFinal}, size: ${correctBlob.size} bytes`);
           
           const result = await supabase
             .storage
             .from(bucketName)
             .upload(filePath, correctBlob, {
-              contentType: contentType,
+              contentType: contentTypeFinal,
               upsert: true
             });
           
@@ -301,8 +328,8 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
       // Ajouter un paramètre pour forcer le type MIME
       const publicUrl = publicUrlData.publicUrl;
       const urlWithContentType = publicUrl.includes('?') 
-        ? `${publicUrl}&contentType=image` 
-        : `${publicUrl}?contentType=image`;
+        ? `${publicUrl}&contentType=image&t=${Date.now()}` 
+        : `${publicUrl}?contentType=image&t=${Date.now()}`;
       
       console.log(`Image téléchargée avec succès: ${urlWithContentType}`);
       return urlWithContentType;
