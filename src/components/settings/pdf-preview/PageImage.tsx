@@ -12,7 +12,7 @@ const PageImage: React.FC<PageImageProps> = ({
   currentPage,
   setPageLoaded
 }) => {
-  // For debugging
+  // Pour debugging
   if (pageImage) {
     console.log(`PageImage rendering for page ${currentPage + 1}:`, 
       typeof pageImage === 'object' ? 
@@ -27,11 +27,13 @@ const PageImage: React.FC<PageImageProps> = ({
 
     // Direct URL
     if (typeof pageImage === 'string') {
+      // Ajouter un timestamp pour éviter les problèmes de cache
       return `${pageImage}?t=${new Date().getTime()}`;
     }
     
     // Object with URL property
     if (pageImage.url) {
+      // Ajouter un timestamp pour éviter les problèmes de cache
       return `${pageImage.url}?t=${new Date().getTime()}`;
     }
     
@@ -41,7 +43,12 @@ const PageImage: React.FC<PageImageProps> = ({
       
       // Handle JSON-encoded base64 data
       if (typeof pageImage.data === 'string') {
-        // If it looks like JSON, try to parse it
+        // Si le data semble être une URL data
+        if (pageImage.data.startsWith('data:')) {
+          return pageImage.data;
+        }
+        
+        // Si c'est du JSON encodé
         if (pageImage.data.startsWith('{')) {
           try {
             const jsonData = JSON.parse(pageImage.data);
@@ -53,10 +60,10 @@ const PageImage: React.FC<PageImageProps> = ({
           }
         }
         
-        // Make sure it's a proper data URL
+        // S'assurer que c'est un data URL bien formaté
         if (!imageSrc.startsWith('data:')) {
-          // Try to determine the content type from base64 prefix
-          let contentType = 'image/png'; // default
+          // Essayer de déterminer le type de contenu à partir du préfixe base64
+          let contentType = 'image/png'; // par défaut
           
           if (imageSrc.startsWith('/9j/')) {
             contentType = 'image/jpeg';
@@ -68,7 +75,10 @@ const PageImage: React.FC<PageImageProps> = ({
             contentType = 'image/gif';
           }
           
-          imageSrc = `data:${contentType};base64,${imageSrc}`;
+          // Vérifier si le base64 contient déjà un en-tête data:image
+          if (!imageSrc.includes('data:')) {
+            imageSrc = `data:${contentType};base64,${imageSrc}`;
+          }
         }
       }
       

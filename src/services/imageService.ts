@@ -46,9 +46,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     const originalFileName = file.name;
     
     // Déterminer le nom de fichier
-    const filePath = isMainImage 
-      ? `${productFolder}/${originalFileName}` 
-      : `${productFolder}/${originalFileName}`;
+    const filePath = `${productFolder}/${originalFileName}`;
     
     console.log(`Téléchargement de l'image vers: ${filePath} dans le bucket ${bucketName}`);
     
@@ -79,33 +77,26 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     }
     
     // Préparer le fichier pour l'upload
-    let fileToUpload = file;
+    let fileToUpload: File | Blob = file;
     let contentType = file.type || detectMimeTypeFromExtension(file.name);
     
     // Vérifier si le contenu est un JSON contenant une image en base64
     if (contentType === 'application/json') {
       try {
-        // Lire le fichier pour vérifier s'il contient une image base64
-        const reader = new FileReader();
-        const fileContent = await new Promise<string>((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsText(file);
-        });
+        const fileContent = await readFileAsText(file);
         
         try {
           const jsonData = JSON.parse(fileContent);
           
-          // Si c'est un JSON et qu'il contient une propriété data qui est une chaîne
-          if (jsonData.data && typeof jsonData.data === 'string') {
+          if (jsonData && jsonData.data && typeof jsonData.data === 'string') {
             console.log("Image encodée en base64 trouvée dans le JSON");
             
             // Si c'est un data URL, extraire la partie base64
             let base64Data = jsonData.data;
-            let mimeType = 'image/png';
+            let mimeType = 'image/png'; // Type par défaut
             
             // Détecter le MIME type à partir des premiers caractères de base64
             if (base64Data.includes('data:')) {
-              // Format: data:image/jpeg;base64,/9j/...
               const parts = base64Data.split(';base64,');
               if (parts.length > 1) {
                 mimeType = parts[0].replace('data:', '');
@@ -121,14 +112,30 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
               mimeType = 'image/gif';
             }
             
-            // Convertir la chaîne base64 en Blob
-            const byteCharacters = atob(base64Data.replace(/^data:image\/\w+;base64,/, ''));
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            // Nettoyer les données base64 en supprimant les préfixes
+            if (base64Data.includes('base64,')) {
+              base64Data = base64Data.split('base64,')[1];
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: mimeType });
+            
+            // Convertir la chaîne base64 en Blob
+            const byteCharacters = atob(base64Data);
+            const byteArrays = [];
+            const sliceSize = 512;
+            
+            for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+              const slice = byteCharacters.slice(offset, offset + sliceSize);
+              const byteNumbers = new Array(slice.length);
+              
+              for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+              }
+              
+              const byteArray = new Uint8Array(byteNumbers);
+              byteArrays.push(byteArray);
+            }
+            
+            // Créer un blob à partir des données binaires
+            const blob = new Blob(byteArrays, { type: mimeType });
             
             // Créer un nouveau File à partir du Blob en conservant le nom du fichier original
             fileToUpload = new File([blob], originalFileName, { type: mimeType });
@@ -144,7 +151,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       }
     }
     
-    // Upload avec plusieurs tentatives
+    // Upload avec FormData pour préserver le type MIME
     let uploadAttempts = 0;
     const maxUploadAttempts = 3;
     let uploadSuccessful = false;
@@ -155,24 +162,32 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       console.log(`Tentative d'upload ${uploadAttempts}/${maxUploadAttempts}`);
       
       try {
-        const result = await supabase.storage
-          .from(bucketName)
-          .upload(filePath, fileToUpload, {
-            contentType: contentType,
-            upsert: true
-          });
+        // Utiliser FormData pour l'upload
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
         
-        uploadError = result.error;
-        uploadData = result.data;
+        // Utiliser l'API REST directement
+        const uploadUrl = `${supabase.storageUrl}/object/${bucketName}/${filePath}`;
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabase.supabaseKey}`
+          },
+          body: formData
+        });
         
-        if (uploadError) {
-          console.warn(`Échec de la tentative d'upload ${uploadAttempts}/${maxUploadAttempts}: ${uploadError.message}`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } else {
-          uploadSuccessful = true;
+        if (!response.ok) {
+          console.warn(`Échec de l'upload via API REST: ${response.statusText}`);
+          const errorText = await response.text();
+          throw new Error(`Échec de l'upload: ${errorText}`);
         }
+        
+        const result = await response.json();
+        uploadData = result;
+        uploadSuccessful = true;
       } catch (e) {
         console.warn(`Exception lors de la tentative d'upload ${uploadAttempts}/${maxUploadAttempts}:`, e);
+        uploadError = e;
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
@@ -240,6 +255,22 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
   }
 };
 
+// Fonction utilitaire pour lire un fichier sous forme de texte
+const readFileAsText = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        resolve(e.target.result as string);
+      } else {
+        reject(new Error("Échec de la lecture du fichier"));
+      }
+    };
+    reader.onerror = (e) => reject(e);
+    reader.readAsText(file);
+  });
+};
+
 export const uploadImage = async (
   file: File | string,
   bucket: string,
@@ -288,32 +319,15 @@ export const uploadImage = async (
     console.log(`Upload du fichier vers: ${bucket}/${filePath}`);
 
     // Important: Vérifier que le fichier est bien une image réelle et pas un objet JSON
-    let fileToUpload = file;
+    let fileToUpload: File | Blob = file;
     let contentType = file.type || detectMimeTypeFromExtension(file.name);
 
-    // S'assurer que le contenu est bien un fichier binaire et pas un JSON
-    try {
-      // Lire les premiers octets du fichier pour vérifier si c'est un JSON
-      const fileSlice = file.slice(0, 20);
-      const reader = new FileReader();
-      const fileContent = await new Promise<string>((resolve) => {
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsText(fileSlice);
-      });
-
-      if (fileContent.trim().startsWith('{') || fileContent.trim().startsWith('[')) {
-        console.warn("Le fichier semble être un JSON, conversion en cours...");
-        
-        // Lire le fichier complet
-        const fullReader = new FileReader();
-        const fullContent = await new Promise<string>((resolve) => {
-          fullReader.onload = (e) => resolve(e.target?.result as string);
-          fullReader.readAsText(file);
-        });
+    if (contentType === 'application/json') {
+      try {
+        const fileContent = await readFileAsText(file);
         
         try {
-          // Essayer de parser le JSON
-          const jsonData = JSON.parse(fullContent);
+          const jsonData = JSON.parse(fileContent);
           
           // Si c'est un JSON et qu'il contient une propriété data qui est une chaîne
           if (jsonData.data && typeof jsonData.data === 'string') {
@@ -347,12 +361,22 @@ export const uploadImage = async (
             
             // Convertir la chaîne base64 en Blob
             const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            const byteArrays = [];
+            const sliceSize = 512;
+            
+            for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+              const slice = byteCharacters.slice(offset, offset + sliceSize);
+              const byteNumbers = new Array(slice.length);
+              
+              for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+              }
+              
+              byteArrays.push(new Uint8Array(byteNumbers));
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: mimeType });
+            
+            // Créer un blob à partir des données binaires
+            const blob = new Blob(byteArrays, { type: mimeType });
             
             // Créer un nouveau File à partir du Blob en conservant le nom du fichier original
             fileToUpload = new File([blob], originalFileName, { type: mimeType });
@@ -363,12 +387,25 @@ export const uploadImage = async (
         } catch (parseError) {
           console.warn("Erreur lors de la tentative de parse JSON:", parseError);
         }
+      } catch (checkError) {
+        console.warn("Erreur lors de la vérification du type de fichier:", checkError);
       }
-    } catch (checkError) {
-      console.warn("Erreur lors de la vérification du type de fichier:", checkError);
     }
     
-    // Upload avec plusieurs tentatives
+    // Utiliser FormData pour l'upload
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    
+    // Utiliser l'API REST directement
+    const uploadUrl = `${supabase.storageUrl}/object/${bucket}/${filePath}`;
+    const headers: HeadersInit = {
+      'Authorization': `Bearer ${supabase.supabaseKey}`
+    };
+    
+    if (upsert) {
+      headers['x-upsert'] = 'true';
+    }
+    
     let uploadAttempts = 0;
     const maxUploadAttempts = 3;
     let uploadSuccessful = false;
@@ -379,23 +416,22 @@ export const uploadImage = async (
       console.log(`Tentative d'upload ${uploadAttempts}/${maxUploadAttempts}`);
       
       try {
-        const result = await supabase.storage
-          .from(bucket)
-          .upload(filePath, fileToUpload, {
-            contentType: contentType,
-            upsert: upsert
-          });
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          headers,
+          body: formData
+        });
         
-        uploadError = result.error;
-        
-        if (uploadError) {
-          console.warn(`Échec de la tentative d'upload ${uploadAttempts}/${maxUploadAttempts}: ${uploadError.message}`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } else {
-          uploadSuccessful = true;
+        if (!response.ok) {
+          console.warn(`Échec de l'upload via API REST: ${response.statusText}`);
+          const errorText = await response.text();
+          throw new Error(`Échec de l'upload: ${errorText}`);
         }
+        
+        uploadSuccessful = true;
       } catch (e) {
         console.warn(`Exception lors de la tentative d'upload ${uploadAttempts}/${maxUploadAttempts}:`, e);
+        uploadError = e;
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
