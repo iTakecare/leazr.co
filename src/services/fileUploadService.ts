@@ -103,12 +103,13 @@ export const uploadImage = async (
     const fileName = `${uuidv4()}.${fileExt}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
 
-    // Upload du fichier
+    // Upload du fichier en spécifiant correctement le contentType
     const { error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: file.type // Spécifier explicitement le type MIME du fichier
       });
 
     if (error) {

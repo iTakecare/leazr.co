@@ -109,40 +109,10 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     if (imageUrl === "/placeholder.svg") return imageUrl;
     
     try {
-      // Add a cache buster and content type
+      // Add a cache buster
       const timestamp = Date.now();
       const separator = imageUrl.includes('?') ? '&' : '?';
-      
-      // Detect image format from URL
-      let contentType = 'image/jpeg';
-      
-      // Check WebP format (more specific checks first)
-      if (imageUrl.toLowerCase().endsWith('.webp')) {
-        contentType = 'image/webp';
-      } else if (imageUrl.toLowerCase().includes('/webp')) {
-        contentType = 'image/webp';
-      } 
-      // Check PNG format
-      else if (imageUrl.toLowerCase().endsWith('.png')) {
-        contentType = 'image/png';
-      } else if (imageUrl.toLowerCase().includes('/png')) {
-        contentType = 'image/png';
-      } 
-      // Check GIF format
-      else if (imageUrl.toLowerCase().endsWith('.gif')) {
-        contentType = 'image/gif';
-      } else if (imageUrl.toLowerCase().includes('/gif')) {
-        contentType = 'image/gif';
-      } 
-      // Check SVG format
-      else if (imageUrl.toLowerCase().endsWith('.svg')) {
-        contentType = 'image/svg+xml';
-      } else if (imageUrl.toLowerCase().includes('/svg')) {
-        contentType = 'image/svg+xml';
-      }
-      
-      // Add content type to URL and a retry counter to bypass caching
-      return `${imageUrl}${separator}t=${timestamp}&r=${retryCount}&contentType=${encodeURIComponent(contentType)}`;
+      return `${imageUrl}${separator}t=${timestamp}&r=${retryCount}`;
     } catch (e) {
       console.error("Error formatting image URL:", e);
       return imageUrl;
@@ -159,10 +129,9 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       <img 
         src={imageUrlWithCacheBuster()}
         alt={product?.name || "Produit"}
-        className="object-contain h-24 w-24"
+        className="object-contain max-h-24 max-w-full"
         onLoad={handleImageLoad}
         onError={handleImageError}
-        style={{ maxWidth: '100%', height: 'auto' }}
       />
       {hasError && (
         <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded">

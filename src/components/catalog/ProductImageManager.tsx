@@ -146,7 +146,13 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         
         console.log(`Uploading image ${file.name} to product-images/${productId}`);
         
-        // Direct upload to Supabase
+        // Create a reasonable file size limit to avoid large uploads (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`L'image ${file.name} est trop grande (max: 5MB)`);
+          continue;
+        }
+        
+        // Direct upload to Supabase with proper content type
         const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
         const filePath = `${productId}/${fileName}`;
         
@@ -154,7 +160,8 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           .from("product-images")
           .upload(filePath, file, {
             cacheControl: '3600',
-            upsert: false
+            upsert: false,
+            contentType: file.type  // Set the proper content type
           });
         
         if (error) {
