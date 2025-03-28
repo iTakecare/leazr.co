@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -199,14 +200,14 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                 </Button>
               </div>
               
-              {product.category && (
-                <div className="mt-4">
+              <div className="mt-4">
+                {product.category && (
                   <CO2SavingsCalculator 
                     category={product.category} 
                     quantity={quantity} 
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </ScrollArea>

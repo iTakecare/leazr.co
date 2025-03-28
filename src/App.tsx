@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
@@ -49,8 +50,6 @@ import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
 import SignOffer from "./pages/client/SignOffer";
 import PublicCatalog from "./pages/PublicCatalog";
-import { initializeStorageBuckets } from "@/utils/ensureBuckets";
-import { useEffect } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,12 +62,6 @@ const queryClient = new QueryClient({
 
 function App() {
   const location = useLocation();
-
-  useEffect(() => {
-    initializeStorageBuckets()
-      .then(() => console.log("Storage buckets initialization complete"))
-      .catch(err => console.error("Failed to initialize storage buckets:", err));
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -100,7 +93,6 @@ function App() {
                 <Route path="clients/:id/create-offer" element={<CreateOffer />} />
                 <Route path="catalog" element={<CatalogManagement />} />
                 <Route path="catalog/create-product" element={<ProductCreationPage />} />
-                <Route path="catalog/products/:id" element={<ProductDetail />} />
                 <Route path="products/:id" element={<ProductDetail />} />
                 <Route path="offers" element={<Offers />} />
                 <Route path="offers/:id" element={<OfferDetail />} />
