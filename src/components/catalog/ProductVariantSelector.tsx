@@ -62,10 +62,10 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       }
 
       try {
-        // Create a Record<string, string> for the variant combinations
+        // Create a Record<string, string> for the variant combinations by converting all values to strings
         const stringAttributes: Record<string, string> = {};
         Object.entries(selectedOptions).forEach(([key, value]) => {
-          stringAttributes[key] = value;
+          stringAttributes[key] = String(value);
         });
 
         if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {

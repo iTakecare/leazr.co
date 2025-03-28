@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -142,9 +141,14 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       return;
     }
     
+    const stringAttributes: Record<string, string> = {};
+    Object.entries(selectedAttributes).forEach(([key, value]) => {
+      stringAttributes[key] = String(value);
+    });
+    
     const variantPriceData = {
       product_id: product.id,
-      attributes: selectedAttributes,
+      attributes: stringAttributes,
       price: price,
       monthly_price: monthlyPrice,
       stock: stock
