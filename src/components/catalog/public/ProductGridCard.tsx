@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -30,6 +29,12 @@ const getCO2Savings = (category: string | undefined): number => {
 
 const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
+  
+  React.useEffect(() => {
+    setImageUrl(getProductImage());
+  }, [product]);
   
   if (product.is_variation || product.parent_id) {
     return null;
@@ -82,7 +87,8 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     if (product?.image_url && typeof product.image_url === 'string' && 
         product.image_url.trim() !== '' && 
         !product.image_url.includes('.emptyFolderPlaceholder') &&
-        !product.image_url.includes('undefined')) {
+        !product.image_url.includes('undefined') &&
+        product.image_url !== '/placeholder.svg') {
       return product.image_url;
     }
     
@@ -103,8 +109,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     
     return "/placeholder.svg";
   };
-  
-  const imageUrl = getProductImage();
   
   const getCategoryLabel = (category: string | undefined) => {
     if (!category) return "Autre";
@@ -162,13 +166,18 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   
   const handleImageLoad = () => {
     setIsLoading(false);
+    setHasError(false);
+  };
+  
+  const handleImageError = () => {
+    setIsLoading(false);
+    setHasError(true);
+    setImageUrl("/placeholder.svg");
   };
 
-  // Add timestamp to prevent caching issues
   const addTimestamp = (url: string): string => {
     if (!url || url === "/placeholder.svg") return "/placeholder.svg";
     
-    // Add a timestamp query parameter to prevent caching
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}t=${new Date().getTime()}`;
   };
@@ -184,16 +193,17 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
           </div>
         )}
+        {hasError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <div className="text-sm text-gray-500">Image non disponible</div>
+          </div>
+        )}
         <img 
           src={addTimestamp(imageUrl)} 
           alt={product.name} 
-          className="absolute inset-0 object-contain w-full h-full p-5"
+          className={`absolute inset-0 object-contain w-full h-full p-5 ${hasError ? 'hidden' : ''}`}
           onLoad={handleImageLoad}
-          onError={(e) => {
-            setIsLoading(false);
-            (e.target as HTMLImageElement).src = "/placeholder.svg";
-            console.error(`Error loading image for product ${product.name}:`, imageUrl);
-          }}
+          onError={handleImageError}
         />
         
         {co2Savings > 0 && (

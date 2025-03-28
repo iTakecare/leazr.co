@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Product } from "@/types/catalog";
 
 interface ProductImageProps {
@@ -9,6 +9,13 @@ interface ProductImageProps {
 const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
+  
+  useEffect(() => {
+    // Initialize image URL when component mounts or product changes
+    const bestImageUrl = getProductImage();
+    setImageUrl(bestImageUrl);
+  }, [product]);
   
   // Get the best available image URL
   const getProductImage = (): string => {
@@ -17,6 +24,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         typeof product.image_url === 'string' && 
         product.image_url.trim() !== '' && 
         !product.image_url.includes('.emptyFolderPlaceholder') && 
+        !product.image_url.includes('undefined') &&
         product.image_url !== '/placeholder.svg') {
       return product.image_url;
     }
@@ -42,25 +50,24 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     return "/placeholder.svg";
   };
   
-  const productImage = getProductImage();
-  
   // Add timestamp to prevent caching issues
   const getImageWithTimestamp = (url: string): string => {
     if (!url || url === "/placeholder.svg") return "/placeholder.svg";
     
-    // Only add timestamp to real image URLs, not to placeholders
+    // Add a timestamp query parameter to prevent caching
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}t=${new Date().getTime()}`;
   };
   
   const handleImageLoad = () => {
     setIsLoading(false);
+    setHasError(false);
   };
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setIsLoading(false);
     setHasError(true);
-    console.error(`Failed to load product image: ${productImage}`);
+    console.error(`Failed to load product image: ${imageUrl}`);
     (e.target as HTMLImageElement).src = "/placeholder.svg";
   };
   
@@ -72,7 +79,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         </div>
       )}
       <img 
-        src={getImageWithTimestamp(productImage)}
+        src={getImageWithTimestamp(imageUrl)}
         alt={product?.name || "Product"}
         className="object-contain h-24 w-24"
         onLoad={handleImageLoad}

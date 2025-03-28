@@ -58,7 +58,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   };
 
   // Use imageUrl as the default, then add any additional valid images from imageUrls
-  const allImages = filterValidImages([imageUrl, ...(imageUrls || [])]);
+  const allImages = filterValidImages([...(imageUrls || []), imageUrl]);
 
   const [selectedImage, setSelectedImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -67,14 +67,18 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   
   console.log("ProductImageDisplay - Available images:", allImages);
   
-  // Set the first image as the selected image on component mount
+  // Set the first image as the selected image on component mount or when images change
   useEffect(() => {
     if (allImages.length > 0) {
       setSelectedImage(allImages[0]);
       setCurrentIndex(0);
+      setIsLoading(true);
       console.log("ProductImageDisplay - Setting initial image:", allImages[0]);
+    } else {
+      setSelectedImage('/placeholder.svg');
+      setIsLoading(false);
     }
-  }, [allImages]);
+  }, [allImages, imageUrl, imageUrls]);
   
   // Pre-load the first image
   useEffect(() => {
@@ -83,6 +87,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       img.src = addTimestamp(allImages[0]);
       img.onload = () => {
         setIsLoading(false);
+        setHasError(false);
         console.log("ProductImageDisplay - Image loaded successfully:", allImages[0]);
       };
       img.onerror = () => {
@@ -95,6 +100,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
 
   const handleImageLoad = () => {
     setIsLoading(false);
+    setHasError(false);
     console.log("ProductImageDisplay - Image loaded:", selectedImage);
   };
 
@@ -133,7 +139,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
 
   // Add a timestamp to image URLs to prevent caching issues
   const addTimestamp = (url: string): string => {
-    if (!url) return "/placeholder.svg";
+    if (!url || url === '/placeholder.svg') return "/placeholder.svg";
     
     // Add a timestamp query parameter to prevent caching
     const separator = url.includes('?') ? '&' : '?';

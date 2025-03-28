@@ -23,6 +23,43 @@ export function useProductDetails(productId: string | null) {
     enabled: !!productId,
   });
 
+  // Filter out invalid images from a product
+  const getValidImages = (product: Product | null): string[] => {
+    if (!product) return [];
+    
+    const validImages: string[] = [];
+    const seenUrls = new Set<string>();
+    
+    // Check main image
+    if (product.image_url && 
+        typeof product.image_url === 'string' && 
+        product.image_url.trim() !== '' && 
+        !product.image_url.includes('.emptyFolderPlaceholder') && 
+        !product.image_url.includes('undefined') &&
+        product.image_url !== '/placeholder.svg') {
+      validImages.push(product.image_url);
+      seenUrls.add(product.image_url);
+    }
+    
+    // Check additional images
+    if (product.image_urls && Array.isArray(product.image_urls)) {
+      product.image_urls.forEach(url => {
+        if (url && 
+            typeof url === 'string' && 
+            url.trim() !== '' && 
+            !url.includes('.emptyFolderPlaceholder') && 
+            !url.includes('undefined') &&
+            url !== '/placeholder.svg' && 
+            !seenUrls.has(url)) {
+          validImages.push(url);
+          seenUrls.add(url);
+        }
+      });
+    }
+    
+    return validImages;
+  };
+
   useEffect(() => {
     if (isLoading) {
       setLoading(true);
@@ -45,19 +82,17 @@ export function useProductDetails(productId: string | null) {
     setLoading(false);
     setError(null);
     
-    // Set the current image - only set valid images, not placeholders
-    if (data.image_url && typeof data.image_url === 'string' && data.image_url.trim() !== '' && 
-        !data.image_url.includes('.emptyFolderPlaceholder') && data.image_url !== '/placeholder.svg') {
-      setCurrentImage(data.image_url);
-    } else if (data.image_urls && Array.isArray(data.image_urls) && data.image_urls.length > 0) {
-      const validImages = data.image_urls.filter(url => 
-        url && typeof url === 'string' && url.trim() !== '' && 
-        !url.includes('.emptyFolderPlaceholder') && url !== '/placeholder.svg'
-      );
-      
-      if (validImages.length > 0) {
-        setCurrentImage(validImages[0]);
-      }
+    // Get valid images
+    const validImages = getValidImages(data);
+    console.log("Valid images for product:", validImages);
+    
+    // Set the current image (only set if there are valid images)
+    if (validImages.length > 0) {
+      setCurrentImage(validImages[0]);
+      console.log("Setting current image to:", validImages[0]);
+    } else {
+      setCurrentImage(null);
+      console.log("No valid images found for product");
     }
 
     // Check if product has variants
@@ -212,6 +247,7 @@ export function useProductDetails(productId: string | null) {
     isRequestFormOpen,
     setIsRequestFormOpen,
     isLoading: loading, // Alias loading as isLoading for compatibility with ProductDetailPage
+    getValidImages,
   };
 }
 
