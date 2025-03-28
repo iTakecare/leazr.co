@@ -39,7 +39,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
-import ProductImageManager from "@/components/product/ProductImageManager";
+import ProductImageManager from "@/components/catalog/ProductImageManager";
 
 const productCategories = [
   "laptop",
