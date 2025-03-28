@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadImage, listFiles, deleteFile } from "@/services/fileUploadService";
+import { uploadImage, listFiles, deleteFile, enforceCorrectMimeType } from "@/services/fileUploadService";
 import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,8 +139,8 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        if (!file.type.startsWith('image/')) {
-          toast.error(`Le fichier ${file.name} n'est pas une image`);
+        if (!file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+          toast.error(`Le fichier ${file.name} n'est pas une image valide`);
           continue;
         }
         
@@ -156,24 +156,39 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
         const cleanFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
         
+        // Force correct MIME type
+        const fileWithCorrectMime = enforceCorrectMimeType(file);
+        const contentType = fileWithCorrectMime.type;
+        
+        console.log(`Uploading with content type: ${contentType}`);
+        
         // Direct upload to Supabase with proper content type
         const filePath = `${productId}/${cleanFileName}`;
         
-        const { data, error } = await supabase.storage
-          .from("product-images")
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: file.type || `image/${fileExt}` || 'image/jpeg'  // Ensure proper content type
-          });
-        
-        if (error) {
-          console.error('Error uploading file:', error);
-          toast.error(`Erreur lors de l'upload: ${error.message}`);
+        try {
+          // Convertir le fichier en Blob avec le type MIME explicite
+          const fileBlob = new Blob([await fileWithCorrectMime.arrayBuffer()], { type: contentType });
+          
+          const { data, error } = await supabase.storage
+            .from("product-images")
+            .upload(filePath, fileBlob, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: contentType  // Ensure proper content type
+            });
+          
+          if (error) {
+            console.error('Error uploading file:', error);
+            toast.error(`Erreur lors de l'upload: ${error.message}`);
+            continue;
+          }
+          
+          uploadedCount++;
+        } catch (uploadError) {
+          console.error('Exception during upload:', uploadError);
+          toast.error(`Erreur inattendue lors de l'upload`);
           continue;
         }
-        
-        uploadedCount++;
       }
       
       if (uploadedCount > 0) {

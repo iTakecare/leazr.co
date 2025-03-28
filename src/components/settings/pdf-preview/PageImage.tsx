@@ -38,42 +38,49 @@ const PageImage: React.FC<PageImageProps> = ({
       
       // Handle JSON-encoded base64 data
       if (typeof pageImage.data === 'string') {
-        // If it's already a data URL
-        if (pageImage.data.startsWith('data:')) {
-          return pageImage.data;
-        }
-        
-        // If it's JSON encoded
-        if (pageImage.data.startsWith('{')) {
-          try {
-            const jsonData = JSON.parse(pageImage.data);
-            if (jsonData.data && typeof jsonData.data === 'string') {
-              imageSrc = jsonData.data;
+        try {
+          // If it's already a data URL
+          if (pageImage.data.startsWith('data:')) {
+            return pageImage.data;
+          }
+          
+          // If it's JSON encoded
+          if (pageImage.data.startsWith('{')) {
+            try {
+              const jsonData = JSON.parse(pageImage.data);
+              if (jsonData.data && typeof jsonData.data === 'string') {
+                imageSrc = jsonData.data;
+              }
+            } catch (e) {
+              console.error("Failed to parse image JSON data:", e);
             }
-          } catch (e) {
-            console.error("Failed to parse image JSON data:", e);
-          }
-        }
-        
-        // Ensure it's a properly formatted data URL
-        if (!imageSrc.startsWith('data:')) {
-          // Try to determine content type from base64 prefix
-          let contentType = 'image/png'; // default
-          
-          if (imageSrc.startsWith('/9j/')) {
-            contentType = 'image/jpeg';
-          } else if (imageSrc.startsWith('iVBORw0KGgo')) {
-            contentType = 'image/png';
-          } else if (imageSrc.startsWith('UklGR')) {
-            contentType = 'image/webp';
-          } else if (imageSrc.startsWith('R0lGODlh')) {
-            contentType = 'image/gif';
           }
           
-          // Add data:image header if not present
-          if (!imageSrc.includes('data:')) {
-            imageSrc = `data:${contentType};base64,${imageSrc}`;
+          // Ensure it's a properly formatted data URL
+          if (!imageSrc.startsWith('data:')) {
+            // Try to determine content type from base64 prefix
+            let contentType = 'image/png'; // default
+            
+            if (imageSrc.startsWith('/9j/')) {
+              contentType = 'image/jpeg';
+            } else if (imageSrc.startsWith('iVBORw0KGgo')) {
+              contentType = 'image/png';
+            } else if (imageSrc.startsWith('UklGR')) {
+              contentType = 'image/webp';
+            } else if (imageSrc.startsWith('R0lGODlh')) {
+              contentType = 'image/gif';
+            } else if (imageSrc.startsWith('PHN2Zz')) {
+              contentType = 'image/svg+xml';
+            }
+            
+            // Add data:image header if not present
+            if (!imageSrc.includes('data:')) {
+              imageSrc = `data:${contentType};base64,${imageSrc}`;
+            }
           }
+        } catch (e) {
+          console.error("Error processing image data:", e);
+          return "/placeholder.svg";
         }
       }
       

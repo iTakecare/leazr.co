@@ -106,6 +106,31 @@ export const detectMimeTypeFromExtension = (extension: string): string => {
 };
 
 /**
+ * Force le type MIME pour garantir que les fichiers sont traités correctement
+ */
+export const enforceCorrectMimeType = (file: File): File => {
+  const fileExt = detectFileExtension(file.name);
+  const mimeType = detectMimeTypeFromExtension(fileExt);
+  
+  // Si le MIME type est déjà défini correctement, retourner le fichier tel quel
+  if (file.type && file.type.startsWith('image/') && file.type !== 'application/octet-stream') {
+    return file;
+  }
+  
+  // Créer un nouveau Blob avec le type MIME correct
+  try {
+    return new File([file], file.name, { 
+      type: mimeType,
+      lastModified: file.lastModified 
+    });
+  } catch (error) {
+    console.warn('Impossible de créer un nouveau File avec le type MIME forcé, utilisation du Blob:', error);
+    // Fallback vers le fichier original
+    return file;
+  }
+};
+
+/**
  * Upload une image dans un bucket
  */
 export const uploadImage = async (
@@ -126,31 +151,32 @@ export const uploadImage = async (
       return null;
     }
 
-    // Générer un nom unique pour le fichier
+    // Vérifier le type de fichier
     const fileExt = detectFileExtension(file.name);
+    if (!fileExt) {
+      toast.error(`Type de fichier non pris en charge ou extension manquante.`);
+      return null;
+    }
+
+    // S'assurer que le type MIME est correct pour les images
+    const fileWithCorrectMime = enforceCorrectMimeType(file);
+    
+    // Générer un nom unique pour le fichier
     const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
 
     // Déterminer le type MIME correct
-    let contentType = file.type;
+    const contentType = fileWithCorrectMime.type || detectMimeTypeFromExtension(fileExt);
     
-    // Si le type est vide ou application/octet-stream, essayer de le déterminer à partir de l'extension
-    if (!contentType || contentType === 'application/octet-stream') {
-      contentType = detectMimeTypeFromExtension(fileExt);
-    }
-    
-    // Vérifier que le contentType est bien un type d'image si on attend une image
-    if (bucketName.includes('image') && !contentType.startsWith('image/')) {
-      // Forcer un type image basé sur l'extension
-      contentType = fileExt ? `image/${fileExt}` : 'image/jpeg';
-    }
+    console.log(`Uploading file with explicit content type: ${contentType}, size: ${file.size} bytes`);
 
-    console.log(`Uploading file with content type: ${contentType}`);
+    // Convertir le fichier en Blob avec le type MIME explicite pour éviter toute mauvaise interprétation
+    const fileBlob = new Blob([await fileWithCorrectMime.arrayBuffer()], { type: contentType });
 
     // Upload du fichier en spécifiant correctement le contentType
     const { error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, file, {
+      .upload(filePath, fileBlob, {
         cacheControl: '3600',
         upsert: false,
         contentType: contentType // Spécifier explicitement le type MIME du fichier
