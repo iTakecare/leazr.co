@@ -154,7 +154,7 @@ const ProductEditPage: React.FC = () => {
       const { data: buckets } = await queryClient.fetchQuery({
         queryKey: ["buckets"],
         queryFn: async () => {
-          const { supabase } = await import("@/lib/supabase");
+          const { supabase } = await import("@/integrations/supabase/client");
           return supabase.storage.listBuckets();
         }
       });
@@ -163,7 +163,7 @@ const ProductEditPage: React.FC = () => {
       
       if (!bucketExists) {
         console.log("Bucket 'products' not found, creating it...");
-        const { supabase } = await import("@/lib/supabase");
+        const { supabase } = await import("@/integrations/supabase/client");
         const { error: createBucketError } = await supabase.storage.createBucket('products', {
           public: true
         });

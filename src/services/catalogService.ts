@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductAttributes } from "@/types/catalog";
 
@@ -57,7 +58,7 @@ export const getProducts = async (): Promise<Product[]> => {
  */
 export const getProductById = async (id: string): Promise<Product> => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { data, error } = await supabase
       .from('products')
@@ -154,7 +155,7 @@ export const findVariantByAttributes = async (
  */
 export const getCategories = async () => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { data, error } = await supabase
       .from('categories')
@@ -178,7 +179,7 @@ export const getCategories = async () => {
  */
 export const getBrands = async () => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { data, error } = await supabase
       .from('brands')
@@ -202,7 +203,7 @@ export const getBrands = async () => {
  */
 export const addCategory = async (category: { name: string, translation: string }) => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { data, error } = await supabase
       .from('categories')
@@ -227,7 +228,7 @@ export const addCategory = async (category: { name: string, translation: string 
  */
 export const updateCategory = async ({ originalName, name, translation }: { originalName: string, name: string, translation: string }) => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { data, error } = await supabase
       .from('categories')
@@ -253,7 +254,7 @@ export const updateCategory = async ({ originalName, name, translation }: { orig
  */
 export const deleteCategory = async ({ name }: { name: string }) => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { error } = await supabase
       .from('categories')
@@ -277,7 +278,7 @@ export const deleteCategory = async ({ name }: { name: string }) => {
  */
 export const addBrand = async (brand: { name: string, translation: string }) => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { data, error } = await supabase
       .from('brands')
@@ -302,7 +303,7 @@ export const addBrand = async (brand: { name: string, translation: string }) => 
  */
 export const updateBrand = async ({ originalName, name, translation }: { originalName: string, name: string, translation: string }) => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { data, error } = await supabase
       .from('brands')
@@ -328,7 +329,7 @@ export const updateBrand = async ({ originalName, name, translation }: { origina
  */
 export const deleteBrand = async ({ name }: { name: string }) => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { error } = await supabase
       .from('brands')
@@ -394,7 +395,7 @@ export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'up
  */
 export const updateProduct = async (id: string, product: Partial<Product>): Promise<Product> => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     const { data, error } = await supabase
       .from('products')
@@ -449,7 +450,7 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
  */
 export const uploadProductImage = async (file: File, productId: string, isMainImage: boolean = false): Promise<string> => {
   try {
-    const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     // Get file extension
     const fileExt = file.name.split('.').pop();
