@@ -12,16 +12,10 @@ export const useStorageConnection = (onConnectionSuccess: () => Promise<void>) =
       setError(null);
       
       try {
-        const isConnected = await checkStorageConnection();
-        if (isConnected) {
-          console.log("Connexion au stockage Supabase établie");
-          toast.success("Connexion au stockage Supabase établie");
-          await onConnectionSuccess();
-        } else {
-          console.log("Stockage Supabase non disponible");
-          setError("Connexion au stockage Supabase impossible. Veuillez réessayer.");
-          toast.error("Connexion au stockage Supabase impossible.");
-        }
+        // Essayer de se connecter au stockage Supabase
+        // Exécuter d'abord la fonction de chargement, si elle échoue en raison d'un problème de stockage,
+        // nous le détecterons dans le bloc catch
+        await onConnectionSuccess();
       } catch (storageError) {
         console.error("Erreur avec le stockage:", storageError);
         setError("Erreur lors de la connexion au stockage Supabase.");
@@ -38,24 +32,36 @@ export const useStorageConnection = (onConnectionSuccess: () => Promise<void>) =
       setReconnecting(true);
       setError(null);
       
-      toast.info("Tentative de connexion au stockage Supabase...");
+      toast.info("Tentative de reconnexion au stockage...");
       
-      const isConnected = await resetStorageConnection();
-      
-      if (isConnected) {
-        console.log("Connexion au stockage Supabase établie");
-        toast.success("Connexion au stockage Supabase établie");
-        
-        await onConnectionSuccess();
-      } else {
-        console.log("Stockage Supabase non disponible");
-        setError("Connexion au stockage Supabase impossible. Veuillez réessayer.");
-        toast.error("Connexion au stockage Supabase impossible.");
+      // Essayons de créer le bucket via la fonction Edge
+      try {
+        const response = await fetch('/api/create-storage-bucket', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ bucketName: 'product-images' }),
+        });
+
+        if (response.ok) {
+          console.log("Bucket créé avec succès via Edge Function");
+          toast.success("Connexion au stockage établie");
+          
+          await onConnectionSuccess();
+          return;
+        }
+      } catch (edgeFnError) {
+        console.error("Erreur lors de l'appel Edge Function:", edgeFnError);
       }
+      
+      // Si l'Edge Function échoue, essayons une approche directe
+      await onConnectionSuccess();
+      
     } catch (err) {
       console.error("Erreur lors de la tentative de connexion:", err);
-      setError("Erreur lors de la tentative de connexion au stockage Supabase.");
-      toast.error("Erreur lors de la tentative de connexion au stockage Supabase.");
+      setError("Erreur lors de la tentative de connexion au stockage.");
+      toast.error("Erreur lors de la tentative de connexion au stockage.");
     } finally {
       setReconnecting(false);
     }

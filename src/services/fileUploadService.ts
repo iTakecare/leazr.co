@@ -1,6 +1,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, adminSupabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
@@ -20,20 +20,48 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
       return true;
     }
 
-    // Si le bucket n'existe pas, le créer
-    const { error: createError } = await supabase.storage.createBucket(bucketName, {
-      public: true
-    });
+    // Si le bucket n'existe pas, essayer de le créer avec la fonction Edge
+    try {
+      const response = await fetch('/api/create-storage-bucket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bucketName }),
+      });
 
-    if (createError) {
-      if (createError.message.includes('already exists')) {
-        return true;
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          console.log(`Bucket ${bucketName} créé avec succès via Edge Function`);
+          return true;
+        }
       }
+      
+      console.error(`Échec de la création du bucket ${bucketName} via Edge Function`);
+    } catch (edgeFnError) {
+      console.error(`Erreur lors de l'appel Edge Function:`, edgeFnError);
+    }
+
+    // Essayer de créer le bucket directement (fallback)
+    try {
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true
+      });
+
+      if (createError) {
+        if (createError.message.includes('already exists')) {
+          return true;
+        }
+        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+        return false;
+      }
+
+      return true;
+    } catch (createError) {
       console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
       return false;
     }
-
-    return true;
   } catch (error) {
     console.error(`Erreur lors de la vérification/création du bucket ${bucketName}:`, error);
     return false;
