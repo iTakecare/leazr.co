@@ -19,7 +19,10 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     
     // If there are image_urls array and it has at least one item, use the first
     if (product?.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
-      return product.image_urls[0];
+      const firstValidImage = product.image_urls.find(url => url && typeof url === 'string' && url.trim() !== '');
+      if (firstValidImage) {
+        return firstValidImage;
+      }
     }
     
     // Fall back to a placeholder
@@ -28,6 +31,13 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   
   const productImage = getProductImage();
   
+  // Add timestamp to prevent caching issues
+  const getImageWithTimestamp = (url: string): string => {
+    if (!url || url === "/placeholder.svg") return "/placeholder.svg";
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${new Date().getTime()}`;
+  };
+  
   const handleImageLoad = () => {
     setIsLoading(false);
   };
@@ -35,6 +45,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setIsLoading(false);
     setHasError(true);
+    console.error(`Failed to load product image: ${productImage}`);
     (e.target as HTMLImageElement).src = "/placeholder.svg";
   };
   
@@ -46,7 +57,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         </div>
       )}
       <img 
-        src={productImage}
+        src={getImageWithTimestamp(productImage)}
         alt={product?.name || "Product"}
         className="object-contain h-24 w-24"
         onLoad={handleImageLoad}

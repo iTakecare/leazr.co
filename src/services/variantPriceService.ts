@@ -7,17 +7,33 @@ export const updateProductVariationAttributes = async (
   attributes: Record<string, string[]>
 ): Promise<void> => {
   try {
+    console.log("Updating product variation attributes for product:", productId);
+    console.log("New attributes:", JSON.stringify(attributes, null, 2));
+    
     const { supabase } = await import('@/integrations/supabase/client');
+    
+    // Ensure attributes is a proper JSON object, not a string
+    let attributesToSave = attributes;
+    if (typeof attributes === 'string') {
+      try {
+        attributesToSave = JSON.parse(attributes);
+      } catch (parseError) {
+        console.error('Error parsing attributes string:', parseError);
+        throw new Error('Invalid attributes format');
+      }
+    }
     
     const { error } = await supabase
       .from('products')
-      .update({ variation_attributes: attributes })
+      .update({ variation_attributes: attributesToSave })
       .eq('id', productId);
     
     if (error) {
       console.error('Error updating product variation attributes:', error);
       throw new Error(error.message);
     }
+    
+    console.log('Successfully updated product variation attributes');
   } catch (error) {
     console.error('Error in updateProductVariationAttributes:', error);
     throw error;

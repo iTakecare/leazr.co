@@ -15,7 +15,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
 }) => {
   // Use imageUrl as the default, then add any additional images from imageUrls
   const allImages = [imageUrl, ...(imageUrls || [])].filter(
-    (url, index, self) => url && self.indexOf(url) === index // Deduplicate
+    (url, index, self) => url && typeof url === 'string' && url.trim() !== '' && self.indexOf(url) === index // Deduplicate
   );
 
   const [selectedImage, setSelectedImage] = useState('');
@@ -38,7 +38,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   useEffect(() => {
     if (allImages.length > 0) {
       const img = new Image();
-      img.src = allImages[0];
+      img.src = addTimestamp(allImages[0]);
       img.onload = () => {
         setIsLoading(false);
         console.log("ProductImageDisplay - Image loaded successfully:", allImages[0]);

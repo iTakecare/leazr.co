@@ -69,6 +69,7 @@ export async function getAttributeWithValues(attributeId: string): Promise<Attri
 // Create a new attribute definition
 export async function createAttribute(attribute: Omit<AttributeDefinition, 'id' | 'created_at' | 'updated_at'>): Promise<AttributeDefinition> {
   try {
+    console.log("Creating new attribute:", attribute);
     const supabase = getSupabaseClient();
     
     const { data, error } = await supabase
@@ -85,6 +86,7 @@ export async function createAttribute(attribute: Omit<AttributeDefinition, 'id' 
       throw error;
     }
 
+    console.log("Successfully created attribute:", data);
     return data;
   } catch (error) {
     console.error("Error in createAttribute:", error);
@@ -142,6 +144,7 @@ export async function deleteAttribute(id: string): Promise<void> {
 // Create a new attribute value
 export async function createAttributeValue(attributeValue: Omit<AttributeValue, 'id' | 'created_at' | 'updated_at'>): Promise<AttributeValue> {
   try {
+    console.log("Creating new attribute value:", attributeValue);
     const supabase = getSupabaseClient();
     
     const { data, error } = await supabase
@@ -159,6 +162,7 @@ export async function createAttributeValue(attributeValue: Omit<AttributeValue, 
       throw error;
     }
 
+    console.log("Successfully created attribute value:", data);
     return data;
   } catch (error) {
     console.error("Error in createAttributeValue:", error);

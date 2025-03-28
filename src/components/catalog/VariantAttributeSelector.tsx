@@ -33,12 +33,16 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   }, [initialAttributes]);
   
   const updateAttributes = useMutation({
-    mutationFn: () => updateProductVariationAttributes(productId, attributes),
+    mutationFn: () => {
+      console.log("Updating product variation attributes:", attributes);
+      return updateProductVariationAttributes(productId, attributes);
+    },
     onSuccess: () => {
       toast.success("Attributs de variation mis à jour avec succès");
       if (onAttributesUpdated) onAttributesUpdated();
     },
     onError: (error: any) => {
+      console.error("Error updating attributes:", error);
       toast.error(`Erreur lors de la mise à jour des attributs: ${error.message}`);
     }
   });
@@ -112,6 +116,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   
   const handleSaveAttributes = async () => {
     try {
+      console.log("Saving attributes:", attributes);
       await updateAttributes.mutateAsync();
     } catch (error) {
       console.error("Failed to update attributes:", error);
