@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
-import { uploadFile, ensureBucket, listFiles, deleteFile } from "@/services/fileStorage";
+import { 
+  createBucketIfNotExists as ensureBucket, 
+  uploadFile, 
+  listFiles, 
+  deleteFile 
+} from "@/services/fileStorage";
 
 interface TemplateImage {
   id: string;
@@ -37,18 +41,15 @@ const PDFTemplateImageUploader = ({
   
   console.log("PDFTemplateImageUploader rendu avec templateImages:", templateImages);
   
-  // Initialisation
   useEffect(() => {
     const initialize = async () => {
       console.log("Initialisation des images avec templateImages:", templateImages);
       setIsLoadingImages(true);
       
       try {
-        // Vérifier si templateImages est disponible
         if (templateImages && Array.isArray(templateImages) && templateImages.length > 0) {
           console.log("Utilisation des templateImages fournis:", templateImages);
           
-          // S'assurer que toutes les images ont un numéro de page défini
           const imagesWithPageNumbers = templateImages.map((img, idx) => ({
             ...img,
             page: img.page !== undefined ? img.page : idx
@@ -57,15 +58,12 @@ const PDFTemplateImageUploader = ({
           console.log("Images avec numéros de page:", imagesWithPageNumbers);
           setLocalImages(imagesWithPageNumbers);
           
-          // Si des numéros de page ont été ajoutés/corrigés, notifier le parent
           if (JSON.stringify(imagesWithPageNumbers) !== JSON.stringify(templateImages)) {
             onChange(imagesWithPageNumbers);
           }
         } else {
-          // Si aucun templateImages n'est fourni, essayer de lister toutes les images dans le bucket
           console.log("Aucun templateImages fourni, listing depuis le stockage");
           
-          // S'assurer que le bucket existe
           const bucketReady = await ensureBucket(BUCKET_NAME);
           
           if (!bucketReady) {
@@ -75,23 +73,19 @@ const PDFTemplateImageUploader = ({
             return;
           }
           
-          // Lister les fichiers
           const storageFiles = await listFiles(BUCKET_NAME);
           
           if (storageFiles && storageFiles.length > 0) {
             console.log("Fichiers trouvés dans le stockage:", storageFiles);
             
-            // Filtrer les fichiers qui ne sont pas des images
             const imageFiles = storageFiles.filter(file => 
               !file.name.startsWith('.') && 
               (file.metadata?.mimetype?.startsWith('image/') || 
                file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
             );
             
-            // URL de base pour les fichiers
             const baseUrl = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/${BUCKET_NAME}/`;
             
-            // Mapper les fichiers à notre format
             const mappedImages = imageFiles.map((file, index) => ({
               id: file.name,
               name: file.name,
@@ -119,12 +113,10 @@ const PDFTemplateImageUploader = ({
     initialize();
   }, []);
   
-  // Gérer l'upload de fichier
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Vérifier le type de fichier (images seulement)
     if (!file.type.startsWith('image/')) {
       toast.error("Veuillez sélectionner une image");
       return;
@@ -135,15 +127,12 @@ const PDFTemplateImageUploader = ({
       
       console.log("Début de l'upload pour:", file.name);
       
-      // Générer un nom unique pour le fichier
       const uniqueId = uuidv4();
       const fileName = `${uniqueId}-${file.name}`;
       
-      // Uploader le fichier
       const fileUrl = await uploadFile(BUCKET_NAME, file, fileName);
       
       if (fileUrl) {
-        // Créer une nouvelle entrée d'image
         const newImage: TemplateImage = {
           id: fileName,
           name: file.name,
@@ -157,7 +146,6 @@ const PDFTemplateImageUploader = ({
         setLocalImages(newImages);
         onChange(newImages);
         
-        // S'il s'agit de la première image, la sélectionner automatiquement
         if (newImages.length === 1 && onPageSelect) {
           onPageSelect(0);
         }
@@ -174,7 +162,6 @@ const PDFTemplateImageUploader = ({
     }
   };
   
-  // Supprimer une image
   const handleDeleteImage = async (imageId: string) => {
     try {
       console.log("Suppression de l'image:", imageId);
@@ -186,10 +173,8 @@ const PDFTemplateImageUploader = ({
         return;
       }
       
-      // Mettre à jour la liste d'images
       const updatedImages = localImages.filter(img => img.id !== imageId);
       
-      // Réindexer les numéros de page
       updatedImages.forEach((img, idx) => {
         img.page = idx;
       });
@@ -197,7 +182,6 @@ const PDFTemplateImageUploader = ({
       setLocalImages(updatedImages);
       onChange(updatedImages);
       
-      // Si la page actuellement sélectionnée n'existe plus, sélectionner la dernière page disponible
       if (selectedPage >= updatedImages.length && onPageSelect) {
         onPageSelect(Math.max(0, updatedImages.length - 1));
       }
@@ -209,14 +193,12 @@ const PDFTemplateImageUploader = ({
     }
   };
   
-  // Déplacer une image vers le haut
   const moveUp = (index: number) => {
     if (index === 0) return;
     
     const newImages = [...localImages];
     [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
     
-    // Mettre à jour les numéros de page
     newImages.forEach((img, idx) => {
       img.page = idx;
     });
@@ -224,20 +206,17 @@ const PDFTemplateImageUploader = ({
     setLocalImages(newImages);
     onChange(newImages);
     
-    // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
     if (onPageSelect && (selectedPage === index || selectedPage === index - 1)) {
       onPageSelect(selectedPage === index ? index - 1 : index);
     }
   };
   
-  // Déplacer une image vers le bas
   const moveDown = (index: number) => {
     if (index === localImages.length - 1) return;
     
     const newImages = [...localImages];
     [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
     
-    // Mettre à jour les numéros de page
     newImages.forEach((img, idx) => {
       img.page = idx;
     });
@@ -245,30 +224,25 @@ const PDFTemplateImageUploader = ({
     setLocalImages(newImages);
     onChange(newImages);
     
-    // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
     if (onPageSelect && (selectedPage === index || selectedPage === index + 1)) {
       onPageSelect(selectedPage === index ? index + 1 : index);
     }
   };
   
-  // Prévisualiser une image
   const previewImage = (imageUrl: string) => {
     window.open(imageUrl, '_blank');
   };
   
-  // Sélectionner une page pour l'édition
   const selectPage = (index: number) => {
     if (onPageSelect) {
       onPageSelect(index);
     }
   };
   
-  // Gérer l'erreur de chargement d'image
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>, imageUrl: string) => {
     console.error("Échec de chargement de l'image:", imageUrl);
-    e.currentTarget.src = "/placeholder.svg"; // Image de secours
+    e.currentTarget.src = "/placeholder.svg";
     
-    // Essayer de recharger l'image avec un paramètre de contournement de cache
     setTimeout(() => {
       if (e.currentTarget.src === "/placeholder.svg") {
         const timestamp = new Date().getTime();
@@ -278,7 +252,6 @@ const PDFTemplateImageUploader = ({
     }, 2000);
   };
 
-  // Ajouter un timestamp pour forcer le rechargement des images
   const timestampedImages = localImages.map(img => ({
     ...img,
     displayUrl: `${img.url}?t=${new Date().getTime()}`

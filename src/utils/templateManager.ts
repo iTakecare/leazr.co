@@ -1,7 +1,6 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ensureBucket } from "@/services/fileStorage";
+import { createBucketIfNotExists as ensureBucket } from "@/services/fileStorage";
 
 // Type definitions for better type safety
 export interface TemplateImage {
@@ -260,4 +259,3 @@ export const listTemplates = async (): Promise<PDFTemplate[]> => {
     return [];
   }
 };
-

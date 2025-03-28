@@ -111,3 +111,90 @@ export const createBucketIfNotExists = async (bucketName: string): Promise<boole
     return false;
   }
 };
+
+/**
+ * Alias for backwards compatibility
+ */
+export const ensureBucket = createBucketIfNotExists;
+
+/**
+ * Upload a file to a bucket
+ */
+export const uploadFile = async (
+  bucketName: string,
+  file: File,
+  filePath: string
+): Promise<string | null> => {
+  try {
+    // Upload the file
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error(`Error uploading file to ${bucketName}/${filePath}:`, error);
+      return null;
+    }
+
+    // Get the public URL
+    const { data } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch (error) {
+    console.error(`Exception uploading file to ${bucketName}/${filePath}:`, error);
+    return null;
+  }
+};
+
+/**
+ * List files in a bucket or folder
+ */
+export const listFiles = async (
+  bucketName: string,
+  folderPath: string = ''
+): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .list(folderPath);
+
+    if (error) {
+      console.error(`Error listing files in ${bucketName}/${folderPath}:`, error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error(`Exception listing files in ${bucketName}/${folderPath}:`, error);
+    return [];
+  }
+};
+
+/**
+ * Delete a file from a bucket
+ */
+export const deleteFile = async (
+  bucketName: string,
+  filePath: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .remove([filePath]);
+
+    if (error) {
+      console.error(`Error deleting file ${bucketName}/${filePath}:`, error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`Exception deleting file ${bucketName}/${filePath}:`, error);
+    return false;
+  }
+};

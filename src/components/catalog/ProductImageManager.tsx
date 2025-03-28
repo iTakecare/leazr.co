@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadImage, listFiles, deleteFile, ensureBucket } from "@/services/fileUploadService";
+import { uploadImage, listFiles, deleteFile } from "@/services/fileUploadService";
 import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useStorageConnection } from "@/hooks/useStorageConnection";
+import { useExistingStorageBucket } from "@/hooks/useExistingStorageBucket";
 
 interface ProductImageManagerProps {
   productId: string;
@@ -22,23 +22,12 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   onSetMainImage
 }) => {
   const [images, setImages] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const BUCKET_NAME = "product-images";
 
   const loadImages = async () => {
     try {
-      setIsLoading(true);
-      
-      // S'assurer que le bucket existe
-      const bucketExists = await ensureBucket(BUCKET_NAME);
-      if (!bucketExists) {
-        toast.error("Erreur lors de l'accès au stockage");
-        setIsLoading(false);
-        return;
-      }
-      
-      // Charger les images du produit
+      // Charger les images du produit depuis le bucket existant
       const files = await listFiles(BUCKET_NAME, productId);
       
       const imageFiles = files
@@ -52,6 +41,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           };
         });
       
+      console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
       setImages(imageFiles);
       
       if (onChange) {
@@ -60,17 +50,11 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     } catch (error) {
       console.error("Erreur lors du chargement des images:", error);
       toast.error("Erreur lors du chargement des images");
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  // Utiliser le hook useStorageConnection pour gérer la connexion au stockage
-  const { error, reconnecting, initializeStorage, retryConnection } = useStorageConnection(loadImages);
-
-  useEffect(() => {
-    initializeStorage();
-  }, [productId]);
+  // Utiliser le hook pour vérifier le bucket existant
+  const { error, isLoading } = useExistingStorageBucket(BUCKET_NAME, loadImages);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -138,27 +122,11 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       <div className="p-6 border border-red-300 bg-red-50 rounded-md">
         <div className="flex items-center gap-2 mb-4">
           <AlertCircle className="text-red-500 h-5 w-5" />
-          <h3 className="font-medium">Erreur de connexion au stockage</h3>
+          <h3 className="font-medium">Erreur d'accès au stockage</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          Impossible de se connecter au stockage pour gérer les images des produits. 
           {error}
         </p>
-        <Button 
-          variant="outline" 
-          onClick={retryConnection}
-          disabled={reconnecting}
-          className="w-full"
-        >
-          {reconnecting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Tentative de reconnexion...
-            </>
-          ) : (
-            "Réessayer la connexion"
-          )}
-        </Button>
       </div>
     );
   }
