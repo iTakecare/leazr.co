@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Product } from "@/types/catalog";
 import { toast } from "sonner";
-import { downloadAndStoreImage } from "@/services/storageService";
 
 interface ProductImageProps {
   product: Product;
@@ -12,13 +11,11 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
-  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
     // Reset states when product changes
     setIsLoading(true);
     setHasError(false);
-    setRetryCount(0);
     
     // Get the best image URL
     if (product) {
@@ -52,31 +49,25 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     return "/placeholder.svg";
   };
   
-  // Handle image errors gracefully
+  // Handle image loading
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
   };
   
-  const handleImageError = async () => {
+  const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
-    
     console.error(`Failed to load image: ${imageUrl}`);
-    
-    if (retryCount >= 2) {
-      return;
-    }
-    
-    // Try with a cache buster on the URL
-    setRetryCount(prev => prev + 1);
+  };
+  
+  // Add cache-busting parameter to URL
+  const imageUrlWithCacheBuster = () => {
+    if (imageUrl === "/placeholder.svg") return imageUrl;
     
     // Add cache buster
-    const cacheBuster = `?t=${Date.now()}`;
     const separator = imageUrl.includes('?') ? '&' : '?';
-    const newUrl = `${imageUrl}${separator}t=${Date.now()}&contentType=image`;
-    
-    setImageUrl(newUrl);
+    return `${imageUrl}${separator}t=${Date.now()}`;
   };
   
   return (
@@ -87,7 +78,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         </div>
       )}
       <img 
-        src={imageUrl}
+        src={imageUrlWithCacheBuster()}
         alt={product?.name || "Product"}
         className="object-contain h-24 w-24"
         onLoad={handleImageLoad}

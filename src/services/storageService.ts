@@ -1,3 +1,4 @@
+
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -32,49 +33,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       // Continuer avec les autres méthodes
     }
     
-    // 2. Si le bucket n'existe pas, essayer de l'appeler directement via l'API Storage REST
-    try {
-      console.log(`Le bucket ${bucketName} n'existe pas, tentative de création via API REST`);
-      
-      // Construire l'URL pour créer le bucket
-      const url = `${STORAGE_URL}/bucket/${bucketName}`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        },
-        body: JSON.stringify({
-          id: bucketName,
-          name: bucketName,
-          public: true
-        })
-      });
-      
-      if (response.ok) {
-        console.log(`Bucket ${bucketName} créé avec succès via API REST`);
-        
-        // Créer les politiques d'accès pour le nouveau bucket
-        await createPublicPolicies(bucketName);
-        return true;
-      } else {
-        const errorData = await response.json();
-        
-        // Si le bucket existe déjà, c'est considéré comme un succès
-        if (response.status === 409 || errorData.message?.includes('already exists')) {
-          console.log(`Le bucket ${bucketName} existe déjà (détecté via API REST)`);
-          return true;
-        }
-        
-        console.error(`Erreur lors de la création du bucket via API REST:`, errorData);
-      }
-    } catch (restError) {
-      console.warn(`Exception lors de l'appel à l'API REST: ${restError}`);
-      // Continuer avec la méthode suivante
-    }
-    
-    // 3. Essayer via l'edge function create-storage-bucket
+    // 2. Essayer via l'edge function create-storage-bucket
     try {
       console.log(`Tentative de création via l'edge function create-storage-bucket`);
       const { data, error } = await supabase.functions.invoke('create-storage-bucket', {
@@ -94,7 +53,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       console.warn(`Exception lors de l'appel à l'edge function: ${functionError}`);
     }
     
-    // 4. Dernière tentative: création directe via l'API Supabase
+    // 3. Dernière tentative: création directe via l'API Supabase
     try {
       console.log(`Tentative de création directe du bucket ${bucketName}`);
       
@@ -122,52 +81,6 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
   } catch (error) {
     console.error(`Erreur générale dans ensureStorageBucket pour ${bucketName}:`, error);
     return false;
-  }
-}
-
-/**
- * Crée des politiques d'accès publiques pour un bucket
- * @param bucketName Le nom du bucket
- */
-async function createPublicPolicies(bucketName: string): Promise<void> {
-  try {
-    console.log(`Création des politiques d'accès pour le bucket ${bucketName}`);
-    
-    const policyTypes = ['SELECT', 'INSERT', 'UPDATE', 'DELETE'];
-    
-    // Utiliser l'API REST pour créer les politiques
-    for (const policyType of policyTypes) {
-      const policyName = `${bucketName}_public_${policyType.toLowerCase()}`;
-      
-      try {
-        const url = `${STORAGE_URL}/policies`;
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          },
-          body: JSON.stringify({
-            name: policyName,
-            definition: 'TRUE',
-            bucket_id: bucketName,
-            operations: [policyType]
-          })
-        });
-        
-        if (response.ok) {
-          console.log(`Politique ${policyType} créée avec succès pour ${bucketName}`);
-        } else {
-          const errorData = await response.json();
-          console.warn(`Erreur lors de la création de la politique ${policyType}:`, errorData);
-        }
-      } catch (error) {
-        console.warn(`Exception lors de la création de politique ${policyType}:`, error);
-      }
-    }
-  } catch (error) {
-    console.error(`Erreur lors de la création des politiques pour ${bucketName}:`, error);
   }
 }
 
@@ -234,32 +147,43 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
       const contentType = response.headers.get('content-type');
       console.log(`Type de contenu de la réponse: ${contentType}`);
       
+      // Si le contentType est JSON, c'est probablement une erreur
+      if (contentType && contentType.includes('application/json')) {
+        const jsonData = await response.json();
+        console.error('Réponse JSON reçue au lieu d'une image:', jsonData);
+        toast.error("Le serveur a renvoyé du JSON au lieu d'une image");
+        return null;
+      }
+      
       // Récupérer comme blob
       const blob = await response.blob();
       
       // Déterminer le type MIME correct à partir de l'extension
-      let mimeType = blob.type;
-      if (!mimeType || mimeType === 'application/octet-stream' || mimeType.includes('application/json')) {
-        switch (fileExt.toLowerCase()) {
-          case 'jpg':
-          case 'jpeg':
+      let mimeType = '';
+      switch (fileExt.toLowerCase()) {
+        case 'jpg':
+        case 'jpeg':
+          mimeType = 'image/jpeg';
+          break;
+        case 'png':
+          mimeType = 'image/png';
+          break;
+        case 'gif':
+          mimeType = 'image/gif';
+          break;
+        case 'webp':
+          mimeType = 'image/webp';
+          break;
+        case 'svg':
+          mimeType = 'image/svg+xml';
+          break;
+        default:
+          // Si on ne peut pas déterminer le type, utiliser celui du blob
+          mimeType = blob.type;
+          // Si le blob n'a pas de type ou est application/octet-stream, forcer à JPEG
+          if (!mimeType || mimeType === 'application/octet-stream' || mimeType.includes('application/json')) {
             mimeType = 'image/jpeg';
-            break;
-          case 'png':
-            mimeType = 'image/png';
-            break;
-          case 'gif':
-            mimeType = 'image/gif';
-            break;
-          case 'webp':
-            mimeType = 'image/webp';
-            break;
-          case 'svg':
-            mimeType = 'image/svg+xml';
-            break;
-          default:
-            mimeType = 'image/jpeg';
-        }
+          }
       }
       
       // Créer un nouveau blob avec le type MIME correct
