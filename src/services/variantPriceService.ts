@@ -1,3 +1,4 @@
+
 /**
  * Updates the variation attributes of a product
  */
