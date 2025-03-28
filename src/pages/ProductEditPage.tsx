@@ -44,33 +44,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-
-const ProductVariantManager = ({ product, onVariantAdded }: { product: Product, onVariantAdded?: () => void }) => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Gestion des variantes</CardTitle>
-        <CardDescription>
-          Cette fonctionnalité est en cours de développement. Vous pourrez bientôt gérer les variantes de produits ici.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="p-4 border border-dashed rounded-md text-center text-muted-foreground">
-          Configuration des variantes à venir...
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button 
-          variant="outline" 
-          className="w-full"
-          onClick={() => onVariantAdded && onVariantAdded()}
-        >
-          Cette fonctionnalité sera bientôt disponible
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-};
+import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 
 const productCategories = [
   "laptop",
