@@ -42,10 +42,13 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     // Créer la structure de dossier basée sur l'ID du produit
     const productFolder = `${productId}`;
     
-    // Get file extension
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${isMainImage ? 'main' : Date.now().toString()}.${fileExt}`;
-    const filePath = `${productFolder}/${fileName}`;
+    // Conserver le nom d'origine du fichier
+    const originalFileName = file.name;
+    
+    // Déterminer le nom de fichier
+    const filePath = isMainImage 
+      ? `${productFolder}/${originalFileName}` 
+      : `${productFolder}/${originalFileName}`;
     
     console.log(`Téléchargement de l'image vers: ${filePath} dans le bucket ${bucketName}`);
     
@@ -59,10 +62,10 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
         console.warn(`Erreur lors de la vérification des fichiers existants: ${listError.message}`);
         // On continue malgré l'erreur
       } else if (existingFiles) {
-        // Si c'est l'image principale et qu'elle existe déjà, la supprimer
+        // Si c'est l'image principale et qu'il y en a une existante, la supprimer
         if (isMainImage) {
-          const mainFile = existingFiles.find(f => f.name.startsWith('main.'));
-          if (mainFile) {
+          const mainFiles = existingFiles.filter(f => f.name.toLowerCase().includes('main'));
+          for (const mainFile of mainFiles) {
             console.log(`Suppression de l'ancienne image principale: ${productFolder}/${mainFile.name}`);
             await supabase.storage
               .from(bucketName)
@@ -75,9 +78,73 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       // Non bloquant, on continue
     }
     
-    // Uploader le fichier avec plusieurs tentatives
-    console.log(`Upload du fichier ${file.name} (type: ${file.type}, taille: ${file.size} bytes)`);
+    // Préparer le fichier pour l'upload
+    let fileToUpload = file;
+    let contentType = file.type || detectMimeTypeFromExtension(file.name);
     
+    // Vérifier si le contenu est un JSON contenant une image en base64
+    if (contentType === 'application/json') {
+      try {
+        // Lire le fichier pour vérifier s'il contient une image base64
+        const reader = new FileReader();
+        const fileContent = await new Promise<string>((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsText(file);
+        });
+        
+        try {
+          const jsonData = JSON.parse(fileContent);
+          
+          // Si c'est un JSON et qu'il contient une propriété data qui est une chaîne
+          if (jsonData.data && typeof jsonData.data === 'string') {
+            console.log("Image encodée en base64 trouvée dans le JSON");
+            
+            // Si c'est un data URL, extraire la partie base64
+            let base64Data = jsonData.data;
+            let mimeType = 'image/png';
+            
+            // Détecter le MIME type à partir des premiers caractères de base64
+            if (base64Data.includes('data:')) {
+              // Format: data:image/jpeg;base64,/9j/...
+              const parts = base64Data.split(';base64,');
+              if (parts.length > 1) {
+                mimeType = parts[0].replace('data:', '');
+                base64Data = parts[1];
+              }
+            } else if (base64Data.startsWith('/9j/')) {
+              mimeType = 'image/jpeg';
+            } else if (base64Data.startsWith('iVBORw0KGgo')) {
+              mimeType = 'image/png';
+            } else if (base64Data.startsWith('UklGR')) {
+              mimeType = 'image/webp';
+            } else if (base64Data.startsWith('R0lGODlh')) {
+              mimeType = 'image/gif';
+            }
+            
+            // Convertir la chaîne base64 en Blob
+            const byteCharacters = atob(base64Data.replace(/^data:image\/\w+;base64,/, ''));
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: mimeType });
+            
+            // Créer un nouveau File à partir du Blob en conservant le nom du fichier original
+            fileToUpload = new File([blob], originalFileName, { type: mimeType });
+            contentType = mimeType;
+            
+            console.log(`Fichier converti de JSON à ${mimeType}`);
+          }
+        } catch (parseError) {
+          console.warn("Erreur lors de la tentative de parse JSON:", parseError);
+        }
+      } catch (checkError) {
+        console.warn("Erreur lors de la vérification du type de fichier:", checkError);
+      }
+    }
+    
+    // Upload avec plusieurs tentatives
     let uploadAttempts = 0;
     const maxUploadAttempts = 3;
     let uploadSuccessful = false;
@@ -90,9 +157,9 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       try {
         const result = await supabase.storage
           .from(bucketName)
-          .upload(filePath, file, { 
-            contentType: file.type || 'application/octet-stream',
-            upsert: true 
+          .upload(filePath, fileToUpload, {
+            contentType: contentType,
+            upsert: true
           });
         
         uploadError = result.error;
@@ -214,16 +281,15 @@ export const uploadImage = async (
     }
     
     // C'est un objet File, on procède normalement
-    // Get file extension
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = folder ? `${folder}/${fileName}` : fileName;
+    // Utiliser le nom de fichier original
+    const originalFileName = file.name;
+    const filePath = folder ? `${folder}/${originalFileName}` : originalFileName;
     
     console.log(`Upload du fichier vers: ${bucket}/${filePath}`);
 
     // Important: Vérifier que le fichier est bien une image réelle et pas un objet JSON
     let fileToUpload = file;
-    let contentType = file.type || 'application/octet-stream';
+    let contentType = file.type || detectMimeTypeFromExtension(file.name);
 
     // S'assurer que le contenu est bien un fichier binaire et pas un JSON
     try {
@@ -255,20 +321,28 @@ export const uploadImage = async (
             
             // Si c'est un data URL, extraire la partie base64
             let base64Data = jsonData.data;
-            if (base64Data.includes('base64,')) {
-              base64Data = base64Data.split('base64,')[1];
-            }
-            
-            // Déterminer le type MIME
             let mimeType = 'image/png';
-            if (base64Data.startsWith('/9j/')) {
+            
+            // Détecter le MIME type à partir des premiers caractères du base64
+            if (base64Data.includes('data:')) {
+              const parts = base64Data.split(';base64,');
+              if (parts.length > 1) {
+                mimeType = parts[0].replace('data:', '');
+                base64Data = parts[1];
+              }
+            } else if (base64Data.startsWith('/9j/')) {
               mimeType = 'image/jpeg';
             } else if (base64Data.startsWith('iVBORw0KGgo')) {
               mimeType = 'image/png';
-            } else if (base64Data.startsWith('R0lGODlh')) {
-              mimeType = 'image/gif';
             } else if (base64Data.startsWith('UklGR')) {
               mimeType = 'image/webp';
+            } else if (base64Data.startsWith('R0lGODlh')) {
+              mimeType = 'image/gif';
+            }
+            
+            // Extraire la partie base64 si nécessaire
+            if (base64Data.includes('base64,')) {
+              base64Data = base64Data.split('base64,')[1];
             }
             
             // Convertir la chaîne base64 en Blob
@@ -280,9 +354,11 @@ export const uploadImage = async (
             const byteArray = new Uint8Array(byteNumbers);
             const blob = new Blob([byteArray], { type: mimeType });
             
-            // Créer un nouveau File à partir du Blob
-            fileToUpload = new File([blob], file.name, { type: mimeType });
+            // Créer un nouveau File à partir du Blob en conservant le nom du fichier original
+            fileToUpload = new File([blob], originalFileName, { type: mimeType });
             contentType = mimeType;
+            
+            console.log(`Fichier converti de JSON à ${mimeType} avec nom ${originalFileName}`);
           }
         } catch (parseError) {
           console.warn("Erreur lors de la tentative de parse JSON:", parseError);
@@ -355,6 +431,26 @@ export const detectFileExtension = (file: File | string): string => {
     const parts = file.name.split('.');
     return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
   }
+};
+
+export const detectMimeTypeFromExtension = (fileName: string): string => {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  
+  const mimeTypes: Record<string, string> = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+    'pdf': 'application/pdf',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  };
+  
+  return ext && mimeTypes[ext] ? mimeTypes[ext] : 'application/octet-stream';
 };
 
 export const detectMimeTypeFromSignature = async (file: File): Promise<string> => {
