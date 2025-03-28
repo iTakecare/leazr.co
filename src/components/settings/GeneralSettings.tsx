@@ -75,7 +75,6 @@ const GeneralSettings = () => {
     },
   });
   
-  // Vérifier l'authentification de l'utilisateur
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -93,14 +92,12 @@ const GeneralSettings = () => {
     };
   }, []);
   
-  // Charger les paramètres lorsque l'utilisateur est authentifié ou à l'initialisation
   useEffect(() => {
     if (authStatus !== 'loading') {
       loadSettings();
     }
   }, [authStatus]);
   
-  // Fonction pour charger les paramètres depuis la base de données
   const loadSettings = async () => {
     setIsLoading(true);
     setError(null);
@@ -116,7 +113,6 @@ const GeneralSettings = () => {
         console.log('Bucket site-settings vérifié ou créé avec succès');
       }
       
-      // Récupération des paramètres depuis la base de données
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
@@ -124,11 +120,9 @@ const GeneralSettings = () => {
         .single();
       
       if (error) {
-        // Si aucun paramètre n'existe, créer un paramètre par défaut
         if (error.code === 'PGRST116') {
           console.log("Aucun paramètre trouvé, création avec les valeurs par défaut");
           
-          // Créer un paramètre par défaut
           const defaultSettings = {
             id: 1,
             site_name: "iTakecare",
@@ -149,7 +143,6 @@ const GeneralSettings = () => {
             setError("Impossible de créer les paramètres par défaut");
             toast.error("Erreur lors de la création des paramètres par défaut");
           } else {
-            // Récupérer à nouveau après l'insertion
             const { data: newData, error: fetchError } = await supabase
               .from('site_settings')
               .select('*')
@@ -219,18 +212,15 @@ const GeneralSettings = () => {
     setIsSaving(true);
     
     try {
-      // Requête pour compter les enregistrements et obtenir le premier ID si existe
       const { data: countData, error: countError } = await supabase
         .from('site_settings')
         .select('id')
         .limit(1)
         .single();
       
-      // Utiliser l'ID existant ou 1 par défaut
       const effectiveId = countData?.id || 1;
       setSettingsId(effectiveId);
       
-      // Préparer les données à sauvegarder
       const settingsData = {
         id: effectiveId,
         site_name: values.siteName,
@@ -244,7 +234,6 @@ const GeneralSettings = () => {
       
       console.log("Sauvegarde des paramètres avec ID:", effectiveId);
       
-      // Utiliser upsert pour insérer ou mettre à jour
       const { error } = await supabase
         .from('site_settings')
         .upsert(settingsData);
@@ -286,21 +275,12 @@ const GeneralSettings = () => {
       setIsUploading(true);
       toast.info("Préparation de l'upload du logo...");
       
-      // Utiliser uploadImage du imageService qui gère correctement le type MIME
-      const extension = detectFileExtension(file);
-      const timestamp = Date.now();
-      const fileName = `site-logo-${timestamp}.${extension}`;
+      const fileName = `site-logo-${Date.now()}.${detectFileExtension(file)}`;
       
-      // Détecter le type MIME correct avec le service imageService
       const detectedMimeType = await detectMimeTypeFromSignature(file);
       console.log(`Type MIME détecté: ${detectedMimeType || 'non détecté, utilisation du type par défaut'}`);
       
-      const result = await uploadImage(
-        file,
-        fileName,
-        'site-settings',
-        true
-      );
+      const result = await uploadImage(file, 'site-settings', fileName);
       
       if (!result || !result.url) {
         throw new Error("Échec de l'upload de l'image");
@@ -379,7 +359,6 @@ const GeneralSettings = () => {
                 
                 <div className="flex flex-col space-y-4 bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
                   <div className="flex items-center gap-4">
-                    {/* Zone de preview du logo plus compacte */}
                     <div className="relative">
                       <Avatar className="h-20 w-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
                         {isUploading && (
@@ -401,7 +380,6 @@ const GeneralSettings = () => {
                       </Avatar>
                     </div>
                     
-                    {/* Contrôles d'upload et aperçu */}
                     <div className="flex-1 flex flex-col justify-between gap-2">
                       <div>
                         <FormLabel htmlFor="logo-upload" className="font-medium mb-1 block">Logo du site</FormLabel>

@@ -59,8 +59,20 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
   }
 };
 
-// Adding missing functions needed by other components
-export const uploadImage = async (file: File, bucket: string, folder: string = '') => {
+/**
+ * Upload an image to a Supabase bucket
+ * @param file The file to upload
+ * @param bucket The bucket name
+ * @param folder Optional folder path inside the bucket
+ * @param upsert Whether to overwrite existing files with the same name
+ * @returns Object containing the uploaded file URL
+ */
+export const uploadImage = async (
+  file: File,
+  bucket: string,
+  folder: string = '',
+  upsert: boolean = true
+): Promise<{ url: string }> => {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
     
@@ -71,7 +83,9 @@ export const uploadImage = async (file: File, bucket: string, folder: string = '
     
     const { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(filePath, file);
+      .upload(filePath, file, {
+        upsert: upsert
+      });
     
     if (uploadError) {
       console.error('Error uploading image:', uploadError);
@@ -83,7 +97,7 @@ export const uploadImage = async (file: File, bucket: string, folder: string = '
       .from(bucket)
       .getPublicUrl(filePath);
     
-    return publicURL.publicUrl;
+    return { url: publicURL.publicUrl };
   } catch (error) {
     console.error('Error in uploadImage:', error);
     throw error;

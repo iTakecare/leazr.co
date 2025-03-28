@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -82,20 +81,13 @@ const AvatarUploader = () => {
       }
       
       // Utiliser uploadImage du imageService comme pour le logo du site
-      const extension = detectFileExtension(file);
-      const timestamp = Date.now();
-      const fileName = `${user.id}/avatar-${timestamp}.${extension}`;
+      const fileName = `${user.id}/avatar-${Date.now()}.${detectFileExtension(file.name)}`;
       
       // Détecter le type MIME correct avec le service imageService
       const detectedMimeType = await detectMimeTypeFromSignature(file);
       console.log(`Type MIME détecté pour l'avatar: ${detectedMimeType || 'non détecté, utilisation du type par défaut'}`);
       
-      const result = await uploadImage(
-        file,
-        fileName,
-        'avatars',
-        true
-      );
+      const result = await uploadImage(file, 'avatars', fileName);
       
       if (!result || !result.url) {
         throw new Error("Échec de l'upload de l'image");
