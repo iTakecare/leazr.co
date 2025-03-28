@@ -351,7 +351,7 @@ const ProductEditPage = () => {
             contentType = `image/${fileExt}`;
         }
         
-        console.log(`Uploading file: ${fileName} with type: ${contentType}`);
+        console.log(`Uploading file: ${fileName} with forced type: ${contentType}`);
         
         try {
           const fileBuffer = await file.arrayBuffer();
@@ -368,7 +368,7 @@ const ProductEditPage = () => {
           
           if (error) {
             console.error("Error uploading image:", error);
-            toast.error(`Erreur lors du téléchargement: ${error.message}`);
+            toast.error(`Erreur lors du tél��chargement: ${error.message}`);
           }
         } catch (fileError) {
           console.error("Error processing file:", fileError);
@@ -456,7 +456,7 @@ const ProductEditPage = () => {
     
     try {
       const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}t=${new Date().getTime()}`;
+      return `${url}${separator}t=${new Date().getTime()}&contentType=image`;
     } catch (e) {
       return url;
     }

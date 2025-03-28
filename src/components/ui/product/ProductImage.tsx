@@ -57,14 +57,14 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
-    console.error(`Failed to load image: ${imageUrl}`);
+    console.error(`Failed to load image (content type issue): ${imageUrl}`);
   };
   
   // Add cache-busting parameter to avoid loading cached incorrect content type
   const addCacheBuster = (url: string): string => {
     if (!url || url === '/placeholder.svg') return url;
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${Date.now()}`;
+    return `${url}${separator}t=${Date.now()}&contentType=image`;
   };
   
   return (
