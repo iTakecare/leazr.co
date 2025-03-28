@@ -41,6 +41,21 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
 };
 
 /**
+ * Détecte l'extension de fichier à partir du nom du fichier
+ */
+export const detectFileExtension = (fileName: string): string => {
+  const parts = fileName.split('.');
+  return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
+};
+
+/**
+ * Détecte le type MIME à partir de la signature du fichier
+ */
+export const detectMimeTypeFromSignature = (file: File): string => {
+  return file.type || 'application/octet-stream';
+};
+
+/**
  * Upload une image dans un bucket
  */
 export const uploadImage = async (

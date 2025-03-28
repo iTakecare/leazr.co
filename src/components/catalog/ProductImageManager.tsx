@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { uploadImage, listFiles, deleteFile, ensureBucket } from "@/services/fileUploadService";
 import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductImageManagerProps {
   productId: string;
@@ -22,7 +23,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const [images, setImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const BUCKET_NAME = "catalog";
+  const BUCKET_NAME = "product-images";
 
   useEffect(() => {
     loadImages();
