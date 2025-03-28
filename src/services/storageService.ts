@@ -9,8 +9,6 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
   try {
     console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
     
-    const supabase = getSupabaseClient();
-    
     // Vérifier si le bucket existe déjà
     const { data: existingBucket, error: bucketError } = await supabase
       .storage
@@ -58,9 +56,17 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
           policy_type: 'SELECT'
         });
         
-        console.log(`Politique de lecture publique créée pour ${bucketName}`);
+        // Ajouter une politique pour l'écriture (INSERT)
+        await supabase.rpc('create_storage_policy', {
+          bucket_name: bucketName,
+          policy_name: `${bucketName}_public_insert`,
+          definition: 'TRUE',
+          policy_type: 'INSERT'
+        });
+        
+        console.log(`Politiques d'accès créées pour ${bucketName}`);
       } catch (policyError) {
-        console.warn(`Erreur lors de la création de la politique de lecture (non bloquant):`, policyError);
+        console.warn(`Erreur lors de la création des politiques d'accès (non bloquant):`, policyError);
       }
       
       return true;
@@ -147,4 +153,3 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
     return null;
   }
 }
-

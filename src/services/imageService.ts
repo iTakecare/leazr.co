@@ -1,32 +1,22 @@
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
+import { supabase } from "@/integrations/supabase/client";
+import { ensureStorageBucket } from "./storageService";
+import { toast } from "sonner";
 
 export const uploadProductImage = async (file: File, productId: string, isMainImage = false) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
+    console.log(`Début du téléchargement d'image pour le produit ${productId} (image principale: ${isMainImage})`);
     
     // Vérifier d'abord si le bucket existe
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+    const bucketName = 'product-images';
     
-    if (bucketError) {
-      console.error('Erreur lors de la vérification des buckets:', bucketError);
-      throw new Error('Erreur lors de la vérification des buckets');
-    }
-    
-    const bucketExists = buckets.some(bucket => bucket.name === 'product-images');
-    
-    if (!bucketExists) {
-      console.log('Le bucket product-images n\'existe pas, création en cours...');
-      const { error: createError } = await supabase.storage.createBucket('product-images', {
-        public: true
-      });
-      
-      if (createError) {
-        console.error('Erreur lors de la création du bucket:', createError);
-        throw new Error('Impossible de créer le bucket pour les images');
-      }
-      console.log('Bucket product-images créé avec succès');
+    const isBucketReady = await ensureStorageBucket(bucketName);
+    if (!isBucketReady) {
+      console.error(`Le bucket ${bucketName} n'existe pas ou n'a pas pu être créé`);
+      toast.error("Erreur de préparation du stockage des images");
+      throw new Error(`Impossible de créer ou vérifier le bucket ${bucketName}`);
     }
     
     // Créer la structure de dossier basée sur l'ID du produit
@@ -37,28 +27,36 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     const fileName = `${isMainImage ? 'main' : Date.now().toString()}.${fileExt}`;
     const filePath = `${productFolder}/${fileName}`;
     
-    console.log(`Téléchargement de l'image vers: ${filePath} dans le bucket product-images`);
+    console.log(`Téléchargement de l'image vers: ${filePath} dans le bucket ${bucketName}`);
     
     // Vérifier si le fichier existe déjà
-    const { data: existingFiles } = await supabase.storage
-      .from('product-images')
-      .list(productFolder);
-    
-    // Si c'est l'image principale et qu'elle existe déjà, la supprimer
-    if (isMainImage && existingFiles && existingFiles.some(f => f.name.startsWith('main.'))) {
-      const mainFile = existingFiles.find(f => f.name.startsWith('main.'));
-      if (mainFile) {
-        console.log(`Suppression de l'ancienne image principale: ${productFolder}/${mainFile.name}`);
-        await supabase.storage
-          .from('product-images')
-          .remove([`${productFolder}/${mainFile.name}`]);
+    try {
+      const { data: existingFiles } = await supabase.storage
+        .from(bucketName)
+        .list(productFolder);
+      
+      // Si c'est l'image principale et qu'elle existe déjà, la supprimer
+      if (isMainImage && existingFiles && existingFiles.some(f => f.name.startsWith('main.'))) {
+        const mainFile = existingFiles.find(f => f.name.startsWith('main.'));
+        if (mainFile) {
+          console.log(`Suppression de l'ancienne image principale: ${productFolder}/${mainFile.name}`);
+          await supabase.storage
+            .from(bucketName)
+            .remove([`${productFolder}/${mainFile.name}`]);
+        }
       }
+    } catch (listError) {
+      console.warn(`Erreur lors de la vérification des fichiers existants, on continue: ${listError}`);
     }
     
     // Uploader le fichier
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, file, { upsert: true });
+    console.log(`Upload du fichier ${file.name} (type: ${file.type}, taille: ${file.size} bytes)`);
+    const { error: uploadError, data: uploadData } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, { 
+        contentType: file.type || 'application/octet-stream',
+        upsert: true 
+      });
     
     if (uploadError) {
       console.error('Erreur lors du téléchargement de l\'image:', uploadError);
@@ -67,7 +65,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     
     // Get public URL
     const { data: publicURL } = supabase.storage
-      .from('product-images')
+      .from(bucketName)
       .getPublicUrl(filePath);
     
     console.log(`Image téléchargée avec succès: ${publicURL.publicUrl}`);
@@ -100,6 +98,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     return publicURL.publicUrl;
   } catch (error) {
     console.error('Erreur dans uploadProductImage:', error);
+    toast.error(`Erreur lors du téléchargement de l'image: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     throw error;
   }
 };

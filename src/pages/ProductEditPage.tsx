@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -109,12 +110,17 @@ const ProductEditPage = () => {
   useEffect(() => {
     const initStorageBucket = async () => {
       try {
+        console.log("Vérification/initialisation du bucket product-images");
         const bucketExists = await ensureStorageBucket("product-images");
         if (!bucketExists) {
-          console.warn("Le bucket product-images n'a pas pu être créé ou vérifié");
+          console.error("Le bucket product-images n'a pas pu être créé ou vérifié");
+          toast.error("Erreur lors de la préparation du stockage des images");
+        } else {
+          console.log("Bucket product-images vérifié avec succès");
         }
       } catch (error) {
         console.error("Erreur lors de l'initialisation du bucket product-images", error);
+        toast.error("Erreur lors de la préparation du stockage");
       }
     };
     
@@ -231,8 +237,13 @@ const ProductEditPage = () => {
       setIsUploading(true);
       toast.info(`Téléchargement de l'image ${index + 1}...`);
       
-      await ensureStorageBucket("product-images");
+      // Ensure storage bucket exists before uploading
+      const bucketExists = await ensureStorageBucket("product-images");
+      if (!bucketExists) {
+        throw new Error("Le bucket de stockage n'a pas pu être préparé");
+      }
       
+      console.log(`Début de l'upload de l'image ${index + 1} pour le produit ${id}`);
       const imageUrl = await uploadProductImage(file, id, index === 0);
       
       setImagePreviews(prev => {
