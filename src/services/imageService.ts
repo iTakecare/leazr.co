@@ -1,4 +1,3 @@
-
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -7,20 +6,62 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
   try {
     const { supabase } = await import('@/integrations/supabase/client');
     
+    // Vérifier d'abord si le bucket existe
+    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+    
+    if (bucketError) {
+      console.error('Erreur lors de la vérification des buckets:', bucketError);
+      throw new Error('Erreur lors de la vérification des buckets');
+    }
+    
+    const bucketExists = buckets.some(bucket => bucket.name === 'product-images');
+    
+    if (!bucketExists) {
+      console.log('Le bucket product-images n\'existe pas, création en cours...');
+      const { error: createError } = await supabase.storage.createBucket('product-images', {
+        public: true
+      });
+      
+      if (createError) {
+        console.error('Erreur lors de la création du bucket:', createError);
+        throw new Error('Impossible de créer le bucket pour les images');
+      }
+      console.log('Bucket product-images créé avec succès');
+    }
+    
+    // Créer la structure de dossier basée sur l'ID du produit
+    const productFolder = `${productId}`;
+    
     // Get file extension
     const fileExt = file.name.split('.').pop();
-    const fileName = `${productId}${isMainImage ? '-main' : `-${Date.now()}`}.${fileExt}`;
-    const filePath = `product-images/${fileName}`;
+    const fileName = `${isMainImage ? 'main' : Date.now().toString()}.${fileExt}`;
+    const filePath = `${productFolder}/${fileName}`;
     
-    // Check if bucket exists - we know it already exists from your information
-    console.log(`Uploading image to path: ${filePath} in product-images bucket`);
+    console.log(`Téléchargement de l'image vers: ${filePath} dans le bucket product-images`);
     
+    // Vérifier si le fichier existe déjà
+    const { data: existingFiles } = await supabase.storage
+      .from('product-images')
+      .list(productFolder);
+    
+    // Si c'est l'image principale et qu'elle existe déjà, la supprimer
+    if (isMainImage && existingFiles && existingFiles.some(f => f.name.startsWith('main.'))) {
+      const mainFile = existingFiles.find(f => f.name.startsWith('main.'));
+      if (mainFile) {
+        console.log(`Suppression de l'ancienne image principale: ${productFolder}/${mainFile.name}`);
+        await supabase.storage
+          .from('product-images')
+          .remove([`${productFolder}/${mainFile.name}`]);
+      }
+    }
+    
+    // Uploader le fichier
     const { error: uploadError } = await supabase.storage
       .from('product-images')
-      .upload(filePath, file);
+      .upload(filePath, file, { upsert: true });
     
     if (uploadError) {
-      console.error('Error uploading image:', uploadError);
+      console.error('Erreur lors du téléchargement de l\'image:', uploadError);
       throw new Error(uploadError.message);
     }
     
@@ -29,11 +70,14 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       .from('product-images')
       .getPublicUrl(filePath);
     
+    console.log(`Image téléchargée avec succès: ${publicURL.publicUrl}`);
+    
     // Update product with image URL
     if (isMainImage) {
       await supabase.from('products').update({
         image_url: publicURL.publicUrl
       }).eq('id', productId);
+      console.log(`Image principale mise à jour pour le produit ${productId}`);
     } else {
       // Get current image_urls array
       const { data: product } = await supabase.from('products')
@@ -50,25 +94,18 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       await supabase.from('products').update({
         image_urls: [...imageUrls, publicURL.publicUrl]
       }).eq('id', productId);
+      console.log(`Image secondaire ajoutée pour le produit ${productId}`);
     }
     
     return publicURL.publicUrl;
   } catch (error) {
-    console.error('Error in uploadProductImage:', error);
+    console.error('Erreur dans uploadProductImage:', error);
     throw error;
   }
 };
 
-/**
- * Upload an image to a Supabase bucket
- * @param file The file to upload
- * @param bucket The bucket name
- * @param folder Optional folder path inside the bucket
- * @param upsert Whether to overwrite existing files with the same name
- * @returns Object containing the uploaded file URL
- */
 export const uploadImage = async (
-  file: File,
+  file: File | string,
   bucket: string,
   folder: string = '',
   upsert: boolean = true
@@ -76,6 +113,16 @@ export const uploadImage = async (
   try {
     const { supabase } = await import('@/integrations/supabase/client');
     
+    // Si file est une chaîne, c'est déjà une URL ou un chemin de fichier
+    if (typeof file === 'string') {
+      if (file.startsWith('http')) {
+        return { url: file }; // C'est déjà une URL, on la retourne simplement
+      }
+      // Sinon, on pourrait implémenter un téléchargement depuis le chemin, mais pas nécessaire pour l'instant
+      throw new Error('Le téléchargement depuis un chemin de fichier n\'est pas supporté');
+    }
+    
+    // C'est un objet File, on procède normalement
     // Get file extension
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
@@ -88,7 +135,7 @@ export const uploadImage = async (
       });
     
     if (uploadError) {
-      console.error('Error uploading image:', uploadError);
+      console.error('Erreur lors du téléchargement de l\'image:', uploadError);
       throw new Error(uploadError.message);
     }
     
@@ -99,18 +146,18 @@ export const uploadImage = async (
     
     return { url: publicURL.publicUrl };
   } catch (error) {
-    console.error('Error in uploadImage:', error);
+    console.error('Erreur dans uploadImage:', error);
     throw error;
   }
 };
 
 export const detectFileExtension = (file: File | string): string => {
   if (typeof file === 'string') {
-    // If file is a string (filename)
+    // Si file est une chaîne (filename)
     const parts = file.split('.');
     return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
   } else {
-    // If file is a File object
+    // Si file est un File object
     const parts = file.name.split('.');
     return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
   }

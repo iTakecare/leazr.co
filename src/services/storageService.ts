@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 
 /**
@@ -10,55 +9,60 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
   try {
     console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
     
+    const supabase = getSupabaseClient();
+    
     // Vérifier si le bucket existe déjà
     const { data: existingBucket, error: bucketError } = await supabase
       .storage
-      .getBucket(bucketName);
+      .listBuckets();
     
-    if (existingBucket) {
+    if (bucketError) {
+      console.error(`Erreur lors de la vérification des buckets:`, bucketError);
+      return false;
+    }
+    
+    const bucketExists = existingBucket?.some(bucket => bucket.name === bucketName);
+    
+    if (bucketExists) {
       console.log(`Le bucket ${bucketName} existe déjà`);
       return true;
     }
     
-    if (bucketError && bucketError.message !== 'Bucket not found') {
-      console.error(`Erreur lors de la vérification du bucket ${bucketName}:`, bucketError);
-      return false;
-    }
-    
-    // Le bucket n'existe pas, essayons de le créer avec l'API Edge Function
+    // Le bucket n'existe pas, essayons de le créer
     try {
-      console.log(`Tentative de création du bucket ${bucketName} via Edge Function`);
-      const { data: rpcData, error: rpcError } = await supabase.functions.invoke('create-storage-bucket', {
-        body: { bucket_name: bucketName }
-      });
+      const { error: createError } = await supabase
+        .storage
+        .createBucket(bucketName, {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
       
-      if (rpcError) {
-        console.log(`La fonction Edge Function a échoué: ${rpcError.message}`);
-        
-        // Si nous avons un token de service administrateur, essayons de créer directement
-        console.log(`Tentative de création avec le client admin`);
-        const { data: createData, error: createError } = await adminSupabase
-          .storage
-          .createBucket(bucketName, {
-            public: true,
-            fileSizeLimit: 52428800, // 50MB
-          });
-        
-        if (createError) {
-          if (createError.message === 'The resource already exists') {
-            console.log(`Le bucket ${bucketName} existe déjà (détecté via adminSupabase)`);
-            return true;
-          }
-          
-          console.error(`Erreur lors de la création directe du bucket ${bucketName}:`, createError);
-          return false;
+      if (createError) {
+        if (createError.message === 'The resource already exists') {
+          console.log(`Le bucket ${bucketName} existe déjà (détecté via message d'erreur)`);
+          return true;
         }
         
-        console.log(`Bucket ${bucketName} créé avec succès via adminSupabase`);
-        return true;
+        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+        return false;
       }
       
-      console.log(`Bucket ${bucketName} créé avec succès via RPC`);
+      console.log(`Bucket ${bucketName} créé avec succès`);
+      
+      // Créer une politique d'accès public en lecture
+      try {
+        await supabase.rpc('create_storage_policy', {
+          bucket_name: bucketName,
+          policy_name: `${bucketName}_public_select`,
+          definition: 'TRUE',
+          policy_type: 'SELECT'
+        });
+        
+        console.log(`Politique de lecture publique créée pour ${bucketName}`);
+      } catch (policyError) {
+        console.warn(`Erreur lors de la création de la politique de lecture (non bloquant):`, policyError);
+      }
+      
       return true;
     } catch (error) {
       console.error(`Erreur lors de la création du bucket ${bucketName}:`, error);
@@ -143,3 +147,4 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
     return null;
   }
 }
+

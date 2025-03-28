@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProductById, updateProduct, deleteProduct } from "@/services/catalogService";
 import { uploadProductImage } from "@/services/imageService";
+import { ensureStorageBucket } from "@/services/storageService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -104,6 +105,21 @@ const ProductEditPage = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const initStorageBucket = async () => {
+      try {
+        const bucketExists = await ensureStorageBucket("product-images");
+        if (!bucketExists) {
+          console.warn("Le bucket product-images n'a pas pu être créé ou vérifié");
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'initialisation du bucket product-images", error);
+      }
+    };
+    
+    initStorageBucket();
+  }, []);
   
   const { data: product, isLoading, isError, error } = useQuery({
     queryKey: ["product", id],
@@ -213,6 +229,9 @@ const ProductEditPage = () => {
     
     try {
       setIsUploading(true);
+      toast.info(`Téléchargement de l'image ${index + 1}...`);
+      
+      await ensureStorageBucket("product-images");
       
       const imageUrl = await uploadProductImage(file, id, index === 0);
       
@@ -230,7 +249,8 @@ const ProductEditPage = () => {
       
       return imageUrl;
     } catch (error: any) {
-      toast.error(`Erreur lors du téléchargement: ${error.message}`);
+      console.error("Erreur détaillée lors du téléchargement:", error);
+      toast.error(`Erreur lors du téléchargement: ${error.message || "Erreur inconnue"}`);
       return null;
     } finally {
       setIsUploading(false);
