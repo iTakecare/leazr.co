@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProductById, updateProduct, deleteProduct } from "@/services/catalogService";
-import { uploadProductImage } from "@/services/imageService";
+import { uploadProductImage, fetchProductImages } from "@/services/imageService";
 import { ensureStorageBucket } from "@/services/storageService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,28 +23,6 @@ import {
   Plus,
   Upload
 } from "lucide-react";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 
 const productCategories = [
   "laptop",
