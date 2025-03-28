@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Product } from "@/types/catalog";
 import { toast } from "sonner";
 
@@ -12,63 +12,74 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
   const [retryCount, setRetryCount] = useState(0);
+  const loadingRef = useRef(false);
   
   useEffect(() => {
-    // Reset states when product changes
+    // Réinitialiser les états quand le produit change
     setIsLoading(true);
     setHasError(false);
     
-    // Get the best image URL
+    // Éviter les appels en double
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    
+    // Obtenir la meilleure URL d'image
     if (product) {
       const url = getBestImageUrl();
       setImageUrl(url);
     }
+    
+    return () => {
+      loadingRef.current = false;
+    };
   }, [product, retryCount]);
   
   const getBestImageUrl = (): string => {
     if (!product) return "/placeholder.svg";
     
-    // Simple validation function
+    // Fonction de validation simple
     const isValidUrl = (url: string | null | undefined): boolean => {
       if (!url || typeof url !== 'string' || url.trim() === '') return false;
       if (url === '/placeholder.svg') return false;
       try {
-        // Basic URL validation
+        // Validation URL de base
         new URL(url);
         return true;
       } catch (e) {
-        console.warn(`Invalid URL format: ${url}`);
+        console.warn(`Format d'URL invalide: ${url}`);
         return false;
       }
     };
     
-    // First check direct image_url
+    // D'abord vérifier image_url directement
     if (isValidUrl(product.image_url as string)) {
       return product.image_url as string;
     }
     
-    // Then check image_urls array
+    // Ensuite vérifier le tableau image_urls
     if (Array.isArray(product.image_urls) && product.image_urls.length > 0) {
       const validUrl = product.image_urls.find(url => isValidUrl(url));
       if (validUrl) return validUrl;
     }
     
-    // Fall back to placeholder
+    // Revenir à l'image placeholder
     return "/placeholder.svg";
   };
   
-  // Handle image loading
+  // Gérer le chargement de l'image
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
+    loadingRef.current = false;
   };
   
   const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
-    console.error(`Failed to load image: ${imageUrl}`);
+    loadingRef.current = false;
+    console.error(`Échec de chargement d'image: ${imageUrl}`);
     
-    // Retry with a different cache buster if there's an error
+    // Réessayer avec un paramètre différent pour contourner le cache si erreur
     if (retryCount < 2) {
       setTimeout(() => {
         setRetryCount(count => count + 1);
@@ -76,47 +87,47 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     }
   };
   
-  // Add cache-busting parameter to URL and force content type
+  // Ajouter un paramètre pour contourner le cache et forcer le type de contenu
   const imageUrlWithCacheBuster = () => {
     if (imageUrl === "/placeholder.svg") return imageUrl;
     
     try {
-      // Add cache buster and content type
+      // Ajouter un cache buster et le type de contenu
       const timestamp = Date.now();
       const separator = imageUrl.includes('?') ? '&' : '?';
       
-      // Detect image format from URL
+      // Détecter le format de l'image à partir de l'URL
       let contentType = 'image/jpeg';
       
-      // Check for WebP format (more specific checks first)
+      // Vérifier le format WebP (vérifications plus spécifiques d'abord)
       if (imageUrl.toLowerCase().endsWith('.webp')) {
         contentType = 'image/webp';
       } else if (imageUrl.toLowerCase().includes('/webp')) {
         contentType = 'image/webp';
       } 
-      // Check for PNG format
+      // Vérifier le format PNG
       else if (imageUrl.toLowerCase().endsWith('.png')) {
         contentType = 'image/png';
       } else if (imageUrl.toLowerCase().includes('/png')) {
         contentType = 'image/png';
       } 
-      // Check for GIF format
+      // Vérifier le format GIF
       else if (imageUrl.toLowerCase().endsWith('.gif')) {
         contentType = 'image/gif';
       } else if (imageUrl.toLowerCase().includes('/gif')) {
         contentType = 'image/gif';
       } 
-      // Check for SVG format
+      // Vérifier le format SVG
       else if (imageUrl.toLowerCase().endsWith('.svg')) {
         contentType = 'image/svg+xml';
       } else if (imageUrl.toLowerCase().includes('/svg')) {
         contentType = 'image/svg+xml';
       }
       
-      // Add the content type to the URL and a retry counter to force cache busting
+      // Ajouter le type de contenu à l'URL et un compteur de réessais pour forcer le contournement du cache
       return `${imageUrl}${separator}t=${timestamp}&r=${retryCount}&contentType=${encodeURIComponent(contentType)}`;
     } catch (e) {
-      console.error("Error formatting image URL:", e);
+      console.error("Erreur de formatage de l'URL de l'image:", e);
       return imageUrl;
     }
   };
@@ -130,7 +141,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       )}
       <img 
         src={imageUrlWithCacheBuster()}
-        alt={product?.name || "Product"}
+        alt={product?.name || "Produit"}
         className="object-contain h-24 w-24"
         onLoad={handleImageLoad}
         onError={handleImageError}
