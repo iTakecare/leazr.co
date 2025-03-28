@@ -1,4 +1,3 @@
-
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -449,39 +448,85 @@ export const fetchProductImages = async (productId: string): Promise<{mainImage:
       console.warn(`Erreur lors de la vérification des fichiers dans le stockage: ${storageError.message}`);
     }
     
-    // Préparer les données de retour
-    const mainImage = product?.image_url || null;
-    let additionalImages = (product?.image_urls || []).filter(url => 
-      url && typeof url === 'string' && url.trim() !== '' && url !== mainImage
-    );
+    // Créer un ensemble de toutes les URLs trouvées
+    const allImageUrls = new Set<string>();
     
-    // Réconcilier avec les fichiers physiquement présents si nécessaire
-    if (storageFiles && storageFiles.length > 0) {
-      // Créer les URLs pour tous les fichiers du stockage
-      const bucketUrl = supabase.storage.from('product-images').getPublicUrl('').data.publicUrl;
-      const storageUrls = storageFiles.map(file => 
-        `${bucketUrl}/${productId}/${file.name}`
-      );
-      
-      // Ajouter les URLs qui ne sont pas déjà dans la liste
-      for (const url of storageUrls) {
-        if (url !== mainImage && !additionalImages.includes(url)) {
-          additionalImages.push(url);
+    // Ajouter l'image principale si elle existe
+    const mainImage = product?.image_url || null;
+    if (mainImage && typeof mainImage === 'string' && mainImage.trim() !== '') {
+      allImageUrls.add(mainImage);
+    }
+    
+    // Ajouter les images supplémentaires de la base de données
+    if (product?.image_urls && Array.isArray(product.image_urls)) {
+      product.image_urls.forEach(url => {
+        if (url && typeof url === 'string' && url.trim() !== '') {
+          allImageUrls.add(url);
         }
+      });
+    }
+    
+    // Réconcilier avec les fichiers physiquement présents
+    if (storageFiles && storageFiles.length > 0) {
+      const bucketUrl = supabase.storage.from('product-images').getPublicUrl('').data.publicUrl;
+      
+      // Générer les URLs pour tous les fichiers du stockage
+      storageFiles.forEach(file => {
+        const url = `${bucketUrl}/${productId}/${file.name}`;
+        allImageUrls.add(url);
+      });
+    }
+    
+    // Convertir l'ensemble en tableau
+    const imagesList = Array.from(allImageUrls);
+    
+    // S'il n'y a pas d'image principale définie mais que nous avons des images, définir la première comme principale
+    let finalMainImage = mainImage;
+    let finalAdditionalImages: string[] = [];
+    
+    if (imagesList.length > 0) {
+      if (!finalMainImage) {
+        finalMainImage = imagesList[0];
+        
+        // Mettre à jour la base de données avec cette image principale
+        try {
+          await supabase.from('products').update({
+            image_url: finalMainImage
+          }).eq('id', productId);
+          console.log(`Image principale automatiquement définie pour le produit ${productId}: ${finalMainImage}`);
+        } catch (updateError) {
+          console.warn(`Impossible de mettre à jour l'image principale dans la base de données:`, updateError);
+        }
+        
+        // Filtrer cette image des images supplémentaires
+        finalAdditionalImages = imagesList.filter(url => url !== finalMainImage);
+      } else {
+        // Filtrer l'image principale des images supplémentaires
+        finalAdditionalImages = imagesList.filter(url => url !== finalMainImage);
       }
       
-      // Vérifier si l'image principale est présente physiquement, sinon la remplacer
-      if (mainImage && !storageUrls.includes(mainImage) && additionalImages.length > 0) {
-        // Mise à jour du produit avec la première image additionnelle comme principale
-        await supabase.from('products').update({
-          image_url: additionalImages[0]
-        }).eq('id', productId);
+      // Mettre à jour les image_urls dans la base de données si nécessaire
+      if (!arraysEqual(product?.image_urls || [], finalAdditionalImages)) {
+        try {
+          await supabase.from('products').update({
+            image_urls: finalAdditionalImages
+          }).eq('id', productId);
+          console.log(`Images supplémentaires mises à jour pour le produit ${productId}`);
+        } catch (updateError) {
+          console.warn(`Impossible de mettre à jour les images supplémentaires dans la base de données:`, updateError);
+        }
       }
     }
     
+    console.log(`Images récupérées pour le produit ${productId}:`, {
+      mainImage: finalMainImage,
+      additionalImages: finalAdditionalImages,
+      totalCount: 1 + finalAdditionalImages.length
+    });
+    
     return {
-      mainImage,
-      additionalImages
+      mainImage: finalMainImage,
+      additionalImages: finalAdditionalImages
     };
   } catch (error) {
     console.error('Erreur dans fetchProductImages:', error);
@@ -489,6 +534,18 @@ export const fetchProductImages = async (productId: string): Promise<{mainImage:
     throw error;
   }
 };
+
+// Fonction utilitaire pour comparer deux tableaux
+function arraysEqual(arr1: any[], arr2: any[]): boolean {
+  if (arr1.length !== arr2.length) return false;
+  
+  const set1 = new Set(arr1);
+  for (const item of arr2) {
+    if (!set1.has(item)) return false;
+  }
+  
+  return true;
+}
 
 // Fonction pour télécharger une image dans un bucket spécifique
 export const uploadImage = async (

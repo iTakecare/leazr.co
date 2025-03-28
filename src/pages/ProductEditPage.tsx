@@ -172,22 +172,31 @@ const ProductEditPage = () => {
         variation_attributes: product.variation_attributes || {}
       });
       
-      if (product.image_url && product.image_url.trim() !== '') {
-        setImagePreview(product.image_url);
-        setImagePreviews([product.image_url]);
-        
-        if (product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
-          const additionalImages = product.image_urls.filter(url => url !== product.image_url && url && url.trim() !== '');
-          if (additionalImages.length > 0) {
-            setImagePreviews(prev => [...prev, ...additionalImages].slice(0, 5));
+      const loadImages = async () => {
+        try {
+          if (id) {
+            const { mainImage, additionalImages } = await fetchProductImages(id);
+            
+            if (mainImage) {
+              setImagePreview(mainImage);
+              const allImages = [mainImage, ...additionalImages];
+              setImagePreviews(allImages.slice(0, 5));
+              console.log("Images chargées:", { mainImage, additionalImages, allImages });
+            } else {
+              setImagePreview(null);
+              setImagePreviews([]);
+              console.log("Aucune image trouvée pour ce produit");
+            }
           }
+        } catch (error) {
+          console.error("Erreur lors du chargement des images:", error);
+          toast.error("Impossible de charger les images du produit");
         }
-      } else {
-        setImagePreview(null);
-        setImagePreviews([]);
-      }
+      };
+      
+      loadImages();
     }
-  }, [product]);
+  }, [product, id]);
   
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Product>) => updateProduct(id || "", data),
@@ -236,7 +245,7 @@ const ProductEditPage = () => {
     const newFiles = Array.from(files).slice(0, 5 - imageFiles.length);
     if (newFiles.length === 0) return;
     
-    const updatedFiles = [...imageFiles, ...newFiles].slice(0, 5);
+    const updatedFiles = [...imageFiles, ...newFiles];
     setImageFiles(updatedFiles);
 
     newFiles.forEach(file => {
@@ -246,8 +255,7 @@ const ProductEditPage = () => {
       reader.onloadend = () => {
         setImagePreviews(prev => {
           const currentPreviews = Array.isArray(prev) ? prev : [];
-          const updated = [...currentPreviews, reader.result as string].slice(0, 5);
-          return updated;
+          return [...currentPreviews, reader.result as string];
         });
       };
       reader.readAsDataURL(file);
