@@ -119,7 +119,7 @@ const ProductEditPage = () => {
           console.log("Bucket product-images vérifié avec succès");
         }
       } catch (error) {
-        console.error("Erreur lors de l'initialisation du bucket product-images", error);
+        console.error("Erreur lors de l'initialisation du bucket product-images:", error);
         toast.error("Erreur lors de la préparation du stockage");
       }
     };
@@ -240,11 +240,17 @@ const ProductEditPage = () => {
       // Ensure storage bucket exists before uploading
       const bucketExists = await ensureStorageBucket("product-images");
       if (!bucketExists) {
+        toast.error("Impossible de créer le bucket pour les images");
         throw new Error("Le bucket de stockage n'a pas pu être préparé");
       }
       
       console.log(`Début de l'upload de l'image ${index + 1} pour le produit ${id}`);
       const imageUrl = await uploadProductImage(file, id, index === 0);
+      
+      if (!imageUrl) {
+        toast.error("Échec du téléchargement de l'image");
+        return null;
+      }
       
       setImagePreviews(prev => {
         const updated = [...prev];
