@@ -1,5 +1,5 @@
 
-import { supabase, adminSupabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
+import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
@@ -10,14 +10,6 @@ import { toast } from "sonner";
 export async function ensureStorageBucket(bucketName: string): Promise<boolean> {
   try {
     console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
-    
-    // Vérifier si l'application est en mode développement/démo
-    const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
-    
-    if (isDemoMode) {
-      console.log(`Mode démo détecté, simulation de bucket ${bucketName} disponible`);
-      return true; // En mode démo, on simule que le bucket existe toujours
-    }
     
     // 1. Vérifier si le bucket existe déjà avec l'API directe
     try {
@@ -77,13 +69,6 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
           return true;
         }
         
-        // Si nous sommes ici et en production, il s'agit probablement d'un problème d'autorisation
-        // En environnement de développement ou de démonstration, on peut simuler le succès
-        if (import.meta.env.DEV || isDemoMode) {
-          console.warn(`Environnement de développement/démo: simulation de bucket disponible malgré l'erreur`);
-          return true; // Simuler le succès en développement
-        }
-        
         console.error(`Échec de la création directe du bucket ${bucketName}: ${createError.message}`);
         return false;
       }
@@ -95,23 +80,11 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       
       return true;
     } catch (error) {
-      // En environnement de développement ou de démonstration, on peut simuler le succès
-      if (import.meta.env.DEV || isDemoMode) {
-        console.warn(`Environnement de développement/démo: simulation de bucket disponible malgré l'exception`);
-        return true; // Simuler le succès en développement
-      }
-      
       console.error(`Exception lors de la création directe du bucket ${bucketName}:`, error);
       return false;
     }
   } catch (error) {
     // Capture toutes les erreurs non traitées
-    // En environnement de développement ou de démonstration, on peut simuler le succès
-    if (import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true') {
-      console.warn(`Environnement de développement/démo: simulation de bucket disponible malgré l'erreur générale`);
-      return true; // Simuler le succès en développement
-    }
-    
     console.error(`Erreur générale dans ensureStorageBucket pour ${bucketName}:`, error);
     return false;
   }

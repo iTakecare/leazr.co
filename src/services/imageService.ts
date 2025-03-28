@@ -1,4 +1,3 @@
-
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -13,17 +12,10 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     // Vérifier d'abord si le bucket existe
     const bucketName = 'product-images';
     
-    // Vérifier si on est en mode démo/développement
-    const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.DEV;
+    // Vérifier le bucket
+    const isBucketReady = await ensureStorageBucket(bucketName);
     
-    let isBucketReady = true;
-    
-    if (!isDemoMode) {
-      // Vérifier le bucket uniquement en mode production
-      isBucketReady = await ensureStorageBucket(bucketName);
-    }
-    
-    if (!isBucketReady && !isDemoMode) {
+    if (!isBucketReady) {
       console.error(`Le bucket ${bucketName} n'existe pas ou n'a pas pu être créé`);
       toast.error("Erreur lors de la préparation du stockage des images");
       throw new Error(`Impossible de créer ou vérifier le bucket ${bucketName}`);
@@ -67,21 +59,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       // Non bloquant, on continue
     }
     
-    // En mode démo/développement, simuler le téléchargement
-    if (isDemoMode) {
-      console.log("Mode démo/développement détecté, simulation de téléchargement d'image");
-      
-      // Créer une URL temporaire pour la prévisualisation
-      const objectURL = URL.createObjectURL(file);
-      
-      // En mode démo, on retourne simplement l'URL de l'objet temporaire
-      // Cela permet de prévisualiser l'image sans réellement l'uploader
-      console.log("Image simulée avec URL temporaire:", objectURL);
-      
-      return objectURL;
-    }
-    
-    // Uploader le fichier (en mode production)
+    // Uploader le fichier
     console.log(`Upload du fichier ${file.name} (type: ${file.type}, taille: ${file.size} bytes)`);
     const { error: uploadError, data: uploadData } = await supabase.storage
       .from(bucketName)
