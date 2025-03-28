@@ -23,24 +23,36 @@ export const updateProductVariationAttributes = async (
       }
     }
     
-    // Using update with eq condition to ensure we get the correct record
-    const { data, error } = await supabase
+    // Using update without trying to return the updated record
+    // This avoids the "JSON object requested, multiple (or no) rows returned" error
+    const { error } = await supabase
       .from('products')
       .update({ variation_attributes: attributesToSave })
-      .eq('id', productId)
-      .select();
+      .eq('id', productId);
     
     if (error) {
       console.error('Error updating product variation attributes:', error);
       throw new Error(error.message);
     }
     
-    if (!data || data.length === 0) {
+    // Verify the update was successful by fetching the product
+    const { data: verificationData, error: verificationError } = await supabase
+      .from('products')
+      .select('id, variation_attributes')
+      .eq('id', productId)
+      .maybeSingle();
+    
+    if (verificationError) {
+      console.error('Error verifying product update:', verificationError);
+      throw new Error(verificationError.message);
+    }
+    
+    if (!verificationData) {
       console.error('No product found with ID:', productId);
       throw new Error(`Product with ID ${productId} not found`);
     }
     
-    console.log('Successfully updated product variation attributes:', data);
+    console.log('Successfully updated product variation attributes for ID:', productId);
   } catch (error) {
     console.error('Error in updateProductVariationAttributes:', error);
     throw error;
@@ -87,15 +99,14 @@ export const addVariantPrice = async (variantPrice: {
     const { data, error } = await supabase
       .from('product_variant_prices')
       .insert(variantPrice)
-      .select()
-      .single();
+      .select();
     
     if (error) {
       console.error('Error adding variant price:', error);
       throw new Error(error.message);
     }
     
-    return data;
+    return data && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error('Error in addVariantPrice:', error);
     throw error;
@@ -120,15 +131,14 @@ export const updateVariantPrice = async (
       .from('product_variant_prices')
       .update(updates)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
     
     if (error) {
       console.error('Error updating variant price:', error);
       throw new Error(error.message);
     }
     
-    return data;
+    return data && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error('Error in updateVariantPrice:', error);
     throw error;
