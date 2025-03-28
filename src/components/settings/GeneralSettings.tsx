@@ -61,7 +61,16 @@ const GeneralSettings = () => {
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [error, setError] = useState<string | null>(null);
   const [settingsId, setSettingsId] = useState<number>(1);
-  
+  const [formData, setFormData] = useState<GeneralSettingsFormValues>({
+    siteName: "iTakecare",
+    siteDescription: "Hub de gestion",
+    companyName: "",
+    companyAddress: "",
+    companyPhone: "",
+    companyEmail: "",
+    logoUrl: "",
+  });
+
   const form = useForm<GeneralSettingsFormValues>({
     resolver: zodResolver(generalSettingsSchema),
     defaultValues: {
@@ -315,7 +324,31 @@ const GeneralSettings = () => {
       setIsUploading(false);
     }
   };
-  
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    try {
+      setIsUploading(true);
+      
+      const file = e.target.files[0];
+      const result = await uploadImage(file, 'site-settings', 'logos');
+      
+      if (result && result.url) {
+        setFormData({
+          ...formData,
+          logo_url: result.url
+        });
+        toast.success("Logo téléchargé avec succès");
+      }
+    } catch (error: any) {
+      console.error("Error uploading logo:", error);
+      toast.error(`Erreur lors du téléchargement : ${error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   if (authStatus === 'loading') {
     return (
       <div className="flex items-center justify-center p-10">

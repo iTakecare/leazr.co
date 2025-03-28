@@ -13,13 +13,14 @@ import {
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs";
-import { Layers, Package, Tag, Edit, Trash2 } from "lucide-react";
+import { Layers, Package, Tag, Edit, Trash2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import VariantPriceManager from "./VariantPriceManager";
 import ProductSpecifications from "./ProductSpecifications";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
+import VariantAttributeSelector from "./VariantAttributeSelector";
 
 interface ProductVariantManagerProps {
   product: Product;
@@ -32,7 +33,7 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("prices");
+  const [activeTab, setActiveTab] = useState("attributes");
   
   // Format the attribute display for variant combinations
   const formatVariantAttributes = (attributes: Record<string, any>) => {
@@ -82,6 +83,9 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
         <CardContent>
           <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
+              <TabsTrigger value="attributes">
+                <Settings className="h-4 w-4 mr-2" /> Attributs
+              </TabsTrigger>
               <TabsTrigger value="prices">
                 <Tag className="h-4 w-4 mr-2" /> Prix des variantes
               </TabsTrigger>
@@ -92,6 +96,16 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
                 <Layers className="h-4 w-4 mr-2" /> Voir les variantes
               </TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="attributes">
+              <VariantAttributeSelector 
+                productId={product.id} 
+                initialAttributes={product.variation_attributes}
+                onAttributesUpdated={() => {
+                  queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+                }}
+              />
+            </TabsContent>
             
             <TabsContent value="prices">
               <VariantPriceManager 
@@ -201,7 +215,7 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
                   <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">Aucune variante disponible</h3>
                   <p className="text-muted-foreground max-w-md mx-auto">
-                    Ce produit n'a pas encore de variantes. Utilisez l'onglet "Prix des variantes" pour créer des configurations avec différents attributs et prix.
+                    Ce produit n'a pas encore de variantes. Utilisez l'onglet "Attributs" pour définir les caractéristiques variables, puis "Prix des variantes" pour créer des configurations avec différents attributs et prix.
                   </p>
                 </div>
               )}
