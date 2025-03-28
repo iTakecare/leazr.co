@@ -28,13 +28,17 @@ const PageImage: React.FC<PageImageProps> = ({
     // Direct URL
     if (typeof pageImage === 'string') {
       // Ajouter un timestamp pour éviter les problèmes de cache
-      return `${pageImage}?t=${new Date().getTime()}`;
+      const timestamp = new Date().getTime();
+      const separator = pageImage.includes('?') ? '&' : '?';
+      return `${pageImage}${separator}t=${timestamp}`;
     }
     
     // Object with URL property
     if (pageImage.url) {
       // Ajouter un timestamp pour éviter les problèmes de cache
-      return `${pageImage.url}?t=${new Date().getTime()}`;
+      const timestamp = new Date().getTime();
+      const separator = pageImage.url.includes('?') ? '&' : '?';
+      return `${pageImage.url}${separator}t=${timestamp}`;
     }
     
     // Object with data property (base64)
