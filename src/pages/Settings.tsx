@@ -12,7 +12,6 @@ import DataImporter from "@/components/settings/DataImporter";
 import UserManager from "@/components/settings/UserManager";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import GeneralSettings from "@/components/settings/GeneralSettings";
-import UserAvatarManager from "@/components/settings/UserAvatarManager";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -46,23 +45,27 @@ const Settings = () => {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid grid-cols-8 w-full">
           <TabsTrigger value="general">Général</TabsTrigger>
-          <TabsTrigger value="profile">Profil</TabsTrigger>
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="pdf">Modèles PDF</TabsTrigger>
           <TabsTrigger value="email">Configuration Email</TabsTrigger>
           <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
+          <TabsTrigger value="import">Import Données</TabsTrigger>
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
-          <GeneralSettings />
-        </TabsContent>
-        
-        <TabsContent value="profile">
-          <div className="space-y-6">
-            <UserAvatarManager />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Paramètres généraux</CardTitle>
+              <CardDescription>
+                Configurez les paramètres globaux de l'application, comme le logo et les informations générales
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <GeneralSettings />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="leasers">
