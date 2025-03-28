@@ -219,9 +219,33 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
       }
       
       const blob = await response.blob();
-      const contentType = blob.type || `image/${fileExt}`; // Fallback based on extension if type is missing
       
-      // Uploader l'image dans le bucket avec plusieurs tentatives si nécessaire
+      // Déterminer le bon type MIME à partir de l'extension
+      let contentType = blob.type;
+      if (!contentType || contentType === 'application/octet-stream' || contentType === 'application/json') {
+        // Si le type de contenu n'est pas défini correctement, le déterminer à partir de l'extension
+        switch (fileExt.toLowerCase()) {
+          case 'jpg':
+          case 'jpeg':
+            contentType = 'image/jpeg';
+            break;
+          case 'png':
+            contentType = 'image/png';
+            break;
+          case 'gif':
+            contentType = 'image/gif';
+            break;
+          case 'webp':
+            contentType = 'image/webp';
+            break;
+          case 'svg':
+            contentType = 'image/svg+xml';
+            break;
+          default:
+            contentType = `image/${fileExt}`;
+        }
+      }
+      
       console.log(`Upload de l'image vers ${bucketName}/${filePath} avec type ${contentType}`);
       
       let attempts = 0;
@@ -233,10 +257,13 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
         attempts++;
         
         try {
+          // Créer un nouveau Blob avec le type MIME correct
+          const correctBlob = new Blob([await blob.arrayBuffer()], { type: contentType });
+          
           const result = await supabase
             .storage
             .from(bucketName)
-            .upload(filePath, blob, {
+            .upload(filePath, correctBlob, {
               contentType: contentType,
               upsert: true
             });

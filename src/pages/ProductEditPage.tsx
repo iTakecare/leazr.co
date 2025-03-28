@@ -330,7 +330,7 @@ const ProductEditPage = () => {
         const fileName = `${originalName}-${Date.now()}.${fileExt}`;
         
         let contentType = file.type;
-        if (!contentType || contentType === 'application/octet-stream') {
+        if (!contentType || contentType === 'application/octet-stream' || contentType === 'application/json') {
           switch (fileExt) {
             case 'jpg':
             case 'jpeg':
@@ -355,18 +355,26 @@ const ProductEditPage = () => {
         
         console.log(`Uploading file: ${fileName} with type: ${contentType}`);
         
-        const { error } = await supabase
-          .storage
-          .from('product-images')
-          .upload(`${id}/${fileName}`, file, {
-            cacheControl: '3600',
-            contentType: contentType,
-            upsert: true
-          });
-        
-        if (error) {
-          console.error("Error uploading image:", error);
-          toast.error(`Erreur lors du téléchargement: ${error.message}`);
+        try {
+          const fileBuffer = await file.arrayBuffer();
+          const correctBlob = new Blob([fileBuffer], { type: contentType });
+          
+          const { error } = await supabase
+            .storage
+            .from('product-images')
+            .upload(`${id}/${fileName}`, correctBlob, {
+              cacheControl: '3600',
+              contentType: contentType,
+              upsert: true
+            });
+          
+          if (error) {
+            console.error("Error uploading image:", error);
+            toast.error(`Erreur lors du téléchargement: ${error.message}`);
+          }
+        } catch (fileError) {
+          console.error("Error processing file:", fileError);
+          toast.error("Erreur lors du traitement du fichier");
         }
       }
       

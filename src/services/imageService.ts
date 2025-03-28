@@ -82,10 +82,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       // Non bloquant, on continue
     }
     
-    // Préparer le fichier pour l'upload avec le bon format MIME
-    let fileToUpload: File | Blob = file;
-    
-    // Déterminer le bon MIME type en fonction de l'extension
+    // Déterminer le bon type MIME en fonction de l'extension
     let contentType = '';
     
     // Force la détection du MIME type à partir de l'extension ou du contenu
@@ -93,109 +90,39 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       // Si le type est déjà correctement défini, l'utiliser
       contentType = file.type;
     } else {
-      // Sinon, détecter à partir de l'extension
-      contentType = detectMimeTypeFromExtension(fileName);
-      
-      // Si le fichier est de type JSON, vérifier s'il contient une image encodée en base64
-      if (file.type === 'application/json') {
-        try {
-          const fileContent = await readFileAsText(file);
-          
-          try {
-            const jsonData = JSON.parse(fileContent);
-            
-            if (jsonData && jsonData.data && typeof jsonData.data === 'string') {
-              console.log("Image encodée en base64 trouvée dans le JSON");
-              
-              // Si c'est un data URL, extraire la partie base64
-              let base64Data = jsonData.data;
-              let mimeType = 'image/png'; // Type par défaut
-              
-              // Détecter le MIME type à partir des premiers caractères de base64
-              if (base64Data.includes('data:')) {
-                const parts = base64Data.split(';base64,');
-                if (parts.length > 1) {
-                  mimeType = parts[0].replace('data:', '');
-                  base64Data = parts[1];
-                }
-              } else if (base64Data.startsWith('/9j/')) {
-                mimeType = 'image/jpeg';
-              } else if (base64Data.startsWith('iVBORw0KGgo')) {
-                mimeType = 'image/png';
-              } else if (base64Data.startsWith('UklGR')) {
-                mimeType = 'image/webp';
-              } else if (base64Data.startsWith('R0lGODlh')) {
-                mimeType = 'image/gif';
-              }
-              
-              // Nettoyer les données base64 en supprimant les préfixes
-              if (base64Data.includes('base64,')) {
-                base64Data = base64Data.split('base64,')[1];
-              }
-              
-              // Convertir la chaîne base64 en Blob
-              const byteCharacters = atob(base64Data);
-              const byteArrays = [];
-              const sliceSize = 512;
-              
-              for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-                const slice = byteCharacters.slice(offset, offset + sliceSize);
-                const byteNumbers = new Array(slice.length);
-                
-                for (let i = 0; i < slice.length; i++) {
-                  byteNumbers[i] = slice.charCodeAt(i);
-                }
-                
-                const byteArray = new Uint8Array(byteNumbers);
-                byteArrays.push(byteArray);
-              }
-              
-              // Créer un blob à partir des données binaires
-              const blob = new Blob(byteArrays, { type: mimeType });
-              
-              // Récupérer l'extension appropriée pour le MIME type
-              const extension = getExtensionFromMimeType(mimeType);
-              
-              // Créer un nouveau File à partir du Blob avec un nom de fichier qui reflète correctement le type d'image
-              const baseFileName = uniqueFileName.split('.')[0];
-              const newFileName = `${baseFileName}.${extension}`;
-              fileToUpload = new File([blob], newFileName, { type: mimeType });
-              contentType = mimeType;
-              
-              console.log(`Fichier converti de JSON à ${mimeType} avec le nom ${newFileName}`);
-            }
-          } catch (parseError) {
-            console.warn("Erreur lors de la tentative de parse JSON:", parseError);
-          }
-        } catch (checkError) {
-          console.warn("Erreur lors de la vérification du type de fichier:", checkError);
-        }
-      }
-      
-      // Si le MIME type n'a toujours pas été détecté correctement
-      if (!contentType || contentType === 'application/octet-stream' || contentType === 'application/json') {
-        // Fallback: essayer de deviner en fonction de l'extension
-        if (fileExtension === 'png') {
+      // Détecter à partir de l'extension
+      switch (fileExtension) {
+        case 'jpg':
+        case 'jpeg':
+          contentType = 'image/jpeg';
+          break;
+        case 'png':
           contentType = 'image/png';
-        } else if (fileExtension === 'jpg' || fileExtension === 'jpeg') {
-          contentType = 'image/jpeg';
-        } else if (fileExtension === 'webp') {
-          contentType = 'image/webp';
-        } else if (fileExtension === 'gif') {
+          break;
+        case 'gif':
           contentType = 'image/gif';
-        } else {
-          // Fallback ultime
-          contentType = 'image/jpeg';
-        }
+          break;
+        case 'webp':
+          contentType = 'image/webp';
+          break;
+        case 'svg':
+          contentType = 'image/svg+xml';
+          break;
+        default:
+          contentType = `image/${fileExtension || 'jpeg'}`;
       }
     }
     
     console.log(`Type de contenu détecté pour le fichier: ${contentType}`);
     
+    // Convertir le fichier en ArrayBuffer pour créer un nouveau Blob avec le type correct
+    const fileBuffer = await file.arrayBuffer();
+    const correctBlob = new Blob([fileBuffer], { type: contentType });
+    
     // Utiliser upload directs pour éviter les problèmes de duplication
     let uploadResult = await supabase.storage
       .from(bucketName)
-      .upload(filePath, fileToUpload, {
+      .upload(filePath, correctBlob, {
         contentType,
         upsert: false  // Ne pas écraser si existe déjà
       });
@@ -211,7 +138,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
         
         const retryResult = await supabase.storage
           .from(bucketName)
-          .upload(newFilePath, fileToUpload, {
+          .upload(newFilePath, correctBlob, {
             contentType,
             upsert: false
           });
@@ -276,7 +203,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
         
         if (updateError) {
           console.error(`Erreur lors de la mise à jour des URLs d'images:`, updateError);
-          toast.error("L'image a été téléchargée mais non enregistrée dans la base de données");
+          toast.error("L'image a ��té téléchargée mais non enregistrée dans la base de données");
         } else {
           console.log(`Image secondaire ajoutée pour le produit ${productId}`);
         }
