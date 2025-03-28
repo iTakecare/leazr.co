@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -46,7 +45,6 @@ import {
   SelectValue
 } from "@/components/ui/select";
 
-// Let's also create a simple ProductVariantManager component that we can replace later with a proper implementation
 const ProductVariantManager = ({ product, onVariantAdded }: { product: Product, onVariantAdded?: () => void }) => {
   return (
     <Card>
@@ -188,14 +186,19 @@ const ProductEditPage = () => {
         variation_attributes: product.variation_attributes || {}
       });
       
-      if (product.image_url) {
+      if (product.image_url && product.image_url.trim() !== '') {
         setImagePreview(product.image_url);
         setImagePreviews([product.image_url]);
-      }
-      
-      if (product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
-        const additionalImages = product.image_urls.filter(url => url !== product.image_url);
-        setImagePreviews(prev => [...prev, ...additionalImages].slice(0, 5));
+        
+        if (product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
+          const additionalImages = product.image_urls.filter(url => url !== product.image_url && url && url.trim() !== '');
+          if (additionalImages.length > 0) {
+            setImagePreviews(prev => [...prev, ...additionalImages].slice(0, 5));
+          }
+        }
+      } else {
+        setImagePreview(null);
+        setImagePreviews([]);
       }
     }
   }, [product]);
@@ -256,7 +259,8 @@ const ProductEditPage = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreviews(prev => {
-          const updated = [...prev, reader.result as string].slice(0, 5);
+          const currentPreviews = Array.isArray(prev) ? prev : [];
+          const updated = [...currentPreviews, reader.result as string].slice(0, 5);
           return updated;
         });
       };
@@ -276,7 +280,6 @@ const ProductEditPage = () => {
       setIsUploading(true);
       toast.info(`Téléchargement de l'image ${index + 1}...`);
       
-      // Ensure storage bucket exists before uploading
       const bucketExists = await ensureStorageBucket("product-images");
       if (!bucketExists) {
         toast.error("Impossible de créer le bucket pour les images");
@@ -585,27 +588,32 @@ const ProductEditPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {imagePreviews.map((src, index) => (
-                    <div key={index} className="relative rounded-lg overflow-hidden border h-40">
-                      <img 
-                        src={src} 
-                        alt={`Preview ${index}`}
-                        className="w-full h-full object-contain"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm"
-                      >
-                        <X className="w-4 h-4 text-gray-600" />
-                      </button>
-                      {index === 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1">
-                          Image principale
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {imagePreviews.length > 0 ? (
+                    imagePreviews.map((src, index) => (
+                      <div key={index} className="relative rounded-lg overflow-hidden border h-40">
+                        <img 
+                          src={src} 
+                          alt={`Preview ${index}`}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm"
+                        >
+                          <X className="w-4 h-4 text-gray-600" />
+                        </button>
+                        {index === 0 && imagePreviews.length > 0 && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1">
+                            Image principale
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : null}
                   
                   {imagePreviews.length < 5 && (
                     <label className="border border-dashed rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
@@ -620,6 +628,12 @@ const ProductEditPage = () => {
                     </label>
                   )}
                 </div>
+                
+                {imagePreviews.length === 0 && (
+                  <p className="text-sm text-muted-foreground mt-4 text-center">
+                    Aucune image n'est actuellement associée à ce produit.
+                  </p>
+                )}
               </CardContent>
               {imageFiles.length > 0 && (
                 <CardFooter>
