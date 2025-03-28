@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -337,7 +338,7 @@ const GeneralSettings = () => {
       if (result && result.url) {
         setFormData({
           ...formData,
-          logo_url: result.url
+          logoUrl: result.url
         });
         toast.success("Logo téléchargé avec succès");
       }
@@ -380,7 +381,13 @@ const GeneralSettings = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <AvatarUploader />
+          <AvatarUploader 
+            avatarUrl={logoPreview}
+            onAvatarChange={(url) => {
+              form.setValue('logoUrl', url);
+              setLogoPreview(url);
+            }}
+          />
           
           <Card className="overflow-hidden">
             <CardContent className="p-6">

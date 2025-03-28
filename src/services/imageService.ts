@@ -104,14 +104,21 @@ export const uploadImage = async (
   }
 };
 
-export const detectFileExtension = (fileName: string): string => {
-  const parts = fileName.split('.');
-  return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
+export const detectFileExtension = (file: File | string): string => {
+  if (typeof file === 'string') {
+    // If file is a string (filename)
+    const parts = file.split('.');
+    return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
+  } else {
+    // If file is a File object
+    const parts = file.name.split('.');
+    return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
+  }
 };
 
 export const detectMimeTypeFromSignature = async (file: File): Promise<string> => {
   // Simple mime type detection based on file extension
-  const ext = detectFileExtension(file.name);
+  const ext = detectFileExtension(file);
   
   const mimeTypes: Record<string, string> = {
     'jpg': 'image/jpeg',
