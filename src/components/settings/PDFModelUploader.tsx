@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,25 +34,21 @@ const PDFModelUploader = ({
   const [isLoadingImages, setIsLoadingImages] = useState(true);
   const BUCKET_NAME = 'pdf-templates';
   
-  // Au montage, initialiser les images
   useEffect(() => {
     const initImages = async () => {
       console.log("Initialisation des images du modèle PDF");
       setIsLoadingImages(true);
       
       try {
-        // S'assurer que le bucket de stockage existe
         await ensureStorageBucket(BUCKET_NAME);
         
         if (templateImages && Array.isArray(templateImages) && templateImages.length > 0) {
           console.log("Utilisation des images fournies:", templateImages);
           
-          // Filtrer les images qui ne sont pas des placeholders
           const filteredImages = templateImages.filter(img => 
             !img.name.startsWith('.') && img.url
           );
           
-          // S'assurer que toutes les images ont un numéro de page défini
           const imagesWithPageNumbers = filteredImages.map((img, idx) => ({
             ...img,
             page: img.page !== undefined ? img.page : idx
@@ -61,12 +56,10 @@ const PDFModelUploader = ({
           
           setLocalImages(imagesWithPageNumbers);
           
-          // Si des numéros de page ont été ajoutés/corrigés, notifier le parent
           if (JSON.stringify(imagesWithPageNumbers) !== JSON.stringify(templateImages)) {
             onChange(imagesWithPageNumbers);
           }
         } else {
-          // Initialiser avec un tableau vide
           setLocalImages([]);
         }
       } catch (err) {
@@ -81,7 +74,6 @@ const PDFModelUploader = ({
     initImages();
   }, [templateImages, onChange]);
   
-  // Fonction pour uploader une image
   const handleUploadImage = async (file: File) => {
     if (!file) return null;
     
@@ -90,18 +82,15 @@ const PDFModelUploader = ({
       
       console.log("Début du processus d'upload pour:", file.name);
       
-      // Vérifier le format
       if (!file.type.startsWith('image/')) {
         toast.error("Veuillez sélectionner une image (PNG, JPG, WEBP)");
         return null;
       }
       
-      // Créer un ID unique pour l'image
       const id = uuidv4();
       
-      // Utiliser le service d'upload pour stocker l'image dans Supabase Storage
       try {
-        const result = await uploadImage(file, BUCKET_NAME, 'templates');
+        const result = await uploadImage(file, 'pdf-templates', 'templates');
         console.log("Image uploadée avec succès:", result);
         
         if (result && result.url) {
@@ -118,7 +107,6 @@ const PDFModelUploader = ({
         return null;
       }
       
-      // Fallback: utiliser FileReader pour l'affichage local si l'upload a échoué
       return new Promise<TemplateImage | null>((resolve) => {
         const reader = new FileReader();
         
@@ -153,15 +141,12 @@ const PDFModelUploader = ({
     }
   };
   
-  // Supprimer une image
   const deleteImage = async (imageId: string) => {
     try {
       console.log("Suppression de l'image:", imageId);
       
-      // Supprimer du tableau local
       const updatedImages = localImages.filter(img => img.id !== imageId);
       
-      // Réindexer les numéros de page
       updatedImages.forEach((img, idx) => {
         img.page = idx;
       });
@@ -169,7 +154,6 @@ const PDFModelUploader = ({
       setLocalImages(updatedImages);
       onChange(updatedImages);
       
-      // Si la page actuellement sélectionnée n'existe plus, sélectionner la dernière page disponible
       if (selectedPage >= updatedImages.length && onPageSelect) {
         onPageSelect(Math.max(0, updatedImages.length - 1));
       }
@@ -181,7 +165,6 @@ const PDFModelUploader = ({
     }
   };
   
-  // Gérer l'upload de fichier
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -192,7 +175,6 @@ const PDFModelUploader = ({
       setLocalImages(newImages);
       onChange(newImages);
       
-      // S'il s'agit de la première image, la sélectionner automatiquement
       if (newImages.length === 1 && onPageSelect) {
         onPageSelect(0);
       }
@@ -201,14 +183,12 @@ const PDFModelUploader = ({
     }
   };
 
-  // Déplacer une image vers le haut
   const moveUp = (index: number) => {
     if (index === 0) return;
     
     const newImages = [...localImages];
     [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
     
-    // Mettre à jour les numéros de page
     newImages.forEach((img, idx) => {
       img.page = idx;
     });
@@ -216,20 +196,17 @@ const PDFModelUploader = ({
     setLocalImages(newImages);
     onChange(newImages);
     
-    // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
     if (onPageSelect && (selectedPage === index || selectedPage === index - 1)) {
       onPageSelect(selectedPage === index ? index - 1 : index);
     }
   };
   
-  // Déplacer une image vers le bas
   const moveDown = (index: number) => {
     if (index === localImages.length - 1) return;
     
     const newImages = [...localImages];
     [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
     
-    // Mettre à jour les numéros de page
     newImages.forEach((img, idx) => {
       img.page = idx;
     });
@@ -237,18 +214,15 @@ const PDFModelUploader = ({
     setLocalImages(newImages);
     onChange(newImages);
     
-    // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
     if (onPageSelect && (selectedPage === index || selectedPage === index + 1)) {
       onPageSelect(selectedPage === index ? index + 1 : index);
     }
   };
   
-  // Prévisualiser une image
   const previewImage = (imageUrl: string) => {
     window.open(imageUrl, '_blank');
   };
   
-  // Sélectionner une page pour l'édition
   const selectPage = (index: number) => {
     if (onPageSelect) {
       onPageSelect(index);

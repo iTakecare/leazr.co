@@ -61,11 +61,11 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     console.error(`Failed to load image: ${imageUrl}`);
   };
   
-  // Add cache-busting parameter to URL
+  // Add cache-busting parameter to URL and force content type
   const imageUrlWithCacheBuster = () => {
     if (imageUrl === "/placeholder.svg") return imageUrl;
     
-    // Add cache buster
+    // Add cache buster and content type
     const timestamp = Date.now();
     const separator = imageUrl.includes('?') ? '&' : '?';
     return `${imageUrl}${separator}t=${timestamp}&contentType=image/jpeg`;

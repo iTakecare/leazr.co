@@ -155,12 +155,13 @@ const PDFTemplateUploader = ({
       console.log("Début du processus d'upload pour:", file.name);
       
       // Utiliser la fonction uploadImage qui gère correctement le type MIME
-      const result = await uploadImage(file, uuidv4(), 'pdf-templates');
+      const uniqueId = uuidv4();
+      const result = await uploadImage(file, 'pdf-templates', '');
       
       if (result && result.url) {
         console.log("Upload réussi, URL de l'image:", result.url);
         return {
-          id: result.url.split('/').pop() || uuidv4(),
+          id: result.path.split('/').pop() || uniqueId,
           name: file.name,
           url: result.url,
           page: localImages.length

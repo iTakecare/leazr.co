@@ -1,4 +1,3 @@
-
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -274,5 +273,188 @@ export const fetchProductImages = async (productId: string): Promise<{mainImage:
     console.error('Erreur dans fetchProductImages:', error);
     toast.error(`Erreur lors de la récupération des images: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     throw error;
+  }
+};
+
+/**
+ * Télécharge et stocke une image dans un bucket Supabase
+ * @param file Fichier image à télécharger
+ * @param bucketName Nom du bucket (par défaut: 'images')
+ * @param folderPath Chemin optionnel du dossier dans le bucket
+ * @returns Information sur l'image téléchargée {url, path} ou null en cas d'erreur
+ */
+export const uploadImage = async (
+  file: File, 
+  bucketName: string = 'images', 
+  folderPath: string = ''
+): Promise<{url: string, path: string} | null> => {
+  try {
+    console.log(`Téléchargement d'image dans le bucket ${bucketName}/${folderPath}`);
+    
+    // Vérifier que le bucket existe
+    const bucketExists = await ensureStorageBucket(bucketName);
+    if (!bucketExists) {
+      console.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé`);
+      toast.error(`Erreur: Le bucket de stockage n'a pas pu être créé`);
+      return null;
+    }
+    
+    // Extraire le nom du fichier et l'extension
+    const fileName = file.name.replace(/\s+/g, '-');
+    
+    // Générer un nom unique avec timestamp
+    const timestamp = Date.now();
+    const fileNameWithoutExt = fileName.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '-');
+    const fileExt = fileName.split('.').pop()?.toLowerCase() || 'jpg';
+    const uniqueFileName = `${fileNameWithoutExt}-${timestamp}.${fileExt}`;
+    
+    // Construire le chemin complet
+    const filePath = folderPath ? `${folderPath}/${uniqueFileName}` : uniqueFileName;
+    
+    // Déterminer le type MIME correct
+    let mimeType = file.type;
+    if (!mimeType || mimeType === 'application/octet-stream') {
+      mimeType = detectMimeTypeFromExtension(fileExt);
+    }
+    
+    console.log(`Upload vers ${bucketName}/${filePath} avec type: ${mimeType}`);
+    
+    // Créer un FormData pour un meilleur contrôle du type de contenu
+    const formData = new FormData();
+    
+    // Créer un nouveau Blob avec le type MIME explicite
+    const blob = new Blob([await file.arrayBuffer()], { type: mimeType });
+    formData.append('file', blob, uniqueFileName);
+    
+    // URL pour l'upload direct
+    const uploadUrl = `${supabase.storageUrl}/object/${bucketName}/${filePath}`;
+    
+    // Upload via fetch pour un meilleur contrôle
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabase.supabaseKey}`,
+        'x-upsert': 'true'
+      },
+      body: formData
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Erreur lors de l'upload (${response.status}): ${errorText}`);
+      throw new Error(`Échec de l'upload: ${response.statusText}`);
+    }
+    
+    // Obtenir l'URL publique
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+    
+    console.log(`Image téléchargée avec succès: ${publicUrlData.publicUrl}`);
+    
+    return {
+      url: publicUrlData.publicUrl,
+      path: filePath
+    };
+  } catch (error) {
+    console.error('Erreur dans uploadImage:', error);
+    toast.error(`Erreur lors du téléchargement de l'image: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    return null;
+  }
+};
+
+/**
+ * Détecte le type MIME à partir de l'extension de fichier
+ */
+export const detectMimeTypeFromExtension = (extension: string): string => {
+  switch (extension.toLowerCase()) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'bmp':
+      return 'image/bmp';
+    case 'pdf':
+      return 'application/pdf';
+    default:
+      return 'application/octet-stream';
+  }
+};
+
+/**
+ * Détecte le type MIME à partir des premiers octets du fichier (signature)
+ */
+export const detectMimeTypeFromSignature = async (file: File): Promise<string | null> => {
+  try {
+    const fileHeader = await readFileHeader(file, 12);
+    
+    // Signatures courantes pour les formats d'image
+    if (fileHeader.startsWith('89504E47')) {
+      return 'image/png';
+    } else if (fileHeader.startsWith('FFD8FF')) {
+      return 'image/jpeg';
+    } else if (fileHeader.startsWith('47494638')) {
+      return 'image/gif';
+    } else if (fileHeader.startsWith('52494646') && fileHeader.substring(8, 16) === '57454250') {
+      return 'image/webp';
+    } else if (fileHeader.startsWith('25504446')) {
+      return 'application/pdf';
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Erreur lors de la détection du type MIME:', error);
+    return null;
+  }
+};
+
+/**
+ * Lit les premiers octets d'un fichier et les convertit en représentation hexadécimale
+ */
+const readFileHeader = async (file: File, bytes: number): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const arr = new Uint8Array(reader.result as ArrayBuffer);
+      let hex = '';
+      for (let i = 0; i < Math.min(bytes, arr.length); i++) {
+        hex += arr[i].toString(16).padStart(2, '0').toUpperCase();
+      }
+      resolve(hex);
+    };
+    reader.onerror = () => reject(reader.error);
+    const blob = file.slice(0, bytes);
+    reader.readAsArrayBuffer(blob);
+  });
+};
+
+/**
+ * Détecte l'extension à partir du type MIME
+ */
+export const detectFileExtension = (mimeType: string): string => {
+  switch (mimeType.toLowerCase()) {
+    case 'image/jpeg':
+      return 'jpg';
+    case 'image/png':
+      return 'png';
+    case 'image/gif':
+      return 'gif';
+    case 'image/webp':
+      return 'webp';
+    case 'image/svg+xml':
+      return 'svg';
+    case 'image/bmp':
+      return 'bmp';
+    case 'application/pdf':
+      return 'pdf';
+    default:
+      return 'bin';
   }
 };
