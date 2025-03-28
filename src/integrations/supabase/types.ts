@@ -1618,6 +1618,13 @@ export type Database = {
           updated_at: string
         }
       }
+      update_product_attributes: {
+        Args: {
+          p_product_id: string
+          p_variation_attributes: Json
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

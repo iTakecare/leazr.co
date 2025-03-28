@@ -1,3 +1,4 @@
+
 /**
  * Updates the variation attributes of a product
  */
@@ -39,8 +40,7 @@ export const updateProductVariationAttributes = async (
       throw new Error(`Product with ID ${productId} not found`);
     }
     
-    // Use raw SQL via RPC for the update to avoid Supabase JS client limitations
-    // This is more reliable for JSONB updates and won't try to return data causing the error
+    // Use the RPC function to update the variation attributes
     const { error: updateError } = await supabase.rpc(
       'update_product_attributes',
       { 
