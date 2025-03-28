@@ -12,22 +12,13 @@ const PageImage: React.FC<PageImageProps> = ({
   currentPage,
   setPageLoaded
 }) => {
-  // Pour debugging
-  if (pageImage) {
-    console.log(`PageImage rendering for page ${currentPage + 1}:`, 
-      typeof pageImage === 'object' ? 
-      `Object with properties: ${Object.keys(pageImage).join(', ')}` : 
-      `Type: ${typeof pageImage}`
-    );
-  }
-
   // Function to extract proper image source
   const getImageSource = () => {
     if (!pageImage) return null;
 
     // Direct URL
     if (typeof pageImage === 'string') {
-      // Ajouter un timestamp pour éviter les problèmes de cache
+      // Add timestamp to avoid caching issues
       const timestamp = new Date().getTime();
       const separator = pageImage.includes('?') ? '&' : '?';
       return `${pageImage}${separator}t=${timestamp}`;
@@ -35,7 +26,7 @@ const PageImage: React.FC<PageImageProps> = ({
     
     // Object with URL property
     if (pageImage.url) {
-      // Ajouter un timestamp pour éviter les problèmes de cache
+      // Add timestamp to avoid caching issues
       const timestamp = new Date().getTime();
       const separator = pageImage.url.includes('?') ? '&' : '?';
       return `${pageImage.url}${separator}t=${timestamp}`;
@@ -47,12 +38,12 @@ const PageImage: React.FC<PageImageProps> = ({
       
       // Handle JSON-encoded base64 data
       if (typeof pageImage.data === 'string') {
-        // Si le data semble être une URL data
+        // If it's already a data URL
         if (pageImage.data.startsWith('data:')) {
           return pageImage.data;
         }
         
-        // Si c'est du JSON encodé
+        // If it's JSON encoded
         if (pageImage.data.startsWith('{')) {
           try {
             const jsonData = JSON.parse(pageImage.data);
@@ -64,10 +55,10 @@ const PageImage: React.FC<PageImageProps> = ({
           }
         }
         
-        // S'assurer que c'est un data URL bien formaté
+        // Ensure it's a properly formatted data URL
         if (!imageSrc.startsWith('data:')) {
-          // Essayer de déterminer le type de contenu à partir du préfixe base64
-          let contentType = 'image/png'; // par défaut
+          // Try to determine content type from base64 prefix
+          let contentType = 'image/png'; // default
           
           if (imageSrc.startsWith('/9j/')) {
             contentType = 'image/jpeg';
@@ -79,7 +70,7 @@ const PageImage: React.FC<PageImageProps> = ({
             contentType = 'image/gif';
           }
           
-          // Vérifier si le base64 contient déjà un en-tête data:image
+          // Add data:image header if not present
           if (!imageSrc.includes('data:')) {
             imageSrc = `data:${contentType};base64,${imageSrc}`;
           }
@@ -87,34 +78,6 @@ const PageImage: React.FC<PageImageProps> = ({
       }
       
       return imageSrc;
-    }
-    
-    // Handle WebP specific issue - if the image is just a JSON object with application/json content type
-    if (typeof pageImage === 'object' && pageImage.contentType === 'application/json') {
-      try {
-        // Try to extract image data from JSON
-        const jsonString = JSON.stringify(pageImage);
-        if (jsonString.includes('UklGR')) {
-          // This is likely a WebP image in base64
-          return `data:image/webp;base64,${pageImage.data || ''}`;
-        }
-      } catch (e) {
-        console.error("Failed to process JSON content as image:", e);
-      }
-    }
-    
-    // Last resort: if pageImage is a stringified JSON, try to parse it
-    if (typeof pageImage === 'string' && (pageImage.startsWith('{') || pageImage.startsWith('['))) {
-      try {
-        const parsed = JSON.parse(pageImage);
-        if (parsed.url) return parsed.url;
-        if (parsed.data) {
-          if (parsed.data.startsWith('data:')) return parsed.data;
-          return `data:image/webp;base64,${parsed.data}`;
-        }
-      } catch (e) {
-        console.error("Failed to parse stringified JSON image:", e);
-      }
     }
     
     return null;
@@ -129,7 +92,7 @@ const PageImage: React.FC<PageImageProps> = ({
         alt={`Template page ${currentPage + 1}`}
         className="w-full h-full object-contain"
         onError={(e) => {
-          console.error("Erreur de chargement de l'image:", e.currentTarget.src);
+          console.error("Error loading image:", e.currentTarget.src);
           e.currentTarget.src = "/placeholder.svg";
         }}
         onLoad={() => setPageLoaded(true)}

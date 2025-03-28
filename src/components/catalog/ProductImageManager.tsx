@@ -152,16 +152,19 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           continue;
         }
         
+        // Create a clean filename (replace special characters, add timestamp)
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+        const cleanFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
+        
         // Direct upload to Supabase with proper content type
-        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
-        const filePath = `${productId}/${fileName}`;
+        const filePath = `${productId}/${cleanFileName}`;
         
         const { data, error } = await supabase.storage
           .from("product-images")
           .upload(filePath, file, {
             cacheControl: '3600',
             upsert: false,
-            contentType: file.type  // Set the proper content type
+            contentType: file.type || `image/${fileExt}` || 'image/jpeg'  // Ensure proper content type
           });
         
         if (error) {

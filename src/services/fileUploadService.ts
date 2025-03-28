@@ -77,10 +77,32 @@ export const detectFileExtension = (fileName: string): string => {
 };
 
 /**
- * Détecte le type MIME à partir de la signature du fichier
+ * Détecte le type MIME à partir de l'extension du fichier
  */
-export const detectMimeTypeFromSignature = (file: File): string => {
-  return file.type || 'application/octet-stream';
+export const detectMimeTypeFromExtension = (extension: string): string => {
+  switch (extension.toLowerCase()) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'pdf':
+      return 'application/pdf';
+    case 'doc':
+    case 'docx':
+      return 'application/msword';
+    case 'xls':
+    case 'xlsx':
+      return 'application/vnd.ms-excel';
+    default:
+      return 'application/octet-stream';
+  }
 };
 
 /**
@@ -98,10 +120,32 @@ export const uploadImage = async (
       return null;
     }
 
+    // Vérifier la taille du fichier (limite à 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(`Le fichier est trop volumineux. La taille maximale est de 5MB.`);
+      return null;
+    }
+
     // Générer un nom unique pour le fichier
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExt}`;
+    const fileExt = detectFileExtension(file.name);
+    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
+
+    // Déterminer le type MIME correct
+    let contentType = file.type;
+    
+    // Si le type est vide ou application/octet-stream, essayer de le déterminer à partir de l'extension
+    if (!contentType || contentType === 'application/octet-stream') {
+      contentType = detectMimeTypeFromExtension(fileExt);
+    }
+    
+    // Vérifier que le contentType est bien un type d'image si on attend une image
+    if (bucketName.includes('image') && !contentType.startsWith('image/')) {
+      // Forcer un type image basé sur l'extension
+      contentType = fileExt ? `image/${fileExt}` : 'image/jpeg';
+    }
+
+    console.log(`Uploading file with content type: ${contentType}`);
 
     // Upload du fichier en spécifiant correctement le contentType
     const { error } = await supabase.storage
@@ -109,7 +153,7 @@ export const uploadImage = async (
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false,
-        contentType: file.type // Spécifier explicitement le type MIME du fichier
+        contentType: contentType // Spécifier explicitement le type MIME du fichier
       });
 
     if (error) {
