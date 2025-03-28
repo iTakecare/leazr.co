@@ -1,4 +1,3 @@
-
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -200,9 +199,13 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
     // Nettoyer le nom de fichier
     fileName = fileName.split('?')[0]; // Supprimer les paramètres de requête
     
+    // Extraire l'extension du fichier
+    const fileExt = fileName.split('.').pop() || '';
+    const fileNameWithoutExt = fileName.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '-');
+    
     // Générer un nom unique pour éviter les collisions
     const timestamp = Date.now();
-    const uniqueFileName = `${timestamp}-${fileName}`;
+    const uniqueFileName = `${fileNameWithoutExt}-${timestamp}.${fileExt}`;
     const filePath = folder ? `${folder}/${uniqueFileName}` : uniqueFileName;
     
     // Télécharger l'image
@@ -215,9 +218,10 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
       }
       
       const blob = await response.blob();
+      const contentType = blob.type || `image/${fileExt}`; // Fallback based on extension if type is missing
       
       // Uploader l'image dans le bucket avec plusieurs tentatives si nécessaire
-      console.log(`Upload de l'image vers ${bucketName}/${filePath}`);
+      console.log(`Upload de l'image vers ${bucketName}/${filePath} avec type ${contentType}`);
       
       let attempts = 0;
       const maxAttempts = 3;
@@ -232,7 +236,7 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
             .storage
             .from(bucketName)
             .upload(filePath, blob, {
-              contentType: blob.type,
+              contentType: contentType,
               upsert: true
             });
           

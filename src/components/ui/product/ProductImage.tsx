@@ -48,18 +48,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     return "/placeholder.svg";
   };
   
-  // Add timestamp to prevent caching
-  const getImageWithTimestamp = (url: string): string => {
-    if (!url || url === "/placeholder.svg") return "/placeholder.svg";
-    
-    try {
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}t=${new Date().getTime()}`;
-    } catch (e) {
-      return "/placeholder.svg";
-    }
-  };
-  
+  // Handle image errors gracefully
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
@@ -78,7 +67,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         </div>
       )}
       <img 
-        src={getImageWithTimestamp(imageUrl)}
+        src={imageUrl}
         alt={product?.name || "Product"}
         className="object-contain h-24 w-24"
         onLoad={handleImageLoad}

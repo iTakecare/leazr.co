@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -119,7 +118,6 @@ const ProductEditPage = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   
-  // Check/create product-images bucket on component mount
   useEffect(() => {
     const initStorageBucket = async () => {
       try {
@@ -146,7 +144,6 @@ const ProductEditPage = () => {
     enabled: !!id
   });
   
-  // Load product data and images on product data change
   useEffect(() => {
     if (product) {
       setFormData({
@@ -163,18 +160,15 @@ const ProductEditPage = () => {
         variation_attributes: product.variation_attributes || {}
       });
       
-      // Load product images from storage
       loadProductImages();
     }
   }, [product, id]);
 
-  // Function to load product images directly from Supabase storage
   const loadProductImages = async () => {
     if (!id) return;
     
     setIsLoadingImages(true);
     try {
-      // Get list of files from product-images bucket for this product
       const { data: files, error } = await supabase
         .storage
         .from('product-images')
@@ -187,7 +181,6 @@ const ProductEditPage = () => {
         return;
       }
       
-      // Filter out folder objects and get only actual image files
       const imageFiles = files.filter(file => !file.name.endsWith('/') && file.name !== '.emptyFolderPlaceholder');
       
       if (imageFiles.length === 0) {
@@ -197,7 +190,6 @@ const ProductEditPage = () => {
         return;
       }
       
-      // Create public URLs for each image
       const imageUrls = imageFiles.map(file => {
         const { data } = supabase
           .storage
@@ -264,7 +256,6 @@ const ProductEditPage = () => {
     const newFiles = Array.from(files);
     setImageFiles(prev => [...prev, ...newFiles]);
 
-    // Create preview URLs for the new files
     newFiles.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -280,24 +271,19 @@ const ProductEditPage = () => {
   const removeImage = async (index: number) => {
     if (!id) return;
     
-    // Check if it's an uploaded image or a new file
     const imageUrl = imagePreviews[index];
     if (imageUrl.startsWith('data:')) {
-      // It's a new file that hasn't been uploaded yet
       setImageFiles(prev => prev.filter((_, i) => i !== index));
       setImagePreviews(prev => prev.filter((_, i) => i !== index));
       return;
     }
     
-    // It's an existing image from storage
     try {
       setIsUploading(true);
       
-      // Extract the file name from the URL
       const urlParts = imageUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1].split('?')[0]; // Remove query parameters
+      const fileName = urlParts[urlParts.length - 1].split('?')[0];
       
-      // Delete the file from storage
       const { error } = await supabase
         .storage
         .from('product-images')
@@ -309,7 +295,6 @@ const ProductEditPage = () => {
         return;
       }
       
-      // Remove from previews
       setImagePreviews(prev => prev.filter((_, i) => i !== index));
       toast.success("Image supprimée avec succès");
     } catch (error) {
@@ -327,7 +312,6 @@ const ProductEditPage = () => {
       setIsUploading(true);
       toast.info(`Téléchargement de ${imageFiles.length} image(s)...`);
       
-      // Ensure bucket exists
       const bucketReady = await ensureStorageBucket("product-images");
       if (!bucketReady) {
         toast.error("Impossible de préparer le stockage pour les images");
@@ -335,18 +319,19 @@ const ProductEditPage = () => {
         return;
       }
       
-      // Upload each file
       for (const file of imageFiles) {
-        // Create a unique filename
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
+        const originalName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '-');
+        const fileName = `${originalName}-${Date.now()}.${fileExt}`;
         
-        // Upload to Supabase Storage
+        console.log(`Uploading file: ${fileName} with type: ${file.type}`);
+        
         const { error } = await supabase
           .storage
           .from('product-images')
           .upload(`${id}/${fileName}`, file, {
             cacheControl: '3600',
+            contentType: file.type,
             upsert: true
           });
         
@@ -356,13 +341,10 @@ const ProductEditPage = () => {
         }
       }
       
-      // Clear the files list
       setImageFiles([]);
       
-      // Reload images from storage
       await loadProductImages();
       
-      // Also update the product to trigger any dependent UI updates
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       
       toast.success("Images téléchargées avec succès");
@@ -380,20 +362,16 @@ const ProductEditPage = () => {
     try {
       setIsUploading(true);
       
-      // Get the URL of the selected image
       const imageUrl = imagePreviews[index];
       
-      // Extract the file name from the URL (remove query parameters)
       const urlParts = imageUrl.split('/');
       const fileName = urlParts[urlParts.length - 1].split('?')[0]; 
       
-      // Create a full URL to the image
       const publicUrl = supabase
         .storage
         .from('product-images')
         .getPublicUrl(`${id}/${fileName}`).data.publicUrl;
       
-      // Update the product with this new main image URL
       await updateMutation.mutateAsync({
         image_url: publicUrl
       });
@@ -416,7 +394,6 @@ const ProductEditPage = () => {
       toast.info("Mise à jour du produit en cours...");
       await updateMutation.mutateAsync(formData);
       
-      // If there are new images to upload, do it after the product is updated
       if (imageFiles.length > 0) {
         await handleUploadImages();
       }
@@ -439,7 +416,6 @@ const ProductEditPage = () => {
     }
   };
 
-  // Add timestamp to prevent caching issues
   const addTimestamp = (url: string): string => {
     if (!url || url === '/placeholder.svg' || url.startsWith('data:')) return url;
     
