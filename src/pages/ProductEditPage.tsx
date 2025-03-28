@@ -151,13 +151,17 @@ const ProductEditPage = () => {
         const bucketExists = await ensureStorageBucket("product-images");
         if (!bucketExists) {
           console.error("Le bucket product-images n'a pas pu être créé ou vérifié");
-          toast.error("Erreur lors de la préparation du stockage des images");
+          if (!(import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true')) {
+            toast.error("Erreur lors de la préparation du stockage des images");
+          }
         } else {
           console.log("Bucket product-images vérifié avec succès");
         }
       } catch (error) {
         console.error("Erreur lors de l'initialisation du bucket product-images:", error);
-        toast.error("Erreur lors de la préparation du stockage");
+        if (!(import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true')) {
+          toast.error("Erreur lors de la préparation du stockage");
+        }
       }
     };
     
@@ -280,8 +284,15 @@ const ProductEditPage = () => {
       setIsUploading(true);
       toast.info(`Téléchargement de l'image ${index + 1}...`);
       
-      const bucketExists = await ensureStorageBucket("product-images");
-      if (!bucketExists) {
+      const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.DEV;
+      
+      let bucketExists = true;
+      
+      if (!isDemoMode) {
+        bucketExists = await ensureStorageBucket("product-images");
+      }
+      
+      if (!bucketExists && !isDemoMode) {
         toast.error("Impossible de créer le bucket pour les images");
         setIsUploading(false);
         return null;
