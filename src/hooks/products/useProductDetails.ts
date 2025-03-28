@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProductById } from "@/services/catalogService";
@@ -46,7 +47,7 @@ export const useProductDetails = (productId: string | undefined) => {
             }
             
             const stringValue = String(value);
-            if (!extractedAttributes[key].includes(stringValue)) {
+            if (extractedAttributes[key] && !extractedAttributes[key].includes(stringValue)) {
               extractedAttributes[key].push(stringValue);
             }
           });

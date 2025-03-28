@@ -32,11 +32,12 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
 
   useEffect(() => {
     if (variantPrice) {
+      const typedVariantPrice = variantPrice as any;
       setVariant({
-        ...variantPrice as Product,
-        price: variantPrice.price,
-        monthly_price: variantPrice.monthly_price,
-      });
+        ...typedVariantPrice,
+        price: typedVariantPrice.price,
+        monthly_price: typedVariantPrice.monthly_price,
+      } as Product);
     } else {
       setVariant(null);
     }

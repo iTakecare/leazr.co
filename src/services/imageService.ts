@@ -110,7 +110,70 @@ export const updateProductImage = async (
   }
 };
 
+/**
+ * Generic image upload function for any bucket
+ */
+export const uploadImage = async (
+  file: File,
+  fileName: string,
+  bucketName: string,
+  upsert: boolean = false
+): Promise<{ url: string }> => {
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, file, { upsert });
+      
+    if (error) {
+      console.error(`Error uploading to ${bucketName}:`, error);
+      throw error;
+    }
+    
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(data?.path || fileName);
+      
+    return { url: publicUrlData?.publicUrl || '' };
+  } catch (error) {
+    console.error(`Error in uploadImage to ${bucketName}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Detects file extension from a File object
+ */
+export const detectFileExtension = (file: File): string => {
+  return file.name.split('.').pop() || 'jpg';
+};
+
+/**
+ * Detect MIME type from file header
+ */
+export const detectMimeTypeFromSignature = async (file: File): Promise<string | null> => {
+  // Read the first few bytes to detect common file signatures
+  const buffer = await file.slice(0, 4).arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  
+  // Some common file signatures
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+    return 'image/jpeg';
+  }
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+    return 'image/png';
+  }
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+    return 'image/gif';
+  }
+  
+  // Fallback to the MIME type from the File object
+  return file.type || null;
+};
+
 export default {
   uploadProductImage,
-  updateProductImage
+  updateProductImage,
+  uploadImage,
+  detectFileExtension,
+  detectMimeTypeFromSignature
 };

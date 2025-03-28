@@ -65,7 +65,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   const [newPrice, setNewPrice] = useState("");
   const [newMonthlyPrice, setNewMonthlyPrice] = useState("");
   const [newStock, setNewStock] = useState("");
-  const [selectedAttributes, setSelectedAttributes] = useState<ProductAttributes>({});
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   
@@ -170,7 +170,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     setNewPrice(variant.price.toString());
     setNewMonthlyPrice((variant.monthly_price || '').toString());
     setNewStock((variant.stock || '').toString());
-    setSelectedAttributes(variant.attributes);
+    setSelectedAttributes(variant.attributes as Record<string, string>);
     setOpen(true);
   };
   
@@ -273,7 +273,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                 {Array.isArray(variantPrices) && variantPrices.map((variant) => (
                   <TableRow key={variant.id}>
                     <TableCell>
-                      {Object.entries(variant.attributes).map(([key, value]) => (
+                      {variant.attributes && Object.entries(variant.attributes).map(([key, value]) => (
                         <div key={key}>
                           <Badge className="mr-1">{key}:</Badge>
                           {value}

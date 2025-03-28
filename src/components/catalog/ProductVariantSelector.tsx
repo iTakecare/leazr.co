@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -10,7 +11,7 @@ import { Product, ProductAttributes } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Package } from "lucide-react";
 import { findVariantByAttributes } from "@/services/catalogService";
-import { findVariantCombinationPrice } from "@/services/variantService";
+import { findVariantCombinationPrice } from "@/services/variantPriceService";
 import VariantSelector from "@/components/product-detail/VariantSelector";
 import ProductPriceDisplay from "@/components/product-detail/ProductPriceDisplay";
 import ProductImageDisplay from "@/components/product-detail/ProductImageDisplay";
@@ -61,10 +62,14 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       }
 
       try {
-        const selectedAttrs: ProductAttributes = selectedOptions;
+        // Create a Record<string, string> for the variant combinations
+        const stringAttributes: Record<string, string> = {};
+        Object.entries(selectedOptions).forEach(([key, value]) => {
+          stringAttributes[key] = value;
+        });
 
         if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-          const price = await findVariantCombinationPrice(product.id, selectedAttrs);
+          const price = await findVariantCombinationPrice(product.id, stringAttributes);
           if (price) {
             setCurrentPrice(price.monthly_price || price.price);
             
@@ -72,7 +77,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
               ...product,
               price: price.price,
               monthly_price: price.monthly_price || 0,
-              selected_attributes: selectedAttrs,
+              selected_attributes: selectedOptions as ProductAttributes,
             };
             
             setSelectedVariant(variant);
@@ -80,7 +85,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
           }
         }
         
-        const variant = await findVariantByAttributes(product.id, selectedAttrs);
+        const variant = await findVariantByAttributes(product.id, selectedOptions as ProductAttributes);
         if (variant) {
           setCurrentPrice(variant.monthly_price);
           setSelectedVariant(variant);
