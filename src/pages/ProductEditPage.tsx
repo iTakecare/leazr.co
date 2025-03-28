@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,12 +9,70 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { Product } from "@/types/catalog";
+import {
+  ArrowLeft,
+  Loader2,
+  Info,
+  ImageIcon,
+  Layers,
+  Copy,
+  Trash2,
+  Save,
+  X,
+  Plus,
+  Upload
+} from "lucide-react";
 import { 
   Tabs, 
   TabsContent, 
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+
+// Let's also create a simple ProductVariantManager component that we can replace later with a proper implementation
+const ProductVariantManager = ({ product, onVariantAdded }: { product: Product, onVariantAdded?: () => void }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Gestion des variantes</CardTitle>
+        <CardDescription>
+          Cette fonctionnalité est en cours de développement. Vous pourrez bientôt gérer les variantes de produits ici.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="p-4 border border-dashed rounded-md text-center text-muted-foreground">
+          Configuration des variantes à venir...
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button 
+          variant="outline" 
+          className="w-full"
+          onClick={() => onVariantAdded && onVariantAdded()}
+        >
+          Cette fonctionnalité sera bientôt disponible
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
 
 const productCategories = [
   "laptop",
