@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
@@ -28,6 +28,8 @@ const getCO2Savings = (category: string | undefined): number => {
 };
 
 const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  
   if (product.is_variation || product.parent_id) {
     return null;
   }
@@ -74,7 +76,20 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   
   const monthlyPrice = getMinimumMonthlyPrice();
   const hasPrice = monthlyPrice > 0;
-  const imageUrl = product.image_url || product.imageUrl || "/placeholder.svg";
+  
+  const getProductImage = (): string => {
+    if (product?.image_url) {
+      return product.image_url;
+    }
+    
+    if (product?.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
+      return product.image_urls[0];
+    }
+    
+    return "/placeholder.svg";
+  };
+  
+  const imageUrl = getProductImage();
   
   const getCategoryLabel = (category: string | undefined) => {
     if (!category) return "Autre";
@@ -129,6 +144,10 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const variantsCount = hasVariantsFlag ? countExistingVariants() : 0;
   
   const co2Savings = getCO2Savings(product.category);
+  
+  const handleImageLoad = () => {
+    setIsLoading(false);
+  };
 
   return (
     <Card 
@@ -136,12 +155,20 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       onClick={onClick}
     >
       <div className="relative pt-[100%] bg-white">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+          </div>
+        )}
         <img 
           src={imageUrl} 
           alt={product.name} 
           className="absolute inset-0 object-contain w-full h-full p-5"
+          onLoad={handleImageLoad}
           onError={(e) => {
+            setIsLoading(false);
             (e.target as HTMLImageElement).src = "/placeholder.svg";
+            console.error(`Error loading image for product ${product.name}:`, imageUrl);
           }}
         />
         

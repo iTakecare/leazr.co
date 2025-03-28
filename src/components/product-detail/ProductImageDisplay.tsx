@@ -23,11 +23,14 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   const [hasError, setHasError] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   
+  console.log("ProductImageDisplay - Available images:", allImages);
+  
   // Set the first image as the selected image on component mount
   useEffect(() => {
     if (allImages.length > 0) {
       setSelectedImage(allImages[0]);
       setCurrentIndex(0);
+      console.log("ProductImageDisplay - Setting initial image:", allImages[0]);
     }
   }, [allImages]);
   
@@ -38,25 +41,30 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       img.src = allImages[0];
       img.onload = () => {
         setIsLoading(false);
+        console.log("ProductImageDisplay - Image loaded successfully:", allImages[0]);
       };
       img.onerror = () => {
         setIsLoading(false);
         setHasError(true);
+        console.error("ProductImageDisplay - Failed to load image:", allImages[0]);
       };
     }
   }, [allImages]);
 
   const handleImageLoad = () => {
     setIsLoading(false);
+    console.log("ProductImageDisplay - Image loaded:", selectedImage);
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setIsLoading(false);
     setHasError(true);
+    console.error("ProductImageDisplay - Error loading image:", selectedImage);
     (e.target as HTMLImageElement).src = "/placeholder.svg";
   };
   
   const handleThumbnailClick = (url: string, index: number) => {
+    console.log("ProductImageDisplay - Thumbnail clicked:", url);
     setSelectedImage(url);
     setCurrentIndex(index);
     setIsLoading(true);
@@ -72,10 +80,20 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       newIndex = currentIndex < allImages.length - 1 ? currentIndex + 1 : 0;
     }
     
+    console.log(`ProductImageDisplay - Navigating ${direction} to image at index ${newIndex}:`, allImages[newIndex]);
     setCurrentIndex(newIndex);
     setSelectedImage(allImages[newIndex]);
     setIsLoading(true);
     setHasError(false);
+  };
+
+  // Add a timestamp to image URLs to prevent caching issues
+  const addTimestamp = (url: string): string => {
+    if (!url) return "/placeholder.svg";
+    
+    // Add a timestamp query parameter to prevent caching
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${new Date().getTime()}`;
   };
 
   return (
@@ -92,7 +110,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
               onClick={() => handleThumbnailClick(url, index)}
             >
               <img 
-                src={url} 
+                src={addTimestamp(url)} 
                 alt={`${altText} - image ${index + 1}`}
                 className="w-full h-full object-cover object-center"
                 onError={(e) => {
@@ -117,7 +135,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
               </div>
             )}
             <img 
-              src={selectedImage} 
+              src={addTimestamp(selectedImage)} 
               alt={altText}
               className={`max-w-full max-h-full object-contain transition-all duration-300 
                 ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
