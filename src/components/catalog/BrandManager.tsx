@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +32,11 @@ interface BrandWithTranslation {
   translation: string;
 }
 
+interface BrandData {
+  name: string;
+  translation: string;
+}
+
 const BrandManager: React.FC = () => {
   const queryClient = useQueryClient();
   const [newBrandName, setNewBrandName] = useState("");
@@ -41,12 +45,12 @@ const BrandManager: React.FC = () => {
   const [editValues, setEditValues] = useState<Record<string, { name: string, translation: string }>>({});
 
   // Fetch brands from the database
-  const { data: brands = [], isLoading } = useQuery({
+  const { data: brandsData = [], isLoading } = useQuery({
     queryKey: ["brands"],
     queryFn: getBrands,
   });
 
-  const brandList: BrandWithTranslation[] = brands.map((brand: any) => ({
+  const brandList: BrandWithTranslation[] = (brandsData as BrandData[]).map((brand) => ({
     key: brand.name.toLowerCase(),
     name: brand.name,
     translation: brand.translation

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +32,11 @@ interface CategoryWithTranslation {
   translation: string;
 }
 
+interface CategoryData {
+  name: string;
+  translation: string;
+}
+
 const CategoryManager: React.FC = () => {
   const queryClient = useQueryClient();
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -41,12 +45,12 @@ const CategoryManager: React.FC = () => {
   const [editValues, setEditValues] = useState<Record<string, { name: string, translation: string }>>({});
 
   // Fetch categories from the database
-  const { data: categories = [], isLoading } = useQuery({
+  const { data: categoriesData = [], isLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: getCategories,
   });
 
-  const categoryList: CategoryWithTranslation[] = categories.map((category: any) => ({
+  const categoryList: CategoryWithTranslation[] = (categoriesData as CategoryData[]).map((category) => ({
     key: category.name.toLowerCase(),
     name: category.name,
     translation: category.translation

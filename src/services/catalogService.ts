@@ -460,6 +460,22 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     const fileName = `${productId}${isMainImage ? '-main' : `-${Date.now()}`}.${fileExt}`;
     const filePath = `product-images/${fileName}`;
 
+    // Check if bucket exists and create it if it doesn't
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(bucket => bucket.name === 'products');
+    
+    if (!bucketExists) {
+      console.log("Bucket 'products' not found, creating it...");
+      const { error: createBucketError } = await supabase.storage.createBucket('products', {
+        public: true
+      });
+      
+      if (createBucketError) {
+        console.error("Error creating 'products' bucket:", createBucketError);
+        throw new Error("Failed to create storage bucket: " + createBucketError.message);
+      }
+    }
+
     const { error: uploadError } = await supabase.storage
       .from('products')
       .upload(filePath, file);
