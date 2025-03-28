@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -11,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Euro, Trash2, Plus, Package2, Tag, Edit, Grid, Pencil } from "lucide-react";
+import { Euro, Trash2, Plus, Package2, Tag, Edit, Grid, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -70,46 +71,42 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   
   const queryClient = useQueryClient();
   
-  const { data: variantPrices, isLoading, isError, error } = useQuery(
-    ["variantPrices", product.id],
-    () => getVariantCombinationPrices(product.id)
-  );
+  const { data: variantPrices, isLoading, isError, error } = useQuery({
+    queryKey: ["variantPrices", product.id],
+    queryFn: () => getVariantCombinationPrices(product.id)
+  });
   
-  const { mutate: createPriceMutation, isLoading: isCreateLoading } = useMutation(
-    createVariantCombinationPrice,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["variantPrices", product.id] });
-        queryClient.invalidateQueries({ queryKey: ["product", product.id] });
-        setOpen(false);
-        setNewPrice("");
-        setNewMonthlyPrice("");
-        setNewStock("");
-        setSelectedAttributes({});
-        toast.success("Prix de la variante ajouté avec succès!");
-        if (onPriceAdded) onPriceAdded();
-      },
-      onError: (error: any) => {
-        toast.error(`Erreur lors de l'ajout du prix de la variante: ${error.message || "Unknown error"}`);
-      },
-    }
-  );
+  const createPriceMutation = useMutation({
+    mutationFn: createVariantCombinationPrice,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["variantPrices", product.id] });
+      queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+      setOpen(false);
+      setNewPrice("");
+      setNewMonthlyPrice("");
+      setNewStock("");
+      setSelectedAttributes({});
+      toast.success("Prix de la variante ajouté avec succès!");
+      if (onPriceAdded) onPriceAdded();
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur lors de l'ajout du prix de la variante: ${error.message || "Unknown error"}`);
+    },
+  });
   
-  const { mutate: deletePriceMutation, isLoading: isDeleteLoading } = useMutation(
-    deleteVariantCombinationPrice,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["variantPrices", product.id] });
-        queryClient.invalidateQueries({ queryKey: ["product", product.id] });
-        setIsDeleteAlertOpen(false);
-        setSelectedVariantId(null);
-        toast.success("Prix de la variante supprimé avec succès!");
-      },
-      onError: (error: any) => {
-        toast.error(`Erreur lors de la suppression du prix de la variante: ${error.message || "Unknown error"}`);
-      },
-    }
-  );
+  const deletePriceMutation = useMutation({
+    mutationFn: deleteVariantCombinationPrice,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["variantPrices", product.id] });
+      queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+      setIsDeleteAlertOpen(false);
+      setSelectedVariantId(null);
+      toast.success("Prix de la variante supprimé avec succès!");
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur lors de la suppression du prix de la variante: ${error.message || "Unknown error"}`);
+    },
+  });
   
   const handleOpenChange = () => {
     setOpen(!open);
@@ -153,7 +150,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
       stock: stock
     };
     
-    createPriceMutation(variantPriceData);
+    createPriceMutation.mutate(variantPriceData);
   };
   
   const handleDeleteVariant = (variantId: string) => {
@@ -163,7 +160,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   
   const confirmDeleteVariant = () => {
     if (selectedVariantId) {
-      deletePriceMutation(selectedVariantId);
+      deletePriceMutation.mutate(selectedVariantId);
     }
   };
   
@@ -273,7 +270,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {variantPrices.map((variant) => (
+                {Array.isArray(variantPrices) && variantPrices.map((variant) => (
                   <TableRow key={variant.id}>
                     <TableCell>
                       {Object.entries(variant.attributes).map(([key, value]) => (
@@ -326,12 +323,18 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
             {product.variation_attributes && Object.entries(product.variation_attributes).map(([attributeName, attributeValues]) => (
               <div key={attributeName}>
                 <Label>{attributeName}</Label>
-                <VariantAttributeSelector
-                  attributeName={attributeName}
-                  attributeOptions={getAttributeOptions(attributeName)}
-                  selectedAttribute={selectedAttributes[attributeName] as string}
-                  onAttributeSelect={handleAttributeSelect}
-                />
+                <div className="mt-2">
+                  <select
+                    className="w-full p-2 border rounded"
+                    value={selectedAttributes[attributeName] as string || ''}
+                    onChange={(e) => handleAttributeSelect(attributeName, e.target.value)}
+                  >
+                    <option value="">Sélectionnez une valeur</option>
+                    {attributeValues.map((value) => (
+                      <option key={value} value={value}>{value}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             ))}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -368,8 +371,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
             <Button type="button" variant="secondary" onClick={handleOpenChange}>
               Annuler
             </Button>
-            <Button type="submit" onClick={isEditing ? handleUpdatePrice : handlePriceSubmit} disabled={isCreateLoading}>
-              {isCreateLoading ? (
+            <Button type="submit" onClick={isEditing ? handleUpdatePrice : handlePriceSubmit} disabled={createPriceMutation.isPending}>
+              {createPriceMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Enregistrement...
@@ -393,8 +396,8 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setSelectedVariantId(null)}>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteVariant} disabled={isDeleteLoading}>
-              {isDeleteLoading ? (
+            <AlertDialogAction onClick={confirmDeleteVariant} disabled={deletePriceMutation.isPending}>
+              {deletePriceMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Suppression...

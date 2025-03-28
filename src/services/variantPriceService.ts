@@ -1,11 +1,10 @@
-import { ProductVariationAttributes } from "@/types/catalog";
 
 /**
  * Updates the variation attributes of a product
  */
 export const updateProductVariationAttributes = async (
   productId: string, 
-  attributes: ProductVariationAttributes
+  attributes: Record<string, string[]>
 ): Promise<void> => {
   try {
     const { supabase } = await import('@/integrations/supabase/client');

@@ -1,42 +1,38 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Product, ProductAttributes } from "@/types/catalog";
+import { Product } from "@/types/catalog";
 
 /**
  * Récupère tous les produits avec leurs variantes et prix de variantes
  */
-export const getProducts = async (): Promise<Product[]> => {
+export const getProducts = async () => {
   try {
     // Récupérer tous les produits
     const { data: productsData, error: productsError } = await supabase
       .from("products")
       .select("*")
       .order("created_at", { ascending: false });
-
+    
     if (productsError) throw productsError;
-
+    
     // Récupérer tous les prix de variantes
     const { data: variantPricesData, error: variantPricesError } = await supabase
       .from("product_variant_prices")
       .select("*");
-
+    
     if (variantPricesError) throw variantPricesError;
-
+    
     // Associer les prix de variantes aux produits correspondants
-    const productsWithVariants = productsData.map(product => {
+    const productsWithVariants = productsData.map((product) => {
       // Filtrer les prix de variantes pour ce produit
-      const productVariantPrices = variantPricesData.filter(
-        price => price.product_id === product.id
-      );
-
+      const productVariantPrices = variantPricesData.filter((price) => price.product_id === product.id);
       console.log(`Product ${product.name}: Found ${productVariantPrices.length} variant prices`);
-
+      
       // Déterminer si c'est un produit parent
-      const isParent = 
-        product.is_parent || 
-        productVariantPrices.length > 0 || 
-        (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
-
+      const isParent = product.is_parent || 
+                       productVariantPrices.length > 0 || 
+                       (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
+      
       return {
         ...product,
         variant_combination_prices: productVariantPrices,
@@ -45,7 +41,7 @@ export const getProducts = async (): Promise<Product[]> => {
         updatedAt: product.updated_at
       };
     });
-
+    
     return productsWithVariants;
   } catch (error) {
     console.error("Erreur lors de la récupération des produits:", error);
@@ -56,10 +52,8 @@ export const getProducts = async (): Promise<Product[]> => {
 /**
  * Récupère un produit par son ID avec ses variantes et prix
  */
-export const getProductById = async (id: string): Promise<Product> => {
+export const getProductById = async (id: string) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -71,7 +65,21 @@ export const getProductById = async (id: string): Promise<Product> => {
       throw new Error(error.message);
     }
     
-    return data as Product;
+    // Now fetch variant prices for this product
+    const { data: variantPrices, error: variantError } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', id);
+    
+    if (variantError) {
+      console.error('Error fetching variant prices:', variantError);
+    }
+    
+    // Add variant prices to the product
+    return {
+      ...data,
+      variant_combination_prices: variantPrices || []
+    };
   } catch (error) {
     console.error('Error in getProductById:', error);
     throw error;
@@ -81,26 +89,23 @@ export const getProductById = async (id: string): Promise<Product> => {
 /**
  * Recherche une variante compatible avec les attributs sélectionnés
  */
-export const findVariantByAttributes = async (
-  productId: string,
-  selectedAttributes: ProductAttributes
-): Promise<Product | null> => {
+export const findVariantByAttributes = async (productId: string, selectedAttributes: Record<string, string>) => {
   try {
     const { data: product } = await supabase
       .from("products")
       .select("*")
       .eq("id", productId)
       .single();
-
+    
     // Vérifier les prix de variantes
     const { data: variantPrices } = await supabase
       .from("product_variant_prices")
       .select("*")
       .eq("product_id", productId);
-
+    
     if (variantPrices && variantPrices.length > 0) {
       // Chercher une combinaison qui correspond exactement aux attributs sélectionnés
-      const matchingPrice = variantPrices.find(price => {
+      const matchingPrice = variantPrices.find((price) => {
         if (!price.attributes) return false;
         
         // Vérifier que tous les attributs sélectionnés correspondent
@@ -109,7 +114,7 @@ export const findVariantByAttributes = async (
           String(price.attributes[key]).toLowerCase() === String(value).toLowerCase()
         );
       });
-
+      
       if (matchingPrice) {
         // Créer un produit avec les informations de prix
         return {
@@ -120,29 +125,29 @@ export const findVariantByAttributes = async (
         };
       }
     }
-
+    
     // Chercher des variantes produits
     const { data: variants } = await supabase
       .from("products")
       .select("*")
       .eq("parent_id", productId);
-
+    
     if (variants && variants.length > 0) {
       // Chercher une variante qui correspond aux attributs sélectionnés
-      const matchingVariant = variants.find(variant => {
+      const matchingVariant = variants.find((variant) => {
         if (!variant.attributes) return false;
         
         return Object.entries(selectedAttributes).every(([key, value]) => 
-          variant.attributes[key] !== undefined &&
+          variant.attributes[key] !== undefined && 
           String(variant.attributes[key]).toLowerCase() === String(value).toLowerCase()
         );
       });
-
+      
       if (matchingVariant) {
         return matchingVariant;
       }
     }
-
+    
     return null;
   } catch (error) {
     console.error("Erreur lors de la recherche de variante:", error);
@@ -155,8 +160,6 @@ export const findVariantByAttributes = async (
  */
 export const getCategories = async () => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { data, error } = await supabase
       .from('categories')
       .select('*')
@@ -179,8 +182,6 @@ export const getCategories = async () => {
  */
 export const getBrands = async () => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { data, error } = await supabase
       .from('brands')
       .select('*')
@@ -201,10 +202,8 @@ export const getBrands = async () => {
 /**
  * Ajoute une nouvelle catégorie
  */
-export const addCategory = async (category: { name: string, translation: string }) => {
+export const addCategory = async (category: { name: string; translation: string }) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { data, error } = await supabase
       .from('categories')
       .insert(category)
@@ -226,10 +225,8 @@ export const addCategory = async (category: { name: string, translation: string 
 /**
  * Met à jour une catégorie existante
  */
-export const updateCategory = async ({ originalName, name, translation }: { originalName: string, name: string, translation: string }) => {
+export const updateCategory = async ({ originalName, name, translation }: { originalName: string; name: string; translation: string }) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { data, error } = await supabase
       .from('categories')
       .update({ name, translation })
@@ -254,8 +251,6 @@ export const updateCategory = async ({ originalName, name, translation }: { orig
  */
 export const deleteCategory = async ({ name }: { name: string }) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { error } = await supabase
       .from('categories')
       .delete()
@@ -276,10 +271,8 @@ export const deleteCategory = async ({ name }: { name: string }) => {
 /**
  * Ajoute une nouvelle marque
  */
-export const addBrand = async (brand: { name: string, translation: string }) => {
+export const addBrand = async (brand: { name: string; translation: string }) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { data, error } = await supabase
       .from('brands')
       .insert(brand)
@@ -301,10 +294,8 @@ export const addBrand = async (brand: { name: string, translation: string }) => 
 /**
  * Met à jour une marque existante
  */
-export const updateBrand = async ({ originalName, name, translation }: { originalName: string, name: string, translation: string }) => {
+export const updateBrand = async ({ originalName, name, translation }: { originalName: string; name: string; translation: string }) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { data, error } = await supabase
       .from('brands')
       .update({ name, translation })
@@ -329,8 +320,6 @@ export const updateBrand = async ({ originalName, name, translation }: { origina
  */
 export const deleteBrand = async ({ name }: { name: string }) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { error } = await supabase
       .from('brands')
       .delete()
@@ -351,7 +340,7 @@ export const deleteBrand = async ({ name }: { name: string }) => {
 /**
  * Ajoute un nouveau produit
  */
-export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
+export const addProduct = async (product: Partial<Product>) => {
   try {
     // Transformation des propriétés pour correspondre au schéma de la table
     const productData = {
@@ -370,13 +359,13 @@ export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'up
       specifications: product.specifications || {},
       attributes: product.attributes || {}
     };
-
+    
     const { data, error } = await supabase
       .from("products")
       .insert([productData])
       .select()
       .single();
-
+    
     if (error) throw error;
     
     return {
@@ -393,10 +382,8 @@ export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'up
 /**
  * Met à jour un produit existant
  */
-export const updateProduct = async (id: string, product: Partial<Product>): Promise<Product> => {
+export const updateProduct = async (id: string, product: Partial<Product>) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const { data, error } = await supabase
       .from('products')
       .update(product)
@@ -409,7 +396,7 @@ export const updateProduct = async (id: string, product: Partial<Product>): Prom
       throw new Error(error.message);
     }
     
-    return data as Product;
+    return data;
   } catch (error) {
     console.error('Error in updateProduct:', error);
     throw error;
@@ -419,25 +406,26 @@ export const updateProduct = async (id: string, product: Partial<Product>): Prom
 /**
  * Supprime un produit
  */
-export const deleteProduct = async (id: string): Promise<boolean> => {
+export const deleteProduct = async (id: string) => {
   try {
     // D'abord supprimer les prix de variantes associés
     const { error: variantPricesError } = await supabase
       .from("product_variant_prices")
       .delete()
       .eq("product_id", id);
-
+    
     if (variantPricesError) {
       console.error("Erreur lors de la suppression des prix de variantes:", variantPricesError);
     }
-
+    
     // Ensuite supprimer le produit
     const { error } = await supabase
       .from("products")
       .delete()
       .eq("id", id);
-
+    
     if (error) throw error;
+    
     return true;
   } catch (error) {
     console.error("Erreur lors de la suppression du produit:", error);
@@ -448,7 +436,7 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
 /**
  * Télécharge une image pour un produit
  */
-export const uploadProductImage = async (file: File, productId: string, isMainImage: boolean = false): Promise<string> => {
+export const uploadProductImage = async (file: File, productId: string, isMainImage = false) => {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
     
@@ -456,25 +444,12 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     const fileExt = file.name.split('.').pop();
     const fileName = `${productId}${isMainImage ? '-main' : `-${Date.now()}`}.${fileExt}`;
     const filePath = `product-images/${fileName}`;
-
-    // Check if bucket exists and create it if it doesn't
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const bucketExists = buckets?.some(bucket => bucket.name === 'products');
     
-    if (!bucketExists) {
-      console.log("Bucket 'products' not found, creating it...");
-      const { error: createBucketError } = await supabase.storage.createBucket('products', {
-        public: true
-      });
-      
-      if (createBucketError) {
-        console.error("Error creating 'products' bucket:", createBucketError);
-        throw new Error("Failed to create storage bucket: " + createBucketError.message);
-      }
-    }
-
+    // Check if bucket exists - we know it already exists from your information
+    console.log(`Uploading image to path: ${filePath} in product-images bucket`);
+    
     const { error: uploadError } = await supabase.storage
-      .from('products')
+      .from('product-images')
       .upload(filePath, file);
     
     if (uploadError) {
@@ -484,19 +459,17 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     
     // Get public URL
     const { data: publicURL } = supabase.storage
-      .from('products')
+      .from('product-images')
       .getPublicUrl(filePath);
     
     // Update product with image URL
     if (isMainImage) {
-      await supabase
-        .from('products')
-        .update({ image_url: publicURL.publicUrl })
-        .eq('id', productId);
+      await supabase.from('products').update({
+        image_url: publicURL.publicUrl
+      }).eq('id', productId);
     } else {
       // Get current image_urls array
-      const { data: product } = await supabase
-        .from('products')
+      const { data: product } = await supabase.from('products')
         .select('image_urls')
         .eq('id', productId)
         .single();
@@ -507,10 +480,9 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       }
       
       // Add new URL and update
-      await supabase
-        .from('products')
-        .update({ image_urls: [...imageUrls, publicURL.publicUrl] })
-        .eq('id', productId);
+      await supabase.from('products').update({
+        image_urls: [...imageUrls, publicURL.publicUrl]
+      }).eq('id', productId);
     }
     
     return publicURL.publicUrl;
@@ -523,7 +495,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
 /**
  * Convertit un produit normal en produit parent (avec variantes)
  */
-export const convertProductToParent = async (id: string, variationAttributes: any = {}): Promise<Product> => {
+export const convertProductToParent = async (id: string, variationAttributes = {}) => {
   try {
     const { data, error } = await supabase
       .from("products")
@@ -534,7 +506,7 @@ export const convertProductToParent = async (id: string, variationAttributes: an
       .eq("id", id)
       .select()
       .single();
-
+    
     if (error) throw error;
     
     return {

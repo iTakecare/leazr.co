@@ -25,7 +25,7 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
   });
 
   const { data: variantPrice, isLoading, isError, error } = useQuery({
-    queryKey: ["variantPrice", productId, stringAttributes],
+    queryKey: ["variantPrice", productId, JSON.stringify(stringAttributes)],
     queryFn: () => findVariantCombinationPrice(productId, stringAttributes),
     enabled: !!productId && Object.keys(selectedAttributes).length > 0,
   });
@@ -33,10 +33,10 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
   useEffect(() => {
     if (variantPrice) {
       setVariant({
-        ...variantPrice as unknown as Product,
-        price: (variantPrice as any).price,
-        monthly_price: (variantPrice as any).monthly_price,
-      } as Product);
+        ...variantPrice as Product,
+        price: variantPrice.price,
+        monthly_price: variantPrice.monthly_price,
+      });
     } else {
       setVariant(null);
     }
