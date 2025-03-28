@@ -13,15 +13,23 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   // Get the best available image URL
   const getProductImage = (): string => {
     // If there's a direct image_url, use that first
-    if (product?.image_url) {
+    if (product?.image_url && typeof product.image_url === 'string' && product.image_url.trim() !== '') {
       return product.image_url;
     }
     
-    // If there are image_urls array and it has at least one item, use the first
+    // If there are image_urls array and it has at least one item, use the first valid one
     if (product?.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
-      const firstValidImage = product.image_urls.find(url => url && typeof url === 'string' && url.trim() !== '');
-      if (firstValidImage) {
-        return firstValidImage;
+      // Filter to ensure we have valid URLs (not empty strings, not placeholder.svg, not .emptyFolderPlaceholder)
+      const validImages = product.image_urls.filter(url => 
+        url && 
+        typeof url === 'string' && 
+        url.trim() !== '' && 
+        !url.includes('.emptyFolderPlaceholder') &&
+        url !== '/placeholder.svg'
+      );
+      
+      if (validImages.length > 0) {
+        return validImages[0];
       }
     }
     
@@ -34,6 +42,8 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   // Add timestamp to prevent caching issues
   const getImageWithTimestamp = (url: string): string => {
     if (!url || url === "/placeholder.svg") return "/placeholder.svg";
+    
+    // Only add timestamp to real image URLs, not to placeholders
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}t=${new Date().getTime()}`;
   };

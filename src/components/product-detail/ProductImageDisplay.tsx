@@ -13,10 +13,47 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   altText,
   imageUrls = []
 }) => {
-  // Use imageUrl as the default, then add any additional images from imageUrls
-  const allImages = [imageUrl, ...(imageUrls || [])].filter(
-    (url, index, self) => url && typeof url === 'string' && url.trim() !== '' && self.indexOf(url) === index // Deduplicate
-  );
+  // Filter valid images and deduplicate them
+  const filterValidImages = (urls: string[]): string[] => {
+    const validUrls = new Set<string>();
+    
+    // Add main image if valid
+    if (isValidImageUrl(imageUrl)) {
+      validUrls.add(imageUrl);
+    }
+    
+    // Add additional images if valid
+    if (Array.isArray(urls)) {
+      urls.forEach(url => {
+        if (isValidImageUrl(url)) {
+          validUrls.add(url);
+        }
+      });
+    }
+    
+    return Array.from(validUrls);
+  };
+  
+  // Helper function to check if an image URL is valid
+  const isValidImageUrl = (url: string | null | undefined): boolean => {
+    if (!url || typeof url !== 'string' || url.trim() === '') {
+      return false;
+    }
+    
+    if (url === '/placeholder.svg') {
+      return false;
+    }
+    
+    // Exclude placeholder or hidden files
+    if (url.includes('.emptyFolderPlaceholder') || url.split('/').pop()?.startsWith('.')) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Use imageUrl as the default, then add any additional valid images from imageUrls
+  const allImages = filterValidImages([imageUrl, ...(imageUrls || [])]);
 
   const [selectedImage, setSelectedImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -72,6 +109,8 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   };
 
   const navigateImage = (direction: 'prev' | 'next') => {
+    if (allImages.length <= 1) return;
+    
     let newIndex = currentIndex;
     
     if (direction === 'prev') {
@@ -95,6 +134,28 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}t=${new Date().getTime()}`;
   };
+
+  // If no valid images, show a placeholder
+  if (allImages.length === 0) {
+    return (
+      <div className="flex flex-col-reverse md:flex-row md:gap-4">
+        <div className="flex-1 relative">
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden transition-all hover:shadow-md relative group">
+            <div className="relative w-full aspect-square sm:aspect-[4/3] md:aspect-[3/2] flex items-center justify-center p-4">
+              <img 
+                src="/placeholder.svg"
+                alt={altText}
+                className="max-w-full max-h-full object-contain"
+              />
+              <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded">
+                Image non disponible
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col-reverse md:flex-row md:gap-4">

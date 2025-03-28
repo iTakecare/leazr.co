@@ -78,12 +78,24 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const hasPrice = monthlyPrice > 0;
   
   const getProductImage = (): string => {
-    if (product?.image_url) {
+    if (product?.image_url && typeof product.image_url === 'string' && 
+        product.image_url.trim() !== '' && 
+        !product.image_url.includes('.emptyFolderPlaceholder')) {
       return product.image_url;
     }
     
     if (product?.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
-      return product.image_urls[0];
+      const validImages = product.image_urls.filter(url => 
+        url && 
+        typeof url === 'string' && 
+        url.trim() !== '' && 
+        !url.includes('.emptyFolderPlaceholder') &&
+        url !== '/placeholder.svg'
+      );
+      
+      if (validImages.length > 0) {
+        return validImages[0];
+      }
     }
     
     return "/placeholder.svg";

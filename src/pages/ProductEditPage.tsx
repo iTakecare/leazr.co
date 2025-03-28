@@ -177,15 +177,31 @@ const ProductEditPage = () => {
           if (id) {
             const { mainImage, additionalImages } = await fetchProductImages(id);
             
-            if (mainImage) {
-              setImagePreview(mainImage);
-              const allImages = [mainImage, ...additionalImages];
-              setImagePreviews(allImages.slice(0, 5));
-              console.log("Images chargées:", { mainImage, additionalImages, allImages });
+            const validMainImage = mainImage && 
+              typeof mainImage === 'string' && 
+              mainImage.trim() !== '' && 
+              !mainImage.includes('.emptyFolderPlaceholder') && 
+              mainImage !== '/placeholder.svg'
+                ? mainImage : null;
+                
+            const validAdditionalImages = (additionalImages || []).filter(url => 
+              url && 
+              typeof url === 'string' && 
+              url.trim() !== '' && 
+              !url.includes('.emptyFolderPlaceholder') &&
+              url !== '/placeholder.svg'
+            );
+            
+            if (validMainImage) {
+              setImagePreview(validMainImage);
+              const allImages = [validMainImage, ...validAdditionalImages];
+              const uniqueImages = [...new Set(allImages)];
+              setImagePreviews(uniqueImages.slice(0, 5));
+              console.log("Images chargées:", { mainImage: validMainImage, additionalImages: validAdditionalImages, allImages: uniqueImages });
             } else {
               setImagePreview(null);
               setImagePreviews([]);
-              console.log("Aucune image trouvée pour ce produit");
+              console.log("Aucune image valide trouvée pour ce produit");
             }
           }
         } catch (error) {

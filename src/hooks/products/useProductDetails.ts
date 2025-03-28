@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { Product, ProductVariationAttributes } from '@/types/catalog';
@@ -46,9 +45,19 @@ export function useProductDetails(productId: string | null) {
     setLoading(false);
     setError(null);
     
-    // Set the current image
-    if (data.image_url) {
+    // Set the current image - only set valid images, not placeholders
+    if (data.image_url && typeof data.image_url === 'string' && data.image_url.trim() !== '' && 
+        !data.image_url.includes('.emptyFolderPlaceholder') && data.image_url !== '/placeholder.svg') {
       setCurrentImage(data.image_url);
+    } else if (data.image_urls && Array.isArray(data.image_urls) && data.image_urls.length > 0) {
+      const validImages = data.image_urls.filter(url => 
+        url && typeof url === 'string' && url.trim() !== '' && 
+        !url.includes('.emptyFolderPlaceholder') && url !== '/placeholder.svg'
+      );
+      
+      if (validImages.length > 0) {
+        setCurrentImage(validImages[0]);
+      }
     }
 
     // Check if product has variants
