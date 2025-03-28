@@ -156,6 +156,26 @@ const ProductEditPage = () => {
     enabled: !!id
   });
   
+  const isValidImageUrl = (url: string): boolean => {
+    if (!url || 
+        typeof url !== 'string' || 
+        url.trim() === '' || 
+        url.includes('.emptyFolderPlaceholder') || 
+        url.includes('undefined') ||
+        url === '/placeholder.svg' ||
+        url.endsWith('/')) {
+      return false;
+    }
+    
+    try {
+      new URL(url);
+      return true;
+    } catch (e) {
+      console.error(`Invalid image URL: ${url}`);
+      return false;
+    }
+  };
+  
   useEffect(() => {
     if (product) {
       setFormData({
@@ -176,21 +196,10 @@ const ProductEditPage = () => {
         try {
           if (id) {
             const { mainImage, additionalImages } = await fetchProductImages(id);
+            console.log("Fetched images from service:", { mainImage, additionalImages });
             
-            const validMainImage = mainImage && 
-              typeof mainImage === 'string' && 
-              mainImage.trim() !== '' && 
-              !mainImage.includes('.emptyFolderPlaceholder') && 
-              mainImage !== '/placeholder.svg'
-                ? mainImage : null;
-                
-            const validAdditionalImages = (additionalImages || []).filter(url => 
-              url && 
-              typeof url === 'string' && 
-              url.trim() !== '' && 
-              !url.includes('.emptyFolderPlaceholder') &&
-              url !== '/placeholder.svg'
-            );
+            const validMainImage = isValidImageUrl(mainImage) ? mainImage : null;
+            const validAdditionalImages = (additionalImages || []).filter(url => isValidImageUrl(url));
             
             if (validMainImage) {
               setImagePreview(validMainImage);
@@ -199,9 +208,31 @@ const ProductEditPage = () => {
               setImagePreviews(uniqueImages.slice(0, 5));
               console.log("Images chargées:", { mainImage: validMainImage, additionalImages: validAdditionalImages, allImages: uniqueImages });
             } else {
-              setImagePreview(null);
-              setImagePreviews([]);
-              console.log("Aucune image valide trouvée pour ce produit");
+              const productImages = [];
+              
+              if (isValidImageUrl(product.image_url as string)) {
+                productImages.push(product.image_url as string);
+              }
+              
+              if (product.image_urls && Array.isArray(product.image_urls)) {
+                product.image_urls
+                  .filter(url => isValidImageUrl(url))
+                  .forEach(url => {
+                    if (!productImages.includes(url)) {
+                      productImages.push(url);
+                    }
+                  });
+              }
+              
+              if (productImages.length > 0) {
+                setImagePreview(productImages[0]);
+                setImagePreviews(productImages.slice(0, 5));
+                console.log("Images récupérées depuis l'objet produit:", productImages);
+              } else {
+                setImagePreview(null);
+                setImagePreviews([]);
+                console.log("Aucune image valide trouvée pour ce produit");
+              }
             }
           }
         } catch (error) {
@@ -350,10 +381,7 @@ const ProductEditPage = () => {
       if (imageFiles.length > 0) {
         for (let i = 0; i < imageFiles.length; i++) {
           const file = imageFiles[i];
-          const index = imagePreviews.indexOf(URL.createObjectURL(file));
-          if (index !== -1) {
-            await handleUploadImage(file, index);
-          }
+          await handleUploadImage(file, i);
         }
       }
       
@@ -375,6 +403,17 @@ const ProductEditPage = () => {
     if (id) {
       navigator.clipboard.writeText(id);
       toast.success("ID copié dans le presse-papier");
+    }
+  };
+
+  const addTimestamp = (url: string): string => {
+    if (!url || url === '/placeholder.svg') return "/placeholder.svg";
+    
+    try {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}t=${new Date().getTime()}`;
+    } catch (e) {
+      return "/placeholder.svg";
     }
   };
 
@@ -613,11 +652,12 @@ const ProductEditPage = () => {
                     imagePreviews.map((src, index) => (
                       <div key={index} className="relative rounded-lg overflow-hidden border h-40">
                         <img 
-                          src={src} 
+                          src={addTimestamp(src)}
                           alt={`Preview ${index}`}
                           className="w-full h-full object-contain"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = "/placeholder.svg";
+                            console.error(`Error loading image preview: ${src}`);
                           }}
                         />
                         <button

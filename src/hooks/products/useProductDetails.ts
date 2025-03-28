@@ -29,12 +29,23 @@ export function useProductDetails(productId: string | null) {
     const seenUrls = new Set<string>();
     
     const isValidImage = (url: string): boolean => {
-      return url && 
-        typeof url === 'string' && 
-        url.trim() !== '' && 
-        !url.includes('.emptyFolderPlaceholder') && 
-        !url.includes('undefined') &&
-        url !== '/placeholder.svg';
+      if (!url || 
+          typeof url !== 'string' || 
+          url.trim() === '' || 
+          url.includes('.emptyFolderPlaceholder') || 
+          url.includes('undefined') ||
+          url === '/placeholder.svg' ||
+          url.endsWith('/')) {
+        return false;
+      }
+      
+      try {
+        new URL(url);
+        return true;
+      } catch (e) {
+        console.error(`Invalid image URL: ${url}`);
+        return false;
+      }
     };
     
     if (isValidImage(product.image_url as string)) {
@@ -67,7 +78,7 @@ export function useProductDetails(productId: string | null) {
     
     if (product.images && Array.isArray(product.images)) {
       product.images.forEach(img => {
-        const imgUrl = typeof img === 'string' ? img : (img.src || '');
+        const imgUrl = typeof img === 'string' ? img : (img?.src || '');
         if (isValidImage(imgUrl) && !seenUrls.has(imgUrl)) {
           validImages.push(imgUrl);
           seenUrls.add(imgUrl);
@@ -75,6 +86,7 @@ export function useProductDetails(productId: string | null) {
       });
     }
     
+    console.log("Found valid images:", validImages);
     return validImages;
   };
 

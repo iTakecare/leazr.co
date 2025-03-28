@@ -50,16 +50,24 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     if (
       url.includes('.emptyFolderPlaceholder') || 
       url.split('/').pop()?.startsWith('.') ||
-      url.includes('undefined')
+      url.includes('undefined') ||
+      url.endsWith('/')
     ) {
       return false;
     }
     
-    return true;
+    // Try to validate as URL
+    try {
+      new URL(url);
+      return true;
+    } catch (e) {
+      console.error(`Invalid URL: ${url}`);
+      return false;
+    }
   };
 
   // Use imageUrl as the default, then add any additional valid images from imageUrls
-  const allImages = filterValidImages([...(imageUrls || []), imageUrl]);
+  const allImages = filterValidImages([imageUrl, ...(imageUrls || [])]);
 
   const [selectedImage, setSelectedImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -143,9 +151,13 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   const addTimestamp = (url: string): string => {
     if (!url || url === '/placeholder.svg') return "/placeholder.svg";
     
-    // Add a timestamp query parameter to prevent caching
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${new Date().getTime()}`;
+    try {
+      // Add a timestamp query parameter to prevent caching
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}t=${new Date().getTime()}`;
+    } catch (e) {
+      return "/placeholder.svg";
+    }
   };
 
   // If no valid images, show a placeholder
