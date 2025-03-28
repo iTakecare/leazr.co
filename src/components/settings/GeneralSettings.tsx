@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureStorageBucket } from "@/services/storageService";
-import { uploadImage, detectFileExtension, detectMimeTypeFromSignature } from "@/services/imageService";
+import { uploadImage, detectFileExtension, detectMimeTypeFromSignature } from "@/services/fileUploadService";
 import Logo from "@/components/layout/Logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -289,7 +289,6 @@ const GeneralSettings = () => {
       const detectedMimeType = await detectMimeTypeFromSignature(file);
       console.log(`Type MIME détecté: ${detectedMimeType || 'non détecté, utilisation du type par défaut'}`);
       
-      // Fixed: Pass the file object directly, not a string
       const result = await uploadImage(file, 'site-settings', fileName);
       
       if (!result || !result.url) {
@@ -333,7 +332,6 @@ const GeneralSettings = () => {
       setIsUploading(true);
       
       const file = e.target.files[0];
-      // Fixed: Pass the file object directly, not a string
       const result = await uploadImage(file, 'site-settings', 'logos');
       
       if (result && result.url) {

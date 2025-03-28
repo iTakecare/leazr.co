@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
-import { ensureStorageBucket } from "@/services/storageService";
-import { uploadImage } from "@/services/imageService";
+import { ensureBucket } from "@/services/fileUploadService";
+import { uploadImage } from "@/services/fileUploadService";
 
 interface TemplateImage {
   id: string;
@@ -40,7 +40,7 @@ const PDFModelUploader = ({
       setIsLoadingImages(true);
       
       try {
-        await ensureStorageBucket(BUCKET_NAME);
+        await ensureBucket(BUCKET_NAME);
         
         if (templateImages && Array.isArray(templateImages) && templateImages.length > 0) {
           console.log("Utilisation des images fournies:", templateImages);

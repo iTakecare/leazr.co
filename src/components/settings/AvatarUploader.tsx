@@ -4,7 +4,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { uploadImage } from "@/services/imageService";
+import { uploadImage } from "@/services/fileUploadService";
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 

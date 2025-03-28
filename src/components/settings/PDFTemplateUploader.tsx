@@ -7,7 +7,7 @@ import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
-import { uploadImage } from "@/services/imageService";
+import { uploadImage } from "@/services/fileUploadService";
 
 interface TemplateImage {
   id: string;
