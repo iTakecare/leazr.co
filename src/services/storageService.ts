@@ -1,4 +1,3 @@
-
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -201,7 +200,7 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
     fileName = fileName.split('?')[0]; // Supprimer les paramètres de requête
     
     // Extraire l'extension du fichier
-    const fileExt = fileName.split('.').pop() || '';
+    const fileExt = fileName.split('.').pop()?.toLowerCase() || '';
     const fileNameWithoutExt = fileName.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '-');
     
     // Générer un nom unique pour éviter les collisions
@@ -258,7 +257,8 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
         
         try {
           // Créer un nouveau Blob avec le type MIME correct
-          const correctBlob = new Blob([await blob.arrayBuffer()], { type: contentType });
+          const arrayBuffer = await blob.arrayBuffer();
+          const correctBlob = new Blob([arrayBuffer], { type: contentType });
           
           const result = await supabase
             .storage

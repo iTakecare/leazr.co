@@ -57,6 +57,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
+    console.error(`Failed to load image: ${imageUrl}`);
   };
   
   // Add cache-busting parameter to avoid loading cached incorrect content type
