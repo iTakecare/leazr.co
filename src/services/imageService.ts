@@ -58,24 +58,18 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     const arrayBuffer = await file.arrayBuffer();
     const blob = new Blob([arrayBuffer], { type: mimeType });
     
-    // Upload direct avec fetch pour un meilleur contrôle
-    const url = `${supabase.storageUrl}/object/${bucketName}/${filePath}`;
-    const formData = new FormData();
-    formData.append('file', blob);
+    // Upload direct
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, blob, {
+        contentType: mimeType,
+        upsert: true,
+        cacheControl: '3600'
+      });
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabase.supabaseKey}`,
-        'x-upsert': 'true'
-      },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      console.error('Réponse d\'erreur:', await response.text());
-      toast.error(`Échec de l'upload: ${response.statusText}`);
-      throw new Error(`Échec de l'upload: ${response.status} ${response.statusText}`);
+    if (error) {
+      console.error('Erreur lors de l\'upload:', error);
+      throw error;
     }
     
     // Obtenir l'URL publique
@@ -319,30 +313,22 @@ export const uploadImage = async (
     
     console.log(`Upload vers ${bucketName}/${filePath} avec type: ${mimeType}`);
     
-    // Créer un FormData pour un meilleur contrôle du type de contenu
-    const formData = new FormData();
+    // Créer un blob avec le type MIME explicite
+    const arrayBuffer = await file.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: mimeType });
     
-    // Créer un nouveau Blob avec le type MIME explicite
-    const blob = new Blob([await file.arrayBuffer()], { type: mimeType });
-    formData.append('file', blob, uniqueFileName);
+    // Upload via supabase
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, blob, {
+        contentType: mimeType,
+        upsert: true,
+        cacheControl: '3600'
+      });
     
-    // URL pour l'upload direct
-    const uploadUrl = `${supabase.storageUrl}/object/${bucketName}/${filePath}`;
-    
-    // Upload via fetch pour un meilleur contrôle
-    const response = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabase.supabaseKey}`,
-        'x-upsert': 'true'
-      },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Erreur lors de l'upload (${response.status}): ${errorText}`);
-      throw new Error(`Échec de l'upload: ${response.statusText}`);
+    if (error) {
+      console.error("Erreur lors de l'upload:", error);
+      throw error;
     }
     
     // Obtenir l'URL publique

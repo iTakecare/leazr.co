@@ -107,31 +107,7 @@ const PDFModelUploader = ({
         return null;
       }
       
-      return new Promise<TemplateImage | null>((resolve) => {
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            const imgUrl = e.target.result.toString();
-            resolve({
-              id,
-              name: file.name,
-              url: imgUrl,
-              page: localImages.length
-            });
-          } else {
-            resolve(null);
-          }
-        };
-        
-        reader.onerror = () => {
-          console.error("Erreur lors de la lecture du fichier");
-          toast.error("Erreur lors de la lecture du fichier");
-          resolve(null);
-        };
-        
-        reader.readAsDataURL(file);
-      });
+      return null;
     } catch (error) {
       console.error("Exception non gérée lors de l'upload:", error);
       toast.error(`Erreur lors de l'upload du fichier`);

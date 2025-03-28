@@ -65,10 +65,28 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const imageUrlWithCacheBuster = () => {
     if (imageUrl === "/placeholder.svg") return imageUrl;
     
-    // Add cache buster and content type
-    const timestamp = Date.now();
-    const separator = imageUrl.includes('?') ? '&' : '?';
-    return `${imageUrl}${separator}t=${timestamp}&contentType=image/jpeg`;
+    try {
+      // Add cache buster and content type
+      const timestamp = Date.now();
+      const separator = imageUrl.includes('?') ? '&' : '?';
+      
+      // Detect image format from URL
+      let contentType = 'image/jpeg';
+      if (imageUrl.toLowerCase().endsWith('.webp') || imageUrl.includes('/webp')) {
+        contentType = 'image/webp';
+      } else if (imageUrl.toLowerCase().endsWith('.png') || imageUrl.includes('/png')) {
+        contentType = 'image/png';
+      } else if (imageUrl.toLowerCase().endsWith('.gif') || imageUrl.includes('/gif')) {
+        contentType = 'image/gif';
+      } else if (imageUrl.toLowerCase().endsWith('.svg') || imageUrl.includes('/svg')) {
+        contentType = 'image/svg+xml';
+      }
+      
+      return `${imageUrl}${separator}t=${timestamp}&contentType=${encodeURIComponent(contentType)}`;
+    } catch (e) {
+      console.error("Error formatting image URL:", e);
+      return imageUrl;
+    }
   };
   
   return (
@@ -84,6 +102,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         className="object-contain h-24 w-24"
         onLoad={handleImageLoad}
         onError={handleImageError}
+        style={{ maxWidth: '100%', height: 'auto' }}
       />
       {hasError && (
         <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded">
