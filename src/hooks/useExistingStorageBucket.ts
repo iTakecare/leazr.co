@@ -8,15 +8,18 @@ export const useExistingStorageBucket = (bucketName: string, onSuccess: () => Pr
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasCreationBeenAttempted, setHasCreationBeenAttempted] = useState(false);
+  const [bucketReady, setBucketReady] = useState(false);
   
   useEffect(() => {
     const checkBucket = async () => {
       try {
+        console.log(`Checking bucket: ${bucketName}`);
         setIsLoading(true);
         setError(null);
         
-        // First, try to create/ensure the bucket exists
+        // Try to create/ensure the bucket exists
         if (!hasCreationBeenAttempted) {
+          console.log(`Attempting to create/ensure bucket: ${bucketName}`);
           const bucketCreated = await ensureStorageBucket(bucketName);
           setHasCreationBeenAttempted(true);
           
@@ -26,30 +29,37 @@ export const useExistingStorageBucket = (bucketName: string, onSuccess: () => Pr
             setIsLoading(false);
             return;
           }
+          
+          console.log(`Bucket ${bucketName} is now ready`);
+          setBucketReady(true);
         }
         
-        // Verify bucket access by listing its contents
-        const { error: accessError } = await supabase.storage.from(bucketName).list();
-        
-        if (accessError) {
-          console.error(`Error accessing bucket ${bucketName}:`, accessError);
-          setError(`Error accessing bucket ${bucketName}: ${accessError.message}`);
+        // Double-check bucket access by trying to list contents
+        if (bucketReady || hasCreationBeenAttempted) {
+          console.log(`Verifying bucket access to ${bucketName} by listing contents`);
+          const { error: accessError } = await supabase.storage.from(bucketName).list();
+          
+          if (accessError) {
+            console.error(`Error accessing bucket ${bucketName}:`, accessError);
+            setError(`Error accessing bucket ${bucketName}: ${accessError.message}`);
+            setIsLoading(false);
+            return;
+          }
+          
+          // Bucket exists and is accessible, call success callback
+          console.log(`Bucket ${bucketName} verified, calling success callback`);
+          await onSuccess();
           setIsLoading(false);
-          return;
         }
-        
-        // Bucket exists and is accessible, call success callback
-        await onSuccess();
-        setIsLoading(false);
       } catch (err) {
-        console.error(`Error checking bucket ${bucketName}:`, err);
-        setError(`Error checking bucket ${bucketName}`);
+        console.error(`Unexpected error checking bucket ${bucketName}:`, err);
+        setError(`Unexpected error checking bucket ${bucketName}`);
         setIsLoading(false);
       }
     };
     
     checkBucket();
-  }, [bucketName, onSuccess, hasCreationBeenAttempted]);
+  }, [bucketName, onSuccess, hasCreationBeenAttempted, bucketReady]);
   
   return { error, isLoading };
 };

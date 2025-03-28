@@ -11,6 +11,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
+  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
     // Reset states when product changes
@@ -22,7 +23,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       const url = getBestImageUrl();
       setImageUrl(url);
     }
-  }, [product]);
+  }, [product, retryCount]);
   
   const getBestImageUrl = (): string => {
     if (!product) return "/placeholder.svg";
@@ -31,7 +32,14 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     const isValidUrl = (url: string | null | undefined): boolean => {
       if (!url || typeof url !== 'string' || url.trim() === '') return false;
       if (url === '/placeholder.svg') return false;
-      return true;
+      try {
+        // Basic URL validation
+        new URL(url);
+        return true;
+      } catch (e) {
+        console.warn(`Invalid URL format: ${url}`);
+        return false;
+      }
     };
     
     // First check direct image_url
@@ -59,6 +67,13 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     setIsLoading(false);
     setHasError(true);
     console.error(`Failed to load image: ${imageUrl}`);
+    
+    // Retry with a different cache buster if there's an error
+    if (retryCount < 2) {
+      setTimeout(() => {
+        setRetryCount(count => count + 1);
+      }, 500);
+    }
   };
   
   // Add cache-busting parameter to URL and force content type
@@ -98,8 +113,8 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         contentType = 'image/svg+xml';
       }
       
-      // Add the content type to the URL
-      return `${imageUrl}${separator}t=${timestamp}&contentType=${encodeURIComponent(contentType)}`;
+      // Add the content type to the URL and a retry counter to force cache busting
+      return `${imageUrl}${separator}t=${timestamp}&r=${retryCount}&contentType=${encodeURIComponent(contentType)}`;
     } catch (e) {
       console.error("Error formatting image URL:", e);
       return imageUrl;

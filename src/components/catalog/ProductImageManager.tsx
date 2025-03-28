@@ -10,6 +10,7 @@ import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-r
 import { supabase } from "@/integrations/supabase/client";
 import { useExistingStorageBucket } from "@/hooks/useExistingStorageBucket";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ensureStorageBucket } from "@/services/storageService";
 
 interface ProductImageManagerProps {
   productId: string;
@@ -26,7 +27,28 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [directBucketCreationAttempted, setDirectBucketCreationAttempted] = useState(false);
   const BUCKET_NAME = "product-images";
+
+  // Function to directly ensure bucket exists before any other operations
+  const ensureBucketExists = useCallback(async () => {
+    if (directBucketCreationAttempted) return;
+    
+    try {
+      console.log("Attempting direct bucket creation as fallback");
+      setDirectBucketCreationAttempted(true);
+      const success = await ensureStorageBucket(BUCKET_NAME);
+      
+      if (success) {
+        console.log("Direct bucket creation successful");
+        toast.success("Storage bucket created successfully");
+      } else {
+        console.error("Direct bucket creation failed");
+      }
+    } catch (error) {
+      console.error("Error in direct bucket creation:", error);
+    }
+  }, [directBucketCreationAttempted]);
 
   const loadImages = useCallback(async () => {
     if (isLoadingImages) return;
@@ -34,6 +56,11 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     try {
       setIsLoadingImages(true);
       console.log(`Attempting to load images for product ${productId} from bucket ${BUCKET_NAME}`);
+      
+      // Ensure the bucket exists first
+      if (!directBucketCreationAttempted) {
+        await ensureBucketExists();
+      }
       
       // Check if product folder exists
       const { data: files, error } = await supabase.storage
@@ -44,6 +71,15 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       
       if (error) {
         console.error(`Error listing files in ${BUCKET_NAME}/${productId}:`, error);
+        
+        // If folder doesn't exist, it's not necessarily an error - might be empty
+        if (error.message.includes("not found")) {
+          console.log(`No folder found for product ${productId}, this is normal for new products`);
+          setImages([]);
+          setIsLoadingImages(false);
+          return;
+        }
+        
         setImages([]);
         setIsLoadingImages(false);
         return;
@@ -87,15 +123,29 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     } finally {
       setIsLoadingImages(false);
     }
-  }, [productId, onChange, isLoadingImages]);
+  }, [productId, onChange, isLoadingImages, ensureBucketExists, directBucketCreationAttempted]);
 
   // Use the hook to check the existing bucket
   const { error, isLoading } = useExistingStorageBucket(BUCKET_NAME, loadImages);
 
+  // Effect to force creation if hook fails
+  useEffect(() => {
+    if (error && !directBucketCreationAttempted) {
+      ensureBucketExists().then(() => {
+        // Try loading images again after direct creation
+        loadImages();
+      });
+    }
+  }, [error, directBucketCreationAttempted, ensureBucketExists, loadImages]);
+
   // Retry mechanism
   const handleRetry = async () => {
     setRetryCount(prev => prev + 1);
+    
     try {
+      // Force bucket creation first
+      await ensureBucketExists();
+      // Then try to load images again
       await loadImages();
       toast.success("Images reloaded successfully");
     } catch (err) {
@@ -111,6 +161,9 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     let uploadedCount = 0;
     
     try {
+      // Ensure bucket exists before upload
+      await ensureBucketExists();
+      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
@@ -149,6 +202,9 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       const filePath = `${productId}/${imageName}`;
       console.log(`Deleting file ${filePath} from bucket ${BUCKET_NAME}`);
       
+      // Ensure bucket exists before delete
+      await ensureBucketExists();
+      
       const success = await deleteFile(BUCKET_NAME, filePath);
       
       if (success) {
@@ -180,20 +236,28 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         <p className="text-sm text-muted-foreground mb-4">
           {error}
         </p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleRetry}
-          className="mt-2"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Retry
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRetry}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={ensureBucketExists}
+          >
+            Create Storage Bucket
+          </Button>
+        </div>
       </div>
     );
   }
 
-  if (isLoading) {
+  if (isLoading && !directBucketCreationAttempted) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-center h-10">
@@ -226,7 +290,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           onChange={handleFileChange}
           disabled={isUploading}
         />
-        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+        {isUploading && <Loader2 className="w-4 h-4 animate-spin" />}
         <Button 
           variant="ghost" 
           size="sm" 
