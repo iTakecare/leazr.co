@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Product, ProductAttributes } from "@/types/catalog";
@@ -17,20 +18,24 @@ const ProductVariantViewer: React.FC<ProductVariantViewerProps> = ({
 }) => {
   const [variant, setVariant] = useState<Product | null>(null);
 
-  const { data: variantPrice, isLoading, isError, error } = useQuery(
-    ["variantPrice", productId, selectedAttributes],
-    () => findVariantCombinationPrice(productId, selectedAttributes),
-    {
-      enabled: !!productId && Object.keys(selectedAttributes).length > 0,
-    }
-  );
+  // Convert ProductAttributes to Record<string, string> by stringifying values
+  const stringAttributes: Record<string, string> = {};
+  Object.entries(selectedAttributes).forEach(([key, value]) => {
+    stringAttributes[key] = String(value);
+  });
+
+  const { data: variantPrice, isLoading, isError, error } = useQuery({
+    queryKey: ["variantPrice", productId, stringAttributes],
+    queryFn: () => findVariantCombinationPrice(productId, stringAttributes),
+    enabled: !!productId && Object.keys(selectedAttributes).length > 0,
+  });
 
   useEffect(() => {
     if (variantPrice) {
       setVariant({
-        ...variantPrice,
-        price: variantPrice.price,
-        monthly_price: variantPrice.monthly_price,
+        ...variantPrice as unknown as Product,
+        price: (variantPrice as any).price,
+        monthly_price: (variantPrice as any).monthly_price,
       } as Product);
     } else {
       setVariant(null);
