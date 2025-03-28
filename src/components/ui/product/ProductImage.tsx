@@ -12,8 +12,12 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   
   // Get the best available image URL
   const getProductImage = (): string => {
-    // If there's a direct image_url, use that first
-    if (product?.image_url && typeof product.image_url === 'string' && product.image_url.trim() !== '') {
+    // If there's a direct image_url, use that first (if valid)
+    if (product?.image_url && 
+        typeof product.image_url === 'string' && 
+        product.image_url.trim() !== '' && 
+        !product.image_url.includes('.emptyFolderPlaceholder') && 
+        product.image_url !== '/placeholder.svg') {
       return product.image_url;
     }
     
@@ -25,6 +29,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         typeof url === 'string' && 
         url.trim() !== '' && 
         !url.includes('.emptyFolderPlaceholder') &&
+        !url.includes('undefined') &&
         url !== '/placeholder.svg'
       );
       

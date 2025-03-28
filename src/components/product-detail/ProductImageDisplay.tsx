@@ -15,23 +15,24 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
 }) => {
   // Filter valid images and deduplicate them
   const filterValidImages = (urls: string[]): string[] => {
-    const validUrls = new Set<string>();
+    // Create a set to deduplicate images (convert to Set and back to Array)
+    const uniqueUrlsSet = new Set<string>();
     
     // Add main image if valid
     if (isValidImageUrl(imageUrl)) {
-      validUrls.add(imageUrl);
+      uniqueUrlsSet.add(imageUrl);
     }
     
     // Add additional images if valid
     if (Array.isArray(urls)) {
       urls.forEach(url => {
         if (isValidImageUrl(url)) {
-          validUrls.add(url);
+          uniqueUrlsSet.add(url);
         }
       });
     }
     
-    return Array.from(validUrls);
+    return Array.from(uniqueUrlsSet);
   };
   
   // Helper function to check if an image URL is valid
@@ -45,7 +46,11 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     }
     
     // Exclude placeholder or hidden files
-    if (url.includes('.emptyFolderPlaceholder') || url.split('/').pop()?.startsWith('.')) {
+    if (
+      url.includes('.emptyFolderPlaceholder') || 
+      url.split('/').pop()?.startsWith('.') ||
+      url.includes('undefined')
+    ) {
       return false;
     }
     

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -80,7 +81,8 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const getProductImage = (): string => {
     if (product?.image_url && typeof product.image_url === 'string' && 
         product.image_url.trim() !== '' && 
-        !product.image_url.includes('.emptyFolderPlaceholder')) {
+        !product.image_url.includes('.emptyFolderPlaceholder') &&
+        !product.image_url.includes('undefined')) {
       return product.image_url;
     }
     
@@ -90,6 +92,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         typeof url === 'string' && 
         url.trim() !== '' && 
         !url.includes('.emptyFolderPlaceholder') &&
+        !url.includes('undefined') &&
         url !== '/placeholder.svg'
       );
       
@@ -161,6 +164,15 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     setIsLoading(false);
   };
 
+  // Add timestamp to prevent caching issues
+  const addTimestamp = (url: string): string => {
+    if (!url || url === "/placeholder.svg") return "/placeholder.svg";
+    
+    // Add a timestamp query parameter to prevent caching
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${new Date().getTime()}`;
+  };
+
   return (
     <Card 
       className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl hover:border-[#4ab6c4]/30"
@@ -173,7 +185,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           </div>
         )}
         <img 
-          src={imageUrl} 
+          src={addTimestamp(imageUrl)} 
           alt={product.name} 
           className="absolute inset-0 object-contain w-full h-full p-5"
           onLoad={handleImageLoad}
