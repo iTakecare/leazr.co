@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Product } from "@/types/catalog";
-import { toast } from "sonner";
 
 interface ProductImageProps {
   product: Product;
@@ -13,17 +11,23 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
   const [retryCount, setRetryCount] = useState(0);
   const loadingRef = useRef(false);
+  const initDoneRef = useRef(false);
   
   useEffect(() => {
-    // Réinitialiser les états quand le produit change
+    // Initialize only once per product
+    if (initDoneRef.current && product?.id === previousProductRef.current) return;
+    
+    // Reset states when product changes
     setIsLoading(true);
     setHasError(false);
+    initDoneRef.current = true;
+    previousProductRef.current = product?.id || null;
     
-    // Éviter les appels en double
+    // Avoid duplicate calls
     if (loadingRef.current) return;
     loadingRef.current = true;
     
-    // Obtenir la meilleure URL d'image
+    // Get the best image URL
     if (product) {
       const url = getBestImageUrl();
       setImageUrl(url);
@@ -34,39 +38,52 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     };
   }, [product, retryCount]);
   
+  // Keep track of previous product to avoid redundant processing
+  const previousProductRef = useRef<string | null>(null);
+  
   const getBestImageUrl = (): string => {
     if (!product) return "/placeholder.svg";
     
-    // Fonction de validation simple
+    // Simple validation function
     const isValidUrl = (url: string | null | undefined): boolean => {
       if (!url || typeof url !== 'string' || url.trim() === '') return false;
       if (url === '/placeholder.svg') return false;
       try {
-        // Validation URL de base
+        // Basic URL validation
         new URL(url);
         return true;
       } catch (e) {
-        console.warn(`Format d'URL invalide: ${url}`);
+        console.warn(`Invalid URL format: ${url}`);
         return false;
       }
     };
     
-    // D'abord vérifier image_url directement
+    // First check image_url directly
     if (isValidUrl(product.image_url as string)) {
       return product.image_url as string;
     }
     
-    // Ensuite vérifier le tableau image_urls
+    // Then check the image_urls array
     if (Array.isArray(product.image_urls) && product.image_urls.length > 0) {
       const validUrl = product.image_urls.find(url => isValidUrl(url));
       if (validUrl) return validUrl;
     }
     
-    // Revenir à l'image placeholder
+    // Check with imageUrl property name variations
+    if (isValidUrl(product.imageUrl as string)) {
+      return product.imageUrl as string;
+    }
+    
+    if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
+      const validUrl = product.imageUrls.find(url => isValidUrl(url));
+      if (validUrl) return validUrl;
+    }
+    
+    // Fall back to placeholder
     return "/placeholder.svg";
   };
   
-  // Gérer le chargement de l'image
+  // Handle image loading
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
@@ -77,57 +94,57 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     setIsLoading(false);
     setHasError(true);
     loadingRef.current = false;
-    console.error(`Échec de chargement d'image: ${imageUrl}`);
+    console.error(`Failed to load image: ${imageUrl}`);
     
-    // Réessayer avec un paramètre différent pour contourner le cache si erreur
-    if (retryCount < 2) {
+    // Retry with a different parameter to work around caching issues
+    if (retryCount < 2 && imageUrl !== "/placeholder.svg") {
       setTimeout(() => {
         setRetryCount(count => count + 1);
       }, 500);
     }
   };
   
-  // Ajouter un paramètre pour contourner le cache et forcer le type de contenu
+  // Add a parameter to work around caching and force content type
   const imageUrlWithCacheBuster = () => {
     if (imageUrl === "/placeholder.svg") return imageUrl;
     
     try {
-      // Ajouter un cache buster et le type de contenu
+      // Add a cache buster and content type
       const timestamp = Date.now();
       const separator = imageUrl.includes('?') ? '&' : '?';
       
-      // Détecter le format de l'image à partir de l'URL
+      // Detect image format from URL
       let contentType = 'image/jpeg';
       
-      // Vérifier le format WebP (vérifications plus spécifiques d'abord)
+      // Check WebP format (more specific checks first)
       if (imageUrl.toLowerCase().endsWith('.webp')) {
         contentType = 'image/webp';
       } else if (imageUrl.toLowerCase().includes('/webp')) {
         contentType = 'image/webp';
       } 
-      // Vérifier le format PNG
+      // Check PNG format
       else if (imageUrl.toLowerCase().endsWith('.png')) {
         contentType = 'image/png';
       } else if (imageUrl.toLowerCase().includes('/png')) {
         contentType = 'image/png';
       } 
-      // Vérifier le format GIF
+      // Check GIF format
       else if (imageUrl.toLowerCase().endsWith('.gif')) {
         contentType = 'image/gif';
       } else if (imageUrl.toLowerCase().includes('/gif')) {
         contentType = 'image/gif';
       } 
-      // Vérifier le format SVG
+      // Check SVG format
       else if (imageUrl.toLowerCase().endsWith('.svg')) {
         contentType = 'image/svg+xml';
       } else if (imageUrl.toLowerCase().includes('/svg')) {
         contentType = 'image/svg+xml';
       }
       
-      // Ajouter le type de contenu à l'URL et un compteur de réessais pour forcer le contournement du cache
+      // Add content type to URL and a retry counter to bypass caching
       return `${imageUrl}${separator}t=${timestamp}&r=${retryCount}&contentType=${encodeURIComponent(contentType)}`;
     } catch (e) {
-      console.error("Erreur de formatage de l'URL de l'image:", e);
+      console.error("Error formatting image URL:", e);
       return imageUrl;
     }
   };

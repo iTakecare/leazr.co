@@ -8,7 +8,6 @@ import { uploadImage, listFiles, deleteFile } from "@/services/fileUploadService
 import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureStorageBucket } from "@/services/storageService";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductImageManagerProps {
@@ -24,155 +23,110 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
 }) => {
   const [images, setImages] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
-  const [bucketError, setBucketError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const loadingRef = useRef(false);
-  const bucketInitializedRef = useRef(false);
-
-  // Fonction pour initialiser le bucket une seule fois
-  const initializeBucket = useCallback(async () => {
-    if (bucketInitializedRef.current) return true;
-    
-    try {
-      console.log("Initializing bucket: product-images");
-      const success = await ensureStorageBucket("product-images");
-      
-      if (success) {
-        console.log("Bucket initialized successfully");
-        bucketInitializedRef.current = true;
-        setBucketError(null);
-        return true;
-      } else {
-        console.error("Failed to initialize bucket");
-        setBucketError("Impossible d'accéder au stockage d'images. Veuillez réessayer.");
-        return false;
-      }
-    } catch (error) {
-      console.error("Error initializing bucket:", error);
-      setBucketError("Erreur lors de l'initialisation du stockage d'images");
-      return false;
-    }
-  }, []);
-
-  const loadImages = useCallback(async () => {
-    // Prévenir les appels en boucle
+  
+  // Load the images when the component mounts or when retryCount changes
+  useEffect(() => {
+    // Prevent loading if already in progress
     if (loadingRef.current) return;
-    loadingRef.current = true;
     
-    try {
+    const loadImages = async () => {
+      loadingRef.current = true;
       setIsLoadingImages(true);
-      console.log(`Attempting to load images for product ${productId} from bucket product-images`);
+      setErrorMessage(null);
       
-      // Vérifier que le bucket existe
-      const bucketReady = await initializeBucket();
-      if (!bucketReady) {
-        setIsLoadingImages(false);
-        loadingRef.current = false;
-        return;
-      }
-      
-      // Vérifier si le dossier du produit existe
-      const { data: files, error } = await supabase.storage
-        .from("product-images")
-        .list(productId, {
-          sortBy: { column: 'name', order: 'asc' }
-        });
-      
-      if (error) {
-        console.log(`Error or no folder found for product ${productId}: ${error.message}`);
+      try {
+        console.log(`Loading images for product ${productId} from product-images bucket`);
         
-        // Si le dossier n'existe pas, c'est normal pour un nouveau produit
-        if (error.message.includes("not found")) {
-          console.log(`No folder found for product ${productId}, this is normal for new products`);
-          setImages([]);
-        } else {
-          setBucketError(`Erreur lors du chargement des images: ${error.message}`);
+        // Check if we can list the bucket contents
+        const { data: files, error } = await supabase.storage
+          .from("product-images")
+          .list(productId, {
+            sortBy: { column: 'name', order: 'asc' }
+          });
+        
+        if (error) {
+          if (error.message.includes('does not exist') || error.message.includes('not found')) {
+            console.log(`No folder found for product ${productId}, this is normal for new products`);
+            setImages([]);
+            
+            if (onChange) {
+              onChange([]);
+            }
+          } else {
+            console.error(`Error loading images: ${error.message}`);
+            setErrorMessage(`Erreur lors du chargement des images: ${error.message}`);
+          }
+          
+          setIsLoadingImages(false);
+          loadingRef.current = false;
+          return;
         }
         
-        setIsLoadingImages(false);
-        loadingRef.current = false;
-        return;
-      }
-      
-      if (!files || files.length === 0) {
-        console.log(`No images found for product ${productId}`);
-        setImages([]);
-        setIsLoadingImages(false);
-        loadingRef.current = false;
+        if (!files || files.length === 0) {
+          console.log(`No images found for product ${productId}`);
+          setImages([]);
+          setIsLoadingImages(false);
+          loadingRef.current = false;
+          
+          if (onChange) {
+            onChange([]);
+          }
+          
+          return;
+        }
+        
+        // Filter for real files
+        const imageFiles = files
+          .filter(file => 
+            !file.name.startsWith('.') && 
+            file.name !== '.emptyFolderPlaceholder'
+          )
+          .map(file => {
+            const timestamp = Date.now();
+            const { publicUrl } = supabase.storage
+              .from("product-images")
+              .getPublicUrl(`${productId}/${file.name}`).data;
+            
+            return {
+              name: file.name,
+              url: `${publicUrl}?t=${timestamp}`,
+              isMain: false
+            };
+          });
+        
+        console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
+        setImages(imageFiles);
         
         if (onChange) {
-          onChange([]);
+          onChange(imageFiles);
         }
-        
-        return;
+      } catch (error) {
+        console.error("Error loading images:", error);
+        setErrorMessage(`Erreur lors du chargement des images: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        setImages([]);
+      } finally {
+        setIsLoadingImages(false);
+        loadingRef.current = false;
       }
-      
-      // Filtrer pour ne garder que les vrais fichiers
-      const imageFiles = files
-        .filter(file => 
-          !file.name.startsWith('.') && 
-          file.name !== '.emptyFolderPlaceholder'
-        )
-        .map(file => {
-          const timestamp = Date.now(); // Ajouter un timestamp pour éviter le cache
-          const { publicUrl } = supabase.storage
-            .from("product-images")
-            .getPublicUrl(`${productId}/${file.name}`).data;
-          
-          return {
-            name: file.name,
-            url: `${publicUrl}?t=${timestamp}`,
-            isMain: false
-          };
-        });
-      
-      console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
-      setImages(imageFiles);
-      
-      if (onChange) {
-        onChange(imageFiles);
-      }
-    } catch (error) {
-      console.error("Error loading images:", error);
-      setBucketError("Erreur lors du chargement des images");
-      setImages([]);
-    } finally {
-      setIsLoadingImages(false);
-      loadingRef.current = false;
-    }
-  }, [productId, onChange, initializeBucket]);
-
-  // Effet pour charger les images au montage ou quand l'ID du produit change
-  useEffect(() => {
-    // Reset l'état lors du changement de produit
-    setImages([]);
-    setBucketError(null);
-    bucketInitializedRef.current = false;
-    
-    // Initialiser le bucket puis charger les images
-    const initialize = async () => {
-      await initializeBucket();
-      await loadImages();
     };
     
-    initialize();
+    loadImages();
     
-    // Nettoyage lors du démontage
+    // Cleanup
     return () => {
       loadingRef.current = false;
-      bucketInitializedRef.current = false;
     };
-  }, [productId, initializeBucket, loadImages, retryCount]);
-
-  // Mécanisme de réessai
-  const handleRetry = async () => {
-    setBucketError(null);
-    bucketInitializedRef.current = false;
+  }, [productId, onChange, retryCount]);
+  
+  const handleRetry = () => {
     setRetryCount(prev => prev + 1);
-    toast.info("Tentative de rechargement des images...");
+    toast.info("Rafraîchissement des images...");
   };
-
+  
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -181,14 +135,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     let uploadedCount = 0;
     
     try {
-      // S'assurer que le bucket existe
-      const bucketReady = await initializeBucket();
-      if (!bucketReady) {
-        toast.error("Impossible d'accéder au stockage d'images");
-        setIsUploading(false);
-        return;
-      }
-      
+      // Try to upload directly without bucket check
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
@@ -198,64 +145,78 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         }
         
         console.log(`Uploading image ${file.name} to product-images/${productId}`);
-        const result = await uploadImage(file, "product-images", productId);
         
-        if (result) {
-          uploadedCount++;
+        // Direct upload to Supabase
+        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
+        const filePath = `${productId}/${fileName}`;
+        
+        const { data, error } = await supabase.storage
+          .from("product-images")
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+        
+        if (error) {
+          console.error('Error uploading file:', error);
+          toast.error(`Erreur lors de l'upload: ${error.message}`);
+          continue;
         }
+        
+        uploadedCount++;
       }
       
       if (uploadedCount > 0) {
         toast.success(`${uploadedCount} image(s) téléchargée(s) avec succès`);
-        await loadImages();
+        // Refresh the image list
+        setRetryCount(prev => prev + 1);
       }
     } catch (error) {
       console.error("Error uploading images:", error);
-      toast.error("Erreur lors du téléchargement des images");
+      toast.error("Erreur lors de l'upload des images");
     } finally {
       setIsUploading(false);
       
-      // Réinitialiser le champ de saisie
+      // Reset input field
       if (e.target) {
         e.target.value = '';
       }
     }
   };
-
+  
   const handleDelete = async (imageName: string) => {
     try {
       const filePath = `${productId}/${imageName}`;
       console.log(`Deleting file ${filePath} from bucket product-images`);
       
-      // S'assurer que le bucket existe
-      const bucketReady = await initializeBucket();
-      if (!bucketReady) {
-        toast.error("Impossible d'accéder au stockage d'images");
+      const { error } = await supabase.storage
+        .from("product-images")
+        .remove([filePath]);
+      
+      if (error) {
+        console.error('Error deleting file:', error);
+        toast.error(`Erreur lors de la suppression: ${error.message}`);
         return;
       }
       
-      const success = await deleteFile("product-images", filePath);
-      
-      if (success) {
-        toast.success("Image supprimée avec succès");
-        await loadImages();
-      } else {
-        toast.error("Erreur lors de la suppression de l'image");
-      }
+      toast.success("Image supprimée avec succès");
+      // Refresh the image list
+      setRetryCount(prev => prev + 1);
     } catch (error) {
       console.error("Error deleting image:", error);
       toast.error("Erreur lors de la suppression de l'image");
     }
   };
-
+  
   const handleSetMainImage = (imageUrl: string) => {
     if (onSetMainImage) {
       onSetMainImage(imageUrl);
       toast.success("Image principale définie avec succès");
     }
   };
-
-  if (bucketError) {
+  
+  // Handle the case where we couldn't access the storage bucket
+  if (errorMessage) {
     return (
       <div className="p-6 border border-red-300 bg-red-50 rounded-md">
         <div className="flex items-center gap-2 mb-4">
@@ -263,7 +224,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           <h3 className="font-medium">Erreur d'accès au stockage</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          {bucketError}
+          {errorMessage}
         </p>
         <div className="flex gap-2">
           <Button 
@@ -277,15 +238,18 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           <Button
             variant="default"
             size="sm"
-            onClick={initializeBucket}
+            onClick={() => {
+              const url = `https://supabase.com/dashboard/project/cifbetjefyfocafanlhv/storage/buckets`;
+              window.open(url, '_blank');
+            }}
           >
-            Créer l'espace de stockage
+            Vérifier les buckets de stockage
           </Button>
         </div>
       </div>
     );
   }
-
+  
   if (isLoadingImages && images.length === 0) {
     return (
       <div className="space-y-4">
