@@ -41,7 +41,12 @@ export const useProductDetails = (productId: string | undefined) => {
       // Extract variation attributes from variant combination prices if not directly provided
       const extractedAttributes: ProductVariationAttributes = {};
       
-      product.variant_combination_prices.forEach(price => {
+      // Ensure variant_combination_prices is an array before processing
+      const variantPrices = Array.isArray(product.variant_combination_prices) 
+        ? product.variant_combination_prices 
+        : [];
+        
+      variantPrices.forEach(price => {
         if (price.attributes) {
           Object.entries(price.attributes).forEach(([key, value]) => {
             if (!extractedAttributes[key]) {
