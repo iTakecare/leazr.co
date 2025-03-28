@@ -25,11 +25,13 @@ import VariantAttributeSelector from "./VariantAttributeSelector";
 interface ProductVariantManagerProps {
   product: Product;
   onVariantAdded?: () => void;
+  onSuccess?: () => void; // Added the onSuccess prop to fix the error
 }
 
 const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({ 
   product,
-  onVariantAdded
+  onVariantAdded,
+  onSuccess // Add this prop parameter
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -61,6 +63,12 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
   
   const variantsCount = countVariants();
   const hasVariants = variantsCount > 0;
+
+  // Helper function to handle updates and trigger onSuccess callback
+  const handleSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+    if (onSuccess) onSuccess();
+  };
   
   return (
     <div className="space-y-6">
@@ -103,6 +111,7 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
                 initialAttributes={product.variation_attributes}
                 onAttributesUpdated={() => {
                   queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+                  if (onSuccess) onSuccess(); // Call onSuccess when attributes are updated
                 }}
               />
             </TabsContent>
@@ -113,6 +122,7 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
                 onPriceAdded={() => {
                   queryClient.invalidateQueries({ queryKey: ["product", product.id] });
                   if (onVariantAdded) onVariantAdded();
+                  if (onSuccess) onSuccess(); // Call onSuccess when prices are added
                 }} 
               />
             </TabsContent>
@@ -123,6 +133,7 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
                 initialSpecifications={product.specifications as Record<string, string>}
                 onSpecificationsUpdated={() => {
                   queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+                  if (onSuccess) onSuccess(); // Call onSuccess when specifications are updated
                 }}
               />
             </TabsContent>
