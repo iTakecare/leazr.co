@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,12 +25,14 @@ import {
   Info,
   Layers,
   X,
-  Plus
+  Plus,
+  Tag
 } from "lucide-react";
 import { toast } from "sonner";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 import { Product } from "@/types/catalog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import AttributeManager from "@/components/catalog/AttributeManager";
 
 // Liste des catégories de produits
 const productCategories = [
@@ -108,14 +109,12 @@ const ProductEditPage = () => {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   
-  // Fetch product details
   const { data: product, isLoading, isError, error } = useQuery({
     queryKey: ["product", id],
     queryFn: () => getProductById(id || ""),
     enabled: !!id
   });
   
-  // Update form data when product data is loaded
   useEffect(() => {
     if (product) {
       setFormData({
@@ -132,13 +131,11 @@ const ProductEditPage = () => {
         variation_attributes: product.variation_attributes || {}
       });
       
-      // Set image preview if product has an image
       if (product.image_url) {
         setImagePreview(product.image_url);
         setImagePreviews([product.image_url]);
       }
       
-      // Add additional images if they exist
       if (product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
         const additionalImages = product.image_urls.filter(url => url !== product.image_url);
         setImagePreviews(prev => [...prev, ...additionalImages].slice(0, 5));
@@ -146,7 +143,6 @@ const ProductEditPage = () => {
     }
   }, [product]);
   
-  // Update mutation
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Product>) => updateProduct(id || "", data),
     onSuccess: () => {
@@ -159,7 +155,6 @@ const ProductEditPage = () => {
     }
   });
   
-  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: () => deleteProduct(id || ""),
     onSuccess: () => {
@@ -174,7 +169,6 @@ const ProductEditPage = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
-    // Handle numeric fields
     if (type === "number") {
       setFormData(prev => ({
         ...prev,
@@ -224,10 +218,8 @@ const ProductEditPage = () => {
     try {
       setIsUploading(true);
       
-      // Upload the image
       const imageUrl = await uploadProductImage(file, id, index === 0);
       
-      // Update the preview
       setImagePreviews(prev => {
         const updated = [...prev];
         updated[index] = imageUrl;
@@ -236,10 +228,8 @@ const ProductEditPage = () => {
       
       toast.success("Image téléchargée avec succès");
       
-      // Remove the file from the list since it's been uploaded
       setImageFiles(prev => prev.filter((_, i) => i !== index));
       
-      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       
       return imageUrl;
@@ -259,7 +249,6 @@ const ProductEditPage = () => {
     try {
       toast.info("Mise à jour du produit en cours...");
       
-      // Upload all new images
       if (imageFiles.length > 0) {
         for (let i = 0; i < imageFiles.length; i++) {
           const file = imageFiles[i];
@@ -270,7 +259,6 @@ const ProductEditPage = () => {
         }
       }
       
-      // Then update other product details
       await updateMutation.mutateAsync(formData);
       
     } catch (error: any) {
@@ -319,7 +307,7 @@ const ProductEditPage = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
+        <TabsList className="grid grid-cols-4 w-full max-w-md mx-auto mb-6">
           <TabsTrigger value="details">
             <Info className="h-4 w-4 mr-2" />
             Informations
@@ -331,6 +319,10 @@ const ProductEditPage = () => {
           <TabsTrigger value="variants">
             <Layers className="h-4 w-4 mr-2" />
             Variantes
+          </TabsTrigger>
+          <TabsTrigger value="attributes">
+            <Tag className="h-4 w-4 mr-2" />
+            Attributs
           </TabsTrigger>
         </TabsList>
         
@@ -582,6 +574,20 @@ const ProductEditPage = () => {
           
           <TabsContent value="variants">
             {product && <ProductVariantManager product={product} />}
+          </TabsContent>
+          
+          <TabsContent value="attributes">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gestion des attributs</CardTitle>
+                <CardDescription>
+                  Créez et gérez les attributs de produits qui peuvent être utilisés pour définir les variantes.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AttributeManager />
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <div className="flex justify-end mt-6">

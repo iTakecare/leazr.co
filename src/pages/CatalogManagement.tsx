@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tag, Award } from "lucide-react";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import BrandManager from "@/components/catalog/BrandManager";
+import AttributeManager from "@/components/catalog/AttributeManager";
 
 // Import refactored components
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
@@ -53,6 +54,9 @@ const CatalogManagement = () => {
               <Award className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Marques" : <span>Marques</span>}
             </TabsTrigger>
+            <TabsTrigger value="attributes">
+              Attributs
+            </TabsTrigger>
           </TabsList>
           
           {/* Tab content */}
@@ -82,6 +86,10 @@ const CatalogManagement = () => {
           
           <TabsContent value="brands">
             <BrandManager />
+          </TabsContent>
+          
+          <TabsContent value="attributes">
+            <AttributeManager />
           </TabsContent>
         </Tabs>
       </div>
